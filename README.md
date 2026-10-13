@@ -32,6 +32,8 @@ Uvjet "edge objašnjen pomakom Binancea" najvažnija je zaštita. Ako model vidi
 pip install -r requirements.txt
 python -m pytest -q                       # testovi matematike i strategije
 python simulate.py --windows 300          # Monte-Carlo, offline
+python replay.py                          # zadnjih 10 STVARNIH 5-min prozora (prave Binance 1-s cijene)
+python replay.py --last 20 --mm-lag 1.0   # više prozora / drugačije kašnjenje Polymarketa
 python main.py                            # PAPER trading na živim podacima (default)
 python main.py --binance-ws wss://stream.binance.us:9443/ws/btcusdt@bookTicker   # ako je binance.com blokiran
 ```
@@ -58,6 +60,12 @@ Logovi se pišu u `logs/trades.csv` i `logs/windows.csv`.
 | 2.0 s | +12.4 $ | 36.1 | 48% |
 
 Kad kašnjenja nema i kotacije se osvježavaju svakih 0.1 s, edge pada na ≈0, što je i očekivano.
+
+## Replay na stvarnim prozorima (`replay.py`)
+
+Skripta povuče prave 1-sekundne BTCUSDT cijene s Binancea za zadnjih N završenih 5-min prozora. Uz njih uzme i 10 min prije, za procjenu volatilnosti. Bot zatim trguje na stvarnom kretanju BTC-a. Ispisuje tablicu po prozoru: strike, close, ishod, stvarni ishod na Polymarketu (ako je Gamma API dostupan), kupljene UP/DOWN dionice, fee, zaključani najgori PnL i PnL.
+
+Povijesna Polymarket knjiga naloga nije javno dostupna, pa je **strana Polymarketa simulirana** (market maker koji kasni `--mm-lag` s). Kretanje BTC-a je stvarno, a koliko bi stvarno zaradio ovisi o tome koliko Polymarket u praksi kasni. Pravi odgovor daje tek `python main.py` u paper modu.
 
 ## ⚠️ Iskreno upozorenje
 

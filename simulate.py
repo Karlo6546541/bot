@@ -47,25 +47,34 @@ def make_books(q_mm: float, half_spread: float, rng: random.Random) -> tuple[Boo
     return Book(up_bids, up_asks), Book(dn_bids, dn_asks)
 
 
-def run_window(cfg: Config, rng: random.Random, a) -> dict:
+def run_window(cfg: Config, rng: random.Random, a, path: list[float] | None = None,
+               warmup: list[float] | None = None) -> dict:
+    """path: cijene na mreži od 0.1 s (n+1 točaka). Ako None, generira se sintetički put.
+    warmup: 1-s cijene prije prozora za zagrijavanje estimatora volatilnosti."""
     dt = 0.1
     T = cfg.window_sec
     n = int(T / dt)
     sig = annual_to_sec_sigma(a.sigma)
-    # cijeli put unaprijed (MM-u treba prošlost, botu sadašnjost)
-    S0 = 60000.0 * math.exp(rng.gauss(0, 0.05))
-    path = [S0]
-    for _ in range(n):
-        path.append(path[-1] * math.exp(sig * math.sqrt(dt) * t_shock(rng, 4.0)))
-    strike = S0
+    real = path is not None
+    if not real:
+        # cijeli put unaprijed (MM-u treba prošlost, botu sadašnjost)
+        S0 = 60000.0 * math.exp(rng.gauss(0, 0.05))
+        path = [S0]
+        for _ in range(n):
+            path.append(path[-1] * math.exp(sig * math.sqrt(dt) * t_shock(rng, 4.0)))
+    strike = path[0]
     strat = Strategy(cfg)
     inv = Inventory()
     vol = EwmaVol(annual_to_sec_sigma(cfg.sigma_prior_annual), cfg.vol_halflife_sec, cfg.vol_sample_sec)
     # zagrij estimator volatilnosti s 10 min "prošlosti"
-    p = S0
-    for k in range(600):
-        p *= math.exp(sig * t_shock(rng, 4.0))
-        vol.update(p, -600 + k)
+    if warmup:
+        for k, p in enumerate(warmup):
+            vol.update(p, -len(warmup) + k)
+    else:
+        p = path[0]
+        for k in range(600):
+            p *= math.exp(sig * t_shock(rng, 4.0))
+            vol.update(p, -600 + k)
 
     lag_steps = int(round(a.mm_lag / dt))
     requote_steps = max(int(round(a.mm_requote / dt)), 1)
@@ -83,7 +92,8 @@ def run_window(cfg: Config, rng: random.Random, a) -> dict:
         if i % requote_steps == 0:
             ref = path[max(i - lag_steps, 0)]
             mm_noise = 0.8 * mm_noise + rng.gauss(0, a.mm_noise)
-            q_mm = prob_up(ref, strike, sig, max(tau, 1e-3), 4.0) + mm_noise
+            mm_sig = vol.sigma if real else sig   # na pravim podacima MM ne zna "pravu" sigmu
+            q_mm = prob_up(ref, strike, mm_sig, max(tau, 1e-3), 4.0) + mm_noise
             up_book, dn_book = make_books(q_mm, a.half_spread, rng)
         vol.update(path[i], t)
 
@@ -119,14 +129,13 @@ def run_window(cfg: Config, rng: random.Random, a) -> dict:
     pnl = inv.settle(up_won)
     leg_wins = sum(1 for s, sh in legs if sh > 0 and (s == UP) == up_won)
     leg_buys = sum(1 for _, sh in legs if sh > 0)
-    return dict(pnl=pnl, fees=inv.fees, spent=inv.spent, traded=inv.n_trades > 0,
+    return dict(pnl=pnl, up_won=up_won, strike=strike, close=path[-1], n_up=inv.n_up, n_down=inv.n_down,
+                n_trades=inv.n_trades, worst=inv.worst_case_pnl(), fees=inv.fees, spent=inv.spent, traded=inv.n_trades > 0,
                 locked=inv.worst_case_pnl() > 0, leg_wins=leg_wins, leg_buys=leg_buys,
                 hedged=min(inv.n_up, inv.n_down), gross=max(inv.n_up, inv.n_down))
 
 
-def main():
-    ap = argparse.ArgumentParser()
-    ap.add_argument("--windows", type=int, default=200)
+def add_world_args(ap: argparse.ArgumentParser) -> None:
     ap.add_argument("--seed", type=int, default=7)
     ap.add_argument("--sigma", type=float, default=0.55, help="godišnja volatilnost BTC")
     ap.add_argument("--mm-lag", type=float, default=1.5, help="kašnjenje Polymarket MM-a (s)")
@@ -137,6 +146,12 @@ def main():
     ap.add_argument("--competitor-prob", type=float, default=0.3)
     ap.add_argument("--basis-err", type=float, default=2e-5)
     ap.add_argument("--no-fee", action="store_true")
+
+
+def main():
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--windows", type=int, default=200)
+    add_world_args(ap)
     a = ap.parse_args()
 
     cfg = Config()
