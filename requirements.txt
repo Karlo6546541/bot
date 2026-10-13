@@ -1,0 +1,4 @@
+websockets>=12.0
+aiohttp>=3.9
+py-clob-client>=0.23  # samo za --live
+pytest>=8.0
