@@ -289,9 +289,24 @@ class Strategy:
                 break
 
         taken = math.floor(taken * 100) / 100
+        if worst is not None and taken < c.min_shares:
+            taken = self._round_up(taken, book.asks, worst, cap_usd, buy=True)
         if worst is None or taken < c.min_shares:
             return None
         return Order(side, BUY, worst, taken, reason or "?", best_edge or 0.0)
+
+    def _round_up(self, taken: float, levels, worst: float, cap_usd: float, buy: bool, held: float = 0.0) -> float:
+        """Mali bankroll: Kelly često da < 5 dionica (Polymarket minimum). Ako je željena
+        količina barem round_up_frac * min_shares, a knjiga i limit to dopuštaju, uzmi minimum."""
+        c = self.cfg
+        if taken < c.round_up_frac * c.min_shares:
+            return taken
+        depth = sum(s for p, s in levels if (p <= worst + 1e-9 if buy else p >= worst - 1e-9))
+        if depth < c.min_shares or c.min_shares * worst > cap_usd + 1e-9:
+            return taken
+        if not buy and held < c.min_shares:
+            return taken
+        return c.min_shares
 
     # ------------------------------------------------------------ 3b) prodaja zastarjelih bidova
     def _sell_side(self, side: str, v: MarketView, f: Fair, inv: Inventory) -> Order | None:
@@ -328,6 +343,8 @@ class Strategy:
             if take < size:
                 break
         sold = math.floor(sold * 100) / 100
+        if worst is not None and sold < c.min_shares:
+            sold = self._round_up(sold, book.bids, worst, c.max_order_usd, buy=False, held=held)
         if worst is None or sold < c.min_shares:
             return None
         return Order(side, SELL, worst, sold, "STALE_BID", best_edge or 0.0)

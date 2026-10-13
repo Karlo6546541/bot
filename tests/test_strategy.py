@@ -81,3 +81,14 @@ def test_no_trading_near_expiry():
     s = Strategy(Config())
     up, dn = books(0.49, 0.51)
     assert s.decide(view(60060, 60000, up, dn, t=290), Inventory()) == []
+
+
+def test_small_bankroll_limits_and_round_up():
+    cfg = Config().apply_bankroll(50)
+    assert (cfg.max_order_usd, cfg.max_window_usd, cfg.max_loss_usd) == (4.0, 10.0, 15.0)
+    s = Strategy(cfg)
+    up, dn = books(0.49, 0.51)
+    orders = s.decide(view(60060, 60000, up, dn), Inventory())
+    # Kelly s R=25 da < 5 dionica -> zaokruženo na Polymarket minimum, ali unutar limita naloga
+    assert len(orders) == 1 and orders[0].shares >= cfg.min_shares
+    assert orders[0].notional <= cfg.max_order_usd + 1e-9

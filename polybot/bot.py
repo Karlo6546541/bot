@@ -54,6 +54,10 @@ class Bot:
         async with aiohttp.ClientSession(trust_env=True) as session:
             try:
                 while True:
+                    if self.cfg.max_loss_usd > 0 and self.total_pnl <= -self.cfg.max_loss_usd:
+                        log.error("STOP-LOSS: PnL %.2f <= -%.2f, bot se zaustavlja", self.total_pnl,
+                                  self.cfg.max_loss_usd)
+                        return
                     now = time.time()
                     t0 = int(now // self.cfg.window_sec) * self.cfg.window_sec
                     if now > t0 + self.cfg.window_sec - self.cfg.stop_before_end_sec - 5:

@@ -146,6 +146,7 @@ def add_world_args(ap: argparse.ArgumentParser) -> None:
     ap.add_argument("--competitor-prob", type=float, default=0.3)
     ap.add_argument("--basis-err", type=float, default=2e-5)
     ap.add_argument("--no-fee", action="store_true")
+    ap.add_argument("--bankroll", type=float, help="skaliraj limite na bankroll (npr. 50)")
 
 
 def main():
@@ -155,6 +156,8 @@ def main():
     a = ap.parse_args()
 
     cfg = Config()
+    if a.bankroll:
+        cfg.apply_bankroll(a.bankroll)
     if a.no_fee:
         cfg = replace(cfg, fee_rate=0.0)
     rng = random.Random(a.seed)

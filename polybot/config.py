@@ -41,7 +41,9 @@ class Config:
     kelly_mult: float = 0.5             # R = kelly_mult * bankroll (frakcijski Kelly)
     max_order_usd: float = 50.0
     max_window_usd: float = 200.0
-    min_shares: float = 5.0
+    min_shares: float = 5.0             # Polymarket minimalni nalog
+    round_up_frac: float = 0.5          # Kelly ispod min_shares, ali >= ovog udjela -> zaokruži na min_shares
+    max_loss_usd: float = 0.0           # stop-loss za cijelu sesiju (0 = isključen)
     side_cooldown_sec: float = 0.5
     min_price: float = 0.03
     max_price: float = 0.97
@@ -61,6 +63,15 @@ class Config:
 
     # --- logovi ---
     log_dir: str = "logs"
+
+    def apply_bankroll(self, bankroll: float, order_frac: float = 0.08, window_frac: float = 0.20,
+                       loss_frac: float = 0.30) -> "Config":
+        """Skaliraj limite na bankroll. Za 50: nalog 4, prozor 10, stop-loss 15."""
+        self.bankroll_usd = bankroll
+        self.max_order_usd = round(bankroll * order_frac, 2)
+        self.max_window_usd = round(bankroll * window_frac, 2)
+        self.max_loss_usd = round(bankroll * loss_frac, 2)
+        return self
 
     @property
     def risk_tolerance_usd(self) -> float:

@@ -114,6 +114,8 @@ def main():
     a = ap.parse_args()
 
     cfg = Config()
+    if a.bankroll:
+        cfg.apply_bankroll(a.bankroll)
     if a.no_fee:
         cfg.fee_rate = 0.0
     W = cfg.window_sec
@@ -132,18 +134,24 @@ def main():
     rng = random.Random(a.seed)
     print(f"\nmm_lag={a.mm_lag}s  requote={a.mm_requote}s  exec_lat={a.exec_latency}s  "
           f"competitor={a.competitor_prob:.0%}  fee={'off' if a.no_fee else 'on'}\n")
-    hdr = f"{'prozor (UTC)':<17}{'strike':>10}{'close':>10} {'ishod':<6}{'PM':<6}{'UP':>7}{'DOWN':>7}{'nalozi':>7}{'fee':>7}{'najgore':>9}{'PnL $':>9}"
+    hdr = f"{'prozor (UTC)':<17}{'strike':>10}{'close':>10} {'ishod':<6}{'PM':<6}{'UP':>7}{'DOWN':>7}{'nalozi':>7}{'fee':>7}{'najgore':>9}{'PnL $':>9}{'stanje':>9}"
     print(hdr)
     print("-" * len(hdr))
     total = 0.0
+    balance = cfg.bankroll_usd
+    stopped = False
     wins = traded = 0
     legs_w = legs_b = 0
     for k in range(a.last):
         t0 = first + k * W
         sec = series(closes, t0, t0 + W + 1)
         warmup = series(closes, t0 - warm, t0)
+        if cfg.max_loss_usd > 0 and total <= -cfg.max_loss_usd:
+            stopped = True
+            break
         r = run_window(cfg, rng, a, path=to_grid(sec), warmup=warmup)
         total += r["pnl"]
+        balance += r["pnl"]
         if r["n_trades"]:
             traded += 1
             wins += r["pnl"] > 0
@@ -152,8 +160,12 @@ def main():
         pm = "-" if a.no_pm_check or a.csv else pm_outcome(cfg, t0)
         ts = time.strftime("%m-%d %H:%M", time.gmtime(t0))
         print(f"{ts:<17}{r['strike']:>10.2f}{r['close']:>10.2f} {'UP' if r['up_won'] else 'DOWN':<6}{pm:<6}"
-              f"{r['n_up']:>7.1f}{r['n_down']:>7.1f}{r['n_trades']:>7}{r['fees']:>7.2f}{r['worst']:>9.2f}{r['pnl']:>9.2f}")
+              f"{r['n_up']:>7.1f}{r['n_down']:>7.1f}{r['n_trades']:>7}{r['fees']:>7.2f}{r['worst']:>9.2f}{r['pnl']:>9.2f}{balance:>9.2f}")
     print("-" * len(hdr))
+    if stopped:
+        print(f"STOP-LOSS aktiviran (gubitak >= {cfg.max_loss_usd:.2f})")
+    print(f"bankroll {cfg.bankroll_usd:.2f} -> {balance:.2f}  ({100 * total / cfg.bankroll_usd:+.1f}%)   "
+          f"limiti: nalog {cfg.max_order_usd:.2f}, prozor {cfg.max_window_usd:.2f}, stop-loss {cfg.max_loss_usd:.2f}")
     print(f"UKUPNO PnL: {total:+.2f} $   |   profitabilnih prozora: {wins}/{traded}   |   "
           f"pogodak smjera po nalogu: {100 * legs_w / max(legs_b, 1):.0f}% ({legs_b} kupnji)")
     print("\n'najgore' = zaključani PnL u najgorem ishodu (>0 znači profit siguran bez obzira na smjer)")

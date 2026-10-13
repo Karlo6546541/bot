@@ -11,7 +11,7 @@ from polybot.config import Config
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--live", action="store_true", help="šalji prave naloge (default: paper)")
-    ap.add_argument("--bankroll", type=float)
+    ap.add_argument("--bankroll", type=float, help="npr. 50 -> nalog 4, prozor 10, stop-loss 15 (USDC)")
     ap.add_argument("--max-window-usd", type=float)
     ap.add_argument("--min-edge", type=float)
     ap.add_argument("--binance-ws", type=str, help="npr. wss://stream.binance.us:9443/ws/btcusdt@bookTicker")
@@ -22,7 +22,7 @@ def main():
     if a.live:
         cfg.live = True
     if a.bankroll:
-        cfg.bankroll_usd = a.bankroll
+        cfg.apply_bankroll(a.bankroll)
     if a.max_window_usd:
         cfg.max_window_usd = a.max_window_usd
     if a.min_edge is not None:
@@ -33,8 +33,9 @@ def main():
     logging.basicConfig(level=logging.DEBUG if a.verbose else logging.INFO,
                         format="%(asctime)s %(levelname)s %(name)s: %(message)s")
     logging.getLogger("websockets").setLevel(logging.WARNING)
-    logging.info("mode=%s bankroll=%.0f R=%.0f max_window=%.0f", "LIVE" if cfg.live else "PAPER",
-                 cfg.bankroll_usd, cfg.risk_tolerance_usd, cfg.max_window_usd)
+    logging.info("mode=%s bankroll=%.0f R=%.0f max_order=%.2f max_window=%.2f stop_loss=%.2f",
+                 "LIVE" if cfg.live else "PAPER", cfg.bankroll_usd, cfg.risk_tolerance_usd,
+                 cfg.max_order_usd, cfg.max_window_usd, cfg.max_loss_usd)
     asyncio.run(Bot(cfg).run())
 
 

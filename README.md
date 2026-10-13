@@ -46,6 +46,17 @@ export POLY_SIGNATURE_TYPE=1           # 0=EOA, 1=email/Magic, 2=browser proxy
 python main.py --live --bankroll 200 --max-window-usd 50
 ```
 
+### Mali bankroll (npr. 50 €)
+
+```bash
+python replay.py --bankroll 50            # replay zadnjih 10 prozora s 50
+python simulate.py --windows 300 --bankroll 50
+python main.py --bankroll 50              # paper
+python main.py --live --bankroll 50       # live
+```
+
+`--bankroll B` skalira limite: nalog 8% (4 za 50), prozor 20% (10), stop-loss 30% (15). Kad gubitak sesije dosegne stop-loss, bot se zaustavi. Kelly s malim bankrollom često traži manje od Polymarketova minimuma od 5 dionica. Ako želi barem 2.5 dionice, a knjiga i limit to dopuštaju, nalog se zaokruži na 5. Polymarket radi u USDC-u, pa je 50 € ≈ 50 € pretvoreno u USDC na Polygonu.
+
 Svi parametri iz `polybot/config.py` mogu se postaviti kroz env, npr. `POLYBOT_MIN_EDGE=0.02`.
 Logovi se pišu u `logs/trades.csv` i `logs/windows.csv`.
 
