@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../models/device.dart';
+import '../models/portfolio_point.dart';
 import '../models/user_status.dart';
 import '../providers/app_providers.dart';
 import '../providers/app_state.dart';
@@ -10,6 +11,7 @@ import '../widgets/category_style.dart';
 import '../widgets/device_card.dart';
 import '../widgets/empty_state.dart';
 import '../widgets/formatters.dart';
+import '../widgets/portfolio_chart.dart';
 import '../widgets/status_badge.dart';
 import '../widgets/trade_actions.dart';
 import 'device_detail_screen.dart';
@@ -46,21 +48,31 @@ class PortfolioScreen extends ConsumerWidget {
             ),
           ),
         ),
+        SliverToBoxAdapter(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+            child: PortfolioChart(
+              history: state.myHistory,
+              current: PortfolioPoint(
+                time: DateTime.now(),
+                credits: user.credits,
+                portfolio: portfolioValue,
+              ),
+            ),
+          ),
+        ),
         if (devices.isNotEmpty)
           SliverToBoxAdapter(
             child: Padding(
               padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-              child: _CategoryBreakdown(
-                values: AppState.valueByCategory(devices),
-                total: portfolioValue,
-              ),
+              child: _Breakdown.of(devices),
             ),
           ),
         SliverToBoxAdapter(
           child: Padding(
             padding: const EdgeInsets.fromLTRB(16, 4, 16, 12),
             child: Text(
-              'Moji uređaji',
+              'Moji predmeti',
               style: Theme.of(
                 context,
               ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700),
@@ -73,7 +85,7 @@ class PortfolioScreen extends ConsumerWidget {
             child: EmptyState(
               icon: Icons.inventory_2_outlined,
               title: 'Portfolio je prazan',
-              message: 'Dodaj svoj uređaj ili kupi nešto u Marketu.',
+              message: 'Dodaj svoj predmet ili kupi nešto u Marketu.',
               action: OutlinedButton.icon(
                 onPressed: onGoToMarket,
                 icon: const Icon(Icons.storefront),
@@ -219,7 +231,7 @@ class _CreditsHero extends StatelessWidget {
                       label: 'Portfolio',
                       value: formatCredits(portfolioValue),
                     ),
-                    _Stat(label: 'Uređaji', value: '$deviceCount'),
+                    _Stat(label: 'Predmeti', value: '$deviceCount'),
                   ],
                 ),
                 const SizedBox(height: 18),
@@ -294,56 +306,108 @@ class _StatusProgress extends StatelessWidget {
   }
 }
 
-/// Raspodjela vrijednosti portfolija po kategorijama (segmentirana traka).
-class _CategoryBreakdown extends StatelessWidget {
-  const _CategoryBreakdown({required this.values, required this.total});
-  final Map<DeviceCategory, double> values;
-  final double total;
+class _Slice {
+  const _Slice(this.label, this.icon, this.color, this.value);
+  final String label;
+  final IconData icon;
+  final Color color;
+  final double value;
+}
+
+/// Raspodjela vrijednosti portfolija (segmentirana traka). Grupira po
+/// odjeljcima; ako su svi predmeti u jednom odjeljku, po kategorijama.
+/// Redoslijed segmenata prati fiksni red odjeljaka/kategorija, pa boja
+/// uvijek pripada istom entitetu.
+class _Breakdown extends StatelessWidget {
+  const _Breakdown({required this.title, required this.slices});
+
+  factory _Breakdown.of(List<Device> devices) {
+    final bySection = AppState.valueBySection(devices);
+    if (bySection.length > 1) {
+      return _Breakdown(
+        title: 'Raspodjela po odjeljcima',
+        slices: [
+          for (final sec in ItemSection.values)
+            if (bySection[sec] != null)
+              _Slice(sec.label, sec.icon, sec.color, bySection[sec]!),
+        ],
+      );
+    }
+    final byCat = AppState.valueByCategory(devices);
+    return _Breakdown(
+      title: 'Raspodjela po kategorijama',
+      slices: [
+        for (final c in DeviceCategory.values)
+          if (byCat[c] != null) _Slice(c.label, c.icon, c.color, byCat[c]!),
+      ],
+    );
+  }
+
+  final String title;
+  final List<_Slice> slices;
 
   @override
   Widget build(BuildContext context) {
-    final entries = values.entries.toList()
-      ..sort((a, b) => b.value.compareTo(a.value));
+    final total = slices.fold(0.0, (sum, x) => sum + x.value);
+    String pct(_Slice x) => '${(x.value / total * 100).round()}%';
+
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
-              'Raspodjela po kategorijama',
-              style: TextStyle(fontWeight: FontWeight.w700),
-            ),
+            Text(title, style: const TextStyle(fontWeight: FontWeight.w700)),
             const SizedBox(height: 12),
             ClipRRect(
               borderRadius: BorderRadius.circular(999),
               child: SizedBox(
-                height: 10,
+                height: 12,
                 child: Row(
                   children: [
-                    for (final e in entries)
+                    for (var i = 0; i < slices.length; i++) ...[
+                      // 2px razmak u boji pozadine između segmenata.
+                      if (i > 0) const SizedBox(width: 2),
                       Expanded(
                         // flex mora biti cijeli broj; promili su dovoljno precizni.
-                        flex: (e.value / total * 1000).round().clamp(1, 1000),
-                        child: Container(color: e.key.color),
+                        flex: (slices[i].value / total * 1000).round().clamp(
+                          1,
+                          1000,
+                        ),
+                        child: Tooltip(
+                          message:
+                              '${slices[i].label}: ${formatCredits(slices[i].value)} (${pct(slices[i])})',
+                          child: Container(color: slices[i].color),
+                        ),
                       ),
+                    ],
                   ],
                 ),
               ),
             ),
             const SizedBox(height: 12),
+            // Legenda: obojena oznaka uz tekst u neutralnoj boji.
             Wrap(
               spacing: 16,
               runSpacing: 8,
               children: [
-                for (final e in entries)
+                for (final x in slices)
                   Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Icon(e.key.icon, size: 16, color: e.key.color),
+                      Container(
+                        width: 10,
+                        height: 10,
+                        decoration: BoxDecoration(
+                          color: x.color,
+                          borderRadius: BorderRadius.circular(3),
+                        ),
+                      ),
                       const SizedBox(width: 6),
+                      Icon(x.icon, size: 14, color: LoopColors.textSecondary),
+                      const SizedBox(width: 4),
                       Text(
-                        '${e.key.label} · ${(e.value / total * 100).round()}%',
+                        '${x.label} · ${pct(x)}',
                         style: const TextStyle(
                           color: LoopColors.textSecondary,
                           fontSize: 12,

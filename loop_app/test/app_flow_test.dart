@@ -30,6 +30,9 @@ void main() {
       // Portfolio demo korisnika
       expect(find.text('1,250.00'), findsOneWidget);
       expect(find.text('SILVER'), findsOneWidget);
+      // Popis predmeta je ispod grafikona — skrolaj do njega.
+      await tester.scrollUntilVisible(find.text('iPhone 13'), 300);
+      await tester.pumpAndSettle();
       expect(find.text('iPhone 13'), findsOneWidget);
 
       // Prodaja
@@ -41,6 +44,7 @@ void main() {
       await tester.tap(find.text('Potvrdi prodaju'));
       await tester.pumpAndSettle();
       expect(find.text('Uspješno prodano'), findsOneWidget);
+      await tester.scrollUntilVisible(find.text('1,544.50'), -300);
       expect(find.text('1,544.50'), findsOneWidget);
 
       // Kupnja (AirPods Pro 2: 185 + 5% = 194.25)
@@ -93,7 +97,10 @@ void main() {
     await tester.tap(find.text('Market').last);
     await tester.pumpAndSettle();
 
-    // Čip "Konzole" filtrira na PS5 i Switch.
+    // Odjeljak "Elektronika", pa čip "Konzole" filtrira na PS5 i Switch.
+    await tester.tap(find.text('Elektronika'));
+    await tester.pumpAndSettle();
+    expect(find.text('Charizard Holo'), findsNothing);
     await tester.ensureVisible(find.text('Konzole'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Konzole'));
@@ -122,5 +129,44 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Ukupno plaćaš'), findsOneWidget);
     expect(find.text('1,029.00 LC'), findsOneWidget); // 980 + 5%
+  });
+
+  testWidgets('odjeljci i grafikon portfolija', (tester) async {
+    tester.view.physicalSize = const Size(1400, 1000);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+
+    await tester.pumpWidget(await buildApp(tester));
+    await tester.tap(find.text('Prijavi se'));
+    await tester.pumpAndSettle();
+
+    // Grafikon i promjena raspona.
+    expect(find.text('Vrijednost portfolija'), findsOneWidget);
+    await tester.tap(find.text('Sve'));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('ukupno'), findsOneWidget);
+    // Hover/dodir na grafikon prikazuje tooltip s iznosom.
+    final chart = find
+        .byType(CustomPaint)
+        .evaluate()
+        .map((e) => e.widget)
+        .whereType<CustomPaint>()
+        .where((w) => w.painter?.runtimeType.toString() == '_ChartPainter');
+    expect(chart, isNotEmpty);
+    // Tablični prikaz.
+    await tester.tap(find.byTooltip('Prikaži tablicu'));
+    await tester.pumpAndSettle();
+    expect(find.text('Ukupno'), findsOneWidget);
+
+    // Market: odjeljak Rukotvorine.
+    await tester.tap(find.text('Market').last);
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(find.text('Rukotvorine'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Rukotvorine'));
+    await tester.pumpAndSettle();
+    expect(find.text('Keramička šalica'), findsOneWidget);
+    expect(find.text('iPhone 15 Pro'), findsNothing);
+    expect(find.text('Nakit'), findsWidgets); // čip kategorije + kartica
   });
 }

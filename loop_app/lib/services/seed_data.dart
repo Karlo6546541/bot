@@ -1,5 +1,8 @@
 import '../models/app_user.dart';
+import 'dart:math';
+
 import '../models/device.dart';
+import '../models/portfolio_point.dart';
 
 /// Demo podaci koji se kreiraju pri prvom pokretanju (i nakon resetiranja).
 class SeedData {
@@ -47,6 +50,7 @@ class SeedData {
       );
     }
 
+    const nw = DeviceCondition.brandNew;
     const ex = DeviceCondition.excellent;
     const vg = DeviceCondition.veryGood;
     const gd = DeviceCondition.good;
@@ -75,6 +79,182 @@ class SeedData {
       d('Sony A7 III', 'Body', vg, 980, DeviceCategory.camera),
       d('PlayStation 5', 'Disc 825GB', vg, 380, DeviceCategory.console),
       d('Nintendo Switch OLED', '64GB', ex, 230, DeviceCategory.console),
+      // Kolekcionarstvo
+      d(
+        'Charizard Holo',
+        'Pokémon Base Set 1999',
+        vg,
+        450,
+        DeviceCategory.cards,
+      ),
+      d(
+        'Prigodna kovanica 25 kn',
+        'Ulazak u EU, 2013.',
+        ex,
+        60,
+        DeviceCategory.coins,
+      ),
+      d(
+        'Album poštanskih maraka',
+        'Jugoslavija 1960–1980',
+        gd,
+        120,
+        DeviceCategory.stamps,
+      ),
+      d(
+        'Star Wars figure',
+        'Vintage Kenner, 6 kom',
+        gd,
+        210,
+        DeviceCategory.figures,
+      ),
+      d(
+        'Pink Floyd – The Dark Side of the Moon',
+        'LP, 1973.',
+        vg,
+        140,
+        DeviceCategory.vinyl,
+      ),
+      // Hobiji
+      d(
+        'Električna gitara',
+        'Fender Squier Strat',
+        vg,
+        260,
+        DeviceCategory.instruments,
+      ),
+      d('Brdski bicikl', 'Trek Marlin 5, M', gd, 520, DeviceCategory.sport),
+      d(
+        'Catan',
+        'Osnovna igra + 2 proširenja',
+        ex,
+        55,
+        DeviceCategory.boardGames,
+      ),
+      d(
+        'Harry Potter 1–7',
+        'Tvrdi uvez, HR izdanje',
+        vg,
+        70,
+        DeviceCategory.books,
+      ),
+      d(
+        'LEGO Millennium Falcon',
+        '75257, složen',
+        ex,
+        130,
+        DeviceCategory.models,
+      ),
+      // Rukotvorine
+      d(
+        'Keramička šalica',
+        'Ručno rađena, 350 ml',
+        nw,
+        25,
+        DeviceCategory.ceramics,
+      ),
+      d(
+        'Pleteni džemper',
+        'Merino vuna, vel. M',
+        nw,
+        80,
+        DeviceCategory.textile,
+      ),
+      d('Srebrne naušnice', 'Ručni rad, 925', nw, 65, DeviceCategory.jewelry),
+      d('Daska za rezanje', 'Masivni orah', nw, 45, DeviceCategory.woodwork),
+      d(
+        'Ulje na platnu',
+        'Dalmatinska obala, 50×70',
+        ex,
+        220,
+        DeviceCategory.paintings,
+      ),
+      // Aktivnosti
+      d(
+        'Radionica keramike',
+        '1 termin, 3 h, Zagreb',
+        nw,
+        45,
+        DeviceCategory.workshops,
+      ),
+      d('Poduka gitare', '4 sata, početnici', nw, 90, DeviceCategory.tutoring),
+      d(
+        'Ulaznica za koncert',
+        'Arena Zagreb, parter',
+        nw,
+        60,
+        DeviceCategory.tickets,
+      ),
+      d(
+        'Ronjenje za početnike',
+        'Krk, 1 dan s opremom',
+        nw,
+        120,
+        DeviceCategory.experiences,
+      ),
     ];
+  }
+
+  /// Izmišljena povijest za demo korisnike, kako bi grafikon portfolija
+  /// odmah imao što prikazati. Završava točno na početnom stanju iz seeda.
+  static Map<String, List<PortfolioPoint>> history(DateTime now) {
+    final rnd = Random(7); // fiksno sjeme = uvijek ista krivulja
+    final demo = <PortfolioPoint>[];
+    var credits = 900.0;
+    var portfolio = 620.0;
+    var day = 34.0;
+    while (day > 1) {
+      demo.add(
+        PortfolioPoint(
+          time: now.subtract(Duration(minutes: (day * 24 * 60).round())),
+          credits: credits,
+          portfolio: portfolio,
+        ),
+      );
+      // Naizmjence "prodaje" i "kupnje" s blagim rastom.
+      if (rnd.nextBool()) {
+        credits += 40 + rnd.nextInt(160);
+      } else {
+        final delta = 30.0 + rnd.nextInt(140);
+        portfolio += delta;
+        credits -= delta * 0.7;
+      }
+      if (rnd.nextInt(5) == 0) portfolio -= 40 + rnd.nextInt(80);
+      day -= 0.6 + rnd.nextDouble() * 2.2;
+    }
+    // Krivulju linearno "povlačimo" kroz vrijeme tako da glatko završi
+    // točno na početnom stanju (1250 kredita + 760 portfolio), bez skoka.
+    final last = demo.last;
+    final creditGap = 1250 - last.credits;
+    final portfolioGap = 760 - last.portfolio;
+    final n = demo.length;
+    final adjusted = [
+      for (var i = 0; i < n; i++)
+        PortfolioPoint(
+          time: demo[i].time,
+          credits: (demo[i].credits + creditGap * (i + 1) / n).roundToDouble(),
+          portfolio: (demo[i].portfolio + portfolioGap * (i + 1) / n)
+              .roundToDouble(),
+        ),
+      PortfolioPoint(
+        time: now.subtract(const Duration(hours: 2)),
+        credits: 1250,
+        portfolio: 760,
+      ),
+    ];
+    demo
+      ..clear()
+      ..addAll(adjusted);
+
+    return {
+      demoUserId: demo,
+      testUserId: [
+        PortfolioPoint(
+          time: now.subtract(const Duration(days: 12)),
+          credits: 800,
+          portfolio: 0,
+        ),
+      ],
+    };
   }
 }

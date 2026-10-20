@@ -92,7 +92,7 @@ class ProfileScreen extends ConsumerWidget {
                       const Divider(height: 1),
                       _InfoTile(
                         icon: Icons.devices,
-                        label: 'Uređaji u portfoliju',
+                        label: 'Predmeti u portfoliju',
                         value: '${state.myDevices.length}',
                       ),
                       const Divider(height: 1),
@@ -107,7 +107,7 @@ class ProfileScreen extends ConsumerWidget {
                 const SizedBox(height: 12),
                 const Text(
                   'LOOP krediti se ne mogu isplatiti — koriste se isključivo '
-                  'za kupnju uređaja unutar aplikacije. Status: Bronze < 2000, '
+                  'za kupnju predmeta unutar aplikacije. Status: Bronze < 2000, '
                   'Silver 2000–5000, Gold > 5000 (krediti + portfolio).',
                   style: TextStyle(
                     color: LoopColors.textSecondary,
@@ -143,7 +143,7 @@ class ProfileScreen extends ConsumerWidget {
       context,
       title: 'Resetirati demo podatke?',
       message:
-          'Svi korisnici, uređaji i transakcije bit će obrisani i '
+          'Svi korisnici, predmeti i transakcije bit će obrisani i '
           'vraćeni na početne demo podatke. Bit ćeš odjavljen.',
       confirmLabel: 'Resetiraj',
       destructive: true,

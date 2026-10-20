@@ -20,7 +20,7 @@ class AdminDashboardScreen extends ConsumerWidget {
       _Tile(Icons.group, 'Korisnici', '${s.users.length}'),
       _Tile(
         Icons.devices,
-        'Uređaji',
+        'Predmeti',
         '${s.devices.length}',
         sub: '$onMarket u Marketu',
       ),
@@ -93,15 +93,18 @@ class AdminDashboardScreen extends ConsumerWidget {
   }
 }
 
-/// Broj i vrijednost uređaja po kategoriji, kao vodoravni stupci.
+/// Broj i vrijednost predmeta po odjeljku, kao vodoravni stupci.
 class _CategoryStats extends StatelessWidget {
   const _CategoryStats({required this.devices});
   final List<Device> devices;
 
   @override
   Widget build(BuildContext context) {
-    final counts = AppState.countByCategory(devices);
-    final values = AppState.valueByCategory(devices);
+    final counts = <ItemSection, int>{};
+    for (final d in devices) {
+      counts[d.section] = (counts[d.section] ?? 0) + 1;
+    }
+    final values = AppState.valueBySection(devices);
     final entries = counts.entries.toList()
       ..sort((a, b) => b.value.compareTo(a.value));
     final maxCount = entries.isEmpty ? 1 : entries.first.value;
@@ -113,13 +116,13 @@ class _CategoryStats extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const Text(
-              'Uređaji po kategorijama',
+              'Predmeti po odjeljcima',
               style: TextStyle(fontWeight: FontWeight.w700, fontSize: 16),
             ),
             const SizedBox(height: 16),
             if (entries.isEmpty)
               const Text(
-                'Nema uređaja.',
+                'Nema predmeta.',
                 style: TextStyle(color: LoopColors.textSecondary),
               ),
             for (final e in entries)
@@ -130,7 +133,7 @@ class _CategoryStats extends StatelessWidget {
                     Icon(e.key.icon, color: e.key.color, size: 20),
                     const SizedBox(width: 10),
                     SizedBox(
-                      width: 90,
+                      width: 130,
                       child: Text(e.key.label, overflow: TextOverflow.ellipsis),
                     ),
                     Expanded(

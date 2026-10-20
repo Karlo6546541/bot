@@ -43,13 +43,13 @@ void main() {
     expect(UserStatus.fromTotalValue(5001), UserStatus.gold);
   });
 
-  test('seed: demo korisnik je Silver, 12 uređaja u Marketu', () {
+  test('seed: demo korisnik je Silver, 31 predmet u Marketu', () {
     final state = AppState.fromStorage(storage);
     final demo = storage.userById(SeedData.demoUserId)!;
     expect(demo.credits, 1250);
     expect(state.devicesOf(demo.id), hasLength(2));
     expect(state.statusOf(demo), UserStatus.silver);
-    expect(state.devices.where((d) => d.isOnMarket), hasLength(12));
+    expect(state.devices.where((d) => d.isOnMarket), hasLength(31));
   });
 
   test(
@@ -117,7 +117,7 @@ void main() {
 
     await storage.resetAll();
     expect(storage.users, hasLength(2));
-    expect(storage.devices, hasLength(14));
+    expect(storage.devices, hasLength(33));
   });
 
   test('favoriti: dodavanje i uklanjanje', () async {
@@ -142,5 +142,62 @@ void main() {
     expect(UserStatus.bronze.next, UserStatus.silver);
     expect(UserStatus.silver.nextThreshold, 5000);
     expect(UserStatus.gold.next, isNull);
+  });
+
+  test('svaki odjeljak ima demo predmete u Marketu', () {
+    final market = storage.devices.where((d) => d.isOnMarket);
+    for (final sec in ItemSection.values) {
+      expect(
+        market.where((d) => d.section == sec),
+        isNotEmpty,
+        reason: sec.label,
+      );
+    }
+  });
+
+  test(
+    'povijest: seed završava na trenutnoj vrijednosti, prodaja dodaje točku',
+    () async {
+      final before = storage.historyOf(SeedData.demoUserId);
+      expect(before.length, greaterThan(5));
+      expect(before.last.total, 2010);
+
+      await trade.sell(userId: SeedData.demoUserId, deviceId: 'seed-9');
+      final after = storage.historyOf(SeedData.demoUserId);
+      expect(after.length, before.length + 1);
+      // 1250 + 294.50 kredita, portfolio samo Lenovo (450)
+      expect(after.last.credits, 1544.5);
+      expect(after.last.portfolio, 450);
+    },
+  );
+
+  test(
+    'fotografije: samo vlasnik ih mijenja, brisanje vraća putanje',
+    () async {
+      await trade.setImages(SeedData.demoUserId, 'seed-9', ['/tmp/a.jpg']);
+      expect(storage.deviceById('seed-9')!.imagePaths, ['/tmp/a.jpg']);
+      expect(
+        () => trade.setImages(SeedData.testUserId, 'seed-9', const []),
+        throwsA(isA<TradeException>()),
+      );
+      // Fotografije prate predmet i nakon prodaje.
+      await trade.sell(userId: SeedData.demoUserId, deviceId: 'seed-9');
+      expect(storage.deviceById('seed-9')!.imagePaths, ['/tmp/a.jpg']);
+      expect(await trade.deleteDevice('seed-9'), ['/tmp/a.jpg']);
+    },
+  );
+
+  test('stari zapis predmeta bez fotografija se učitava', () {
+    final d = Device.fromMap({
+      'id': 'x',
+      'name': 'x',
+      'model': 'x',
+      'condition': 'good',
+      'price': 1,
+      'category': 'phone',
+      'createdAt': DateTime(2026).toIso8601String(),
+    });
+    expect(d.imagePaths, isEmpty);
+    expect(d.section, ItemSection.electronics);
   });
 }

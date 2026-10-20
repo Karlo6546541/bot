@@ -4,10 +4,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../models/device.dart';
 import '../providers/app_providers.dart';
+import '../services/image_store.dart';
 import '../services/fee.dart';
 import '../theme/app_theme.dart';
 import '../widgets/category_style.dart';
 import '../widgets/formatters.dart';
+import '../widgets/item_image.dart';
 import '../widgets/trade_actions.dart';
 
 /// Forma za dodavanje uređaja u portfolio. Sva polja su obavezna.
@@ -24,14 +26,41 @@ class _AddDeviceScreenState extends ConsumerState<AddDeviceScreen> {
   final _model = TextEditingController();
   final _price = TextEditingController();
   DeviceCondition? _condition;
+  ItemSection _section = ItemSection.electronics;
   DeviceCategory? _category;
+
+  /// Fotografije odabrane prije spremanja (već kopirane u mapu aplikacije).
+  final _photos = <String>[];
+  bool _saved = false;
+  late final ImageStore _store;
+
+  @override
+  void initState() {
+    super.initState();
+    _store = ref.read(imageStoreProvider);
+  }
 
   @override
   void dispose() {
+    // Odustao je: obriši kopije fotografija koje nisu spremljene uz predmet.
+    if (!_saved && _photos.isNotEmpty) {
+      _store.delete(_photos);
+    }
     _name.dispose();
     _model.dispose();
     _price.dispose();
     super.dispose();
+  }
+
+  Future<void> _pickPhotos({bool camera = false}) async {
+    try {
+      final paths = await ref
+          .read(imageStoreProvider)
+          .pick(camera: camera, limit: maxImages - _photos.length);
+      if (mounted) setState(() => _photos.addAll(paths));
+    } catch (e) {
+      showLoopSnackBar('Fotografiju nije moguće učitati: $e', error: true);
+    }
   }
 
   /// Prihvaća i decimalni zarez i točku.
@@ -50,9 +79,11 @@ class _AddDeviceScreenState extends ConsumerState<AddDeviceScreen> {
             condition: _condition!,
             price: _parsePrice(_price.text)!,
             category: _category!,
+            imagePaths: List.of(_photos),
           ),
-      successMessage: 'Uređaj dodan u portfolio',
+      successMessage: 'Predmet dodan u portfolio',
     );
+    if (ok) _saved = true;
     if (ok && mounted) Navigator.of(context).pop();
   }
 
@@ -63,7 +94,7 @@ class _AddDeviceScreenState extends ConsumerState<AddDeviceScreen> {
   Widget build(BuildContext context) {
     const gap = SizedBox(height: 14);
     return Scaffold(
-      appBar: AppBar(title: const Text('Dodaj uređaj')),
+      appBar: AppBar(title: const Text('Dodaj predmet')),
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(
@@ -76,13 +107,23 @@ class _AddDeviceScreenState extends ConsumerState<AddDeviceScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
+                    _PhotoPicker(
+                      photos: _photos,
+                      canUseCamera: ref.read(imageStoreProvider).canUseCamera,
+                      onPick: _pickPhotos,
+                      onRemove: (path) {
+                        setState(() => _photos.remove(path));
+                        ref.read(imageStoreProvider).delete([path]);
+                      },
+                    ),
+                    gap,
                     TextFormField(
                       controller: _name,
                       onChanged: (_) => setState(() {}),
                       textCapitalization: TextCapitalization.words,
                       decoration: const InputDecoration(
                         labelText: 'Naziv',
-                        hintText: 'npr. iPhone 15 Pro',
+                        hintText: 'npr. iPhone 15 Pro, LEGO set, radionica…',
                       ),
                       validator: _required,
                     ),
@@ -91,8 +132,9 @@ class _AddDeviceScreenState extends ConsumerState<AddDeviceScreen> {
                       controller: _model,
                       onChanged: (_) => setState(() {}),
                       decoration: const InputDecoration(
-                        labelText: 'Model',
-                        hintText: 'npr. 256GB Titanium',
+                        labelText: 'Model / detalji',
+                        hintText:
+                            'npr. 256GB Titanium, godina, veličina, termin…',
                       ),
                       validator: _required,
                     ),
@@ -132,6 +174,31 @@ class _AddDeviceScreenState extends ConsumerState<AddDeviceScreen> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           const Text(
+                            'Odjeljak',
+                            style: TextStyle(color: LoopColors.textSecondary),
+                          ),
+                          const SizedBox(height: 8),
+                          Wrap(
+                            spacing: 8,
+                            runSpacing: 8,
+                            children: [
+                              for (final sec in ItemSection.values)
+                                ChoiceChip(
+                                  avatar: Icon(sec.icon, size: 18),
+                                  label: Text(sec.label),
+                                  selected: _section == sec,
+                                  onSelected: (_) {
+                                    setState(() {
+                                      _section = sec;
+                                      _category = null;
+                                    });
+                                    field.didChange(null);
+                                  },
+                                ),
+                            ],
+                          ),
+                          const SizedBox(height: 14),
+                          const Text(
                             'Kategorija',
                             style: TextStyle(color: LoopColors.textSecondary),
                           ),
@@ -140,7 +207,7 @@ class _AddDeviceScreenState extends ConsumerState<AddDeviceScreen> {
                             spacing: 8,
                             runSpacing: 8,
                             children: [
-                              for (final c in DeviceCategory.values)
+                              for (final c in _section.categories)
                                 _CategoryTile(
                                   category: c,
                                   selected: _category == c,
@@ -188,6 +255,7 @@ class _AddDeviceScreenState extends ConsumerState<AddDeviceScreen> {
                     ),
                     const SizedBox(height: 24),
                     _Preview(
+                      photo: _photos.isEmpty ? null : _photos.first,
                       name: _name.text,
                       model: _model.text,
                       category: _category,
@@ -270,12 +338,14 @@ class _CategoryTile extends StatelessWidget {
 /// Živi pregled kako će uređaj izgledati i koliko bi donio prodajom.
 class _Preview extends StatelessWidget {
   const _Preview({
+    required this.photo,
     required this.name,
     required this.model,
     required this.category,
     required this.price,
   });
 
+  final String? photo;
   final String name;
   final String model;
   final DeviceCategory? category;
@@ -299,7 +369,21 @@ class _Preview extends StatelessWidget {
       ),
       child: Row(
         children: [
-          CategoryAvatar(category: cat),
+          if (photo == null)
+            CategoryAvatar(category: cat)
+          else
+            ClipRRect(
+              borderRadius: BorderRadius.circular(13),
+              child: SizedBox(
+                width: 48,
+                height: 48,
+                child: LocalPhoto(
+                  path: photo!,
+                  cacheWidth: 144,
+                  fallback: CategoryAvatar(category: cat),
+                ),
+              ),
+            ),
           const SizedBox(width: 12),
           Expanded(
             child: Column(
@@ -314,7 +398,7 @@ class _Preview extends StatelessWidget {
                   ),
                 ),
                 Text(
-                  name.trim().isEmpty ? 'Naziv uređaja' : name.trim(),
+                  name.trim().isEmpty ? 'Naziv predmeta' : name.trim(),
                   overflow: TextOverflow.ellipsis,
                   style: const TextStyle(fontWeight: FontWeight.w700),
                 ),
@@ -344,6 +428,142 @@ class _Preview extends StatelessWidget {
               ],
             ),
         ],
+      ),
+    );
+  }
+}
+
+/// Red sličica odabranih fotografija + gumbi za galeriju/kameru.
+class _PhotoPicker extends StatelessWidget {
+  const _PhotoPicker({
+    required this.photos,
+    required this.canUseCamera,
+    required this.onPick,
+    required this.onRemove,
+  });
+
+  final List<String> photos;
+  final bool canUseCamera;
+  final Future<void> Function({bool camera}) onPick;
+  final ValueChanged<String> onRemove;
+
+  @override
+  Widget build(BuildContext context) {
+    final full = photos.length >= maxImages;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Fotografije (${photos.length}/$maxImages) · neobavezno',
+          style: const TextStyle(color: LoopColors.textSecondary),
+        ),
+        const SizedBox(height: 8),
+        SizedBox(
+          height: 88,
+          child: ListView(
+            scrollDirection: Axis.horizontal,
+            children: [
+              for (final path in photos)
+                Padding(
+                  padding: const EdgeInsets.only(right: 8),
+                  child: SizedBox(
+                    width: 88,
+                    child: Stack(
+                      children: [
+                        Positioned.fill(
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(kRadius),
+                            child: LocalPhoto(
+                              path: path,
+                              cacheWidth: 264,
+                              fallback: Container(color: LoopColors.surface),
+                            ),
+                          ),
+                        ),
+                        Positioned(
+                          top: 4,
+                          right: 4,
+                          child: Material(
+                            color: Colors.black54,
+                            shape: const CircleBorder(),
+                            child: InkWell(
+                              customBorder: const CircleBorder(),
+                              onTap: () => onRemove(path),
+                              child: const Padding(
+                                padding: EdgeInsets.all(3),
+                                child: Icon(
+                                  Icons.close,
+                                  size: 16,
+                                  color: Colors.white,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              if (!full)
+                _PickTile(
+                  icon: Icons.add_photo_alternate_outlined,
+                  label: 'Galerija',
+                  onTap: () => onPick(),
+                ),
+              if (!full && canUseCamera)
+                _PickTile(
+                  icon: Icons.photo_camera_outlined,
+                  label: 'Kamera',
+                  onTap: () => onPick(camera: true),
+                ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _PickTile extends StatelessWidget {
+  const _PickTile({
+    required this.icon,
+    required this.label,
+    required this.onTap,
+  });
+
+  final IconData icon;
+  final String label;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(right: 8),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(kRadius),
+        child: Container(
+          width: 88,
+          decoration: BoxDecoration(
+            color: LoopColors.surface,
+            borderRadius: BorderRadius.circular(kRadius),
+            border: Border.all(color: LoopColors.surfaceHover, width: 1.5),
+          ),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(icon, color: LoopColors.textSecondary),
+              const SizedBox(height: 4),
+              Text(
+                label,
+                style: const TextStyle(
+                  fontSize: 12,
+                  color: LoopColors.textSecondary,
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }

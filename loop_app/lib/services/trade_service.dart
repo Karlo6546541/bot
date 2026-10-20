@@ -3,6 +3,7 @@ import 'package:uuid/uuid.dart';
 import '../models/app_user.dart';
 import '../models/device.dart';
 import '../models/loop_transaction.dart';
+import '../models/portfolio_point.dart';
 import 'fee.dart';
 import 'storage_service.dart';
 
@@ -62,6 +63,7 @@ class TradeService {
       createdAt: DateTime.now(),
     );
     await _storage.putUser(user);
+    await _snapshot(user.id);
     return user;
   }
 
@@ -78,6 +80,7 @@ class TradeService {
       createdAt: DateTime.now(),
     );
     await _storage.putUser(guest);
+    await _snapshot(guest.id);
     return guest;
   }
 
@@ -90,6 +93,7 @@ class TradeService {
     required DeviceCondition condition,
     required double price,
     required DeviceCategory category,
+    List<String> imagePaths = const [],
   }) async {
     if (name.trim().isEmpty || model.trim().isEmpty) {
       throw const TradeException('Naziv i model su obavezni.');
@@ -107,8 +111,10 @@ class TradeService {
       category: category,
       ownerId: userId,
       createdAt: DateTime.now(),
+      imagePaths: imagePaths,
     );
     await _storage.putDevice(device);
+    await _snapshot(userId);
     return device;
   }
 
@@ -120,7 +126,7 @@ class TradeService {
     final user = _requireUser(userId);
     final device = _requireDevice(deviceId);
     if (device.ownerId != userId) {
-      throw const TradeException('Ovaj uređaj nije u tvom portfoliju.');
+      throw const TradeException('Ovaj predmet nije u tvom portfoliju.');
     }
 
     final fee = feeFor(device.price);
@@ -147,6 +153,7 @@ class TradeService {
       createdAt: DateTime.now(),
     );
     await _storage.putTransaction(tx);
+    await _snapshot(userId);
     return tx;
   }
 
@@ -159,10 +166,10 @@ class TradeService {
     final user = _requireUser(userId);
     final device = _requireDevice(deviceId);
     if (device.ownerId == userId) {
-      throw const TradeException('Ovaj uređaj je već tvoj.');
+      throw const TradeException('Ovaj predmet je već tvoj.');
     }
     if (!device.isOnMarket) {
-      throw const TradeException('Uređaj više nije dostupan.');
+      throw const TradeException('Predmet više nije dostupan.');
     }
 
     final fee = feeFor(device.price);
@@ -195,6 +202,7 @@ class TradeService {
       createdAt: DateTime.now(),
     );
     await _storage.putTransaction(tx);
+    await _snapshot(userId);
     return tx;
   }
 
@@ -218,6 +226,7 @@ class TradeService {
     await _storage.putUser(
       user.copyWith(credits: roundCredits(user.credits + amount)),
     );
+    await _snapshot(userId);
   }
 
   /// Briše korisnika; njegovi uređaji se vraćaju u Market.
@@ -227,9 +236,58 @@ class TradeService {
       await _storage.putDevice(d.withOwner(null));
     }
     await _storage.deleteUser(userId);
+    await _storage.deleteHistory(userId);
   }
 
-  Future<void> deleteDevice(String deviceId) => _storage.deleteDevice(deviceId);
+  /// Briše predmet i vraća putanje njegovih fotografija (za brisanje datoteka).
+  Future<List<String>> deleteDevice(String deviceId) async {
+    final device = _storage.deviceById(deviceId);
+    await _storage.deleteDevice(deviceId);
+    final owner = device?.ownerId;
+    if (owner != null && _storage.userById(owner) != null) {
+      await _snapshot(owner);
+    }
+    return device?.imagePaths ?? const [];
+  }
+
+  // ------------------------------------------------------------- fotografije
+
+  /// Postavlja fotografije predmeta. Smije samo vlasnik.
+  Future<void> setImages(
+    String userId,
+    String deviceId,
+    List<String> paths,
+  ) async {
+    final device = _requireDevice(deviceId);
+    if (device.ownerId != userId) {
+      throw const TradeException('Fotografije može mijenjati samo vlasnik.');
+    }
+    await _storage.putDevice(device.withImages(paths));
+  }
+
+  // ---------------------------------------------------------------- povijest
+
+  /// Bilježi trenutnu vrijednost korisnika (krediti + portfolio).
+  Future<void> _snapshot(String userId) async {
+    final user = _storage.userById(userId);
+    if (user == null) return;
+    final portfolio = _storage.devices
+        .where((d) => d.ownerId == userId)
+        .fold(0.0, (sum, d) => sum + d.price);
+    await _storage.appendHistory(
+      userId,
+      PortfolioPoint(
+        time: DateTime.now(),
+        credits: user.credits,
+        portfolio: roundCredits(portfolio),
+      ),
+    );
+  }
+
+  /// Korisnici iz starije verzije nemaju povijest — kreira prvu točku.
+  Future<void> ensureHistory(String userId) async {
+    if (_storage.historyOf(userId).isEmpty) await _snapshot(userId);
+  }
 
   // -------------------------------------------------------------- pomoćno
 
@@ -241,7 +299,7 @@ class TradeService {
 
   Device _requireDevice(String id) {
     final device = _storage.deviceById(id);
-    if (device == null) throw const TradeException('Uređaj ne postoji.');
+    if (device == null) throw const TradeException('Predmet ne postoji.');
     return device;
   }
 }

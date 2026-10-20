@@ -1,6 +1,7 @@
 import '../models/app_user.dart';
 import '../models/device.dart';
 import '../models/loop_transaction.dart';
+import '../models/portfolio_point.dart';
 import '../models/user_status.dart';
 import '../services/storage_service.dart';
 
@@ -13,6 +14,7 @@ class AppState {
     required this.transactions,
     required this.currentUserId,
     required this.isAdmin,
+    this.myHistory = const [],
   });
 
   factory AppState.fromStorage(StorageService storage) {
@@ -28,6 +30,9 @@ class AppState {
       transactions: txs,
       currentUserId: storage.currentUserId,
       isAdmin: storage.isAdmin,
+      myHistory: storage.currentUserId == null
+          ? const []
+          : storage.historyOf(storage.currentUserId!),
     );
   }
 
@@ -36,6 +41,9 @@ class AppState {
   final List<LoopTransaction> transactions;
   final String? currentUserId;
   final bool isAdmin;
+
+  /// Povijest vrijednosti trenutnog korisnika (najstarije prvo).
+  final List<PortfolioPoint> myHistory;
 
   AppUser? get currentUser {
     if (currentUserId == null) return null;
@@ -78,6 +86,14 @@ class AppState {
   }
 
   /// Vrijednost uređaja po kategoriji.
+  static Map<ItemSection, double> valueBySection(Iterable<Device> devices) {
+    final values = <ItemSection, double>{};
+    for (final d in devices) {
+      values[d.section] = (values[d.section] ?? 0) + d.price;
+    }
+    return values;
+  }
+
   static Map<DeviceCategory, double> valueByCategory(Iterable<Device> devices) {
     final values = <DeviceCategory, double>{};
     for (final d in devices) {

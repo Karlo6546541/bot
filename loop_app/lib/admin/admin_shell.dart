@@ -24,7 +24,7 @@ class _AdminShellState extends ConsumerState<AdminShell> {
   static const _destinations = [
     ShellDestination('Dashboard', Icons.dashboard_outlined, Icons.dashboard),
     ShellDestination('Korisnici', Icons.group_outlined, Icons.group),
-    ShellDestination('Uređaji', Icons.devices_outlined, Icons.devices),
+    ShellDestination('Predmeti', Icons.inventory_2_outlined, Icons.inventory_2),
     ShellDestination('Transakcije', Icons.swap_horiz, Icons.swap_horiz),
   ];
 

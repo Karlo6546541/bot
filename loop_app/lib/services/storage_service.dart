@@ -5,6 +5,7 @@ import 'package:hive_flutter/hive_flutter.dart';
 import '../models/app_user.dart';
 import '../models/device.dart';
 import '../models/loop_transaction.dart';
+import '../models/portfolio_point.dart';
 import 'seed_data.dart';
 
 /// Lokalna pohrana na Hive-u. Svaki entitet je spremljen kao obična mapa
@@ -14,6 +15,15 @@ class StorageService {
   static const _devicesBox = 'devices';
   static const _transactionsBox = 'transactions';
   static const _sessionBox = 'session';
+  static const _historyBox = 'history';
+
+  /// Povećaj kad se seed proširi — postojeće instalacije tada dobiju
+  /// nove demo predmete bez resetiranja (vidi [_migrateSeed]).
+  static const _seedVersion = 3;
+  static const _seedVersionKey = 'seedVersion';
+
+  /// Najviše točaka povijesti po korisniku.
+  static const _maxHistory = 500;
 
   static const _seededKey = 'seeded';
   static const _currentUserKey = 'currentUserId';
@@ -23,6 +33,7 @@ class StorageService {
   late Box<Map> _devices;
   late Box<Map> _transactions;
   late Box _session;
+  late Box<Map> _history;
 
   /// Otvara boxove i puni demo podatke pri prvom pokretanju.
   /// [path] i [inMemory] koriste se u testovima; u aplikaciji Hive sam
@@ -39,10 +50,36 @@ class StorageService {
     _devices = await Hive.openBox<Map>(_devicesBox, bytes: bytes);
     _transactions = await Hive.openBox<Map>(_transactionsBox, bytes: bytes);
     _session = await Hive.openBox(_sessionBox, bytes: bytes);
+    _history = await Hive.openBox<Map>(_historyBox, bytes: bytes);
 
     if (_session.get(_seededKey) != true) {
       await _seed();
+    } else if ((_session.get(_seedVersionKey) as int? ?? 1) < _seedVersion) {
+      await _migrateSeed();
     }
+  }
+
+  /// Dodaje demo predmete koji su nastali u novijim verzijama seeda.
+  Future<void> _migrateSeed() async {
+    final now = DateTime.now();
+    for (final d in SeedData.devices(now)) {
+      if (!_devices.containsKey(d.id) && d.ownerId == null) {
+        await _devices.put(d.id, d.toMap());
+      }
+    }
+    // Korisnici iz starije verzije dobivaju prvu točku povijesti.
+    for (final u in users) {
+      if (historyOf(u.id).isEmpty) {
+        final portfolio = devices
+            .where((d) => d.ownerId == u.id)
+            .fold(0.0, (sum, d) => sum + d.price);
+        await appendHistory(
+          u.id,
+          PortfolioPoint(time: now, credits: u.credits, portfolio: portfolio),
+        );
+      }
+    }
+    await _session.put(_seedVersionKey, _seedVersion);
   }
 
   Future<void> _seed() async {
@@ -53,7 +90,13 @@ class StorageService {
     for (final d in SeedData.devices(now)) {
       await _devices.put(d.id, d.toMap());
     }
+    for (final entry in SeedData.history(now).entries) {
+      await _history.put(entry.key, {
+        'points': [for (final p in entry.value) p.toMap()],
+      });
+    }
     await _session.put(_seededKey, true);
+    await _session.put(_seedVersionKey, _seedVersion);
   }
 
   /// Briše sve podatke (uključujući sesiju) i ponovno kreira demo podatke.
@@ -62,6 +105,7 @@ class StorageService {
     await _devices.clear();
     await _transactions.clear();
     await _session.clear();
+    await _history.clear();
     await _seed();
   }
 
@@ -107,6 +151,33 @@ class StorageService {
   Future<void> deleteUser(String id) => _users.delete(id);
 
   Future<void> deleteDevice(String id) => _devices.delete(id);
+
+  // --------------------------------------------------------------- povijest
+
+  List<PortfolioPoint> historyOf(String userId) {
+    final raw = _history.get(userId)?['points'] as List?;
+    if (raw == null) return const [];
+    return [for (final m in raw) PortfolioPoint.fromMap(m as Map)];
+  }
+
+  /// Dodaje točku samo ako se vrijednost promijenila od zadnje.
+  Future<void> appendHistory(String userId, PortfolioPoint point) async {
+    final points = [...historyOf(userId)];
+    if (points.isNotEmpty &&
+        points.last.credits == point.credits &&
+        points.last.portfolio == point.portfolio) {
+      return;
+    }
+    points.add(point);
+    final trimmed = points.length > _maxHistory
+        ? points.sublist(points.length - _maxHistory)
+        : points;
+    await _history.put(userId, {
+      'points': [for (final p in trimmed) p.toMap()],
+    });
+  }
+
+  Future<void> deleteHistory(String userId) => _history.delete(userId);
 
   // ----------------------------------------------------------------- sesija
 

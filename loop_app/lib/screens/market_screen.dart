@@ -40,7 +40,8 @@ class MarketScreen extends ConsumerStatefulWidget {
 class _MarketScreenState extends ConsumerState<MarketScreen> {
   final _search = TextEditingController();
 
-  /// `null` = sve kategorije.
+  /// `null` = svi odjeljci / sve kategorije odjeljka.
+  ItemSection? _section;
   DeviceCategory? _category;
   bool _onlyFavorites = false;
   MarketSort _sort = MarketSort.newest;
@@ -60,6 +61,7 @@ class _MarketScreenState extends ConsumerState<MarketScreen> {
 
     final devices =
         all
+            .where((d) => _section == null || d.section == _section)
             .where((d) => _category == null || d.category == _category)
             .where((d) => !_onlyFavorites || state.isFavorite(d.id))
             .where(
@@ -72,6 +74,10 @@ class _MarketScreenState extends ConsumerState<MarketScreen> {
           ..sort(_sort.compare);
     final credits = state.currentUser?.credits ?? 0;
     final favCount = all.where((d) => state.isFavorite(d.id)).length;
+    final sectionCounts = <ItemSection, int>{};
+    for (final d in all) {
+      sectionCounts[d.section] = (sectionCounts[d.section] ?? 0) + 1;
+    }
 
     return CustomScrollView(
       slivers: [
@@ -119,37 +125,53 @@ class _MarketScreenState extends ConsumerState<MarketScreen> {
             ),
           ),
         ),
-        // Vodoravni niz čipova kategorija.
+        // 1. red: odjeljci (+ favoriti).
         SliverToBoxAdapter(
-          child: SizedBox(
-            height: 44,
-            // Malo čipova pa ih gradimo sve odjednom (Row umjesto ListView).
-            child: SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: Row(
+          child: _ChipRow(
+            children: [
+              _CategoryChip(
+                label: 'Sve',
+                icon: Icons.apps,
+                color: Theme.of(context).colorScheme.primary,
+                count: all.length,
+                selected: _section == null && !_onlyFavorites,
+                onTap: () => setState(() {
+                  _section = null;
+                  _category = null;
+                  _onlyFavorites = false;
+                }),
+              ),
+              for (final sec in ItemSection.values)
+                _CategoryChip(
+                  label: sec.label,
+                  icon: sec.icon,
+                  color: sec.color,
+                  count: sectionCounts[sec] ?? 0,
+                  selected: _section == sec,
+                  onTap: () => setState(() {
+                    _section = _section == sec ? null : sec;
+                    _category = null;
+                  }),
+                ),
+              _CategoryChip(
+                label: 'Favoriti',
+                icon: Icons.favorite,
+                color: const Color(0xFFFF5C8A),
+                count: favCount,
+                selected: _onlyFavorites,
+                onTap: () => setState(() => _onlyFavorites = !_onlyFavorites),
+              ),
+            ],
+          ),
+        ),
+        // 2. red: kategorije odabranog odjeljka.
+        if (_section != null)
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.only(top: 10),
+              child: _ChipRow(
                 children: [
-                  _CategoryChip(
-                    label: 'Sve',
-                    icon: Icons.apps,
-                    color: Theme.of(context).colorScheme.primary,
-                    count: all.length,
-                    selected: _category == null && !_onlyFavorites,
-                    onTap: () => setState(() {
-                      _category = null;
-                      _onlyFavorites = false;
-                    }),
-                  ),
-                  _CategoryChip(
-                    label: 'Favoriti',
-                    icon: Icons.favorite,
-                    color: const Color(0xFFFF5C8A),
-                    count: favCount,
-                    selected: _onlyFavorites,
-                    onTap: () =>
-                        setState(() => _onlyFavorites = !_onlyFavorites),
-                  ),
-                  for (final c in DeviceCategory.values)
+                  for (final c in _section!.categories)
                     if ((counts[c] ?? 0) > 0)
                       _CategoryChip(
                         label: c.label,
@@ -157,6 +179,7 @@ class _MarketScreenState extends ConsumerState<MarketScreen> {
                         color: c.color,
                         count: counts[c]!,
                         selected: _category == c,
+                        small: true,
                         onTap: () => setState(
                           () => _category = _category == c ? null : c,
                         ),
@@ -165,7 +188,6 @@ class _MarketScreenState extends ConsumerState<MarketScreen> {
               ),
             ),
           ),
-        ),
         const SliverToBoxAdapter(child: SizedBox(height: 16)),
         if (devices.isEmpty)
           SliverFillRemaining(
@@ -178,10 +200,10 @@ class _MarketScreenState extends ConsumerState<MarketScreen> {
                   ? 'Još nemaš favorita'
                   : 'Nema rezultata',
               message: all.isEmpty
-                  ? 'Prodani uređaji pojavljuju se ovdje.'
+                  ? 'Prodani predmeti pojavljuju se ovdje.'
                   : _onlyFavorites && favCount == 0
-                  ? 'Dodirni ♥ na uređaju da ga spremiš ovdje.'
-                  : 'Promijeni pretragu ili kategoriju.',
+                  ? 'Dodirni ♥ na predmetu da ga spremiš ovdje.'
+                  : 'Promijeni pretragu, odjeljak ili kategoriju.',
             ),
           )
         else
@@ -203,6 +225,25 @@ class _MarketScreenState extends ConsumerState<MarketScreen> {
   }
 }
 
+/// Vodoravno pomični red čipova. Čipova je malo, pa se grade svi odjednom
+/// (Row umjesto ListView).
+class _ChipRow extends StatelessWidget {
+  const _ChipRow({required this.children});
+  final List<Widget> children;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      height: 48,
+      child: SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        child: Row(children: children),
+      ),
+    );
+  }
+}
+
 class _CategoryChip extends StatelessWidget {
   const _CategoryChip({
     required this.label,
@@ -211,8 +252,10 @@ class _CategoryChip extends StatelessWidget {
     required this.count,
     required this.selected,
     required this.onTap,
+    this.small = false,
   });
 
+  final bool small;
   final String label;
   final IconData icon;
   final Color color;
@@ -231,7 +274,10 @@ class _CategoryChip extends StatelessWidget {
           onTap: onTap,
           child: AnimatedContainer(
             duration: const Duration(milliseconds: 180),
-            padding: const EdgeInsets.symmetric(horizontal: 14),
+            padding: EdgeInsets.symmetric(
+              horizontal: small ? 12 : 14,
+              vertical: small ? 5 : 8,
+            ),
             decoration: BoxDecoration(
               color: selected
                   ? color.withValues(alpha: 0.2)

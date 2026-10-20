@@ -52,7 +52,7 @@ class AdminUsersScreen extends ConsumerWidget {
                       const SizedBox(height: 4),
                       Text(
                         '${formatCredits(u.credits)} · '
-                        '${s.devicesOf(u.id).length} uređaja',
+                        '${s.devicesOf(u.id).length} predmeta',
                         style: const TextStyle(color: LoopColors.textSecondary),
                       ),
                     ],
@@ -113,7 +113,7 @@ class AdminUsersScreen extends ConsumerWidget {
       context,
       title: 'Obrisati korisnika?',
       message:
-          '${user.email} bit će obrisan. Njegovi uređaji vraćaju se '
+          '${user.email} bit će obrisan. Njegovi predmeti vraćaju se '
           'u Market, a transakcije ostaju u povijesti.',
       confirmLabel: 'Obriši',
       destructive: true,

@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../models/device.dart';
 import '../models/loop_transaction.dart';
+import '../services/image_store.dart';
 import '../services/storage_service.dart';
 import '../services/trade_service.dart';
 import 'app_state.dart';
@@ -11,6 +12,9 @@ final storageProvider = Provider<StorageService>(
   (ref) => throw UnimplementedError('storageProvider mora biti overridean'),
 );
 
+/// Spremište fotografija (u testovima se ne koristi).
+final imageStoreProvider = Provider<ImageStore>((ref) => ImageStore());
+
 final tradeServiceProvider = Provider<TradeService>(
   (ref) => TradeService(ref.watch(storageProvider)),
 );
@@ -19,6 +23,9 @@ final tradeServiceProvider = Provider<TradeService>(
 final appProvider = NotifierProvider<AppController, AppState>(
   AppController.new,
 );
+
+/// Najviše fotografija po predmetu.
+const maxImages = 4;
 
 class AppController extends Notifier<AppState> {
   StorageService get _storage => ref.read(storageProvider);
@@ -34,12 +41,14 @@ class AppController extends Notifier<AppState> {
 
   Future<void> login(String email, String password) async {
     final user = await _trade.login(email, password);
+    await _trade.ensureHistory(user.id);
     await _storage.saveSession(userId: user.id);
     _refresh();
   }
 
   Future<void> loginAsGuest() async {
     final user = await _trade.loginAsGuest();
+    await _trade.ensureHistory(user.id);
     await _storage.saveSession(userId: user.id);
     _refresh();
   }
@@ -59,6 +68,7 @@ class AppController extends Notifier<AppState> {
 
   Future<void> resetDemoData() async {
     await _storage.resetAll();
+    await ref.read(imageStoreProvider).clearAll();
     _refresh();
   }
 
@@ -70,6 +80,7 @@ class AppController extends Notifier<AppState> {
     required DeviceCondition condition,
     required double price,
     required DeviceCategory category,
+    List<String> imagePaths = const [],
   }) async {
     final device = await _trade.addDevice(
       userId: _requireUserId(),
@@ -78,6 +89,7 @@ class AppController extends Notifier<AppState> {
       condition: condition,
       price: price,
       category: category,
+      imagePaths: imagePaths,
     );
     _refresh();
     return device;
@@ -101,6 +113,39 @@ class AppController extends Notifier<AppState> {
     return added;
   }
 
+  /// Otvara galeriju/kameru i dodaje fotografije vlastitom predmetu.
+  /// Vraća broj dodanih fotografija.
+  Future<int> addImages(String deviceId, {bool camera = false}) async {
+    final device = state.deviceById(deviceId);
+    if (device == null) throw const TradeException('Predmet ne postoji.');
+    final free = maxImages - device.imagePaths.length;
+    if (free <= 0) {
+      throw const TradeException('Najviše $maxImages fotografije po predmetu.');
+    }
+    final paths = await ref
+        .read(imageStoreProvider)
+        .pick(camera: camera, limit: free);
+    if (paths.isEmpty) return 0;
+    await _trade.setImages(_requireUserId(), deviceId, [
+      ...device.imagePaths,
+      ...paths,
+    ]);
+    _refresh();
+    return paths.length;
+  }
+
+  Future<void> removeImage(String deviceId, String path) async {
+    final device = state.deviceById(deviceId);
+    if (device == null) return;
+    await _trade.setImages(
+      _requireUserId(),
+      deviceId,
+      device.imagePaths.where((p) => p != path).toList(),
+    );
+    await ref.read(imageStoreProvider).delete([path]);
+    _refresh();
+  }
+
   // ---------------------------------------------------------------- admin
 
   Future<void> addCredits(String userId, double amount) async {
@@ -114,7 +159,8 @@ class AppController extends Notifier<AppState> {
   }
 
   Future<void> deleteDevice(String deviceId) async {
-    await _trade.deleteDevice(deviceId);
+    final images = await _trade.deleteDevice(deviceId);
+    await ref.read(imageStoreProvider).delete(images);
     _refresh();
   }
 

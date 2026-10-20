@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../models/device.dart';
 import '../theme/app_theme.dart';
 import 'category_style.dart';
+import 'item_image.dart';
 import 'formatters.dart';
 
 /// Kartica uređaja s jednim akcijskim gumbom ("Prodaj odmah" / "Kupi odmah").
@@ -106,10 +107,7 @@ class _DeviceCardState extends State<DeviceCard> {
       children: [
         Row(
           children: [
-            Hero(
-              tag: 'device-${d.id}',
-              child: CategoryAvatar(category: d.category),
-            ),
+            ItemThumb(device: d, size: 52),
             const SizedBox(width: 12),
             Expanded(
               child: Column(

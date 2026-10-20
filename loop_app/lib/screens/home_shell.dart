@@ -61,7 +61,7 @@ class _HomeShellState extends State<HomeShell> {
               onPressed: _openAddDevice,
               icon: const Icon(Icons.add),
               label: const Text(
-                'Dodaj uređaj',
+                'Dodaj predmet',
                 style: TextStyle(fontWeight: FontWeight.w700),
               ),
             )

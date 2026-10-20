@@ -1,0 +1,250 @@
+import 'dart:io';
+
+import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
+
+import '../models/device.dart';
+import '../theme/app_theme.dart';
+import 'category_style.dart';
+
+/// Lokalna fotografija; ako datoteka ne postoji (ili je web), prikazuje
+/// [fallback]. Slike se dekodiraju u smanjenoj veličini radi memorije.
+class LocalPhoto extends StatelessWidget {
+  const LocalPhoto({
+    super.key,
+    required this.path,
+    required this.fallback,
+    this.cacheWidth,
+  });
+
+  final String path;
+  final Widget fallback;
+  final int? cacheWidth;
+
+  @override
+  Widget build(BuildContext context) {
+    if (kIsWeb) return fallback;
+    return Image.file(
+      File(path),
+      fit: BoxFit.cover,
+      cacheWidth: cacheWidth,
+      gaplessPlayback: true,
+      errorBuilder: (_, _, _) => fallback,
+    );
+  }
+}
+
+/// Kvadratna sličica predmeta: naslovna fotografija ili ikona kategorije.
+class ItemThumb extends StatelessWidget {
+  const ItemThumb({super.key, required this.device, this.size = 48});
+
+  final Device device;
+  final double size;
+
+  @override
+  Widget build(BuildContext context) {
+    final avatar = CategoryAvatar(category: device.category, size: size);
+    if (device.imagePaths.isEmpty) return avatar;
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(size * 0.28),
+      child: SizedBox(
+        width: size,
+        height: size,
+        child: LocalPhoto(
+          path: device.imagePaths.first,
+          fallback: avatar,
+          cacheWidth: (size * 3).round(),
+        ),
+      ),
+    );
+  }
+}
+
+/// Velika naslovna slika za ekran detalja: galerija fotografija s točkicama
+/// ili, bez fotografija, ilustracija u bojama kategorije.
+class ItemGallery extends StatefulWidget {
+  const ItemGallery({super.key, required this.device, this.height = 280});
+
+  final Device device;
+  final double height;
+
+  @override
+  State<ItemGallery> createState() => _ItemGalleryState();
+}
+
+class _ItemGalleryState extends State<ItemGallery> {
+  final _controller = PageController();
+  int _page = 0;
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final d = widget.device;
+    final photos = d.imagePaths;
+    final illustration = ItemIllustration(category: d.category);
+
+    if (photos.isEmpty) {
+      return SizedBox(height: widget.height, child: illustration);
+    }
+    if (_page >= photos.length) _page = photos.length - 1;
+
+    return SizedBox(
+      height: widget.height,
+      child: Stack(
+        children: [
+          PageView.builder(
+            controller: _controller,
+            itemCount: photos.length,
+            onPageChanged: (i) => setState(() => _page = i),
+            itemBuilder: (_, i) => LocalPhoto(
+              path: photos[i],
+              fallback: illustration,
+              cacheWidth: 1200,
+            ),
+          ),
+          if (photos.length > 1) ...[
+            // Strelice za desktop (na mobitelu se lista prstom).
+            _Arrow(
+              left: true,
+              visible: _page > 0,
+              onTap: () => _controller.previousPage(
+                duration: const Duration(milliseconds: 250),
+                curve: Curves.easeOut,
+              ),
+            ),
+            _Arrow(
+              left: false,
+              visible: _page < photos.length - 1,
+              onTap: () => _controller.nextPage(
+                duration: const Duration(milliseconds: 250),
+                curve: Curves.easeOut,
+              ),
+            ),
+            Positioned(
+              bottom: 12,
+              left: 0,
+              right: 0,
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  for (var i = 0; i < photos.length; i++)
+                    AnimatedContainer(
+                      duration: const Duration(milliseconds: 200),
+                      margin: const EdgeInsets.symmetric(horizontal: 3),
+                      width: i == _page ? 18 : 8,
+                      height: 8,
+                      decoration: BoxDecoration(
+                        color: i == _page
+                            ? Colors.white
+                            : Colors.white.withValues(alpha: 0.45),
+                        borderRadius: BorderRadius.circular(999),
+                      ),
+                    ),
+                ],
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class _Arrow extends StatelessWidget {
+  const _Arrow({
+    required this.left,
+    required this.visible,
+    required this.onTap,
+  });
+  final bool left;
+  final bool visible;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Positioned(
+      left: left ? 8 : null,
+      right: left ? null : 8,
+      top: 0,
+      bottom: 0,
+      child: Center(
+        child: AnimatedOpacity(
+          opacity: visible ? 1 : 0,
+          duration: const Duration(milliseconds: 150),
+          child: IgnorePointer(
+            ignoring: !visible,
+            child: IconButton.filledTonal(
+              onPressed: onTap,
+              icon: Icon(left ? Icons.chevron_left : Icons.chevron_right),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Ilustracija kategorije za predmete bez fotografije: gradijent,
+/// dekorativni krugovi i velika ikona.
+class ItemIllustration extends StatelessWidget {
+  const ItemIllustration({super.key, required this.category});
+  final DeviceCategory category;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = category.color;
+    return Container(
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [c.withValues(alpha: 0.45), LoopColors.surface],
+        ),
+      ),
+      child: Stack(
+        children: [
+          Positioned(right: -50, top: -50, child: _Ring(color: c, size: 200)),
+          Positioned(left: -30, bottom: -60, child: _Ring(color: c, size: 160)),
+          Center(
+            child: Container(
+              padding: const EdgeInsets.all(28),
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: LoopColors.background.withValues(alpha: 0.35),
+                border: Border.all(color: c.withValues(alpha: 0.5), width: 2),
+              ),
+              child: Icon(
+                category.icon,
+                size: 72,
+                color: LoopColors.textPrimary,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _Ring extends StatelessWidget {
+  const _Ring({required this.color, required this.size});
+  final Color color;
+  final double size;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: size,
+      height: size,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        border: Border.all(color: color.withValues(alpha: 0.25), width: 18),
+      ),
+    );
+  }
+}

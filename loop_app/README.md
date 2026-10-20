@@ -58,19 +58,27 @@ flutter run            # odaberi uređaj s popisa
 
 ### Što aplikacija ima
 
-- **Portfolio:** animirani prikaz kredita, status s trakom napretka do sljedeće razine,
-  raspodjela vrijednosti po kategorijama.
-- **Market:** čipovi kategorija s brojem uređaja, pretraga, sortiranje (najnovije, cijena, naziv)
-  i **favoriti** (♥) s vlastitim filterom.
-- **Detalji uređaja:** dodir na karticu otvara ekran sa specifikacijama i izračunom fee-a.
-- **Kategorije:** Mobiteli, Laptopi, Tableti, Slušalice, Konzole, Satovi, Kamere, Ostalo, svaka
-  sa svojom bojom i ikonom.
-- **Dodaj uređaj:** birač kategorije u obliku pločica i živi pregled kartice s iznosom prodaje.
+- **Pet odjeljaka Marketa:** Elektronika, Kolekcionarstvo (kartice, kovanice, marke, figure,
+  ploče), Hobiji (sport, instrumenti, knjige, društvene igre, LEGO), Rukotvorine (nakit,
+  keramika, tekstil, drvo, slike) i Aktivnosti (radionice, poduke, ulaznice, doživljaji).
+- **Fotografije predmeta:** do 4 po predmetu. Na Windowsu se biraju datoteke, a na mobitelu
+  galerija ili kamera. Dodaju se pri unosu ili kasnije na ekranu detalja. Predmeti bez
+  fotografije prikazuju ilustraciju kategorije.
+- **Grafikon portfolija:** vrijednost (krediti + predmeti) kroz vrijeme s rasponima 7D/30D/Sve,
+  crosshair i tooltip na prelazak mišem ili dodir, te tablični prikaz istih podataka.
+- **Portfolio:** animirani krediti, traka napretka do sljedećeg statusa i raspodjela po
+  odjeljcima/kategorijama.
+- **Market:** odjeljci, kategorije, pretraga, sortiranje i **favoriti** (♥).
+- **Detalji predmeta:** galerija, specifikacije, izračun feeja i kupnja/prodaja.
 - **Aktivnost:** sažetak (zarađeno, potrošeno, plaćeni fee) i filter Kupnje/Prodaje.
-- **Admin:** dashboard s brojem i vrijednošću uređaja po kategorijama.
+- **Admin:** dashboard s predmetima po odjeljcima.
 
-> Ako si aplikaciju već pokretao, nove demo uređaje (Apple Watch, Sony A7 III, PS5, Switch)
-> vidjet ćeš tek nakon *Profil → "Resetiraj demo podatke"*.
+> Ažuriranje sa starije verzije: novi demo predmeti i početna točka grafikona dodaju se
+> automatski pri prvom pokretanju, bez resetiranja.
+
+**Boje u grafikonima** dolaze iz validirane kategorijske palete (`kCategoricalPalette` u
+`lib/widgets/category_style.dart`). Provjerene su na tamnoj pozadini aplikacije: raspon
+svjetline, kontrast i razlučivost za daltonizam.
 
 ---
 
@@ -85,9 +93,9 @@ flutter run            # odaberi uređaj s popisa
 
 Bilo koji drugi e-mail + bilo koja lozinka automatski kreira novi račun s **500 LC** početnih kredita.
 
-U Marketu je na početku 12 uređaja (iPhone 15 Pro, MacBook Air M3, Galaxy S24, iPad Air M2,
-AirPods Pro 2, iPhone 14, MacBook Pro 14", iPad Pro 11", Apple Watch Series 9, Sony A7 III,
-PlayStation 5, Nintendo Switch OLED).
+U Marketu je na početku 31 predmet: 12 iz elektronike (iPhone 15 Pro, MacBook Air M3,
+Galaxy S24, iPad Air M2, AirPods Pro 2, iPhone 14, MacBook Pro 14", iPad Pro 11",
+Apple Watch, Sony A7 III, PS5, Switch) i po 4–5 iz svakog novog odjeljka.
 
 **Resetiranje:** *Profil → "Resetiraj demo podatke"* briše sve i vraća početno stanje.
 
@@ -115,10 +123,12 @@ Fee je definiran na jednom mjestu: `lib/services/fee.dart` (`kFeeRate`).
 lib/
 ├── main.dart                 # bootstrap: init Hive + splash, ProviderScope
 ├── app.dart                  # MaterialApp; login / korisnik / admin prema sesiji
-├── models/                   # AppUser, Device, LoopTransaction, UserStatus
+├── models/                   # AppUser, Device (+ odjeljci/kategorije), LoopTransaction,
+│                             # PortfolioPoint, UserStatus
 ├── services/
 │   ├── storage_service.dart  # Hive pohrana (users, devices, transactions, session)
-│   ├── trade_service.dart    # poslovna logika: login, sell, buy, admin akcije
+│   ├── trade_service.dart    # poslovna logika: login, sell, buy, povijest, admin akcije
+│   ├── image_store.dart      # odabir i lokalno spremanje fotografija
 │   ├── fee.dart              # 5% fee i izračuni
 │   └── seed_data.dart        # demo podaci
 ├── providers/
@@ -144,5 +154,5 @@ flutter test
 ```
 
 Testovi pokrivaju fee, status, prodaju, kupnju (uključujući nedovoljno kredita), favorite,
-admin akcije, reset te UI tokove (login → prodaja → kupnja → aktivnost; kategorije, favoriti
-i detalji uređaja) na desktop i mobilnoj širini.
+povijest vrijednosti, fotografije, odjeljke, admin akcije i reset te UI tokove (login → prodaja →
+kupnja → aktivnost; kategorije, favoriti, detalji; grafikon i odjeljci) na desktop i mobilnoj širini.

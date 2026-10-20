@@ -17,7 +17,10 @@ class AdminDevicesScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final s = ref.watch(appProvider);
     if (s.devices.isEmpty) {
-      return const EmptyState(icon: Icons.devices_other, title: 'Nema uređaja');
+      return const EmptyState(
+        icon: Icons.devices_other,
+        title: 'Nema predmeta',
+      );
     }
     return AdminList(
       itemCount: s.devices.length,
@@ -42,7 +45,7 @@ class AdminDevicesScreen extends ConsumerWidget {
             ),
             isThreeLine: true,
             trailing: IconButton(
-              tooltip: 'Obriši uređaj',
+              tooltip: 'Obriši predmet',
               color: LoopColors.error,
               icon: const Icon(Icons.delete_outline),
               onPressed: () => _delete(context, ref, d),
@@ -56,7 +59,7 @@ class AdminDevicesScreen extends ConsumerWidget {
   Future<void> _delete(BuildContext context, WidgetRef ref, Device d) async {
     final ok = await confirmDialog(
       context,
-      title: 'Obrisati uređaj?',
+      title: 'Obrisati predmet?',
       message: '${d.name} (${d.model}) bit će trajno uklonjen.',
       confirmLabel: 'Obriši',
       destructive: true,
@@ -65,7 +68,7 @@ class AdminDevicesScreen extends ConsumerWidget {
     await runWithLoading(
       context,
       () => ref.read(appProvider.notifier).deleteDevice(d.id),
-      successMessage: 'Uređaj obrisan',
+      successMessage: 'Predmet obrisan',
     );
   }
 }

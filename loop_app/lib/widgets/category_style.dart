@@ -3,6 +3,34 @@ import 'package:flutter/material.dart';
 import '../models/device.dart';
 import '../theme/app_theme.dart';
 
+/// Kategorijska paleta (tamni način), provjerena validatorom na površini
+/// #141A27: raspon svjetline, kroma, CVD razlučivost susjednih boja i
+/// kontrast. Boje se dodjeljuju UVIJEK istim redom — nikad se ne generiraju
+/// nove. Odjeljak dobiva boju po svom redu u [ItemSection], kategorija po
+/// svom redu unutar odjeljka (najviše 8 kategorija po odjeljku).
+const kCategoricalPalette = <Color>[
+  Color(0xFF3987E5), // plava
+  Color(0xFFD95926), // narančasta
+  Color(0xFF199E70), // tirkizna
+  Color(0xFFC98500), // žuta
+  Color(0xFFD55181), // magenta
+  Color(0xFF008300), // zelena
+  Color(0xFF9085E9), // ljubičasta
+  Color(0xFFE66767), // crvena
+];
+
+extension SectionStyle on ItemSection {
+  Color get color => kCategoricalPalette[index];
+
+  IconData get icon => switch (this) {
+    ItemSection.electronics => Icons.devices,
+    ItemSection.collectibles => Icons.auto_awesome,
+    ItemSection.hobbies => Icons.interests,
+    ItemSection.crafts => Icons.brush,
+    ItemSection.activities => Icons.local_activity,
+  };
+}
+
 /// Vizualni identitet kategorije: ikona i boja (za gradijente, čipove, grafove).
 extension CategoryStyle on DeviceCategory {
   IconData get icon => switch (this) {
@@ -14,30 +42,43 @@ extension CategoryStyle on DeviceCategory {
     DeviceCategory.watch => Icons.watch,
     DeviceCategory.camera => Icons.photo_camera,
     DeviceCategory.other => Icons.devices_other,
+    DeviceCategory.cards => Icons.style,
+    DeviceCategory.coins => Icons.monetization_on_outlined,
+    DeviceCategory.stamps => Icons.local_post_office_outlined,
+    DeviceCategory.figures => Icons.smart_toy_outlined,
+    DeviceCategory.vinyl => Icons.album,
+    DeviceCategory.sport => Icons.directions_bike,
+    DeviceCategory.instruments => Icons.music_note,
+    DeviceCategory.books => Icons.menu_book,
+    DeviceCategory.boardGames => Icons.casino_outlined,
+    DeviceCategory.models => Icons.extension,
+    DeviceCategory.jewelry => Icons.diamond_outlined,
+    DeviceCategory.ceramics => Icons.coffee,
+    DeviceCategory.textile => Icons.checkroom,
+    DeviceCategory.woodwork => Icons.carpenter,
+    DeviceCategory.paintings => Icons.palette_outlined,
+    DeviceCategory.workshops => Icons.handyman_outlined,
+    DeviceCategory.tutoring => Icons.school_outlined,
+    DeviceCategory.tickets => Icons.confirmation_number_outlined,
+    DeviceCategory.experiences => Icons.kayaking,
   };
 
-  Color get color => switch (this) {
-    DeviceCategory.phone => LoopColors.accent,
-    DeviceCategory.laptop => const Color(0xFF5B8CFF),
-    DeviceCategory.tablet => const Color(0xFFB57BFF),
-    DeviceCategory.audio => const Color(0xFFFF7AB6),
-    DeviceCategory.console => const Color(0xFFFF6B4A),
-    DeviceCategory.watch => const Color(0xFFFFC94D),
-    DeviceCategory.camera => const Color(0xFF3FD0FF),
-    DeviceCategory.other => LoopColors.textSecondary,
-  };
+  Color get color =>
+      kCategoricalPalette[section.categories.indexOf(this) %
+          kCategoricalPalette.length];
 
   /// Dijagonalni gradijent od boje kategorije prema tamnoj površini.
   LinearGradient get gradient => LinearGradient(
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
-    colors: [color.withValues(alpha: 0.35), color.withValues(alpha: 0.08)],
+    colors: [color.withValues(alpha: 0.38), color.withValues(alpha: 0.08)],
   );
 }
 
 /// Boja stanja uređaja (zeleno → crveno).
 extension ConditionStyle on DeviceCondition {
   Color get color => switch (this) {
+    DeviceCondition.brandNew => const Color(0xFF5EE6FF),
     DeviceCondition.excellent => LoopColors.success,
     DeviceCondition.veryGood => const Color(0xFF7BE0C3),
     DeviceCondition.good => const Color(0xFFFFC94D),
