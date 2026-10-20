@@ -70,6 +70,11 @@ class SeedData {
         DeviceCategory.laptop,
         demoUserId,
       ),
+      // Dodatni uređaji u Marketu (novije kategorije)
+      d('Apple Watch Series 9', '45mm', ex, 290, DeviceCategory.watch),
+      d('Sony A7 III', 'Body', vg, 980, DeviceCategory.camera),
+      d('PlayStation 5', 'Disc 825GB', vg, 380, DeviceCategory.console),
+      d('Nintendo Switch OLED', '64GB', ex, 230, DeviceCategory.console),
     ];
   }
 }

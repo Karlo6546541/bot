@@ -56,6 +56,22 @@ flutter run            # odaberi uređaj s popisa
 3. Za pravi iPhone: otvori `ios/Runner.xcworkspace` u Xcodeu, pod *Signing & Capabilities*
    odaberi svoj Team, pa `flutter run`.
 
+### Što aplikacija ima
+
+- **Portfolio:** animirani prikaz kredita, status s trakom napretka do sljedeće razine,
+  raspodjela vrijednosti po kategorijama.
+- **Market:** čipovi kategorija s brojem uređaja, pretraga, sortiranje (najnovije, cijena, naziv)
+  i **favoriti** (♥) s vlastitim filterom.
+- **Detalji uređaja:** dodir na karticu otvara ekran sa specifikacijama i izračunom fee-a.
+- **Kategorije:** Mobiteli, Laptopi, Tableti, Slušalice, Konzole, Satovi, Kamere, Ostalo, svaka
+  sa svojom bojom i ikonom.
+- **Dodaj uređaj:** birač kategorije u obliku pločica i živi pregled kartice s iznosom prodaje.
+- **Aktivnost:** sažetak (zarađeno, potrošeno, plaćeni fee) i filter Kupnje/Prodaje.
+- **Admin:** dashboard s brojem i vrijednošću uređaja po kategorijama.
+
+> Ako si aplikaciju već pokretao, nove demo uređaje (Apple Watch, Sony A7 III, PS5, Switch)
+> vidjet ćeš tek nakon *Profil → "Resetiraj demo podatke"*.
+
 ---
 
 ## Demo podaci za login
@@ -69,8 +85,9 @@ flutter run            # odaberi uređaj s popisa
 
 Bilo koji drugi e-mail + bilo koja lozinka automatski kreira novi račun s **500 LC** početnih kredita.
 
-U Marketu je na početku 8 uređaja (iPhone 15 Pro, MacBook Air M3, Galaxy S24, iPad Air M2,
-AirPods Pro 2, iPhone 14, MacBook Pro 14", iPad Pro 11").
+U Marketu je na početku 12 uređaja (iPhone 15 Pro, MacBook Air M3, Galaxy S24, iPad Air M2,
+AirPods Pro 2, iPhone 14, MacBook Pro 14", iPad Pro 11", Apple Watch Series 9, Sony A7 III,
+PlayStation 5, Nintendo Switch OLED).
 
 **Resetiranje:** *Profil → "Resetiraj demo podatke"* briše sve i vraća početno stanje.
 
@@ -126,5 +143,6 @@ flutter analyze
 flutter test
 ```
 
-Testovi pokrivaju fee, status, prodaju, kupnju (uključujući nedovoljno kredita), admin akcije,
-reset te cijeli UI tok (login → prodaja → kupnja → aktivnost) na desktop i mobilnoj širini.
+Testovi pokrivaju fee, status, prodaju, kupnju (uključujući nedovoljno kredita), favorite,
+admin akcije, reset te UI tokove (login → prodaja → kupnja → aktivnost; kategorije, favoriti
+i detalji uređaja) na desktop i mobilnoj širini.

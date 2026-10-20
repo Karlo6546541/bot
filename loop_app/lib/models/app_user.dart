@@ -8,6 +8,7 @@ class AppUser {
     required this.credits,
     required this.createdAt,
     this.isGuest = false,
+    this.favorites = const [],
   });
 
   final String id;
@@ -17,13 +18,17 @@ class AppUser {
   final bool isGuest;
   final DateTime createdAt;
 
-  AppUser copyWith({double? credits}) => AppUser(
+  /// ID-evi uređaja koje je korisnik označio srcem (lista želja).
+  final List<String> favorites;
+
+  AppUser copyWith({double? credits, List<String>? favorites}) => AppUser(
     id: id,
     email: email,
     name: name,
     credits: credits ?? this.credits,
     createdAt: createdAt,
     isGuest: isGuest,
+    favorites: favorites ?? this.favorites,
   );
 
   Map<String, dynamic> toMap() => {
@@ -32,6 +37,7 @@ class AppUser {
     'name': name,
     'credits': credits,
     'isGuest': isGuest,
+    'favorites': favorites,
     'createdAt': createdAt.toIso8601String(),
   };
 
@@ -41,6 +47,8 @@ class AppUser {
     name: map['name'] as String,
     credits: (map['credits'] as num).toDouble(),
     isGuest: map['isGuest'] as bool? ?? false,
+    // Stariji zapisi nemaju ovo polje.
+    favorites: (map['favorites'] as List?)?.cast<String>() ?? const [],
     createdAt: DateTime.parse(map['createdAt'] as String),
   );
 }

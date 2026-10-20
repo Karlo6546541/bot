@@ -10,6 +10,26 @@ enum UserStatus {
   final String label;
   final Color color;
 
+  /// Sljedeći status i prag koji treba prijeći (`null` za Gold).
+  UserStatus? get next => switch (this) {
+    UserStatus.bronze => UserStatus.silver,
+    UserStatus.silver => UserStatus.gold,
+    UserStatus.gold => null,
+  };
+
+  /// Donja granica statusa i granica za sljedeći.
+  double get floor => switch (this) {
+    UserStatus.bronze => 0,
+    UserStatus.silver => 2000,
+    UserStatus.gold => 5000,
+  };
+
+  double? get nextThreshold => switch (this) {
+    UserStatus.bronze => 2000,
+    UserStatus.silver => 5000,
+    UserStatus.gold => null,
+  };
+
   /// Bronze: < 2000, Silver: 2000 – 5000, Gold: > 5000.
   static UserStatus fromTotalValue(double total) {
     if (total > 5000) return UserStatus.gold;

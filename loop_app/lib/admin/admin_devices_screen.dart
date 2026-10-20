@@ -4,7 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/device.dart';
 import '../providers/app_providers.dart';
 import '../theme/app_theme.dart';
-import '../widgets/device_icon.dart';
+import '../widgets/category_style.dart';
 import '../widgets/empty_state.dart';
 import '../widgets/formatters.dart';
 import '../widgets/trade_actions.dart';
@@ -30,7 +30,7 @@ class AdminDevicesScreen extends ConsumerWidget {
               horizontal: 16,
               vertical: 6,
             ),
-            leading: Icon(iconForCategory(d.category), color: LoopColors.admin),
+            leading: CategoryAvatar(category: d.category, size: 40),
             title: Text(
               '${d.name} · ${d.model}',
               style: const TextStyle(fontWeight: FontWeight.w700),

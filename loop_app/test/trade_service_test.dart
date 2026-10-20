@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hive/hive.dart';
+import 'package:loop_app/models/app_user.dart';
 import 'package:loop_app/models/device.dart';
 import 'package:loop_app/models/loop_transaction.dart';
 import 'package:loop_app/models/user_status.dart';
@@ -42,13 +43,13 @@ void main() {
     expect(UserStatus.fromTotalValue(5001), UserStatus.gold);
   });
 
-  test('seed: demo korisnik je Silver, 8 uređaja u Marketu', () {
+  test('seed: demo korisnik je Silver, 12 uređaja u Marketu', () {
     final state = AppState.fromStorage(storage);
     final demo = storage.userById(SeedData.demoUserId)!;
     expect(demo.credits, 1250);
     expect(state.devicesOf(demo.id), hasLength(2));
     expect(state.statusOf(demo), UserStatus.silver);
-    expect(state.devices.where((d) => d.isOnMarket), hasLength(8));
+    expect(state.devices.where((d) => d.isOnMarket), hasLength(12));
   });
 
   test(
@@ -116,6 +117,30 @@ void main() {
 
     await storage.resetAll();
     expect(storage.users, hasLength(2));
-    expect(storage.devices, hasLength(10));
+    expect(storage.devices, hasLength(14));
+  });
+
+  test('favoriti: dodavanje i uklanjanje', () async {
+    expect(await trade.toggleFavorite(SeedData.testUserId, 'seed-1'), isTrue);
+    expect(storage.userById(SeedData.testUserId)!.favorites, ['seed-1']);
+    expect(await trade.toggleFavorite(SeedData.testUserId, 'seed-1'), isFalse);
+    expect(storage.userById(SeedData.testUserId)!.favorites, isEmpty);
+  });
+
+  test('stari zapis korisnika bez favorita se učitava', () {
+    final u = AppUser.fromMap({
+      'id': 'x',
+      'email': 'x@loop.com',
+      'name': 'x',
+      'credits': 1,
+      'createdAt': DateTime(2026).toIso8601String(),
+    });
+    expect(u.favorites, isEmpty);
+  });
+
+  test('status: napredak do sljedećeg', () {
+    expect(UserStatus.bronze.next, UserStatus.silver);
+    expect(UserStatus.silver.nextThreshold, 5000);
+    expect(UserStatus.gold.next, isNull);
   });
 }

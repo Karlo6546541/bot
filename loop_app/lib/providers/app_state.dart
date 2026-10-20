@@ -58,6 +58,34 @@ class AppState {
   List<Device> get marketDevices =>
       devices.where((d) => d.isOnMarket && d.ownerId != currentUserId).toList();
 
+  bool isFavorite(String deviceId) =>
+      currentUser?.favorites.contains(deviceId) ?? false;
+
+  Device? deviceById(String id) {
+    for (final d in devices) {
+      if (d.id == id) return d;
+    }
+    return null;
+  }
+
+  /// Broj uređaja po kategoriji (samo kategorije koje imaju uređaje).
+  static Map<DeviceCategory, int> countByCategory(Iterable<Device> devices) {
+    final counts = <DeviceCategory, int>{};
+    for (final d in devices) {
+      counts[d.category] = (counts[d.category] ?? 0) + 1;
+    }
+    return counts;
+  }
+
+  /// Vrijednost uređaja po kategoriji.
+  static Map<DeviceCategory, double> valueByCategory(Iterable<Device> devices) {
+    final values = <DeviceCategory, double>{};
+    for (final d in devices) {
+      values[d.category] = (values[d.category] ?? 0) + d.price;
+    }
+    return values;
+  }
+
   List<LoopTransaction> get myTransactions =>
       transactions.where((t) => t.userId == currentUserId).toList();
 

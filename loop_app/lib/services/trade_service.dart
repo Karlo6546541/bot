@@ -198,6 +198,16 @@ class TradeService {
     return tx;
   }
 
+  /// Dodaje ili uklanja uređaj s liste želja. Vraća `true` ako je dodan.
+  Future<bool> toggleFavorite(String userId, String deviceId) async {
+    final user = _requireUser(userId);
+    final favs = [...user.favorites];
+    final added = !favs.remove(deviceId);
+    if (added) favs.add(deviceId);
+    await _storage.putUser(user.copyWith(favorites: favs));
+    return added;
+  }
+
   // ---------------------------------------------------------------- admin
 
   Future<void> addCredits(String userId, double amount) async {

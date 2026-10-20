@@ -65,7 +65,7 @@ Future<bool> runWithLoading(
 }
 
 /// INSTANT SELL — dijalog s cijenom, fee-om i iznosom, pa prodaja.
-Future<void> confirmAndSell(
+Future<bool> confirmAndSell(
   BuildContext context,
   WidgetRef ref,
   Device device,
@@ -86,8 +86,8 @@ Future<void> confirmAndSell(
     note: 'Dobivaš LOOP kredite koje možeš potrošiti samo unutar aplikacije.',
     confirmLabel: 'Potvrdi prodaju',
   );
-  if (!ok || !context.mounted) return;
-  await runWithLoading(
+  if (!ok || !context.mounted) return false;
+  return runWithLoading(
     context,
     () => ref.read(appProvider.notifier).sell(device.id),
     successMessage: 'Uspješno prodano',
@@ -95,13 +95,13 @@ Future<void> confirmAndSell(
 }
 
 /// INSTANT BUY — provjera kredita, dijalog s fee-om, pa kupnja.
-Future<void> confirmAndBuy(
+Future<bool> confirmAndBuy(
   BuildContext context,
   WidgetRef ref,
   Device device,
 ) async {
   final user = ref.read(appProvider).currentUser;
-  if (user == null) return;
+  if (user == null) return false;
   final total = buyTotal(device.price);
 
   if (user.credits < total) {
@@ -110,7 +110,7 @@ Future<void> confirmAndBuy(
       'imaš ${formatCredits(user.credits)}.',
       error: true,
     );
-    return;
+    return false;
   }
 
   final ok = await _showTradeDialog(
@@ -129,11 +129,21 @@ Future<void> confirmAndBuy(
     ],
     confirmLabel: 'Potvrdi kupnju',
   );
-  if (!ok || !context.mounted) return;
-  await runWithLoading(
+  if (!ok || !context.mounted) return false;
+  return runWithLoading(
     context,
     () => ref.read(appProvider.notifier).buy(device.id),
     successMessage: 'Uspješno kupljeno',
+  );
+}
+
+/// Srce na uređaju: dodaje/uklanja iz favorita uz kratku poruku.
+Future<void> toggleFavorite(WidgetRef ref, Device device) async {
+  final added = await ref.read(appProvider.notifier).toggleFavorite(device.id);
+  showLoopSnackBar(
+    added
+        ? '${device.name} dodan u favorite'
+        : '${device.name} uklonjen iz favorita',
   );
 }
 

@@ -1,15 +1,22 @@
-/// Kategorija uređaja. Filter u Marketu grupira sve osim mobitela,
-/// laptopa i tableta pod "Ostalo".
+/// Kategorija uređaja. Boja i ikona za prikaz su u
+/// `widgets/category_style.dart`.
 enum DeviceCategory {
-  phone('Mobitel'),
-  laptop('Laptop'),
-  tablet('Tablet'),
-  audio('Slušalice'),
-  console('Konzola'),
-  other('Ostalo');
+  phone('Mobiteli', 'Mobitel'),
+  laptop('Laptopi', 'Laptop'),
+  tablet('Tableti', 'Tablet'),
+  audio('Slušalice', 'Slušalice'),
+  console('Konzole', 'Konzola'),
+  watch('Satovi', 'Sat'),
+  camera('Kamere', 'Kamera'),
+  other('Ostalo', 'Ostalo');
 
-  const DeviceCategory(this.label);
+  const DeviceCategory(this.label, this.singular);
+
+  /// Množina — za filtere i grupe ("Mobiteli").
   final String label;
+
+  /// Jednina — za karticu uređaja i formu ("Mobitel").
+  final String singular;
 
   static DeviceCategory fromName(String? name) => DeviceCategory.values
       .firstWhere((c) => c.name == name, orElse: () => DeviceCategory.other);

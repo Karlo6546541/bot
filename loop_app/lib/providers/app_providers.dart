@@ -95,6 +95,12 @@ class AppController extends Notifier<AppState> {
     return tx;
   }
 
+  Future<bool> toggleFavorite(String deviceId) async {
+    final added = await _trade.toggleFavorite(_requireUserId(), deviceId);
+    _refresh();
+    return added;
+  }
+
   // ---------------------------------------------------------------- admin
 
   Future<void> addCredits(String userId, double amount) async {
