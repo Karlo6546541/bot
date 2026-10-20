@@ -24,6 +24,12 @@ class AdminDashboardScreen extends ConsumerWidget {
         '${s.devices.length}',
         sub: '$onMarket u Marketu',
       ),
+      _Tile(
+        Icons.gavel,
+        'Aukcije',
+        '${s.activeAuctions.length}',
+        sub: 'aktivnih · ${s.auctions.length} ukupno',
+      ),
       _Tile(Icons.swap_horiz, 'Transakcije', '${s.transactions.length}'),
       _Tile(
         Icons.stacked_line_chart,

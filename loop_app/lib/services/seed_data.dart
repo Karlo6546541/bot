@@ -1,6 +1,7 @@
-import '../models/app_user.dart';
 import 'dart:math';
 
+import '../models/app_user.dart';
+import '../models/auction.dart';
 import '../models/device.dart';
 import '../models/portfolio_point.dart';
 
@@ -8,6 +9,13 @@ import '../models/portfolio_point.dart';
 class SeedData {
   static const demoUserId = 'user-demo';
   static const testUserId = 'user-test';
+  static const anaUserId = 'user-ana';
+  static const markoUserId = 'user-marko';
+
+  /// Markovi krediti: ukupno 1500, od čega je 470 blokirano u vodećim
+  /// ponudama na Aninim aukcijama (320 + 60 + 90).
+  static const _markoTotal = 1500.0;
+  static const _markoHeld = 470.0;
 
   static List<AppUser> users(DateTime now) => [
     AppUser(
@@ -22,6 +30,20 @@ class SeedData {
       email: 'test@loop.com',
       name: 'Test Korisnik',
       credits: 800,
+      createdAt: now,
+    ),
+    AppUser(
+      id: anaUserId,
+      email: 'ana@loop.com',
+      name: 'Ana Kolekcionarka',
+      credits: 400,
+      createdAt: now,
+    ),
+    AppUser(
+      id: markoUserId,
+      email: 'marko@loop.com',
+      name: 'Marko',
+      credits: _markoTotal - _markoHeld,
       createdAt: now,
     ),
   ];
@@ -192,6 +214,39 @@ class SeedData {
         120,
         DeviceCategory.experiences,
       ),
+      // Predmeti koje Ana prodaje na aukcijama (vidi [auctions]).
+      d(
+        'Pokémon Base Set booster',
+        'Zapečaćen, 1999.',
+        ex,
+        900,
+        DeviceCategory.cards,
+        anaUserId,
+      ),
+      d(
+        'Polaroid SX-70',
+        'Ispravan, s torbicom',
+        vg,
+        180,
+        DeviceCategory.camera,
+        anaUserId,
+      ),
+      d(
+        'Akvarel – Stari grad Hvar',
+        'Original, 40×30',
+        nw,
+        150,
+        DeviceCategory.paintings,
+        anaUserId,
+      ),
+      d(
+        'Ulaznica – Ultra Europe',
+        '3 dana, Split',
+        nw,
+        160,
+        DeviceCategory.tickets,
+        anaUserId,
+      ),
     ];
   }
 
@@ -255,6 +310,82 @@ class SeedData {
           portfolio: 0,
         ),
       ],
+      anaUserId: [
+        PortfolioPoint(
+          time: now.subtract(const Duration(days: 9)),
+          credits: 400,
+          portfolio: 1390,
+        ),
+      ],
+      markoUserId: [
+        PortfolioPoint(
+          time: now.subtract(const Duration(days: 9)),
+          credits: _markoTotal,
+          portfolio: 0,
+        ),
+      ],
     };
+  }
+
+  /// Demo aukcije: Ana prodaje, Marko i test korisnik licitiraju.
+  /// ID-evi predmeta prate redoslijed u [devices] (seed-34 … seed-37).
+  static List<Auction> auctions(DateTime now) {
+    Bid bid(String userId, String label, double amount, int minutesAgo) => Bid(
+      userId: userId,
+      userLabel: label,
+      amount: amount,
+      time: now.subtract(Duration(minutes: minutesAgo)),
+    );
+    Auction a(
+      String n,
+      String deviceId,
+      String name,
+      double start,
+      Duration endsIn,
+      List<Bid> bids,
+    ) => Auction(
+      id: 'seed-auction-$n',
+      deviceId: deviceId,
+      deviceName: name,
+      sellerId: anaUserId,
+      sellerLabel: 'ana@loop.com',
+      startPrice: start,
+      createdAt: now.subtract(const Duration(days: 1)),
+      endsAt: now.add(endsIn),
+      bids: bids,
+    );
+
+    return [
+      a(
+        '1',
+        'seed-34',
+        'Pokémon Base Set booster',
+        300,
+        const Duration(hours: 26),
+        [
+          bid(testUserId, 'test@loop.com', 300, 600),
+          bid(markoUserId, 'marko@loop.com', 320, 300),
+        ],
+      ),
+      a('2', 'seed-35', 'Polaroid SX-70', 60, const Duration(hours: 3), [
+        bid(markoUserId, 'marko@loop.com', 60, 120),
+      ]),
+      a(
+        '3',
+        'seed-36',
+        'Akvarel – Stari grad Hvar',
+        40,
+        const Duration(days: 5),
+        const [],
+      ),
+      a(
+        '4',
+        'seed-37',
+        'Ulaznica – Ultra Europe',
+        90,
+        const Duration(minutes: 40),
+        [bid(markoUserId, 'marko@loop.com', 90, 30)],
+      ),
+    ];
   }
 }

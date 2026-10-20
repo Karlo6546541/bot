@@ -1,4 +1,5 @@
 import '../models/app_user.dart';
+import '../models/auction.dart';
 import '../models/device.dart';
 import '../models/loop_transaction.dart';
 import '../models/portfolio_point.dart';
@@ -15,6 +16,7 @@ class AppState {
     required this.currentUserId,
     required this.isAdmin,
     this.myHistory = const [],
+    this.auctions = const [],
   });
 
   factory AppState.fromStorage(StorageService storage) {
@@ -30,6 +32,8 @@ class AppState {
       transactions: txs,
       currentUserId: storage.currentUserId,
       isAdmin: storage.isAdmin,
+      auctions: [...storage.auctions]
+        ..sort((a, b) => a.endsAt.compareTo(b.endsAt)),
       myHistory: storage.currentUserId == null
           ? const []
           : storage.historyOf(storage.currentUserId!),
@@ -44,6 +48,32 @@ class AppState {
 
   /// Povijest vrijednosti trenutnog korisnika (najstarije prvo).
   final List<PortfolioPoint> myHistory;
+
+  /// Sve aukcije, sortirane po vremenu završetka.
+  final List<Auction> auctions;
+
+  List<Auction> get activeAuctions =>
+      auctions.where((a) => a.isActive).toList();
+
+  Auction? auctionById(String id) {
+    for (final a in auctions) {
+      if (a.id == id) return a;
+    }
+    return null;
+  }
+
+  /// Aktivna aukcija predmeta (predmet je tada zaključan za prodaju).
+  Auction? activeAuctionFor(String deviceId) {
+    for (final a in auctions) {
+      if (a.isActive && a.deviceId == deviceId) return a;
+    }
+    return null;
+  }
+
+  /// Krediti blokirani u vodećim ponudama.
+  double heldCreditsOf(String userId) => auctions
+      .where((a) => a.isActive && a.highestBid?.userId == userId)
+      .fold(0.0, (sum, a) => sum + a.highestBid!.amount);
 
   AppUser? get currentUser {
     if (currentUserId == null) return null;
@@ -102,14 +132,17 @@ class AppState {
     return values;
   }
 
-  List<LoopTransaction> get myTransactions =>
-      transactions.where((t) => t.userId == currentUserId).toList();
+  List<LoopTransaction> get myTransactions => currentUserId == null
+      ? const []
+      : transactions.where((t) => t.involves(currentUserId!)).toList();
 
   double portfolioValueOf(String userId) =>
       devicesOf(userId).fold(0, (sum, d) => sum + d.price);
 
-  /// Ukupna vrijednost = krediti + vrijednost portfolija.
-  double totalValueOf(AppUser user) => user.credits + portfolioValueOf(user.id);
+  /// Ukupna vrijednost = krediti (uključujući blokirane u ponudama)
+  /// + vrijednost portfolija.
+  double totalValueOf(AppUser user) =>
+      user.credits + heldCreditsOf(user.id) + portfolioValueOf(user.id);
 
   UserStatus statusOf(AppUser user) =>
       UserStatus.fromTotalValue(totalValueOf(user));

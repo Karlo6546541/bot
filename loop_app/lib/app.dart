@@ -6,6 +6,7 @@ import 'providers/app_providers.dart';
 import 'screens/home_shell.dart';
 import 'screens/login_screen.dart';
 import 'theme/app_theme.dart';
+import 'widgets/countdown.dart';
 import 'widgets/trade_actions.dart';
 
 /// Korijen aplikacije: ovisno o sesiji prikazuje login, korisnički dio
@@ -37,7 +38,8 @@ class LoopApp extends ConsumerWidget {
         accent: isAdmin ? LoopColors.admin : LoopColors.accent,
       ),
       themeMode: ThemeMode.dark,
-      home: home,
+      // Zaključivanje isteklih aukcija radi u pozadini cijele aplikacije.
+      home: AuctionHeartbeat(child: home),
     );
   }
 }

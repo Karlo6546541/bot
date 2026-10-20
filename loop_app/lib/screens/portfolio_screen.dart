@@ -14,6 +14,7 @@ import '../widgets/formatters.dart';
 import '../widgets/portfolio_chart.dart';
 import '../widgets/status_badge.dart';
 import '../widgets/trade_actions.dart';
+import 'auction_detail_screen.dart';
 import 'device_detail_screen.dart';
 
 /// Početna stranica: krediti, status, vrijednost i uređaji korisnika.
@@ -45,6 +46,7 @@ class PortfolioScreen extends ConsumerWidget {
               portfolioValue: portfolioValue,
               totalValue: total,
               deviceCount: devices.length,
+              held: state.heldCreditsOf(user.id),
             ),
           ),
         ),
@@ -55,7 +57,7 @@ class PortfolioScreen extends ConsumerWidget {
               history: state.myHistory,
               current: PortfolioPoint(
                 time: DateTime.now(),
-                credits: user.credits,
+                credits: user.credits + state.heldCreditsOf(user.id),
                 portfolio: portfolioValue,
               ),
             ),
@@ -96,13 +98,19 @@ class PortfolioScreen extends ConsumerWidget {
         else
           DeviceGrid(
             devices: devices,
-            itemBuilder: (context, d) => DeviceCard(
-              device: d,
-              actionLabel: 'Prodaj odmah',
-              actionIcon: Icons.sell_outlined,
-              onAction: () => confirmAndSell(context, ref, d),
-              onTap: () => DeviceDetailScreen.open(context, d),
-            ),
+            itemBuilder: (context, d) {
+              final auction = state.activeAuctionFor(d.id);
+              // Predmet na aukciji: umjesto prodaje vodi na aukciju.
+              return DeviceCard(
+                device: d,
+                actionLabel: auction != null ? 'Na aukciji' : 'Prodaj odmah',
+                actionIcon: auction != null ? Icons.gavel : Icons.sell_outlined,
+                onAction: auction != null
+                    ? () => AuctionDetailScreen.open(context, auction.id)
+                    : () => confirmAndSell(context, ref, d),
+                onTap: () => DeviceDetailScreen.open(context, d),
+              );
+            },
           ),
       ],
     );
@@ -117,8 +125,10 @@ class _CreditsHero extends StatelessWidget {
     required this.portfolioValue,
     required this.totalValue,
     required this.deviceCount,
+    required this.held,
   });
 
+  final double held;
   final String name;
   final double credits;
   final UserStatus status;
@@ -232,6 +242,11 @@ class _CreditsHero extends StatelessWidget {
                       value: formatCredits(portfolioValue),
                     ),
                     _Stat(label: 'Predmeti', value: '$deviceCount'),
+                    if (held > 0)
+                      _Stat(
+                        label: 'Blokirano u ponudama',
+                        value: formatCredits(held),
+                      ),
                   ],
                 ),
                 const SizedBox(height: 18),

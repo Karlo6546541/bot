@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../providers/app_providers.dart';
 import '../theme/app_theme.dart';
 import '../widgets/adaptive_shell.dart';
+import 'admin_auctions_screen.dart';
 import 'admin_dashboard_screen.dart';
 import 'admin_devices_screen.dart';
 import 'admin_transactions_screen.dart';
@@ -25,6 +26,7 @@ class _AdminShellState extends ConsumerState<AdminShell> {
     ShellDestination('Dashboard', Icons.dashboard_outlined, Icons.dashboard),
     ShellDestination('Korisnici', Icons.group_outlined, Icons.group),
     ShellDestination('Predmeti', Icons.inventory_2_outlined, Icons.inventory_2),
+    ShellDestination('Aukcije', Icons.gavel_outlined, Icons.gavel),
     ShellDestination('Transakcije', Icons.swap_horiz, Icons.swap_horiz),
   ];
 
@@ -74,6 +76,7 @@ class _AdminShellState extends ConsumerState<AdminShell> {
           AdminDashboardScreen(),
           AdminUsersScreen(),
           AdminDevicesScreen(),
+          AdminAuctionsScreen(),
           AdminTransactionsScreen(),
         ],
       ),

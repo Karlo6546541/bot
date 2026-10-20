@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import '../widgets/adaptive_shell.dart';
 import 'activity_screen.dart';
 import 'add_device_screen.dart';
+import 'auctions_screen.dart';
+import 'create_auction_screen.dart';
 import 'market_screen.dart';
 import 'portfolio_screen.dart';
 import 'profile_screen.dart';
@@ -25,6 +27,7 @@ class _HomeShellState extends State<HomeShell> {
       Icons.account_balance_wallet,
     ),
     ShellDestination('Market', Icons.storefront_outlined, Icons.storefront),
+    ShellDestination('Aukcije', Icons.gavel_outlined, Icons.gavel),
     ShellDestination(
       'Aktivnost',
       Icons.receipt_long_outlined,
@@ -56,22 +59,32 @@ class _HomeShellState extends State<HomeShell> {
             ? Text(_destinations[_index].label)
             : const LoopLogo(size: 22),
       ),
-      floatingActionButton: _index == 0
-          ? FloatingActionButton.extended(
-              onPressed: _openAddDevice,
-              icon: const Icon(Icons.add),
-              label: const Text(
-                'Dodaj predmet',
-                style: TextStyle(fontWeight: FontWeight.w700),
-              ),
-            )
-          : null,
+      floatingActionButton: switch (_index) {
+        0 => FloatingActionButton.extended(
+          onPressed: _openAddDevice,
+          icon: const Icon(Icons.add),
+          label: const Text(
+            'Dodaj predmet',
+            style: TextStyle(fontWeight: FontWeight.w700),
+          ),
+        ),
+        2 => FloatingActionButton.extended(
+          onPressed: () => CreateAuctionScreen.open(context),
+          icon: const Icon(Icons.gavel),
+          label: const Text(
+            'Nova aukcija',
+            style: TextStyle(fontWeight: FontWeight.w700),
+          ),
+        ),
+        _ => null,
+      },
       // IndexedStack čuva stanje (npr. search u Marketu) pri promjeni taba.
       body: IndexedStack(
         index: _index,
         children: [
           PortfolioScreen(onGoToMarket: () => setState(() => _index = 1)),
           const MarketScreen(),
+          const AuctionsScreen(),
           const ActivityScreen(),
           const ProfileScreen(),
         ],

@@ -10,6 +10,8 @@ import '../widgets/category_style.dart';
 import '../widgets/formatters.dart';
 import '../widgets/item_image.dart';
 import '../widgets/trade_actions.dart';
+import 'auction_detail_screen.dart';
+import 'create_auction_screen.dart';
 
 /// Detalji uređaja: veliki prikaz, specifikacije, izračun fee-a i akcija
 /// (kupnja za uređaje iz Marketa, prodaja za vlastite).
@@ -41,6 +43,7 @@ class DeviceDetailScreen extends ConsumerWidget {
 
     final isMine = device.ownerId == user.id;
     final canBuy = device.isOnMarket && !isMine;
+    final auction = state.activeAuctionFor(device.id);
     final cat = device.category;
     final fee = feeFor(device.price);
     final isFav = state.isFavorite(device.id);
@@ -188,7 +191,36 @@ class DeviceDetailScreen extends ConsumerWidget {
                 ),
               ),
               const SizedBox(height: 20),
-              if (isMine)
+              if (isMine && auction != null) ...[
+                // Predmet je zaključan dok aukcija traje.
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: LoopColors.surfaceHover,
+                    borderRadius: BorderRadius.circular(kRadius),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.gavel, color: LoopColors.textSecondary),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Text(
+                          'Na aukciji · ${auction.bids.length} ponuda · '
+                          'trenutno ${formatCredits(auction.currentPrice)}. '
+                          'Predmet se ne može prodati dok aukcija traje.',
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 12),
+                FilledButton.icon(
+                  onPressed: () =>
+                      AuctionDetailScreen.open(context, auction.id),
+                  icon: const Icon(Icons.gavel),
+                  label: const Text('Pogledaj aukciju'),
+                ),
+              ] else if (isMine) ...[
                 FilledButton.icon(
                   onPressed: () async {
                     final ok = await confirmAndSell(context, ref, device);
@@ -196,8 +228,15 @@ class DeviceDetailScreen extends ConsumerWidget {
                   },
                   icon: const Icon(Icons.sell_outlined),
                   label: const Text('Prodaj odmah'),
-                )
-              else if (canBuy)
+                ),
+                const SizedBox(height: 10),
+                OutlinedButton.icon(
+                  onPressed: () =>
+                      CreateAuctionScreen.open(context, deviceId: device.id),
+                  icon: const Icon(Icons.gavel),
+                  label: const Text('Stavi na aukciju'),
+                ),
+              ] else if (canBuy)
                 FilledButton.icon(
                   onPressed: () async {
                     final ok = await confirmAndBuy(context, ref, device);

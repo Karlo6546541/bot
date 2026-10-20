@@ -11,7 +11,11 @@ Future<Widget> buildApp(WidgetTester tester) async {
   await tester.runAsync(() => storage.init(inMemory: true));
   addTearDown(() => tester.runAsync(Hive.close));
   return ProviderScope(
-    overrides: [storageProvider.overrideWithValue(storage)],
+    overrides: [
+      storageProvider.overrideWithValue(storage),
+      // Bez periodičkih timera (odbrojavanje) — inače pumpAndSettle ne staje.
+      tickIntervalProvider.overrideWithValue(null),
+    ],
     child: const LoopApp(),
   );
 }
@@ -168,5 +172,42 @@ void main() {
     expect(find.text('Keramička šalica'), findsOneWidget);
     expect(find.text('iPhone 15 Pro'), findsNothing);
     expect(find.text('Nakit'), findsWidgets); // čip kategorije + kartica
+  });
+
+  testWidgets('aukcija: ponuda, vodstvo, zaključan obrazac', (tester) async {
+    tester.view.physicalSize = const Size(1400, 1000);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+
+    await tester.pumpWidget(await buildApp(tester));
+    await tester.tap(find.text('Prijavi se'));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Aukcije').last);
+    await tester.pumpAndSettle();
+    expect(find.text('Polaroid SX-70'), findsOneWidget);
+
+    await tester.tap(find.text('Polaroid SX-70'));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('Najmanja ponuda: 63.00 LC'), findsOneWidget);
+
+    // Manje od minimuma → poruka uz polje.
+    await tester.enterText(find.byType(TextField), '61');
+    await tester.tap(find.text('Licitiraj'));
+    await tester.pumpAndSettle();
+    expect(find.text('Najmanje 63.00 LC'), findsOneWidget);
+
+    await tester.enterText(find.byType(TextField), '70');
+    await tester.tap(find.text('Licitiraj'));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('NE MOŽE se povući'), findsOneWidget);
+    await tester.tap(find.text('Licitiraj').last);
+    await tester.pumpAndSettle();
+
+    expect(find.text('Ponuda prihvaćena — vodiš!'), findsOneWidget);
+    expect(find.text('Vodiš'), findsOneWidget);
+    // Vodeći ponuđač više nema obrazac za ponudu.
+    expect(find.byType(TextField), findsNothing);
+    expect(find.textContaining('ne može se povući'), findsOneWidget);
   });
 }

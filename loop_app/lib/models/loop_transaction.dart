@@ -24,6 +24,7 @@ class LoopTransaction {
     required this.createdAt,
     this.buyerId,
     this.sellerId,
+    this.isAuction = false,
   });
 
   final String id;
@@ -48,6 +49,26 @@ class LoopTransaction {
   final String sellerLabel;
   final DateTime createdAt;
 
+  /// Transakcija je nastala završetkom aukcije. Takav zapis postoji jednom
+  /// i vrijedi za obje strane: prodavatelju je prodaja ([userId]),
+  /// pobjedniku ([buyerId]) kupnja.
+  final bool isAuction;
+
+  bool involves(String userId) =>
+      this.userId == userId || (isAuction && buyerId == userId);
+
+  bool _isAuctionBuyer(String userId) => isAuction && buyerId == userId;
+
+  /// Tip iz perspektive korisnika.
+  TransactionType typeFor(String userId) =>
+      _isAuctionBuyer(userId) ? TransactionType.buy : type;
+
+  /// Iznos koji je korisnik dobio (prodaja) ili platio (kupnja).
+  double amountFor(String userId) => _isAuctionBuyer(userId) ? price : amount;
+
+  /// Fee koji je korisnik platio (na aukciji ga plaća samo prodavatelj).
+  double feeFor(String userId) => _isAuctionBuyer(userId) ? 0 : fee;
+
   Map<String, dynamic> toMap() => {
     'id': id,
     'type': type.name,
@@ -62,6 +83,7 @@ class LoopTransaction {
     'buyerLabel': buyerLabel,
     'sellerLabel': sellerLabel,
     'createdAt': createdAt.toIso8601String(),
+    'isAuction': isAuction,
   };
 
   factory LoopTransaction.fromMap(Map<dynamic, dynamic> map) => LoopTransaction(
@@ -78,5 +100,6 @@ class LoopTransaction {
     buyerLabel: map['buyerLabel'] as String,
     sellerLabel: map['sellerLabel'] as String,
     createdAt: DateTime.parse(map['createdAt'] as String),
+    isAuction: map['isAuction'] as bool? ?? false,
   );
 }

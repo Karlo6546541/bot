@@ -113,11 +113,14 @@ void main() {
   test('admin: brisanje korisnika vraća uređaje u Market; reset', () async {
     await trade.deleteUser(SeedData.demoUserId);
     expect(storage.userById(SeedData.demoUserId), isNull);
-    expect(storage.devices.every((d) => d.isOnMarket), isTrue);
+    expect(
+      storage.devices.where((d) => d.ownerId == SeedData.demoUserId),
+      isEmpty,
+    );
 
     await storage.resetAll();
-    expect(storage.users, hasLength(2));
-    expect(storage.devices, hasLength(33));
+    expect(storage.users, hasLength(4));
+    expect(storage.devices, hasLength(37));
   });
 
   test('favoriti: dodavanje i uklanjanje', () async {

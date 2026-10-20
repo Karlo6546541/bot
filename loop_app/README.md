@@ -58,6 +58,19 @@ flutter run            # odaberi uređaj s popisa
 
 ### Što aplikacija ima
 
+- **Aukcije:** objavi predmet iz svog portfolija (početna cijena i trajanje od 2 min do 7 dana),
+  ostali licitiraju. Pravila:
+  - ponuda je **obvezujuća** i ne može se povući ni smanjiti;
+  - vodeći ponuđač ne može dati novu ponudu dok ga netko ne nadmaši;
+  - ponuda ne može biti **veća od raspoloživih kredita**;
+  - iznos vodeće ponude se **blokira** na računu i vraća se čim te netko nadmaši;
+  - najmanji korak je 5% trenutne cijene;
+  - ponuda u zadnjoj minuti produljuje aukciju za 1 minutu;
+  - na kraju pobjednik dobiva predmet, a prodavatelj najvišu ponudu − 5% feeja;
+  - bez ponuda predmet ostaje prodavatelju, koji aukciju može otkazati samo dok nema ponuda.
+
+  Dok aukcija traje, predmet se ne može prodati. Aukcije se zaključuju dok je aplikacija
+  otvorena: nema servera, pa ih aplikacija provjerava svake 3 sekunde i pri pokretanju.
 - **Pet odjeljaka Marketa:** Elektronika, Kolekcionarstvo (kartice, kovanice, marke, figure,
   ploče), Hobiji (sport, instrumenti, knjige, društvene igre, LEGO), Rukotvorine (nakit,
   keramika, tekstil, drvo, slike) i Aktivnosti (radionice, poduke, ulaznice, doživljaji).
@@ -90,6 +103,8 @@ svjetline, kontrast i razlučivost za daltonizam.
 | Korisnik | `test@loop.com`  | bilo koja  | 800 LC, prazan portfolio → **Bronze**                 |
 | Admin    | `admin@loop.com` | `admin123` | preko gumba **"Admin prijava"**                       |
 | Gost     | —                | —          | gumb **"Nastavi kao gost"** (500 LC)                  |
+| Korisnik | `ana@loop.com`   | bilo koja  | prodaje 4 predmeta na aukcijama                       |
+| Korisnik | `marko@loop.com` | bilo koja  | vodi na 3 aukcije (470 LC blokirano)                  |
 
 Bilo koji drugi e-mail + bilo koja lozinka automatski kreira novi račun s **500 LC** početnih kredita.
 
@@ -123,11 +138,12 @@ Fee je definiran na jednom mjestu: `lib/services/fee.dart` (`kFeeRate`).
 lib/
 ├── main.dart                 # bootstrap: init Hive + splash, ProviderScope
 ├── app.dart                  # MaterialApp; login / korisnik / admin prema sesiji
-├── models/                   # AppUser, Device (+ odjeljci/kategorije), LoopTransaction,
+├── models/                   # AppUser, Device (+ odjeljci/kategorije), Auction, LoopTransaction,
 │                             # PortfolioPoint, UserStatus
 ├── services/
 │   ├── storage_service.dart  # Hive pohrana (users, devices, transactions, session)
 │   ├── trade_service.dart    # poslovna logika: login, sell, buy, povijest, admin akcije
+│   ├── auction_service.dart  # aukcije: objava, ponude, blokiranje kredita, zaključivanje
 │   ├── image_store.dart      # odabir i lokalno spremanje fotografija
 │   ├── fee.dart              # 5% fee i izračuni
 │   └── seed_data.dart        # demo podaci
@@ -154,5 +170,7 @@ flutter test
 ```
 
 Testovi pokrivaju fee, status, prodaju, kupnju (uključujući nedovoljno kredita), favorite,
-povijest vrijednosti, fotografije, odjeljke, admin akcije i reset te UI tokove (login → prodaja →
+povijest vrijednosti, fotografije, odjeljke, **pravila aukcija** (blokiranje i povrat
+kredita, obvezujuće ponude, limit kredita, produljenje, zaključivanje, nadogradnja), admin akcije
+i reset te UI tokove (login → prodaja →
 kupnja → aktivnost; kategorije, favoriti, detalji; grafikon i odjeljci) na desktop i mobilnoj širini.

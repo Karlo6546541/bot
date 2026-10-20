@@ -3,7 +3,6 @@ import 'package:uuid/uuid.dart';
 import '../models/app_user.dart';
 import '../models/device.dart';
 import '../models/loop_transaction.dart';
-import '../models/portfolio_point.dart';
 import 'fee.dart';
 import 'storage_service.dart';
 
@@ -127,6 +126,11 @@ class TradeService {
     final device = _requireDevice(deviceId);
     if (device.ownerId != userId) {
       throw const TradeException('Ovaj predmet nije u tvom portfoliju.');
+    }
+    if (_storage.activeAuctionFor(deviceId) != null) {
+      throw const TradeException(
+        'Predmet je na aukciji i ne može se prodati dok aukcija traje.',
+      );
     }
 
     final fee = feeFor(device.price);
@@ -267,22 +271,7 @@ class TradeService {
 
   // ---------------------------------------------------------------- povijest
 
-  /// Bilježi trenutnu vrijednost korisnika (krediti + portfolio).
-  Future<void> _snapshot(String userId) async {
-    final user = _storage.userById(userId);
-    if (user == null) return;
-    final portfolio = _storage.devices
-        .where((d) => d.ownerId == userId)
-        .fold(0.0, (sum, d) => sum + d.price);
-    await _storage.appendHistory(
-      userId,
-      PortfolioPoint(
-        time: DateTime.now(),
-        credits: user.credits,
-        portfolio: roundCredits(portfolio),
-      ),
-    );
-  }
+  Future<void> _snapshot(String userId) => _storage.recordSnapshot(userId);
 
   /// Korisnici iz starije verzije nemaju povijest — kreira prvu točku.
   Future<void> ensureHistory(String userId) async {

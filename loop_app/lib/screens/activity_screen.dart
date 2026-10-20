@@ -24,6 +24,7 @@ class _ActivityScreenState extends ConsumerState<ActivityScreen> {
   @override
   Widget build(BuildContext context) {
     final all = ref.watch(appProvider.select((s) => s.myTransactions));
+    final me = ref.watch(appProvider.select((s) => s.currentUserId)) ?? '';
 
     if (all.isEmpty) {
       return const EmptyState(
@@ -33,12 +34,13 @@ class _ActivityScreenState extends ConsumerState<ActivityScreen> {
       );
     }
 
-    double sum(TransactionType t) =>
-        all.where((tx) => tx.type == t).fold(0.0, (acc, tx) => acc + tx.amount);
-    final fees = all.fold(0.0, (acc, tx) => acc + tx.fee);
+    double sum(TransactionType t) => all
+        .where((tx) => tx.typeFor(me) == t)
+        .fold(0.0, (acc, tx) => acc + tx.amountFor(me));
+    final fees = all.fold(0.0, (acc, tx) => acc + tx.feeFor(me));
     final txs = _type == null
         ? all
-        : all.where((tx) => tx.type == _type).toList();
+        : all.where((tx) => tx.typeFor(me) == _type).toList();
 
     return Align(
       alignment: Alignment.topCenter,
@@ -107,7 +109,7 @@ class _ActivityScreenState extends ConsumerState<ActivityScreen> {
                 child: FadeSlideIn(
                   key: ValueKey(txs[i].id),
                   index: i,
-                  child: TransactionTile(tx: txs[i]),
+                  child: TransactionTile(tx: txs[i], viewerId: me),
                 ),
               ),
           ],
@@ -168,12 +170,16 @@ class _SummaryTile extends StatelessWidget {
 }
 
 class TransactionTile extends StatelessWidget {
-  const TransactionTile({super.key, required this.tx});
+  const TransactionTile({super.key, required this.tx, required this.viewerId});
+
+  /// Korisnik iz čije se perspektive prikazuje (kupnja ili prodaja).
+  final String viewerId;
   final LoopTransaction tx;
 
   @override
   Widget build(BuildContext context) {
-    final isSell = tx.type == TransactionType.sell;
+    final type = tx.typeFor(viewerId);
+    final isSell = type == TransactionType.sell;
     final color = isSell ? LoopColors.success : LoopColors.error;
     return Card(
       child: Padding(
@@ -205,7 +211,8 @@ class TransactionTile extends StatelessWidget {
                   ),
                   const SizedBox(height: 2),
                   Text(
-                    '${tx.type.label} · ${formatDateTime(tx.createdAt)}',
+                    '${tx.isAuction ? 'Aukcija · ' : ''}${type.label} · '
+                    '${formatDateTime(tx.createdAt)}',
                     style: const TextStyle(
                       color: LoopColors.textSecondary,
                       fontSize: 12,
@@ -219,11 +226,11 @@ class TransactionTile extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.end,
               children: [
                 Text(
-                  '${isSell ? '+' : '−'}${formatCredits(tx.amount)}',
+                  '${isSell ? '+' : '−'}${formatCredits(tx.amountFor(viewerId))}',
                   style: TextStyle(color: color, fontWeight: FontWeight.w800),
                 ),
                 Text(
-                  'fee ${formatCredits(tx.fee)}',
+                  'fee ${formatCredits(tx.feeFor(viewerId))}',
                   style: const TextStyle(
                     color: LoopColors.textSecondary,
                     fontSize: 12,

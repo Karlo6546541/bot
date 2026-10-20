@@ -7,32 +7,12 @@ import '../services/fee.dart';
 import '../services/trade_service.dart';
 import '../theme/app_theme.dart';
 import 'formatters.dart';
+import 'loop_snackbar.dart';
+
+export 'loop_snackbar.dart';
 
 /// Kratka pauza da korisnik vidi indikator obrade (simulira mrežni poziv).
 const _fakeLatency = Duration(milliseconds: 450);
-
-/// Globalni messenger — SnackBar ostaje vidljiv i kad se ekran zamijeni
-/// (npr. nakon odjave ili resetiranja podataka).
-final rootMessengerKey = GlobalKey<ScaffoldMessengerState>();
-
-void showLoopSnackBar(String message, {bool error = false}) {
-  rootMessengerKey.currentState
-    ?..hideCurrentSnackBar()
-    ..showSnackBar(
-      SnackBar(
-        content: Row(
-          children: [
-            Icon(
-              error ? Icons.error_outline : Icons.check_circle,
-              color: error ? LoopColors.error : LoopColors.success,
-            ),
-            const SizedBox(width: 12),
-            Expanded(child: Text(message)),
-          ],
-        ),
-      ),
-    );
-}
 
 /// Pokreće [action] uz modalni loading indikator i prikazuje SnackBar.
 /// Vraća `true` ako je akcija uspjela.
