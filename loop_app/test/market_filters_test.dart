@@ -104,4 +104,24 @@ void main() {
     expect(lo % 10, 0);
     expect(hi % 10, 0);
   });
+
+  test('pretraga bez dijakritike i s više riječi', () {
+    // "Prigodna kovanica 25 kn" — kategorija "Kovanice i novčanice".
+    expect(
+      const MarketFilter(query: 'NOVCANICE  prigodna').apply(all, state),
+      isNotEmpty,
+    );
+    expect(
+      const MarketFilter(query: 'prigodna konzola').apply(all, state),
+      isEmpty,
+    );
+  });
+
+  test('mogu kupiti: cijena + 5% fee unutar mojih kredita', () {
+    final credits = state.currentUser!.credits; // test: 800
+    final r = const MarketFilter(onlyAffordable: true).apply(all, state);
+    expect(r, isNotEmpty);
+    expect(r.every((d) => d.askPrice * 1.05 <= credits), isTrue);
+    expect(r.length, lessThan(all.length));
+  });
 }

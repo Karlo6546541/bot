@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../models/device.dart';
+import '../services/fee.dart';
 import '../providers/app_providers.dart';
 import '../providers/app_state.dart';
 import '../theme/app_theme.dart';
@@ -95,6 +96,18 @@ class _MarketScreenState extends ConsumerState<MarketScreen> {
           selected: f.section == null,
           onTap: () => _filters.update((f) => f.copyWith(clearSection: true)),
         ),
+        // Brzi filter: samo ono što si mogu priuštiti (cijena + 5% fee).
+        _CategoryChip(
+          key: const ValueKey('affordable-chip'),
+          label: t('Mogu kupiti'),
+          icon: Icons.account_balance_wallet_outlined,
+          color: LoopColors.success,
+          count: all.where((d) => buyTotal(d.askPrice) <= credits).length,
+          selected: f.onlyAffordable,
+          onTap: () => _filters.update(
+            (f) => f.copyWith(onlyAffordable: !f.onlyAffordable),
+          ),
+        ),
         if (f.section == null)
           for (final sec in ItemSection.values)
             _CategoryChip(
@@ -172,16 +185,21 @@ class _MarketScreenState extends ConsumerState<MarketScreen> {
             padding: const EdgeInsets.fromLTRB(16, 4, 8, 8),
             child: Row(
               children: [
-                Expanded(
-                  child: Text(
-                    t('{0} predmeta', [devices.length]),
-                    key: const ValueKey('market-count'),
-                    style: const TextStyle(fontWeight: FontWeight.w800),
-                  ),
+                Text(
+                  t('{0} predmeta', [devices.length]),
+                  key: const ValueKey('market-count'),
+                  style: const TextStyle(fontWeight: FontWeight.w800),
                 ),
-                _SortChip(
-                  value: f.sort,
-                  onChanged: (s) => _filters.update((f) => f.copyWith(sort: s)),
+                // Na uskom ekranu naziv sortiranja se skrati, ne prelijeva.
+                Expanded(
+                  child: Align(
+                    alignment: Alignment.centerRight,
+                    child: _SortChip(
+                      value: f.sort,
+                      onChanged: (s) =>
+                          _filters.update((f) => f.copyWith(sort: s)),
+                    ),
+                  ),
                 ),
               ],
             ),
@@ -327,6 +345,7 @@ class _ChipRow extends StatelessWidget {
 
 class _CategoryChip extends StatelessWidget {
   const _CategoryChip({
+    super.key,
     required this.label,
     required this.icon,
     required this.color,
@@ -446,11 +465,15 @@ class _SortChip extends StatelessWidget {
           children: [
             Icon(Icons.swap_vert, size: 18, color: LoopColors.accent),
             const SizedBox(width: 4),
-            Text(
-              value.label,
-              style: TextStyle(
-                color: LoopColors.accent,
-                fontWeight: FontWeight.w800,
+            Flexible(
+              child: Text(
+                value.label,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  color: LoopColors.accent,
+                  fontWeight: FontWeight.w800,
+                ),
               ),
             ),
             Icon(Icons.arrow_drop_down, color: LoopColors.accent),

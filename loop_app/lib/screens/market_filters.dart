@@ -5,6 +5,8 @@ import '../l10n/tr.dart';
 import '../models/device.dart';
 import '../providers/app_providers.dart';
 import '../providers/app_state.dart';
+import '../services/fee.dart';
+import '../services/market_filter.dart' show normalizeSearch;
 import '../theme/app_theme.dart';
 import '../widgets/category_style.dart';
 import '../widgets/formatters.dart';
@@ -55,6 +57,7 @@ class MarketFilter {
     this.seller = SellerFilter.all,
     this.onlyFavorites = false,
     this.withPhotos = false,
+    this.onlyAffordable = false,
     this.sort = MarketSort.newest,
   });
 
@@ -67,6 +70,9 @@ class MarketFilter {
   final SellerFilter seller;
   final bool onlyFavorites;
   final bool withPhotos;
+
+  /// Samo predmeti za koje imam dovoljno kredita (cijena + 5% fee).
+  final bool onlyAffordable;
   final MarketSort sort;
 
   /// Broj aktivnih filtera (bez pretrage i sortiranja) — za značku.
@@ -77,7 +83,8 @@ class MarketFilter {
       (minPrice != null || maxPrice != null ? 1 : 0) +
       (seller != SellerFilter.all ? 1 : 0) +
       (onlyFavorites ? 1 : 0) +
-      (withPhotos ? 1 : 0);
+      (withPhotos ? 1 : 0) +
+      (onlyAffordable ? 1 : 0);
 
   bool get isEmpty => activeCount == 0 && query.trim().isEmpty;
 
@@ -94,6 +101,7 @@ class MarketFilter {
     SellerFilter? seller,
     bool? onlyFavorites,
     bool? withPhotos,
+    bool? onlyAffordable,
     MarketSort? sort,
   }) => MarketFilter(
     query: query ?? this.query,
@@ -105,6 +113,7 @@ class MarketFilter {
     seller: seller ?? this.seller,
     onlyFavorites: onlyFavorites ?? this.onlyFavorites,
     withPhotos: withPhotos ?? this.withPhotos,
+    onlyAffordable: onlyAffordable ?? this.onlyAffordable,
     sort: sort ?? this.sort,
   );
 
@@ -113,7 +122,11 @@ class MarketFilter {
 
   /// Primjenjuje filtere i sortiranje.
   List<Device> apply(List<Device> devices, AppState state) {
-    final q = query.trim().toLowerCase();
+    // Više riječi, bez obzira na dijakritiku ("citac knjiga" = "Čitač…").
+    final terms = normalizeSearch(
+      query,
+    ).split(RegExp(r'\s+')).where((t) => t.isNotEmpty).toList();
+    final credits = state.currentUser?.credits ?? 0;
     return devices.where((d) {
       if (section != null && d.section != section) return false;
       if (category != null && d.category != category) return false;
@@ -126,12 +139,20 @@ class MarketFilter {
       if (seller == SellerFilter.users && !d.isListed) return false;
       if (onlyFavorites && !state.isFavorite(d.id)) return false;
       if (withPhotos && d.imagePaths.isEmpty) return false;
-      if (q.isNotEmpty &&
-          !d.name.toLowerCase().contains(q) &&
-          !d.model.toLowerCase().contains(q) &&
-          !d.description.toLowerCase().contains(q) &&
-          !d.category.label.toLowerCase().contains(q)) {
-        return false;
+      if (onlyAffordable && buyTotal(d.askPrice) > credits) return false;
+      if (terms.isNotEmpty) {
+        final text = normalizeSearch(
+          [
+            d.name,
+            d.model,
+            d.description,
+            d.category.label,
+            d.category.singular,
+            d.section.label,
+            d.condition.label,
+          ].join(' '),
+        );
+        if (!terms.every(text.contains)) return false;
       }
       return true;
     }).toList()..sort(sort.compare);
@@ -234,6 +255,7 @@ class _FilterSheet extends ConsumerWidget {
           ),
           Expanded(
             child: ListView(
+              key: const ValueKey('filters-list'),
               controller: scroll,
               padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
               children: [
@@ -308,6 +330,24 @@ class _FilterSheet extends ConsumerWidget {
                     ),
                   ],
                 ),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: [
+                    for (final limit in const [100.0, 250.0, 500.0, 1000.0])
+                      ChoiceChip(
+                        label: Text(t('do {0}', [formatNumber(limit)])),
+                        selected: f.minPrice == null && f.maxPrice == limit,
+                        onSelected: (on) => notifier.update(
+                          (f) => on
+                              ? f
+                                    .copyWith(clearPrice: true)
+                                    .copyWith(maxPrice: limit)
+                              : f.copyWith(clearPrice: true),
+                        ),
+                      ),
+                  ],
+                ),
                 RangeSlider(
                   key: const ValueKey('price-range'),
                   values: range,
@@ -348,6 +388,19 @@ class _FilterSheet extends ConsumerWidget {
                     color: Color(0xFFFF5C8A),
                   ),
                   title: Text(t('Samo favoriti')),
+                ),
+                SwitchListTile(
+                  contentPadding: EdgeInsets.zero,
+                  value: f.onlyAffordable,
+                  onChanged: (v) =>
+                      notifier.update((f) => f.copyWith(onlyAffordable: v)),
+                  secondary: const Icon(Icons.account_balance_wallet_outlined),
+                  title: Text(t('Mogu kupiti')),
+                  subtitle: Text(
+                    t('Imam dovoljno kredita (s 5% fee): {0}', [
+                      formatCredits(state.currentUser?.credits ?? 0),
+                    ]),
+                  ),
                 ),
                 SwitchListTile(
                   contentPadding: EdgeInsets.zero,
@@ -429,6 +482,11 @@ class ActiveFilterChips extends ConsumerWidget {
         _chip(
           t('Favoriti'),
           () => n.update((f) => f.copyWith(onlyFavorites: false)),
+        ),
+      if (f.onlyAffordable)
+        _chip(
+          t('Mogu kupiti'),
+          () => n.update((f) => f.copyWith(onlyAffordable: false)),
         ),
       if (f.withPhotos)
         _chip(

@@ -63,6 +63,10 @@ void main() {
       await tester.pumpAndSettle();
       await tester.enterText(find.byType(TextField).first, 'AirPods');
       await tester.pumpAndSettle();
+      // Novi filteri dodaju jedan red; na mobitelu gumb može biti
+      // niže u listi i zato ga treba dovesti u vidljivo područje.
+      await tester.ensureVisible(find.text('Kupi odmah'));
+      await tester.pumpAndSettle();
       await tester.tap(find.text('Kupi odmah'));
       await tester.pumpAndSettle();
       await tester.ensureVisible(find.text('Potvrdi kupnju'));
@@ -132,10 +136,14 @@ void main() {
     await tester.tap(find.byKey(const ValueKey('filters-button')));
     await tester.pumpAndSettle();
     await tester.scrollUntilVisible(
-      find.text('Samo favoriti'),
+      find.text('Samo s fotografijom'),
       200,
-      scrollable: find.byType(Scrollable).last,
+      scrollable: find.descendant(
+        of: find.byKey(const ValueKey('filters-list')),
+        matching: find.byType(Scrollable),
+      ),
     );
+    await tester.pumpAndSettle();
     await tester.tap(find.text('Samo favoriti'));
     await tester.pumpAndSettle();
     expect(find.text('Prikaži 1 rezultata'), findsOneWidget);

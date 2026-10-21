@@ -337,6 +337,20 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 label: Text(t('Nastavi s Googleom')),
               ),
             ],
+            if (!backend.isOnline && !_register) ...[
+              const SizedBox(height: 12),
+              OutlinedButton.icon(
+                onPressed: _loading
+                    ? null
+                    : () {
+                        _identifier.text = 'demo@loop.com';
+                        _password.text = SeedData.demoPassword;
+                        _login();
+                      },
+                icon: const Icon(Icons.rocket_launch_outlined),
+                label: Text(t('Isprobaj demo račun')),
+              ),
+            ],
             const SizedBox(height: 12),
             OutlinedButton.icon(
               onPressed: _loading
