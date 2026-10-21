@@ -22,11 +22,11 @@ class AuctionResult {
 /// Pravila aukcija:
 /// - ponude su obvezujuće i ne mogu se povući ni smanjiti;
 /// - vodeći ponuđač ne može dati novu ponudu dok ga netko ne nadmaši;
-/// - ponuda ne može biti veća od raspoloživih kredita;
+/// - ponuda ne može biti veća od raspoloživog stanja;
 /// - iznos vodeće ponude je blokiran (oduzet s kredita) i vraća se kad
 ///   ponuđača netko nadmaši ili se aukcija otkaže;
 /// - ponuda u zadnjoj minuti produljuje aukciju na 1 minutu od ponude;
-/// - na kraju pobjednik dobiva predmet, prodavatelj iznos − 5% fee-a.
+/// - na kraju pobjednik dobiva predmet, prodavatelj cijeli iznos (bez naknade).
 class AuctionService {
   AuctionService(this._storage) : policy = AuctionPolicy(_storage);
 
@@ -160,7 +160,7 @@ class AuctionService {
     }
     if (bid > user.credits) {
       throw TradeException(
-        t('Ponuda ne može biti veća od tvojih kredita ({0}).', [
+        t('Ponuda ne može biti veća od tvog stanja ({0}).', [
           formatCredits(user.credits),
         ]),
       );
@@ -286,7 +286,9 @@ class AuctionService {
       return AuctionResult(done);
     }
 
-    final fee = feeFor(top.amount);
+    // Aukcije su bez naknade: pobjednik plaća svoju ponudu, prodavatelj
+    // dobiva cijeli iznos.
+    const fee = 0.0;
     final payout = sellPayout(top.amount);
     // Kupčev iznos je već blokiran (oduzet) — samo prenosimo predmet.
     await _storage.putDevice(device.withOwner(winner.id));

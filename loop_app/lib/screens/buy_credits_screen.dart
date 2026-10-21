@@ -135,7 +135,7 @@ class _BuyCreditsScreenState extends ConsumerState<BuyCreditsScreen> {
         : ref.read(creditShopProvider).remainingToday(user.id);
 
     return Scaffold(
-      appBar: AppBar(title: Text(t('Kupi kredite'))),
+      appBar: AppBar(title: Text(t('Uplati novac'))),
       body: Align(
         alignment: Alignment.topCenter,
         child: ConstrainedBox(
@@ -179,11 +179,11 @@ class _BuyCreditsScreenState extends ConsumerState<BuyCreditsScreen> {
                   inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                   decoration: InputDecoration(
                     labelText: t('Vlastiti iznos'),
-                    suffixText: t('kredita'),
-                    helperText: t(
-                      'Od {0} do {1} · bonus od 250 kredita naviše',
-                      [CreditShop.minAmount, CreditShop.maxSingle],
-                    ),
+                    suffixText: t('€'),
+                    helperText: t('Od {0} do {1} €', [
+                      CreditShop.minAmount,
+                      CreditShop.maxSingle,
+                    ]),
                     errorText: _error,
                   ),
                   onChanged: (v) => setState(() {
@@ -212,7 +212,7 @@ class _BuyCreditsScreenState extends ConsumerState<BuyCreditsScreen> {
               const SizedBox(height: 14),
               Text(
                 t(
-                  'Demo verzija: ništa se stvarno ne naplaćuje i ne unose se podaci kartice. Kupljeni krediti služe isključivo za kupnju unutar LOOP-a i ne mogu se isplatiti. Dnevni limit: {0} kredita (danas još {1}).',
+                  'Demo verzija: ništa se stvarno ne naplaćuje i ne unose se podaci kartice. Dnevni limit uplata: {0} € (danas još {1}).',
                   [CreditShop.dailyLimit, formatCredits(left)],
                 ),
                 textAlign: TextAlign.center,
@@ -356,7 +356,7 @@ class _PackageTile extends StatelessWidget {
                 Text(
                   package.bonus > 0
                       ? t('+ {0} bonus kredita', [package.bonus])
-                      : t('kredita'),
+                      : t('€'),
                   style: TextStyle(
                     color: LoopColors.textSecondary,
                     fontSize: 12,
@@ -566,7 +566,7 @@ class _Summary extends StatelessWidget {
         padding: const EdgeInsets.all(16),
         child: Column(
           children: [
-            row(t('Krediti'), formatCredits(credits.toDouble())),
+            row(t('Uplata'), formatCredits(credits.toDouble())),
             if (bonus > 0)
               row(t('Bonus'), '+ ${formatCredits(bonus.toDouble())}'),
             const Divider(height: 16),

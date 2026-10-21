@@ -24,7 +24,7 @@ class MarketFilter {
     if (condition != null && device.condition != condition) return false;
     if (minPrice != null && price < minPrice!) return false;
     if (maxPrice != null && price > maxPrice!) return false;
-    // Kupac plaća i 5% naknade, ne samo prikazanu cijenu.
+    // Kupac plaća i 2% naknade, ne samo prikazanu cijenu.
     if (onlyAffordable && buyTotal(price) > credits) return false;
 
     final terms = normalizeSearch(

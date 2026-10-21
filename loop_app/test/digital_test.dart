@@ -72,8 +72,8 @@ void main() {
 
     expect(storage.deviceById(d.id)!.ownerId, SeedData.demoUserId);
     expect(storage.deviceById(d.id)!.isListed, isTrue);
-    expect(storage.userById(SeedData.testUserId)!.credits, testBefore - 42);
-    expect(storage.userById(SeedData.demoUserId)!.credits, demoBefore + 2 * 38);
+    expect(storage.userById(SeedData.testUserId)!.credits, testBefore - 40.8);
+    expect(storage.userById(SeedData.demoUserId)!.credits, demoBefore + 2 * 40);
     expect(trade.buyersOf(d.id), {SeedData.testUserId, SeedData.markoUserId});
 
     // Isti kupac ne plaća dvaput; vlasnik ne kupuje svoje.

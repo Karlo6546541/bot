@@ -68,7 +68,7 @@ class _ActivityScreenState extends ConsumerState<ActivityScreen> {
                 ),
                 _SummaryTile(
                   icon: Icons.add_card,
-                  label: t('Kupljeno kredita'),
+                  label: t('Uplaćeno'),
                   value: formatCredits(sum(TransactionType.topUp)),
                   color: LoopColors.admin,
                 ),

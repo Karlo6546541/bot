@@ -141,7 +141,7 @@ class _CreditsPill extends ConsumerWidget {
       appProvider.select((s) => s.currentUser?.credits ?? 0),
     );
     return Tooltip(
-      message: t('Kupi kredite'),
+      message: t('Uplati novac'),
       child: Material(
         color: LoopColors.sunny,
         shape: const StadiumBorder(),

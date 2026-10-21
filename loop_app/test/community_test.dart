@@ -116,16 +116,10 @@ void main() {
       await trade.buy(userId: SeedData.testUserId, deviceId: iphone);
       final n = inboxOf(SeedData.demoUserId).single;
       expect(n.kind, NotificationKind.itemSold);
-      expect(
-        n.text,
-        '@test je kupio tvoj predmet "iPhone 13". Dobivaš 190 kredita.',
-      );
+      expect(n.text, '@test je kupio tvoj predmet "iPhone 13". Dobivaš 200 €.');
       // Tekst se prevodi pri prikazu, s engleskim brojevima.
       Tr.lang = AppLang.en;
-      expect(
-        n.text,
-        '@test bought your item "iPhone 13". You get 190 credits.',
-      );
+      expect(n.text, '@test bought your item "iPhone 13". You get €200.');
     });
 
     test('pojeftinjenje predmeta s liste želja', () async {

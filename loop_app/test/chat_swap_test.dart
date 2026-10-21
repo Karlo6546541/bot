@@ -140,8 +140,8 @@ void main() {
       expect(storage.deviceById(iphone)!.ownerId, SeedData.testUserId);
       expect(storage.deviceById(iphone)!.isListed, isFalse);
       expect(storage.deviceById(testItem)!.ownerId, SeedData.demoUserId);
-      expect(storage.userById(SeedData.testUserId)!.credits, testBefore - 100);
-      expect(storage.userById(SeedData.demoUserId)!.credits, demoBefore + 95);
+      expect(storage.userById(SeedData.testUserId)!.credits, testBefore - 102);
+      expect(storage.userById(SeedData.demoUserId)!.credits, demoBefore + 100);
       expect(
         storage.transactions.where((t) => t.type == TransactionType.swap),
         hasLength(2),

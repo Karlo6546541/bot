@@ -651,10 +651,10 @@ class AppController extends Notifier<AppState> {
     final total = buyTotal(device.askPrice) + method.cost;
     if (user.credits < total) {
       throw TradeException(
-        t(
-          'Nemaš dovoljno kredita: treba {0} (s feejem i dostavom), imaš {1}.',
-          [formatCredits(total), formatCredits(user.credits)],
-        ),
+        t('Nemaš dovoljno novca: treba {0} (s feejem i dostavom), imaš {1}.', [
+          formatCredits(total),
+          formatCredits(user.credits),
+        ]),
       );
     }
     final tx = await _trade.buy(userId: userId, deviceId: deviceId);

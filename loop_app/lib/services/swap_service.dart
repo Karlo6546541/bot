@@ -15,7 +15,7 @@ import 'trade_service.dart';
 ///
 /// Ponuditelj nudi svoj predmet (+ krediti) za predmet koji je drugi
 /// korisnik objavio u Marketu. Kad vlasnik prihvati, predmeti mijenjaju
-/// vlasnike, nadoplata prelazi vlasniku (− 5% fee), a oboje biraju
+/// vlasnike, nadoplata prelazi vlasniku (ponuditelj plaća + 2%), a oboje biraju
 /// dostavu u "Moje dostave".
 class SwapService {
   SwapService(this._storage);
@@ -59,9 +59,9 @@ class SwapService {
     }
     final extra = roundCredits(extraCredits);
     if (extra < 0) throw TradeException(t('Nadoplata ne može biti negativna.'));
-    if (extra > from.credits) {
+    if (buyTotal(extra) > from.credits) {
       throw TradeException(
-        t('Nemaš dovoljno kredita za nadoplatu ({0}).', [
+        t('Nemaš dovoljno novca za nadoplatu ({0}).', [
           formatCredits(from.credits),
         ]),
       );
@@ -133,19 +133,21 @@ class SwapService {
         t('Zamjena više nije moguća — jedan od predmeta nije dostupan.'),
       );
     }
-    if (from.credits < o.extraCredits) {
+    if (from.credits < buyTotal(o.extraCredits)) {
       await _storage.putOffer(o.withStatus(SwapStatus.failed, at));
       throw TradeException(
-        t('{0} više nema dovoljno kredita za nadoplatu.', [from.handle]),
+        t('{0} više nema dovoljno novca za nadoplatu.', [from.handle]),
       );
     }
 
+    // Nadoplatu plaća ponuditelj (kao kupac: + 2%), vlasnik dobiva cijelu.
     final fee = o.extraCredits > 0 ? feeFor(o.extraCredits) : 0.0;
-    final payout = roundCredits(o.extraCredits - fee);
+    final paid = roundCredits(o.extraCredits + fee);
+    final payout = o.extraCredits;
     await _storage.putDevice(wanted!.withOwner(from.id));
     await _storage.putDevice(offered!.withOwner(to.id));
     await _storage.putUser(
-      from.copyWith(credits: roundCredits(from.credits - o.extraCredits)),
+      from.copyWith(credits: roundCredits(from.credits - paid)),
     );
     await _storage.putUser(
       to.copyWith(credits: roundCredits(to.credits + payout)),
@@ -153,8 +155,8 @@ class SwapService {
 
     final name = t('{0} ⇄ {1}', [o.wantedName, o.offeredName]);
     for (final (userId, amount, txFee) in [
-      (from.id, o.extraCredits, 0.0),
-      (to.id, payout, fee),
+      (from.id, paid, fee),
+      (to.id, payout, 0.0),
     ]) {
       await _storage.putTransaction(
         LoopTransaction(

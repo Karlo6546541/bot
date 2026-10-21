@@ -25,20 +25,13 @@ String formatNumber(double value) {
   return _isWhole(value) ? whole.format(value.round()) : decimal.format(value);
 }
 
-/// Riječ uz iznos: "1 kredit", "21 kredit", inače "kredita"
-/// (engleski: "1 credit", inače "credits").
-String creditsWord(double value) {
-  if (_en) {
-    return _isWhole(value) && value.round().abs() == 1 ? 'credit' : 'credits';
-  }
-  if (!_isWhole(value)) return 'kredita';
-  final n = value.round().abs();
-  return n % 10 == 1 && n % 100 != 11 ? 'kredit' : 'kredita';
+/// Iznos u eurima: "1.250 €", "294,50 €" (decimale samo kad postoje);
+/// na engleskom "€1,250" i "€294.50". Stanje računa i sve cijene su u eurima.
+String formatCredits(double value) {
+  final n = formatNumber(value.abs());
+  final sign = value < 0 ? '−' : '';
+  return _en ? '$sign€$n' : '$sign$n €';
 }
-
-/// "1.250 kredita", "294,50 kredita", "1 kredit".
-String formatCredits(double value) =>
-    '${formatNumber(value)} ${creditsWord(value)}';
 
 String formatDateTime(DateTime value) =>
     (_en ? _dateTimeEn : _dateTimeHr).format(value);

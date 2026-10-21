@@ -45,10 +45,10 @@ class AdminDashboardScreen extends ConsumerWidget {
       ),
       _Tile(
         Icons.percent,
-        t('Prihod od fee-a (5%)'),
+        t('Prihod od naknade (2%)'),
         formatCredits(s.totalFees),
       ),
-      _Tile(Icons.add_card, t('Prodano kredita'), formatEuro(s.totalTopUpEur)),
+      _Tile(Icons.add_card, t('Uplaćeno'), formatEuro(s.totalTopUpEur)),
     ];
 
     return SingleChildScrollView(

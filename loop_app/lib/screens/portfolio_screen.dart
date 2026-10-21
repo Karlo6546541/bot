@@ -224,13 +224,13 @@ class _CreditsHero extends StatelessWidget {
                 ),
                 const SizedBox(height: 14),
                 Text(
-                  t('Tvoji krediti'),
+                  t('Tvoje stanje'),
                   style: TextStyle(
                     color: LoopColors.textSecondary,
                     fontWeight: FontWeight.w600,
                   ),
                 ),
-                // Broj kredita se animira pri svakoj promjeni.
+                // Stanje se animira pri svakoj promjeni.
                 TweenAnimationBuilder<double>(
                   tween: Tween(end: credits),
                   duration: const Duration(milliseconds: 900),
@@ -243,20 +243,11 @@ class _CreditsHero extends StatelessWidget {
                       textBaseline: TextBaseline.alphabetic,
                       children: [
                         Text(
-                          formatNumber(value),
+                          formatCredits(value),
                           style: TextStyle(
                             fontSize: compact ? 40 : 48,
                             fontWeight: FontWeight.w900,
                             letterSpacing: -1,
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        Text(
-                          creditsWord(credits),
-                          style: TextStyle(
-                            fontSize: 20,
-                            color: LoopColors.textSecondary,
-                            fontWeight: FontWeight.w800,
                           ),
                         ),
                       ],
@@ -287,7 +278,7 @@ class _CreditsHero extends StatelessWidget {
                       minimumSize: const Size.fromHeight(46),
                     ),
                     icon: const Icon(Icons.add, size: 20),
-                    label: Text(t('Dopuni kredite')),
+                    label: Text(t('Uplati novac')),
                   ),
                 ] else
                   Wrap(
@@ -301,7 +292,7 @@ class _CreditsHero extends StatelessWidget {
                           padding: const EdgeInsets.symmetric(horizontal: 18),
                         ),
                         icon: const Icon(Icons.add, size: 20),
-                        label: Text(t('Dopuni kredite')),
+                        label: Text(t('Uplati novac')),
                       ),
                       _Pill(
                         icon: Icons.stacked_line_chart,
@@ -375,7 +366,7 @@ class _QuickActions extends ConsumerWidget {
     final actions = [
       (
         '🪙',
-        t('Kupi kredite'),
+        t('Uplati novac'),
         LoopColors.sunny,
         () => BuyCreditsScreen.open(context),
       ),
@@ -504,13 +495,13 @@ class _HowItWorks extends ConsumerWidget {
         '2',
         '🔁',
         t('Prodaj ili licitiraj'),
-        t('Prodaj odmah ili na aukciji — dobivaš LOOP kredite.'),
+        t('Prodaj odmah ili na aukciji — novac ide na tvoje LOOP stanje.'),
       ),
       (
         '3',
         '🎁',
         t('Uzmi nešto novo'),
-        t('Kredite troši na druge stvari u LOOP-u. Bez novca, samo razmjena.'),
+        t('Zarađeno potroši na druge stvari u LOOP-u.'),
       ),
     ];
     return Card(

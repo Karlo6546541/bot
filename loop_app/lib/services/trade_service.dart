@@ -31,8 +31,8 @@ class TradeService {
   static const adminPassword = 'admin123';
   static const guestEmail = 'gost@loop.com';
 
-  /// Početni krediti za novog korisnika (demo pogodnost).
-  static const welcomeCredits = 500;
+  /// Novi računi počinju s 0 € (nema poklona pri registraciji).
+  static const welcomeCredits = 0;
 
   /// Oznaka platforme kao druge strane u transakciji.
   static const marketLabel = 'LOOP Market';
@@ -96,7 +96,7 @@ class TradeService {
     return device;
   }
 
-  /// INSTANT SELL: uređaj ide u Market, korisnik dobiva cijena − 5% kredita.
+  /// INSTANT SELL: uređaj ide u Market, korisnik dobiva punu cijenu.
   Future<LoopTransaction> sell({
     required String userId,
     required String deviceId,
@@ -119,7 +119,8 @@ class TradeService {
       );
     }
 
-    final fee = feeFor(device.price);
+    // Prodaja je bez naknade.
+    const fee = 0.0;
     final payout = sellPayout(device.price);
 
     await _storage.putDevice(device.withOwner(null));
@@ -147,9 +148,9 @@ class TradeService {
     return tx;
   }
 
-  /// INSTANT BUY: provjera kredita, kupac plaća cijena + 5%,
+  /// INSTANT BUY: provjera stanja, kupac plaća cijena + 2%,
   /// uređaj prelazi u njegov portfolio. Predmet je od platforme ili ga je
-  /// drugi korisnik objavio u Marketu (tada prodavatelj dobiva cijena − 5%).
+  /// drugi korisnik objavio u Marketu (tada prodavatelj dobiva punu cijenu).
   Future<LoopTransaction> buy({
     required String userId,
     required String deviceId,
@@ -180,7 +181,7 @@ class TradeService {
     final total = buyTotal(price);
     if (user.credits < total) {
       throw TradeException(
-        t('Nemaš dovoljno kredita. Potrebno: {0}, imaš: {1}.', [
+        t('Nemaš dovoljno novca. Potrebno: {0}, imaš: {1}.', [
           formatCredits(total),
           formatCredits(user.credits),
         ]),
@@ -215,7 +216,7 @@ class TradeService {
     await _storage.putTransaction(tx);
 
     if (seller != null) {
-      // Prodavatelj dobiva cijenu − 5% i vlastiti zapis u Aktivnosti.
+      // Prodavatelj dobiva punu cijenu (bez naknade) i vlastiti zapis.
       final payout = sellPayout(price);
       await _storage.putUser(
         seller.copyWith(credits: roundCredits(seller.credits + payout)),
@@ -228,7 +229,7 @@ class TradeService {
           deviceId: device.id,
           deviceName: '${device.name} ${device.model}',
           price: price,
-          fee: fee,
+          fee: 0,
           amount: payout,
           sellerId: seller.id,
           sellerLabel: seller.handle,

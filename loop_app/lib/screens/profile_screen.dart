@@ -53,7 +53,7 @@ class ProfileScreen extends ConsumerWidget {
                     children: [
                       _InfoTile(
                         icon: Icons.toll,
-                        label: t('Trenutni krediti'),
+                        label: t('Trenutno stanje'),
                         value: formatCredits(user.credits),
                       ),
                       const Divider(height: 1),
@@ -80,7 +80,7 @@ class ProfileScreen extends ConsumerWidget {
                 const SizedBox(height: 12),
                 Text(
                   t(
-                    'LOOP krediti se ne mogu isplatiti — koriste se isključivo za kupnju predmeta unutar aplikacije. Status: Bronze < 2000, Silver 2000–5000, Gold > 5000 (krediti + portfolio).',
+                    'Stanje je u eurima. Prodaja je bez naknade, kupac plaća 2%. Status: Bronze < 2000 €, Silver 2000–5000 €, Gold > 5000 € (stanje + portfolio).',
                   ),
                   style: TextStyle(
                     color: LoopColors.textSecondary,
@@ -91,7 +91,7 @@ class ProfileScreen extends ConsumerWidget {
                 FilledButton.icon(
                   onPressed: () => BuyCreditsScreen.open(context),
                   icon: const Icon(Icons.add_card),
-                  label: Text(t('Kupi kredite')),
+                  label: Text(t('Uplati novac')),
                 ),
                 const SizedBox(height: 10),
                 OutlinedButton.icon(
@@ -332,7 +332,7 @@ class _GuestCard extends ConsumerWidget {
             const SizedBox(height: 4),
             Text(
               t(
-                'Za kupnju, prodaju i aukcije napravi besplatan račun — dobivaš početne kredite.',
+                'Za kupnju, prodaju i aukcije napravi besplatan račun — besplatno je.',
               ),
             ),
             const SizedBox(height: 12),
@@ -442,7 +442,7 @@ class _AccountCard extends ConsumerWidget {
             leading: const Icon(Icons.card_giftcard),
             title: Text(t('Pozovi prijatelja')),
             subtitle: Text(
-              t('Kod za poziv: {0} — oboje dobivate bonus kredite.', [
+              t('Kod za poziv: {0} — podijeli ga s prijateljima.', [
                 user.handle,
               ]),
             ),

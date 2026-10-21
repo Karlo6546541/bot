@@ -170,7 +170,7 @@ class _CreateAuctionScreenState extends ConsumerState<CreateAuctionScreen> {
                         ],
                         decoration: InputDecoration(
                           labelText: t('Početna cijena'),
-                          suffixText: t('kredita'),
+                          suffixText: t('€'),
                           helperText: t('Vrijednost predmeta: {0}', [
                             formatCredits(selected.price),
                           ]),
@@ -205,7 +205,7 @@ class _CreateAuctionScreenState extends ConsumerState<CreateAuctionScreen> {
                         ),
                         child: Text(
                           t(
-                            '• Dok aukcija traje, predmet je zaključan (ne može se prodati).\n• Aukciju možeš otkazati samo dok nema ponuda.\n• Na kraju dobivaš najvišu ponudu − 5% fee{0}.\n• Ako nitko ne ponudi, predmet ostaje tebi.',
+                            '• Dok aukcija traje, predmet je zaključan (ne može se prodati).\n• Aukciju možeš otkazati samo dok nema ponuda.\n• Na kraju dobivaš cijelu najvišu ponudu{0}.\n• Ako nitko ne ponudi, predmet ostaje tebi.',
                             [
                               _price != null && _price! > 0
                                   ? t(' (najmanje {0})', [
@@ -463,7 +463,7 @@ class _CompareCard extends StatelessWidget {
           const SizedBox(width: 10),
           col('🔨', t('Aukcija'), [
             t('Naknada {0} (ne vraća se)', [formatCredits(fee)]),
-            t('Najviša ponuda − 5% fee'),
+            t('Najviša ponuda (bez naknade)'),
             t('Ishod nije siguran'),
           ], LoopColors.lilac),
         ],

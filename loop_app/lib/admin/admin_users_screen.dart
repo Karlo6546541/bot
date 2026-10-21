@@ -71,7 +71,7 @@ class AdminUsersScreen extends ConsumerWidget {
                         minimumSize: const Size(0, 44),
                       ),
                       icon: const Icon(Icons.add_card, size: 18),
-                      label: Text(t('Dodaj kredite')),
+                      label: Text(t('Dodaj sredstva')),
                     ),
                     const SizedBox(width: 8),
                     IconButton(
@@ -164,7 +164,7 @@ class _AddCreditsDialogState extends State<_AddCreditsDialog> {
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-      title: Text(t('Dodaj kredite')),
+      title: Text(t('Dodaj sredstva')),
       content: ConstrainedBox(
         constraints: const BoxConstraints(maxWidth: 360),
         child: Column(
@@ -199,7 +199,7 @@ class _AddCreditsDialogState extends State<_AddCreditsDialog> {
               ],
               decoration: InputDecoration(
                 labelText: t('Iznos'),
-                suffixText: t('kredita'),
+                suffixText: t('€'),
                 errorText: _error,
               ),
               onSubmitted: (_) => _submit(),

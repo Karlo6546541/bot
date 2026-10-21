@@ -7,7 +7,7 @@ import 'storage_service.dart';
 import 'trade_service.dart';
 import '../l10n/tr.dart';
 
-/// Paket kredita. 1 kredit = 1 €, veći paketi donose bonus kredite.
+/// Iznos uplate na LOOP stanje (u eurima).
 class CreditPackage {
   const CreditPackage({
     required this.credits,
@@ -38,11 +38,9 @@ enum PaymentMethod {
   String get subtitle => t(_subtitle);
 }
 
-/// Kupnja LOOP kredita (simulirana). Pravila:
-/// - 1 kredit = 1 €; paketi od 250 naviše daju bonus kredite;
-/// - vlastiti iznos od [minAmount] do [maxSingle] kredita;
-/// - dnevni limit od [dailyLimit] kupljenih kredita (bez bonusa) u 24 h;
-/// - kupljeni krediti se, kao i svi ostali, ne mogu isplatiti natrag.
+/// Uplata novca na LOOP stanje (simulirana — demo ništa ne naplaćuje).
+/// - vlastiti iznos od [minAmount] do [maxSingle] €;
+/// - dnevni limit uplata od [dailyLimit] € u 24 h.
 class CreditShop {
   CreditShop(this._storage);
 
@@ -52,25 +50,19 @@ class CreditShop {
   static const packages = <CreditPackage>[
     CreditPackage(credits: 50),
     CreditPackage(credits: 100),
-    CreditPackage(credits: 250, bonus: 10),
-    CreditPackage(credits: 500, bonus: 30, popular: true),
-    CreditPackage(credits: 1000, bonus: 80),
+    CreditPackage(credits: 250),
+    CreditPackage(credits: 500, popular: true),
+    CreditPackage(credits: 1000),
   ];
 
   static const minAmount = 10;
   static const maxSingle = 2000;
   static const dailyLimit = 2000;
 
-  /// Bonus za vlastiti iznos: isti prag kao kod paketa.
-  static int bonusFor(int credits) {
-    var bonus = 0;
-    for (final p in packages) {
-      if (credits >= p.credits) bonus = p.bonus;
-    }
-    return bonus;
-  }
+  /// Uplate nemaju bonus (stanje je u eurima, 1:1).
+  static int bonusFor(int credits) => 0;
 
-  /// Koliko je korisnik kupio (bez bonusa) u zadnja 24 sata.
+  /// Koliko je korisnik uplatio u zadnja 24 sata.
   double boughtLast24h(String userId, {DateTime? now}) {
     final since = (now ?? DateTime.now()).subtract(const Duration(days: 1));
     return _storage.transactions
@@ -89,7 +81,7 @@ class CreditShop {
           .clamp(0, dailyLimit)
           .toDouble();
 
-  /// Kupuje [credits] kredita (+ bonus) i vraća zapis transakcije.
+  /// Uplaćuje [credits] € i vraća zapis transakcije.
   Future<LoopTransaction> purchase({
     required String userId,
     required int credits,
@@ -101,13 +93,13 @@ class CreditShop {
     if (user == null) throw TradeException(t('Korisnik ne postoji.'));
     if (credits < minAmount || credits > maxSingle) {
       throw TradeException(
-        t('Iznos mora biti između {0} i {1} kredita.', [minAmount, maxSingle]),
+        t('Iznos mora biti između {0} i {1} €.', [minAmount, maxSingle]),
       );
     }
     final left = remainingToday(userId, now: at);
     if (credits > left) {
       throw TradeException(
-        t('Dnevni limit je {0} kredita. Danas možeš kupiti još {1}.', [
+        t('Dnevni limit uplata je {0} €. Danas možeš uplatiti još {1}.', [
           dailyLimit,
           formatCredits(left),
         ]),
@@ -124,10 +116,8 @@ class CreditShop {
       type: TransactionType.topUp,
       userId: userId,
       deviceId: '',
-      deviceName: bonus > 0
-          ? '$credits + $bonus bonus kredita · ${method.label}'
-          : '$credits kredita · ${method.label}',
-      // Za dopune je cijena iznos u eurima, a iznos broj dobivenih kredita.
+      deviceName: 'Uplata $credits € · ${method.label}',
+      // Za uplate su cijena i iznos isti (eura).
       price: credits.toDouble(),
       fee: 0,
       amount: total.toDouble(),

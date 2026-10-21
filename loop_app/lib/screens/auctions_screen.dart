@@ -162,7 +162,7 @@ class _RulesBanner extends StatelessWidget {
   final double held;
 
   static String get _rules => t(
-    'Ponude su obvezujuće i ne mogu se povući. Iznos vodeće ponude se blokira i vraća ti se čim te netko nadmaši. Ponuda ne može biti veća od raspoloživih kredita.',
+    'Ponude su obvezujuće i ne mogu se povući. Iznos vodeće ponude se blokira i vraća ti se čim te netko nadmaši. Ponuda ne može biti veća od raspoloživog stanja.',
   );
 
   void _showRules(BuildContext context) => showModalBottomSheet<void>(
@@ -182,7 +182,7 @@ class _RulesBanner extends StatelessWidget {
           SizedBox(height: 12),
           Text(
             t(
-              '🔒  Ponuda je obvezujuća — ne može se povući ni smanjiti.\n\n🥇  Dok vodiš, ne možeš licitirati ponovno.\n\n🪙  Ponuda ne može biti veća od tvojih kredita. Iznos vodeće ponude se blokira i vraća čim te netko nadmaši.\n\n⏱️  Ponuda u zadnjoj minuti produljuje aukciju za 1 minutu.\n\n🎁  Pobjednik dobiva predmet, prodavatelj ponudu − 5% fee.',
+              '🔒  Ponuda je obvezujuća — ne može se povući ni smanjiti.\n\n🥇  Dok vodiš, ne možeš licitirati ponovno.\n\n🪙  Ponuda ne može biti veća od tvog stanja. Iznos vodeće ponude se blokira i vraća čim te netko nadmaši.\n\n⏱️  Ponuda u zadnjoj minuti produljuje aukciju za 1 minutu.\n\n🎁  Pobjednik dobiva predmet, prodavatelj cijelu ponudu (bez naknade).',
             ),
             style: TextStyle(height: 1.4, fontSize: 15),
           ),

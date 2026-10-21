@@ -49,28 +49,40 @@ void main() {
     expect(mine.myListings.single.id, iphone);
   });
 
-  test('kupnja od korisnika: kupac +5%, prodavatelj −5%, dva zapisa', () async {
-    await trade.list(userId: SeedData.demoUserId, deviceId: iphone, price: 200);
-    final buyerBefore = storage.userById(SeedData.testUserId)!.credits; // 800
-    final sellerBefore = storage.userById(SeedData.demoUserId)!.credits; // 1250
+  test(
+    'kupnja od korisnika: kupac +2%, prodavatelj puna cijena, dva zapisa',
+    () async {
+      await trade.list(
+        userId: SeedData.demoUserId,
+        deviceId: iphone,
+        price: 200,
+      );
+      final buyerBefore = storage.userById(SeedData.testUserId)!.credits; // 800
+      final sellerBefore = storage
+          .userById(SeedData.demoUserId)!
+          .credits; // 1250
 
-    final tx = await trade.buy(userId: SeedData.testUserId, deviceId: iphone);
-    expect(tx.sellerId, SeedData.demoUserId);
-    expect(tx.sellerLabel, '@demo');
+      final tx = await trade.buy(userId: SeedData.testUserId, deviceId: iphone);
+      expect(tx.sellerId, SeedData.demoUserId);
+      expect(tx.sellerLabel, '@demo');
 
-    expect(storage.userById(SeedData.testUserId)!.credits, buyerBefore - 210);
-    expect(storage.userById(SeedData.demoUserId)!.credits, sellerBefore + 190);
-    final d = storage.deviceById(iphone)!;
-    expect(d.ownerId, SeedData.testUserId);
-    expect(d.isListed, isFalse); // novi vlasnik nije objavio predmet
+      expect(storage.userById(SeedData.testUserId)!.credits, buyerBefore - 204);
+      expect(
+        storage.userById(SeedData.demoUserId)!.credits,
+        sellerBefore + 200,
+      );
+      final d = storage.deviceById(iphone)!;
+      expect(d.ownerId, SeedData.testUserId);
+      expect(d.isListed, isFalse); // novi vlasnik nije objavio predmet
 
-    final sellerTx = storage.transactions.where(
-      (t) => t.involves(SeedData.demoUserId),
-    );
-    expect(sellerTx.single.type, TransactionType.sell);
-    expect(sellerTx.single.amount, 190);
-    expect(sellerTx.single.buyerLabel, '@test');
-  });
+      final sellerTx = storage.transactions.where(
+        (t) => t.involves(SeedData.demoUserId),
+      );
+      expect(sellerTx.single.type, TransactionType.sell);
+      expect(sellerTx.single.amount, 200);
+      expect(sellerTx.single.buyerLabel, '@test');
+    },
+  );
 
   test('dostava zna prodavatelja (za ocjenu)', () async {
     await trade.list(userId: SeedData.demoUserId, deviceId: iphone, price: 200);

@@ -451,7 +451,7 @@ class SwapOfferCard extends ConsumerWidget {
                               offer.wantedName,
                               offer.offeredName,
                               offer.extraCredits > 0
-                                  ? t(' + {0} (− 5% fee)', [
+                                  ? t(' + {0}', [
                                       formatCredits(
                                         sellPayout(offer.extraCredits),
                                       ),
@@ -634,11 +634,11 @@ class _SwapSheetState extends ConsumerState<_SwapSheet> {
                 decimal: true,
               ),
               decoration: InputDecoration(
-                labelText: t('Nadoplata u kreditima (neobavezno)'),
+                labelText: t('Nadoplata u eurima (neobavezno)'),
                 helperText: t('Imaš {0}', [
                   formatCredits(state.currentUser?.credits ?? 0),
                 ]),
-                suffixText: t('kredita'),
+                suffixText: t('€'),
               ),
             ),
             const SizedBox(height: 8),

@@ -434,7 +434,7 @@ class _Tooltip extends StatelessWidget {
               ),
               SizedBox(height: 2),
               Text(
-                t('Krediti {0}\nPredmeti {1}', [
+                t('Stanje {0}\nPredmeti {1}', [
                   formatNumber(point.credits),
                   formatNumber(point.portfolio),
                 ]),
@@ -469,7 +469,7 @@ class _TableView extends StatelessWidget {
             Expanded(
               flex: 2,
               child: Text(
-                t('Krediti'),
+                t('Stanje računa'),
                 style: head,
                 textAlign: TextAlign.right,
               ),

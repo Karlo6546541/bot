@@ -245,7 +245,7 @@ class DeviceDetailScreen extends ConsumerWidget {
                         formatCredits(price),
                       ),
                       _Line(
-                        t('Fee platforme (5%)'),
+                        t('Naknada za kupca (2%)'),
                         '${isMine ? '−' : '+'} ${formatCredits(fee)}',
                       ),
                       const Divider(height: 20),
@@ -257,7 +257,7 @@ class DeviceDetailScreen extends ConsumerWidget {
                         bold: true,
                       ),
                       if (canBuy)
-                        _Line(t('Tvoji krediti'), formatCredits(user.credits)),
+                        _Line(t('Tvoje stanje'), formatCredits(user.credits)),
                     ],
                   ),
                 ),
@@ -519,7 +519,7 @@ class _DigitalFileCard extends ConsumerWidget {
             Text(
               isMine
                   ? t(
-                      'Kupaca: {0}. Svaki kupac plaća cijenu + 5%, a ti dobivaš cijenu − 5%.',
+                      'Kupaca: {0}. Svaki kupac plaća cijenu + 2%, a ti dobivaš punu cijenu.',
                       [buyers],
                     )
                   : purchased
@@ -596,7 +596,7 @@ class _ListingInfo extends StatelessWidget {
           Expanded(
             child: Text(
               t(
-                'U Marketu za {0}. Kad netko kupi, dobivaš {1} (− 5% fee), a predmet prelazi kupcu.',
+                'U Marketu za {0}. Kad netko kupi, dobivaš {1} (bez naknade), a predmet prelazi kupcu.',
                 [formatCredits(p), formatCredits(sellPayout(p))],
               ),
             ),

@@ -121,7 +121,7 @@ void main() {
     final credits = state.currentUser!.credits; // test: 800
     final r = const MarketFilter(onlyAffordable: true).apply(all, state);
     expect(r, isNotEmpty);
-    expect(r.every((d) => d.askPrice * 1.05 <= credits), isTrue);
+    expect(r.every((d) => d.askPrice * 1.02 <= credits), isTrue);
     expect(r.length, lessThan(all.length));
   });
 }

@@ -164,14 +164,11 @@ void main() {
         referral: '@test',
       ),
     );
-    expect(
-      user.credits,
-      TradeService.welcomeCredits + AccountService.referralBonus,
-    );
+    expect(user.credits, 0); // novi računi ne dobivaju novac
     expect(user.referredBy, SeedData.testUserId);
     expect(
       storage.userById(SeedData.testUserId)!.credits,
-      before + AccountService.referralBonus,
+      before, // poziv nema novčani bonus
     );
     await expectLater(
       accounts.register(

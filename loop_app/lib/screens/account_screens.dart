@@ -613,9 +613,10 @@ class _DeleteAccountScreenState extends ConsumerState<DeleteAccountScreen> {
                       ),
                       const SizedBox(height: 8),
                       Text(
-                        t('• Gubiš {0} — krediti se ne mogu isplatiti.', [
-                          formatCredits(user.credits),
-                        ]),
+                        t(
+                          '• Gubiš preostalo stanje ({0}) — u demo verziji nema isplate.',
+                          [formatCredits(user.credits)],
+                        ),
                         style: bullet.copyWith(
                           fontWeight: FontWeight.w800,
                           color: LoopColors.error,

@@ -333,7 +333,7 @@ class _AddDeviceScreenState extends ConsumerState<AddDeviceScreen> {
                       ],
                       decoration: InputDecoration(
                         labelText: t('Cijena'),
-                        suffixText: t('kredita'),
+                        suffixText: t('€'),
                       ),
                       validator: (v) {
                         final p = _parsePrice(v);
@@ -360,7 +360,7 @@ class _AddDeviceScreenState extends ConsumerState<AddDeviceScreen> {
                         ),
                         child: Text(
                           t(
-                            'Digitalni proizvod odmah ide u Market i možeš ga prodati više puta. Kupac plaća cijenu + 5%, ti dobivaš cijenu − 5%, a kupac odmah preuzima datoteku.',
+                            'Digitalni proizvod odmah ide u Market i možeš ga prodati više puta. Kupac plaća cijenu + 2%, ti dobivaš punu cijenu, a kupac odmah preuzima datoteku.',
                           ),
                         ),
                       )
@@ -384,7 +384,7 @@ class _AddDeviceScreenState extends ConsumerState<AddDeviceScreen> {
                           subtitle: Text(
                             _listOnMarket
                                 ? t(
-                                    'Predmet ostaje tvoj dok ga netko ne kupi. Dobivaš cijenu − 5% fee.',
+                                    'Predmet ostaje tvoj dok ga netko ne kupi. Dobivaš punu cijenu — prodaja je bez naknade.',
                                   )
                                 : t(
                                     'Ostaje samo u portfoliju — objaviti ga možeš kasnije.',

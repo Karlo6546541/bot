@@ -12,7 +12,7 @@ enum NotificationKind {
   itemSold('🎉', '{1} je kupio tvoj predmet "{0}". Dobivaš {2}.'),
   priceDrop('📉', 'Predmet s tvoje liste želja "{0}" je pojeftinio na {1}.'),
   newReview('⭐', '{0} te ocijenio: {1}'),
-  referral('🎁', '{0} se registrirao s tvojim kodom — dobivaš {1}.'),
+  referral('🎁', '{0} se registrirao s tvojim kodom.'),
   newMessage('💬', 'Nova poruka od {0}: {1}'),
   swapOffer('🔄', '{0} ti nudi zamjenu za "{1}".'),
   swapAccepted('🤝', '{0} je prihvatio zamjenu za "{1}".'),

@@ -48,9 +48,9 @@ void main() {
     );
   });
 
-  test('priuštivost uračunava 5 posto naknade', () {
+  test('priuštivost uračunava 2 posto naknade', () {
     expect(
-      const MarketFilter(onlyAffordable: true, credits: 104.99).matches(device),
+      const MarketFilter(onlyAffordable: true, credits: 101.99).matches(device),
       isFalse,
     );
     expect(

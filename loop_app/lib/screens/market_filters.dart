@@ -71,7 +71,7 @@ class MarketFilter {
   final bool onlyFavorites;
   final bool withPhotos;
 
-  /// Samo predmeti za koje imam dovoljno kredita (cijena + 5% fee).
+  /// Samo predmeti za koje imam dovoljno novca (cijena + 5% fee).
   final bool onlyAffordable;
   final MarketSort sort;
 
@@ -397,7 +397,7 @@ class _FilterSheet extends ConsumerWidget {
                   secondary: const Icon(Icons.account_balance_wallet_outlined),
                   title: Text(t('Mogu kupiti')),
                   subtitle: Text(
-                    t('Imam dovoljno kredita (s 5% fee): {0}', [
+                    t('Imam dovoljno novca (s 2% naknade): {0}', [
                       formatCredits(state.currentUser?.credits ?? 0),
                     ]),
                   ),

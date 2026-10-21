@@ -44,8 +44,8 @@ const kEn = <String, String>{
   'Aktivne aukcije ({0})': 'Active auctions ({0})',
   'Aktivnost': 'Activity',
   'Aukcija': 'Auction',
-  'Aukcija ima ponude i ne može se otkazati. Po završetku dobivaš {0} (najviša ponuda − 5% fee).':
-      'The auction has bids and can\'t be cancelled. When it ends you get {0} (highest bid − 5% fee).',
+  'Aukcija ima ponude i ne može se otkazati. Po završetku dobivaš {0} (cijela najviša ponuda — bez naknade).':
+      'The auction has bids and can\'t be cancelled. When it ends you get {0} (the full highest bid — no fee).',
   'Aukcija je objavljena': 'Auction published',
   'Aukcija je već završila.': 'The auction has already ended.',
   'Aukcija je završila.': 'The auction has ended.',
@@ -78,22 +78,22 @@ const kEn = <String, String>{
   'Danas si već objavio {0} aukcije. Nove možeš sutra.':
       'You\'ve already published {0} auctions today. You can add more tomorrow.',
   'Demo podaci resetirani': 'Demo data reset',
-  'Demo verzija — bilo koji e-mail i lozinka rade.\nDemo računi: demo@loop.com · test@loop.com\nNovi računi dobivaju {0} LOOP kredita.':
-      'Demo version — any e-mail and password work.\nDemo accounts: demo@loop.com · test@loop.com\nNew accounts get {0} LOOP credits.',
-  'Demo verzija: ništa se stvarno ne naplaćuje i ne unose se podaci kartice. Kupljeni krediti služe isključivo za kupnju unutar LOOP-a i ne mogu se isplatiti. Dnevni limit: {0} kredita (danas još {1}).':
-      'Demo version: nothing is actually charged and no card details are entered. Purchased credits can only be spent inside LOOP and can\'t be withdrawn. Daily limit: {0} credits ({1} left today).',
+  'Demo verzija — bilo koji e-mail i lozinka rade.\nDemo računi: demo@loop.com · test@loop.com\nRegistracija je besplatna, a stanje kreće od 0 €.':
+      'Demo version — any e-mail and password work.\nDemo accounts: demo@loop.com · test@loop.com\nSigning up is free and your balance starts at €0.',
+  'Demo verzija: ništa se stvarno ne naplaćuje i ne unose se podaci kartice. Dnevni limit uplata: {0} € (danas još {1}).':
+      'Demo version: nothing is actually charged and no card details are entered. Daily deposit limit: €{0} ({1} left today).',
   'Demo: admin123': 'Demo: admin123',
   'Dnevni limit je {0} kredita. Danas možeš kupiti još {1}.':
       'The daily limit is {0} credits. You can buy {1} more today.',
   'Dobivaš': 'You get',
-  'Dobivaš LOOP kredite koje možeš potrošiti samo unutar aplikacije.':
-      'You get LOOP credits you can spend only inside the app.',
+  'Iznos ide na tvoje LOOP stanje (u eurima).':
+      'The amount goes to your LOOP balance (in euros).',
   'Dobivaš prodajom': 'You get from the sale',
   'Dobivaš {0} odmah': 'You get {0} right away',
   'Dobro došao natrag! Demo: bilo koja lozinka radi.':
       'Welcome back! Demo: any password works.',
   'Dodaj': 'Add',
-  'Dodaj kredite': 'Add credits',
+  'Dodaj sredstva': 'Add funds',
   'Dodaj predmet': 'Add item',
   'Dodaj predmet u portfolio ili kupi nešto u Marketu.':
       'Add an item to your portfolio or buy something in the Market.',
@@ -107,19 +107,19 @@ const kEn = <String, String>{
   'Dodirni ♥ na predmetu da ga spremiš ovdje.':
       'Tap ♥ on an item to save it here.',
   'Dopune': 'Top-ups',
-  'Dopuni kredite': 'Top up credits',
+  'Uplati novac': 'Add money',
   'Dostava': 'Delivery',
   'Dostava je krenula 🚚': 'Delivery is on its way 🚚',
   'Dostava je već odabrana.': 'Delivery has already been chosen.',
   'Dostave': 'Deliveries',
-  'Dostupno: {0} · fee 5% na kupnju': 'Available: {0} · 5% fee on purchases',
+  'Stanje: {0} · kupac plaća 2% naknade': 'Balance: {0} · buyers pay a 2% fee',
   'Doživljaji': 'Experiences',
   'E-mail': 'E-mail',
   'Favorit': 'Favorite',
   'Favoriti': 'Favorites',
   'Fee': 'Fee',
-  'Fee (5%)': 'Fee (5%)',
-  'Fee platforme (5%)': 'Platform fee (5%)',
+  'Naknada (2%)': 'Fee (2%)',
+  'Naknada za kupca (2%)': 'Buyer fee (2%)',
   'Fotografija dodana': 'Photo added',
   'Fotografije ({0}/{1})': 'Photos ({0}/{1})',
   'Fotografije ({0}/{1}) · neobavezno': 'Photos ({0}/{1}) · optional',
@@ -164,20 +164,19 @@ const kEn = <String, String>{
   'Korisnik ne postoji.': 'User doesn\'t exist.',
   'Korisnik obrisan': 'User deleted',
   'Kraj: {0}{1}': 'Ends: {0}{1}',
-  'Kredite troši na druge stvari u LOOP-u. Bez novca, samo razmjena.':
-      'Spend credits on other things in LOOP. No money, just exchange.',
-  'Krediti': 'Credits',
-  'Krediti nakon kupnje': 'Credits after purchase',
-  'Krediti {0}\nPredmeti {1}': 'Credits {0}\nItems {1}',
-  'Kupi kredite': 'Buy credits',
+  'Zarađeno potroši na druge stvari u LOOP-u.':
+      'Spend what you earn on other things in LOOP.',
+  'Stanje računa': 'Balance',
+  'Stanje nakon kupnje': 'Balance after purchase',
+  'Stanje {0}\nPredmeti {1}': 'Balance {0}\nItems {1}',
   'Kupi odmah': 'Buy now',
-  'Kupljeno kredita': 'Credits bought',
+  'Uplaćeno': 'Deposited',
   'Kupnje': 'Purchases',
   'Kupnje i prodaje pojavit će se ovdje.':
       'Purchases and sales will show up here.',
   'LOOP Admin · {0}': 'LOOP Admin · {0}',
-  'LOOP krediti se ne mogu isplatiti — koriste se isključivo za kupnju predmeta unutar aplikacije. Status: Bronze < 2000, Silver 2000–5000, Gold > 5000 (krediti + portfolio).':
-      'LOOP credits can\'t be withdrawn — they\'re used only to buy items inside the app. Status: Bronze < 2000, Silver 2000–5000, Gold > 5000 (credits + portfolio).',
+  'Stanje je u eurima. Prodaja je bez naknade, kupac plaća 2%. Status: Bronze < 2000 €, Silver 2000–5000 €, Gold > 5000 € (stanje + portfolio).':
+      'Your balance is in euros. Selling is free, buyers pay 2%. Status: Bronze < €2000, Silver €2000–5000, Gold > €5000 (balance + portfolio).',
   'Licitiraj': 'Place bid',
   'Lokalni način rada': 'Local mode',
   'Lozinka': 'Password',
@@ -202,7 +201,7 @@ const kEn = <String, String>{
   'Najmanje {0}': 'At least {0}',
   'Najpopularnije': 'Most popular',
   'Najviša ponuda': 'Highest bid',
-  'Najviša ponuda − 5% fee': 'Highest bid − 5% fee',
+  'Najviša ponuda (bez naknade)': 'Highest bid (no fee)',
   'Najviše {0} fotografije po predmetu.': 'At most {0} photos per item.',
   'Najviši status — Gold 🏆': 'Top status — Gold 🏆',
   'Naknada za objavu': 'Listing fee',
@@ -215,26 +214,26 @@ const kEn = <String, String>{
   'Ne možeš licitirati na svoju aukciju.':
       'You can\'t bid on your own auction.',
   'Nedostaje ti {0}': 'You\'re {0} short',
-  'Nedostaje {0} — kupi kredite': '{0} short — buy credits',
+  'Nedostaje {0} — uplati novac': '{0} short — add money',
   'Nema aukcija': 'No auctions',
   'Nema korisnika': 'No users',
   'Nema predmeta': 'No items',
   'Nema predmeta.': 'No items.',
   'Nema rezultata': 'No results',
   'Nema transakcija ovog tipa.': 'No transactions of this type.',
-  'Nemaš dovoljno kredita': 'Not enough credits',
-  'Nemaš dovoljno kredita za najmanju sljedeću ponudu. Ponuda ne može biti veća od tvojih kredita.':
-      'You don\'t have enough credits for the minimum next bid. A bid can\'t exceed your credits.',
-  'Nemaš dovoljno kredita. Potrebno: {0}, imaš: {1}.':
-      'Not enough credits. Needed: {0}, you have: {1}.',
-  'Nemaš dovoljno kredita: treba {0} (s feejem i dostavom), imaš {1}.':
-      'Not enough credits: you need {0} (with fee and delivery), you have {1}.',
+  'Nemaš dovoljno novca': 'Not enough money',
+  'Nemaš dovoljno novca za najmanju sljedeću ponudu. Ponuda ne može biti veća od tvog stanja.':
+      'You don\'t have enough money for the minimum next bid. A bid can\'t exceed your balance.',
+  'Nemaš dovoljno novca. Potrebno: {0}, imaš: {1}.':
+      'Not enough money. Needed: {0}, you have: {1}.',
+  'Nemaš dovoljno novca: treba {0} (s feejem i dostavom), imaš {1}.':
+      'Not enough money: you need {0} (with fee and delivery), you have {1}.',
   'Nemaš predmeta za aukciju': 'You have no items to auction',
   'Nemaš svojih aukcija': 'You have no auctions',
   'Nisi prijavljen.': 'You\'re not logged in.',
   'Nova aukcija': 'New auction',
-  'Nudiš {0} za "{1}".\n\n• Ponuda je obvezujuća i NE MOŽE se povući.\n• Iznos se blokira s tvojih kredita dok te netko ne nadmaši.\n• Ako pobijediš, predmet automatski prelazi u tvoj portfolio.':
-      'You\'re bidding {0} for "{1}".\n\n• The bid is binding and CAN\'T be withdrawn.\n• The amount is held from your credits until someone outbids you.\n• If you win, the item moves to your portfolio automatically.',
+  'Nudiš {0} za "{1}".\n\n• Ponuda je obvezujuća i NE MOŽE se povući.\n• Iznos se blokira s tvog stanja dok te netko ne nadmaši.\n• Ako pobijediš, predmet automatski prelazi u tvoj portfolio.':
+      'You\'re bidding {0} for "{1}".\n\n• The bid is binding and CAN\'T be withdrawn.\n• The amount is held from your balance until someone outbids you.\n• If you win, the item moves to your portfolio automatically.',
   'Obavezno polje': 'Required field',
   'Objavi aukciju · naknada {0}': 'Publish auction · fee {0}',
   'Objavi predmet iz svog portfolija gumbom "Nova aukcija".':
@@ -246,8 +245,7 @@ const kEn = <String, String>{
   'Obriši': 'Delete',
   'Obriši korisnika': 'Delete user',
   'Obriši predmet': 'Delete item',
-  'Od {0} do {1} · bonus od 250 kredita naviše':
-      'From {0} to {1} · bonus from 250 credits up',
+  'Od {0} do {1} €': 'From €{0} to €{1}',
   'Odaberi dostavu': 'Choose delivery',
   'Odaberi dostavu za osvojeni predmet ({0})':
       'Choose delivery for the item you won ({0})',
@@ -287,11 +285,11 @@ const kEn = <String, String>{
       'Data is only on this device (online database isn\'t set up).',
   'Pogledaj aukciju': 'View auction',
   'Pogrešni admin podaci.': 'Wrong admin credentials.',
-  'Ponuda ne može biti veća od tvojih kredita ({0}).':
-      'A bid can\'t exceed your credits ({0}).',
+  'Ponuda ne može biti veća od tvog stanja ({0}).':
+      'A bid can\'t exceed your balance ({0}).',
   'Ponuda prihvaćena — vodiš!': 'Bid accepted — you\'re leading!',
-  'Ponude su obvezujuće i ne mogu se povući. Iznos vodeće ponude se blokira i vraća ti se čim te netko nadmaši. Ponuda ne može biti veća od raspoloživih kredita.':
-      'Bids are binding and can\'t be withdrawn. The leading bid amount is held and returned as soon as someone outbids you. A bid can\'t exceed your available credits.',
+  'Ponude su obvezujuće i ne mogu se povući. Iznos vodeće ponude se blokira i vraća ti se čim te netko nadmaši. Ponuda ne može biti veća od raspoloživog stanja.':
+      'Bids are binding and can\'t be withdrawn. The leading bid amount is held and returned as soon as someone outbids you. A bid can\'t exceed your available balance.',
   'Portfolio je prazan': 'Your portfolio is empty',
   'Potrošeno na kupnje': 'Spent on purchases',
   'Potvrdi': 'Confirm',
@@ -321,7 +319,7 @@ const kEn = <String, String>{
   'Predmeti po odjeljcima': 'Items by section',
   'Predmeti u portfoliju': 'Items in portfolio',
   'Pretraži po nazivu…': 'Search by name…',
-  'Prihod od fee-a (5%)': 'Fee revenue (5%)',
+  'Prihod od naknade (2%)': 'Fee revenue (2%)',
   'Prijava': 'Log in',
   'Prijavi se': 'Log in',
   'Prikaži grafikon': 'Show chart',
@@ -331,14 +329,13 @@ const kEn = <String, String>{
   'Primitak potvrđen ✅': 'Receipt confirmed ✅',
   'Prodaj ili licitiraj': 'Sell or bid',
   'Prodaj odmah': 'Sell now',
-  'Prodaj odmah ili na aukciji — dobivaš LOOP kredite.':
-      'Sell right away or at auction — you get LOOP credits.',
+  'Prodaj odmah ili na aukciji — novac ide na tvoje LOOP stanje.':
+      'Sell right away or at auction — the money goes to your LOOP balance.',
   'Prodaje': 'Sales',
   'Prodaje {0}': 'Sold by {0}',
   'Prodaje {0}{1}': 'Sold by {0}{1}',
   'Prodaješ ti': 'You\'re selling',
   'Prodani predmeti pojavljuju se ovdje.': 'Sold items show up here.',
-  'Prodano kredita': 'Credits from sales',
   'Prodavatelj: {0} · {1} ponuda{2}': 'Seller: {0} · {1} bids{2}',
   'Profil': 'Profile',
   'Promijeni pretragu, odjeljak ili kategoriju.':
@@ -374,17 +371,17 @@ const kEn = <String, String>{
   'Svijetla': 'Light',
   'Tamna': 'Dark',
   'Ti': 'You',
-  'Trade. Don\'t sell. Prodaj ono što ne koristiš, dobij LOOP kredite i uzmi nešto novo — od mobitela do ručno rađene keramike.':
-      'Trade. Don\'t sell. Sell what you don\'t use, get LOOP credits and pick up something new — from phones to handmade ceramics.',
+  'Trade. Don\'t sell. Prodaj ono što ne koristiš, zaradi i uzmi nešto novo — od mobitela do ručno rađene keramike.':
+      'Trade. Don\'t sell. Sell what you don\'t use, earn and pick up something new — from phones to handmade ceramics.',
   'Transakcije': 'Transactions',
-  'Trenutni krediti': 'Current credits',
+  'Trenutno stanje': 'Current balance',
   'Trenutno imaš': 'You currently have',
   'Trenutno nema aukcija': 'No auctions right now',
   'Tvoja aukcija': 'Your auction',
   'Tvoja aukcija je završila: {0} prodano za {1}':
       'Your auction has ended: {0} sold for {1}',
   'Tvoja ponuda': 'Your bid',
-  'Tvoji krediti': 'Your credits',
+  'Tvoje stanje': 'Your balance',
   'Ukloni iz favorita': 'Remove from favorites',
   'Ukupna vrijednost': 'Total value',
   'Ukupni volume': 'Total volume',
@@ -432,7 +429,7 @@ const kEn = <String, String>{
   'aktivnih · {0} ukupno': 'active · {0} total',
   'besplatno': 'free',
   'fee {0}': 'fee {0}',
-  'kredita': 'credits',
+  '€': '€',
   'naknada za objavu': 'listing fee',
   'npr. 256GB Titanium, godina, veličina, termin…':
       'e.g. 256GB Titanium, year, size, time slot…',
@@ -455,11 +452,11 @@ const kEn = <String, String>{
   '{0} uklonjen iz favorita': '{0} removed from favorites',
   '{0} · {1}\nVlasnik: {2}': '{0} · {1}\nOwner: {2}',
   '{0} · {1} predmeta': '{0} · {1} items',
-  '• Dok aukcija traje, predmet je zaključan (ne može se prodati).\n• Aukciju možeš otkazati samo dok nema ponuda.\n• Na kraju dobivaš najvišu ponudu − 5% fee{0}.\n• Ako nitko ne ponudi, predmet ostaje tebi.':
-      '• While the auction runs, the item is locked (it can\'t be sold).\n• You can cancel the auction only while it has no bids.\n• At the end you get the highest bid − 5% fee{0}.\n• If nobody bids, the item stays yours.',
+  '• Dok aukcija traje, predmet je zaključan (ne može se prodati).\n• Aukciju možeš otkazati samo dok nema ponuda.\n• Na kraju dobivaš cijelu najvišu ponudu{0}.\n• Ako nitko ne ponudi, predmet ostaje tebi.':
+      '• While the auction runs, the item is locked (it can\'t be sold).\n• You can cancel the auction only while it has no bids.\n• At the end you get the full highest bid{0}.\n• If nobody bids, the item stays yours.',
   '🏆 Osvojio si aukciju: {0} za {1}': '🏆 You won the auction: {0} for {1}',
-  '🔒  Ponuda je obvezujuća — ne može se povući ni smanjiti.\n\n🥇  Dok vodiš, ne možeš licitirati ponovno.\n\n🪙  Ponuda ne može biti veća od tvojih kredita. Iznos vodeće ponude se blokira i vraća čim te netko nadmaši.\n\n⏱️  Ponuda u zadnjoj minuti produljuje aukciju za 1 minutu.\n\n🎁  Pobjednik dobiva predmet, prodavatelj ponudu − 5% fee.':
-      '🔒  A bid is binding — it can\'t be withdrawn or lowered.\n\n🥇  While you\'re leading, you can\'t bid again.\n\n🪙  A bid can\'t exceed your credits. The leading bid amount is held and returned as soon as someone outbids you.\n\n⏱️  A bid in the last minute extends the auction by 1 minute.\n\n🎁  The winner gets the item, the seller gets the bid − 5% fee.',
+  '🔒  Ponuda je obvezujuća — ne može se povući ni smanjiti.\n\n🥇  Dok vodiš, ne možeš licitirati ponovno.\n\n🪙  Ponuda ne može biti veća od tvog stanja. Iznos vodeće ponude se blokira i vraća čim te netko nadmaši.\n\n⏱️  Ponuda u zadnjoj minuti produljuje aukciju za 1 minutu.\n\n🎁  Pobjednik dobiva predmet, prodavatelj cijelu ponudu (bez naknade).':
+      '🔒  A bid is binding — it can\'t be withdrawn or lowered.\n\n🥇  While you\'re leading, you can\'t bid again.\n\n🪙  A bid can\'t exceed your balance. The leading bid amount is held and returned as soon as someone outbids you.\n\n⏱️  A bid in the last minute extends the auction by 1 minute.\n\n🎁  The winner gets the item, the seller gets the full bid (no fee).',
   '🚚 Demo: dostava je ubrzana — umjesto dana traje nekoliko minuta, pa statuse možeš pratiti uživo.':
       '🚚 Demo: delivery is sped up — it takes minutes instead of days, so you can follow the statuses live.',
   'Elektronika': 'Electronics',
@@ -514,7 +511,7 @@ const kEn = <String, String>{
   'Za dijelove': 'For parts',
   'Kupnja': 'Purchase',
   'Prodaja': 'Sale',
-  'Kupnja kredita': 'Credit purchase',
+  'Uplata': 'Deposit',
   'Objava aukcije': 'Auction listing',
   'U tijeku': 'Live',
   'Prodano': 'Sold',
@@ -581,8 +578,8 @@ const kEn = <String, String>{
   'Kod kopiran': 'Code copied',
   'Kod za poziv "{0}" ne postoji.': 'Invite code "{0}" doesn\'t exist.',
   'Kod za poziv (neobavezno)': 'Invite code (optional)',
-  'Kod za poziv: {0} — oboje dobivate bonus kredite.':
-      'Invite code: {0} — you both get bonus credits.',
+  'Kod za poziv: {0} — podijeli ga s prijateljima.':
+      'Invite code: {0} — share it with friends.',
   'Kopiraj': 'Copy',
   'Korisničko ime': 'Username',
   'Korisničko ime mora imati {0}–{1} znakova.':
@@ -613,8 +610,8 @@ const kEn = <String, String>{
   'Nova lozinka je postavljena. Prijavi se.': 'New password set. Log in.',
   'Nova lozinka je spremljena.': 'New password saved.',
   'Novi račun': 'New account',
-  'Novi računi dobivaju {0} LOOP kredita.':
-      'New accounts get {0} LOOP credits.',
+  'Registracija je besplatna, a stanje kreće od 0 €.':
+      'Signing up is free and your balance starts at €0.',
   'O meni': 'About me',
   'Odaberi korisničko ime': 'Choose a username',
   'Online testna verzija: napravi račun e-mailom ili Googleom. Gost može samo razgledavati.':
@@ -670,8 +667,8 @@ const kEn = <String, String>{
       'Enter your account e-mail and we\'ll send you a link for a new password.',
   'Upiši korisničko ime.': 'Enter a username.',
   'Uredi profil': 'Edit profile',
-  'Za kupnju, prodaju i aukcije napravi besplatan račun — dobivaš početne kredite.':
-      'To buy, sell and bid, create a free account — you get starting credits.',
+  'Za kupnju, prodaju i aukcije napravi besplatan račun — besplatno je.':
+      'To buy, sell and bid, create a free account — it\'s free.',
   'Za prijavu upiši e-mail.': 'Enter your e-mail to log in.',
   'Zaboravljena lozinka': 'Forgot password',
   'Zaboravljena lozinka?': 'Forgot password?',
@@ -704,9 +701,9 @@ const kEn = <String, String>{
   'Prodaj odmah LOOP-u': 'Sell to LOOP now',
   'Prodavatelj': 'Seller',
   'Promijeni cijenu': 'Change price',
-  'Ti dobivaš {0} (− 5% fee)': 'You get {0} (− 5% fee)',
-  'U Marketu za {0}. Kad netko kupi, dobivaš {1} (− 5% fee), a predmet prelazi kupcu.':
-      'In the Market for {0}. When someone buys it, you get {1} (− 5% fee) and the item goes to the buyer.',
+  'Ti dobivaš {0} (bez naknade)': 'You get {0} (no fee)',
+  'U Marketu za {0}. Kad netko kupi, dobivaš {1} (bez naknade), a predmet prelazi kupcu.':
+      'In the Market for {0}. When someone buys it, you get {1} (no fee) and the item goes to the buyer.',
   'Ukloni iz Marketa': 'Remove from Market',
   'Uklonjeno iz Marketa': 'Removed from the Market',
   'Vrijednost': 'Value',
@@ -737,8 +734,8 @@ const kEn = <String, String>{
       '• {0} of your items and their Market listings are deleted.',
   '• Drugima povijest kupnji ostaje, ali umjesto tvog imena piše @obrisani.':
       '• Others keep their purchase history, but your name shows as @obrisani.',
-  '• Gubiš {0} — krediti se ne mogu isplatiti.':
-      '• You lose {0} — credits can\'t be withdrawn.',
+  '• Gubiš preostalo stanje ({0}) — u demo verziji nema isplate.':
+      '• You lose your remaining balance ({0}) — the demo has no payouts.',
   '• Imaš {0} dana za predomišljanje: prijavi se i račun se vraća.':
       '• You have {0} days to change your mind: log in and the account comes back.',
   '"{0}" bit će uklonjen, a prijava označena kao riješena.':
@@ -832,7 +829,6 @@ const kEn = <String, String>{
   'Povučeno': 'Withdrawn',
   'Nije uspjelo': 'Failed',
   ' + {0}': ' + {0}',
-  ' + {0} (− 5% fee)': ' + {0} (− 5% fee)',
   'Daješ "{0}" i dobivaš "{1}"{2}. Zamjena je konačna, a oboje zatim birate dostavu.':
       'You give "{0}" and get "{1}"{2}. The swap is final, then you both choose delivery.',
   'Dobivaš: {0}{1}\nDaješ: {2}': 'You get: {0}{1}\nYou give: {2}',
@@ -841,14 +837,14 @@ const kEn = <String, String>{
   'Na predmetu u Marketu dodirni "Pošalji poruku" ili "Ponudi zamjenu".':
       'On a Market item, tap "Send message" or "Offer a swap".',
   'Nadoplata ne može biti negativna.': 'The extra payment can\'t be negative.',
-  'Nadoplata u kreditima (neobavezno)': 'Extra credits (optional)',
+  'Nadoplata u eurima (neobavezno)': 'Extra payment in € (optional)',
   'Napiši poruku.': 'Write a message.',
   'Napiši prvu poruku. Budi pristojan — poruke se mogu prijaviti.':
       'Write the first message. Be polite — messages can be reported.',
   'Ne možeš poslati poruku ovom korisniku.': 'You can\'t message this user.',
   'Ne možeš slati poruke sam sebi.': 'You can\'t message yourself.',
-  'Nemaš dovoljno kredita za nadoplatu ({0}).':
-      'Not enough credits for the extra payment ({0}).',
+  'Nemaš dovoljno novca za nadoplatu ({0}).':
+      'Not enough money for the extra payment ({0}).',
   'Nemaš predmeta za zamjenu — dodaj ga u portfolio.':
       'You have no item to swap — add one to your portfolio.',
   'Nudiš: {0}{1}\nZa: {2}': 'You offer: {0}{1}\nFor: {2}',
@@ -895,8 +891,8 @@ const kEn = <String, String>{
   'Zamjena više nije moguća — jedan od predmeta nije dostupan.':
       'The swap is no longer possible — one of the items isn\'t available.',
   'Zamjena · odaberi dostavu': 'Swap · choose delivery',
-  '{0} više nema dovoljno kredita za nadoplatu.':
-      '{0} no longer has enough credits for the extra payment.',
+  '{0} više nema dovoljno novca za nadoplatu.':
+      '{0} no longer has enough money for the extra payment.',
   '{0} ⇄ {1}': '{0} ⇄ {1}',
   '🔄 Tvoja ponuda za {0}': '🔄 Your offer to {0}',
   '🔄 {0} ti nudi zamjenu': '🔄 {0} offers you a swap',
@@ -910,8 +906,8 @@ const kEn = <String, String>{
       'Run supabase/schema.sql in the Supabase SQL Editor, then reload the page. Until then these stay on this device only: {0}',
   'Predmet je objavljen u Marketu 🏷️': 'The item is listed in the Market 🏷️',
   'Odmah objavi u Marketu': 'List in the Market right away',
-  'Predmet ostaje tvoj dok ga netko ne kupi. Dobivaš cijenu − 5% fee.':
-      'The item stays yours until someone buys it. You get the price − 5% fee.',
+  'Predmet ostaje tvoj dok ga netko ne kupi. Dobivaš punu cijenu — prodaja je bez naknade.':
+      'The item stays yours until someone buys it. You get the full price — selling is free.',
   'Ostaje samo u portfoliju — objaviti ga možeš kasnije.':
       'It stays in your portfolio only — you can list it later.',
   'Svi prodavatelji': 'All sellers',
@@ -927,8 +923,8 @@ const kEn = <String, String>{
   'Očisti sve': 'Clear all',
   '{0} predmeta': '{0} items',
   'Očisti pretragu i filtere': 'Clear search and filters',
-  'Imam dovoljno kredita (s 5% fee): {0}':
-      'I have enough credits (with 5% fee): {0}',
+  'Imam dovoljno novca (s 2% naknade): {0}':
+      'I have enough money (with 2% fee): {0}',
   'Početna': 'Home',
   'Datoteka je prazna.': 'The file is empty.',
   'Datoteka je prevelika (najviše {0} MB).':
@@ -942,8 +938,8 @@ const kEn = <String, String>{
       'The file downloads right after payment.',
   'Datoteku mogu preuzeti samo kupci.': 'Only buyers can download the file.',
   'Datoteku nije moguće pročitati.': 'The file can\'t be read.',
-  'Digitalni proizvod odmah ide u Market i možeš ga prodati više puta. Kupac plaća cijenu + 5%, ti dobivaš cijenu − 5%, a kupac odmah preuzima datoteku.':
-      'A digital product goes straight to the Market and can be sold many times. The buyer pays the price + 5%, you get the price − 5%, and the buyer downloads the file right away.',
+  'Digitalni proizvod odmah ide u Market i možeš ga prodati više puta. Kupac plaća cijenu + 2%, ti dobivaš punu cijenu, a kupac odmah preuzima datoteku.':
+      'A digital product goes straight to the Market and can be sold many times. The buyer pays the price + 2%, you get the full price, and the buyer downloads the file right away.',
   'Digitalni proizvod se ne prodaje LOOP-u — kupci ga kupuju u Marketu.':
       'A digital product isn\'t sold to LOOP — buyers buy it in the Market.',
   'Digitalni proizvod treba datoteku koju kupac preuzima.':
@@ -957,8 +953,8 @@ const kEn = <String, String>{
   'Dodaj datoteku': 'Add file',
   'Dodaj datoteku koju kupac preuzima.': 'Add the file the buyer downloads.',
   'Još nemaš digitalnih kupnji': 'No digital purchases yet',
-  'Kupaca: {0}. Svaki kupac plaća cijenu + 5%, a ti dobivaš cijenu − 5%.':
-      'Buyers: {0}. Each buyer pays the price + 5% and you get the price − 5%.',
+  'Kupaca: {0}. Svaki kupac plaća cijenu + 2%, a ti dobivaš punu cijenu.':
+      'Buyers: {0}. Each buyer pays the price + 2% and you get the full price.',
   'Kupi i preuzmi': 'Buy and download',
   'Kupio si ovaj proizvod — datoteku možeš preuzeti kad god želiš.':
       'You bought this product — download the file whenever you want.',
@@ -995,4 +991,13 @@ const kEn = <String, String>{
   'Predložak': 'Template',
   'Glazba i zvukovi': 'Music & sounds',
   'Audio': 'Audio',
+  'Naknada': 'Fee',
+  'bez naknade': 'no fee',
+  'Korisničko ime prijatelja koji te pozvao.':
+      'Username of the friend who invited you.',
+  '{0} se registrirao s tvojim kodom.': '{0} signed up with your code.',
+  'Iznos mora biti između {0} i {1} €.':
+      'The amount must be between €{0} and €{1}.',
+  'Dnevni limit uplata je {0} €. Danas možeš uplatiti još {1}.':
+      'The daily deposit limit is €{0}. You can add {1} more today.',
 };

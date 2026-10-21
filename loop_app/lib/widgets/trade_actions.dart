@@ -82,7 +82,7 @@ bool blockGuest(BuildContext context) {
   return true;
 }
 
-/// INSTANT SELL — dijalog s cijenom, fee-om i iznosom, pa prodaja.
+/// INSTANT SELL — dijalog s cijenom i iznosom (prodaja je bez naknade).
 Future<bool> confirmAndSell(
   BuildContext context,
   WidgetRef ref,
@@ -95,20 +95,14 @@ Future<bool> confirmAndSell(
     device: device,
     rows: [
       _Row(t('Originalna cijena'), formatCredits(device.price)),
-      _Row(
-        t('Fee (5%)'),
-        '− ${formatCredits(feeFor(device.price))}',
-        color: LoopColors.error,
-      ),
+      _Row(t('Naknada'), t('bez naknade')),
       _Row(
         t('Dobivaš'),
         formatCredits(sellPayout(device.price)),
         highlight: true,
       ),
     ],
-    note: t(
-      'Dobivaš LOOP kredite koje možeš potrošiti samo unutar aplikacije.',
-    ),
+    note: t('Iznos ide na tvoje LOOP stanje (u eurima).'),
     confirmLabel: t('Potvrdi prodaju'),
   );
   if (!ok || !context.mounted) return false;
@@ -140,7 +134,7 @@ Future<bool> confirmAndBuy(
     final missing = total - user.credits;
     final topUp = await confirmDialog(
       context,
-      title: t('Nemaš dovoljno kredita'),
+      title: t('Nemaš dovoljno novca'),
       message:
           t('Za "{0}" treba {1} (s feejem), a imaš {2}.\nNedostaje ti {3}.', [
             device.name,
@@ -148,7 +142,7 @@ Future<bool> confirmAndBuy(
             formatCredits(user.credits),
             formatCredits(missing),
           ]),
-      confirmLabel: t('Kupi kredite'),
+      confirmLabel: t('Uplati novac'),
     );
     if (!topUp || !context.mounted) return false;
     final bought = await BuyCreditsScreen.open(context, needed: missing);
@@ -262,7 +256,7 @@ class _CheckoutSheetState extends State<_CheckoutSheet> {
                   children: [
                     row(t('Cijena'), formatCredits(d.askPrice)),
                     row(
-                      t('Fee (5%)'),
+                      t('Naknada (2%)'),
                       '+ ${formatCredits(feeFor(d.askPrice))}',
                     ),
                     row(
@@ -274,7 +268,7 @@ class _CheckoutSheetState extends State<_CheckoutSheet> {
                     Divider(height: 16),
                     row(t('Ukupno'), formatCredits(total), bold: true),
                     row(
-                      t('Krediti nakon kupnje'),
+                      t('Stanje nakon kupnje'),
                       formatCredits(widget.credits - total),
                     ),
                   ],
@@ -315,7 +309,7 @@ class _CheckoutSheetState extends State<_CheckoutSheet> {
                 },
                 icon: Icon(Icons.add_card),
                 label: Text(
-                  t('Nedostaje {0} — kupi kredite', [
+                  t('Nedostaje {0} — uplati novac', [
                     formatCredits(total - widget.credits),
                   ]),
                 ),
@@ -556,7 +550,7 @@ class _ListDialogState extends State<_ListDialog> {
               onSubmitted: (_) => _submit(),
               decoration: InputDecoration(
                 labelText: t('Cijena'),
-                suffixText: t('kredita'),
+                suffixText: t('€'),
                 errorText: _error,
               ),
             ),
@@ -567,7 +561,9 @@ class _ListDialogState extends State<_ListDialog> {
                 style: TextStyle(color: LoopColors.textSecondary),
               ),
               Text(
-                t('Ti dobivaš {0} (− 5% fee)', [formatCredits(sellPayout(v))]),
+                t('Ti dobivaš {0} (bez naknade)', [
+                  formatCredits(sellPayout(v)),
+                ]),
                 style: const TextStyle(fontWeight: FontWeight.w800),
               ),
             ],
@@ -599,7 +595,7 @@ Future<bool> _buyDigital(
     rows: [
       _Row(t('Cijena'), formatCredits(price)),
       _Row(
-        t('Fee (5%)'),
+        t('Naknada (2%)'),
         '+ ${formatCredits(feeFor(price))}',
         color: LoopColors.error,
       ),

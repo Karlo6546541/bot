@@ -118,7 +118,7 @@ void main() {
     expect(auction('4').endsAt, late.add(AuctionService.extendWindow));
   });
 
-  test('istek: pobjednik dobiva predmet, prodavatelj iznos − 5%', () async {
+  test('istek: pobjednik dobiva predmet, prodavatelj cijeli iznos', () async {
     final a = auction('2'); // Marko vodi s 60
     final results = await auctions.settleExpired(
       now: a.endsAt.add(const Duration(seconds: 1)),
@@ -128,7 +128,7 @@ void main() {
     expect(storage.deviceById('seed-35')!.ownerId, marko);
     // Do tada je istekla i aukcija 4 (ulaznica, 90 LC), pa se zaključuju obje.
     expect(auction('4').status, AuctionStatus.sold);
-    expect(credits(ana), 542.5); // 400 + (60 − 3) + (90 − 4.5)
+    expect(credits(ana), 550); // 400 + 60 + 90 (bez naknade)
     expect(credits(marko), 1030); // iznosi su već bili blokirani
     expect(storage.heldCredits(marko), 320); // ostaje samo aukcija 1
 
@@ -137,7 +137,7 @@ void main() {
     expect(tx.typeFor(ana), TransactionType.sell);
     expect(tx.typeFor(marko), TransactionType.buy);
     expect(tx.amountFor(marko), 60);
-    expect(tx.amountFor(ana), 57);
+    expect(tx.amountFor(ana), 60);
     expect(tx.feeFor(marko), 0);
   });
 

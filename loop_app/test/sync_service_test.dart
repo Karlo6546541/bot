@@ -92,7 +92,7 @@ void main() {
     ).sell(userId: SeedData.demoUserId, deviceId: 'seed-9');
     await Future<void>.delayed(Duration.zero);
     expect(remote.data['devices']!['seed-9']!['ownerId'], isNull);
-    expect(remote.data['users']![SeedData.demoUserId]!['credits'], 1544.5);
+    expect(remote.data['users']![SeedData.demoUserId]!['credits'], 1560);
     expect(remote.data['transactions'], hasLength(1));
   });
 

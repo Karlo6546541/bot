@@ -30,10 +30,10 @@ void main() {
     await dir.delete(recursive: true);
   });
 
-  test('fee je 5%', () {
-    expect(feeFor(780), 39);
-    expect(sellPayout(310), 294.5);
-    expect(buyTotal(185), 194.25);
+  test('naknada 2% plaća samo kupac', () {
+    expect(feeFor(780), 15.6);
+    expect(sellPayout(310), 310);
+    expect(buyTotal(185), 188.7);
   });
 
   test('status po ukupnoj vrijednosti', () {
@@ -55,21 +55,18 @@ void main() {
     },
   );
 
-  test(
-    'instant sell: krediti +95%, uređaj ide u Market, transakcija',
-    () async {
-      final tx = await trade.sell(
-        userId: SeedData.demoUserId,
-        deviceId: 'seed-9',
-      );
-      expect(tx.type, TransactionType.sell);
-      expect(tx.amount, 294.5);
-      expect(tx.fee, 15.5);
-      expect(storage.userById(SeedData.demoUserId)!.credits, 1544.5);
-      expect(storage.deviceById('seed-9')!.isOnMarket, isTrue);
-      expect(storage.transactions, hasLength(1));
-    },
-  );
+  test('instant sell: puna cijena, uređaj ide u Market, transakcija', () async {
+    final tx = await trade.sell(
+      userId: SeedData.demoUserId,
+      deviceId: 'seed-9',
+    );
+    expect(tx.type, TransactionType.sell);
+    expect(tx.amount, 310);
+    expect(tx.fee, 0);
+    expect(storage.userById(SeedData.demoUserId)!.credits, 1560);
+    expect(storage.deviceById('seed-9')!.isOnMarket, isTrue);
+    expect(storage.transactions, hasLength(1));
+  });
 
   test('ne može prodati tuđi uređaj', () async {
     expect(
@@ -78,11 +75,11 @@ void main() {
     );
   });
 
-  test('instant buy: krediti −(cijena+5%), uređaj u portfoliju', () async {
-    // AirPods Pro 2 = 185 → 194.25
+  test('instant buy: stanje −(cijena+2%), uređaj u portfoliju', () async {
+    // AirPods Pro 2 = 185 → 188.70
     final tx = await trade.buy(userId: SeedData.testUserId, deviceId: 'seed-5');
-    expect(tx.amount, 194.25);
-    expect(storage.userById(SeedData.testUserId)!.credits, 605.75);
+    expect(tx.amount, 188.7);
+    expect(storage.userById(SeedData.testUserId)!.credits, 611.3);
     expect(storage.deviceById('seed-5')!.ownerId, SeedData.testUserId);
   });
 
@@ -167,8 +164,8 @@ void main() {
       await trade.sell(userId: SeedData.demoUserId, deviceId: 'seed-9');
       final after = storage.historyOf(SeedData.demoUserId);
       expect(after.length, before.length + 1);
-      // 1250 + 294.50 kredita, portfolio samo Lenovo (450)
-      expect(after.last.credits, 1544.5);
+      // 1250 + 310 €, portfolio samo Lenovo (450)
+      expect(after.last.credits, 1560);
       expect(after.last.portfolio, 450);
     },
   );

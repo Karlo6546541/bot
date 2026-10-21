@@ -155,7 +155,9 @@ class _MarketScreenState extends ConsumerState<MarketScreen> {
           child: Padding(
             padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
             child: Text(
-              t('Dostupno: {0} · fee 5% na kupnju', [formatCredits(credits)]),
+              t('Stanje: {0} · kupac plaća 2% naknade', [
+                formatCredits(credits),
+              ]),
               style: TextStyle(color: LoopColors.textSecondary),
             ),
           ),

@@ -28,24 +28,23 @@ void main() {
     await dir.delete(recursive: true);
   });
 
-  test('bonus raste s paketom', () {
-    expect(CreditShop.bonusFor(100), 0);
-    expect(CreditShop.bonusFor(250), 10);
-    expect(CreditShop.bonusFor(700), 30);
-    expect(CreditShop.bonusFor(1000), 80);
+  test('uplate nemaju bonus', () {
+    for (final amount in [100, 250, 700, 1000]) {
+      expect(CreditShop.bonusFor(amount), 0);
+    }
   });
 
-  test('kupnja dodaje kredite + bonus i bilježi transakciju', () async {
+  test('uplata povećava stanje i bilježi transakciju', () async {
     final tx = await shop.purchase(
       userId: demo,
       credits: 500,
       method: PaymentMethod.paypal,
     );
-    expect(storage.userById(demo)!.credits, 1250 + 530);
+    expect(storage.userById(demo)!.credits, 1250 + 500);
     expect(tx.type, TransactionType.topUp);
-    expect(tx.price, 500); // eura
-    expect(tx.amount, 530); // kredita
-    expect(storage.historyOf(demo).last.credits, 1780);
+    expect(tx.price, 500);
+    expect(tx.amount, 500);
+    expect(storage.historyOf(demo).last.credits, 1750);
   });
 
   test('dnevni limit i granice iznosa', () async {
@@ -74,11 +73,10 @@ void main() {
   });
 
   test('hrvatski format iznosa', () {
-    expect(formatCredits(1250), '1.250 kredita');
-    expect(formatCredits(294.5), '294,50 kredita');
-    expect(formatCredits(1), '1 kredit');
-    expect(formatCredits(21), '21 kredit');
-    expect(formatCredits(11), '11 kredita');
+    expect(formatCredits(1250), '1.250 €');
+    expect(formatCredits(294.5), '294,50 €');
+    expect(formatCredits(1), '1 €');
+    expect(formatCredits(-12.5), '−12,50 €');
     expect(formatEuro(49.9), '49,90 €');
   });
 }

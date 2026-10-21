@@ -7,7 +7,6 @@ import '../services/seed_data.dart';
 import '../services/trade_service.dart';
 import '../theme/app_theme.dart';
 import '../widgets/adaptive_shell.dart';
-import '../widgets/formatters.dart';
 import '../widgets/trade_actions.dart';
 import '../widgets/username_field.dart';
 import '../l10n/tr.dart';
@@ -242,9 +241,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         autocorrect: false,
         decoration: InputDecoration(
           labelText: t('Kod za poziv (neobavezno)'),
-          helperText: t('Korisničko ime prijatelja — oboje dobivate {0}.', [
-            formatCredits(AccountService.referralBonus),
-          ]),
+          helperText: t('Korisničko ime prijatelja koji te pozvao.'),
           prefixText: '@',
           prefixIcon: const Icon(Icons.card_giftcard),
         ),
@@ -300,9 +297,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
             const SizedBox(height: 4),
             Text(
               _register
-                  ? t('Novi računi dobivaju {0} LOOP kredita.', [
-                      TradeService.welcomeCredits,
-                    ])
+                  ? t('Registracija je besplatna, a stanje kreće od 0 €.')
                   : t('Prijavi se e-mailom i lozinkom.'),
               style: TextStyle(color: LoopColors.textSecondary),
             ),
@@ -546,7 +541,7 @@ class _WelcomeHero extends StatelessWidget {
         const SizedBox(height: 12),
         Text(
           t(
-            'Trade. Don\'t sell. Prodaj ono što ne koristiš, dobij LOOP kredite i uzmi nešto novo — od mobitela do ručno rađene keramike.',
+            'Trade. Don\'t sell. Prodaj ono što ne koristiš, zaradi i uzmi nešto novo — od mobitela do ručno rađene keramike.',
           ),
           textAlign: compact ? TextAlign.center : TextAlign.start,
           style: TextStyle(

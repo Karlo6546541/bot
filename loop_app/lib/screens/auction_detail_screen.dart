@@ -68,7 +68,7 @@ class _AuctionDetailScreenState extends ConsumerState<AuctionDetailScreen> {
       context,
       title: t('Potvrdi ponudu'),
       message: t(
-        'Nudiš {0} za "{1}".\n\n• Ponuda je obvezujuća i NE MOŽE se povući.\n• Iznos se blokira s tvojih kredita dok te netko ne nadmaši.\n• Ako pobijediš, predmet automatski prelazi u tvoj portfolio.',
+        'Nudiš {0} za "{1}".\n\n• Ponuda je obvezujuća i NE MOŽE se povući.\n• Iznos se blokira s tvog stanja dok te netko ne nadmaši.\n• Ako pobijediš, predmet automatski prelazi u tvoj portfolio.',
         [formatCredits(amount!), a.deviceName],
       ),
       confirmLabel: t('Licitiraj'),
@@ -270,7 +270,7 @@ class _AuctionDetailScreenState extends ConsumerState<AuctionDetailScreen> {
                   text: a.bids.isEmpty
                       ? t('Aukciju možeš otkazati dok nema ponuda.')
                       : t(
-                          'Aukcija ima ponude i ne može se otkazati. Po završetku dobivaš {0} (najviša ponuda − 5% fee).',
+                          'Aukcija ima ponude i ne može se otkazati. Po završetku dobivaš {0} (cijela najviša ponuda — bez naknade).',
                           [formatCredits(sellPayout(a.currentPrice))],
                         ),
                 ),
@@ -321,7 +321,7 @@ class _AuctionDetailScreenState extends ConsumerState<AuctionDetailScreen> {
               _InfoBox(
                 icon: Icons.block,
                 text: t(
-                  'Nemaš dovoljno kredita za najmanju sljedeću ponudu. Ponuda ne može biti veća od tvojih kredita.',
+                  'Nemaš dovoljno novca za najmanju sljedeću ponudu. Ponuda ne može biti veća od tvog stanja.',
                 ),
               ),
               const SizedBox(height: 10),
@@ -329,7 +329,7 @@ class _AuctionDetailScreenState extends ConsumerState<AuctionDetailScreen> {
                 onPressed: () =>
                     BuyCreditsScreen.open(context, needed: min - credits),
                 icon: const Icon(Icons.add_card),
-                label: Text(t('Kupi kredite')),
+                label: Text(t('Uplati novac')),
               ),
             ] else ...[
               Wrap(
@@ -362,7 +362,7 @@ class _AuctionDetailScreenState extends ConsumerState<AuctionDetailScreen> {
                 ],
                 decoration: InputDecoration(
                   labelText: t('Tvoja ponuda'),
-                  suffixText: t('kredita'),
+                  suffixText: t('€'),
                   errorText: _error,
                 ),
                 onChanged: (_) => setState(() => _error = null),

@@ -3,7 +3,7 @@ import '../l10n/tr.dart';
 enum TransactionType {
   buy('Kupnja'),
   sell('Prodaja'),
-  topUp('Kupnja kredita'),
+  topUp('Uplata'),
   auctionFee('Objava aukcije'),
   delivery('Dostava'),
   swap('Zamjena');

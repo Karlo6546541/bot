@@ -4,7 +4,6 @@ import '../utils/formatters.dart';
 import '../models/app_notification.dart';
 import 'auth_backend.dart';
 import 'inbox.dart';
-import 'fee.dart';
 import 'storage_service.dart';
 import 'trade_service.dart';
 import 'username_rules.dart';
@@ -45,9 +44,6 @@ class AccountService {
   static final _emailPattern = RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$');
   static const minPassword = LocalAuthBackend.minPassword;
   static const maxName = 40;
-
-  /// Bonus za poziv prijatelja (dobivaju oboje).
-  static const referralBonus = 100.0;
 
   static String? validateEmail(String email) =>
       _emailPattern.hasMatch(email.trim()) ? null : t('Unesi ispravan e-mail.');
@@ -205,14 +201,13 @@ class AccountService {
     final referrer = identity.referral == null
         ? null
         : _storage.userByUsername(identity.referral!);
-    final bonus = referrer != null ? referralBonus : 0.0;
     final user = AppUser(
       id: identity.uid,
       // Online se e-mail ne sprema u javni profil.
       email: backend.isOnline ? '' : identity.email.toLowerCase(),
       name: identity.name ?? '',
       username: name,
-      credits: TradeService.welcomeCredits + bonus,
+      credits: TradeService.welcomeCredits.toDouble(),
       emailVerified: identity.verified,
       authProvider: identity.provider,
       referredBy: referrer?.id,
@@ -221,16 +216,11 @@ class AccountService {
     await _storage.putUser(user);
     await _storage.recordSnapshot(user.id);
     if (referrer != null) {
-      await _storage.putUser(
-        referrer.copyWith(
-          credits: roundCredits(referrer.credits + referralBonus),
-        ),
-      );
-      await _storage.recordSnapshot(referrer.id);
+      // Poziv se samo bilježi — nema novčanog bonusa.
       await Inbox(_storage).send(
         referrer.id,
         NotificationKind.referral,
-        args: [user.handle, referralBonus],
+        args: [user.handle],
         targetId: user.id,
       );
     }

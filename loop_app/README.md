@@ -3,9 +3,10 @@
 Demo Flutter aplikacija: zatvorena trading platforma za rabljene uređaje
 (mobiteli, laptopi, tableti, slušalice, konzole).
 
-- Prodajom uređaja ne dobivaš novac, nego **LOOP kredite** (LC).
-- Krediti se troše **isključivo** na kupnju drugih uređaja unutar aplikacije — nema isplate.
-- Platforma uzima **5% fee** na svaku transakciju.
+- Svi iznosi i stanje računa su u **eurima** (€).
+- **Prodaja je besplatna** — prodavatelj dobiva punu cijenu. **Kupac plaća 2% naknade.**
+- Svaki račun je istovremeno i kupac i prodavatelj.
+- Novi računi počinju s **0 €** (nema poklona pri registraciji); novac se uplaćuje (u demo verziji simulirano).
 - Radi **lokalno i offline** (Hive), a uz Supabase i **online** s pravim računima.
 
 Platforme: **Windows, Android, iOS**.
@@ -61,31 +62,30 @@ flutter run            # odaberi uređaj s popisa
 - **Dizajn:** topla, prijateljska tržnica umjesto "burze". Svijetla tema (krem pozadina, bijele
   kartice, terakota akcent, pastelni detalji) i topla tamna tema, izbor u *Profil → Izgled*.
   Font je Nunito (ugrađen, radi offline; licenca u `assets/fonts/OFL.txt`). Iznosi se pišu
-  hrvatski: „1.250 kredita”, „294,50 kredita”.
-- **Kupnja kredita (demo):** paketi 50 / 100 / 250 (+10) / 500 (+30) / 1000 (+80) ili vlastiti
-  iznos (10–2000), 1 kredit = 1 €. Načini plaćanja: kartica, Apple Pay, Google Pay, PayPal.
-  **Ništa se stvarno ne naplaćuje i ne unose se podaci kartice.** Dnevni limit je 2000 kredita.
-  Kupljeni krediti, kao i svi ostali, ne mogu se isplatiti. Dostupno s početne („Dopuni
-  kredite”), iz trake s kreditima gore desno, iz Profila te automatski kad za kupnju ili
-  ponudu nema dovoljno kredita.
-- **Početna:** brze akcije (Kupi kredite, Dodaj predmet, Market, Aukcije) i kartica „Kako LOOP
+  hrvatski: „1.250 €”, „294,50 €”; engleski „€1,250”.
+- **Uplata novca (demo):** iznosi 50 / 100 / 250 / 500 / 1000 € ili vlastiti iznos (10–2000 €),
+  bez bonusa. Načini plaćanja: kartica, Apple Pay, Google Pay, PayPal.
+  **Ništa se stvarno ne naplaćuje i ne unose se podaci kartice.** Dnevni limit uplata je 2000 €.
+  Dostupno s početne („Uplati novac”), iz trake sa stanjem gore desno, iz Profila te
+  automatski kad za kupnju ili ponudu nema dovoljno novca.
+- **Početna:** brze akcije (Uplati novac, Dodaj predmet, Market, Aukcije) i kartica „Kako LOOP
   radi” koja se može zatvoriti.
 - **Aukcije:** objavi predmet iz svog portfolija (početna cijena i trajanje od 2 min do 7 dana),
   ostali licitiraju. Pravila:
   - ponuda je **obvezujuća** i ne može se povući ni smanjiti;
   - vodeći ponuđač ne može dati novu ponudu dok ga netko ne nadmaši;
-  - ponuda ne može biti **veća od raspoloživih kredita**;
+  - ponuda ne može biti **veća od raspoloživog stanja**;
   - iznos vodeće ponude se **blokira** na računu i vraća se čim te netko nadmaši;
   - najmanji korak je 5% trenutne cijene;
   - ponuda u zadnjoj minuti produljuje aukciju za 1 minutu;
-  - na kraju pobjednik dobiva predmet, a prodavatelj najvišu ponudu − 5% feeja;
+  - na kraju pobjednik dobiva predmet, a prodavatelj cijelu najvišu ponudu (aukcije su bez naknade);
   - bez ponuda predmet ostaje prodavatelju, koji aukciju može otkazati samo dok nema ponuda.
 
   **Protiv masovnog stavljanja svega na aukcije** (`lib/services/auction_policy.dart`):
   - limit aktivnih aukcija po statusu: Bronze 2, Silver 4, Gold 6;
   - najviše 3 nove aukcije u 24 sata;
-  - na aukciju idu samo predmeti vrijedni barem 50 kredita (sitnice → Market);
-  - naknada za objavu: 2% vrijednosti predmeta (najmanje 2 kredita), ne vraća se;
+  - na aukciju idu samo predmeti vrijedni barem 50 € (sitnice → Market);
+  - naknada za objavu: 2% vrijednosti predmeta (najmanje 2 €), ne vraća se;
   - predmet koji se nije prodao može ponovno na aukciju tek nakon 24 h;
   - pri objavi se prikazuje usporedba „Prodaj odmah” (sigurno, bez naknade) i aukcije,
     uz gumb „Radije prodaj odmah”.
@@ -98,9 +98,9 @@ flutter run            # odaberi uređaj s popisa
 - **Fotografije predmeta:** do 4 po predmetu. Na Windowsu se biraju datoteke, a na mobitelu
   galerija ili kamera. Dodaju se pri unosu ili kasnije na ekranu detalja. Predmeti bez
   fotografije prikazuju ilustraciju kategorije.
-- **Grafikon portfolija:** vrijednost (krediti + predmeti) kroz vrijeme s rasponima 7D/30D/Sve,
+- **Grafikon portfolija:** vrijednost (stanje + predmeti) kroz vrijeme s rasponima 7D/30D/Sve,
   crosshair i tooltip na prelazak mišem ili dodir, te tablični prikaz istih podataka.
-- **Portfolio:** animirani krediti, traka napretka do sljedećeg statusa i raspodjela po
+- **Portfolio:** animirano stanje, traka napretka do sljedećeg statusa i raspodjela po
   odjeljcima/kategorijama.
 - **Market:** traka s pretragom i gumbom **Filteri** ostaje na vrhu pri skrolanju; brzi
   odabir odjeljka/kategorije, a u listu filtera stanje, raspon cijene, prodavatelj (LOOP /
@@ -134,10 +134,10 @@ svjetline, kontrast i razlučivost za daltonizam.
   odmah (računi su samo na tom uređaju). **Promjena lozinke** u Profilu.
 - **Profil**: fotografija, ime, opis (do 160 znakova), grad, bedž ✓ *Provjeren* (potvrđen
   e-mail ili Google), **javni profil** s predmetima na prodaju, aukcijama i ocjenama.
-- **Pozovi prijatelja**: kod za poziv je tvoje korisničko ime — oboje dobivate 100 LC.
+- **Pozovi prijatelja**: kod za poziv je tvoje korisničko ime (bez novčanog bonusa — dobivaš obavijest kad se netko registrira s tvojim kodom).
 - **Gost** samo razgledava; za kupnju, prodaju i ponude nudi se izrada računa.
-- **Brisanje računa** (Profil → *Obriši račun*): prikaže što se gubi (krediti se ne mogu
-  isplatiti), traži upis korisničkog imena i ne dopušta brisanje dok imaš aukciju s
+- **Brisanje računa** (Profil → *Obriši račun*): prikaže što se gubi (preostalo stanje — u demo
+  verziji nema isplate), traži upis korisničkog imena i ne dopušta brisanje dok imaš aukciju s
   ponudama, vodeću (obvezujuću) ponudu ili pošiljku u tijeku. Račun se briše nakon
   **7 dana** — prijava u tom roku ga vraća. Postoji i *Obriši odmah*. U povijesti drugih
   umjesto imena piše `@obrisani`.
@@ -153,14 +153,14 @@ ne sinkronizira; online prijavu vodi Supabase Auth i lozinke ne prolaze kroz na�
   cijeni (osim onih na aukciji); kasnije *Ukloni iz Marketa* se poštuje, a kupljeni
   predmeti se ne objavljuju sami. *Stavi na aukciju* predmet skida iz Marketa.
 - **Objavi u Marketu**: vlastiti predmet po svojoj cijeni — ostaje tvoj dok ga netko ne
-  kupi. Kupac plaća cijenu + 5%, ti dobivaš cijenu − 5%. **Ukloni iz Marketa** ili
+  kupi. Kupac plaća cijenu + 2%, ti dobivaš punu cijenu. **Ukloni iz Marketa** ili
   **Promijeni cijenu** u svakom trenutku; **Obriši predmet** ga trajno briše.
   Objava i aukcija se isključuju. *Prodaj odmah LOOP-u* i dalje radi kao prije.
 - **Poruke**: na tuđem oglasu *Pošalji poruku* (poruka nosi karticu predmeta) ili s javnog
   profila; ikona 💬 u gornjoj traci pokazuje nepročitane.
-- **Ponudi zamjenu**: tvoj predmet (+ nadoplata u kreditima) za tuđi objavljeni predmet.
+- **Ponudi zamjenu**: tvoj predmet (+ nadoplata u eurima) za tuđi objavljeni predmet.
   Vlasnik prihvaća ili odbija; nakon prihvaćanja predmeti mijenjaju vlasnike, nadoplata
-  ide vlasniku (− 5%), a oboje biraju dostavu u *Moje dostave*.
+  ide vlasniku u cijelosti (ponuditelj plaća + 2%), a oboje biraju dostavu u *Moje dostave*.
 
 ## Digitalni proizvodi (3D modeli, softver, e-knjige…)
 
@@ -170,7 +170,7 @@ ne sinkronizira; online prijavu vodi Supabase Auth i lozinke ne prolaze kroz na�
   STEP, ZIP, PDF, EPUB, PNG, SVG, MP3… — bez izvršnih datoteka; softver kao .zip;
   najviše 25 MB online). Stanje se ne bira, a proizvod odmah ide u Market.
 - Digitalni proizvod se **prodaje više puta**: prodavatelj ga zadržava, svaki kupac plaća
-  cijenu + 5%, prodavatelj dobiva cijenu − 5%. Nema dostave, aukcije, zamjene ni prodaje
+  cijenu + 2%, prodavatelj dobiva punu cijenu. Nema dostave, aukcije, zamjene ni prodaje
   LOOP-u.
 - Kupac **preuzima datoteku odmah** nakon plaćanja, a kasnije u *Profil → Moje digitalne
   kupnje* ili na stranici proizvoda. Isti kupac ne plaća dvaput.
@@ -186,7 +186,7 @@ ne sinkronizira; online prijavu vodi Supabase Auth i lozinke ne prolaze kroz na�
   Prosjek je na javnom profilu i na oglasu.
 - **Obavijesti** (🔔 u gornjoj traci): nadmašen si na aukciji, nova ponuda, osvojena /
   izgubljena / završena aukcija, prodan predmet, pojeftinjenje s liste želja, nova ocjena,
-  nova poruka, ponuda zamjene, bonus za poziv. Tekst je na jeziku korisnika; dodir vodi
+  nova poruka, ponuda zamjene, registracija s tvojim kodom. Tekst je na jeziku korisnika; dodir vodi
   na aukciju, predmet, profil ili razgovor.
 - **Prijava** oglasa ili korisnika (razlog + opis) — admin ih vidi u kartici *Prijave* i
   briše sadržaj, označava riješenim ili odbacuje.
@@ -212,16 +212,16 @@ prikazuje na detaljima predmeta i aukcije.
 ## Dostava kupljenih predmeta (demo)
 
 - **Market:** pri kupnji se otvara blagajna s odabirom dostave i ukupnim iznosom
-  (predmet + 5% fee + dostava).
+  (predmet + 2% naknade + dostava).
 - **Aukcije:** pobjednik dobiva pošiljku koja čeka odabir dostave (*Profil → Moje dostave*
   ili traka na početnoj).
 
 | Način | Cijena | Demo trajanje | Napomena |
 |---|---|---|---|
 | Osobno preuzimanje | besplatno | 2 min | LOOP točka |
-| Paketomat | 3 kredita | 3 min | odabir paketomata |
-| Kurir na adresu | 6 kredita | 4 min | adresa se pamti |
-| Ekspresna dostava | 12 kredita | 2 min | |
+| Paketomat | 3 € | 3 min | odabir paketomata |
+| Kurir na adresu | 6 € | 4 min | adresa se pamti |
+| Ekspresna dostava | 12 € | 2 min | |
 | Digitalna dostava | besplatno | 1 min | samo za Aktivnosti (ulaznice, radionice…) |
 
 Statusi (Naručeno → Zapakirano → Poslano → U dostavi → Dostavljeno) računaju se iz vremena,
@@ -333,7 +333,7 @@ Lokalni način (bez online baze):
 | Korisnik | `ana@loop.com` / `@ana.kolekcija`   | `demo`     | prodaje 4 predmeta na aukcijama                   |
 | Korisnik | `marko@loop.com` / `@marko`         | `demo`     | vodi na 3 aukcije (470 LC blokirano)              |
 
-Novi račun: *Registracija* (e-mail, korisničko ime, lozinka) → **500 LC** početnih kredita.
+Novi račun: *Registracija* (e-mail, korisničko ime, lozinka) → stanje **0 €** (bez početnog poklona).
 Računi iz starijih verzije: prva lozinka kojom se prijaviš postaje lozinka računa.
 
 U Marketu je na početku 31 predmet: 12 iz elektronike (iPhone 15 Pro, MacBook Air M3,
@@ -355,9 +355,9 @@ Apple Watch, Sony A7 III, PS5, Switch) i po 4–5 iz svakog novog odjeljka.
 - **Objava u Marketu** (od korisnika): kupac plaća `cijena × 1.05`, prodavatelj dobiva
   `cijena × 0.95`.
 - **Zamjena**: nadoplatu plaća ponuditelj, vlasnik dobiva `nadoplata × 0.95`.
-- Kupnja je moguća samo ako imaš dovoljno kredita za cijenu **+ fee**.
+- Kupnja je moguća samo ako imaš dovoljno novca za cijenu **+ 2% naknade**.
 - Prije svake transakcije prikazuje se dijalog s cijenom, fee-om i konačnim iznosom.
-- **Status** = krediti + vrijednost portfolija: Bronze < 2000 · Silver 2000–5000 · Gold > 5000.
+- **Status** = stanje + vrijednost portfolija: Bronze < 2000 € · Silver 2000–5000 € · Gold > 5000 €.
 
 Fee je definiran na jednom mjestu: `lib/services/fee.dart` (`kFeeRate`).
 
@@ -383,8 +383,8 @@ lib/
 │   ├── swap_service.dart     # zamjene predmet-za-predmet
 │   ├── inbox.dart            # stvaranje obavijesti
 │   ├── file_saver/           # spremanje datoteke (preuzimanje na webu)
-│   ├── auction_service.dart  # aukcije: objava, ponude, blokiranje kredita, zaključivanje
-│   ├── credit_shop.dart      # kupnja kredita: paketi, bonus, dnevni limit (demo)
+│   ├── auction_service.dart  # aukcije: objava, ponude, blokiranje iznosa, zaključivanje
+│   ├── credit_shop.dart      # uplata novca: iznosi, dnevni limit (demo)
 │   ├── delivery_service.dart # dostava: načini, naplata, praćenje, potvrda primitka
 │   ├── auction_policy.dart   # limiti i naknada za objavu aukcija
 │   ├── remote_store.dart     # Supabase (online baza) + sučelje za testove
