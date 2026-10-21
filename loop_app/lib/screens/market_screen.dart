@@ -68,7 +68,8 @@ class _MarketScreenState extends ConsumerState<MarketScreen> {
               (d) =>
                   query.isEmpty ||
                   d.name.toLowerCase().contains(query) ||
-                  d.model.toLowerCase().contains(query),
+                  d.model.toLowerCase().contains(query) ||
+                  d.description.toLowerCase().contains(query),
             )
             .toList()
           ..sort(_sort.compare);

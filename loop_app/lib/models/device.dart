@@ -99,6 +99,7 @@ class Device {
     required this.createdAt,
     this.ownerId,
     this.imagePaths = const [],
+    this.description = '',
   });
 
   final String id;
@@ -112,6 +113,11 @@ class Device {
 
   /// Putanje lokalno spremljenih fotografija (prva je naslovna).
   final List<String> imagePaths;
+
+  /// Opis predmeta (do [maxDescription] znakova, može biti prazan).
+  final String description;
+
+  static const maxDescription = 500;
 
   bool get isOnMarket => ownerId == null;
 
@@ -128,6 +134,7 @@ class Device {
     createdAt: createdAt,
     ownerId: ownerId,
     imagePaths: imagePaths,
+    description: description,
   );
 
   Device withImages(List<String> paths) => Device(
@@ -140,6 +147,7 @@ class Device {
     createdAt: createdAt,
     ownerId: ownerId,
     imagePaths: paths,
+    description: description,
   );
 
   Map<String, dynamic> toMap() => {
@@ -152,6 +160,7 @@ class Device {
     'ownerId': ownerId,
     'createdAt': createdAt.toIso8601String(),
     'imagePaths': imagePaths,
+    'description': description,
   };
 
   factory Device.fromMap(Map<dynamic, dynamic> map) => Device(
@@ -165,5 +174,6 @@ class Device {
     createdAt: DateTime.parse(map['createdAt'] as String),
     // Stariji zapisi nemaju fotografije.
     imagePaths: (map['imagePaths'] as List?)?.cast<String>() ?? const [],
+    description: map['description'] as String? ?? '',
   );
 }

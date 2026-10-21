@@ -150,6 +150,7 @@ class AppController extends Notifier<AppState> {
     required double price,
     required DeviceCategory category,
     List<String> imagePaths = const [],
+    String description = '',
   }) async {
     final device = await _trade.addDevice(
       userId: _requireUserId(),
@@ -159,6 +160,7 @@ class AppController extends Notifier<AppState> {
       price: price,
       category: category,
       imagePaths: imagePaths,
+      description: description,
     );
     _refresh();
     return device;

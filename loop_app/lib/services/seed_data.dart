@@ -48,6 +48,32 @@ class SeedData {
     ),
   ];
 
+  static const _descriptions = {
+    'iPhone 15 Pro':
+        'Kupljen u Hrvatskoj, korišten 8 mjeseci uvijek s maskicom i '
+        'zaštitnim staklom. Baterija 94%. Uz mobitel originalna kutija i '
+        'USB-C kabel. Bez ogrebotina na ekranu.',
+    'MacBook Air M3':
+        'Odličan za faks i posao. Nekoliko sitnih tragova korištenja na '
+        'poklopcu, ekran i tipkovnica besprijekorni. 112 ciklusa baterije, '
+        'dolazi s originalnim punjačem.',
+    'Charizard Holo':
+        'Base Set Charizard holo, čuvan u zaštitnoj foliji i toploaderu. '
+        'Rubovi lagano istrošeni, holo bez ogrebotina. Nije gradiran.',
+    'Električna gitara':
+        'Fender Squier Stratocaster, sunburst. Nove žice, podešen vrat. '
+        'Uz gitaru ide mekana torba i kabel od 3 m.',
+    'Keramička šalica':
+        'Ručno oblikovana na kolu i glazirana u tirkiznoj boji. '
+        'Svaki komad je unikat. Može u perilicu posuđa.',
+    'Radionica keramike':
+        'Termin od 3 sata u ateljeu u Zagrebu: rad na kolu, materijal i '
+        'pečenje uključeni. Gotove radove preuzimaš za dva tjedna.',
+    'iPhone 13':
+        'Ispravan, baterija 86%. Sitna ogrebotina u kutu ekrana, '
+        'ne vidi se kad je ekran upaljen.',
+  };
+
   static List<Device> devices(DateTime now) {
     var i = 0;
     Device d(
@@ -76,7 +102,7 @@ class SeedData {
     const ex = DeviceCondition.excellent;
     const vg = DeviceCondition.veryGood;
     const gd = DeviceCondition.good;
-    return [
+    final list = [
       // Market (nisu ničiji)
       d('iPhone 15 Pro', '256GB', ex, 780, DeviceCategory.phone),
       d('MacBook Air M3', '16/512', vg, 1120, DeviceCategory.laptop),
@@ -247,6 +273,16 @@ class SeedData {
         DeviceCategory.tickets,
         anaUserId,
       ),
+    ];
+    // Opisi za nekoliko demo predmeta.
+    return [
+      for (final dev in list)
+        _descriptions[dev.name] == null
+            ? dev
+            : Device.fromMap({
+                ...dev.toMap(),
+                'description': _descriptions[dev.name],
+              }),
     ];
   }
 

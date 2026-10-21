@@ -26,6 +26,7 @@ class _AddDeviceScreenState extends ConsumerState<AddDeviceScreen> {
   final _name = TextEditingController();
   final _model = TextEditingController();
   final _price = TextEditingController();
+  final _description = TextEditingController();
   DeviceCondition? _condition;
   ItemSection _section = ItemSection.electronics;
   DeviceCategory? _category;
@@ -50,6 +51,7 @@ class _AddDeviceScreenState extends ConsumerState<AddDeviceScreen> {
     _name.dispose();
     _model.dispose();
     _price.dispose();
+    _description.dispose();
     super.dispose();
   }
 
@@ -81,6 +83,7 @@ class _AddDeviceScreenState extends ConsumerState<AddDeviceScreen> {
             price: _parsePrice(_price.text)!,
             category: _category!,
             imagePaths: List.of(_photos),
+            description: _description.text,
           ),
       successMessage: 'Predmet dodan u portfolio',
     );
@@ -140,6 +143,22 @@ class _AddDeviceScreenState extends ConsumerState<AddDeviceScreen> {
                             'npr. 256GB Titanium, godina, veličina, termin…',
                       ),
                       validator: _required,
+                    ),
+                    gap,
+                    // Opis: neobavezan, do 500 znakova (brojač ispod polja).
+                    TextFormField(
+                      controller: _description,
+                      minLines: 3,
+                      maxLines: 6,
+                      maxLength: Device.maxDescription,
+                      textCapitalization: TextCapitalization.sentences,
+                      decoration: const InputDecoration(
+                        labelText: 'Opis (neobavezno)',
+                        hintText:
+                            'Stanje, oštećenja, što dolazi u paketu, '
+                            'razlog prodaje…',
+                        alignLabelWithHint: true,
+                      ),
                     ),
                     gap,
                     DropdownButtonFormField<DeviceCondition>(

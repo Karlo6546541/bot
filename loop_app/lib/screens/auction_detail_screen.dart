@@ -8,6 +8,7 @@ import '../services/fee.dart';
 import '../theme/app_theme.dart';
 import '../widgets/countdown.dart';
 import '../widgets/formatters.dart';
+import '../widgets/description_card.dart';
 import '../widgets/item_image.dart';
 import '../widgets/trade_actions.dart';
 import 'auctions_screen.dart';
@@ -269,6 +270,10 @@ class _AuctionDetailScreenState extends ConsumerState<AuctionDetailScreen> {
                 ],
               ],
               const SizedBox(height: 12),
+              if (device != null && device.description.isNotEmpty) ...[
+                DescriptionCard(text: device.description),
+                const SizedBox(height: 12),
+              ],
               _BidHistory(auction: a, me: me),
             ],
           ),

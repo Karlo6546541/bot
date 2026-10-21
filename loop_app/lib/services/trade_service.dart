@@ -94,12 +94,16 @@ class TradeService {
     required double price,
     required DeviceCategory category,
     List<String> imagePaths = const [],
+    String description = '',
   }) async {
     if (name.trim().isEmpty || model.trim().isEmpty) {
       throw const TradeException('Naziv i model su obavezni.');
     }
     if (price <= 0) {
       throw const TradeException('Cijena mora biti veća od 0.');
+    }
+    if (description.trim().length > Device.maxDescription) {
+      throw const TradeException('Opis može imati najviše 500 znakova.');
     }
     _requireUser(userId);
     final device = Device(
@@ -112,6 +116,7 @@ class TradeService {
       ownerId: userId,
       createdAt: DateTime.now(),
       imagePaths: imagePaths,
+      description: description.trim(),
     );
     await _storage.putDevice(device);
     await _snapshot(userId);

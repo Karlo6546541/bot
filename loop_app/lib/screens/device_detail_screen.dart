@@ -8,6 +8,7 @@ import '../services/trade_service.dart';
 import '../theme/app_theme.dart';
 import '../widgets/category_style.dart';
 import '../widgets/formatters.dart';
+import '../widgets/description_card.dart';
 import '../widgets/item_image.dart';
 import '../widgets/photo_viewer.dart';
 import '../widgets/trade_actions.dart';
@@ -132,6 +133,10 @@ class DeviceDetailScreen extends ConsumerWidget {
               if (isMine && ref.read(imageStoreProvider).supported) ...[
                 const SizedBox(height: 12),
                 _PhotoActions(device: device),
+              ],
+              if (device.description.isNotEmpty) ...[
+                const SizedBox(height: 16),
+                DescriptionCard(text: device.description),
               ],
               const SizedBox(height: 16),
               Card(
