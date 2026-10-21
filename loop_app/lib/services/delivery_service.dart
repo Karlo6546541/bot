@@ -61,6 +61,7 @@ class DeliveryService {
     required Device device,
     required DeliveryMethod method,
     String? destination,
+    String? sellerId,
     DateTime? now,
   }) async {
     final d = Delivery(
@@ -69,6 +70,7 @@ class DeliveryService {
       deviceName: '${device.name} ${device.model}',
       buyerId: userId,
       createdAt: now ?? DateTime.now(),
+      sellerId: sellerId,
     );
     return _start(d, userId, method, destination, now: now);
   }
@@ -78,6 +80,7 @@ class DeliveryService {
     required String userId,
     required String deviceId,
     required String deviceName,
+    String? sellerId,
     DateTime? now,
   }) async {
     final d = Delivery(
@@ -87,6 +90,7 @@ class DeliveryService {
       buyerId: userId,
       createdAt: now ?? DateTime.now(),
       fromAuction: true,
+      sellerId: sellerId,
     );
     await _storage.putDelivery(d);
     return d;

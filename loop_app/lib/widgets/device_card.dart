@@ -19,6 +19,7 @@ class DeviceCard extends StatefulWidget {
     this.onTap,
     this.isFavorite = false,
     this.onFavorite,
+    this.badge,
   });
 
   final Device device;
@@ -28,6 +29,9 @@ class DeviceCard extends StatefulWidget {
   final VoidCallback? onTap;
   final bool isFavorite;
   final VoidCallback? onFavorite;
+
+  /// Kratka oznaka (npr. prodavatelj "@ana" ili "U Marketu").
+  final String? badge;
 
   @override
   State<DeviceCard> createState() => _DeviceCardState();
@@ -131,6 +135,16 @@ class _DeviceCardState extends State<DeviceCard> {
               bottom: 8,
               child: _Chip(label: d.condition.label, dot: d.condition.color),
             ),
+            if (widget.badge != null)
+              Positioned(
+                left: 8,
+                top: 8,
+                right: widget.onFavorite != null ? 52 : 8,
+                child: Align(
+                  alignment: Alignment.centerLeft,
+                  child: _Badge(widget.badge!),
+                ),
+              ),
           ],
         ),
         Padding(
@@ -155,7 +169,7 @@ class _DeviceCardState extends State<DeviceCard> {
                 fit: BoxFit.scaleDown,
                 alignment: Alignment.centerLeft,
                 child: Text(
-                  formatCredits(d.price),
+                  formatCredits(d.askPrice),
                   style: const TextStyle(
                     fontWeight: FontWeight.w900,
                     fontSize: 16,
@@ -244,6 +258,7 @@ class _DeviceCardState extends State<DeviceCard> {
           children: [
             _Chip(label: d.condition.label, dot: d.condition.color),
             _Chip(label: d.category.singular, dot: d.category.color),
+            if (widget.badge != null) _Badge(widget.badge!),
           ],
         ),
         const Spacer(),
@@ -255,7 +270,7 @@ class _DeviceCardState extends State<DeviceCard> {
                 fit: BoxFit.scaleDown,
                 alignment: Alignment.centerLeft,
                 child: Text(
-                  formatCredits(d.price),
+                  formatCredits(d.askPrice),
                   style: const TextStyle(
                     fontWeight: FontWeight.w800,
                     fontSize: 18,
@@ -381,4 +396,29 @@ class DeviceGrid extends StatelessWidget {
       ),
     );
   }
+}
+
+/// Istaknuta oznaka na kartici (prodavatelj / "U Marketu").
+class _Badge extends StatelessWidget {
+  const _Badge(this.label);
+  final String label;
+
+  @override
+  Widget build(BuildContext context) => Container(
+    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+    decoration: BoxDecoration(
+      color: LoopColors.accent,
+      borderRadius: BorderRadius.circular(20),
+    ),
+    child: Text(
+      label,
+      maxLines: 1,
+      overflow: TextOverflow.ellipsis,
+      style: TextStyle(
+        color: LoopColors.onAccent,
+        fontWeight: FontWeight.w800,
+        fontSize: 11,
+      ),
+    ),
+  );
 }

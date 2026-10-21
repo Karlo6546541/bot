@@ -128,7 +128,7 @@ Future<bool> confirmAndBuy(
   if (blockGuest(context)) return false;
   final user = ref.read(appProvider).currentUser;
   if (user == null) return false;
-  final total = buyTotal(device.price);
+  final total = buyTotal(device.askPrice);
 
   if (user.credits < total) {
     // Ponudi dopunu umjesto suhe greške.
@@ -189,7 +189,7 @@ class _CheckoutSheetState extends State<_CheckoutSheet> {
   Widget build(BuildContext context) {
     final d = widget.device;
     final shipping = _choice?.method.cost ?? 0;
-    final total = buyTotal(d.price) + shipping;
+    final total = buyTotal(d.askPrice) + shipping;
     final enough = widget.credits >= total;
 
     Widget row(String k, String v, {bool bold = false}) => Padding(
@@ -253,8 +253,11 @@ class _CheckoutSheetState extends State<_CheckoutSheet> {
                 padding: EdgeInsets.all(14),
                 child: Column(
                   children: [
-                    row(t('Cijena'), formatCredits(d.price)),
-                    row(t('Fee (5%)'), '+ ${formatCredits(feeFor(d.price))}'),
+                    row(t('Cijena'), formatCredits(d.askPrice)),
+                    row(
+                      t('Fee (5%)'),
+                      '+ ${formatCredits(feeFor(d.askPrice))}',
+                    ),
                     row(
                       t('Dostava'),
                       shipping == 0
@@ -460,4 +463,115 @@ Future<bool> confirmDialog(
     ),
   );
   return result ?? false;
+}
+
+/// Objava vlastitog predmeta u Marketu: korisnik upisuje cijenu i vidi
+/// koliko dobiva nakon prodaje (cijena − 5%).
+Future<bool> showListDialog(
+  BuildContext context,
+  WidgetRef ref,
+  Device device,
+) async {
+  if (blockGuest(context)) return false;
+  final price = await showDialog<double>(
+    context: context,
+    builder: (_) => _ListDialog(device: device),
+  );
+  if (price == null || !context.mounted) return false;
+  return runWithLoading(
+    context,
+    () => ref.read(appProvider.notifier).listOnMarket(device.id, price),
+    successMessage: t('Objavljeno u Marketu 🏷️'),
+  );
+}
+
+class _ListDialog extends StatefulWidget {
+  const _ListDialog({required this.device});
+  final Device device;
+
+  @override
+  State<_ListDialog> createState() => _ListDialogState();
+}
+
+class _ListDialogState extends State<_ListDialog> {
+  late final _price = TextEditingController(
+    text: (widget.device.listPrice ?? widget.device.price).toStringAsFixed(0),
+  );
+  String? _error;
+
+  @override
+  void dispose() {
+    _price.dispose();
+    super.dispose();
+  }
+
+  double? get _value =>
+      double.tryParse(_price.text.trim().replaceAll(',', '.'));
+
+  void _submit() {
+    final v = _value;
+    if (v == null || v <= 0 || v > TradeService.maxListPrice) {
+      setState(() => _error = t('Unesi ispravnu cijenu'));
+      return;
+    }
+    Navigator.pop(context, v);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final v = _value;
+    return AlertDialog(
+      title: Text(
+        widget.device.isListed ? t('Promijeni cijenu') : t('Objavi u Marketu'),
+      ),
+      content: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 380),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text(
+              t(
+                'Predmet ostaje tvoj dok ga netko ne kupi. Možeš ga ukloniti iz Marketa kad god želiš.',
+              ),
+              style: TextStyle(color: LoopColors.textSecondary),
+            ),
+            const SizedBox(height: 14),
+            TextField(
+              controller: _price,
+              autofocus: true,
+              keyboardType: const TextInputType.numberWithOptions(
+                decimal: true,
+              ),
+              onChanged: (_) => setState(() => _error = null),
+              onSubmitted: (_) => _submit(),
+              decoration: InputDecoration(
+                labelText: t('Cijena'),
+                suffixText: t('kredita'),
+                errorText: _error,
+              ),
+            ),
+            const SizedBox(height: 12),
+            if (v != null && v > 0) ...[
+              Text(
+                t('Kupac plaća {0}', [formatCredits(buyTotal(v))]),
+                style: TextStyle(color: LoopColors.textSecondary),
+              ),
+              Text(
+                t('Ti dobivaš {0} (− 5% fee)', [formatCredits(sellPayout(v))]),
+                style: const TextStyle(fontWeight: FontWeight.w800),
+              ),
+            ],
+          ],
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: Text(t('Odustani')),
+        ),
+        FilledButton(onPressed: _submit, child: Text(t('Objavi'))),
+      ],
+    );
+  }
 }

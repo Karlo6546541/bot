@@ -9,6 +9,9 @@ import '../widgets/empty_state.dart';
 import '../widgets/formatters.dart';
 import '../widgets/user_avatar.dart';
 import 'auctions_screen.dart';
+import 'device_detail_screen.dart';
+import '../widgets/device_card.dart';
+import '../widgets/trade_actions.dart';
 
 /// Javni profil korisnika: fotografija, @ime, opis, grad i aukcije.
 class PublicProfileScreen extends ConsumerWidget {
@@ -40,42 +43,82 @@ class PublicProfileScreen extends ConsumerWidget {
       );
     }
     final viewer = state.currentUserId ?? '';
+    final isMe = viewer == user.id;
+    final listings = state.listingsOf(user.id);
     final auctions = state.activeAuctions
         .where((a) => a.sellerId == user!.id)
         .toList();
-    return Scaffold(
-      appBar: AppBar(title: Text(user.handle)),
-      body: Align(
+    Widget title(String text) => Padding(
+      padding: const EdgeInsets.fromLTRB(0, 20, 0, 8),
+      child: Text(
+        text,
+        style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 16),
+      ),
+    );
+    Widget box(Widget child) => SliverToBoxAdapter(
+      child: Align(
         alignment: Alignment.topCenter,
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 720),
-          child: ListView(
-            padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
-            children: [
-              ProfileHeader(user: user),
-              const SizedBox(height: 20),
-              Text(
-                t('Aktivne aukcije ({0})', [auctions.length]),
-                style: const TextStyle(
-                  fontWeight: FontWeight.w800,
-                  fontSize: 16,
-                ),
-              ),
-              const SizedBox(height: 8),
-              if (auctions.isEmpty)
-                Text(
-                  t('Nema aukcija'),
-                  style: TextStyle(color: LoopColors.textSecondary),
-                )
-              else
-                for (final a in auctions)
-                  Padding(
-                    padding: const EdgeInsets.only(bottom: 10),
-                    child: AuctionCard(auction: a, viewerId: viewer),
-                  ),
-            ],
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: child,
           ),
         ),
+      ),
+    );
+    return Scaffold(
+      appBar: AppBar(title: Text(user.handle)),
+      body: CustomScrollView(
+        slivers: [
+          box(
+            Padding(
+              padding: const EdgeInsets.only(top: 8),
+              child: ProfileHeader(user: user),
+            ),
+          ),
+          box(title(t('Na prodaju u Marketu ({0})', [listings.length]))),
+          if (listings.isEmpty)
+            box(
+              Text(
+                t('Nema predmeta.'),
+                style: TextStyle(color: LoopColors.textSecondary),
+              ),
+            )
+          else
+            DeviceGrid(
+              devices: listings,
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              itemBuilder: (context, d) => DeviceCard(
+                device: d,
+                actionLabel: isMe ? t('Detalji') : t('Kupi odmah'),
+                actionIcon: isMe
+                    ? Icons.info_outline
+                    : Icons.shopping_bag_outlined,
+                onAction: isMe
+                    ? () => DeviceDetailScreen.open(context, d)
+                    : () => confirmAndBuy(context, ref, d),
+                onTap: () => DeviceDetailScreen.open(context, d),
+              ),
+            ),
+          box(title(t('Aktivne aukcije ({0})', [auctions.length]))),
+          if (auctions.isEmpty)
+            box(
+              Text(
+                t('Nema aukcija'),
+                style: TextStyle(color: LoopColors.textSecondary),
+              ),
+            )
+          else
+            for (final a in auctions)
+              box(
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 10),
+                  child: AuctionCard(auction: a, viewerId: viewer),
+                ),
+              ),
+          const SliverToBoxAdapter(child: SizedBox(height: 32)),
+        ],
       ),
     );
   }

@@ -65,6 +65,11 @@ class AuctionService {
     if (_storage.activeAuctionFor(deviceId) != null) {
       throw TradeException(t('Predmet je već na aukciji.'));
     }
+    if (device.isListed) {
+      throw TradeException(
+        t('Predmet je na prodaju u Marketu — prvo ga ukloni iz Marketa.'),
+      );
+    }
     if (startPrice <= 0) {
       throw TradeException(t('Početna cijena mora biti veća od 0.'));
     }
@@ -283,6 +288,7 @@ class AuctionService {
       userId: winner.id,
       deviceId: device.id,
       deviceName: a.deviceName,
+      sellerId: seller.id,
       now: at,
     );
     return AuctionResult(done, winnerId: winner.id);

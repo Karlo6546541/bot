@@ -106,6 +106,8 @@ class Device {
     this.ownerId,
     this.imagePaths = const [],
     this.description = '',
+    this.listPrice,
+    this.listedAt,
   });
 
   final String id;
@@ -125,11 +127,27 @@ class Device {
 
   static const maxDescription = 500;
 
+  /// Cijena po kojoj vlasnik prodaje predmet u Marketu (`null` = nije
+  /// objavljen). Kupac plaća ovu cijenu + 5%, a vlasnik dobiva − 5%.
+  final double? listPrice;
+  final DateTime? listedAt;
+
+  /// Predmet platforme (LOOP Market) — svatko ga može kupiti.
   bool get isOnMarket => ownerId == null;
+
+  /// Korisnik je objavio svoj predmet u Marketu.
+  bool get isListed => ownerId != null && listPrice != null;
+
+  /// Može se kupiti u Marketu (od platforme ili od korisnika).
+  bool get isForSale => isOnMarket || isListed;
+
+  /// Cijena za kupca u Marketu.
+  double get askPrice => listPrice ?? price;
 
   ItemSection get section => category.section;
 
   /// Kopija s novim vlasnikom; `null` vraća predmet u Market.
+  /// Novi vlasnik poništava objavu u Marketu.
   Device withOwner(String? ownerId) => Device(
     id: id,
     name: name,
@@ -143,6 +161,22 @@ class Device {
     description: description,
   );
 
+  /// Objava u Marketu po cijeni [price] (`null` = ukloni iz Marketa).
+  Device withListing(double? price, {DateTime? at}) => Device(
+    id: id,
+    name: name,
+    model: model,
+    condition: condition,
+    price: this.price,
+    category: category,
+    createdAt: createdAt,
+    ownerId: ownerId,
+    imagePaths: imagePaths,
+    description: description,
+    listPrice: price,
+    listedAt: price == null ? null : at ?? DateTime.now(),
+  );
+
   Device withImages(List<String> paths) => Device(
     id: id,
     name: name,
@@ -154,6 +188,8 @@ class Device {
     ownerId: ownerId,
     imagePaths: paths,
     description: description,
+    listPrice: listPrice,
+    listedAt: listedAt,
   );
 
   Map<String, dynamic> toMap() => {
@@ -167,6 +203,8 @@ class Device {
     'createdAt': createdAt.toIso8601String(),
     'imagePaths': imagePaths,
     'description': description,
+    'listPrice': listPrice,
+    'listedAt': listedAt?.toIso8601String(),
   };
 
   factory Device.fromMap(Map<dynamic, dynamic> map) => Device(
@@ -181,5 +219,9 @@ class Device {
     // Stariji zapisi nemaju fotografije.
     imagePaths: (map['imagePaths'] as List?)?.cast<String>() ?? const [],
     description: map['description'] as String? ?? '',
+    listPrice: (map['listPrice'] as num?)?.toDouble(),
+    listedAt: map['listedAt'] == null
+        ? null
+        : DateTime.parse(map['listedAt'] as String),
   );
 }

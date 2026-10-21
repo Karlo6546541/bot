@@ -135,10 +135,38 @@ class AppState {
   List<Device> get myDevices =>
       currentUserId == null ? const [] : devicesOf(currentUserId!);
 
-  /// Market = svi uređaji koji nisu u vlasništvu trenutnog korisnika
-  /// i trenutno su na prodaju (vlasnik je platforma).
-  List<Device> get marketDevices =>
-      devices.where((d) => d.isOnMarket && d.ownerId != currentUserId).toList();
+  /// Market = predmeti platforme + predmeti koje su drugi korisnici
+  /// objavili (bez blokiranih i računa koji se brišu).
+  List<Device> get marketDevices {
+    final hidden = <String>{
+      ...?currentUser?.blockedIds,
+      for (final u in users)
+        if (u.pendingDeletion) u.id,
+    };
+    return devices
+        .where(
+          (d) =>
+              d.isForSale &&
+              d.ownerId != currentUserId &&
+              !hidden.contains(d.ownerId),
+        )
+        .toList();
+  }
+
+  /// Moji predmeti koje sam objavio u Marketu.
+  List<Device> get myListings => myDevices.where((d) => d.isListed).toList();
+
+  /// Predmeti koje je korisnik objavio u Marketu.
+  List<Device> listingsOf(String userId) =>
+      devicesOf(userId).where((d) => d.isListed).toList();
+
+  AppUser? userById(String? id) {
+    if (id == null) return null;
+    for (final u in users) {
+      if (u.id == id) return u;
+    }
+    return null;
+  }
 
   bool isFavorite(String deviceId) =>
       currentUser?.favorites.contains(deviceId) ?? false;

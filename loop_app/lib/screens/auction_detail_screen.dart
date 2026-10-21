@@ -14,6 +14,7 @@ import '../widgets/trade_actions.dart';
 import 'auctions_screen.dart';
 import 'buy_credits_screen.dart';
 import '../l10n/tr.dart';
+import 'public_profile_screen.dart';
 
 /// Detalji aukcije: predmet, trenutna cijena, odbrojavanje, povijest ponuda
 /// i obrazac za ponudu (s potvrdom da je ponuda obvezujuća).
@@ -159,16 +160,22 @@ class _AuctionDetailScreenState extends ConsumerState<AuctionDetailScreen> {
                         ],
                       ),
                       const SizedBox(height: 4),
-                      Text(
-                        a.sellerId == me
-                            ? t('Tvoja aukcija')
-                            : t('Prodaje {0}{1}', [
-                                a.sellerLabel,
-                                device != null
-                                    ? ' · ${device.condition.label} · ${device.category.singular}'
-                                    : '',
-                              ]),
-                        style: TextStyle(color: LoopColors.textSecondary),
+                      InkWell(
+                        onTap: a.sellerId == me
+                            ? null
+                            : () =>
+                                  PublicProfileScreen.open(context, a.sellerId),
+                        child: Text(
+                          a.sellerId == me
+                              ? t('Tvoja aukcija')
+                              : t('Prodaje {0}{1}', [
+                                  a.sellerLabel,
+                                  device != null
+                                      ? ' · ${device.condition.label} · ${device.category.singular}'
+                                      : '',
+                                ]),
+                          style: TextStyle(color: LoopColors.textSecondary),
+                        ),
                       ),
                       const SizedBox(height: 16),
                       Row(

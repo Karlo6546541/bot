@@ -84,6 +84,8 @@ class Delivery {
     this.startedAt,
     this.confirmedAt,
     this.fromAuction = false,
+    this.sellerId,
+    this.reviewed = false,
   });
 
   final String id;
@@ -106,6 +108,15 @@ class Delivery {
   /// Kupac je potvrdio primitak.
   final DateTime? confirmedAt;
   final bool fromAuction;
+
+  /// Prodavatelj (korisnik) — `null` kad je prodavatelj LOOP Market.
+  final String? sellerId;
+
+  /// Kupac je ocijenio prodavatelja.
+  final bool reviewed;
+
+  /// Kupac može ocijeniti prodavatelja nakon potvrde primitka.
+  bool get canReview => confirmedAt != null && sellerId != null && !reviewed;
 
   bool get awaitingChoice => method == null;
 
@@ -167,6 +178,7 @@ class Delivery {
     String? trackingNumber,
     DateTime? startedAt,
     DateTime? confirmedAt,
+    bool? reviewed,
   }) => Delivery(
     id: id,
     deviceId: deviceId,
@@ -180,6 +192,8 @@ class Delivery {
     startedAt: startedAt ?? this.startedAt,
     confirmedAt: confirmedAt ?? this.confirmedAt,
     fromAuction: fromAuction,
+    sellerId: sellerId,
+    reviewed: reviewed ?? this.reviewed,
   );
 
   Map<String, dynamic> toMap() => {
@@ -195,6 +209,8 @@ class Delivery {
     'startedAt': startedAt?.toIso8601String(),
     'confirmedAt': confirmedAt?.toIso8601String(),
     'fromAuction': fromAuction,
+    'sellerId': sellerId,
+    'reviewed': reviewed,
   };
 
   factory Delivery.fromMap(Map<dynamic, dynamic> m) => Delivery(
@@ -216,5 +232,7 @@ class Delivery {
         ? null
         : DateTime.parse(m['confirmedAt'] as String),
     fromAuction: m['fromAuction'] as bool? ?? false,
+    sellerId: m['sellerId'] as String?,
+    reviewed: m['reviewed'] as bool? ?? false,
   );
 }

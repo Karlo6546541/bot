@@ -122,7 +122,8 @@ class TradeService {
   }
 
   /// INSTANT BUY: provjera kredita, kupac plaća cijena + 5%,
-  /// uređaj prelazi u njegov portfolio.
+  /// uređaj prelazi u njegov portfolio. Predmet je od platforme ili ga je
+  /// drugi korisnik objavio u Marketu (tada prodavatelj dobiva cijena − 5%).
   Future<LoopTransaction> buy({
     required String userId,
     required String deviceId,
@@ -132,12 +133,17 @@ class TradeService {
     if (device.ownerId == userId) {
       throw TradeException(t('Ovaj predmet je već tvoj.'));
     }
-    if (!device.isOnMarket) {
+    if (!device.isForSale) {
+      throw TradeException(t('Predmet više nije dostupan.'));
+    }
+    final seller = device.isListed ? _storage.userById(device.ownerId!) : null;
+    if (device.isListed && (seller == null || seller.pendingDeletion)) {
       throw TradeException(t('Predmet više nije dostupan.'));
     }
 
-    final fee = feeFor(device.price);
-    final total = buyTotal(device.price);
+    final price = device.askPrice;
+    final fee = feeFor(price);
+    final total = buyTotal(price);
     if (user.credits < total) {
       throw TradeException(
         t('Nemaš dovoljno kredita. Potrebno: {0}, imaš: {1}.', [
@@ -147,6 +153,7 @@ class TradeService {
       );
     }
 
+    final now = DateTime.now();
     await _storage.putDevice(device.withOwner(userId));
     await _storage.putUser(
       user.copyWith(credits: roundCredits(user.credits - total)),
@@ -158,18 +165,109 @@ class TradeService {
       userId: userId,
       deviceId: device.id,
       deviceName: '${device.name} ${device.model}',
-      price: device.price,
+      price: price,
       fee: fee,
       amount: total,
       buyerId: userId,
       buyerLabel: user.handle,
-      sellerId: null,
-      sellerLabel: marketLabel,
-      createdAt: DateTime.now(),
+      sellerId: seller?.id,
+      sellerLabel: seller?.handle ?? marketLabel,
+      createdAt: now,
     );
     await _storage.putTransaction(tx);
+
+    if (seller != null) {
+      // Prodavatelj dobiva cijenu − 5% i vlastiti zapis u Aktivnosti.
+      final payout = sellPayout(price);
+      await _storage.putUser(
+        seller.copyWith(credits: roundCredits(seller.credits + payout)),
+      );
+      await _storage.putTransaction(
+        LoopTransaction(
+          id: _uuid.v4(),
+          type: TransactionType.sell,
+          userId: seller.id,
+          deviceId: device.id,
+          deviceName: '${device.name} ${device.model}',
+          price: price,
+          fee: fee,
+          amount: payout,
+          sellerId: seller.id,
+          sellerLabel: seller.handle,
+          buyerId: userId,
+          buyerLabel: user.handle,
+          createdAt: now,
+        ),
+      );
+      await _snapshot(seller.id);
+    }
     await _snapshot(userId);
     return tx;
+  }
+
+  // ------------------------------------------------------- objava u Marketu
+
+  /// Najviša cijena objave (zaštita od tipfelera).
+  static const maxListPrice = 100000.0;
+
+  /// Objavljuje vlastiti predmet u Marketu po [price] (ili mijenja cijenu).
+  Future<Device> list({
+    required String userId,
+    required String deviceId,
+    required double price,
+  }) async {
+    final device = _requireOwn(userId, deviceId);
+    if (_storage.activeAuctionFor(deviceId) != null) {
+      throw TradeException(
+        t('Predmet je na aukciji i ne može se prodati dok aukcija traje.'),
+      );
+    }
+    if (price <= 0 || price > maxListPrice) {
+      throw TradeException(
+        t('Cijena mora biti između 1 i {0}.', [formatCredits(maxListPrice)]),
+      );
+    }
+    final listed = device.withListing(roundCredits(price));
+    await _storage.putDevice(listed);
+    return listed;
+  }
+
+  /// Uklanja vlastiti predmet iz Marketa (ostaje u portfoliju).
+  Future<Device> unlist({
+    required String userId,
+    required String deviceId,
+  }) async {
+    final device = _requireOwn(userId, deviceId);
+    final unlisted = device.withListing(null);
+    await _storage.putDevice(unlisted);
+    return unlisted;
+  }
+
+  /// Vlasnik trajno briše svoj predmet. Vraća putanje fotografija.
+  Future<List<String>> deleteOwn({
+    required String userId,
+    required String deviceId,
+  }) async {
+    final device = _requireOwn(userId, deviceId);
+    if (_storage.activeAuctionFor(deviceId) != null) {
+      throw TradeException(
+        t(
+          'Predmet je na aukciji — prvo otkaži aukciju (moguće dok nema ponuda).',
+        ),
+      );
+    }
+    await _storage.deleteDevice(deviceId);
+    await _snapshot(userId);
+    return device.imagePaths;
+  }
+
+  Device _requireOwn(String userId, String deviceId) {
+    _requireUser(userId);
+    final device = _requireDevice(deviceId);
+    if (device.ownerId != userId) {
+      throw TradeException(t('Ovaj predmet nije u tvom portfoliju.'));
+    }
+    return device;
   }
 
   /// Dodaje ili uklanja uređaj s liste želja. Vraća `true` ako je dodan.

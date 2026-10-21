@@ -138,6 +138,7 @@ class PortfolioScreen extends ConsumerWidget {
                     ? () => AuctionDetailScreen.open(context, auction.id)
                     : () => confirmAndSell(context, ref, d),
                 onTap: () => DeviceDetailScreen.open(context, d),
+                badge: d.isListed ? t('🏷️ U Marketu') : null,
               );
             },
           ),

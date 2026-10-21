@@ -14,6 +14,8 @@ import '../widgets/photo_viewer.dart';
 import '../widgets/trade_actions.dart';
 import 'auction_detail_screen.dart';
 import 'create_auction_screen.dart';
+import 'public_profile_screen.dart';
+import '../widgets/user_avatar.dart';
 import '../l10n/tr.dart';
 
 /// Detalji uređaja: veliki prikaz, specifikacije, izračun fee-a i akcija
@@ -45,10 +47,13 @@ class DeviceDetailScreen extends ConsumerWidget {
     }
 
     final isMine = device.ownerId == user.id;
-    final canBuy = device.isOnMarket && !isMine;
+    final canBuy = device.isForSale && !isMine;
     final auction = state.activeAuctionFor(device.id);
     final cat = device.category;
-    final fee = feeFor(device.price);
+    // Kupac vidi cijenu iz Marketa; vlasnik vrijednost i isplatu.
+    final price = isMine ? device.price : device.askPrice;
+    final fee = feeFor(price);
+    final owner = state.userById(device.ownerId);
     final isFav = state.isFavorite(device.id);
 
     return Scaffold(
@@ -121,12 +126,22 @@ class DeviceDetailScreen extends ConsumerWidget {
                     ),
                     const SizedBox(height: 16),
                     Text(
-                      formatCredits(device.price),
+                      formatCredits(isMine ? device.askPrice : price),
                       style: const TextStyle(
                         fontSize: 32,
                         fontWeight: FontWeight.w900,
                       ),
                     ),
+                    if (device.isListed) ...[
+                      const SizedBox(height: 6),
+                      Text(
+                        t('🏷️ U Marketu'),
+                        style: TextStyle(
+                          color: LoopColors.accent,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                    ],
                     const SizedBox(height: 20),
                   ],
                 ),
@@ -155,12 +170,29 @@ class DeviceDetailScreen extends ConsumerWidget {
                       device.condition.label,
                       device.condition.color,
                     ),
-                    _Spec(
-                      Icons.person_outline,
-                      t('Vlasnik'),
-                      isMine ? t('Ti') : state.userLabel(device.ownerId),
-                      null,
-                    ),
+                    if (isMine || owner == null)
+                      _Spec(
+                        Icons.person_outline,
+                        device.isListed || owner == null
+                            ? t('Prodavatelj')
+                            : t('Vlasnik'),
+                        isMine ? t('Ti') : state.userLabel(device.ownerId),
+                        null,
+                      )
+                    else
+                      ListTile(
+                        leading: UserAvatar(user: owner, size: 32),
+                        title: Text(
+                          device.isListed ? t('Prodavatelj') : t('Vlasnik'),
+                        ),
+                        trailing: UserHandle(
+                          user: owner,
+                          onTap: () =>
+                              PublicProfileScreen.open(context, owner.id),
+                        ),
+                        onTap: () =>
+                            PublicProfileScreen.open(context, owner.id),
+                      ),
                     _Spec(
                       Icons.schedule,
                       t('Dodano'),
@@ -176,7 +208,10 @@ class DeviceDetailScreen extends ConsumerWidget {
                   padding: const EdgeInsets.all(16),
                   child: Column(
                     children: [
-                      _Line(t('Cijena'), formatCredits(device.price)),
+                      _Line(
+                        isMine ? t('Vrijednost') : t('Cijena'),
+                        formatCredits(price),
+                      ),
                       _Line(
                         t('Fee platforme (5%)'),
                         '${isMine ? '−' : '+'} ${formatCredits(fee)}',
@@ -185,9 +220,7 @@ class DeviceDetailScreen extends ConsumerWidget {
                       _Line(
                         isMine ? t('Dobivaš prodajom') : t('Ukupno plaćaš'),
                         formatCredits(
-                          isMine
-                              ? sellPayout(device.price)
-                              : buyTotal(device.price),
+                          isMine ? sellPayout(price) : buyTotal(price),
                         ),
                         bold: true,
                       ),
@@ -232,20 +265,70 @@ class DeviceDetailScreen extends ConsumerWidget {
                   label: Text(t('Pogledaj aukciju')),
                 ),
               ] else if (isMine) ...[
-                FilledButton.icon(
+                if (device.isListed) ...[
+                  _ListingInfo(device: device),
+                  const SizedBox(height: 10),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton.icon(
+                          onPressed: () => showListDialog(context, ref, device),
+                          icon: const Icon(Icons.edit_outlined),
+                          label: Text(t('Promijeni cijenu')),
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: OutlinedButton.icon(
+                          key: const ValueKey('unlist'),
+                          onPressed: () => runWithLoading(
+                            context,
+                            () => ref
+                                .read(appProvider.notifier)
+                                .unlist(device.id),
+                            successMessage: t('Uklonjeno iz Marketa'),
+                          ),
+                          icon: const Icon(Icons.remove_shopping_cart_outlined),
+                          label: Text(t('Ukloni iz Marketa')),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 10),
+                ] else ...[
+                  FilledButton.icon(
+                    onPressed: () => showListDialog(context, ref, device),
+                    icon: const Icon(Icons.storefront_outlined),
+                    label: Text(t('Objavi u Marketu')),
+                  ),
+                  const SizedBox(height: 10),
+                ],
+                OutlinedButton.icon(
                   onPressed: () async {
                     final ok = await confirmAndSell(context, ref, device);
                     if (ok && context.mounted) Navigator.pop(context);
                   },
                   icon: const Icon(Icons.sell_outlined),
-                  label: Text(t('Prodaj odmah')),
+                  label: Text(t('Prodaj odmah LOOP-u')),
                 ),
+                if (!device.isListed) ...[
+                  const SizedBox(height: 10),
+                  OutlinedButton.icon(
+                    onPressed: () =>
+                        CreateAuctionScreen.open(context, deviceId: device.id),
+                    icon: const Icon(Icons.gavel),
+                    label: Text(t('Stavi na aukciju')),
+                  ),
+                ],
                 const SizedBox(height: 10),
-                OutlinedButton.icon(
-                  onPressed: () =>
-                      CreateAuctionScreen.open(context, deviceId: device.id),
-                  icon: const Icon(Icons.gavel),
-                  label: Text(t('Stavi na aukciju')),
+                TextButton.icon(
+                  key: const ValueKey('delete-item'),
+                  style: TextButton.styleFrom(
+                    foregroundColor: LoopColors.error,
+                  ),
+                  onPressed: () => _delete(context, ref, device),
+                  icon: const Icon(Icons.delete_outline),
+                  label: Text(t('Obriši predmet')),
                 ),
               ] else if (canBuy)
                 FilledButton.icon(
@@ -259,6 +342,58 @@ class DeviceDetailScreen extends ConsumerWidget {
             ],
           ),
         ),
+      ),
+    );
+  }
+}
+
+Future<void> _delete(BuildContext context, WidgetRef ref, Device d) async {
+  final ok = await confirmDialog(
+    context,
+    title: t('Obrisati predmet?'),
+    message: t(
+      '"{0}" bit će trajno uklonjen iz tvog portfolija{1}. Ovo se ne može poništiti.',
+      [d.name, d.isListed ? t(' i iz Marketa') : ''],
+    ),
+    confirmLabel: t('Obriši'),
+    destructive: true,
+  );
+  if (!ok || !context.mounted) return;
+  final done = await runWithLoading(
+    context,
+    () => ref.read(appProvider.notifier).deleteMyDevice(d.id),
+    successMessage: t('Predmet obrisan'),
+  );
+  if (done && context.mounted) Navigator.pop(context);
+}
+
+/// "U Marketu za X — kupac plaća X + 5%, ti dobivaš X − 5%".
+class _ListingInfo extends StatelessWidget {
+  const _ListingInfo({required this.device});
+  final Device device;
+
+  @override
+  Widget build(BuildContext context) {
+    final p = device.askPrice;
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: LoopColors.mint,
+        borderRadius: BorderRadius.circular(kRadius),
+      ),
+      child: Row(
+        children: [
+          const Text('🏷️', style: TextStyle(fontSize: 22)),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              t(
+                'U Marketu za {0}. Kad netko kupi, dobivaš {1} (− 5% fee), a predmet prelazi kupcu.',
+                [formatCredits(p), formatCredits(sellPayout(p))],
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }

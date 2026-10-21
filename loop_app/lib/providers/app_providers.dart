@@ -362,7 +362,7 @@ class AppController extends Notifier<AppState> {
     if (device == null) throw TradeException(t('Predmet ne postoji.'));
     final error = DeliveryService.validate(method, destination);
     if (error != null) throw TradeException(error);
-    final total = buyTotal(device.price) + method.cost;
+    final total = buyTotal(device.askPrice) + method.cost;
     if (user.credits < total) {
       throw TradeException(
         t(
@@ -379,6 +379,7 @@ class AppController extends Notifier<AppState> {
           device: device,
           method: method,
           destination: destination,
+          sellerId: tx.sellerId,
         );
     _refresh();
     return tx;
@@ -405,6 +406,31 @@ class AppController extends Notifier<AppState> {
     await ref
         .read(deliveryServiceProvider)
         .confirmReceipt(_requireUserId(), deliveryId);
+    _refresh();
+  }
+
+  /// Objavi vlastiti predmet u Marketu (ili promijeni cijenu).
+  Future<void> listOnMarket(String deviceId, double price) async {
+    await _trade.list(
+      userId: _requireUserId(),
+      deviceId: deviceId,
+      price: price,
+    );
+    _refresh();
+  }
+
+  Future<void> unlist(String deviceId) async {
+    await _trade.unlist(userId: _requireUserId(), deviceId: deviceId);
+    _refresh();
+  }
+
+  /// Trajno briše vlastiti predmet (i njegove fotografije).
+  Future<void> deleteMyDevice(String deviceId) async {
+    final images = await _trade.deleteOwn(
+      userId: _requireUserId(),
+      deviceId: deviceId,
+    );
+    await ref.read(imageStoreProvider).delete(images);
     _refresh();
   }
 

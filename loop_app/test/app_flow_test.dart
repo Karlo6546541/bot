@@ -23,6 +23,7 @@ Future<Widget> buildApp(WidgetTester tester) async {
 
 void main() {
   accountTests();
+  listingTests();
   for (final size in const [Size(1400, 1000), Size(400, 860)]) {
     testWidgets('login → prodaja → kupnja → aktivnost ($size)', (tester) async {
       tester.view.physicalSize = size;
@@ -451,5 +452,60 @@ void accountTests() {
     expect(find.text('Napravi besplatan račun'), findsOneWidget);
     await tester.tap(find.text('Nastavi razgledavati'));
     await tester.pumpAndSettle();
+  });
+}
+
+void listingTests() {
+  testWidgets('objavi u Marketu, ukloni, obriši predmet', (tester) async {
+    tester.view.physicalSize = const Size(1400, 1000);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+
+    await tester.pumpWidget(await buildApp(tester));
+    await tester.ensureVisible(find.text('Prijavi se'));
+    await tester.tap(find.text('Prijavi se'));
+    await tester.pumpAndSettle();
+    await tester.scrollUntilVisible(find.text('iPhone 13'), 300);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('iPhone 13'));
+    await tester.pumpAndSettle();
+
+    // Objava po vlastitoj cijeni.
+    await tester.scrollUntilVisible(find.text('Objavi u Marketu'), 200);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Objavi u Marketu'));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.widgetWithText(TextField, 'Cijena'), '350');
+    await tester.pumpAndSettle();
+    expect(find.text('Ti dobivaš 332,50 kredita (− 5% fee)'), findsOneWidget);
+    await tester.tap(find.text('Objavi'));
+    await tester.pumpAndSettle();
+    expect(find.text('Objavljeno u Marketu 🏷️'), findsOneWidget);
+    expect(find.text('🏷️ U Marketu'), findsWidgets);
+    expect(find.text('350 kredita'), findsWidgets);
+
+    // Ukloni iz Marketa.
+    await tester.scrollUntilVisible(find.byKey(const ValueKey('unlist')), 200);
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('unlist')));
+    await tester.pumpAndSettle();
+    expect(find.text('Uklonjeno iz Marketa'), findsOneWidget);
+    expect(find.text('🏷️ U Marketu'), findsNothing);
+
+    // Obriši predmet (pričekaj da poruka na dnu nestane).
+    await tester.pump(const Duration(seconds: 6));
+    await tester.pumpAndSettle();
+    await tester.scrollUntilVisible(
+      find.byKey(const ValueKey('delete-item')),
+      200,
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('delete-item')));
+    await tester.pumpAndSettle();
+    expect(find.text('Obrisati predmet?'), findsOneWidget);
+    await tester.tap(find.text('Obriši'));
+    await tester.pumpAndSettle();
+    expect(find.text('Predmet obrisan'), findsOneWidget);
+    expect(find.text('iPhone 13'), findsNothing);
   });
 }

@@ -25,9 +25,12 @@ enum MarketSort {
   String get label => t(_label);
 
   int compare(Device a, Device b) => switch (this) {
-    MarketSort.newest => b.createdAt.compareTo(a.createdAt),
-    MarketSort.priceAsc => a.price.compareTo(b.price),
-    MarketSort.priceDesc => b.price.compareTo(a.price),
+    // Objavljeni predmet je "nov" od trenutka objave.
+    MarketSort.newest => (b.listedAt ?? b.createdAt).compareTo(
+      a.listedAt ?? a.createdAt,
+    ),
+    MarketSort.priceAsc => a.askPrice.compareTo(b.askPrice),
+    MarketSort.priceDesc => b.askPrice.compareTo(a.askPrice),
     MarketSort.name => a.name.toLowerCase().compareTo(b.name.toLowerCase()),
   };
 }
@@ -223,6 +226,7 @@ class _MarketScreenState extends ConsumerState<MarketScreen> {
               onTap: () => DeviceDetailScreen.open(context, d),
               isFavorite: state.isFavorite(d.id),
               onFavorite: () => toggleFavorite(ref, d),
+              badge: d.isListed ? state.userLabel(d.ownerId) : null,
             ),
           ),
       ],
