@@ -2,6 +2,11 @@
 // Generirano iz popisa tekstova; nadopuni ručno kad dodaješ nove.
 
 const kEn = <String, String>{
+  'Isprobaj demo račun': 'Try demo account',
+  'Mogu kupiti': 'I can afford',
+  'Poništi filtre': 'Clear filters',
+  'Stanje predmeta': 'Item condition',
+  'Sva stanja': 'All conditions',
   ' · vodi {0}': ' · {0} leading',
   'Vodeća ponuda ({0}) vraća se ponuđaču.':
       'The leading bid ({0}) is returned to the bidder.',

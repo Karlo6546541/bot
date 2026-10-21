@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../models/device.dart';
+import '../services/market_filter.dart';
 import '../providers/app_providers.dart';
 import '../providers/app_state.dart';
 import '../theme/app_theme.dart';
@@ -50,6 +51,21 @@ class _MarketScreenState extends ConsumerState<MarketScreen> {
   DeviceCategory? _category;
   bool _onlyFavorites = false;
   MarketSort _sort = MarketSort.newest;
+  DeviceCondition? _condition;
+  double? _minPrice;
+  double? _maxPrice;
+  bool _onlyAffordable = false;
+
+  void _clearFilters() => setState(() {
+    _search.clear();
+    _section = null;
+    _category = null;
+    _onlyFavorites = false;
+    _condition = null;
+    _minPrice = null;
+    _maxPrice = null;
+    _onlyAffordable = false;
+  });
 
   @override
   void dispose() {
@@ -62,23 +78,24 @@ class _MarketScreenState extends ConsumerState<MarketScreen> {
     final state = ref.watch(appProvider);
     final all = state.marketDevices;
     final counts = AppState.countByCategory(all);
-    final query = _search.text.trim().toLowerCase();
+    final credits = state.currentUser?.credits ?? 0;
+    final filter = MarketFilter(
+      query: _search.text,
+      condition: _condition,
+      minPrice: _minPrice,
+      maxPrice: _maxPrice,
+      onlyAffordable: _onlyAffordable,
+      credits: credits,
+    );
 
     final devices =
         all
             .where((d) => _section == null || d.section == _section)
             .where((d) => _category == null || d.category == _category)
             .where((d) => !_onlyFavorites || state.isFavorite(d.id))
-            .where(
-              (d) =>
-                  query.isEmpty ||
-                  d.name.toLowerCase().contains(query) ||
-                  d.model.toLowerCase().contains(query) ||
-                  d.description.toLowerCase().contains(query),
-            )
+            .where(filter.matches)
             .toList()
           ..sort(_sort.compare);
-    final credits = state.currentUser?.credits ?? 0;
     final favCount = all.where((d) => state.isFavorite(d.id)).length;
     final sectionCounts = <ItemSection, int>{};
     for (final d in all) {
@@ -127,8 +144,48 @@ class _MarketScreenState extends ConsumerState<MarketScreen> {
                       value: _sort,
                       onChanged: (s) => setState(() => _sort = s),
                     ),
+                    const SizedBox(width: 8),
+                    PopupMenuButton<DeviceCondition?>(
+                      tooltip: t('Stanje predmeta'),
+                      onSelected: (value) => setState(() => _condition = value),
+                      itemBuilder: (_) => [
+                        PopupMenuItem<DeviceCondition?>(value: null, child: Text(t('Sva stanja'))),
+                        for (final condition in DeviceCondition.values)
+                          PopupMenuItem<DeviceCondition?>(value: condition, child: Text(condition.label)),
+                      ],
+                      child: const SizedBox(height: 52, width: 40, child: Icon(Icons.tune)),
+                    ),
                   ],
                 ),
+              ],
+            ),
+          ),
+        ),
+        SliverToBoxAdapter(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+            child: Wrap(
+              spacing: 8,
+              runSpacing: 4,
+              crossAxisAlignment: WrapCrossAlignment.center,
+              children: [
+                ChoiceChip(
+                  label: Text(t('Mogu kupiti')),
+                  selected: _onlyAffordable,
+                  onSelected: (v) => setState(() => _onlyAffordable = v),
+                ),
+                for (final limit in const [100.0, 250.0, 500.0, 1000.0])
+                  ChoiceChip(
+                    label: Text('${limit.toInt()} LC'),
+                    selected: _maxPrice == limit,
+                    onSelected: (v) => setState(() => _maxPrice = v ? limit : null),
+                  ),
+                if (_condition != null || _maxPrice != null || _minPrice != null || _onlyAffordable || _search.text.isNotEmpty || _section != null || _category != null || _onlyFavorites)
+                  TextButton.icon(
+                    onPressed: _clearFilters,
+                    icon: const Icon(Icons.restart_alt, size: 18),
+                    label: Text(t('Poništi filtre')),
+                  ),
               ],
             ),
           ),
@@ -212,6 +269,11 @@ class _MarketScreenState extends ConsumerState<MarketScreen> {
                   : _onlyFavorites && favCount == 0
                   ? t('Dodirni ♥ na predmetu da ga spremiš ovdje.')
                   : t('Promijeni pretragu, odjeljak ili kategoriju.'),
+              action: all.isEmpty ? null : TextButton.icon(
+                onPressed: _clearFilters,
+                icon: const Icon(Icons.restart_alt),
+                label: Text(t('Poništi filtre')),
+              ),
             ),
           )
         else
