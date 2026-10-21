@@ -182,3 +182,54 @@ create policy "loop_images_test_insert" on storage.objects
 drop policy if exists "loop_images_test_delete" on storage.objects;
 create policy "loop_images_test_delete" on storage.objects
   for delete to authenticated using (bucket_id = 'loop-images');
+
+-- -----------------------------------------------------------------------------
+-- Datoteke DIGITALNIH proizvoda (3D modeli, softver, e-knjige…) — PRIVATNI
+-- bucket "loop-files". Put datoteke: <id predmeta>/<naziv>.
+--   • učitati smije svaki prijavljeni korisnik (prodavatelj, prije objave),
+--   • preuzeti smiju samo: tko je učitao, trenutni vlasnik predmeta i
+--     kupci (postoji zapis kupnje tog predmeta za tog korisnika),
+--   • brisati smije tko je učitao ili vlasnik predmeta.
+-- ⚠️ Test: zapise kupnje piše aplikacija, ne server (vidi napomenu gore).
+-- -----------------------------------------------------------------------------
+insert into storage.buckets (id, name, public, file_size_limit)
+values ('loop-files', 'loop-files', false, 26214400)
+on conflict (id) do update set
+  public = false,
+  file_size_limit = excluded.file_size_limit;
+
+drop policy if exists "loop_files_insert" on storage.objects;
+create policy "loop_files_insert" on storage.objects
+  for insert to authenticated with check (bucket_id = 'loop-files');
+
+drop policy if exists "loop_files_read" on storage.objects;
+create policy "loop_files_read" on storage.objects
+  for select to authenticated using (
+    bucket_id = 'loop-files' and (
+      owner_id = (select auth.uid())::text
+      or exists (
+        select 1 from public.loop_devices d
+        where d.id = (storage.foldername(name))[1]
+          and d.data ->> 'ownerId' = (select auth.uid())::text
+      )
+      or exists (
+        select 1 from public.loop_transactions t
+        where t.data ->> 'deviceId' = (storage.foldername(name))[1]
+          and t.data ->> 'buyerId' = (select auth.uid())::text
+          and t.data ->> 'type' = 'buy'
+      )
+    )
+  );
+
+drop policy if exists "loop_files_delete" on storage.objects;
+create policy "loop_files_delete" on storage.objects
+  for delete to authenticated using (
+    bucket_id = 'loop-files' and (
+      owner_id = (select auth.uid())::text
+      or exists (
+        select 1 from public.loop_devices d
+        where d.id = (storage.foldername(name))[1]
+          and d.data ->> 'ownerId' = (select auth.uid())::text
+      )
+    )
+  );

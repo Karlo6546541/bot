@@ -238,13 +238,22 @@ class _MarketScreenState extends ConsumerState<MarketScreen> {
             padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
             itemBuilder: (context, d) => DeviceCard(
               device: d,
-              actionLabel: t('Kupi odmah'),
-              actionIcon: Icons.shopping_bag_outlined,
+              // Kupljeni digitalni proizvod se samo preuzima.
+              actionLabel: d.isDigital && state.hasPurchased(d.id)
+                  ? t('Preuzmi')
+                  : t('Kupi odmah'),
+              actionIcon: d.isDigital
+                  ? Icons.download
+                  : Icons.shopping_bag_outlined,
               onAction: () => confirmAndBuy(context, ref, d),
               onTap: () => DeviceDetailScreen.open(context, d),
               isFavorite: state.isFavorite(d.id),
               onFavorite: () => toggleFavorite(ref, d),
-              badge: d.isListed ? state.userLabel(d.ownerId) : null,
+              badge: d.isDigital && state.hasPurchased(d.id)
+                  ? t('✓ Kupljeno')
+                  : d.isListed
+                  ? state.userLabel(d.ownerId)
+                  : null,
             ),
           ),
       ],

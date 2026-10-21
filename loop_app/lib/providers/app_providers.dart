@@ -19,12 +19,15 @@ import '../services/credit_shop.dart';
 import '../services/delivery_service.dart';
 import '../services/fee.dart';
 import '../models/delivery.dart';
+import '../services/file_store.dart';
 import '../services/image_store.dart';
 import '../utils/formatters.dart';
 import '../widgets/loop_snackbar.dart';
 import '../services/storage_service.dart';
 import '../services/sync_service.dart';
 import '../services/trade_service.dart';
+import 'package:uuid/uuid.dart';
+import '../services/file_saver/file_saver.dart';
 import 'app_state.dart';
 import '../l10n/tr.dart';
 
@@ -37,6 +40,14 @@ final storageProvider = Provider<StorageService>(
 final imageStoreProvider = Provider<ImageStore>(
   // S online bazom slike idu u Supabase Storage (vide ih svi testeri).
   (ref) => ImageStore(
+    client: ref.watch(syncProvider) != null ? Supabase.instance.client : null,
+  ),
+);
+
+/// Datoteke digitalnih proizvoda (online: privatni Supabase bucket).
+final fileStoreProvider = Provider<FileStore>(
+  (ref) => FileStore(
+    ref.watch(storageProvider),
     client: ref.watch(syncProvider) != null ? Supabase.instance.client : null,
   ),
 );
@@ -574,18 +585,40 @@ class AppController extends Notifier<AppState> {
     List<String> imagePaths = const [],
     String description = '',
     bool listOnMarket = true,
+    PickedFile? file,
   }) async {
-    final device = await _trade.addDevice(
-      userId: _requireUserId(),
-      name: name,
-      model: model,
-      condition: condition,
-      price: price,
-      category: category,
-      imagePaths: imagePaths,
-      description: description,
-      listOnMarket: listOnMarket,
-    );
+    final userId = _requireUserId();
+    // Digitalni proizvod: najprije spremi datoteku (put ovisi o ID-u).
+    String? id;
+    DigitalFile? saved;
+    if (category.section == ItemSection.digital) {
+      if (file == null) {
+        throw TradeException(
+          t('Digitalni proizvod treba datoteku koju kupac preuzima.'),
+        );
+      }
+      id = const Uuid().v4();
+      saved = await ref.read(fileStoreProvider).save(id, file);
+    }
+    final Device device;
+    try {
+      device = await _trade.addDevice(
+        id: id,
+        file: saved,
+        userId: userId,
+        name: name,
+        model: model,
+        condition: condition,
+        price: price,
+        category: category,
+        imagePaths: imagePaths,
+        description: description,
+        listOnMarket: listOnMarket,
+      );
+    } catch (_) {
+      if (saved != null) await ref.read(fileStoreProvider).delete(saved);
+      rethrow;
+    }
     _refresh();
     return device;
   }
@@ -607,6 +640,12 @@ class AppController extends Notifier<AppState> {
     final device = state.deviceById(deviceId);
     final user = state.currentUser!;
     if (device == null) throw TradeException(t('Predmet ne postoji.'));
+    if (device.isDigital) {
+      // Bez dostave — datoteka se preuzima odmah.
+      final tx = await _trade.buy(userId: userId, deviceId: deviceId);
+      _refresh();
+      return tx;
+    }
     final error = DeliveryService.validate(method, destination);
     if (error != null) throw TradeException(error);
     final total = buyTotal(device.askPrice) + method.cost;
@@ -653,6 +692,33 @@ class AppController extends Notifier<AppState> {
     await ref
         .read(deliveryServiceProvider)
         .confirmReceipt(_requireUserId(), deliveryId);
+    _refresh();
+  }
+
+  // ---------------------------------------------------- digitalni proizvodi
+
+  /// Preuzima datoteku digitalnog proizvoda (vlasnik ili kupac). Vraća
+  /// gdje je spremljena.
+  Future<String> downloadFile(String deviceId) async {
+    final userId = _requireUserId();
+    final d = state.deviceById(deviceId);
+    if (d == null || d.file == null) {
+      throw TradeException(t('Predmet ne postoji.'));
+    }
+    if (!_trade.canDownload(userId, deviceId)) {
+      throw TradeException(t('Datoteku mogu preuzeti samo kupci.'));
+    }
+    final bytes = await ref.read(fileStoreProvider).read(d.file!);
+    return saveBytesFile(d.file!.name, bytes);
+  }
+
+  /// Vlasnik učitava novu verziju datoteke.
+  Future<void> replaceFile(String deviceId, PickedFile file) async {
+    final userId = _requireUserId();
+    final store = ref.read(fileStoreProvider);
+    final saved = await store.save(deviceId, file);
+    final old = await _trade.replaceFile(userId, deviceId, saved);
+    if (old != null) await store.delete(old);
     _refresh();
   }
 

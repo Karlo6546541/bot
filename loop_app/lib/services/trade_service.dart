@@ -52,7 +52,15 @@ class TradeService {
     List<String> imagePaths = const [],
     String description = '',
     bool listOnMarket = true,
+    String? id,
+    DigitalFile? file,
   }) async {
+    final digital = category.section == ItemSection.digital;
+    if (digital && file == null) {
+      throw TradeException(
+        t('Digitalni proizvod treba datoteku koju kupac preuzima.'),
+      );
+    }
     if (name.trim().isEmpty || model.trim().isEmpty) {
       throw TradeException(t('Naziv i model su obavezni.'));
     }
@@ -63,11 +71,13 @@ class TradeService {
       throw TradeException(t('Opis može imati najviše 500 znakova.'));
     }
     _requireUser(userId);
+    // Digitalni proizvod je uvijek "nov" i uvijek u Marketu.
+    final list = listOnMarket || digital;
     final device = Device(
-      id: _uuid.v4(),
+      id: id ?? _uuid.v4(),
       name: name.trim(),
       model: model.trim(),
-      condition: condition,
+      condition: digital ? DeviceCondition.brandNew : condition,
       price: roundCredits(price),
       category: category,
       ownerId: userId,
@@ -76,9 +86,10 @@ class TradeService {
       description: description.trim(),
       // Novi predmet odmah ide u Market (po svojoj cijeni), osim ako
       // korisnik to isključi.
-      listPrice: listOnMarket ? roundCredits(price) : null,
-      listedAt: listOnMarket ? DateTime.now() : null,
+      listPrice: list ? roundCredits(price) : null,
+      listedAt: list ? DateTime.now() : null,
       marketChecked: true,
+      file: file,
     );
     await _storage.putDevice(device);
     await _snapshot(userId);
@@ -94,6 +105,13 @@ class TradeService {
     final device = _requireDevice(deviceId);
     if (device.ownerId != userId) {
       throw TradeException(t('Ovaj predmet nije u tvom portfoliju.'));
+    }
+    if (device.isDigital) {
+      throw TradeException(
+        t(
+          'Digitalni proizvod se ne prodaje LOOP-u — kupci ga kupuju u Marketu.',
+        ),
+      );
     }
     if (_storage.activeAuctionFor(deviceId) != null) {
       throw TradeException(
@@ -141,6 +159,11 @@ class TradeService {
     if (device.ownerId == userId) {
       throw TradeException(t('Ovaj predmet je već tvoj.'));
     }
+    if (device.isDigital && hasPurchased(userId, deviceId)) {
+      throw TradeException(
+        t('Ovo si već kupio — preuzmi datoteku u "Moje digitalne kupnje".'),
+      );
+    }
     if (!device.isForSale) {
       throw TradeException(t('Predmet više nije dostupan.'));
     }
@@ -165,7 +188,11 @@ class TradeService {
     }
 
     final now = DateTime.now();
-    await _storage.putDevice(device.withOwner(userId));
+    // Digitalni proizvod ostaje prodavatelju (prodaje se više puta), a
+    // kupac dobiva pravo preuzimanja (zapis kupnje).
+    if (!device.isDigital) {
+      await _storage.putDevice(device.withOwner(userId));
+    }
     await _storage.putUser(
       user.copyWith(credits: roundCredits(user.credits - total)),
     );
@@ -289,6 +316,14 @@ class TradeService {
         ),
       );
     }
+    if (device.isDigital && buyersOf(deviceId).isNotEmpty) {
+      throw TradeException(
+        t(
+          'Ovaj proizvod su već kupili ({0}) — ne može se obrisati jer ga kupci preuzimaju. Ukloni ga iz Marketa.',
+          [buyersOf(deviceId).length],
+        ),
+      );
+    }
     await _storage.deleteDevice(deviceId);
     await _snapshot(userId);
     return device.imagePaths;
@@ -318,6 +353,45 @@ class TradeService {
       listed++;
     }
     return listed;
+  }
+
+  // ---------------------------------------------------- digitalni proizvodi
+
+  /// Je li korisnik kupio digitalni proizvod (pravo preuzimanja).
+  bool hasPurchased(String userId, String deviceId) =>
+      _storage.transactions.any(
+        (t) =>
+            t.type == TransactionType.buy &&
+            t.buyerId == userId &&
+            t.deviceId == deviceId,
+      );
+
+  /// Kupci digitalnog proizvoda.
+  Set<String> buyersOf(String deviceId) => {
+    for (final t in _storage.transactions)
+      if (t.type == TransactionType.buy &&
+          t.deviceId == deviceId &&
+          t.buyerId != null)
+        t.buyerId!,
+  };
+
+  /// Smije li korisnik preuzeti datoteku: vlasnik ili kupac.
+  bool canDownload(String userId, String deviceId) {
+    final d = _storage.deviceById(deviceId);
+    if (d == null || d.file == null) return false;
+    return d.ownerId == userId || hasPurchased(userId, deviceId);
+  }
+
+  /// Vlasnik mijenja datoteku (npr. nova verzija modela). Vraća staru.
+  Future<DigitalFile?> replaceFile(
+    String userId,
+    String deviceId,
+    DigitalFile file,
+  ) async {
+    final d = _requireOwn(userId, deviceId);
+    if (!d.isDigital) throw TradeException(t('Predmet nije digitalni.'));
+    await _storage.putDevice(d.withFile(file));
+    return d.file;
   }
 
   Device _requireOwn(String userId, String deviceId) {

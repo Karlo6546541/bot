@@ -4,7 +4,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../models/device.dart';
 import '../providers/app_providers.dart';
+import '../services/file_store.dart';
 import '../services/image_store.dart';
+import '../services/trade_service.dart';
 import '../services/fee.dart';
 import '../theme/app_theme.dart';
 import '../widgets/category_style.dart';
@@ -41,6 +43,30 @@ class _AddDeviceScreenState extends ConsumerState<AddDeviceScreen> {
 
   /// Novi predmet odmah ide u Market (može se isključiti).
   bool _listOnMarket = true;
+
+  /// Datoteka digitalnog proizvoda (3D model, softver…).
+  PickedFile? _file;
+
+  bool get _digital => _section == ItemSection.digital;
+
+  Future<void> _pickFile(FormFieldState<PickedFile> field) async {
+    final store = ref.read(fileStoreProvider);
+    try {
+      final f = await store.pick();
+      if (f == null) return;
+      final error = store.validate(f);
+      if (error != null) {
+        showLoopSnackBar(error, error: true);
+        return;
+      }
+      setState(() => _file = f);
+      field.didChange(f);
+    } on TradeException catch (e) {
+      showLoopSnackBar(e.message, error: true);
+    } catch (e) {
+      showLoopSnackBar(t('Greška: {0}', [e]), error: true);
+    }
+  }
 
   /// Fotografije odabrane prije spremanja (već kopirane u mapu aplikacije).
   final _photos = <String>[];
@@ -93,14 +119,15 @@ class _AddDeviceScreenState extends ConsumerState<AddDeviceScreen> {
           .addDevice(
             name: _name.text,
             model: _model.text,
-            condition: _condition!,
+            condition: _digital ? DeviceCondition.brandNew : _condition!,
             price: _parsePrice(_price.text)!,
             category: _category!,
             imagePaths: List.of(_photos),
             description: _description.text,
-            listOnMarket: _listOnMarket,
+            listOnMarket: _digital || _listOnMarket,
+            file: _digital ? _file : null,
           ),
-      successMessage: _listOnMarket
+      successMessage: _digital || _listOnMarket
           ? t('Predmet je objavljen u Marketu 🏷️')
           : t('Predmet dodan u portfolio'),
     );
@@ -178,33 +205,36 @@ class _AddDeviceScreenState extends ConsumerState<AddDeviceScreen> {
                         alignLabelWithHint: true,
                       ),
                     ),
-                    gap,
-                    DropdownButtonFormField<DeviceCondition>(
-                      initialValue: _condition,
-                      decoration: InputDecoration(labelText: t('Stanje')),
-                      items: [
-                        for (final c in DeviceCondition.values)
-                          DropdownMenuItem(
-                            value: c,
-                            child: Row(
-                              children: [
-                                Container(
-                                  width: 10,
-                                  height: 10,
-                                  decoration: BoxDecoration(
-                                    color: c.color,
-                                    shape: BoxShape.circle,
+                    if (!_digital) ...[
+                      gap,
+                      DropdownButtonFormField<DeviceCondition>(
+                        initialValue: _condition,
+                        decoration: InputDecoration(labelText: t('Stanje')),
+                        items: [
+                          for (final c in DeviceCondition.values)
+                            DropdownMenuItem(
+                              value: c,
+                              child: Row(
+                                children: [
+                                  Container(
+                                    width: 10,
+                                    height: 10,
+                                    decoration: BoxDecoration(
+                                      color: c.color,
+                                      shape: BoxShape.circle,
+                                    ),
                                   ),
-                                ),
-                                const SizedBox(width: 10),
-                                Text(c.label),
-                              ],
+                                  const SizedBox(width: 10),
+                                  Text(c.label),
+                                ],
+                              ),
                             ),
-                          ),
-                      ],
-                      onChanged: (c) => setState(() => _condition = c),
-                      validator: (v) => v == null ? t('Odaberi stanje') : null,
-                    ),
+                        ],
+                        onChanged: (c) => setState(() => _condition = c),
+                        validator: (v) =>
+                            v == null ? t('Odaberi stanje') : null,
+                      ),
+                    ],
                     gap,
                     // Kategorija se bira dodirom na pločicu.
                     FormField<DeviceCategory>(
@@ -273,6 +303,24 @@ class _AddDeviceScreenState extends ConsumerState<AddDeviceScreen> {
                         ],
                       ),
                     ),
+                    if (_digital) ...[
+                      gap,
+                      FormField<PickedFile>(
+                        key: const ValueKey('digital-file'),
+                        initialValue: _file,
+                        validator: (v) => v == null
+                            ? t('Dodaj datoteku koju kupac preuzima.')
+                            : null,
+                        builder: (field) => _FilePickerCard(
+                          file: _file,
+                          error: field.errorText,
+                          onPick: () => _pickFile(field),
+                          maxMb:
+                              ref.read(fileStoreProvider).maxBytes ~/
+                              (1024 * 1024),
+                        ),
+                      ),
+                    ],
                     gap,
                     TextFormField(
                       controller: _price,
@@ -303,40 +351,58 @@ class _AddDeviceScreenState extends ConsumerState<AddDeviceScreen> {
                       price: _parsePrice(_price.text),
                     ),
                     const SizedBox(height: 12),
-                    Material(
-                      color: _listOnMarket
-                          ? LoopColors.mint
-                          : LoopColors.surface,
-                      borderRadius: BorderRadius.circular(kRadius),
-                      child: SwitchListTile(
-                        key: const ValueKey('list-on-market'),
-                        value: _listOnMarket,
-                        onChanged: (v) => setState(() => _listOnMarket = v),
-                        shape: RoundedRectangleBorder(
+                    if (_digital)
+                      Container(
+                        padding: const EdgeInsets.all(14),
+                        decoration: BoxDecoration(
+                          color: LoopColors.mint,
                           borderRadius: BorderRadius.circular(kRadius),
                         ),
-                        title: Text(
-                          t('Odmah objavi u Marketu'),
-                          style: const TextStyle(fontWeight: FontWeight.w800),
+                        child: Text(
+                          t(
+                            'Digitalni proizvod odmah ide u Market i možeš ga prodati više puta. Kupac plaća cijenu + 5%, ti dobivaš cijenu − 5%, a kupac odmah preuzima datoteku.',
+                          ),
                         ),
-                        subtitle: Text(
-                          _listOnMarket
-                              ? t(
-                                  'Predmet ostaje tvoj dok ga netko ne kupi. Dobivaš cijenu − 5% fee.',
-                                )
-                              : t(
-                                  'Ostaje samo u portfoliju — objaviti ga možeš kasnije.',
-                                ),
+                      )
+                    else
+                      Material(
+                        color: _listOnMarket
+                            ? LoopColors.mint
+                            : LoopColors.surface,
+                        borderRadius: BorderRadius.circular(kRadius),
+                        child: SwitchListTile(
+                          key: const ValueKey('list-on-market'),
+                          value: _listOnMarket,
+                          onChanged: (v) => setState(() => _listOnMarket = v),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(kRadius),
+                          ),
+                          title: Text(
+                            t('Odmah objavi u Marketu'),
+                            style: const TextStyle(fontWeight: FontWeight.w800),
+                          ),
+                          subtitle: Text(
+                            _listOnMarket
+                                ? t(
+                                    'Predmet ostaje tvoj dok ga netko ne kupi. Dobivaš cijenu − 5% fee.',
+                                  )
+                                : t(
+                                    'Ostaje samo u portfoliju — objaviti ga možeš kasnije.',
+                                  ),
+                          ),
                         ),
                       ),
-                    ),
                     const SizedBox(height: 16),
                     FilledButton.icon(
                       key: const ValueKey('add-submit'),
                       onPressed: _submit,
-                      icon: Icon(_listOnMarket ? Icons.storefront : Icons.add),
+                      icon: Icon(
+                        _digital || _listOnMarket
+                            ? Icons.storefront
+                            : Icons.add,
+                      ),
                       label: Text(
-                        _listOnMarket
+                        _digital || _listOnMarket
                             ? t('Objavi u Marketu')
                             : t('Dodaj u portfolio'),
                       ),
@@ -643,6 +709,110 @@ class _PickTile extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+}
+
+/// Odabir datoteke digitalnog proizvoda.
+class _FilePickerCard extends StatelessWidget {
+  const _FilePickerCard({
+    required this.file,
+    required this.onPick,
+    required this.maxMb,
+    this.error,
+  });
+
+  final PickedFile? file;
+  final VoidCallback onPick;
+  final int maxMb;
+  final String? error;
+
+  @override
+  Widget build(BuildContext context) {
+    final f = file;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Material(
+          color: LoopColors.surface,
+          borderRadius: BorderRadius.circular(kRadius),
+          child: InkWell(
+            key: const ValueKey('pick-file'),
+            borderRadius: BorderRadius.circular(kRadius),
+            onTap: onPick,
+            child: Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(kRadius),
+                border: Border.all(
+                  color: error != null
+                      ? LoopColors.error
+                      : f != null
+                      ? LoopColors.success
+                      : LoopColors.surfaceHover,
+                  width: 1.5,
+                ),
+              ),
+              child: Row(
+                children: [
+                  Icon(
+                    f == null ? Icons.upload_file : Icons.insert_drive_file,
+                    size: 32,
+                    color: f == null ? LoopColors.accent : LoopColors.success,
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          f == null ? t('Dodaj datoteku') : f.name,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(fontWeight: FontWeight.w800),
+                        ),
+                        Text(
+                          f == null
+                              ? t(
+                                  'STL, OBJ, 3MF, ZIP, PDF, EPUB, PNG, SVG, MP3… · najviše {0} MB',
+                                  [maxMb],
+                                )
+                              : DigitalFile(
+                                  ref: '',
+                                  name: f.name,
+                                  size: f.size,
+                                  uploadedAt: DateTime(2000),
+                                ).sizeLabel,
+                          style: TextStyle(
+                            color: LoopColors.textSecondary,
+                            fontSize: 12,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  if (f != null)
+                    Text(
+                      t('Promijeni'),
+                      style: TextStyle(
+                        color: LoopColors.accent,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                ],
+              ),
+            ),
+          ),
+        ),
+        if (error != null)
+          Padding(
+            padding: const EdgeInsets.only(top: 6, left: 12),
+            child: Text(
+              error!,
+              style: TextStyle(color: LoopColors.error, fontSize: 12),
+            ),
+          ),
+      ],
     );
   }
 }

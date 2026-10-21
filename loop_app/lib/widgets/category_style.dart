@@ -44,6 +44,7 @@ extension SectionStyle on ItemSection {
     ItemSection.hobbies => Icons.interests,
     ItemSection.crafts => Icons.brush,
     ItemSection.activities => Icons.local_activity,
+    ItemSection.digital => Icons.cloud_download_outlined,
   };
 }
 
@@ -77,6 +78,11 @@ extension CategoryStyle on DeviceCategory {
     DeviceCategory.tutoring => Icons.school_outlined,
     DeviceCategory.tickets => Icons.confirmation_number_outlined,
     DeviceCategory.experiences => Icons.kayaking,
+    DeviceCategory.models3d => Icons.view_in_ar,
+    DeviceCategory.software => Icons.terminal,
+    DeviceCategory.ebooks => Icons.auto_stories_outlined,
+    DeviceCategory.templates => Icons.dashboard_customize_outlined,
+    DeviceCategory.sounds => Icons.graphic_eq,
   };
 
   Color get color =>

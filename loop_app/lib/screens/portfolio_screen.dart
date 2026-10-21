@@ -132,10 +132,14 @@ class PortfolioScreen extends ConsumerWidget {
                 device: d,
                 actionLabel: auction != null
                     ? t('Na aukciji')
+                    : d.isDigital
+                    ? t('Detalji')
                     : t('Prodaj odmah'),
                 actionIcon: auction != null ? Icons.gavel : Icons.sell_outlined,
                 onAction: auction != null
                     ? () => AuctionDetailScreen.open(context, auction.id)
+                    : d.isDigital
+                    ? () => DeviceDetailScreen.open(context, d)
                     : () => confirmAndSell(context, ref, d),
                 onTap: () => DeviceDetailScreen.open(context, d),
                 badge: d.isListed ? t('🏷️ U Marketu') : null,

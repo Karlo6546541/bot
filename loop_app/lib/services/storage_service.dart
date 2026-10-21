@@ -33,6 +33,10 @@ class StorageService {
   static const _messagesBox = 'messages';
   static const _offersBox = 'offers';
 
+  /// Sadržaj digitalnih datoteka u lokalnom načinu (web) — NE sinkronizira
+  /// se (online datoteke su u Supabase Storageu).
+  static const _filesBox = 'files';
+
   /// Lokalne lozinke (sažeci) — NE sinkronizira se.
   static const _credentialsBox = 'credentials';
 
@@ -53,7 +57,7 @@ class StorageService {
 
   /// Povećaj kad se seed proširi — postojeće instalacije tada dobiju
   /// nove demo predmete bez resetiranja (vidi [_migrateSeed]).
-  static const _seedVersion = 5;
+  static const _seedVersion = 6;
   static const _seedVersionKey = 'seedVersion';
 
   /// Najviše točaka povijesti po korisniku.
@@ -75,6 +79,7 @@ class StorageService {
   late Box<Map> _auctions;
   late Box<Map> _deliveries;
   late Box<Map> _credentials;
+  late Box _files;
   late Box<Map> _reviews;
   late Box<Map> _notifications;
   late Box<Map> _reports;
@@ -134,6 +139,7 @@ class StorageService {
     _auctions = await Hive.openBox<Map>(_auctionsBox, bytes: bytes);
     _deliveries = await Hive.openBox<Map>(_deliveriesBox, bytes: bytes);
     _credentials = await Hive.openBox<Map>(_credentialsBox, bytes: bytes);
+    _files = await Hive.openBox(_filesBox, bytes: bytes);
     _reviews = await Hive.openBox<Map>(_reviewsBox, bytes: bytes);
     _notifications = await Hive.openBox<Map>(_notificationsBox, bytes: bytes);
     _reports = await Hive.openBox<Map>(_reportsBox, bytes: bytes);
@@ -178,7 +184,15 @@ class StorageService {
       if (historyOf(u.id).isEmpty) await recordSnapshot(u.id, now: now);
     }
     await ensureAccounts();
+    await _seedFiles();
     await _session.put(_seedVersionKey, _seedVersion);
+  }
+
+  /// Datoteke demo digitalnih proizvoda (lokalno spremište).
+  Future<void> _seedFiles() async {
+    for (final e in SeedData.files().entries) {
+      if (fileBytes(e.key) == null) await putFileBytes(e.key, e.value);
+    }
   }
 
   Future<void> _seed() async {
@@ -198,6 +212,7 @@ class StorageService {
       });
     }
     await ensureAccounts();
+    await _seedFiles();
     await _session.put(_seededKey, true);
     await _session.put(_seedVersionKey, _seedVersion);
   }
@@ -237,6 +252,7 @@ class StorageService {
     await _auctions.clear();
     await _deliveries.clear();
     await _credentials.clear();
+    await _files.clear();
     for (final b in [_reviews, _notifications, _reports, _messages, _offers]) {
       await b.clear();
     }
@@ -279,6 +295,20 @@ class StorageService {
     }
     return null;
   }
+
+  // ------------------------------------------------- lokalne datoteke
+
+  Uint8List? fileBytes(String key) {
+    final v = _files.get(key);
+    return v is Uint8List
+        ? v
+        : (v is List ? Uint8List.fromList(v.cast<int>()) : null);
+  }
+
+  Future<void> putFileBytes(String key, Uint8List bytes) =>
+      _files.put(key, bytes);
+
+  Future<void> deleteFileBytes(String key) => _files.delete(key);
 
   // ---------------------------------------------------------- lozinke
 
@@ -366,7 +396,7 @@ class StorageService {
     final user = userById(userId);
     if (user == null) return;
     final portfolio = devices
-        .where((d) => d.ownerId == userId)
+        .where((d) => d.ownerId == userId && !d.isDigital)
         .fold(0.0, (sum, d) => sum + d.price);
     await appendHistory(
       userId,

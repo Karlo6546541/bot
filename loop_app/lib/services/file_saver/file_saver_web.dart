@@ -1,14 +1,14 @@
-import 'dart:convert';
 import 'dart:js_interop';
+import 'dart:typed_data';
 
 import 'package:web/web.dart' as web;
 
-Future<String> saveTextFile(String fileName, String content) async {
-  final bytes = utf8.encode(content);
-  final blob = web.Blob(
-    [bytes.toJS].toJS,
-    web.BlobPropertyBag(type: 'application/json'),
-  );
+Future<String> saveBytesFile(
+  String fileName,
+  Uint8List bytes,
+  String mime,
+) async {
+  final blob = web.Blob([bytes.toJS].toJS, web.BlobPropertyBag(type: mime));
   final url = web.URL.createObjectURL(blob);
   final a = web.HTMLAnchorElement()
     ..href = url

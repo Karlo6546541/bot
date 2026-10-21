@@ -165,6 +165,15 @@ class DeviceDetailScreen extends ConsumerWidget {
                 const SizedBox(height: 12),
                 _PhotoActions(device: device),
               ],
+              if (device.isDigital && device.file != null) ...[
+                const SizedBox(height: 16),
+                _DigitalFileCard(
+                  device: device,
+                  isMine: isMine,
+                  purchased: state.hasPurchased(device.id),
+                  buyers: state.buyersCount(device.id),
+                ),
+              ],
               if (device.description.isNotEmpty) ...[
                 const SizedBox(height: 16),
                 DescriptionCard(text: device.description),
@@ -179,12 +188,13 @@ class DeviceDetailScreen extends ConsumerWidget {
                       cat.singular,
                       cat.color,
                     ),
-                    _Spec(
-                      Icons.verified_outlined,
-                      t('Stanje'),
-                      device.condition.label,
-                      device.condition.color,
-                    ),
+                    if (!device.isDigital)
+                      _Spec(
+                        Icons.verified_outlined,
+                        t('Stanje'),
+                        device.condition.label,
+                        device.condition.color,
+                      ),
                     if (isMine || owner == null)
                       _Spec(
                         Icons.person_outline,
@@ -325,15 +335,16 @@ class DeviceDetailScreen extends ConsumerWidget {
                   ),
                   const SizedBox(height: 10),
                 ],
-                OutlinedButton.icon(
-                  onPressed: () async {
-                    final ok = await confirmAndSell(context, ref, device);
-                    if (ok && context.mounted) Navigator.pop(context);
-                  },
-                  icon: const Icon(Icons.sell_outlined),
-                  label: Text(t('Prodaj odmah LOOP-u')),
-                ),
-                if (!device.isListed) ...[
+                if (!device.isDigital)
+                  OutlinedButton.icon(
+                    onPressed: () async {
+                      final ok = await confirmAndSell(context, ref, device);
+                      if (ok && context.mounted) Navigator.pop(context);
+                    },
+                    icon: const Icon(Icons.sell_outlined),
+                    label: Text(t('Prodaj odmah LOOP-u')),
+                  ),
+                if (!device.isListed && !device.isDigital) ...[
                   const SizedBox(height: 10),
                   OutlinedButton.icon(
                     onPressed: () =>
@@ -352,14 +363,31 @@ class DeviceDetailScreen extends ConsumerWidget {
                   icon: const Icon(Icons.delete_outline),
                   label: Text(t('Obriši predmet')),
                 ),
+              ] else if (device.isDigital && state.hasPurchased(device.id)) ...[
+                FilledButton.icon(
+                  key: const ValueKey('download-file'),
+                  onPressed: () => downloadDigital(context, ref, device),
+                  icon: const Icon(Icons.download),
+                  label: Text(t('Preuzmi datoteku')),
+                ),
               ] else if (canBuy) ...[
                 FilledButton.icon(
+                  key: const ValueKey('buy-now'),
                   onPressed: () async {
                     final ok = await confirmAndBuy(context, ref, device);
-                    if (ok && context.mounted) Navigator.pop(context);
+                    // Digitalni proizvod: ostani na ekranu (preuzimanje).
+                    if (ok && !device.isDigital && context.mounted) {
+                      Navigator.pop(context);
+                    }
                   },
-                  icon: const Icon(Icons.shopping_bag_outlined),
-                  label: Text(t('Kupi odmah')),
+                  icon: Icon(
+                    device.isDigital
+                        ? Icons.download_for_offline_outlined
+                        : Icons.shopping_bag_outlined,
+                  ),
+                  label: Text(
+                    device.isDigital ? t('Kupi i preuzmi') : t('Kupi odmah'),
+                  ),
                 ),
                 if (device.isListed && owner != null) ...[
                   const SizedBox(height: 10),
@@ -377,21 +405,150 @@ class DeviceDetailScreen extends ConsumerWidget {
                           label: Text(t('Pošalji poruku')),
                         ),
                       ),
-                      const SizedBox(width: 10),
-                      Expanded(
-                        child: OutlinedButton.icon(
-                          key: const ValueKey('offer-swap'),
-                          onPressed: () => showSwapSheet(context, ref, device),
-                          icon: const Icon(Icons.swap_horiz),
-                          label: Text(t('Ponudi zamjenu')),
+                      if (!device.isDigital) ...[
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: OutlinedButton.icon(
+                            key: const ValueKey('offer-swap'),
+                            onPressed: () =>
+                                showSwapSheet(context, ref, device),
+                            icon: const Icon(Icons.swap_horiz),
+                            label: Text(t('Ponudi zamjenu')),
+                          ),
                         ),
-                      ),
+                      ],
                     ],
                   ),
                 ],
               ],
             ],
           ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Datoteka digitalnog proizvoda: naziv, veličina, preuzimanje/zamjena.
+class _DigitalFileCard extends ConsumerWidget {
+  const _DigitalFileCard({
+    required this.device,
+    required this.isMine,
+    required this.purchased,
+    required this.buyers,
+  });
+
+  final Device device;
+  final bool isMine;
+  final bool purchased;
+  final int buyers;
+
+  Future<void> _replace(BuildContext context, WidgetRef ref) async {
+    final store = ref.read(fileStoreProvider);
+    try {
+      final f = await store.pick();
+      if (f == null || !context.mounted) return;
+      final error = store.validate(f);
+      if (error != null) {
+        showLoopSnackBar(error, error: true);
+        return;
+      }
+      await runWithLoading(
+        context,
+        () => ref.read(appProvider.notifier).replaceFile(device.id, f),
+        successMessage: t('Nova datoteka je učitana'),
+      );
+    } on TradeException catch (e) {
+      showLoopSnackBar(e.message, error: true);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final f = device.file!;
+    return Card(
+      color: LoopColors.sky,
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Row(
+              children: [
+                Container(
+                  width: 48,
+                  height: 48,
+                  alignment: Alignment.center,
+                  decoration: BoxDecoration(
+                    color: LoopColors.surface,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Text(
+                    f.extension.toUpperCase(),
+                    style: TextStyle(
+                      fontWeight: FontWeight.w900,
+                      fontSize: 12,
+                      color: LoopColors.info,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        f.name,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(fontWeight: FontWeight.w800),
+                      ),
+                      Text(
+                        t('{0} · digitalni proizvod', [f.sizeLabel]),
+                        style: TextStyle(
+                          color: LoopColors.textSecondary,
+                          fontSize: 12,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 10),
+            Text(
+              isMine
+                  ? t(
+                      'Kupaca: {0}. Svaki kupac plaća cijenu + 5%, a ti dobivaš cijenu − 5%.',
+                      [buyers],
+                    )
+                  : purchased
+                  ? t(
+                      'Kupio si ovaj proizvod — datoteku možeš preuzeti kad god želiš.',
+                    )
+                  : t('Datoteka se preuzima odmah nakon plaćanja.'),
+            ),
+            if (isMine) ...[
+              const SizedBox(height: 10),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  OutlinedButton.icon(
+                    onPressed: () => downloadDigital(context, ref, device),
+                    icon: const Icon(Icons.download),
+                    label: Text(t('Preuzmi')),
+                  ),
+                  OutlinedButton.icon(
+                    key: const ValueKey('replace-file'),
+                    onPressed: () => _replace(context, ref),
+                    icon: const Icon(Icons.upload_file),
+                    label: Text(t('Zamijeni datoteku')),
+                  ),
+                ],
+              ),
+            ],
+          ],
         ),
       ),
     );

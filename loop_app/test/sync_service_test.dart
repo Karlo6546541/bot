@@ -66,7 +66,7 @@ void main() {
     await sync.start();
     expect(sync.status, SyncStatus.online);
     expect(remote.data['users']!.keys, contains(SeedData.demoUserId));
-    expect(remote.data['devices'], hasLength(37));
+    expect(remote.data['devices'], hasLength(39));
     expect(remote.data['auctions'], hasLength(4));
   });
 

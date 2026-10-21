@@ -1,4 +1,6 @@
+import 'dart:convert';
 import 'dart:math';
+import 'dart:typed_data';
 
 import '../models/app_user.dart';
 import '../models/auction.dart';
@@ -70,6 +72,12 @@ class SeedData {
   ];
 
   static const _descriptions = {
+    'Kocka za kalibraciju':
+        'Klasična kocka 20 × 20 × 20 mm za provjeru dimenzija i kalibraciju '
+        '3D printera. Datoteka: STL, odmah nakon kupnje.',
+    'Predložak plakata':
+        'Jednostavan A4 plakat u SVG formatu — otvori u Inkscapeu, Figmi ili '
+        'Illustratoru, promijeni tekst i boje.',
     'iPhone 15 Pro':
         'Kupljen u Hrvatskoj, korišten 8 mjeseci uvijek s maskicom i '
         'zaštitnim staklom. Baterija 94%. Uz mobitel originalna kutija i '
@@ -294,18 +302,96 @@ class SeedData {
         DeviceCategory.tickets,
         anaUserId,
       ),
+      // Digitalno (LOOP Originals) — prave datoteke za isprobavanje.
+      d(
+        'Kocka za kalibraciju',
+        '3D model · STL, 20 mm',
+        nw,
+        15,
+        DeviceCategory.models3d,
+      ),
+      d(
+        'Predložak plakata',
+        'SVG · A4, uredivo',
+        nw,
+        20,
+        DeviceCategory.templates,
+      ),
     ];
-    // Opisi za nekoliko demo predmeta.
+    // Opisi i datoteke za nekoliko demo predmeta.
     return [
       for (final dev in list)
-        _descriptions[dev.name] == null
-            ? dev
-            : Device.fromMap({
-                ...dev.toMap(),
-                'description': _descriptions[dev.name],
-              }),
+        Device.fromMap({
+          ...dev.toMap(),
+          if (_descriptions[dev.name] != null)
+            'description': _descriptions[dev.name],
+          if (_files[dev.name] case final f?)
+            'file': {
+              'ref': 'local:${f.$1}',
+              'name': f.$1.split('/').last,
+              'size': utf8.encode(f.$2).length,
+              'uploadedAt': now.toIso8601String(),
+            },
+        }),
     ];
   }
+
+  /// Sadržaj demo datoteka (ključ u lokalnom spremištu → bajtovi).
+  static Map<String, Uint8List> files() => {
+    for (final f in _files.values) f.$1: utf8.encode(f.$2),
+  };
+
+  static final _files = <String, (String, String)>{
+    'Kocka za kalibraciju': ('seed/kocka_20mm.stl', _cubeStl()),
+    'Predložak plakata': ('seed/plakat_a4.svg', _posterSvg),
+  };
+
+  /// ASCII STL kocke 20×20×20 mm (12 trokuta).
+  static String _cubeStl() {
+    const s = 20.0;
+    final v = [
+      [0.0, 0.0, 0.0],
+      [s, 0.0, 0.0],
+      [s, s, 0.0],
+      [0.0, s, 0.0],
+      [0.0, 0.0, s],
+      [s, 0.0, s],
+      [s, s, s],
+      [0.0, s, s],
+    ];
+    const faces = [
+      [0, 2, 1, 0, 0, -1], [0, 3, 2, 0, 0, -1], // dno
+      [4, 5, 6, 0, 0, 1], [4, 6, 7, 0, 0, 1], // vrh
+      [0, 1, 5, 0, -1, 0], [0, 5, 4, 0, -1, 0], // prednja
+      [2, 3, 7, 0, 1, 0], [2, 7, 6, 0, 1, 0], // stražnja
+      [1, 2, 6, 1, 0, 0], [1, 6, 5, 1, 0, 0], // desna
+      [0, 4, 7, -1, 0, 0], [0, 7, 3, -1, 0, 0], // lijeva
+    ];
+    final b = StringBuffer('solid loop_kocka\n');
+    for (final f in faces) {
+      b.writeln('  facet normal ${f[3]} ${f[4]} ${f[5]}');
+      b.writeln('    outer loop');
+      for (final i in f.take(3)) {
+        final p = v[i];
+        b.writeln('      vertex ${p[0]} ${p[1]} ${p[2]}');
+      }
+      b.writeln('    endloop');
+      b.writeln('  endfacet');
+    }
+    b.writeln('endsolid loop_kocka');
+    return b.toString();
+  }
+
+  static const _posterSvg =
+      '''<svg xmlns="http://www.w3.org/2000/svg" width="210mm" height="297mm" viewBox="0 0 210 297">
+  <rect width="210" height="297" fill="#FFF7EF"/>
+  <rect x="15" y="15" width="180" height="267" rx="8" fill="none" stroke="#C8441E" stroke-width="2"/>
+  <text x="105" y="90" font-family="sans-serif" font-size="22" font-weight="900" text-anchor="middle" fill="#2A1F17">NASLOV DOGAĐAJA</text>
+  <text x="105" y="115" font-family="sans-serif" font-size="9" text-anchor="middle" fill="#76685D">Datum · mjesto · vrijeme</text>
+  <circle cx="105" cy="185" r="45" fill="#FFE1D1"/>
+  <text x="105" y="270" font-family="sans-serif" font-size="7" text-anchor="middle" fill="#76685D">Napravljeno s LOOP predloškom</text>
+</svg>
+''';
 
   /// Izmišljena povijest za demo korisnike, kako bi grafikon portfolija
   /// odmah imao što prikazati. Završava točno na početnom stanju iz seeda.

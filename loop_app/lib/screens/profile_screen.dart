@@ -9,6 +9,7 @@ import '../widgets/status_badge.dart';
 import '../widgets/trade_actions.dart';
 import 'buy_credits_screen.dart';
 import 'deliveries_screen.dart';
+import 'digital_library_screen.dart';
 import '../l10n/tr.dart';
 import '../widgets/language_button.dart';
 import '../models/app_user.dart';
@@ -102,6 +103,17 @@ class ProfileScreen extends ConsumerWidget {
                         : t('Moje dostave ({0} u tijeku)', [
                             state.myOpenDeliveries.length,
                           ]),
+                  ),
+                ),
+                const SizedBox(height: 10),
+                OutlinedButton.icon(
+                  key: const ValueKey('my-downloads'),
+                  onPressed: () => DigitalLibraryScreen.open(context),
+                  icon: const Icon(Icons.download_for_offline_outlined),
+                  label: Text(
+                    t('Moje digitalne kupnje ({0})', [
+                      state.myDigitalPurchases.length,
+                    ]),
                   ),
                 ),
                 const SizedBox(height: 12),

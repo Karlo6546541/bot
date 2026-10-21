@@ -49,6 +49,11 @@ class SwapService {
     if (offered == null || offered.ownerId != fromId) {
       throw TradeException(t('Ponuditi možeš samo svoj predmet.'));
     }
+    if (wanted.isDigital || offered.isDigital) {
+      throw TradeException(
+        t('Digitalni proizvodi se ne mijenjaju — kupuju se.'),
+      );
+    }
     if (_storage.activeAuctionFor(offeredDeviceId) != null) {
       throw TradeException(t('Predmet na aukciji ne možeš ponuditi.'));
     }

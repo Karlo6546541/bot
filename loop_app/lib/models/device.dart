@@ -6,7 +6,8 @@ enum ItemSection {
   collectibles('Kolekcionarstvo'),
   hobbies('Hobiji'),
   crafts('Rukotvorine'),
-  activities('Aktivnosti');
+  activities('Aktivnosti'),
+  digital('Digitalno');
 
   const ItemSection(this._label);
   final String _label;
@@ -54,7 +55,14 @@ enum DeviceCategory {
   workshops('Radionice', 'Radionica', ItemSection.activities),
   tutoring('Poduke', 'Poduka', ItemSection.activities),
   tickets('Ulaznice', 'Ulaznica', ItemSection.activities),
-  experiences('Doživljaji', 'Doživljaj', ItemSection.activities);
+  experiences('Doživljaji', 'Doživljaj', ItemSection.activities),
+
+  // Digitalno (datoteka koju kupac preuzima)
+  models3d('3D modeli', '3D model', ItemSection.digital),
+  software('Softver', 'Softver', ItemSection.digital),
+  ebooks('E-knjige i tečajevi', 'E-knjiga', ItemSection.digital),
+  templates('Predlošci i grafika', 'Predložak', ItemSection.digital),
+  sounds('Glazba i zvukovi', 'Audio', ItemSection.digital);
 
   const DeviceCategory(this._label, this._singular, this.section);
 
@@ -109,6 +117,7 @@ class Device {
     this.listPrice,
     this.listedAt,
     this.marketChecked = false,
+    this.file,
   });
 
   final String id;
@@ -137,6 +146,13 @@ class Device {
   /// objavio/uklonio). Stari predmeti iz portfolija nemaju ovu oznaku pa se
   /// jednom automatski objave — kasnije "Ukloni iz Marketa" se poštuje.
   final bool marketChecked;
+
+  /// Datoteka digitalnog proizvoda (3D model, softver, e-knjiga…).
+  final DigitalFile? file;
+
+  /// Digitalni proizvod: prodaje se više puta, vlasnik ga zadržava, a
+  /// kupac preuzima datoteku odmah nakon plaćanja.
+  bool get isDigital => category.section == ItemSection.digital;
 
   /// Predmet platforme (LOOP Market) — svatko ga može kupiti.
   bool get isOnMarket => ownerId == null;
@@ -167,6 +183,7 @@ class Device {
     description: description,
     // Kupljeni predmet se ne objavljuje sam od sebe.
     marketChecked: true,
+    file: file,
   );
 
   /// Objava u Marketu po cijeni [price] (`null` = ukloni iz Marketa).
@@ -184,6 +201,7 @@ class Device {
     listPrice: price,
     listedAt: price == null ? null : at ?? DateTime.now(),
     marketChecked: true,
+    file: file,
   );
 
   Device withImages(List<String> paths) => Device(
@@ -200,6 +218,25 @@ class Device {
     listPrice: listPrice,
     listedAt: listedAt,
     marketChecked: marketChecked,
+    file: file,
+  );
+
+  /// Kopija s novom datotekom (vlasnik je zamijenio datoteku).
+  Device withFile(DigitalFile f) => Device(
+    id: id,
+    name: name,
+    model: model,
+    condition: condition,
+    price: price,
+    category: category,
+    createdAt: createdAt,
+    ownerId: ownerId,
+    imagePaths: imagePaths,
+    description: description,
+    listPrice: listPrice,
+    listedAt: listedAt,
+    marketChecked: marketChecked,
+    file: f,
   );
 
   Map<String, dynamic> toMap() => {
@@ -216,6 +253,7 @@ class Device {
     'listPrice': listPrice,
     'listedAt': listedAt?.toIso8601String(),
     'marketChecked': marketChecked,
+    'file': file?.toMap(),
   };
 
   factory Device.fromMap(Map<dynamic, dynamic> map) => Device(
@@ -235,5 +273,53 @@ class Device {
         ? null
         : DateTime.parse(map['listedAt'] as String),
     marketChecked: map['marketChecked'] as bool? ?? false,
+    file: map['file'] == null ? null : DigitalFile.fromMap(map['file'] as Map),
+  );
+}
+
+/// Datoteka digitalnog proizvoda. [ref] je mjesto pohrane (online put u
+/// privatnom spremištu ili lokalni ključ) — vidi `FileStore`.
+class DigitalFile {
+  const DigitalFile({
+    required this.ref,
+    required this.name,
+    required this.size,
+    required this.uploadedAt,
+  });
+
+  final String ref;
+
+  /// Izvorni naziv datoteke (npr. "kocka.stl").
+  final String name;
+
+  /// Veličina u bajtovima.
+  final int size;
+  final DateTime uploadedAt;
+
+  String get extension {
+    final dot = name.lastIndexOf('.');
+    return dot < 0 ? '' : name.substring(dot + 1).toLowerCase();
+  }
+
+  /// "1,4 MB" / "820 KB".
+  String get sizeLabel {
+    if (size >= 1024 * 1024) {
+      return '${(size / (1024 * 1024)).toStringAsFixed(1).replaceAll('.', ',')} MB';
+    }
+    return '${(size / 1024).ceil()} KB';
+  }
+
+  Map<String, dynamic> toMap() => {
+    'ref': ref,
+    'name': name,
+    'size': size,
+    'uploadedAt': uploadedAt.toIso8601String(),
+  };
+
+  factory DigitalFile.fromMap(Map<dynamic, dynamic> m) => DigitalFile(
+    ref: m['ref'] as String,
+    name: m['name'] as String? ?? 'datoteka',
+    size: (m['size'] as num?)?.toInt() ?? 0,
+    uploadedAt: DateTime.parse(m['uploadedAt'] as String),
   );
 }

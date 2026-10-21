@@ -130,11 +130,7 @@ class _DeviceCardState extends State<DeviceCard> {
                   ),
                 ),
               ),
-            Positioned(
-              left: 8,
-              bottom: 8,
-              child: _Chip(label: d.condition.label, dot: d.condition.color),
-            ),
+            Positioned(left: 8, bottom: 8, child: _conditionChip(d)),
             if (widget.badge != null)
               Positioned(
                 left: 8,
@@ -256,7 +252,7 @@ class _DeviceCardState extends State<DeviceCard> {
           spacing: 8,
           runSpacing: 6,
           children: [
-            _Chip(label: d.condition.label, dot: d.condition.color),
+            _conditionChip(d),
             _Chip(label: d.category.singular, dot: d.category.color),
             if (widget.badge != null) _Badge(widget.badge!),
           ],
@@ -422,3 +418,11 @@ class _Badge extends StatelessWidget {
     ),
   );
 }
+
+/// Stanje predmeta, a za digitalni proizvod vrsta datoteke ("⬇ STL").
+Widget _conditionChip(Device d) => d.isDigital
+    ? _Chip(
+        label: '⬇ ${(d.file?.extension ?? '').toUpperCase()}',
+        dot: d.category.color,
+      )
+    : _Chip(label: d.condition.label, dot: d.condition.color);

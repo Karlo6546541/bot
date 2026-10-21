@@ -67,6 +67,13 @@ class AuctionService {
     if (_storage.activeAuctionFor(deviceId) != null) {
       throw TradeException(t('Predmet je već na aukciji.'));
     }
+    if (device.isDigital) {
+      throw TradeException(
+        t(
+          'Digitalni proizvodi se ne stavljaju na aukciju — prodaju se više puta u Marketu.',
+        ),
+      );
+    }
     if (startPrice <= 0) {
       throw TradeException(t('Početna cijena mora biti veća od 0.'));
     }

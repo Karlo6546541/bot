@@ -930,4 +930,69 @@ const kEn = <String, String>{
   'Imam dovoljno kredita (s 5% fee): {0}':
       'I have enough credits (with 5% fee): {0}',
   'Početna': 'Home',
+  'Datoteka je prazna.': 'The file is empty.',
+  'Datoteka je prevelika (najviše {0} MB).':
+      'The file is too large (max {0} MB).',
+  'Datoteka nije dostupna': 'File not available',
+  'Datoteka nije dostupna (nemaš pristup ili je obrisana).':
+      'The file isn\'t available (no access or it was deleted).',
+  'Datoteka nije dostupna na ovom uređaju.':
+      'The file isn\'t available on this device.',
+  'Datoteka se preuzima odmah nakon plaćanja.':
+      'The file downloads right after payment.',
+  'Datoteku mogu preuzeti samo kupci.': 'Only buyers can download the file.',
+  'Datoteku nije moguće pročitati.': 'The file can\'t be read.',
+  'Digitalni proizvod odmah ide u Market i možeš ga prodati više puta. Kupac plaća cijenu + 5%, ti dobivaš cijenu − 5%, a kupac odmah preuzima datoteku.':
+      'A digital product goes straight to the Market and can be sold many times. The buyer pays the price + 5%, you get the price − 5%, and the buyer downloads the file right away.',
+  'Digitalni proizvod se ne prodaje LOOP-u — kupci ga kupuju u Marketu.':
+      'A digital product isn\'t sold to LOOP — buyers buy it in the Market.',
+  'Digitalni proizvod treba datoteku koju kupac preuzima.':
+      'A digital product needs a file for buyers to download.',
+  'Digitalni proizvod: datoteka {0} ({1}) preuzima se odmah nakon plaćanja i ostaje ti u "Moje digitalne kupnje".':
+      'Digital product: the file {0} ({1}) downloads right after payment and stays in "My digital purchases".',
+  'Digitalni proizvodi se ne mijenjaju — kupuju se.':
+      'Digital products can\'t be swapped — they\'re bought.',
+  'Digitalni proizvodi se ne stavljaju na aukciju — prodaju se više puta u Marketu.':
+      'Digital products aren\'t auctioned — they\'re sold many times in the Market.',
+  'Dodaj datoteku': 'Add file',
+  'Dodaj datoteku koju kupac preuzima.': 'Add the file the buyer downloads.',
+  'Još nemaš digitalnih kupnji': 'No digital purchases yet',
+  'Kupaca: {0}. Svaki kupac plaća cijenu + 5%, a ti dobivaš cijenu − 5%.':
+      'Buyers: {0}. Each buyer pays the price + 5% and you get the price − 5%.',
+  'Kupi i preuzmi': 'Buy and download',
+  'Kupio si ovaj proizvod — datoteku možeš preuzeti kad god želiš.':
+      'You bought this product — download the file whenever you want.',
+  'Kupljeno! Datoteka se preuzima…': 'Bought! The file is downloading…',
+  'Moje digitalne kupnje': 'My digital purchases',
+  'Moje digitalne kupnje ({0})': 'My digital purchases ({0})',
+  'Nova datoteka je učitana': 'New file uploaded',
+  'Ovaj proizvod su već kupili ({0}) — ne može se obrisati jer ga kupci preuzimaju. Ukloni ga iz Marketa.':
+      'This product has buyers ({0}) — it can\'t be deleted because they download it. Remove it from the Market instead.',
+  'Ovo si već kupio — preuzmi datoteku u "Moje digitalne kupnje".':
+      'You already bought this — download the file in "My digital purchases".',
+  'Plati i preuzmi': 'Pay and download',
+  'Predmet nije digitalni.': 'The item isn\'t digital.',
+  'Preuzeto: {0}': 'Downloaded: {0}',
+  'Preuzimanje nije uspjelo: {0}': 'Download failed: {0}',
+  'Preuzmi': 'Download',
+  'Preuzmi datoteku': 'Download file',
+  'Promijeni': 'Change',
+  'STL, OBJ, 3MF, ZIP, PDF, EPUB, PNG, SVG, MP3… · najviše {0} MB':
+      'STL, OBJ, 3MF, ZIP, PDF, EPUB, PNG, SVG, MP3… · max {0} MB',
+  'U Marketu odaberi odjeljak "Digitalno" — 3D modeli, softver, e-knjige, predlošci i zvukovi.':
+      'In the Market pick the "Digital" section — 3D models, software, e-books, templates and sounds.',
+  'Vrsta datoteke .{0} nije dopuštena.': 'File type .{0} isn\'t allowed.',
+  'Zamijeni datoteku': 'Replace file',
+  '{0} · digitalni proizvod': '{0} · digital product',
+  '✓ Kupljeno': '✓ Bought',
+  'Digitalno': 'Digital',
+  '3D modeli': '3D models',
+  '3D model': '3D model',
+  'Softver': 'Software',
+  'E-knjige i tečajevi': 'E-books & courses',
+  'E-knjiga': 'E-book',
+  'Predlošci i grafika': 'Templates & graphics',
+  'Predložak': 'Template',
+  'Glazba i zvukovi': 'Music & sounds',
+  'Audio': 'Audio',
 };

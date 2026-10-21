@@ -162,6 +162,24 @@ ne sinkronizira; online prijavu vodi Supabase Auth i lozinke ne prolaze kroz na�
   Vlasnik prihvaća ili odbija; nakon prihvaćanja predmeti mijenjaju vlasnike, nadoplata
   ide vlasniku (− 5%), a oboje biraju dostavu u *Moje dostave*.
 
+## Digitalni proizvodi (3D modeli, softver, e-knjige…)
+
+- Odjeljak **Digitalno**: 3D modeli, softver, e-knjige i tečajevi, predlošci i grafika,
+  glazba i zvukovi.
+- Prodavatelj u *Dodaj predmet* odabere *Digitalno* i **učita datoteku** (STL, OBJ, 3MF,
+  STEP, ZIP, PDF, EPUB, PNG, SVG, MP3… — bez izvršnih datoteka; softver kao .zip;
+  najviše 25 MB online). Stanje se ne bira, a proizvod odmah ide u Market.
+- Digitalni proizvod se **prodaje više puta**: prodavatelj ga zadržava, svaki kupac plaća
+  cijenu + 5%, prodavatelj dobiva cijenu − 5%. Nema dostave, aukcije, zamjene ni prodaje
+  LOOP-u.
+- Kupac **preuzima datoteku odmah** nakon plaćanja, a kasnije u *Profil → Moje digitalne
+  kupnje* ili na stranici proizvoda. Isti kupac ne plaća dvaput.
+- Vlasnik vidi broj kupaca, može preuzeti i **zamijeniti datoteku** (nova verzija vrijedi i
+  za postojeće kupce). Proizvod s kupcima ne može se obrisati — samo ukloniti iz Marketa.
+- Online su datoteke u **privatnom** Supabase bucketu `loop-files`; pravila u bazi dopuštaju
+  preuzimanje samo vlasniku i kupcima (`supabase/schema.sql`). Lokalno su na uređaju.
+- Demo: *Kocka za kalibraciju* (STL) i *Predložak plakata* (SVG) od LOOP-a.
+
 ## Ocjene, obavijesti, prijave i blokiranje
 
 - **Ocjene**: nakon potvrde primitka kupac ocjenjuje prodavatelja (1–5 ★ + komentar).

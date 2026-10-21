@@ -43,14 +43,17 @@ void main() {
     expect(UserStatus.fromTotalValue(5001), UserStatus.gold);
   });
 
-  test('seed: demo korisnik je Silver, 31 predmet u Marketu', () {
-    final state = AppState.fromStorage(storage);
-    final demo = storage.userById(SeedData.demoUserId)!;
-    expect(demo.credits, 1250);
-    expect(state.devicesOf(demo.id), hasLength(2));
-    expect(state.statusOf(demo), UserStatus.silver);
-    expect(state.devices.where((d) => d.isOnMarket), hasLength(31));
-  });
+  test(
+    'seed: demo korisnik je Silver, 33 predmeta u Marketu (2 digitalna)',
+    () {
+      final state = AppState.fromStorage(storage);
+      final demo = storage.userById(SeedData.demoUserId)!;
+      expect(demo.credits, 1250);
+      expect(state.devicesOf(demo.id), hasLength(2));
+      expect(state.statusOf(demo), UserStatus.silver);
+      expect(state.devices.where((d) => d.isOnMarket), hasLength(33));
+    },
+  );
 
   test(
     'instant sell: krediti +95%, uređaj ide u Market, transakcija',
@@ -116,7 +119,7 @@ void main() {
 
     await storage.resetAll();
     expect(storage.users, hasLength(4));
-    expect(storage.devices, hasLength(37));
+    expect(storage.devices, hasLength(39));
   });
 
   test('favoriti: dodavanje i uklanjanje', () async {

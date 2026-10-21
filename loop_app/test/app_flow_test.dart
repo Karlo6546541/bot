@@ -29,6 +29,7 @@ void main() {
   communityTests();
   chatTests();
   logoTests();
+  digitalTests();
   for (final size in const [Size(1400, 1000), Size(400, 860)]) {
     testWidgets('login → prodaja → kupnja → aktivnost ($size)', (tester) async {
       tester.view.physicalSize = size;
@@ -806,4 +807,75 @@ void logoTests() {
       expect(find.text('Bok, Demo 👋'), findsOneWidget);
     });
   }
+}
+
+void digitalTests() {
+  testWidgets('digitalni proizvod: kupnja bez dostave, moje kupnje, obrazac', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(1400, 1000);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+
+    await tester.pumpWidget(await buildApp(tester));
+    await tester.ensureVisible(find.text('Prijavi se'));
+    await tester.tap(find.text('Prijavi se'));
+    await tester.pumpAndSettle();
+
+    // Market → odjeljak Digitalno → kocka (STL).
+    await tester.tap(find.text('Market').last);
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byType(TextField).first, 'kocka');
+    await tester.pumpAndSettle();
+    expect(find.text('⬇ STL'), findsOneWidget);
+    await tester.tap(find.text('Kocka za kalibraciju'));
+    await tester.pumpAndSettle();
+    expect(find.text('kocka_20mm.stl'), findsOneWidget);
+    expect(find.text('Stanje'), findsNothing); // digitalno nema stanja
+
+    await tester.scrollUntilVisible(find.byKey(const ValueKey('buy-now')), 200);
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('buy-now')));
+    await tester.pumpAndSettle();
+    expect(find.text('Kupi i preuzmi'), findsWidgets); // dijalog, bez dostave
+    expect(find.text('Kurir na adresu'), findsNothing);
+    await tester.tap(find.text('Plati i preuzmi'));
+    await tester.pumpAndSettle();
+    // Nakon kupnje: gumb za preuzimanje umjesto kupnje.
+    await tester.scrollUntilVisible(
+      find.byKey(const ValueKey('download-file')),
+      200,
+    );
+    expect(find.byKey(const ValueKey('download-file')), findsOneWidget);
+    await tester.pageBack();
+    await tester.pumpAndSettle();
+    expect(find.text('✓ Kupljeno'), findsOneWidget);
+
+    // Profil → Moje digitalne kupnje.
+    await tester.tap(find.text('Profil').last);
+    await tester.pumpAndSettle();
+    await tester.scrollUntilVisible(
+      find.byKey(const ValueKey('my-downloads')),
+      200,
+    );
+    await tester.pumpAndSettle();
+    expect(find.text('Moje digitalne kupnje (1)'), findsOneWidget);
+    await tester.tap(find.byKey(const ValueKey('my-downloads')));
+    await tester.pumpAndSettle();
+    expect(find.text('Kocka za kalibraciju'), findsOneWidget);
+    await tester.pageBack();
+    await tester.pumpAndSettle();
+
+    // Obrazac: "Digitalno" skriva stanje i traži datoteku.
+    await tester.tap(find.text('Portfolio').last);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Dodaj predmet').first);
+    await tester.pumpAndSettle();
+    expect(find.text('Stanje'), findsOneWidget);
+    await tester.ensureVisible(find.text('Digitalno'));
+    await tester.tap(find.text('Digitalno'));
+    await tester.pumpAndSettle();
+    expect(find.text('Stanje'), findsNothing);
+    expect(find.text('Dodaj datoteku'), findsOneWidget);
+  });
 }

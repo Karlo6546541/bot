@@ -129,6 +129,11 @@ Future<bool> confirmAndBuy(
   final user = ref.read(appProvider).currentUser;
   if (user == null) return false;
   final total = buyTotal(device.askPrice);
+  // Već kupljen digitalni proizvod — samo preuzmi.
+  if (device.isDigital && ref.read(appProvider).hasPurchased(device.id)) {
+    await downloadDigital(context, ref, device);
+    return false;
+  }
 
   if (user.credits < total) {
     // Ponudi dopunu umjesto suhe greške.
@@ -151,6 +156,8 @@ Future<bool> confirmAndBuy(
     // Nakon dopune nastavi s kupnjom.
     return confirmAndBuy(context, ref, device);
   }
+
+  if (device.isDigital) return _buyDigital(context, ref, device);
 
   // Blagajna: dostava + pregled iznosa.
   final choice = await showModalBottomSheet<DeliveryChoice>(
@@ -367,7 +374,9 @@ Future<bool> _showTradeDialog(
               style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
             ),
             Text(
-              '${device.model} · ${device.condition.label}',
+              device.isDigital
+                  ? device.model
+                  : '${device.model} · ${device.condition.label}',
               style: TextStyle(color: LoopColors.textSecondary),
             ),
             SizedBox(height: 16),
@@ -573,5 +582,59 @@ class _ListDialogState extends State<_ListDialog> {
         FilledButton(onPressed: _submit, child: Text(t('Objavi'))),
       ],
     );
+  }
+}
+
+/// Kupnja digitalnog proizvoda: bez dostave, preuzimanje odmah.
+Future<bool> _buyDigital(
+  BuildContext context,
+  WidgetRef ref,
+  Device device,
+) async {
+  final price = device.askPrice;
+  final ok = await _showTradeDialog(
+    context,
+    title: t('Kupi i preuzmi'),
+    device: device,
+    rows: [
+      _Row(t('Cijena'), formatCredits(price)),
+      _Row(
+        t('Fee (5%)'),
+        '+ ${formatCredits(feeFor(price))}',
+        color: LoopColors.error,
+      ),
+      _Row(t('Ukupno plaćaš'), formatCredits(buyTotal(price)), highlight: true),
+    ],
+    note: t(
+      'Digitalni proizvod: datoteka {0} ({1}) preuzima se odmah nakon plaćanja i ostaje ti u "Moje digitalne kupnje".',
+      [device.file?.name ?? '', device.file?.sizeLabel ?? ''],
+    ),
+    confirmLabel: t('Plati i preuzmi'),
+  );
+  if (!ok || !context.mounted) return false;
+  final bought = await runWithLoading(
+    context,
+    () => ref.read(appProvider.notifier).buy(device.id),
+    successMessage: t('Kupljeno! Datoteka se preuzima…'),
+  );
+  if (bought && context.mounted) {
+    await downloadDigital(context, ref, device);
+  }
+  return bought;
+}
+
+/// Preuzima datoteku digitalnog proizvoda (kupac ili vlasnik).
+Future<void> downloadDigital(
+  BuildContext context,
+  WidgetRef ref,
+  Device device,
+) async {
+  try {
+    final where = await ref.read(appProvider.notifier).downloadFile(device.id);
+    showLoopSnackBar(t('Preuzeto: {0}', [where]));
+  } on TradeException catch (e) {
+    showLoopSnackBar(e.message, error: true);
+  } catch (e) {
+    showLoopSnackBar(t('Preuzimanje nije uspjelo: {0}', [e]), error: true);
   }
 }

@@ -172,6 +172,40 @@ class AppState {
   List<SwapOffer> get incomingOffers =>
       myOffers.where((o) => o.isPending && o.toId == currentUserId).toList();
 
+  /// Je li trenutni korisnik kupio digitalni proizvod.
+  bool hasPurchased(String deviceId) =>
+      currentUserId != null &&
+      transactions.any(
+        (t) =>
+            t.type == TransactionType.buy &&
+            t.buyerId == currentUserId &&
+            t.deviceId == deviceId,
+      );
+
+  /// Broj kupaca digitalnog proizvoda.
+  int buyersCount(String deviceId) => {
+    for (final t in transactions)
+      if (t.type == TransactionType.buy && t.deviceId == deviceId) t.buyerId,
+  }.length;
+
+  /// Moje digitalne kupnje (predmeti koji još postoje), najnovije prvo.
+  List<Device> get myDigitalPurchases {
+    final me = currentUserId;
+    if (me == null) return const [];
+    final ids = <String>[];
+    for (final t in transactions) {
+      if (t.type == TransactionType.buy &&
+          t.buyerId == me &&
+          !ids.contains(t.deviceId)) {
+        ids.add(t.deviceId);
+      }
+    }
+    return [
+      for (final id in ids)
+        if (deviceById(id) case final d? when d.isDigital) d,
+    ];
+  }
+
   bool isBlocked(String userId) =>
       currentUser?.blockedIds.contains(userId) ?? false;
 
@@ -301,8 +335,11 @@ class AppState {
       ? const []
       : transactions.where((t) => t.involves(currentUserId!)).toList();
 
-  double portfolioValueOf(String userId) =>
-      devicesOf(userId).fold(0, (sum, d) => sum + d.price);
+  /// Vrijednost fizičkih predmeta (digitalni proizvod se prodaje više puta
+  /// pa se ne računa u vrijednost portfolija).
+  double portfolioValueOf(String userId) => devicesOf(
+    userId,
+  ).where((d) => !d.isDigital).fold(0, (sum, d) => sum + d.price);
 
   /// Ukupna vrijednost = krediti (uključujući blokirane u ponudama)
   /// + vrijednost portfolija.
