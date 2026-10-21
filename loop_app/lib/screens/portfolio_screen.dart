@@ -42,13 +42,6 @@ class PortfolioScreen extends ConsumerWidget {
 
     return CustomScrollView(
       slivers: [
-        // Feed je prvi: objave (swipe kao TikTok) i trgovine za tebe.
-        SliverToBoxAdapter(
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
-            child: HomeFeed(onGoToMarket: onGoToMarket),
-          ),
-        ),
         SliverToBoxAdapter(
           child: Padding(
             padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
@@ -76,6 +69,14 @@ class PortfolioScreen extends ConsumerWidget {
           child: Padding(
             padding: EdgeInsets.fromLTRB(16, 0, 16, 16),
             child: _QuickActions(),
+          ),
+        ),
+        // Feed odmah ispod stanja i brzih akcija: objave (swipe kao TikTok)
+        // i trgovine za tebe.
+        SliverToBoxAdapter(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+            child: HomeFeed(onGoToMarket: onGoToMarket),
           ),
         ),
         if (state.showHowItWorks)
