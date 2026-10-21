@@ -12,6 +12,7 @@ import '../widgets/formatters.dart';
 import '../widgets/user_avatar.dart';
 import 'auctions_screen.dart';
 import 'device_detail_screen.dart';
+import 'messages_screen.dart';
 import '../widgets/device_card.dart';
 import '../widgets/trade_actions.dart';
 
@@ -125,7 +126,21 @@ class PublicProfileScreen extends ConsumerWidget {
           box(
             Padding(
               padding: const EdgeInsets.only(top: 8),
-              child: ProfileHeader(user: user, rating: state.ratingOf(user.id)),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  ProfileHeader(user: user, rating: state.ratingOf(user.id)),
+                  if (!isMe && !blocked) ...[
+                    const SizedBox(height: 10),
+                    FilledButton.icon(
+                      key: const ValueKey('profile-message'),
+                      onPressed: () => ChatScreen.open(context, other.id),
+                      icon: const Icon(Icons.chat_bubble_outline),
+                      label: Text(t('Pošalji poruku')),
+                    ),
+                  ],
+                ],
+              ),
             ),
           ),
           box(title(t('Na prodaju u Marketu ({0})', [listings.length]))),

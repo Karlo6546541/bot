@@ -11,7 +11,9 @@ import '../models/auction.dart';
 import '../services/account_service.dart';
 import '../services/auction_service.dart';
 import '../services/auth_backend.dart';
+import '../services/chat_service.dart';
 import '../services/community_service.dart';
+import '../services/swap_service.dart';
 import '../models/report.dart';
 import '../services/credit_shop.dart';
 import '../services/delivery_service.dart';
@@ -69,6 +71,14 @@ class PasswordRecovery extends Notifier<bool> {
 
 final communityServiceProvider = Provider<CommunityService>(
   (ref) => CommunityService(ref.watch(storageProvider)),
+);
+
+final chatServiceProvider = Provider<ChatService>(
+  (ref) => ChatService(ref.watch(storageProvider)),
+);
+
+final swapServiceProvider = Provider<SwapService>(
+  (ref) => SwapService(ref.watch(storageProvider)),
 );
 
 final tradeServiceProvider = Provider<TradeService>(
@@ -366,6 +376,67 @@ class AppController extends Notifier<AppState> {
   /// Admin: zatvori prijavu.
   Future<void> closeReport(String reportId, ReportStatus status) async {
     await _community.closeReport(reportId, status);
+    _refresh();
+  }
+
+  // --------------------------------------------------- poruke i zamjene
+
+  Future<void> sendMessage(String toId, String text, {String? deviceId}) async {
+    await ref
+        .read(chatServiceProvider)
+        .send(
+          senderId: _requireUserId(),
+          receiverId: toId,
+          text: text,
+          deviceId: deviceId,
+        );
+    _refresh();
+  }
+
+  Future<void> markChatRead(String otherId) async {
+    final me = state.currentUser;
+    if (me == null || me.isGuest) return;
+    final hasUnread = state
+        .chatWith(otherId)
+        .any((m) => m.receiverId == me.id && !m.read);
+    if (!hasUnread) return;
+    await ref.read(chatServiceProvider).markRead(me.id, otherId);
+    _refresh();
+  }
+
+  Future<void> offerSwap({
+    required String wantedDeviceId,
+    required String offeredDeviceId,
+    double extraCredits = 0,
+    String message = '',
+  }) async {
+    await ref
+        .read(swapServiceProvider)
+        .offer(
+          fromId: _requireUserId(),
+          wantedDeviceId: wantedDeviceId,
+          offeredDeviceId: offeredDeviceId,
+          extraCredits: extraCredits,
+          message: message,
+        );
+    _refresh();
+  }
+
+  Future<void> acceptSwap(String offerId) async {
+    try {
+      await ref.read(swapServiceProvider).accept(_requireUserId(), offerId);
+    } finally {
+      _refresh();
+    }
+  }
+
+  Future<void> declineSwap(String offerId) async {
+    await ref.read(swapServiceProvider).decline(_requireUserId(), offerId);
+    _refresh();
+  }
+
+  Future<void> withdrawSwap(String offerId) async {
+    await ref.read(swapServiceProvider).withdraw(_requireUserId(), offerId);
     _refresh();
   }
 

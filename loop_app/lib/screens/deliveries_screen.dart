@@ -171,7 +171,9 @@ class DeliveryCard extends ConsumerWidget {
                       ),
                       Text(
                         m == null
-                            ? t('Osvojeno na aukciji · odaberi dostavu')
+                            ? d.fromAuction
+                                  ? t('Osvojeno na aukciji · odaberi dostavu')
+                                  : t('Zamjena · odaberi dostavu')
                             : '${m.label}${d.destination != null ? ' · ${d.destination}' : ''}',
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,

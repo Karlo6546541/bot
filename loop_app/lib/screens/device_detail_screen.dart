@@ -15,6 +15,7 @@ import '../widgets/photo_viewer.dart';
 import '../widgets/trade_actions.dart';
 import 'auction_detail_screen.dart';
 import 'create_auction_screen.dart';
+import 'messages_screen.dart';
 import 'public_profile_screen.dart';
 import '../widgets/user_avatar.dart';
 import '../l10n/tr.dart';
@@ -351,7 +352,7 @@ class DeviceDetailScreen extends ConsumerWidget {
                   icon: const Icon(Icons.delete_outline),
                   label: Text(t('Obriši predmet')),
                 ),
-              ] else if (canBuy)
+              ] else if (canBuy) ...[
                 FilledButton.icon(
                   onPressed: () async {
                     final ok = await confirmAndBuy(context, ref, device);
@@ -360,6 +361,35 @@ class DeviceDetailScreen extends ConsumerWidget {
                   icon: const Icon(Icons.shopping_bag_outlined),
                   label: Text(t('Kupi odmah')),
                 ),
+                if (device.isListed && owner != null) ...[
+                  const SizedBox(height: 10),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton.icon(
+                          key: const ValueKey('message-seller'),
+                          onPressed: () => ChatScreen.open(
+                            context,
+                            owner.id,
+                            deviceId: device.id,
+                          ),
+                          icon: const Icon(Icons.chat_bubble_outline),
+                          label: Text(t('Pošalji poruku')),
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: OutlinedButton.icon(
+                          key: const ValueKey('offer-swap'),
+                          onPressed: () => showSwapSheet(context, ref, device),
+                          icon: const Icon(Icons.swap_horiz),
+                          label: Text(t('Ponudi zamjenu')),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ],
             ],
           ),
         ),

@@ -81,6 +81,7 @@ class DeliveryService {
     required String deviceId,
     required String deviceName,
     String? sellerId,
+    bool fromAuction = true,
     DateTime? now,
   }) async {
     final d = Delivery(
@@ -89,7 +90,7 @@ class DeliveryService {
       deviceName: deviceName,
       buyerId: userId,
       createdAt: now ?? DateTime.now(),
-      fromAuction: true,
+      fromAuction: fromAuction,
       sellerId: sellerId,
     );
     await _storage.putDelivery(d);

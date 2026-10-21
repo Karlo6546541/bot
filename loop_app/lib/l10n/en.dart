@@ -826,4 +826,74 @@ const kEn = <String, String>{
   'Odbijeno': 'Declined',
   'Povučeno': 'Withdrawn',
   'Nije uspjelo': 'Failed',
+  ' + {0}': ' + {0}',
+  ' + {0} (− 5% fee)': ' + {0} (− 5% fee)',
+  'Daješ "{0}" i dobivaš "{1}"{2}. Zamjena je konačna, a oboje zatim birate dostavu.':
+      'You give "{0}" and get "{1}"{2}. The swap is final, then you both choose delivery.',
+  'Dobivaš: {0}{1}\nDaješ: {2}': 'You get: {0}{1}\nYou give: {2}',
+  'Imaš {0}': 'You have {0}',
+  'Još nema poruka': 'No messages yet',
+  'Na predmetu u Marketu dodirni "Pošalji poruku" ili "Ponudi zamjenu".':
+      'On a Market item, tap "Send message" or "Offer a swap".',
+  'Nadoplata ne može biti negativna.': 'The extra payment can\'t be negative.',
+  'Nadoplata u kreditima (neobavezno)': 'Extra credits (optional)',
+  'Napiši poruku.': 'Write a message.',
+  'Napiši prvu poruku. Budi pristojan — poruke se mogu prijaviti.':
+      'Write the first message. Be polite — messages can be reported.',
+  'Ne možeš poslati poruku ovom korisniku.': 'You can\'t message this user.',
+  'Ne možeš slati poruke sam sebi.': 'You can\'t message yourself.',
+  'Nemaš dovoljno kredita za nadoplatu ({0}).':
+      'Not enough credits for the extra payment ({0}).',
+  'Nemaš predmeta za zamjenu — dodaj ga u portfolio.':
+      'You have no item to swap — add one to your portfolio.',
+  'Nudiš: {0}{1}\nZa: {2}': 'You offer: {0}{1}\nFor: {2}',
+  'O predmetu: {0}': 'About: {0}',
+  'Odaberi dostavu za predmet ({0})': 'Choose delivery for an item ({0})',
+  'Odbij': 'Decline',
+  'Ponuda ne postoji.': 'The offer doesn\'t exist.',
+  'Ponuda odbijena': 'Offer declined',
+  'Ponuda povučena': 'Offer withdrawn',
+  'Ponuda više nije aktivna.': 'The offer is no longer active.',
+  'Ponuda zamjene poslana 🔄': 'Swap offer sent 🔄',
+  'Ponude zamjene ({0})': 'Swap offers ({0})',
+  'Ponudi zamjenu': 'Offer a swap',
+  'Ponuditi možeš samo svoj predmet.': 'You can only offer your own item.',
+  'Poruka (neobavezno)': 'Message (optional)',
+  'Poruka može imati najviše {0} znakova.':
+      'A message can be at most {0} characters.',
+  'Poruka…': 'Message…',
+  'Poruke': 'Messages',
+  'Povuci ponudu': 'Withdraw offer',
+  'Pošalji': 'Send',
+  'Pošalji ponudu': 'Send offer',
+  'Pošalji poruku': 'Send message',
+  'Predmet na aukciji ne možeš ponuditi.':
+      'You can\'t offer an item that\'s on auction.',
+  'Prihvati': 'Accept',
+  'Prihvatiti zamjenu?': 'Accept the swap?',
+  'Razgovori': 'Conversations',
+  'Samo ponuditelj može povući ponudu.':
+      'Only the offerer can withdraw the offer.',
+  'Samo vlasnik predmeta može odbiti zamjenu.':
+      'Only the item owner can decline the swap.',
+  'Samo vlasnik predmeta može prihvatiti zamjenu.':
+      'Only the item owner can accept the swap.',
+  'Tvoj predmet': 'Your item',
+  'Unesi ispravan iznos': 'Enter a valid amount',
+  'Već imaš ponudu za ovaj predmet — pričekaj odgovor ili je povuci.':
+      'You already have an offer for this item — wait for a reply or withdraw it.',
+  'Za: {0} ({1})': 'For: {0} ({1})',
+  'Zamjena je moguća samo za tuđe predmete u Marketu.':
+      'Swaps are possible only for other users\' items in the Market.',
+  'Zamjena prihvaćena 🤝 — odaberi dostavu u "Moje dostave".':
+      'Swap accepted 🤝 — choose delivery in "My deliveries".',
+  'Zamjena više nije moguća — jedan od predmeta nije dostupan.':
+      'The swap is no longer possible — one of the items isn\'t available.',
+  'Zamjena · odaberi dostavu': 'Swap · choose delivery',
+  '{0} više nema dovoljno kredita za nadoplatu.':
+      '{0} no longer has enough credits for the extra payment.',
+  '{0} ⇄ {1}': '{0} ⇄ {1}',
+  '🔄 Tvoja ponuda za {0}': '🔄 Your offer to {0}',
+  '🔄 {0} ti nudi zamjenu': '🔄 {0} offers you a swap',
+  'Zamjena': 'Swap',
 };

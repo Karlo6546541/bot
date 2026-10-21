@@ -100,7 +100,7 @@ class AccountService {
           _storage.users,
           exceptUserId: exceptUserId,
         ) ||
-        !await backend.isUsernameFree(name)) {
+        !await backend.isUsernameFree(name, uid: exceptUserId)) {
       throw UsernameTakenException(
         name,
         UsernameRules.suggestions(name, _storage.users),
@@ -124,7 +124,7 @@ class AccountService {
     );
     if (free) {
       try {
-        free = await backend.isUsernameFree(name);
+        free = await backend.isUsernameFree(name, uid: exceptUserId);
       } catch (_) {
         // Bez mreže: oslanjamo se na lokalnu provjeru.
       }
@@ -195,7 +195,7 @@ class AccountService {
 
   /// Novi profil s odabranim korisničkim imenom.
   Future<AppUser> createProfile(AuthIdentity identity, String username) async {
-    final name = await _checkUsername(username);
+    final name = await _checkUsername(username, exceptUserId: identity.uid);
     if (!await backend.claimUsername(identity.uid, name)) {
       throw UsernameTakenException(
         name,
@@ -423,17 +423,21 @@ class AccountService {
   /// za brisanje.
   Future<List<String>> purgeExpired({DateTime? now}) async {
     final at = now ?? DateTime.now();
+    final expired = [
+      for (final u in _storage.users)
+        if (u.deletionRequestedAt != null &&
+            at.difference(u.deletionRequestedAt!).inDays >=
+                AppUser.deletionGraceDays)
+          u,
+    ];
+    if (expired.isEmpty) return const [];
+    // Najprije računi za prijavu (baza ih pronalazi preko profila), pa
+    // tek onda profili.
+    await backend.purgeDeleted();
     final images = <String>[];
-    var any = false;
-    for (final u in _storage.users) {
-      final requested = u.deletionRequestedAt;
-      if (requested != null &&
-          at.difference(requested).inDays >= AppUser.deletionGraceDays) {
-        images.addAll(await _erase(u));
-        any = true;
-      }
+    for (final u in expired) {
+      images.addAll(await _erase(u));
     }
-    if (any) await backend.purgeDeleted();
     return images;
   }
 

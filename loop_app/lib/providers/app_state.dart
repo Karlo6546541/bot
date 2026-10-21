@@ -130,6 +130,48 @@ class AppState {
 
   List<Report> get openReports => reports.where((r) => r.isOpen).toList();
 
+  /// Razgovori trenutnog korisnika: sugovornik, zadnja poruka, nepročitano.
+  List<Conversation> get conversations {
+    final me = currentUserId;
+    if (me == null) return const [];
+    final byOther = <String, List<ChatMessage>>{};
+    for (final m in messages) {
+      if (m.senderId == me || m.receiverId == me) {
+        (byOther[m.otherThan(me)] ??= []).add(m);
+      }
+    }
+    final list = [
+      for (final e in byOther.entries)
+        Conversation(
+          otherId: e.key,
+          last: e.value.last,
+          unread: e.value.where((m) => m.receiverId == me && !m.read).length,
+        ),
+    ]..sort((a, b) => b.last.createdAt.compareTo(a.last.createdAt));
+    return list;
+  }
+
+  int get unreadMessages => conversations.fold(0, (s, c) => s + c.unread);
+
+  /// Poruke s jednim korisnikom (najstarije prvo).
+  List<ChatMessage> chatWith(String otherId) {
+    final me = currentUserId;
+    if (me == null) return const [];
+    final id = ChatMessage.conversationOf(me, otherId);
+    return messages.where((m) => m.conversationId == id).toList();
+  }
+
+  /// Ponude zamjene u kojima sudjeluje trenutni korisnik.
+  List<SwapOffer> get myOffers => currentUserId == null
+      ? const []
+      : offers
+            .where((o) => o.fromId == currentUserId || o.toId == currentUserId)
+            .toList();
+
+  /// Ponude koje čekaju MOJ odgovor.
+  List<SwapOffer> get incomingOffers =>
+      myOffers.where((o) => o.isPending && o.toId == currentUserId).toList();
+
   bool isBlocked(String userId) =>
       currentUser?.blockedIds.contains(userId) ?? false;
 
@@ -289,4 +331,16 @@ class AppState {
   double get totalTopUpEur => transactions
       .where((t) => t.type == TransactionType.topUp)
       .fold(0, (sum, t) => sum + t.price);
+}
+
+/// Razgovor s jednim korisnikom (za popis poruka).
+class Conversation {
+  const Conversation({
+    required this.otherId,
+    required this.last,
+    required this.unread,
+  });
+  final String otherId;
+  final ChatMessage last;
+  final int unread;
 }

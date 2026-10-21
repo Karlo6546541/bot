@@ -117,7 +117,12 @@ class _UsernameSetupScreenState extends ConsumerState<UsernameSetupScreen> {
         const SizedBox(height: 18),
         Form(
           key: _form,
-          child: UsernameField(controller: _username, onSubmitted: _submit),
+          child: UsernameField(
+            controller: _username,
+            onSubmitted: _submit,
+            // Ime koje je ovaj račun već rezervirao računa se kao slobodno.
+            exceptUserId: identity?.uid,
+          ),
         ),
         const SizedBox(height: 18),
         FilledButton(

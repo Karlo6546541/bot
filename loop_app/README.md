@@ -6,7 +6,7 @@ Demo Flutter aplikacija: zatvorena trading platforma za rabljene uređaje
 - Prodajom uređaja ne dobivaš novac, nego **LOOP kredite** (LC).
 - Krediti se troše **isključivo** na kupnju drugih uređaja unutar aplikacije — nema isplate.
 - Platforma uzima **5% fee** na svaku transakciju.
-- Sve radi **lokalno i offline** (Hive), bez backenda.
+- Radi **lokalno i offline** (Hive), a uz Supabase i **online** s pravim računima.
 
 Platforme: **Windows, Android, iOS**.
 
@@ -116,6 +116,57 @@ svjetline, kontrast i razlučivost za daltonizam.
 
 ---
 
+## Računi i profil
+
+- **Registracija** e-mailom, lozinkom (barem 6 znakova) i **korisničkim imenom**; prijava
+  e-mailom (lokalno i korisničkim imenom). Novi računi dobivaju 500 LC.
+- **Jedinstveno korisničko ime** (`@ime`): 3–20 znakova (a–z, brojevi, `_`, `.`), počinje
+  slovom, bez rezerviranih (`admin`, `loop`, `support`…) i neprimjerenih imena; "Karlo" i
+  "karlo" su isto ime. Dok tipkaš vidiš je li slobodno, a ako nije, dobiješ prijedloge.
+  Mijenja se najviše jednom u 30 dana, a staro ime ostaje zaključano 30 dana.
+  Online jedinstvenost jamči i baza (tablica `loop_usernames`, ime je primarni ključ).
+- **Google prijava** (web link s online bazom): pri prvoj prijavi biraš korisničko ime.
+- **Zaboravljena lozinka**: online stiže link na e-mail; lokalno se nova lozinka postavlja
+  odmah (računi su samo na tom uređaju). **Promjena lozinke** u Profilu.
+- **Profil**: fotografija, ime, opis (do 160 znakova), grad, bedž ✓ *Provjeren* (potvrđen
+  e-mail ili Google), **javni profil** s predmetima na prodaju, aukcijama i ocjenama.
+- **Pozovi prijatelja**: kod za poziv je tvoje korisničko ime — oboje dobivate 100 LC.
+- **Gost** samo razgledava; za kupnju, prodaju i ponude nudi se izrada računa.
+- **Brisanje računa** (Profil → *Obriši račun*): prikaže što se gubi (krediti se ne mogu
+  isplatiti), traži upis korisničkog imena i ne dopušta brisanje dok imaš aukciju s
+  ponudama, vodeću (obvezujuću) ponudu ili pošiljku u tijeku. Račun se briše nakon
+  **7 dana** — prijava u tom roku ga vraća. Postoji i *Obriši odmah*. U povijesti drugih
+  umjesto imena piše `@obrisani`.
+- **Preuzmi moje podatke**: svi tvoji podaci kao JSON datoteka (bez lozinki).
+
+Lokalne lozinke spremaju se samo na uređaju kao sažetak (SHA-256 + sol), u boxu koji se
+ne sinkronizira; online prijavu vodi Supabase Auth i lozinke ne prolaze kroz našu bazu.
+
+## Objava u Marketu, poruke i zamjene
+
+- **Objavi u Marketu**: vlastiti predmet po svojoj cijeni — ostaje tvoj dok ga netko ne
+  kupi. Kupac plaća cijenu + 5%, ti dobivaš cijenu − 5%. **Ukloni iz Marketa** ili
+  **Promijeni cijenu** u svakom trenutku; **Obriši predmet** ga trajno briše.
+  Objava i aukcija se isključuju. *Prodaj odmah LOOP-u* i dalje radi kao prije.
+- **Poruke**: na tuđem oglasu *Pošalji poruku* (poruka nosi karticu predmeta) ili s javnog
+  profila; ikona 💬 u gornjoj traci pokazuje nepročitane.
+- **Ponudi zamjenu**: tvoj predmet (+ nadoplata u kreditima) za tuđi objavljeni predmet.
+  Vlasnik prihvaća ili odbija; nakon prihvaćanja predmeti mijenjaju vlasnike, nadoplata
+  ide vlasniku (− 5%), a oboje biraju dostavu u *Moje dostave*.
+
+## Ocjene, obavijesti, prijave i blokiranje
+
+- **Ocjene**: nakon potvrde primitka kupac ocjenjuje prodavatelja (1–5 ★ + komentar).
+  Prosjek je na javnom profilu i na oglasu.
+- **Obavijesti** (🔔 u gornjoj traci): nadmašen si na aukciji, nova ponuda, osvojena /
+  izgubljena / završena aukcija, prodan predmet, pojeftinjenje s liste želja, nova ocjena,
+  nova poruka, ponuda zamjene, bonus za poziv. Tekst je na jeziku korisnika; dodir vodi
+  na aukciju, predmet, profil ili razgovor.
+- **Prijava** oglasa ili korisnika (razlog + opis) — admin ih vidi u kartici *Prijave* i
+  briše sadržaj, označava riješenim ili odbacuje.
+- **Blokiranje**: oglasi i aukcije blokiranog se ne prikazuju, a on ti ne može slati
+  poruke, kupovati tvoje predmete ni licitirati na tvojim aukcijama.
+
 ## Jezik: hrvatski / English
 
 - Gumb **🇭🇷 HR / 🇬🇧 EN** u gornjoj traci (i na ekranu prijave i u admin panelu) prebacuje
@@ -178,11 +229,25 @@ Bez postavki radi offline, kao prije.
 
 1. Otvori račun na https://supabase.com i **New project** (regija npr. *Frankfurt*).
 2. **SQL Editor → New query** → zalijepi cijeli `supabase/schema.sql` → **Run**.
+   (Pokreni ga ponovno nakon nadogradnje aplikacije — postojeći podaci ostaju.)
 3. **Project Settings → API**: kopiraj **Project URL** i **Publishable key**
    (`sb_publishable_…`; u starijim projektima *anon public* ključ).
+4. **Authentication → URL Configuration**: *Site URL* = adresa web linka
+   (`https://karlo6546541.github.io/bot/`), isto i u *Redirect URLs*.
+5. **Authentication → Sign In / Providers → Email**: za testiranje isključi
+   *Confirm email* (ugrađeni Supabase e-mail šalje samo nekoliko poruka na sat). Ako ga
+   ostaviš uključenog, novi korisnik mora otvoriti link iz e-maila prije prve prijave.
+6. **Google prijava** (neobavezno):
+   1. https://console.cloud.google.com → novi projekt → **APIs & Services → OAuth consent
+      screen** (External, naziv aplikacije, e-mail) → **Credentials → Create credentials →
+      OAuth client ID → Web application**.
+   2. *Authorized redirect URIs*: `https://TVOJ-PROJEKT.supabase.co/auth/v1/callback`.
+   3. Kopiraj **Client ID** i **Client secret** u Supabase → **Authentication → Sign In /
+      Providers → Google** → uključi → Save.
 
-> ⚠️ Testna shema dopušta svakome s javnim ključem čitanje i pisanje svih podataka.
-> Koristi je samo za testiranje s izmišljenim podacima.
+> ⚠️ Testna shema: čitati smiju svi, pisati samo prijavljeni korisnici. Pravila trgovanja
+> (krediti, ponude) i dalje provjerava aplikacija, ne server — koristi samo izmišljene
+> podatke. Vidi *Put do produkcije*.
 
 ### 2. Pokretanje aplikacije spojene na bazu
 
@@ -192,8 +257,9 @@ flutter run -d windows `
   --dart-define=SUPABASE_KEY=sb_publishable_TVOJ_KLJUC
 ```
 
-Prvi klijent koji se spoji na praznu bazu pošalje u nju demo podatke, a svi sljedeći ih
-preuzmu. *Profil* prikazuje stanje veze (🟢 povezano / 🟠 nedostupno / ⚪ lokalno).
+Prvi prijavljeni klijent na praznoj bazi pošalje u nju demo podatke, a svi sljedeći ih
+preuzmu. Online se prijavljuje e-mailom i lozinkom (ili Googleom); demo računi
+(`demo@loop.com` …) postoje samo lokalno. *Profil* prikazuje stanje veze (🟢 povezano / 🟠 nedostupno / ⚪ lokalno).
 *Resetiraj demo podatke* resetira i online bazu.
 
 ### 3. Web link za testere (GitHub Pages, besplatno)
@@ -217,7 +283,8 @@ spremaju u preglednik (smanjene), a na Windowsu i mobitelu u mapu aplikacije.
 
 Testna verzija sinkronizira dokumente i pravila provjerava u aplikaciji. Za pravo
 korištenje treba:
-- **Supabase Auth** (pravi računi) i RLS pravila po korisniku: svatko piše samo svoje podatke;
+- RLS pravila po korisniku (prijava već ide preko Supabase Autha): svatko piše samo svoje
+  podatke, a tuđe mijenjaju isključivo funkcije na serveru;
 - **kupnje, ponude, dopune i zaključivanje aukcija kao funkcije na serveru** (Postgres
   funkcije ili Edge Functions), koje u jednoj transakciji provjeravaju kredite i pravila,
   da ih klijent ne može zaobići i da dvije istovremene kupnje istog predmeta ne prođu;
@@ -229,16 +296,19 @@ korištenje treba:
 
 ## Demo podaci za login
 
-| Uloga    | E-mail           | Lozinka    | Napomena                                              |
-|----------|------------------|------------|-------------------------------------------------------|
-| Korisnik | `demo@loop.com`  | bilo koja  | 1 250 LC + iPhone 13 i Laptop Lenovo → **Silver**     |
-| Korisnik | `test@loop.com`  | bilo koja  | 800 LC, prazan portfolio → **Bronze**                 |
-| Admin    | `admin@loop.com` | `admin123` | preko gumba **"Admin prijava"**                       |
-| Gost     | —                | —          | gumb **"Nastavi kao gost"** (500 LC)                  |
-| Korisnik | `ana@loop.com`   | bilo koja  | prodaje 4 predmeta na aukcijama                       |
-| Korisnik | `marko@loop.com` | bilo koja  | vodi na 3 aukcije (470 LC blokirano)                  |
+Lokalni način (bez online baze):
 
-Bilo koji drugi e-mail + bilo koja lozinka automatski kreira novi račun s **500 LC** početnih kredita.
+| Uloga    | E-mail / ime                        | Lozinka    | Napomena                                          |
+|----------|-------------------------------------|------------|---------------------------------------------------|
+| Korisnik | `demo@loop.com` / `@demo`           | `demo`     | 1 250 LC + iPhone 13 i Laptop Lenovo → **Silver** |
+| Korisnik | `test@loop.com` / `@test`           | `demo`     | 800 LC, prazan portfolio → **Bronze**             |
+| Admin    | `admin@loop.com`                    | `admin123` | preko gumba **"Admin prijava"**                   |
+| Gost     | —                                   | —          | **"Samo razgledaj (gost)"** — bez kupnje/prodaje  |
+| Korisnik | `ana@loop.com` / `@ana.kolekcija`   | `demo`     | prodaje 4 predmeta na aukcijama                   |
+| Korisnik | `marko@loop.com` / `@marko`         | `demo`     | vodi na 3 aukcije (470 LC blokirano)              |
+
+Novi račun: *Registracija* (e-mail, korisničko ime, lozinka) → **500 LC** početnih kredita.
+Računi iz starijih verzije: prva lozinka kojom se prijaviš postaje lozinka računa.
 
 U Marketu je na početku 31 predmet: 12 iz elektronike (iPhone 15 Pro, MacBook Air M3,
 Galaxy S24, iPad Air M2, AirPods Pro 2, iPhone 14, MacBook Pro 14", iPad Pro 11",
@@ -256,6 +326,9 @@ Apple Watch, Sony A7 III, PS5, Switch) i po 4–5 iz svakog novog odjeljka.
 | **Kupi odmah**   | plaćaš `cijena × 1.05`    | −325.50 LC (fee 15.50)    |
 
 - Prodani uređaj ide u **Market** (otkupljuje ga platforma) gdje ga drugi mogu kupiti.
+- **Objava u Marketu** (od korisnika): kupac plaća `cijena × 1.05`, prodavatelj dobiva
+  `cijena × 0.95`.
+- **Zamjena**: nadoplatu plaća ponuditelj, vlasnik dobiva `nadoplata × 0.95`.
 - Kupnja je moguća samo ako imaš dovoljno kredita za cijenu **+ fee**.
 - Prije svake transakcije prikazuje se dijalog s cijenom, fee-om i konačnim iznosom.
 - **Status** = krediti + vrijednost portfolija: Bronze < 2000 · Silver 2000–5000 · Gold > 5000.
@@ -271,10 +344,19 @@ lib/
 ├── main.dart                 # bootstrap: init Hive + splash, ProviderScope
 ├── app.dart                  # MaterialApp; login / korisnik / admin prema sesiji
 ├── models/                   # AppUser, Device (+ odjeljci/kategorije), Auction, LoopTransaction,
-│                             # PortfolioPoint, UserStatus
+│                             # PortfolioPoint, UserStatus, Review, AppNotification, Report,
+│                             # ChatMessage, SwapOffer
 ├── services/
 │   ├── storage_service.dart  # Hive pohrana (users, devices, transactions, session)
-│   ├── trade_service.dart    # poslovna logika: login, sell, buy, povijest, admin akcije
+│   ├── trade_service.dart    # prodaja, kupnja, objava u Marketu, brisanje, admin akcije
+│   ├── account_service.dart  # registracija, prijava, korisničko ime, profil, brisanje računa
+│   ├── auth_backend.dart     # lokalne lozinke (sažeci) ili Supabase Auth (+ Google)
+│   ├── username_rules.dart   # pravila i prijedlozi korisničkih imena
+│   ├── community_service.dart# ocjene, prijave, blokiranje, pročitane obavijesti
+│   ├── chat_service.dart     # poruke između korisnika
+│   ├── swap_service.dart     # zamjene predmet-za-predmet
+│   ├── inbox.dart            # stvaranje obavijesti
+│   ├── file_saver/           # spremanje datoteke (preuzimanje na webu)
 │   ├── auction_service.dart  # aukcije: objava, ponude, blokiranje kredita, zaključivanje
 │   ├── credit_shop.dart      # kupnja kredita: paketi, bonus, dnevni limit (demo)
 │   ├── delivery_service.dart # dostava: načini, naplata, praćenje, potvrda primitka
@@ -288,7 +370,7 @@ lib/
 │   ├── app_state.dart        # nepromjenjiva snimka stanja + izvedene vrijednosti
 │   └── app_providers.dart    # Riverpod Notifier s akcijama
 ├── screens/                  # login, portfolio, market, dodaj uređaj, aktivnost, profil
-├── admin/                    # admin panel: dashboard, korisnici, uređaji, transakcije
+├── admin/                    # admin panel: dashboard, korisnici, uređaji, transakcije, prijave
 ├── widgets/                  # kartice, dijalozi, responzivni okvir, formatiranje
 ├── config/                   # postavke online baze (--dart-define)
 ├── l10n/                     # t('...') + engleski prijevodi (kEn)
@@ -311,7 +393,10 @@ flutter test
 
 Testovi pokrivaju fee, status, prodaju, kupnju (uključujući nedovoljno kredita), favorite,
 povijest vrijednosti, fotografije, odjeljke, **kupnju kredita** (bonus, dnevni limit),
-hrvatski i engleski format iznosa, promjenu teme i **jezika** (svaki tekst ima prijevod), **pravila aukcija** (blokiranje i povrat
-kredita, obvezujuće ponude, limit kredita, produljenje, zaključivanje, nadogradnja), admin akcije
-i reset te UI tokove (login → prodaja →
-kupnja → aktivnost; kategorije, favoriti, detalji; grafikon i odjeljci) na desktop i mobilnoj širini.
+hrvatski i engleski format iznosa, promjenu teme i **jezika** (svaki tekst ima prijevod),
+**pravila aukcija** (blokiranje i povrat kredita, obvezujuće ponude, limit kredita,
+produljenje, zaključivanje), **račune** (registracija, lozinke, jedinstveno korisničko
+ime, promjena imena, kod za poziv, Google prijava bez imena, brisanje računa i izvoz),
+**objave u Marketu**, **ocjene, obavijesti, prijave i blokiranje**, **poruke i zamjene**,
+admin akcije i reset te UI tokove (registracija, gost, prodaja i kupnja, objava i brisanje,
+obavijesti, poruke, brisanje računa) na desktop i mobilnoj širini.

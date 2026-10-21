@@ -117,7 +117,8 @@ abstract class AuthBackend {
 
   /// Online provjera zauzetosti (lokalno uvijek `true`; lokalnu provjeru
   /// radi `UsernameRules.isTaken`).
-  Future<bool> isUsernameFree(String username);
+  /// Ime rezervirano za [uid] računa se kao slobodno.
+  Future<bool> isUsernameFree(String username, {String? uid});
 
   /// Trajno briše račun za prijavu (podatke profila briše aplikacija).
   Future<void> deleteAccount({required String email, String? uid});
@@ -261,7 +262,7 @@ class LocalAuthBackend implements AuthBackend {
   }) async => true;
 
   @override
-  Future<bool> isUsernameFree(String username) async => true;
+  Future<bool> isUsernameFree(String username, {String? uid}) async => true;
 
   @override
   Future<void> deleteAccount({required String email, String? uid}) =>
@@ -432,7 +433,16 @@ class SupabaseAuthBackend implements AuthBackend {
         'user_id': uid,
       });
     } on PostgrestException catch (e) {
-      if (e.code == '23505') return false; // već postoji
+      if (e.code == '23505') {
+        // Već postoji — u redu ako je ime već naše (npr. nakon resetiranja
+        // demo podataka profil je obrisan, a ime je ostalo rezervirano).
+        final rows = await _client
+            .from('loop_usernames')
+            .select('user_id')
+            .eq('username', username)
+            .limit(1);
+        return rows.isNotEmpty && rows.first['user_id'] == uid;
+      }
       // Tablica još nije napravljena (SQL nije pokrenut) — oslanjamo se
       // na provjeru u aplikaciji.
       if (_missingTable(e)) return true;
@@ -449,14 +459,14 @@ class SupabaseAuthBackend implements AuthBackend {
   }
 
   @override
-  Future<bool> isUsernameFree(String username) async {
+  Future<bool> isUsernameFree(String username, {String? uid}) async {
     try {
       final rows = await _client
           .from('loop_usernames')
-          .select('username')
+          .select('user_id')
           .eq('username', username)
           .limit(1);
-      return rows.isEmpty;
+      return rows.isEmpty || (uid != null && rows.first['user_id'] == uid);
     } on PostgrestException catch (e) {
       if (_missingTable(e)) return true;
       rethrow;

@@ -798,7 +798,7 @@ class _DeliveryBanner extends StatelessWidget {
     final first = deliveries.first;
     final waiting = deliveries.where((d) => d.awaitingChoice).length;
     final text = waiting > 0
-        ? t('Odaberi dostavu za osvojeni predmet ({0})', [waiting])
+        ? t('Odaberi dostavu za predmet ({0})', [waiting])
         : '${first.deviceName}: ${first.status(DateTime.now()).label}';
     return Material(
       color: LoopColors.sky,

@@ -191,7 +191,10 @@ class TransactionTile extends StatelessWidget {
     // Priljev (prodaja, dopuna) je zelen i s "+"; kupnja je neutralna —
     // kupnja je normalan dio tržnice, ne "gubitak".
     final isSell =
-        type == TransactionType.sell || type == TransactionType.topUp;
+        type == TransactionType.sell ||
+        type == TransactionType.topUp ||
+        // Zamjena: nadoplatu dobiva vlasnik traženog predmeta.
+        (type == TransactionType.swap && tx.sellerId == viewerId);
     final color = isSell ? LoopColors.success : LoopColors.textPrimary;
     final icon = switch (type) {
       TransactionType.sell => Icons.north_east,
@@ -199,6 +202,7 @@ class TransactionTile extends StatelessWidget {
       TransactionType.topUp => Icons.add_card,
       TransactionType.auctionFee => Icons.gavel,
       TransactionType.delivery => Icons.local_shipping_outlined,
+      TransactionType.swap => Icons.swap_horiz,
     };
     return Card(
       child: Padding(

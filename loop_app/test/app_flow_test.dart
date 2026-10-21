@@ -26,6 +26,7 @@ void main() {
   listingTests();
   deletionTests();
   communityTests();
+  chatTests();
   for (final size in const [Size(1400, 1000), Size(400, 860)]) {
     testWidgets('login → prodaja → kupnja → aktivnost ($size)', (tester) async {
       tester.view.physicalSize = size;
@@ -642,6 +643,117 @@ void communityTests() {
     expect(
       find.text('Prijava poslana. Admin će je pregledati.'),
       findsOneWidget,
+    );
+  });
+}
+
+void chatTests() {
+  testWidgets('poruka prodavatelju iz oglasa, odgovor u Porukama', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(1400, 1000);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+
+    Future<void> login(String id) async {
+      await tester.enterText(
+        find.widgetWithText(TextFormField, 'E-mail ili korisničko ime'),
+        id,
+      );
+      await tester.ensureVisible(find.text('Prijavi se').last);
+      await tester.tap(find.text('Prijavi se').last);
+      await tester.pumpAndSettle();
+    }
+
+    Future<void> logout() async {
+      await tester.tap(find.text('Profil').last);
+      await tester.pumpAndSettle();
+      await tester.scrollUntilVisible(find.text('Odjavi se'), 200);
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Odjavi se'));
+      await tester.pumpAndSettle();
+    }
+
+    await tester.pumpWidget(await buildApp(tester));
+    await login('@demo');
+    // Demo objavljuje iPhone 13.
+    await tester.scrollUntilVisible(find.text('iPhone 13'), 300);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('iPhone 13'));
+    await tester.pumpAndSettle();
+    await tester.scrollUntilVisible(find.text('Objavi u Marketu'), 200);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Objavi u Marketu'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Objavi'));
+    await tester.pumpAndSettle();
+    await tester.pageBack();
+    await tester.pumpAndSettle();
+    await logout();
+
+    // Marko pita prodavatelja.
+    await login('@marko');
+    await tester.tap(find.text('Market').last);
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byType(TextField).first, 'iPhone 13');
+    await tester.pumpAndSettle();
+    expect(find.text('@demo'), findsWidgets); // oznaka prodavatelja
+    await tester.tap(find.text('iPhone 13').last);
+    await tester.pumpAndSettle();
+    await tester.scrollUntilVisible(
+      find.byKey(const ValueKey('message-seller')),
+      200,
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('message-seller')));
+    await tester.pumpAndSettle();
+    expect(find.text('O predmetu: iPhone 13'), findsOneWidget);
+    await tester.enterText(
+      find.byKey(const ValueKey('chat-input')),
+      'Je li još dostupan?',
+    );
+    await tester.tap(find.byKey(const ValueKey('chat-send')));
+    await tester.pumpAndSettle();
+    expect(find.text('Je li još dostupan?'), findsOneWidget);
+    await tester.pageBack();
+    await tester.pumpAndSettle();
+
+    // Zamjena: Marko nema svojih predmeta.
+    await tester.tap(find.byKey(const ValueKey('offer-swap')));
+    await tester.pumpAndSettle();
+    expect(
+      find.text('Nemaš predmeta za zamjenu — dodaj ga u portfolio.'),
+      findsOneWidget,
+    );
+    await tester.tapAt(const Offset(10, 10)); // zatvori list
+    await tester.pumpAndSettle();
+    await tester.pageBack();
+    await tester.pumpAndSettle();
+    await logout();
+
+    // Demo vidi poruku i odgovara.
+    await login('@demo');
+    final messages = find.byKey(const ValueKey('messages-button'));
+    expect(
+      find.descendant(of: messages, matching: find.text('1')),
+      findsOneWidget,
+    );
+    await tester.tap(messages);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('@marko'));
+    await tester.pumpAndSettle();
+    expect(find.text('Je li još dostupan?'), findsOneWidget);
+    await tester.enterText(find.byKey(const ValueKey('chat-input')), 'Je!');
+    await tester.tap(find.byKey(const ValueKey('chat-send')));
+    await tester.pumpAndSettle();
+    expect(find.text('Je!'), findsOneWidget);
+    await tester.pageBack();
+    await tester.pumpAndSettle();
+    await tester.pageBack();
+    await tester.pumpAndSettle();
+    expect(
+      find.descendant(of: messages, matching: find.text('1')),
+      findsNothing,
     );
   });
 }

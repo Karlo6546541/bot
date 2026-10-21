@@ -10,6 +10,7 @@ import '../widgets/formatters.dart';
 import 'auction_detail_screen.dart';
 import 'deliveries_screen.dart';
 import 'device_detail_screen.dart';
+import 'messages_screen.dart';
 import 'public_profile_screen.dart';
 
 /// Obavijesti: nadmašen na aukciji, prodan predmet, ocjene, poruke…
@@ -46,15 +47,11 @@ class NotificationsScreen extends ConsumerWidget {
           NotificationKind.swapOffer ||
           NotificationKind.swapAccepted ||
           NotificationKind.swapDeclined:
-        await openInboxTarget(context, n);
+        if (id != null) await ChatScreen.open(context, id);
       case NotificationKind.reportResolved:
         break;
     }
   }
-
-  /// Poruke i zamjene otvara ekran razgovora (postavlja `messages_screen`).
-  static Future<void> Function(BuildContext, AppNotification) openInboxTarget =
-      (_, _) async {};
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
