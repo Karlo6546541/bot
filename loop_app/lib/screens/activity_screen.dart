@@ -189,12 +189,14 @@ class TransactionTile extends StatelessWidget {
     final type = tx.typeFor(viewerId);
     // Priljev (prodaja, dopuna) je zelen i s "+"; kupnja je neutralna —
     // kupnja je normalan dio tržnice, ne "gubitak".
-    final isSell = type != TransactionType.buy;
+    final isSell =
+        type == TransactionType.sell || type == TransactionType.topUp;
     final color = isSell ? LoopColors.success : LoopColors.textPrimary;
     final icon = switch (type) {
       TransactionType.sell => Icons.north_east,
       TransactionType.buy => Icons.shopping_bag_outlined,
       TransactionType.topUp => Icons.add_card,
+      TransactionType.auctionFee => Icons.gavel,
     };
     return Card(
       child: Padding(
@@ -242,9 +244,11 @@ class TransactionTile extends StatelessWidget {
                   style: TextStyle(color: color, fontWeight: FontWeight.w800),
                 ),
                 Text(
-                  type == TransactionType.topUp
-                      ? 'plaćeno ${formatEuro(tx.price)}'
-                      : 'fee ${formatCredits(tx.feeFor(viewerId))}',
+                  switch (type) {
+                    TransactionType.topUp => 'plaćeno ${formatEuro(tx.price)}',
+                    TransactionType.auctionFee => 'naknada za objavu',
+                    _ => 'fee ${formatCredits(tx.feeFor(viewerId))}',
+                  },
                   style: TextStyle(
                     color: LoopColors.textSecondary,
                     fontSize: 12,

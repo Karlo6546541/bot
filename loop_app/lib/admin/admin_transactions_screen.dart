@@ -88,6 +88,8 @@ class _TxCard extends StatelessWidget {
                 if (tx.type == TransactionType.topUp) ...[
                   _Field('Plaćeno', formatEuro(tx.price)),
                   _Field('Krediti', formatCredits(tx.amount)),
+                ] else if (tx.type == TransactionType.auctionFee) ...[
+                  _Field('Naknada za objavu', formatCredits(tx.fee)),
                 ] else ...[
                   _Field('Cijena', formatCredits(tx.price)),
                   _Field('Iznos', formatCredits(tx.amount)),

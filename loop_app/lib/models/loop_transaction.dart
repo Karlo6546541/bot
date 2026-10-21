@@ -1,7 +1,8 @@
 enum TransactionType {
   buy('Kupnja'),
   sell('Prodaja'),
-  topUp('Kupnja kredita');
+  topUp('Kupnja kredita'),
+  auctionFee('Objava aukcije');
 
   const TransactionType(this.label);
   final String label;

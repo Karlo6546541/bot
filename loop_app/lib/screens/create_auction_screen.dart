@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/auction.dart';
 import '../models/device.dart';
 import '../providers/app_providers.dart';
+import '../services/auction_policy.dart';
 import '../services/auction_service.dart';
 import '../services/fee.dart';
 import '../theme/app_theme.dart';
@@ -102,6 +103,11 @@ class _CreateAuctionScreenState extends ConsumerState<CreateAuctionScreen> {
         .where((d) => s.activeAuctionFor(d.id) == null)
         .toList();
     final selected = _deviceId == null ? null : s.deviceById(_deviceId!);
+    final me = s.currentUserId ?? '';
+    final policy = ref.read(auctionServiceProvider).policy;
+    final status = policy.statusOf(me);
+    final reason = selected == null ? null : policy.blockReason(me, selected);
+    final fee = selected == null ? 0.0 : AuctionPolicy.listingFee(selected);
 
     return Scaffold(
       appBar: AppBar(title: const Text('Nova aukcija')),
@@ -118,6 +124,13 @@ class _CreateAuctionScreenState extends ConsumerState<CreateAuctionScreen> {
                 child: ListView(
                   padding: const EdgeInsets.all(16),
                   children: [
+                    _LimitsCard(
+                      active: policy.activeCount(me),
+                      maxActive: AuctionPolicy.maxActiveFor(status),
+                      statusLabel: status.label,
+                      today: policy.createdLast24h(me),
+                    ),
+                    const SizedBox(height: 16),
                     const Text(
                       '1. Odaberi predmet',
                       style: TextStyle(fontWeight: FontWeight.w700),
@@ -199,11 +212,55 @@ class _CreateAuctionScreenState extends ConsumerState<CreateAuctionScreen> {
                           ),
                         ),
                       ),
-                      const SizedBox(height: 20),
+                      const SizedBox(height: 12),
+                      _CompareCard(device: selected, fee: fee),
+                      const SizedBox(height: 16),
+                      if (reason != null) ...[
+                        Container(
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: LoopColors.sunny,
+                            borderRadius: BorderRadius.circular(kRadius),
+                          ),
+                          child: Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Icon(Icons.info_outline),
+                              const SizedBox(width: 10),
+                              Expanded(
+                                child: Text(
+                                  reason,
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.w600,
+                                    height: 1.4,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                      ],
                       FilledButton.icon(
-                        onPressed: _submit,
+                        // Blokirano pravilima → gumb je onemogućen (razlog je iznad).
+                        onPressed: reason == null ? _submit : null,
                         icon: const Icon(Icons.gavel),
-                        label: const Text('Objavi aukciju'),
+                        label: Text(
+                          'Objavi aukciju · naknada ${formatCredits(fee)}',
+                        ),
+                      ),
+                      const SizedBox(height: 10),
+                      OutlinedButton.icon(
+                        onPressed: () async {
+                          final ok = await confirmAndSell(
+                            context,
+                            ref,
+                            selected,
+                          );
+                          if (ok && context.mounted) Navigator.pop(context);
+                        },
+                        icon: const Icon(Icons.bolt),
+                        label: const Text('Radije prodaj odmah'),
                       ),
                     ],
                   ],
@@ -263,6 +320,134 @@ class _DeviceChoice extends StatelessWidget {
             ],
           ),
         ),
+      ),
+    );
+  }
+}
+
+/// Koliko aukcija korisnik smije imati i koliko je danas objavio.
+class _LimitsCard extends StatelessWidget {
+  const _LimitsCard({
+    required this.active,
+    required this.maxActive,
+    required this.statusLabel,
+    required this.today,
+  });
+
+  final int active;
+  final int maxActive;
+  final String statusLabel;
+  final int today;
+
+  @override
+  Widget build(BuildContext context) {
+    Widget meter(String label, int value, int max) => Expanded(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            label,
+            style: TextStyle(color: LoopColors.textSecondary, fontSize: 12),
+          ),
+          Text(
+            '$value / $max',
+            style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 18),
+          ),
+          const SizedBox(height: 4),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(999),
+            child: LinearProgressIndicator(
+              value: (value / max).clamp(0, 1),
+              minHeight: 6,
+              color: value >= max ? LoopColors.error : LoopColors.accent,
+              backgroundColor: LoopColors.surfaceHover,
+            ),
+          ),
+        ],
+      ),
+    );
+
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(14),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                meter('Aktivne aukcije ($statusLabel)', active, maxActive),
+                const SizedBox(width: 16),
+                meter('Objavljeno u 24 h', today, AuctionPolicy.maxNewPerDay),
+              ],
+            ),
+            const SizedBox(height: 10),
+            Text(
+              'Aukcije su za vrijedne predmete (od '
+              '${formatCredits(AuctionPolicy.minItemValue)}). Viši status = '
+              'više aukcija: Bronze 2, Silver 4, Gold 6.',
+              style: TextStyle(color: LoopColors.textSecondary, fontSize: 12),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Usporedba: prodaj odmah (sigurno, bez naknade) ili aukcija (naknada,
+/// ishod neizvjestan).
+class _CompareCard extends StatelessWidget {
+  const _CompareCard({required this.device, required this.fee});
+  final Device device;
+  final double fee;
+
+  @override
+  Widget build(BuildContext context) {
+    Widget col(String emoji, String title, List<String> lines, Color bg) =>
+        Expanded(
+          child: Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: bg,
+              borderRadius: BorderRadius.circular(kRadius),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  '$emoji $title',
+                  style: const TextStyle(fontWeight: FontWeight.w900),
+                ),
+                const SizedBox(height: 6),
+                for (final l in lines)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 3),
+                    child: Text(
+                      l,
+                      style: const TextStyle(fontSize: 13, height: 1.3),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        );
+
+    return IntrinsicHeight(
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          col('⚡', 'Prodaj odmah', [
+            'Dobivaš ${formatCredits(sellPayout(device.price))} odmah',
+            'Bez naknade za objavu',
+            'Bez čekanja',
+          ], LoopColors.mint),
+          const SizedBox(width: 10),
+          col('🔨', 'Aukcija', [
+            'Naknada ${formatCredits(fee)} (ne vraća se)',
+            'Najviša ponuda − 5% fee',
+            'Ishod nije siguran',
+          ], LoopColors.lilac),
+        ],
       ),
     );
   }

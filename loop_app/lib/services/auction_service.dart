@@ -3,6 +3,7 @@ import 'package:uuid/uuid.dart';
 import '../models/auction.dart';
 import '../models/loop_transaction.dart';
 import '../utils/formatters.dart';
+import 'auction_policy.dart';
 import 'fee.dart';
 import 'storage_service.dart';
 import 'trade_service.dart';
@@ -23,9 +24,10 @@ class AuctionResult {
 /// - ponuda u zadnjoj minuti produljuje aukciju na 1 minutu od ponude;
 /// - na kraju pobjednik dobiva predmet, prodavatelj iznos − 5% fee-a.
 class AuctionService {
-  AuctionService(this._storage);
+  AuctionService(this._storage) : policy = AuctionPolicy(_storage);
 
   final StorageService _storage;
+  final AuctionPolicy policy;
   final _uuid = const Uuid();
 
   /// Ponuda u zadnjih ovoliko vremena produljuje aukciju ("anti-sniping").
@@ -67,6 +69,14 @@ class AuctionService {
     if (duration <= Duration.zero) {
       throw const TradeException('Odaberi trajanje aukcije.');
     }
+    // Pravila protiv masovnog objavljivanja (limit, naknada, pauza…).
+    final reason = policy.blockReason(userId, device, now: at);
+    if (reason != null) throw TradeException(reason);
+
+    final fee = AuctionPolicy.listingFee(device);
+    await _storage.putUser(
+      user.copyWith(credits: roundCredits(user.credits - fee)),
+    );
     final auction = Auction(
       id: _uuid.v4(),
       deviceId: deviceId,
@@ -76,8 +86,26 @@ class AuctionService {
       startPrice: roundCredits(startPrice),
       createdAt: at,
       endsAt: at.add(duration),
+      listingFee: fee,
     );
     await _storage.putAuction(auction);
+    await _storage.putTransaction(
+      LoopTransaction(
+        id: _uuid.v4(),
+        type: TransactionType.auctionFee,
+        userId: userId,
+        deviceId: device.id,
+        deviceName: auction.deviceName,
+        price: 0,
+        fee: fee,
+        amount: fee,
+        buyerLabel: 'LOOP',
+        sellerId: userId,
+        sellerLabel: user.email,
+        createdAt: at,
+      ),
+    );
+    await _storage.recordSnapshot(userId, now: at);
     return auction;
   }
 

@@ -61,6 +61,7 @@ class Auction {
     required this.endsAt,
     this.status = AuctionStatus.active,
     this.bids = const [],
+    this.listingFee = 0,
   });
 
   final String id;
@@ -77,6 +78,9 @@ class Auction {
 
   /// Ponude od najstarije prema najnovijoj; zadnja je uvijek najviša.
   final List<Bid> bids;
+
+  /// Plaćena naknada za objavu (ne vraća se).
+  final double listingFee;
 
   bool get isActive => status == AuctionStatus.active;
 
@@ -112,6 +116,7 @@ class Auction {
     endsAt: endsAt ?? this.endsAt,
     status: status ?? this.status,
     bids: bids ?? this.bids,
+    listingFee: listingFee,
   );
 
   Map<String, dynamic> toMap() => {
@@ -125,6 +130,7 @@ class Auction {
     'endsAt': endsAt.toIso8601String(),
     'status': status.name,
     'bids': [for (final b in bids) b.toMap()],
+    'listingFee': listingFee,
   };
 
   factory Auction.fromMap(Map<dynamic, dynamic> map) => Auction(
@@ -140,5 +146,6 @@ class Auction {
     bids: [
       for (final b in (map['bids'] as List? ?? const [])) Bid.fromMap(b as Map),
     ],
+    listingFee: (map['listingFee'] as num?)?.toDouble() ?? 0,
   );
 }

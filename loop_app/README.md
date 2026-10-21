@@ -81,6 +81,15 @@ flutter run            # odaberi uređaj s popisa
   - na kraju pobjednik dobiva predmet, a prodavatelj najvišu ponudu − 5% feeja;
   - bez ponuda predmet ostaje prodavatelju, koji aukciju može otkazati samo dok nema ponuda.
 
+  **Protiv masovnog stavljanja svega na aukcije** (`lib/services/auction_policy.dart`):
+  - limit aktivnih aukcija po statusu: Bronze 2, Silver 4, Gold 6;
+  - najviše 3 nove aukcije u 24 sata;
+  - na aukciju idu samo predmeti vrijedni barem 50 kredita (sitnice → Market);
+  - naknada za objavu: 2% vrijednosti predmeta (najmanje 2 kredita), ne vraća se;
+  - predmet koji se nije prodao može ponovno na aukciju tek nakon 24 h;
+  - pri objavi se prikazuje usporedba „Prodaj odmah” (sigurno, bez naknade) i aukcije,
+    uz gumb „Radije prodaj odmah”.
+
   Dok aukcija traje, predmet se ne može prodati. Aukcije se zaključuju dok je aplikacija
   otvorena: nema servera, pa ih aplikacija provjerava svake 3 sekunde i pri pokretanju.
 - **Pet odjeljaka Marketa:** Elektronika, Kolekcionarstvo (kartice, kovanice, marke, figure,
