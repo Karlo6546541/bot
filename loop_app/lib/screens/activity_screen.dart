@@ -63,13 +63,19 @@ class _ActivityScreenState extends ConsumerState<ActivityScreen> {
                   icon: Icons.south_west,
                   label: 'Potrošeno na kupnje',
                   value: formatCredits(sum(TransactionType.buy)),
-                  color: const Color(0xFF5B8CFF),
+                  color: LoopColors.accent,
+                ),
+                _SummaryTile(
+                  icon: Icons.add_card,
+                  label: 'Kupljeno kredita',
+                  value: formatCredits(sum(TransactionType.topUp)),
+                  color: LoopColors.admin,
                 ),
                 _SummaryTile(
                   icon: Icons.percent,
                   label: 'Plaćeni fee',
                   value: formatCredits(fees),
-                  color: LoopColors.error,
+                  color: LoopColors.textSecondary,
                 ),
               ],
             ),
@@ -88,13 +94,18 @@ class _ActivityScreenState extends ConsumerState<ActivityScreen> {
                   label: Text('Prodaje'),
                   icon: Icon(Icons.north_east, size: 16),
                 ),
+                ButtonSegment(
+                  value: TransactionType.topUp,
+                  label: Text('Dopune'),
+                  icon: Icon(Icons.add_card, size: 16),
+                ),
               ],
               selected: {_type},
               onSelectionChanged: (sel) => setState(() => _type = sel.first),
             ),
             const SizedBox(height: 16),
             if (txs.isEmpty)
-              const Padding(
+              Padding(
                 padding: EdgeInsets.only(top: 32),
                 child: Center(
                   child: Text(
@@ -153,10 +164,7 @@ class _SummaryTile extends StatelessWidget {
           const SizedBox(height: 8),
           Text(
             label,
-            style: const TextStyle(
-              color: LoopColors.textSecondary,
-              fontSize: 12,
-            ),
+            style: TextStyle(color: LoopColors.textSecondary, fontSize: 12),
           ),
           const SizedBox(height: 2),
           Text(
@@ -179,8 +187,15 @@ class TransactionTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final type = tx.typeFor(viewerId);
-    final isSell = type == TransactionType.sell;
-    final color = isSell ? LoopColors.success : LoopColors.error;
+    // Priljev (prodaja, dopuna) je zelen i s "+"; kupnja je neutralna —
+    // kupnja je normalan dio tržnice, ne "gubitak".
+    final isSell = type != TransactionType.buy;
+    final color = isSell ? LoopColors.success : LoopColors.textPrimary;
+    final icon = switch (type) {
+      TransactionType.sell => Icons.north_east,
+      TransactionType.buy => Icons.shopping_bag_outlined,
+      TransactionType.topUp => Icons.add_card,
+    };
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(14),
@@ -193,10 +208,7 @@ class TransactionTile extends StatelessWidget {
                 color: color.withValues(alpha: 0.12),
                 borderRadius: BorderRadius.circular(12),
               ),
-              child: Icon(
-                isSell ? Icons.north_east : Icons.south_west,
-                color: color,
-              ),
+              child: Icon(icon, color: color),
             ),
             const SizedBox(width: 12),
             Expanded(
@@ -213,7 +225,7 @@ class TransactionTile extends StatelessWidget {
                   Text(
                     '${tx.isAuction ? 'Aukcija · ' : ''}${type.label} · '
                     '${formatDateTime(tx.createdAt)}',
-                    style: const TextStyle(
+                    style: TextStyle(
                       color: LoopColors.textSecondary,
                       fontSize: 12,
                     ),
@@ -230,8 +242,10 @@ class TransactionTile extends StatelessWidget {
                   style: TextStyle(color: color, fontWeight: FontWeight.w800),
                 ),
                 Text(
-                  'fee ${formatCredits(tx.feeFor(viewerId))}',
-                  style: const TextStyle(
+                  type == TransactionType.topUp
+                      ? 'plaćeno ${formatEuro(tx.price)}'
+                      : 'fee ${formatCredits(tx.feeFor(viewerId))}',
+                  style: TextStyle(
                     color: LoopColors.textSecondary,
                     fontSize: 12,
                   ),

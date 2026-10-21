@@ -1,3 +1,5 @@
+import 'package:flutter/material.dart' show ThemeMode;
+
 import '../models/app_user.dart';
 import '../models/auction.dart';
 import '../models/device.dart';
@@ -17,6 +19,8 @@ class AppState {
     required this.isAdmin,
     this.myHistory = const [],
     this.auctions = const [],
+    this.themeMode = ThemeMode.light,
+    this.showHowItWorks = true,
   });
 
   factory AppState.fromStorage(StorageService storage) {
@@ -32,6 +36,11 @@ class AppState {
       transactions: txs,
       currentUserId: storage.currentUserId,
       isAdmin: storage.isAdmin,
+      themeMode: ThemeMode.values.firstWhere(
+        (m) => m.name == storage.themeMode,
+        orElse: () => ThemeMode.light,
+      ),
+      showHowItWorks: !storage.howItWorksDismissed,
       auctions: [...storage.auctions]
         ..sort((a, b) => a.endsAt.compareTo(b.endsAt)),
       myHistory: storage.currentUserId == null
@@ -48,6 +57,12 @@ class AppState {
 
   /// Povijest vrijednosti trenutnog korisnika (najstarije prvo).
   final List<PortfolioPoint> myHistory;
+
+  /// Odabrana tema (svijetla / tamna / prema sustavu).
+  final ThemeMode themeMode;
+
+  /// Prikazati karticu "Kako LOOP radi" na početnoj.
+  final bool showHowItWorks;
 
   /// Sve aukcije, sortirane po vremenu završetka.
   final List<Auction> auctions;
@@ -155,7 +170,15 @@ class AppState {
     return 'obrisan korisnik';
   }
 
-  double get totalVolume => transactions.fold(0, (sum, t) => sum + t.price);
+  /// Promet trgovanja (bez kupnje kredita).
+  double get totalVolume => transactions
+      .where((t) => t.type != TransactionType.topUp)
+      .fold(0, (sum, t) => sum + t.price);
 
   double get totalFees => transactions.fold(0, (sum, t) => sum + t.fee);
+
+  /// Ukupno prodano kredita, u eurima.
+  double get totalTopUpEur => transactions
+      .where((t) => t.type == TransactionType.topUp)
+      .fold(0, (sum, t) => sum + t.price);
 }

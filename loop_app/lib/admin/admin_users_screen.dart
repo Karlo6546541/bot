@@ -53,7 +53,7 @@ class AdminUsersScreen extends ConsumerWidget {
                       Text(
                         '${formatCredits(u.credits)} · '
                         '${s.devicesOf(u.id).length} predmeta',
-                        style: const TextStyle(color: LoopColors.textSecondary),
+                        style: TextStyle(color: LoopColors.textSecondary),
                       ),
                     ],
                   ),
@@ -166,7 +166,7 @@ class _AddCreditsDialogState extends State<_AddCreditsDialog> {
           children: [
             Text(
               widget.user.email,
-              style: const TextStyle(color: LoopColors.textSecondary),
+              style: TextStyle(color: LoopColors.textSecondary),
             ),
             const SizedBox(height: 12),
             Wrap(
@@ -192,7 +192,7 @@ class _AddCreditsDialogState extends State<_AddCreditsDialog> {
               ],
               decoration: InputDecoration(
                 labelText: 'Iznos',
-                suffixText: 'LC',
+                suffixText: 'kredita',
                 errorText: _error,
               ),
               onSubmitted: (_) => _submit(),

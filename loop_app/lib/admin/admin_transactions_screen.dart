@@ -53,7 +53,7 @@ class _TxCard extends StatelessWidget {
                     borderRadius: BorderRadius.circular(999),
                   ),
                   child: Text(
-                    tx.type.label,
+                    '${tx.isAuction ? 'Aukcija · ' : ''}${tx.type.label}',
                     style: TextStyle(
                       color: isSell ? LoopColors.success : LoopColors.admin,
                       fontWeight: FontWeight.w700,
@@ -71,7 +71,7 @@ class _TxCard extends StatelessWidget {
                 ),
                 Text(
                   formatDateTime(tx.createdAt),
-                  style: const TextStyle(
+                  style: TextStyle(
                     color: LoopColors.textSecondary,
                     fontSize: 12,
                   ),
@@ -85,9 +85,14 @@ class _TxCard extends StatelessWidget {
               children: [
                 _Field('Buyer', tx.buyerLabel),
                 _Field('Seller', tx.sellerLabel),
-                _Field('Cijena', formatCredits(tx.price)),
-                _Field('Iznos', formatCredits(tx.amount)),
-                _Field('Fee', formatCredits(tx.fee)),
+                if (tx.type == TransactionType.topUp) ...[
+                  _Field('Plaćeno', formatEuro(tx.price)),
+                  _Field('Krediti', formatCredits(tx.amount)),
+                ] else ...[
+                  _Field('Cijena', formatCredits(tx.price)),
+                  _Field('Iznos', formatCredits(tx.amount)),
+                  _Field('Fee', formatCredits(tx.fee)),
+                ],
               ],
             ),
           ],
@@ -109,7 +114,7 @@ class _Field extends StatelessWidget {
       children: [
         Text(
           label,
-          style: const TextStyle(color: LoopColors.textSecondary, fontSize: 12),
+          style: TextStyle(color: LoopColors.textSecondary, fontSize: 12),
         ),
         Text(value, style: const TextStyle(fontWeight: FontWeight.w600)),
       ],

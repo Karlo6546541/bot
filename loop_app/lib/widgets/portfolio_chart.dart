@@ -117,7 +117,7 @@ class _PortfolioChartState extends State<PortfolioChart> {
                               '${up ? '+' : '−'}${formatCredits(change.abs())} '
                               '(${up ? '+' : '−'}${pct.abs().toStringAsFixed(1)}%) '
                               '· ${_range == ChartRange.all ? 'ukupno' : 'zadnjih ${_range.duration!.inDays} dana'}',
-                              style: const TextStyle(
+                              style: TextStyle(
                                 color: LoopColors.textSecondary,
                                 fontSize: 12,
                               ),
@@ -350,7 +350,7 @@ class _ChartPainter extends CustomPainter {
     final tp = TextPainter(
       text: TextSpan(
         text: text,
-        style: const TextStyle(color: LoopColors.textSecondary, fontSize: 11),
+        style: TextStyle(color: LoopColors.textSecondary, fontSize: 11),
       ),
       textAlign: align,
       textDirection: TextDirection.ltr,
@@ -404,21 +404,18 @@ class _Tooltip extends StatelessWidget {
             children: [
               Text(
                 formatDateTime(point.time),
-                style: const TextStyle(
-                  color: LoopColors.textSecondary,
-                  fontSize: 11,
-                ),
+                style: TextStyle(color: LoopColors.textSecondary, fontSize: 11),
               ),
-              const SizedBox(height: 4),
+              SizedBox(height: 4),
               Text(
                 formatCredits(point.total),
-                style: const TextStyle(fontWeight: FontWeight.w800),
+                style: TextStyle(fontWeight: FontWeight.w800),
               ),
-              const SizedBox(height: 2),
+              SizedBox(height: 2),
               Text(
                 'Krediti ${formatNumber(point.credits)}\n'
                 'Predmeti ${formatNumber(point.portfolio)}',
-                style: const TextStyle(
+                style: TextStyle(
                   color: LoopColors.textSecondary,
                   fontSize: 11,
                   height: 1.4,
@@ -440,10 +437,10 @@ class _TableView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final rows = series.reversed.toList();
-    const head = TextStyle(color: LoopColors.textSecondary, fontSize: 12);
+    final head = TextStyle(color: LoopColors.textSecondary, fontSize: 12);
     return Column(
       children: [
-        const Row(
+        Row(
           children: [
             Expanded(flex: 3, child: Text('Vrijeme', style: head)),
             Expanded(

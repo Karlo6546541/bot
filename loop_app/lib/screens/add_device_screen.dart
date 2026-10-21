@@ -173,7 +173,7 @@ class _AddDeviceScreenState extends ConsumerState<AddDeviceScreen> {
                       builder: (field) => Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Text(
+                          Text(
                             'Odjeljak',
                             style: TextStyle(color: LoopColors.textSecondary),
                           ),
@@ -198,7 +198,7 @@ class _AddDeviceScreenState extends ConsumerState<AddDeviceScreen> {
                             ],
                           ),
                           const SizedBox(height: 14),
-                          const Text(
+                          Text(
                             'Kategorija',
                             style: TextStyle(color: LoopColors.textSecondary),
                           ),
@@ -223,7 +223,7 @@ class _AddDeviceScreenState extends ConsumerState<AddDeviceScreen> {
                               padding: const EdgeInsets.only(top: 6, left: 12),
                               child: Text(
                                 field.errorText!,
-                                style: const TextStyle(
+                                style: TextStyle(
                                   color: LoopColors.error,
                                   fontSize: 12,
                                 ),
@@ -244,7 +244,7 @@ class _AddDeviceScreenState extends ConsumerState<AddDeviceScreen> {
                       ],
                       decoration: const InputDecoration(
                         labelText: 'Cijena',
-                        suffixText: 'LC',
+                        suffixText: 'kredita',
                       ),
                       validator: (v) {
                         final p = _parsePrice(v);
@@ -389,7 +389,7 @@ class _Preview extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
+                Text(
                   'PREGLED',
                   style: TextStyle(
                     color: LoopColors.textSecondary,
@@ -405,7 +405,7 @@ class _Preview extends StatelessWidget {
                 Text(
                   model.trim().isEmpty ? 'Model' : model.trim(),
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(color: LoopColors.textSecondary),
+                  style: TextStyle(color: LoopColors.textSecondary),
                 ),
               ],
             ),
@@ -420,7 +420,7 @@ class _Preview extends StatelessWidget {
                 ),
                 Text(
                   'prodaja: ${formatCredits(sellPayout(price!))}',
-                  style: const TextStyle(
+                  style: TextStyle(
                     color: LoopColors.textSecondary,
                     fontSize: 12,
                   ),
@@ -455,7 +455,7 @@ class _PhotoPicker extends StatelessWidget {
       children: [
         Text(
           'Fotografije (${photos.length}/$maxImages) · neobavezno',
-          style: const TextStyle(color: LoopColors.textSecondary),
+          style: TextStyle(color: LoopColors.textSecondary),
         ),
         const SizedBox(height: 8),
         SizedBox(
@@ -556,10 +556,7 @@ class _PickTile extends StatelessWidget {
               const SizedBox(height: 4),
               Text(
                 label,
-                style: const TextStyle(
-                  fontSize: 12,
-                  color: LoopColors.textSecondary,
-                ),
+                style: TextStyle(fontSize: 12, color: LoopColors.textSecondary),
               ),
             ],
           ),

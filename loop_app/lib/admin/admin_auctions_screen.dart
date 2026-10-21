@@ -36,7 +36,7 @@ class AdminAuctionsScreen extends ConsumerWidget {
             padding: const EdgeInsets.all(16),
             child: Row(
               children: [
-                const Icon(Icons.gavel, color: LoopColors.admin),
+                Icon(Icons.gavel, color: LoopColors.admin),
                 const SizedBox(width: 14),
                 Expanded(
                   child: Column(
@@ -50,7 +50,7 @@ class AdminAuctionsScreen extends ConsumerWidget {
                       Text(
                         'Prodavatelj: ${a.sellerLabel} · ${a.bids.length} ponuda'
                         '${top != null ? ' · vodi ${top.userLabel}' : ''}',
-                        style: const TextStyle(
+                        style: TextStyle(
                           color: LoopColors.textSecondary,
                           fontSize: 12,
                         ),
@@ -69,9 +69,7 @@ class AdminAuctionsScreen extends ConsumerWidget {
                           else
                             Text(
                               a.status.label,
-                              style: const TextStyle(
-                                color: LoopColors.textSecondary,
-                              ),
+                              style: TextStyle(color: LoopColors.textSecondary),
                             ),
                         ],
                       ),

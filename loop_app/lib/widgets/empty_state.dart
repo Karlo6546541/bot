@@ -44,7 +44,7 @@ class EmptyState extends StatelessWidget {
               Text(
                 message!,
                 textAlign: TextAlign.center,
-                style: const TextStyle(color: LoopColors.textSecondary),
+                style: TextStyle(color: LoopColors.textSecondary),
               ),
             ],
             if (action != null) ...[const SizedBox(height: 20), action!],

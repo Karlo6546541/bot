@@ -43,23 +43,27 @@ class _DeviceCardState extends State<DeviceCard> {
       onEnter: (_) => setState(() => _hover = true),
       onExit: (_) => setState(() => _hover = false),
       child: AnimatedScale(
-        scale: _hover ? 1.015 : 1,
+        scale: _hover ? 1.02 : 1,
         duration: const Duration(milliseconds: 150),
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 150),
           clipBehavior: Clip.antiAlias,
+          // Bijela kartica s mekom sjenom; pri prelasku mišem se "podigne"
+          // i dobije obrub u boji kategorije.
           decoration: BoxDecoration(
-            color: _hover ? LoopColors.surfaceHover : LoopColors.surface,
+            color: LoopColors.surface,
             borderRadius: BorderRadius.circular(kRadius),
             border: Border.all(
-              color: catColor.withValues(alpha: _hover ? 0.55 : 0.18),
+              color: _hover ? catColor : LoopColors.surfaceHover,
+              width: 1.5,
             ),
             boxShadow: [
+              ...LoopColors.softShadow,
               if (_hover)
                 BoxShadow(
                   color: catColor.withValues(alpha: 0.18),
                   blurRadius: 24,
-                  offset: const Offset(0, 8),
+                  offset: const Offset(0, 10),
                 ),
             ],
           ),
@@ -69,24 +73,6 @@ class _DeviceCardState extends State<DeviceCard> {
               onTap: widget.onTap,
               child: Stack(
                 children: [
-                  // Diskretni sjaj boje kategorije u kutu kartice.
-                  Positioned(
-                    right: -40,
-                    top: -40,
-                    child: Container(
-                      width: 120,
-                      height: 120,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        gradient: RadialGradient(
-                          colors: [
-                            catColor.withValues(alpha: 0.16),
-                            catColor.withValues(alpha: 0),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
                   Padding(
                     padding: const EdgeInsets.all(16),
                     child: _content(d),
@@ -127,7 +113,7 @@ class _DeviceCardState extends State<DeviceCard> {
                     d.model,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(color: LoopColors.textSecondary),
+                    style: TextStyle(color: LoopColors.textSecondary),
                   ),
                 ],
               ),
@@ -217,10 +203,7 @@ class _Chip extends StatelessWidget {
           const SizedBox(width: 6),
           Text(
             label,
-            style: const TextStyle(
-              color: LoopColors.textSecondary,
-              fontSize: 12,
-            ),
+            style: TextStyle(color: LoopColors.textSecondary, fontSize: 12),
           ),
         ],
       ),

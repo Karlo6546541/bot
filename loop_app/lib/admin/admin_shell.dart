@@ -36,7 +36,7 @@ class _AdminShellState extends ConsumerState<AdminShell> {
       destinations: _destinations,
       selectedIndex: _index,
       onSelect: (i) => setState(() => _index = i),
-      railHeader: const Padding(
+      railHeader: Padding(
         padding: EdgeInsets.symmetric(vertical: 20),
         child: Icon(
           Icons.admin_panel_settings,
@@ -46,12 +46,10 @@ class _AdminShellState extends ConsumerState<AdminShell> {
       ),
       appBar: AppBar(
         backgroundColor: LoopColors.admin.withValues(alpha: 0.14),
-        shape: const Border(
-          bottom: BorderSide(color: LoopColors.admin, width: 2),
-        ),
+        shape: Border(bottom: BorderSide(color: LoopColors.admin, width: 2)),
         title: Row(
           children: [
-            const Icon(Icons.admin_panel_settings, color: LoopColors.admin),
+            Icon(Icons.admin_panel_settings, color: LoopColors.admin),
             const SizedBox(width: 10),
             Flexible(
               child: Text(

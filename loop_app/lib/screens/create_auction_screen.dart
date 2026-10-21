@@ -154,7 +154,7 @@ class _CreateAuctionScreenState extends ConsumerState<CreateAuctionScreen> {
                         ],
                         decoration: InputDecoration(
                           labelText: 'Početna cijena',
-                          suffixText: 'LC',
+                          suffixText: 'kredita',
                           helperText:
                               'Vrijednost predmeta: ${formatCredits(selected.price)}',
                           errorText: _error,
@@ -193,7 +193,7 @@ class _CreateAuctionScreenState extends ConsumerState<CreateAuctionScreen> {
                           '• Na kraju dobivaš najvišu ponudu − 5% fee'
                           '${_price != null && _price! > 0 ? ' (najmanje ${formatCredits(sellPayout(_price!))})' : ''}.\n'
                           '• Ako nitko ne ponudi, predmet ostaje tebi.',
-                          style: const TextStyle(
+                          style: TextStyle(
                             color: LoopColors.textSecondary,
                             height: 1.5,
                           ),
@@ -258,10 +258,7 @@ class _DeviceChoice extends StatelessWidget {
               ),
               Text(
                 formatCredits(device.price),
-                style: const TextStyle(
-                  color: LoopColors.textSecondary,
-                  fontSize: 12,
-                ),
+                style: TextStyle(color: LoopColors.textSecondary, fontSize: 12),
               ),
             ],
           ),

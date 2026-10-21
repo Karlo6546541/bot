@@ -3,21 +3,37 @@ import 'package:flutter/material.dart';
 import '../models/device.dart';
 import '../theme/app_theme.dart';
 
-/// Kategorijska paleta (tamni način), provjerena validatorom na površini
-/// #141A27: raspon svjetline, kroma, CVD razlučivost susjednih boja i
-/// kontrast. Boje se dodjeljuju UVIJEK istim redom — nikad se ne generiraju
-/// nove. Odjeljak dobiva boju po svom redu u [ItemSection], kategorija po
-/// svom redu unutar odjeljka (najviše 8 kategorija po odjeljku).
-const kCategoricalPalette = <Color>[
-  Color(0xFF3987E5), // plava
-  Color(0xFFD95926), // narančasta
-  Color(0xFF199E70), // tirkizna
-  Color(0xFFC98500), // žuta
-  Color(0xFFD55181), // magenta
+/// Kategorijska paleta, provjerena validatorom za obje teme
+/// (svijetla na #FFFFFF, tamna na #221B17): raspon svjetline, kroma,
+/// CVD razlučivost susjednih boja i kontrast. U svijetloj temi tri boje
+/// imaju kontrast < 3:1, pa grafikoni uvijek imaju vidljive oznake/legendu.
+/// Boje se dodjeljuju UVIJEK istim redom — nikad se ne generiraju nove.
+/// Odjeljak dobiva boju po svom redu u [ItemSection], kategorija po svom
+/// redu unutar odjeljka (najviše 8 kategorija po odjeljku).
+const _paletteLight = <Color>[
+  Color(0xFF2A78D6), // plava
+  Color(0xFFEB6834), // narančasta
+  Color(0xFF1BAF7A), // tirkizna
+  Color(0xFFEDA100), // žuta
+  Color(0xFFE87BA4), // magenta
   Color(0xFF008300), // zelena
-  Color(0xFF9085E9), // ljubičasta
-  Color(0xFFE66767), // crvena
+  Color(0xFF6250D6), // ljubičasta
+  Color(0xFFE34948), // crvena
 ];
+
+const _paletteDark = <Color>[
+  Color(0xFF3987E5),
+  Color(0xFFD95926),
+  Color(0xFF199E70),
+  Color(0xFFC98500),
+  Color(0xFFD55181),
+  Color(0xFF008300),
+  Color(0xFF9085E9),
+  Color(0xFFE66767),
+];
+
+List<Color> get kCategoricalPalette =>
+    LoopColors.isDark ? _paletteDark : _paletteLight;
 
 extension SectionStyle on ItemSection {
   Color get color => kCategoricalPalette[index];

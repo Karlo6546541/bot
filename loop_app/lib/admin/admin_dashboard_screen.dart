@@ -37,6 +37,7 @@ class AdminDashboardScreen extends ConsumerWidget {
         formatCredits(s.totalVolume),
       ),
       _Tile(Icons.percent, 'Prihod od fee-a (5%)', formatCredits(s.totalFees)),
+      _Tile(Icons.add_card, 'Prodano kredita', formatEuro(s.totalTopUpEur)),
     ];
 
     return SingleChildScrollView(
@@ -61,9 +62,7 @@ class AdminDashboardScreen extends ConsumerWidget {
                           const SizedBox(height: 12),
                           Text(
                             t.label,
-                            style: const TextStyle(
-                              color: LoopColors.textSecondary,
-                            ),
+                            style: TextStyle(color: LoopColors.textSecondary),
                           ),
                           const SizedBox(height: 4),
                           Text(
@@ -76,7 +75,7 @@ class AdminDashboardScreen extends ConsumerWidget {
                           if (t.sub != null)
                             Text(
                               t.sub!,
-                              style: const TextStyle(
+                              style: TextStyle(
                                 color: LoopColors.textSecondary,
                                 fontSize: 12,
                               ),
@@ -127,7 +126,7 @@ class _CategoryStats extends StatelessWidget {
             ),
             const SizedBox(height: 16),
             if (entries.isEmpty)
-              const Text(
+              Text(
                 'Nema predmeta.',
                 style: TextStyle(color: LoopColors.textSecondary),
               ),
@@ -159,7 +158,7 @@ class _CategoryStats extends StatelessWidget {
                       child: Text(
                         '${e.value} · ${formatCredits(values[e.key] ?? 0)}',
                         textAlign: TextAlign.right,
-                        style: const TextStyle(
+                        style: TextStyle(
                           color: LoopColors.textSecondary,
                           fontSize: 12,
                         ),

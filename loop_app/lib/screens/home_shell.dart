@@ -1,24 +1,32 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+import '../providers/app_providers.dart';
+import '../theme/app_theme.dart';
+import '../widgets/formatters.dart';
 
 import '../widgets/adaptive_shell.dart';
 import 'activity_screen.dart';
 import 'add_device_screen.dart';
 import 'auctions_screen.dart';
+import 'buy_credits_screen.dart';
 import 'create_auction_screen.dart';
 import 'market_screen.dart';
 import 'portfolio_screen.dart';
 import 'profile_screen.dart';
 
 /// Glavni okvir za prijavljenog korisnika s 4 taba.
-class HomeShell extends StatefulWidget {
+class HomeShell extends ConsumerStatefulWidget {
   const HomeShell({super.key});
 
   @override
-  State<HomeShell> createState() => _HomeShellState();
+  ConsumerState<HomeShell> createState() => _HomeShellState();
 }
 
-class _HomeShellState extends State<HomeShell> {
-  int _index = 0;
+class _HomeShellState extends ConsumerState<HomeShell> {
+  int get _index => ref.watch(homeTabProvider);
+
+  void _go(int i) => ref.read(homeTabProvider.notifier).select(i);
 
   static const _destinations = [
     ShellDestination(
@@ -49,7 +57,7 @@ class _HomeShellState extends State<HomeShell> {
     return AdaptiveShell(
       destinations: _destinations,
       selectedIndex: _index,
-      onSelect: (i) => setState(() => _index = i),
+      onSelect: _go,
       railHeader: const Padding(
         padding: EdgeInsets.symmetric(vertical: 20),
         child: LoopLogo(size: 22),
@@ -58,6 +66,7 @@ class _HomeShellState extends State<HomeShell> {
         title: isDesktop
             ? Text(_destinations[_index].label)
             : const LoopLogo(size: 22),
+        actions: const [_CreditsPill(), SizedBox(width: 12)],
       ),
       floatingActionButton: switch (_index) {
         0 => FloatingActionButton.extended(
@@ -82,12 +91,51 @@ class _HomeShellState extends State<HomeShell> {
       body: IndexedStack(
         index: _index,
         children: [
-          PortfolioScreen(onGoToMarket: () => setState(() => _index = 1)),
+          PortfolioScreen(onGoToMarket: () => _go(1)),
           const MarketScreen(),
           const AuctionsScreen(),
           const ActivityScreen(),
           const ProfileScreen(),
         ],
+      ),
+    );
+  }
+}
+
+/// Stanje kredita u gornjoj traci; dodir otvara kupnju kredita.
+class _CreditsPill extends ConsumerWidget {
+  const _CreditsPill();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final credits = ref.watch(
+      appProvider.select((s) => s.currentUser?.credits ?? 0),
+    );
+    return Tooltip(
+      message: 'Kupi kredite',
+      child: Material(
+        color: LoopColors.sunny,
+        shape: const StadiumBorder(),
+        child: InkWell(
+          customBorder: const StadiumBorder(),
+          onTap: () => BuyCreditsScreen.open(context),
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(12, 8, 8, 8),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Text('🪙', style: TextStyle(fontSize: 16)),
+                const SizedBox(width: 6),
+                Text(
+                  formatNumber(credits),
+                  style: const TextStyle(fontWeight: FontWeight.w900),
+                ),
+                const SizedBox(width: 4),
+                Icon(Icons.add_circle, size: 20, color: LoopColors.accent),
+              ],
+            ),
+          ),
+        ),
       ),
     );
   }

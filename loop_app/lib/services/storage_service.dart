@@ -30,6 +30,8 @@ class StorageService {
   static const _seededKey = 'seeded';
   static const _currentUserKey = 'currentUserId';
   static const _isAdminKey = 'isAdmin';
+  static const _themeKey = 'themeMode';
+  static const _howItWorksKey = 'howItWorksDismissed';
 
   late Box<Map> _users;
   late Box<Map> _devices;
@@ -121,7 +123,10 @@ class StorageService {
     await _users.clear();
     await _devices.clear();
     await _transactions.clear();
+    // Odabrana tema je postavka uređaja, ne demo podatak — čuvamo je.
+    final theme = _session.get(_themeKey);
     await _session.clear();
+    if (theme != null) await _session.put(_themeKey, theme);
     await _history.clear();
     await _auctions.clear();
     await _seed();
@@ -245,6 +250,15 @@ class StorageService {
   String? get currentUserId => _session.get(_currentUserKey) as String?;
 
   bool get isAdmin => _session.get(_isAdminKey) == true;
+
+  /// 'light' | 'dark' | 'system' (zadano: svijetla tema).
+  String get themeMode => _session.get(_themeKey) as String? ?? 'light';
+
+  Future<void> setThemeMode(String mode) => _session.put(_themeKey, mode);
+
+  bool get howItWorksDismissed => _session.get(_howItWorksKey) == true;
+
+  Future<void> dismissHowItWorks() => _session.put(_howItWorksKey, true);
 
   Future<void> saveSession({String? userId, bool isAdmin = false}) async {
     if (userId == null) {

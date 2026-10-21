@@ -28,11 +28,12 @@ void main() {
       addTearDown(tester.view.reset);
 
       await tester.pumpWidget(await buildApp(tester));
+      await tester.ensureVisible(find.text('Prijavi se'));
       await tester.tap(find.text('Prijavi se'));
       await tester.pumpAndSettle();
 
       // Portfolio demo korisnika
-      expect(find.text('1,250.00'), findsOneWidget);
+      expect(find.text('1.250'), findsWidgets); // kartica + traka
       expect(find.text('SILVER'), findsOneWidget);
       // Popis predmeta je ispod grafikona — skrolaj do njega.
       await tester.scrollUntilVisible(find.text('iPhone 13'), 300);
@@ -48,8 +49,7 @@ void main() {
       await tester.tap(find.text('Potvrdi prodaju'));
       await tester.pumpAndSettle();
       expect(find.text('Uspješno prodano'), findsOneWidget);
-      await tester.scrollUntilVisible(find.text('1,544.50'), -300);
-      expect(find.text('1,544.50'), findsOneWidget);
+      expect(find.text('1.544,50'), findsWidgets);
 
       // Kupnja (AirPods Pro 2: 185 + 5% = 194.25)
       await tester.tap(find.text('Market').last);
@@ -65,8 +65,9 @@ void main() {
       // Aktivnost: najnovije na vrhu
       await tester.tap(find.text('Aktivnost').last);
       await tester.pumpAndSettle();
-      expect(find.text('+294.50 LC'), findsOneWidget);
-      expect(find.text('−194.25 LC'), findsOneWidget);
+      await tester.scrollUntilVisible(find.text('+294,50 kredita'), 200);
+      expect(find.text('+294,50 kredita'), findsOneWidget);
+      expect(find.text('−194,25 kredita'), findsOneWidget);
     });
   }
 
@@ -79,7 +80,7 @@ void main() {
     await tester.tap(find.text('Admin prijava'));
     await tester.pumpAndSettle();
     await tester.enterText(find.byType(TextField).last, 'admin123');
-    await tester.tap(find.text('Prijava'));
+    await tester.tap(find.widgetWithText(FilledButton, 'Prijava'));
     await tester.pumpAndSettle();
 
     expect(find.textContaining('LOOP Admin'), findsOneWidget);
@@ -96,6 +97,7 @@ void main() {
     addTearDown(tester.view.reset);
 
     await tester.pumpWidget(await buildApp(tester));
+    await tester.ensureVisible(find.text('Prijavi se'));
     await tester.tap(find.text('Prijavi se'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Market').last);
@@ -132,7 +134,7 @@ void main() {
     await tester.tap(find.text('Sony A7 III'));
     await tester.pumpAndSettle();
     expect(find.text('Ukupno plaćaš'), findsOneWidget);
-    expect(find.text('1,029.00 LC'), findsOneWidget); // 980 + 5%
+    expect(find.text('1.029 kredita'), findsOneWidget); // 980 + 5%
   });
 
   testWidgets('odjeljci i grafikon portfolija', (tester) async {
@@ -141,6 +143,7 @@ void main() {
     addTearDown(tester.view.reset);
 
     await tester.pumpWidget(await buildApp(tester));
+    await tester.ensureVisible(find.text('Prijavi se'));
     await tester.tap(find.text('Prijavi se'));
     await tester.pumpAndSettle();
 
@@ -180,6 +183,7 @@ void main() {
     addTearDown(tester.view.reset);
 
     await tester.pumpWidget(await buildApp(tester));
+    await tester.ensureVisible(find.text('Prijavi se'));
     await tester.tap(find.text('Prijavi se'));
     await tester.pumpAndSettle();
 
@@ -189,13 +193,13 @@ void main() {
 
     await tester.tap(find.text('Polaroid SX-70'));
     await tester.pumpAndSettle();
-    expect(find.textContaining('Najmanja ponuda: 63.00 LC'), findsOneWidget);
+    expect(find.textContaining('Najmanja ponuda: 63 kredita'), findsOneWidget);
 
     // Manje od minimuma → poruka uz polje.
     await tester.enterText(find.byType(TextField), '61');
     await tester.tap(find.text('Licitiraj'));
     await tester.pumpAndSettle();
-    expect(find.text('Najmanje 63.00 LC'), findsOneWidget);
+    expect(find.text('Najmanje 63 kredita'), findsOneWidget);
 
     await tester.enterText(find.byType(TextField), '70');
     await tester.tap(find.text('Licitiraj'));
@@ -209,5 +213,68 @@ void main() {
     // Vodeći ponuđač više nema obrazac za ponudu.
     expect(find.byType(TextField), findsNothing);
     expect(find.textContaining('ne može se povući'), findsOneWidget);
+  });
+
+  testWidgets('kupnja kredita i promjena teme', (tester) async {
+    tester.view.physicalSize = const Size(1400, 1000);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+
+    await tester.pumpWidget(await buildApp(tester));
+    await tester.ensureVisible(find.text('Prijavi se'));
+    await tester.tap(find.text('Prijavi se'));
+    await tester.pumpAndSettle();
+
+    // Gumb na glavnoj kartici otvara kupnju; zadani paket je 500 (+30).
+    await tester.tap(find.text('Dopuni kredite'));
+    await tester.pumpAndSettle();
+    expect(find.text('Najpopularnije'), findsOneWidget);
+    await tester.tap(find.text('PayPal'));
+    await tester.pumpAndSettle();
+    await tester.scrollUntilVisible(find.text('Plati 500,00 €'), 200);
+    await tester.tap(find.text('Plati 500,00 €'));
+    await tester.pumpAndSettle();
+    expect(find.text('Plaćanje uspješno! 🎉'), findsOneWidget);
+    await tester.tap(find.text('Super'));
+    await tester.pumpAndSettle();
+    expect(find.text('1.780'), findsWidgets); // 1250 + 500 + 30 bonus
+
+    // Tamna tema iz Profila: sučelje se ponovno izgradi bez grešaka.
+    await tester.tap(find.text('Profil').last);
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(find.text('Tamna'));
+    await tester.tap(find.text('Tamna'));
+    await tester.pumpAndSettle();
+    expect(find.text('Profil'), findsWidgets); // ostali smo na istom tabu
+    expect(
+      Theme.of(tester.element(find.text('Tamna'))).brightness,
+      Brightness.dark,
+    );
+    await tester.tap(find.text('Portfolio').last);
+    await tester.pumpAndSettle();
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('premalo kredita nudi kupnju kredita', (tester) async {
+    tester.view.physicalSize = const Size(1400, 1000);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+
+    await tester.pumpWidget(await buildApp(tester));
+    await tester.ensureVisible(find.text('Prijavi se'));
+    await tester.tap(find.text('Prijavi se'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Market').last);
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byType(TextField).first, 'MacBook Pro');
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Kupi odmah')); // 1890 + 5% > 1250
+    await tester.pumpAndSettle();
+    expect(find.text('Nemaš dovoljno kredita'), findsOneWidget);
+    await tester.tap(find.text('Kupi kredite'));
+    await tester.pumpAndSettle();
+    // Predložen je najmanji paket koji pokriva manjak (734,50 → 1000).
+    await tester.scrollUntilVisible(find.text('Plati 1.000,00 €'), 200);
+    expect(find.text('Plati 1.000,00 €'), findsOneWidget);
   });
 }

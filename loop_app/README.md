@@ -58,6 +58,18 @@ flutter run            # odaberi uređaj s popisa
 
 ### Što aplikacija ima
 
+- **Dizajn:** topla, prijateljska tržnica umjesto "burze". Svijetla tema (krem pozadina, bijele
+  kartice, terakota akcent, pastelni detalji) i topla tamna tema, izbor u *Profil → Izgled*.
+  Font je Nunito (ugrađen, radi offline; licenca u `assets/fonts/OFL.txt`). Iznosi se pišu
+  hrvatski: „1.250 kredita”, „294,50 kredita”.
+- **Kupnja kredita (demo):** paketi 50 / 100 / 250 (+10) / 500 (+30) / 1000 (+80) ili vlastiti
+  iznos (10–2000), 1 kredit = 1 €. Načini plaćanja: kartica, Apple Pay, Google Pay, PayPal.
+  **Ništa se stvarno ne naplaćuje i ne unose se podaci kartice.** Dnevni limit je 2000 kredita.
+  Kupljeni krediti, kao i svi ostali, ne mogu se isplatiti. Dostupno s početne („Dopuni
+  kredite”), iz trake s kreditima gore desno, iz Profila te automatski kad za kupnju ili
+  ponudu nema dovoljno kredita.
+- **Početna:** brze akcije (Kupi kredite, Dodaj predmet, Market, Aukcije) i kartica „Kako LOOP
+  radi” koja se može zatvoriti.
 - **Aukcije:** objavi predmet iz svog portfolija (početna cijena i trajanje od 2 min do 7 dana),
   ostali licitiraju. Pravila:
   - ponuda je **obvezujuća** i ne može se povući ni smanjiti;
@@ -144,6 +156,7 @@ lib/
 │   ├── storage_service.dart  # Hive pohrana (users, devices, transactions, session)
 │   ├── trade_service.dart    # poslovna logika: login, sell, buy, povijest, admin akcije
 │   ├── auction_service.dart  # aukcije: objava, ponude, blokiranje kredita, zaključivanje
+│   ├── credit_shop.dart      # kupnja kredita: paketi, bonus, dnevni limit (demo)
 │   ├── image_store.dart      # odabir i lokalno spremanje fotografija
 │   ├── fee.dart              # 5% fee i izračuni
 │   └── seed_data.dart        # demo podaci
@@ -153,7 +166,8 @@ lib/
 ├── screens/                  # login, portfolio, market, dodaj uređaj, aktivnost, profil
 ├── admin/                    # admin panel: dashboard, korisnici, uređaji, transakcije
 ├── widgets/                  # kartice, dijalozi, responzivni okvir, formatiranje
-└── theme/                    # tamna Material 3 tema i boje
+├── utils/                    # formatiranje iznosa i datuma (hrvatski zapis)
+└── theme/                    # svijetla i tamna Material 3 tema, paleta boja
 ```
 
 - **State management:** Riverpod (`Notifier`). Nakon svake akcije stanje se ponovno učita iz
@@ -170,7 +184,8 @@ flutter test
 ```
 
 Testovi pokrivaju fee, status, prodaju, kupnju (uključujući nedovoljno kredita), favorite,
-povijest vrijednosti, fotografije, odjeljke, **pravila aukcija** (blokiranje i povrat
+povijest vrijednosti, fotografije, odjeljke, **kupnju kredita** (bonus, dnevni limit),
+hrvatski format iznosa, promjenu teme, **pravila aukcija** (blokiranje i povrat
 kredita, obvezujuće ponude, limit kredita, produljenje, zaključivanje, nadogradnja), admin akcije
 i reset te UI tokove (login → prodaja →
 kupnja → aktivnost; kategorije, favoriti, detalji; grafikon i odjeljci) na desktop i mobilnoj širini.

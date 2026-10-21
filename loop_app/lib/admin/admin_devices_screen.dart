@@ -41,7 +41,7 @@ class AdminDevicesScreen extends ConsumerWidget {
             subtitle: Text(
               '${d.condition.label} · ${formatCredits(d.price)}\n'
               'Vlasnik: $owner',
-              style: const TextStyle(color: LoopColors.textSecondary),
+              style: TextStyle(color: LoopColors.textSecondary),
             ),
             isThreeLine: true,
             trailing: IconButton(

@@ -26,16 +26,22 @@ enum AuctionView {
 
 /// Odnos prijavljenog korisnika prema aukciji (za oznaku na kartici).
 enum AuctionRole {
-  seller('Tvoja aukcija', Icons.storefront, LoopColors.textSecondary),
-  leading('Vodiš', Icons.emoji_events, LoopColors.success),
-  outbid('Nadmašen si', Icons.trending_down, LoopColors.error),
-  won('Osvojeno', Icons.emoji_events, LoopColors.success),
-  none('', Icons.circle, LoopColors.textSecondary);
+  seller('Tvoja aukcija', Icons.storefront),
+  leading('Vodiš', Icons.emoji_events),
+  outbid('Nadmašen si', Icons.trending_down),
+  won('Osvojeno', Icons.emoji_events),
+  none('', Icons.circle);
 
-  const AuctionRole(this.label, this.icon, this.color);
+  const AuctionRole(this.label, this.icon);
   final String label;
   final IconData icon;
-  final Color color;
+
+  /// Boja ovisi o temi, pa je getter (enum vrijednosti moraju biti const).
+  Color get color => switch (this) {
+    leading || won => LoopColors.success,
+    outbid => LoopColors.error,
+    seller || none => LoopColors.textSecondary,
+  };
 
   static AuctionRole of(Auction a, String? me) {
     if (me == null) return none;
@@ -170,7 +176,7 @@ class _RulesBanner extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 8),
-          const Text(
+          Text(
             'Ponude su obvezujuće i ne mogu se povući. Iznos vodeće ponude se '
             'blokira i vraća ti se čim te netko nadmaši. Ponuda ne može biti '
             'veća od raspoloživih kredita.',
@@ -191,10 +197,7 @@ class _Kv extends StatelessWidget {
   Widget build(BuildContext context) => Column(
     crossAxisAlignment: CrossAxisAlignment.start,
     children: [
-      Text(
-        k,
-        style: const TextStyle(color: LoopColors.textSecondary, fontSize: 12),
-      ),
+      Text(k, style: TextStyle(color: LoopColors.textSecondary, fontSize: 12)),
       Text(v, style: const TextStyle(fontWeight: FontWeight.w800)),
     ],
   );
@@ -266,7 +269,7 @@ class AuctionCard extends ConsumerWidget {
                               : 'Prodaje ${a.sellerLabel}',
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
+                          style: TextStyle(
                             color: LoopColors.textSecondary,
                             fontSize: 12,
                           ),
@@ -287,7 +290,7 @@ class AuctionCard extends ConsumerWidget {
                       children: [
                         Text(
                           a.bids.isEmpty ? 'Početna cijena' : 'Najviša ponuda',
-                          style: const TextStyle(
+                          style: TextStyle(
                             color: LoopColors.textSecondary,
                             fontSize: 12,
                           ),
@@ -312,7 +315,7 @@ class AuctionCard extends ConsumerWidget {
                       Text(
                         '${a.bids.length} '
                         '${a.bids.length == 1 ? 'ponuda' : 'ponuda'}',
-                        style: const TextStyle(
+                        style: TextStyle(
                           color: LoopColors.textSecondary,
                           fontSize: 12,
                         ),

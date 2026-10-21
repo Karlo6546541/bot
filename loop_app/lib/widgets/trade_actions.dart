@@ -6,6 +6,7 @@ import '../providers/app_providers.dart';
 import '../services/fee.dart';
 import '../services/trade_service.dart';
 import '../theme/app_theme.dart';
+import '../screens/buy_credits_screen.dart';
 import 'formatters.dart';
 import 'loop_snackbar.dart';
 
@@ -85,12 +86,22 @@ Future<bool> confirmAndBuy(
   final total = buyTotal(device.price);
 
   if (user.credits < total) {
-    showLoopSnackBar(
-      'Nemaš dovoljno kredita. Potrebno ${formatCredits(total)}, '
-      'imaš ${formatCredits(user.credits)}.',
-      error: true,
+    // Ponudi dopunu umjesto suhe greške.
+    final missing = total - user.credits;
+    final topUp = await confirmDialog(
+      context,
+      title: 'Nemaš dovoljno kredita',
+      message:
+          'Za "${device.name}" treba ${formatCredits(total)} (s feejem), '
+          'a imaš ${formatCredits(user.credits)}.\n'
+          'Nedostaje ti ${formatCredits(missing)}.',
+      confirmLabel: 'Kupi kredite',
     );
-    return false;
+    if (!topUp || !context.mounted) return false;
+    final bought = await BuyCreditsScreen.open(context, needed: missing);
+    if (!bought || !context.mounted) return false;
+    // Nakon dopune nastavi s kupnjom.
+    return confirmAndBuy(context, ref, device);
   }
 
   final ok = await _showTradeDialog(
@@ -159,7 +170,7 @@ Future<bool> _showTradeDialog(
             ),
             Text(
               '${device.model} · ${device.condition.label}',
-              style: const TextStyle(color: LoopColors.textSecondary),
+              style: TextStyle(color: LoopColors.textSecondary),
             ),
             const SizedBox(height: 16),
             for (final r in rows)
@@ -201,10 +212,7 @@ Future<bool> _showTradeDialog(
               const SizedBox(height: 12),
               Text(
                 note,
-                style: const TextStyle(
-                  color: LoopColors.textSecondary,
-                  fontSize: 12,
-                ),
+                style: TextStyle(color: LoopColors.textSecondary, fontSize: 12),
               ),
             ],
           ],

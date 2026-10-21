@@ -14,7 +14,9 @@ import '../widgets/formatters.dart';
 import '../widgets/portfolio_chart.dart';
 import '../widgets/status_badge.dart';
 import '../widgets/trade_actions.dart';
+import 'add_device_screen.dart';
 import 'auction_detail_screen.dart';
+import 'buy_credits_screen.dart';
 import 'device_detail_screen.dart';
 
 /// Početna stranica: krediti, status, vrijednost i uređaji korisnika.
@@ -50,6 +52,19 @@ class PortfolioScreen extends ConsumerWidget {
             ),
           ),
         ),
+        const SliverToBoxAdapter(
+          child: Padding(
+            padding: EdgeInsets.fromLTRB(16, 0, 16, 16),
+            child: _QuickActions(),
+          ),
+        ),
+        if (state.showHowItWorks)
+          const SliverToBoxAdapter(
+            child: Padding(
+              padding: EdgeInsets.fromLTRB(16, 0, 16, 16),
+              child: _HowItWorks(),
+            ),
+          ),
         SliverToBoxAdapter(
           child: Padding(
             padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
@@ -141,37 +156,34 @@ class _CreditsHero extends StatelessWidget {
     return Container(
       clipBehavior: Clip.antiAlias,
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(kRadius * 1.5),
-        gradient: const LinearGradient(
+        borderRadius: BorderRadius.circular(kRadius * 1.6),
+        gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [Color(0xFF0F3D33), Color(0xFF12203A), LoopColors.surface],
-          stops: [0, 0.55, 1],
+          colors: [LoopColors.peach, LoopColors.sunny],
         ),
-        border: Border.all(color: LoopColors.accent.withValues(alpha: 0.3)),
-        boxShadow: [
-          BoxShadow(
-            color: LoopColors.accent.withValues(alpha: 0.14),
-            blurRadius: 40,
-            offset: const Offset(0, 14),
-          ),
-        ],
+        boxShadow: LoopColors.softShadow,
       ),
       child: Stack(
         children: [
-          // Dekorativni krugovi u pozadini.
+          // Razigrani dekorativni oblici u pozadini.
           Positioned(
-            right: -60,
-            top: -60,
-            child: _Glow(color: LoopColors.accent, size: 220),
+            right: -40,
+            top: -50,
+            child: _Glow(color: LoopColors.lilac, size: 200),
+          ),
+          Positioned(
+            right: 120,
+            bottom: -70,
+            child: _Glow(color: LoopColors.mint, size: 160),
           ),
           const Positioned(
-            right: 80,
-            bottom: -90,
-            child: _Glow(color: Color(0xFF5B8CFF), size: 200),
+            right: 24,
+            top: 64,
+            child: Text('🛍️', style: TextStyle(fontSize: 44)),
           ),
           Padding(
-            padding: const EdgeInsets.all(20),
+            padding: const EdgeInsets.all(22),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -182,8 +194,8 @@ class _CreditsHero extends StatelessWidget {
                         'Bok, $name 👋',
                         overflow: TextOverflow.ellipsis,
                         style: const TextStyle(
-                          color: LoopColors.textSecondary,
-                          fontSize: 15,
+                          fontSize: 18,
+                          fontWeight: FontWeight.w800,
                         ),
                       ),
                     ),
@@ -191,9 +203,12 @@ class _CreditsHero extends StatelessWidget {
                   ],
                 ),
                 const SizedBox(height: 14),
-                const Text(
-                  'LOOP krediti',
-                  style: TextStyle(color: LoopColors.textSecondary),
+                Text(
+                  'Tvoji krediti',
+                  style: TextStyle(
+                    color: LoopColors.textSecondary,
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
                 // Broj kredita se animira pri svakoj promjeni.
                 TweenAnimationBuilder<double>(
@@ -210,17 +225,17 @@ class _CreditsHero extends StatelessWidget {
                         Text(
                           formatNumber(value),
                           style: const TextStyle(
-                            fontSize: 46,
+                            fontSize: 48,
                             fontWeight: FontWeight.w900,
                             letterSpacing: -1,
                           ),
                         ),
                         const SizedBox(width: 8),
-                        const Text(
-                          'LC',
+                        Text(
+                          creditsWord(credits),
                           style: TextStyle(
-                            fontSize: 18,
-                            color: LoopColors.accent,
+                            fontSize: 20,
+                            color: LoopColors.textSecondary,
                             fontWeight: FontWeight.w800,
                           ),
                         ),
@@ -228,33 +243,255 @@ class _CreditsHero extends StatelessWidget {
                     ),
                   ),
                 ),
-                const SizedBox(height: 16),
+                const SizedBox(height: 12),
                 Wrap(
-                  spacing: 24,
-                  runSpacing: 12,
+                  spacing: 8,
+                  runSpacing: 8,
                   children: [
-                    _Stat(
-                      label: 'Ukupna vrijednost',
-                      value: formatCredits(totalValue),
+                    FilledButton.icon(
+                      onPressed: () => BuyCreditsScreen.open(context),
+                      style: FilledButton.styleFrom(
+                        minimumSize: const Size(0, 44),
+                        padding: const EdgeInsets.symmetric(horizontal: 18),
+                      ),
+                      icon: const Icon(Icons.add, size: 20),
+                      label: const Text('Dopuni kredite'),
                     ),
-                    _Stat(
-                      label: 'Portfolio',
-                      value: formatCredits(portfolioValue),
+                    _Pill(
+                      icon: Icons.stacked_line_chart,
+                      text: 'Ukupno ${formatCredits(totalValue)}',
                     ),
-                    _Stat(label: 'Predmeti', value: '$deviceCount'),
+                    _Pill(
+                      icon: Icons.inventory_2_outlined,
+                      text:
+                          '$deviceCount ${deviceCount == 1 ? 'predmet' : 'predmeta'}'
+                          ' · ${formatCredits(portfolioValue)}',
+                    ),
                     if (held > 0)
-                      _Stat(
-                        label: 'Blokirano u ponudama',
-                        value: formatCredits(held),
+                      _Pill(
+                        icon: Icons.lock_outline,
+                        text: 'Blokirano ${formatCredits(held)}',
                       ),
                   ],
                 ),
-                const SizedBox(height: 18),
+                const SizedBox(height: 16),
                 _StatusProgress(status: status, total: totalValue),
               ],
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+/// Bijela "tableta" s ikonom i tekstom na pastelnoj pozadini.
+class _Pill extends StatelessWidget {
+  const _Pill({required this.icon, required this.text});
+  final IconData icon;
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      height: 44,
+      padding: const EdgeInsets.symmetric(horizontal: 14),
+      decoration: BoxDecoration(
+        color: LoopColors.surface.withValues(alpha: 0.75),
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 18, color: LoopColors.textSecondary),
+          const SizedBox(width: 6),
+          Flexible(
+            child: Text(
+              text,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(fontWeight: FontWeight.w700),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Brze akcije: pastelne pločice prema glavnim radnjama.
+class _QuickActions extends ConsumerWidget {
+  const _QuickActions();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final tabs = ref.read(homeTabProvider.notifier);
+    final actions = [
+      (
+        '🪙',
+        'Kupi kredite',
+        LoopColors.sunny,
+        () => BuyCreditsScreen.open(context),
+      ),
+      (
+        '📦',
+        'Dodaj predmet',
+        LoopColors.mint,
+        () => Navigator.of(context).push(
+          MaterialPageRoute<void>(builder: (_) => const AddDeviceScreen()),
+        ),
+      ),
+      ('🛒', 'Istraži Market', LoopColors.sky, () => tabs.select(1)),
+      ('🔨', 'Aukcije', LoopColors.lilac, () => tabs.select(2)),
+    ];
+    return LayoutBuilder(
+      builder: (context, box) {
+        final perRow = box.maxWidth > 640 ? 4 : 2;
+        final w = (box.maxWidth - 10 * (perRow - 1)) / perRow;
+        return Wrap(
+          spacing: 10,
+          runSpacing: 10,
+          children: [
+            for (final (emoji, label, color, onTap) in actions)
+              SizedBox(
+                width: w,
+                child: Material(
+                  color: color,
+                  borderRadius: BorderRadius.circular(kRadius),
+                  child: InkWell(
+                    onTap: onTap,
+                    borderRadius: BorderRadius.circular(kRadius),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 14,
+                        vertical: 16,
+                      ),
+                      child: Row(
+                        children: [
+                          Text(emoji, style: const TextStyle(fontSize: 26)),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: Text(
+                              label,
+                              style: const TextStyle(
+                                fontWeight: FontWeight.w800,
+                                fontSize: 15,
+                              ),
+                            ),
+                          ),
+                          Icon(
+                            Icons.chevron_right,
+                            color: LoopColors.textSecondary,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+          ],
+        );
+      },
+    );
+  }
+}
+
+/// Kratko objašnjenje kako LOOP radi (može se zatvoriti).
+class _HowItWorks extends ConsumerWidget {
+  const _HowItWorks();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    const steps = [
+      ('1', '📸', 'Dodaj predmet', 'Uslikaj stvar koju više ne koristiš.'),
+      (
+        '2',
+        '🔁',
+        'Prodaj ili licitiraj',
+        'Prodaj odmah ili na aukciji — dobivaš LOOP kredite.',
+      ),
+      (
+        '3',
+        '🎁',
+        'Uzmi nešto novo',
+        'Kredite troši na druge stvari u LOOP-u. Bez novca, samo razmjena.',
+      ),
+    ];
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(16, 12, 8, 16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                const Expanded(
+                  child: Text(
+                    'Kako LOOP radi',
+                    style: TextStyle(fontSize: 17, fontWeight: FontWeight.w900),
+                  ),
+                ),
+                IconButton(
+                  tooltip: 'Sakrij',
+                  onPressed: () =>
+                      ref.read(appProvider.notifier).dismissHowItWorks(),
+                  icon: const Icon(Icons.close),
+                ),
+              ],
+            ),
+            const SizedBox(height: 4),
+            Wrap(
+              spacing: 16,
+              runSpacing: 12,
+              children: [
+                for (final (n, emoji, title, text) in steps)
+                  SizedBox(
+                    width: 250,
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Container(
+                          width: 44,
+                          height: 44,
+                          decoration: BoxDecoration(
+                            color: LoopColors.peach,
+                            shape: BoxShape.circle,
+                          ),
+                          child: Center(
+                            child: Text(
+                              emoji,
+                              style: const TextStyle(fontSize: 22),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                '$n. $title',
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.w800,
+                                ),
+                              ),
+                              Text(
+                                text,
+                                style: TextStyle(
+                                  color: LoopColors.textSecondary,
+                                  fontSize: 13,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -285,18 +522,15 @@ class _StatusProgress extends StatelessWidget {
                 next == null
                     ? 'Najviši status — Gold 🏆'
                     : 'Još ${formatCredits(threshold! - total)} do ${next.label}',
-                style: const TextStyle(
-                  color: LoopColors.textSecondary,
-                  fontSize: 12,
-                ),
+                style: TextStyle(color: LoopColors.textSecondary, fontSize: 12),
               ),
             ),
             Text(
               '${(progress * 100).round()}%',
               style: TextStyle(
-                color: color,
+                color: LoopColors.textSecondary,
                 fontSize: 12,
-                fontWeight: FontWeight.w700,
+                fontWeight: FontWeight.w800,
               ),
             ),
           ],
@@ -423,7 +657,7 @@ class _Breakdown extends StatelessWidget {
                       const SizedBox(width: 4),
                       Text(
                         '${x.label} · ${pct(x)}',
-                        style: const TextStyle(
+                        style: TextStyle(
                           color: LoopColors.textSecondary,
                           fontSize: 12,
                         ),
@@ -455,30 +689,6 @@ class _Glow extends StatelessWidget {
           colors: [color.withValues(alpha: 0.22), color.withValues(alpha: 0)],
         ),
       ),
-    );
-  }
-}
-
-class _Stat extends StatelessWidget {
-  const _Stat({required this.label, required this.value});
-  final String label;
-  final String value;
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          label,
-          style: const TextStyle(color: LoopColors.textSecondary, fontSize: 12),
-        ),
-        const SizedBox(height: 2),
-        Text(
-          value,
-          style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 15),
-        ),
-      ],
     );
   }
 }

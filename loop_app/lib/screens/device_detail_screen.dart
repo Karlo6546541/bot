@@ -111,7 +111,7 @@ class DeviceDetailScreen extends ConsumerWidget {
                     const SizedBox(height: 4),
                     Text(
                       device.model,
-                      style: const TextStyle(
+                      style: TextStyle(
                         color: LoopColors.textSecondary,
                         fontSize: 16,
                       ),
@@ -201,7 +201,7 @@ class DeviceDetailScreen extends ConsumerWidget {
                   ),
                   child: Row(
                     children: [
-                      const Icon(Icons.gavel, color: LoopColors.textSecondary),
+                      Icon(Icons.gavel, color: LoopColors.textSecondary),
                       const SizedBox(width: 10),
                       Expanded(
                         child: Text(
@@ -278,7 +278,7 @@ class _Spec extends StatelessWidget {
           ],
           Text(
             value,
-            style: const TextStyle(
+            style: TextStyle(
               fontWeight: FontWeight.w600,
               fontSize: 14,
               color: LoopColors.textPrimary,
@@ -475,10 +475,7 @@ class _AddTile extends StatelessWidget {
             const SizedBox(height: 4),
             Text(
               label,
-              style: const TextStyle(
-                fontSize: 11,
-                color: LoopColors.textSecondary,
-              ),
+              style: TextStyle(fontSize: 11, color: LoopColors.textSecondary),
             ),
           ],
         ),

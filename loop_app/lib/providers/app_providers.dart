@@ -1,10 +1,13 @@
+import 'package:flutter/material.dart' show ThemeMode;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../models/device.dart';
 import '../models/loop_transaction.dart';
 import '../models/auction.dart';
 import '../services/auction_service.dart';
+import '../services/credit_shop.dart';
 import '../services/image_store.dart';
+import '../utils/formatters.dart';
 import '../widgets/loop_snackbar.dart';
 import '../services/storage_service.dart';
 import '../services/trade_service.dart';
@@ -22,6 +25,10 @@ final tradeServiceProvider = Provider<TradeService>(
   (ref) => TradeService(ref.watch(storageProvider)),
 );
 
+final creditShopProvider = Provider<CreditShop>(
+  (ref) => CreditShop(ref.watch(storageProvider)),
+);
+
 final auctionServiceProvider = Provider<AuctionService>(
   (ref) => AuctionService(ref.watch(storageProvider)),
 );
@@ -31,6 +38,17 @@ final auctionServiceProvider = Provider<AuctionService>(
 final tickIntervalProvider = Provider<Duration?>(
   (ref) => const Duration(seconds: 1),
 );
+
+/// Odabrani tab glavnog okvira — u provideru, da preživi promjenu teme
+/// (koja ponovno gradi cijelo sučelje).
+final homeTabProvider = NotifierProvider<HomeTab, int>(HomeTab.new);
+
+class HomeTab extends Notifier<int> {
+  @override
+  int build() => 0;
+
+  void select(int index) => state = index;
+}
 
 /// Glavni provider aplikacije: drži [AppState] i izlaže sve akcije.
 final appProvider = NotifierProvider<AppController, AppState>(
@@ -76,6 +94,7 @@ class AppController extends Notifier<AppState> {
   }
 
   Future<void> logout() async {
+    ref.read(homeTabProvider.notifier).select(0);
     await _storage.saveSession();
     _refresh();
   }
@@ -160,6 +179,29 @@ class AppController extends Notifier<AppState> {
     _refresh();
   }
 
+  // -------------------------------------------------------- kupnja kredita
+
+  /// Simulirana kupnja kredita (demo: ništa se ne naplaćuje).
+  Future<LoopTransaction> buyCredits(int credits, PaymentMethod method) async {
+    final tx = await ref
+        .read(creditShopProvider)
+        .purchase(userId: _requireUserId(), credits: credits, method: method);
+    _refresh();
+    return tx;
+  }
+
+  // ------------------------------------------------------------- postavke
+
+  Future<void> setThemeMode(ThemeMode mode) async {
+    await _storage.setThemeMode(mode.name);
+    _refresh();
+  }
+
+  Future<void> dismissHowItWorks() async {
+    await _storage.dismissHowItWorks();
+    _refresh();
+  }
+
   // -------------------------------------------------------------- aukcije
 
   Future<Auction> createAuction({
@@ -211,15 +253,13 @@ class AppController extends Notifier<AppState> {
       final me = state.currentUserId;
       for (final r in results) {
         final a = r.auction;
-        final price = a.highestBid?.amount.toStringAsFixed(2);
+        final price = formatCredits(a.highestBid?.amount ?? 0);
         if (r.winnerId != null && r.winnerId == me) {
-          showLoopSnackBar(
-            '🏆 Osvojio si aukciju: ${a.deviceName} za $price LC',
-          );
+          showLoopSnackBar('🏆 Osvojio si aukciju: ${a.deviceName} za $price');
         } else if (a.sellerId == me) {
           showLoopSnackBar(
             r.winnerId != null
-                ? 'Tvoja aukcija je završila: ${a.deviceName} prodano za $price LC'
+                ? 'Tvoja aukcija je završila: ${a.deviceName} prodano za $price'
                 : 'Aukcija za ${a.deviceName} je završila bez ponuda',
           );
         } else if (me != null && a.bids.any((b) => b.userId == me)) {

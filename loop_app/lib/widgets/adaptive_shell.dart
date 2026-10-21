@@ -77,7 +77,7 @@ class AdaptiveShell extends StatelessWidget {
                 ),
             ],
           ),
-          const VerticalDivider(width: 1, color: LoopColors.surfaceHover),
+          VerticalDivider(width: 1, color: LoopColors.surfaceHover),
           Expanded(
             child: Scaffold(
               appBar: appBar,

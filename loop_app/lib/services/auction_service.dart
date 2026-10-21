@@ -2,6 +2,7 @@ import 'package:uuid/uuid.dart';
 
 import '../models/auction.dart';
 import '../models/loop_transaction.dart';
+import '../utils/formatters.dart';
 import 'fee.dart';
 import 'storage_service.dart';
 import 'trade_service.dart';
@@ -108,13 +109,13 @@ class AuctionService {
     final bid = roundCredits(amount);
     if (bid < a.minNextBid) {
       throw TradeException(
-        'Najmanja ponuda je ${a.minNextBid.toStringAsFixed(2)} LC.',
+        'Najmanja ponuda je ${formatCredits(a.minNextBid)}.',
       );
     }
     if (bid > user.credits) {
       throw TradeException(
         'Ponuda ne može biti veća od tvojih kredita '
-        '(${user.credits.toStringAsFixed(2)} LC).',
+        '(${formatCredits(user.credits)}).',
       );
     }
 

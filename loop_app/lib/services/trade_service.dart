@@ -3,6 +3,7 @@ import 'package:uuid/uuid.dart';
 import '../models/app_user.dart';
 import '../models/device.dart';
 import '../models/loop_transaction.dart';
+import '../utils/formatters.dart';
 import 'fee.dart';
 import 'storage_service.dart';
 
@@ -180,8 +181,8 @@ class TradeService {
     final total = buyTotal(device.price);
     if (user.credits < total) {
       throw TradeException(
-        'Nemaš dovoljno kredita. Potrebno: ${total.toStringAsFixed(2)}, '
-        'imaš: ${user.credits.toStringAsFixed(2)}.',
+        'Nemaš dovoljno kredita. Potrebno: ${formatCredits(total)}, '
+        'imaš: ${formatCredits(user.credits)}.',
       );
     }
 

@@ -89,7 +89,7 @@ class _MarketScreenState extends ConsumerState<MarketScreen> {
               children: [
                 Text(
                   'Dostupno: ${formatCredits(credits)} · fee 5% na kupnju',
-                  style: const TextStyle(color: LoopColors.textSecondary),
+                  style: TextStyle(color: LoopColors.textSecondary),
                 ),
                 const SizedBox(height: 12),
                 Row(
@@ -321,9 +321,7 @@ class _CategoryChip extends StatelessWidget {
                     style: TextStyle(
                       fontSize: 11,
                       fontWeight: FontWeight.w800,
-                      color: selected
-                          ? LoopColors.background
-                          : LoopColors.textSecondary,
+                      color: selected ? Colors.white : LoopColors.textSecondary,
                     ),
                   ),
                 ),

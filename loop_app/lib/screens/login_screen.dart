@@ -59,109 +59,128 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final wide = MediaQuery.sizeOf(context).width >= 900;
+    final formCard = Container(
+      constraints: const BoxConstraints(maxWidth: 440),
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        color: LoopColors.surface,
+        borderRadius: BorderRadius.circular(kRadius * 1.6),
+        boxShadow: LoopColors.softShadow,
+      ),
+      child: Form(
+        key: _formKey,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            const Text(
+              'Prijava',
+              style: TextStyle(fontSize: 26, fontWeight: FontWeight.w900),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              'Dobro došao natrag! Demo: bilo koja lozinka radi.',
+              style: TextStyle(color: LoopColors.textSecondary),
+            ),
+            const SizedBox(height: 22),
+            TextFormField(
+              controller: _email,
+              keyboardType: TextInputType.emailAddress,
+              decoration: const InputDecoration(
+                labelText: 'E-mail',
+                prefixIcon: Icon(Icons.alternate_email),
+              ),
+              validator: (v) => (v == null || !v.contains('@'))
+                  ? 'Unesi ispravan e-mail'
+                  : null,
+            ),
+            const SizedBox(height: 12),
+            TextFormField(
+              controller: _password,
+              obscureText: true,
+              decoration: const InputDecoration(
+                labelText: 'Lozinka',
+                prefixIcon: Icon(Icons.lock_outline),
+              ),
+              validator: (v) =>
+                  (v == null || v.isEmpty) ? 'Unesi lozinku' : null,
+              onFieldSubmitted: (_) => _login(),
+            ),
+            const SizedBox(height: 20),
+            FilledButton(
+              onPressed: _loading ? null : _login,
+              child: _loading
+                  ? const SizedBox(
+                      width: 22,
+                      height: 22,
+                      child: CircularProgressIndicator(strokeWidth: 2.5),
+                    )
+                  : const Text('Prijavi se'),
+            ),
+            const SizedBox(height: 12),
+            OutlinedButton.icon(
+              onPressed: _loading
+                  ? null
+                  : () => _run(
+                      () => ref.read(appProvider.notifier).loginAsGuest(),
+                    ),
+              icon: const Icon(Icons.person_outline),
+              label: const Text('Nastavi kao gost'),
+            ),
+            const SizedBox(height: 12),
+            TextButton.icon(
+              onPressed: _loading ? null : _adminLogin,
+              icon: Icon(
+                Icons.admin_panel_settings_outlined,
+                color: LoopColors.admin,
+              ),
+              label: Text(
+                'Admin prijava',
+                style: TextStyle(color: LoopColors.admin),
+              ),
+            ),
+            const SizedBox(height: 24),
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: LoopColors.background,
+                borderRadius: BorderRadius.circular(kRadius),
+              ),
+              child: Text(
+                'Demo verzija — bilo koji e-mail i lozinka rade.\n'
+                'Demo računi: demo@loop.com · test@loop.com\n'
+                'Novi računi dobivaju ${TradeService.welcomeCredits} '
+                'LOOP kredita.',
+                style: TextStyle(color: LoopColors.textSecondary, height: 1.5),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+
     return Scaffold(
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(
             padding: const EdgeInsets.all(24),
             child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 420),
-              child: Form(
-                key: _formKey,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    const Center(child: LoopLogo(size: 40)),
-                    const SizedBox(height: 8),
-                    const Text(
-                      "Trade. Don't sell.",
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        color: LoopColors.textSecondary,
-                        fontSize: 16,
-                      ),
+              constraints: const BoxConstraints(maxWidth: 1040),
+              child: wide
+                  ? Row(
+                      children: [
+                        const Expanded(child: _WelcomeHero()),
+                        const SizedBox(width: 40),
+                        Expanded(child: Center(child: formCard)),
+                      ],
+                    )
+                  : Column(
+                      children: [
+                        const _WelcomeHero(compact: true),
+                        const SizedBox(height: 24),
+                        formCard,
+                      ],
                     ),
-                    const SizedBox(height: 40),
-                    TextFormField(
-                      controller: _email,
-                      keyboardType: TextInputType.emailAddress,
-                      decoration: const InputDecoration(
-                        labelText: 'E-mail',
-                        prefixIcon: Icon(Icons.alternate_email),
-                      ),
-                      validator: (v) => (v == null || !v.contains('@'))
-                          ? 'Unesi ispravan e-mail'
-                          : null,
-                    ),
-                    const SizedBox(height: 12),
-                    TextFormField(
-                      controller: _password,
-                      obscureText: true,
-                      decoration: const InputDecoration(
-                        labelText: 'Lozinka',
-                        prefixIcon: Icon(Icons.lock_outline),
-                      ),
-                      validator: (v) =>
-                          (v == null || v.isEmpty) ? 'Unesi lozinku' : null,
-                      onFieldSubmitted: (_) => _login(),
-                    ),
-                    const SizedBox(height: 20),
-                    FilledButton(
-                      onPressed: _loading ? null : _login,
-                      child: _loading
-                          ? const SizedBox(
-                              width: 22,
-                              height: 22,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2.5,
-                              ),
-                            )
-                          : const Text('Prijavi se'),
-                    ),
-                    const SizedBox(height: 12),
-                    OutlinedButton.icon(
-                      onPressed: _loading
-                          ? null
-                          : () => _run(
-                              () =>
-                                  ref.read(appProvider.notifier).loginAsGuest(),
-                            ),
-                      icon: const Icon(Icons.person_outline),
-                      label: const Text('Nastavi kao gost'),
-                    ),
-                    const SizedBox(height: 12),
-                    TextButton.icon(
-                      onPressed: _loading ? null : _adminLogin,
-                      icon: const Icon(
-                        Icons.admin_panel_settings_outlined,
-                        color: LoopColors.admin,
-                      ),
-                      label: const Text(
-                        'Admin prijava',
-                        style: TextStyle(color: LoopColors.admin),
-                      ),
-                    ),
-                    const SizedBox(height: 24),
-                    Container(
-                      padding: const EdgeInsets.all(16),
-                      decoration: BoxDecoration(
-                        color: LoopColors.surface,
-                        borderRadius: BorderRadius.circular(kRadius),
-                      ),
-                      child: const Text(
-                        'Demo verzija — bilo koji e-mail i lozinka rade.\n'
-                        'Demo računi: demo@loop.com · test@loop.com\n'
-                        'Novi računi dobivaju ${TradeService.welcomeCredits} '
-                        'LOOP kredita.',
-                        style: TextStyle(
-                          color: LoopColors.textSecondary,
-                          height: 1.5,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
             ),
           ),
         ),
@@ -193,7 +212,7 @@ class _AdminLoginDialogState extends State<_AdminLoginDialog> {
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-      title: const Row(
+      title: Row(
         children: [
           Icon(Icons.admin_panel_settings, color: LoopColors.admin),
           SizedBox(width: 8),
@@ -235,6 +254,96 @@ class _AdminLoginDialogState extends State<_AdminLoginDialog> {
             minimumSize: const Size(0, 44),
           ),
           child: const Text('Prijava'),
+        ),
+      ],
+    );
+  }
+}
+
+/// Prijateljski uvod: logo, poruka i "oblak" kategorija.
+class _WelcomeHero extends StatelessWidget {
+  const _WelcomeHero({this.compact = false});
+  final bool compact;
+
+  static const _bubbles = [
+    ('📱', 'Mobiteli'),
+    ('🎸', 'Instrumenti'),
+    ('🧶', 'Rukotvorine'),
+    ('🃏', 'Kartice'),
+    ('📚', 'Knjige'),
+    ('🎮', 'Konzole'),
+    ('🏺', 'Keramika'),
+    ('🎟️', 'Doživljaji'),
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    final pastel = [
+      LoopColors.peach,
+      LoopColors.sunny,
+      LoopColors.mint,
+      LoopColors.lilac,
+      LoopColors.sky,
+    ];
+    return Column(
+      crossAxisAlignment: compact
+          ? CrossAxisAlignment.center
+          : CrossAxisAlignment.start,
+      children: [
+        LoopLogo(size: compact ? 34 : 40),
+        const SizedBox(height: 18),
+        Text(
+          'Mijenjaj stvari,\nne novac.',
+          textAlign: compact ? TextAlign.center : TextAlign.start,
+          style: TextStyle(
+            fontSize: compact ? 32 : 48,
+            height: 1.05,
+            fontWeight: FontWeight.w900,
+          ),
+        ),
+        const SizedBox(height: 12),
+        Text(
+          "Trade. Don't sell. Prodaj ono što ne koristiš, dobij LOOP kredite "
+          'i uzmi nešto novo — od mobitela do ručno rađene keramike.',
+          textAlign: compact ? TextAlign.center : TextAlign.start,
+          style: TextStyle(
+            color: LoopColors.textSecondary,
+            fontSize: compact ? 15 : 17,
+            height: 1.4,
+          ),
+        ),
+        const SizedBox(height: 22),
+        Wrap(
+          alignment: compact ? WrapAlignment.center : WrapAlignment.start,
+          spacing: 8,
+          runSpacing: 8,
+          children: [
+            for (var i = 0; i < _bubbles.length; i++)
+              // Lagano "plutanje" mjehurića pri otvaranju.
+              TweenAnimationBuilder<double>(
+                tween: Tween(begin: 0, end: 1),
+                duration: Duration(milliseconds: 400 + i * 70),
+                curve: Curves.easeOutBack,
+                builder: (_, t, child) => Transform.scale(
+                  scale: 0.6 + 0.4 * t,
+                  child: Opacity(opacity: t.clamp(0, 1), child: child),
+                ),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 14,
+                    vertical: 9,
+                  ),
+                  decoration: BoxDecoration(
+                    color: pastel[i % pastel.length],
+                    borderRadius: BorderRadius.circular(999),
+                  ),
+                  child: Text(
+                    '${_bubbles[i].$1}  ${_bubbles[i].$2}',
+                    style: const TextStyle(fontWeight: FontWeight.w700),
+                  ),
+                ),
+              ),
+          ],
         ),
       ],
     );

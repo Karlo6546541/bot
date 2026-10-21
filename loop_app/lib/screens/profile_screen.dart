@@ -6,6 +6,7 @@ import '../theme/app_theme.dart';
 import '../widgets/formatters.dart';
 import '../widgets/status_badge.dart';
 import '../widgets/trade_actions.dart';
+import 'buy_credits_screen.dart';
 
 class ProfileScreen extends ConsumerWidget {
   const ProfileScreen({super.key});
@@ -40,7 +41,7 @@ class ProfileScreen extends ConsumerWidget {
                           ),
                           child: Text(
                             initial,
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 24,
                               fontWeight: FontWeight.w800,
                               color: LoopColors.accent,
@@ -61,7 +62,7 @@ class ProfileScreen extends ConsumerWidget {
                               ),
                               Text(
                                 user.email,
-                                style: const TextStyle(
+                                style: TextStyle(
                                   color: LoopColors.textSecondary,
                                 ),
                               ),
@@ -105,7 +106,7 @@ class ProfileScreen extends ConsumerWidget {
                   ),
                 ),
                 const SizedBox(height: 12),
-                const Text(
+                Text(
                   'LOOP krediti se ne mogu isplatiti — koriste se isključivo '
                   'za kupnju predmeta unutar aplikacije. Status: Bronze < 2000, '
                   'Silver 2000–5000, Gold > 5000 (krediti + portfolio).',
@@ -113,6 +114,40 @@ class ProfileScreen extends ConsumerWidget {
                     color: LoopColors.textSecondary,
                     fontSize: 12,
                   ),
+                ),
+                const SizedBox(height: 16),
+                FilledButton.icon(
+                  onPressed: () => BuyCreditsScreen.open(context),
+                  icon: const Icon(Icons.add_card),
+                  label: const Text('Kupi kredite'),
+                ),
+                const SizedBox(height: 20),
+                const Text(
+                  'Izgled',
+                  style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16),
+                ),
+                const SizedBox(height: 8),
+                SegmentedButton<ThemeMode>(
+                  segments: const [
+                    ButtonSegment(
+                      value: ThemeMode.light,
+                      label: Text('Svijetla'),
+                      icon: Icon(Icons.light_mode_outlined),
+                    ),
+                    ButtonSegment(
+                      value: ThemeMode.dark,
+                      label: Text('Tamna'),
+                      icon: Icon(Icons.dark_mode_outlined),
+                    ),
+                    ButtonSegment(
+                      value: ThemeMode.system,
+                      label: Text('Sustav'),
+                      icon: Icon(Icons.settings_suggest_outlined),
+                    ),
+                  ],
+                  selected: {state.themeMode},
+                  onSelectionChanged: (m) =>
+                      ref.read(appProvider.notifier).setThemeMode(m.first),
                 ),
                 const SizedBox(height: 24),
                 OutlinedButton.icon(
@@ -124,7 +159,7 @@ class ProfileScreen extends ConsumerWidget {
                 OutlinedButton.icon(
                   style: OutlinedButton.styleFrom(
                     foregroundColor: LoopColors.error,
-                    side: const BorderSide(color: LoopColors.error),
+                    side: BorderSide(color: LoopColors.error),
                   ),
                   onPressed: () => _reset(context, ref),
                   icon: const Icon(Icons.restart_alt),

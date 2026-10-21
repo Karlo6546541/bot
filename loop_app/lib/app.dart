@@ -21,6 +21,17 @@ class LoopApp extends ConsumerWidget {
       appProvider.select((s) => s.currentUser != null),
     );
 
+    final mode = ref.watch(appProvider.select((s) => s.themeMode));
+    final brightness = switch (mode) {
+      ThemeMode.dark => Brightness.dark,
+      ThemeMode.light => Brightness.light,
+      ThemeMode.system => View.of(
+        context,
+      ).platformDispatcher.platformBrightness,
+    };
+    // Boje (LoopColors) čitaju aktivnu paletu — postavi je prije gradnje.
+    LoopColors.use(brightness);
+
     final Widget home;
     if (isAdmin) {
       home = const AdminShell();
@@ -31,13 +42,13 @@ class LoopApp extends ConsumerWidget {
     }
 
     return MaterialApp(
+      // Ključ po temi: promjena teme ponovno gradi cijelo sučelje, pa
+      // svaki widget preuzme nove boje.
+      key: ValueKey(brightness),
       title: 'LOOP',
       debugShowCheckedModeBanner: false,
       scaffoldMessengerKey: rootMessengerKey,
-      theme: buildLoopTheme(
-        accent: isAdmin ? LoopColors.admin : LoopColors.accent,
-      ),
-      themeMode: ThemeMode.dark,
+      theme: buildLoopTheme(accent: isAdmin ? LoopColors.admin : null),
       // Zaključivanje isteklih aukcija radi u pozadini cijele aplikacije.
       home: AuctionHeartbeat(child: home),
     );

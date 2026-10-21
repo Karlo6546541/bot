@@ -11,6 +11,7 @@ import '../widgets/formatters.dart';
 import '../widgets/item_image.dart';
 import '../widgets/trade_actions.dart';
 import 'auctions_screen.dart';
+import 'buy_credits_screen.dart';
 
 /// Detalji aukcije: predmet, trenutna cijena, odbrojavanje, povijest ponuda
 /// i obrazac za ponudu (s potvrdom da je ponuda obvezujuća).
@@ -161,7 +162,7 @@ class _AuctionDetailScreenState extends ConsumerState<AuctionDetailScreen> {
                             ? 'Tvoja aukcija'
                             : 'Prodaje ${a.sellerLabel}'
                                   '${device != null ? ' · ${device.condition.label} · ${device.category.singular}' : ''}',
-                        style: const TextStyle(color: LoopColors.textSecondary),
+                        style: TextStyle(color: LoopColors.textSecondary),
                       ),
                       const SizedBox(height: 16),
                       Row(
@@ -175,7 +176,7 @@ class _AuctionDetailScreenState extends ConsumerState<AuctionDetailScreen> {
                                   a.bids.isEmpty
                                       ? 'Početna cijena'
                                       : 'Najviša ponuda',
-                                  style: const TextStyle(
+                                  style: TextStyle(
                                     color: LoopColors.textSecondary,
                                     fontSize: 12,
                                   ),
@@ -195,7 +196,7 @@ class _AuctionDetailScreenState extends ConsumerState<AuctionDetailScreen> {
                             children: [
                               Text(
                                 a.isActive ? 'Završava za' : 'Status',
-                                style: const TextStyle(
+                                style: TextStyle(
                                   color: LoopColors.textSecondary,
                                   fontSize: 12,
                                 ),
@@ -225,7 +226,7 @@ class _AuctionDetailScreenState extends ConsumerState<AuctionDetailScreen> {
                         Text(
                           'Kraj: ${formatDateTime(a.endsAt)}'
                           '${device != null ? ' · procijenjena vrijednost ${formatCredits(device.price)}' : ''}',
-                          style: const TextStyle(
+                          style: TextStyle(
                             color: LoopColors.textSecondary,
                             fontSize: 12,
                           ),
@@ -260,7 +261,7 @@ class _AuctionDetailScreenState extends ConsumerState<AuctionDetailScreen> {
                     onPressed: () => _cancel(a),
                     style: OutlinedButton.styleFrom(
                       foregroundColor: LoopColors.error,
-                      side: const BorderSide(color: LoopColors.error),
+                      side: BorderSide(color: LoopColors.error),
                     ),
                     icon: const Icon(Icons.close),
                     label: const Text('Otkaži aukciju'),
@@ -288,17 +289,24 @@ class _AuctionDetailScreenState extends ConsumerState<AuctionDetailScreen> {
             Text(
               'Najmanja ponuda: ${formatCredits(min)} · '
               'imaš ${formatCredits(credits)}',
-              style: const TextStyle(color: LoopColors.textSecondary),
+              style: TextStyle(color: LoopColors.textSecondary),
             ),
             const SizedBox(height: 10),
-            if (!canAfford)
+            if (!canAfford) ...[
               const _InfoBox(
                 icon: Icons.block,
                 text:
                     'Nemaš dovoljno kredita za najmanju sljedeću ponudu. '
                     'Ponuda ne može biti veća od tvojih kredita.',
-              )
-            else ...[
+              ),
+              const SizedBox(height: 10),
+              FilledButton.icon(
+                onPressed: () =>
+                    BuyCreditsScreen.open(context, needed: min - credits),
+                icon: const Icon(Icons.add_card),
+                label: const Text('Kupi kredite'),
+              ),
+            ] else ...[
               Wrap(
                 spacing: 8,
                 runSpacing: 8,
@@ -329,7 +337,7 @@ class _AuctionDetailScreenState extends ConsumerState<AuctionDetailScreen> {
                 ],
                 decoration: InputDecoration(
                   labelText: 'Tvoja ponuda',
-                  suffixText: 'LC',
+                  suffixText: 'kredita',
                   errorText: _error,
                 ),
                 onChanged: (_) => setState(() => _error = null),
@@ -397,7 +405,7 @@ class _BidHistory extends StatelessWidget {
               Text(
                 'Još nema ponuda. Početna cijena je '
                 '${formatCredits(auction.startPrice)}.',
-                style: const TextStyle(color: LoopColors.textSecondary),
+                style: TextStyle(color: LoopColors.textSecondary),
               ),
             for (var i = 0; i < bids.length; i++)
               Padding(
@@ -426,7 +434,7 @@ class _BidHistory extends StatelessWidget {
                     ),
                     Text(
                       formatDateTime(bids[i].time),
-                      style: const TextStyle(
+                      style: TextStyle(
                         color: LoopColors.textSecondary,
                         fontSize: 12,
                       ),
