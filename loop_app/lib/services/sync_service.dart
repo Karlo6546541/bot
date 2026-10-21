@@ -1,5 +1,7 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart' show ValueNotifier;
+
 import 'remote_store.dart';
 import 'storage_service.dart';
 
@@ -41,12 +43,42 @@ class SyncService {
 
   List<String> get onlineTables => _tables;
 
-  Future<void> start({Duration timeout = const Duration(seconds: 10)}) async {
-    status = SyncStatus.connecting;
+  /// Stanje veze za prikaz (Profil) — mijenja se i nakon ponovnog spajanja.
+  final statusListenable = ValueNotifier<SyncStatus>(SyncStatus.offline);
+
+  void _setStatus(SyncStatus s) {
+    status = s;
+    statusListenable.value = s;
+  }
+
+  Timer? _reconnect;
+  int _attempt = 0;
+  Duration _timeout = const Duration(seconds: 20);
+
+  /// Spaja se na bazu. Ako ne uspije (spora mreža, baza se "budi"),
+  /// aplikacija radi lokalno, promjene čekaju u redu, a spajanje se
+  /// automatski ponavlja (15 s, 30 s, 60 s… najviše 2 min).
+  Future<void> start({Duration timeout = const Duration(seconds: 20)}) async {
+    _timeout = timeout;
+    // Lokalne promjene se bilježe od početka; šalju se kad veza proradi.
+    _storage.onLocalChange = _queue;
+    await _connect();
+  }
+
+  /// Ručni "Pokušaj ponovno".
+  Future<void> retry() async {
+    if (status == SyncStatus.online || status == SyncStatus.connecting) return;
+    _reconnect?.cancel();
+    _attempt = 0;
+    await _connect();
+  }
+
+  Future<void> _connect() async {
+    _setStatus(SyncStatus.connecting);
     try {
       final remote = await _remote
           .pullAll(StorageService.syncedTables)
-          .timeout(timeout);
+          .timeout(_timeout);
       _tables = [
         for (final t in StorageService.syncedTables)
           if (remote.containsKey(t)) t,
@@ -56,16 +88,41 @@ class SyncService {
         // Prvi korisnik: baza je prazna — pošalji demo podatke.
         await _pushAll();
       } else {
+        // Vlastiti profil koji online još ne postoji (napravljen dok veza
+        // nije radila) ne smije nestati.
+        final me = _storage.currentUserId;
+        final myLocal = me == null ? null : _storage.exportAll()['users']?[me];
         await _storage.replaceAllFromRemote(remote);
+        if (myLocal != null && remote['users']?[me] == null) {
+          await _storage.applyRemote('users', me!, myLocal);
+          _pending['users/$me'] = ('users', me, myLocal);
+        }
+        // Promjene napravljene dok nije bilo veze vrijede i dalje.
+        for (final (table, id, data) in _pending.values) {
+          await _storage.applyRemote(table, id, data);
+        }
       }
-      _storage.onLocalChange = _queue;
+      _pending.removeWhere((_, v) => !_tables.contains(v.$1));
+      await _sub?.cancel();
       _sub = _remote.changes(_tables).listen(_onRemote);
-      status = SyncStatus.online;
+      _attempt = 0;
+      lastError = null;
+      _setStatus(SyncStatus.online);
+      onRemoteChange?.call();
+      unawaited(_flush());
     } catch (e) {
-      // Bez mreže/baze: nastavi lokalno.
-      status = SyncStatus.error;
+      // Bez mreže/baze: nastavi lokalno i pokušaj ponovno kasnije.
       lastError = '$e';
+      _setStatus(SyncStatus.error);
+      _scheduleReconnect();
     }
+  }
+
+  void _scheduleReconnect() {
+    _reconnect?.cancel();
+    final seconds = (15 * (1 << _attempt)).clamp(15, 120);
+    _attempt = (_attempt + 1).clamp(0, 4);
+    _reconnect = Timer(Duration(seconds: seconds), _connect);
   }
 
   Future<void> _pushAll() async {
@@ -92,6 +149,7 @@ class SyncService {
   }
 
   Future<void> _flush() async {
+    if (status != SyncStatus.online) return; // čeka vezu
     final batch = Map.of(_pending);
     for (final e in batch.entries) {
       final (table, id, data) = e.value;
@@ -124,6 +182,7 @@ class SyncService {
 
   Future<void> dispose() async {
     _retry?.cancel();
+    _reconnect?.cancel();
     await _sub?.cancel();
     _storage.onLocalChange = null;
   }

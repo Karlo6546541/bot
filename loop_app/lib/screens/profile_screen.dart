@@ -221,7 +221,15 @@ class _SyncStatusTile extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final sync = ref.watch(syncProvider);
-    final (emoji, title, subtitle) = switch (sync?.status) {
+    if (sync == null) return _tile(context, null, null);
+    return ValueListenableBuilder<SyncStatus>(
+      valueListenable: sync.statusListenable,
+      builder: (context, _, _) => _tile(context, sync, sync.status),
+    );
+  }
+
+  Widget _tile(BuildContext context, SyncService? sync, SyncStatus? status) {
+    final (emoji, title, subtitle) = switch (status) {
       SyncStatus.online => (
         '🟢',
         t('Online baza: povezano'),
@@ -230,7 +238,9 @@ class _SyncStatusTile extends ConsumerWidget {
       SyncStatus.error => (
         '🟠',
         t('Online baza: nedostupna'),
-        t('Radiš lokalno. {0}', [sync?.lastError ?? '']),
+        t(
+          'Radiš lokalno — promjene čekaju i šalju se čim veza proradi. Ponovni pokušaj je automatski.',
+        ),
       ),
       SyncStatus.connecting => ('🟡', t('Povezivanje…'), ''),
       _ => (
@@ -261,7 +271,7 @@ class _SyncStatusTile extends ConsumerWidget {
                 if (subtitle.isNotEmpty)
                   Text(
                     subtitle,
-                    maxLines: 2,
+                    maxLines: 3,
                     overflow: TextOverflow.ellipsis,
                     style: TextStyle(
                       color: LoopColors.textSecondary,
@@ -271,6 +281,11 @@ class _SyncStatusTile extends ConsumerWidget {
               ],
             ),
           ),
+          if (status == SyncStatus.error && sync != null)
+            TextButton(
+              onPressed: sync.retry,
+              child: Text(t('Pokušaj ponovno')),
+            ),
         ],
       ),
     );

@@ -209,7 +209,8 @@ class AppController extends Notifier<AppState> {
     if (!ref.mounted) return;
     switch (event) {
       case AuthSignedIn(:final identity):
-        if (state.isAdmin || state.currentUserId == identity.uid) return;
+        // Već prijavljen s postojećim profilom — ništa za napraviti.
+        if (state.isAdmin || state.currentUser?.id == identity.uid) return;
         try {
           await _apply(await _accounts.completeSignIn(identity));
         } on TradeException catch (e) {

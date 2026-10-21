@@ -41,26 +41,34 @@ class SupabaseRemoteStore implements RemoteStore {
   Future<Map<String, Map<String, Map<String, dynamic>>>> pullAll(
     List<String> tables,
   ) async {
+    // Sve tablice odjednom (paralelno) — brže na sporoj mreži.
+    final results = await Future.wait(tables.map(_pull));
     final out = <String, Map<String, Map<String, dynamic>>>{};
-    for (final t in tables) {
-      final List<Map<String, dynamic>> rows;
-      try {
-        rows = await _client.from(tableName(t)).select('id, data');
-      } on PostgrestException catch (e) {
-        if (e.code == '42P01' ||
-            e.code == 'PGRST205' ||
-            e.message.contains('does not exist') ||
-            e.message.contains('Could not find')) {
-          continue; // tablica još ne postoji
-        }
-        rethrow;
-      }
-      out[t] = {
-        for (final r in rows)
-          r['id'] as String: Map<String, dynamic>.from(r['data'] as Map),
-      };
+    for (var i = 0; i < tables.length; i++) {
+      final r = results[i];
+      if (r != null) out[tables[i]] = r;
     }
     return out;
+  }
+
+  /// `null` ako tablica još ne postoji u bazi.
+  Future<Map<String, Map<String, dynamic>>?> _pull(String t) async {
+    final List<Map<String, dynamic>> rows;
+    try {
+      rows = await _client.from(tableName(t)).select('id, data');
+    } on PostgrestException catch (e) {
+      if (e.code == '42P01' ||
+          e.code == 'PGRST205' ||
+          e.message.contains('does not exist') ||
+          e.message.contains('Could not find')) {
+        return null;
+      }
+      rethrow;
+    }
+    return {
+      for (final r in rows)
+        r['id'] as String: Map<String, dynamic>.from(r['data'] as Map),
+    };
   }
 
   @override

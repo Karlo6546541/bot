@@ -896,4 +896,7 @@ const kEn = <String, String>{
   '🔄 Tvoja ponuda za {0}': '🔄 Your offer to {0}',
   '🔄 {0} ti nudi zamjenu': '🔄 {0} offers you a swap',
   'Zamjena': 'Swap',
+  'Radiš lokalno — promjene čekaju i šalju se čim veza proradi. Ponovni pokušaj je automatski.':
+      'Working locally — changes wait and are sent as soon as the connection works. It retries automatically.',
+  'Pokušaj ponovno': 'Try again',
 };

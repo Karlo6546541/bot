@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -45,7 +47,9 @@ class _BootstrapState extends State<_Bootstrap> {
         storage,
         SupabaseRemoteStore(Supabase.instance.client),
       );
-      await sync.start();
+      // Spajanje ide u pozadini: aplikacija se odmah otvori s lokalnim
+      // podacima, a online podaci stignu čim veza proradi.
+      unawaited(sync.start());
       // Lokalna sesija bez važeće online prijave (npr. istekla) → odjava.
       final user = storage.currentUserId == null
           ? null

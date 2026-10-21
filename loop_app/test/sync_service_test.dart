@@ -101,6 +101,7 @@ void main() {
     var refreshed = 0;
     sync.onRemoteChange = () => refreshed++;
     await sync.start();
+    refreshed = 0; // spajanje je već osvježilo prikaz
 
     final user = Map<String, dynamic>.from(
       remote.data['users']![SeedData.testUserId]!,
@@ -122,6 +123,41 @@ void main() {
     expect(sync.status, SyncStatus.error);
     expect(storage.users, isNotEmpty);
     expect(remote.upserts, 0);
+    await sync.dispose();
+  });
+
+  test('promjene bez veze čekaju i šalju se nakon ponovnog spajanja', () async {
+    // Online baza već ima podatke (drugi testeri).
+    remote.data['users'] = {
+      'u-x': {
+        'id': 'u-x',
+        'email': '',
+        'name': 'X',
+        'credits': 5,
+        'createdAt': DateTime(2026).toIso8601String(),
+      },
+    };
+    remote.failPull = true;
+    final sync = SyncService(storage, remote);
+    await sync.start();
+    expect(sync.status, SyncStatus.error);
+
+    // Dok veza ne radi: prijava i promjena vlastitog profila.
+    await storage.saveSession(userId: SeedData.demoUserId);
+    final demo = storage.userById(SeedData.demoUserId)!;
+    await storage.putUser(demo.copyWith(credits: 777));
+    expect(remote.upserts, 0); // ništa nije poslano
+
+    remote.failPull = false;
+    await sync.retry();
+    await Future<void>.delayed(Duration.zero);
+    expect(sync.status, SyncStatus.online);
+    // Vlastiti profil nije nestao i poslan je u bazu.
+    expect(storage.userById(SeedData.demoUserId)!.credits, 777);
+    expect(remote.data['users']![SeedData.demoUserId]!['credits'], 777);
+    // Tuđi podaci iz baze su stigli.
+    expect(storage.userById('u-x'), isNotNull);
+    await sync.dispose();
   });
 
   test('reset demo podataka prepisuje i online bazu', () async {
