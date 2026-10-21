@@ -378,6 +378,34 @@ class AppController extends Notifier<AppState> {
   }
 
   /// Vraća `true` ako je korisnik sada blokiran.
+  /// Ocjena trgovine s profila (zvjezdice).
+  Future<void> rateShop(String sellerId, int stars, String comment) async {
+    await _community.rateShop(
+      raterId: _requireUserId(),
+      sellerId: sellerId,
+      stars: stars,
+      comment: comment,
+    );
+    _refresh();
+  }
+
+  final _viewed = <String>{};
+
+  /// Broji prikaz objave (jednom po pokretanju aplikacije, ne za svoje).
+  Future<void> recordView(String deviceId) async {
+    final me = state.currentUserId;
+    final d = state.deviceById(deviceId);
+    if (me == null || d == null || d.ownerId == me) return;
+    if (state.currentUser?.isGuest ?? true) return;
+    if (!_viewed.add(deviceId)) return;
+    try {
+      await ref.read(storageProvider).addView(deviceId);
+    } catch (_) {
+      return; // prikaz nije bitan
+    }
+    if (ref.mounted) _refresh();
+  }
+
   /// Naziv mini webshopa (prazno = korisničko ime).
   Future<void> setShopName(String name) async {
     final user = state.currentUser;
@@ -547,11 +575,13 @@ class AppController extends Notifier<AppState> {
         return;
       }
     }
-    if (!_storage.devices.any((d) => d.ownerId != null && !d.marketChecked)) {
+    if (!_storage.devices.any((d) => d.ownerId == null || !d.marketChecked)) {
       return;
     }
     _autoListing = true;
     try {
+      // Nema više "LOOP Marketa": predmeti platforme dobiju prodavatelja.
+      await _trade.assignPlatformItems();
       await _trade.autoListPortfolios();
       if (ref.mounted) _refresh();
     } catch (_) {
@@ -643,12 +673,6 @@ class AppController extends Notifier<AppState> {
     return device;
   }
 
-  Future<LoopTransaction> sell(String deviceId) async {
-    final tx = await _trade.sell(userId: _requireUserId(), deviceId: deviceId);
-    _refresh();
-    return tx;
-  }
-
   /// Kupnja iz Marketa s odabranom dostavom. Najprije se provjeri da
   /// krediti pokrivaju predmet + fee + dostavu, pa tek onda kupuje.
   Future<LoopTransaction> buy(
@@ -671,7 +695,7 @@ class AppController extends Notifier<AppState> {
     final total = buyTotal(state.priceForMe(device)) + method.cost;
     if (user.credits < total) {
       throw TradeException(
-        t('Nemaš dovoljno novca: treba {0} (s feejem i dostavom), imaš {1}.', [
+        t('Nemaš dovoljno novca: treba {0} (s dostavom), imaš {1}.', [
           formatCredits(total),
           formatCredits(user.credits),
         ]),

@@ -46,7 +46,11 @@ void main() {
     await tester.pumpAndSettle();
 
     // Detalji predmeta.
-    await tester.scrollUntilVisible(find.text('iPhone 13'), 300);
+    await tester.scrollUntilVisible(
+      find.text('iPhone 13'),
+      300,
+      scrollable: find.byType(Scrollable).first,
+    );
     await tester.tap(find.text('iPhone 13'));
     await tester.pumpAndSettle();
     expect(find.text('1 / 3'), findsOneWidget); // brojač u galeriji

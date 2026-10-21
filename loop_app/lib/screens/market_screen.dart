@@ -15,6 +15,7 @@ import '../services/market_filter.dart' show normalizeSearch;
 import '../widgets/user_avatar.dart';
 import 'device_detail_screen.dart';
 import 'public_profile_screen.dart';
+import 'shop_screens.dart';
 import 'market_filters.dart';
 
 export 'market_filters.dart' show MarketSort;
@@ -100,7 +101,16 @@ class _MarketScreenState extends ConsumerState<MarketScreen> {
           selected: f.section == null,
           onTap: () => _filters.update((f) => f.copyWith(clearSection: true)),
         ),
-        // Brzi filter: samo ono što si mogu priuštiti (cijena + 5% fee).
+        _CategoryChip(
+          key: const ValueKey('shops-chip'),
+          label: t('Trgovine'),
+          icon: Icons.storefront_outlined,
+          color: LoopColors.info,
+          count: state.shops.length,
+          selected: false,
+          onTap: () => ShopsScreen.open(context),
+        ),
+        // Brzi filter: samo ono što si mogu priuštiti.
         _CategoryChip(
           key: const ValueKey('affordable-chip'),
           label: t('Mogu kupiti'),
@@ -173,9 +183,7 @@ class _MarketScreenState extends ConsumerState<MarketScreen> {
           child: Padding(
             padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
             child: Text(
-              t('Stanje: {0} · kupac plaća 2% naknade', [
-                formatCredits(credits),
-              ]),
+              t('Stanje: {0}', [formatCredits(credits)]),
               style: TextStyle(color: LoopColors.textSecondary),
             ),
           ),

@@ -33,17 +33,6 @@ enum MarketSort {
   };
 }
 
-/// Tko prodaje: svi, platforma (LOOP Market) ili korisnici.
-enum SellerFilter {
-  all('Svi prodavatelji'),
-  loop('LOOP Market'),
-  users('Korisnici');
-
-  const SellerFilter(this._label);
-  final String _label;
-  String get label => t(_label);
-}
-
 /// Odabrani filteri Marketa (nepromjenjivo). Čuva se u provideru, pa
 /// preživi promjenu taba, teme i jezika.
 class MarketFilter {
@@ -54,11 +43,11 @@ class MarketFilter {
     this.conditions = const {},
     this.minPrice,
     this.maxPrice,
-    this.seller = SellerFilter.all,
     this.onlyFavorites = false,
     this.withPhotos = false,
     this.onlyAffordable = false,
     this.onlyDiscounted = false,
+    this.onlyFollowing = false,
     this.sort = MarketSort.recommended,
   });
 
@@ -68,7 +57,6 @@ class MarketFilter {
   final Set<DeviceCondition> conditions;
   final double? minPrice;
   final double? maxPrice;
-  final SellerFilter seller;
   final bool onlyFavorites;
   final bool withPhotos;
 
@@ -77,6 +65,9 @@ class MarketFilter {
 
   /// Samo predmeti na popustu.
   final bool onlyDiscounted;
+
+  /// Samo trgovine (prodavatelji) koje pratim.
+  final bool onlyFollowing;
   final MarketSort sort;
 
   /// Broj aktivnih filtera (bez pretrage i sortiranja) — za značku.
@@ -85,11 +76,11 @@ class MarketFilter {
       (category != null ? 1 : 0) +
       (conditions.isNotEmpty ? 1 : 0) +
       (minPrice != null || maxPrice != null ? 1 : 0) +
-      (seller != SellerFilter.all ? 1 : 0) +
       (onlyFavorites ? 1 : 0) +
       (withPhotos ? 1 : 0) +
       (onlyAffordable ? 1 : 0) +
-      (onlyDiscounted ? 1 : 0);
+      (onlyDiscounted ? 1 : 0) +
+      (onlyFollowing ? 1 : 0);
 
   bool get isEmpty => activeCount == 0 && query.trim().isEmpty;
 
@@ -103,11 +94,11 @@ class MarketFilter {
     double? minPrice,
     double? maxPrice,
     bool clearPrice = false,
-    SellerFilter? seller,
     bool? onlyFavorites,
     bool? withPhotos,
     bool? onlyAffordable,
     bool? onlyDiscounted,
+    bool? onlyFollowing,
     MarketSort? sort,
   }) => MarketFilter(
     query: query ?? this.query,
@@ -116,11 +107,11 @@ class MarketFilter {
     conditions: conditions ?? this.conditions,
     minPrice: clearPrice ? null : minPrice ?? this.minPrice,
     maxPrice: clearPrice ? null : maxPrice ?? this.maxPrice,
-    seller: seller ?? this.seller,
     onlyFavorites: onlyFavorites ?? this.onlyFavorites,
     withPhotos: withPhotos ?? this.withPhotos,
     onlyAffordable: onlyAffordable ?? this.onlyAffordable,
     onlyDiscounted: onlyDiscounted ?? this.onlyDiscounted,
+    onlyFollowing: onlyFollowing ?? this.onlyFollowing,
     sort: sort ?? this.sort,
   );
 
@@ -140,16 +131,15 @@ class MarketFilter {
       if (conditions.isNotEmpty && !conditions.contains(d.condition)) {
         return false;
       }
-      if (minPrice != null && d.askPrice < minPrice!) return false;
-      if (maxPrice != null && d.askPrice > maxPrice!) return false;
-      if (seller == SellerFilter.loop && !d.isOnMarket) return false;
-      if (seller == SellerFilter.users && !d.isListed) return false;
+      if (minPrice != null && d.shownPrice < minPrice!) return false;
+      if (maxPrice != null && d.shownPrice > maxPrice!) return false;
       if (onlyFavorites && !state.isFavorite(d.id)) return false;
       if (withPhotos && d.imagePaths.isEmpty) return false;
       if (onlyAffordable && buyTotal(state.priceForMe(d)) > credits) {
         return false;
       }
       if (onlyDiscounted && !d.hasDiscount) return false;
+      if (onlyFollowing && !state.isFollowing(d.ownerId ?? '')) return false;
       if (terms.isNotEmpty) {
         final text = normalizeSearch(
           [
@@ -195,11 +185,11 @@ class MarketFilterNotifier extends Notifier<MarketFilter> {
 /// Raspon cijena u Marketu (za klizač), zaokružen na desetice.
 (double, double) priceBounds(List<Device> devices) {
   if (devices.isEmpty) return (0, 100);
-  var lo = devices.first.askPrice;
+  var lo = devices.first.shownPrice;
   var hi = lo;
   for (final d in devices) {
-    if (d.askPrice < lo) lo = d.askPrice;
-    if (d.askPrice > hi) hi = d.askPrice;
+    if (d.shownPrice < lo) lo = d.shownPrice;
+    if (d.shownPrice > hi) hi = d.shownPrice;
   }
   lo = (lo / 10).floorToDouble() * 10;
   hi = (hi / 10).ceilToDouble() * 10;
@@ -383,21 +373,16 @@ class _FilterSheet extends ConsumerWidget {
                     ),
                   ),
                 ),
-                title(t('Prodavatelj')),
-                SegmentedButton<SellerFilter>(
-                  showSelectedIcon: false,
-                  segments: [
-                    for (final s in SellerFilter.values)
-                      ButtonSegment(
-                        value: s,
-                        label: Text(s == SellerFilter.all ? t('Svi') : s.label),
-                      ),
-                  ],
-                  selected: {f.seller},
-                  onSelectionChanged: (s) =>
-                      notifier.update((f) => f.copyWith(seller: s.first)),
-                ),
                 const SizedBox(height: 12),
+                SwitchListTile(
+                  key: const ValueKey('following-switch'),
+                  contentPadding: EdgeInsets.zero,
+                  value: f.onlyFollowing,
+                  onChanged: (v) =>
+                      notifier.update((f) => f.copyWith(onlyFollowing: v)),
+                  secondary: const Icon(Icons.storefront_outlined),
+                  title: Text(t('Samo trgovine koje pratim')),
+                ),
                 SwitchListTile(
                   contentPadding: EdgeInsets.zero,
                   value: f.onlyFavorites,
@@ -417,7 +402,7 @@ class _FilterSheet extends ConsumerWidget {
                   secondary: const Icon(Icons.account_balance_wallet_outlined),
                   title: Text(t('Mogu kupiti')),
                   subtitle: Text(
-                    t('Imam dovoljno novca (s 2% naknade): {0}', [
+                    t('Imam dovoljno novca: {0}', [
                       formatCredits(state.currentUser?.credits ?? 0),
                     ]),
                   ),
@@ -502,10 +487,10 @@ class ActiveFilterChips extends ConsumerWidget {
               : t('do {0}', [formatNumber(f.maxPrice!)]),
           () => n.update((f) => f.copyWith(clearPrice: true)),
         ),
-      if (f.seller != SellerFilter.all)
+      if (f.onlyFollowing)
         _chip(
-          f.seller.label,
-          () => n.update((f) => f.copyWith(seller: SellerFilter.all)),
+          t('Trgovine koje pratim'),
+          () => n.update((f) => f.copyWith(onlyFollowing: false)),
         ),
       if (f.onlyFavorites)
         _chip(

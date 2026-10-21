@@ -358,7 +358,7 @@ class _Bubble extends ConsumerWidget {
                         const SizedBox(width: 8),
                         Flexible(
                           child: Text(
-                            '${device.name} · ${formatCredits(device.askPrice)}',
+                            '${device.name} · ${formatCredits(device.shownPrice)}',
                             overflow: TextOverflow.ellipsis,
                             style: TextStyle(
                               color: fg,
@@ -592,7 +592,7 @@ class _SwapSheetState extends ConsumerState<_SwapSheet> {
             Text(
               t('Za: {0} ({1})', [
                 widget.wanted.name,
-                formatCredits(widget.wanted.askPrice),
+                formatCredits(widget.wanted.shownPrice),
               ]),
               style: TextStyle(color: LoopColors.textSecondary),
             ),

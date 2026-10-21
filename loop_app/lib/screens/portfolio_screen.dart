@@ -71,6 +71,7 @@ class PortfolioScreen extends ConsumerWidget {
             child: _QuickActions(),
           ),
         ),
+        // Feed: objave (swipe kao TikTok) i trgovine za tebe.
         SliverToBoxAdapter(
           child: Padding(
             padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
@@ -139,16 +140,21 @@ class PortfolioScreen extends ConsumerWidget {
                 device: d,
                 actionLabel: auction != null
                     ? t('Na aukciji')
-                    : d.isDigital
+                    : d.isListed
                     ? t('Detalji')
-                    : t('Prodaj odmah'),
-                actionIcon: auction != null ? Icons.gavel : Icons.sell_outlined,
+                    : t('Objavi u Marketu'),
+                actionIcon: auction != null
+                    ? Icons.gavel
+                    : d.isListed
+                    ? Icons.info_outline
+                    : Icons.storefront_outlined,
                 onAction: auction != null
                     ? () => AuctionDetailScreen.open(context, auction.id)
-                    : d.isDigital
+                    : d.isListed
                     ? () => DeviceDetailScreen.open(context, d)
-                    : () => confirmAndSell(context, ref, d),
+                    : () => showListDialog(context, ref, d),
                 onTap: () => DeviceDetailScreen.open(context, d),
+                sellerView: true,
                 badge: d.isListed ? t('🏷️ U Marketu') : null,
               );
             },
@@ -501,14 +507,16 @@ class _HowItWorks extends ConsumerWidget {
       (
         '2',
         '🔁',
-        t('Prodaj ili licitiraj'),
-        t('Prodaj odmah ili na aukciji — novac ide na tvoje LOOP stanje.'),
+        t('Otvori svoj webshop'),
+        t(
+          'Svaki račun je trgovina: objavi po svojoj cijeni ili na aukciji, a kupci te mogu pratiti.',
+        ),
       ),
       (
         '3',
         '🎁',
         t('Uzmi nešto novo'),
-        t('Zarađeno potroši na druge stvari u LOOP-u.'),
+        t('Kupuj od drugih prodavatelja — prati trgovine koje ti se sviđaju.'),
       ),
     ];
     return Card(

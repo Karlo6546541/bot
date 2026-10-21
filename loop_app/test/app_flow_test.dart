@@ -45,20 +45,16 @@ void main() {
       expect(find.text('1.250'), findsWidgets); // kartica + traka
       expect(find.text('SILVER'), findsOneWidget);
       // Popis predmeta je ispod grafikona — skrolaj do njega.
-      await tester.scrollUntilVisible(find.text('iPhone 13'), 300);
+      await tester.scrollUntilVisible(
+        find.text('iPhone 13'),
+        300,
+        scrollable: find.byType(Scrollable).first,
+      );
       await tester.pumpAndSettle();
       expect(find.text('iPhone 13'), findsOneWidget);
 
-      // Prodaja
-      await tester.ensureVisible(find.text('Prodaj odmah').first);
-      await tester.pumpAndSettle();
-      await tester.tap(find.text('Prodaj odmah').first);
-      await tester.pumpAndSettle();
-      expect(find.text('bez naknade'), findsOneWidget);
-      await tester.tap(find.text('Potvrdi prodaju'));
-      await tester.pumpAndSettle();
-      expect(find.text('Uspješno prodano'), findsOneWidget);
-      expect(find.textContaining('1.560'), findsWidgets);
+      // Nema više prodaje "LOOP-u": vlastiti predmet je oglas u Marketu.
+      expect(find.text('Prodaj odmah'), findsNothing);
 
       // Kupnja (AirPods Pro 2: 185 + 2% = 188.70)
       await tester.tap(find.text('Market').last);
@@ -80,8 +76,11 @@ void main() {
       // Aktivnost: najnovije na vrhu
       await tester.tap(find.text('Aktivnost').last);
       await tester.pumpAndSettle();
-      await tester.scrollUntilVisible(find.text('+310 €'), 200);
-      expect(find.text('+310 €'), findsOneWidget);
+      await tester.scrollUntilVisible(
+        find.text('−188,70 €'),
+        200,
+        scrollable: find.byType(Scrollable).first,
+      );
       expect(find.text('−188,70 €'), findsOneWidget);
     });
   }
@@ -179,8 +178,9 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.text('Sony A7 III'));
     await tester.pumpAndSettle();
-    expect(find.text('Ukupno plaćaš'), findsOneWidget);
-    expect(find.text('999,60 €'), findsOneWidget); // 980 + 2%
+    // Kupac vidi samo cijenu (s uključenom naknadom), bez napomene o njoj.
+    expect(find.text('999,60 €'), findsWidgets); // 980 + 2%
+    expect(find.textContaining('aknad'), findsNothing);
   });
 
   testWidgets('odjeljci i grafikon portfolija', (tester) async {
@@ -194,6 +194,12 @@ void main() {
     await tester.pumpAndSettle();
 
     // Grafikon i promjena raspona.
+    await tester.scrollUntilVisible(
+      find.text('Vrijednost portfolija'),
+      300,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.pumpAndSettle();
     expect(find.text('Vrijednost portfolija'), findsOneWidget);
     await tester.tap(find.text('Sve'));
     await tester.pumpAndSettle();
@@ -277,7 +283,11 @@ void main() {
     expect(find.text('Najpopularnije'), findsOneWidget);
     await tester.tap(find.text('PayPal'));
     await tester.pumpAndSettle();
-    await tester.scrollUntilVisible(find.text('Plati 500,00 €'), 200);
+    await tester.scrollUntilVisible(
+      find.text('Plati 500,00 €'),
+      200,
+      scrollable: find.byType(Scrollable).first,
+    );
     await tester.tap(find.text('Plati 500,00 €'));
     await tester.pumpAndSettle();
     expect(find.text('Plaćanje uspješno! 🎉'), findsOneWidget);
@@ -288,7 +298,11 @@ void main() {
     // Tamna tema iz Profila: sučelje se ponovno izgradi bez grešaka.
     await tester.tap(find.text('Profil').last);
     await tester.pumpAndSettle();
-    await tester.scrollUntilVisible(find.text('Tamna'), 200);
+    await tester.scrollUntilVisible(
+      find.text('Tamna'),
+      200,
+      scrollable: find.byType(Scrollable).first,
+    );
     await tester.pumpAndSettle();
     await tester.tap(find.text('Tamna'));
     await tester.pumpAndSettle();
@@ -321,7 +335,11 @@ void main() {
     await tester.tap(find.text('Uplati novac'));
     await tester.pumpAndSettle();
     // Predložen je najmanji paket koji pokriva manjak (734,50 → 1000).
-    await tester.scrollUntilVisible(find.text('Plati 1.000,00 €'), 200);
+    await tester.scrollUntilVisible(
+      find.text('Plati 1.000,00 €'),
+      200,
+      scrollable: find.byType(Scrollable).first,
+    );
     expect(find.text('Plati 1.000,00 €'), findsOneWidget);
   });
 
@@ -365,6 +383,7 @@ void main() {
     await tester.scrollUntilVisible(
       find.text('Moje dostave (1 u tijeku)'),
       200,
+      scrollable: find.byType(Scrollable).first,
     );
     await tester.pumpAndSettle();
     await tester.tap(find.text('Moje dostave (1 u tijeku)'));
@@ -395,16 +414,25 @@ void main() {
     expect(find.textContaining('1,250'), findsWidgets);
     expect(find.text('Your balance'), findsOneWidget);
     expect(find.text('Total €2,010 · 2 items'), findsOneWidget);
-    await tester.scrollUntilVisible(find.text('iPhone 13'), 300);
+    await tester.scrollUntilVisible(
+      find.text('iPhone 13'),
+      300,
+      scrollable: find.byType(Scrollable).first,
+    );
     await tester.pumpAndSettle();
 
-    // Prodaja na engleskom.
-    await tester.ensureVisible(find.text('Sell now').first);
+    // Objave (swipe) na engleskom.
+    await tester.scrollUntilVisible(
+      find.byKey(const ValueKey('watch-posts')),
+      -300,
+      scrollable: find.byType(Scrollable).first,
+    );
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Sell now').first);
+    await tester.tap(find.byKey(const ValueKey('watch-posts')));
     await tester.pumpAndSettle();
-    expect(find.text('Confirm sale'), findsOneWidget);
-    await tester.tap(find.text('Cancel'));
+    expect(find.text('For you'), findsOneWidget);
+    expect(find.text('Offer'), findsOneWidget);
+    await tester.pageBack();
     await tester.pumpAndSettle();
 
     for (final tab in ['Market', 'Auctions', 'Activity', 'Profile']) {
@@ -412,19 +440,31 @@ void main() {
       await tester.pumpAndSettle();
     }
     expect(find.text('Edit profile'), findsOneWidget);
-    await tester.scrollUntilVisible(find.text('Language / Jezik'), 200);
+    await tester.scrollUntilVisible(
+      find.text('Language / Jezik'),
+      200,
+      scrollable: find.byType(Scrollable).first,
+    );
     expect(find.text('Language / Jezik'), findsOneWidget);
     expect(Tr.missing, isEmpty, reason: 'nedostaju prijevodi');
 
     // Natrag na hrvatski iz Profila.
     // Donja navigacija prekriva dno — skrolaj dok gumb nije iznad nje.
-    await tester.scrollUntilVisible(find.text('Reset demo data'), 200);
+    await tester.scrollUntilVisible(
+      find.text('Reset demo data'),
+      200,
+      scrollable: find.byType(Scrollable).first,
+    );
     await tester.pumpAndSettle();
     await tester.tap(find.text('🇭🇷 Hrvatski'));
     await tester.pumpAndSettle();
     // Promjena jezika ponovno gradi sučelje; ostaje na Profilu.
     expect(find.text('Profil'), findsWidgets);
-    await tester.scrollUntilVisible(find.text('Jezik / Language'), 200);
+    await tester.scrollUntilVisible(
+      find.text('Jezik / Language'),
+      200,
+      scrollable: find.byType(Scrollable).first,
+    );
     expect(find.text('Jezik / Language'), findsOneWidget);
     expect(Tr.lang, AppLang.hr);
   });
@@ -475,7 +515,11 @@ void accountTests() {
     await tester.tap(find.text('Profil').last);
     await tester.pumpAndSettle();
     expect(find.text('@novi_korisnik'), findsWidgets);
-    await tester.scrollUntilVisible(find.text('Odjavi se'), 200);
+    await tester.scrollUntilVisible(
+      find.text('Odjavi se'),
+      200,
+      scrollable: find.byType(Scrollable).first,
+    );
     await tester.pumpAndSettle();
     await tester.tap(find.text('Odjavi se'));
     await tester.pumpAndSettle();
@@ -506,7 +550,11 @@ void listingTests() {
     await tester.ensureVisible(find.text('Prijavi se'));
     await tester.tap(find.text('Prijavi se'));
     await tester.pumpAndSettle();
-    await tester.scrollUntilVisible(find.text('iPhone 13'), 300);
+    await tester.scrollUntilVisible(
+      find.text('iPhone 13'),
+      300,
+      scrollable: find.byType(Scrollable).first,
+    );
     await tester.pumpAndSettle();
     await tester.tap(find.text('iPhone 13'));
     await tester.pumpAndSettle();
@@ -514,18 +562,23 @@ void listingTests() {
     // Stari predmet iz portfolija je automatski objavljen u Marketu.
     expect(find.text('🏷️ U Marketu'), findsWidgets);
     // Promjena cijene.
-    await tester.scrollUntilVisible(find.text('Cijena i zaliha'), 200);
+    await tester.scrollUntilVisible(
+      find.text('Cijena i zaliha'),
+      200,
+      scrollable: find.byType(Scrollable).first,
+    );
     await tester.pumpAndSettle();
     await tester.tap(find.text('Cijena i zaliha'));
     await tester.pumpAndSettle();
     await tester.enterText(find.widgetWithText(TextField, 'Cijena'), '350');
     await tester.enterText(find.byKey(const ValueKey('list-quantity')), '3');
     await tester.pumpAndSettle();
-    expect(find.text('Ti dobivaš 350 € (bez naknade)'), findsOneWidget);
+    expect(find.text('Ti dobivaš 350 €'), findsOneWidget);
+    expect(find.text('Kupci vide cijenu 357 €'), findsOneWidget);
     await tester.tap(find.text('Objavi'));
     await tester.pumpAndSettle();
     expect(find.text('Objavljeno u Marketu 🏷️'), findsOneWidget);
-    expect(find.textContaining('U Marketu za 350 €'), findsOneWidget);
+    expect(find.textContaining('kupci vide cijenu 357 €'), findsOneWidget);
     expect(
       find.text('Na zalihi: 3 kom — svaka kupnja skida jedan.'),
       findsOneWidget,
@@ -557,7 +610,11 @@ void listingTests() {
     expect(find.textContaining('Popust −$percent% do'), findsOneWidget);
 
     // Ukloni iz Marketa.
-    await tester.scrollUntilVisible(find.byKey(const ValueKey('unlist')), 200);
+    await tester.scrollUntilVisible(
+      find.byKey(const ValueKey('unlist')),
+      200,
+      scrollable: find.byType(Scrollable).first,
+    );
     await tester.pumpAndSettle();
     await tester.tap(find.byKey(const ValueKey('unlist')));
     await tester.pumpAndSettle();
@@ -570,6 +627,7 @@ void listingTests() {
     await tester.scrollUntilVisible(
       find.byKey(const ValueKey('delete-item')),
       200,
+      scrollable: find.byType(Scrollable).first,
     );
     await tester.pumpAndSettle();
     await tester.tap(find.byKey(const ValueKey('delete-item')));
@@ -596,7 +654,11 @@ void deletionTests() {
     await tester.pumpAndSettle();
     await tester.tap(find.text('Profil').last);
     await tester.pumpAndSettle();
-    await tester.scrollUntilVisible(find.text('Obriši račun'), 200);
+    await tester.scrollUntilVisible(
+      find.text('Obriši račun'),
+      200,
+      scrollable: find.byType(Scrollable).first,
+    );
     await tester.pumpAndSettle();
     await tester.tap(find.text('Obriši račun'));
     await tester.pumpAndSettle();
@@ -654,7 +716,11 @@ void communityTests() {
     Future<void> logout() async {
       await tester.tap(find.text('Profil').last);
       await tester.pumpAndSettle();
-      await tester.scrollUntilVisible(find.text('Odjavi se'), 200);
+      await tester.scrollUntilVisible(
+        find.text('Odjavi se'),
+        200,
+        scrollable: find.byType(Scrollable).first,
+      );
       await tester.pumpAndSettle();
       await tester.tap(find.text('Odjavi se'));
       await tester.pumpAndSettle();
@@ -705,7 +771,11 @@ void communityTests() {
     // Trgovina: pratitelji, prodaje i gumb "Prati".
     expect(find.text('pratitelja'), findsOneWidget);
     expect(find.byKey(const ValueKey('follow')), findsOneWidget);
-    await tester.scrollUntilVisible(find.text('Ocjene (0)'), 300);
+    await tester.scrollUntilVisible(
+      find.text('Ocjene (0)'),
+      300,
+      scrollable: find.byType(Scrollable).first,
+    );
     expect(find.text('Ocjene (0)'), findsOneWidget);
     await tester.tap(find.byKey(const ValueKey('profile-menu')));
     await tester.pumpAndSettle();
@@ -743,7 +813,11 @@ void chatTests() {
     Future<void> logout() async {
       await tester.tap(find.text('Profil').last);
       await tester.pumpAndSettle();
-      await tester.scrollUntilVisible(find.text('Odjavi se'), 200);
+      await tester.scrollUntilVisible(
+        find.text('Odjavi se'),
+        200,
+        scrollable: find.byType(Scrollable).first,
+      );
       await tester.pumpAndSettle();
       await tester.tap(find.text('Odjavi se'));
       await tester.pumpAndSettle();
@@ -766,6 +840,7 @@ void chatTests() {
     await tester.scrollUntilVisible(
       find.byKey(const ValueKey('message-seller')),
       200,
+      scrollable: find.byType(Scrollable).first,
     );
     await tester.pumpAndSettle();
     await tester.tap(find.byKey(const ValueKey('message-seller')));
@@ -781,13 +856,10 @@ void chatTests() {
     await tester.pageBack();
     await tester.pumpAndSettle();
 
-    // Zamjena: Marko nema svojih predmeta.
+    // Zamjena: Marko bira svoj predmet.
     await tester.tap(find.byKey(const ValueKey('offer-swap')));
     await tester.pumpAndSettle();
-    expect(
-      find.text('Nemaš predmeta za zamjenu — dodaj ga u portfolio.'),
-      findsOneWidget,
-    );
+    expect(find.text('Ponudi zamjenu'), findsWidgets);
     await tester.tapAt(const Offset(10, 10)); // zatvori list
     await tester.pumpAndSettle();
     await tester.pageBack();
@@ -869,7 +941,11 @@ void digitalTests() {
     expect(find.text('kocka_20mm.stl'), findsOneWidget);
     expect(find.text('Stanje'), findsNothing); // digitalno nema stanja
 
-    await tester.scrollUntilVisible(find.byKey(const ValueKey('buy-now')), 200);
+    await tester.scrollUntilVisible(
+      find.byKey(const ValueKey('buy-now')),
+      200,
+      scrollable: find.byType(Scrollable).first,
+    );
     await tester.pumpAndSettle();
     await tester.tap(find.byKey(const ValueKey('buy-now')));
     await tester.pumpAndSettle();
@@ -881,6 +957,7 @@ void digitalTests() {
     await tester.scrollUntilVisible(
       find.byKey(const ValueKey('download-file')),
       200,
+      scrollable: find.byType(Scrollable).first,
     );
     expect(find.byKey(const ValueKey('download-file')), findsOneWidget);
     await tester.pageBack();
@@ -893,6 +970,7 @@ void digitalTests() {
     await tester.scrollUntilVisible(
       find.byKey(const ValueKey('my-downloads')),
       200,
+      scrollable: find.byType(Scrollable).first,
     );
     await tester.pumpAndSettle();
     expect(find.text('Moje digitalne kupnje (1)'), findsOneWidget);

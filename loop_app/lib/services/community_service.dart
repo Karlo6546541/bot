@@ -21,6 +21,58 @@ class CommunityService {
 
   // ------------------------------------------------------------- ocjene
 
+  /// Ocjena trgovine s profila (1–5 zvjezdica). Svaki korisnik ima jednu
+  /// ocjenu po trgovini — nova ocjena zamjenjuje staru.
+  Future<Review> rateShop({
+    required String raterId,
+    required String sellerId,
+    required int stars,
+    String comment = '',
+    DateTime? now,
+  }) async {
+    final rater = _storage.userById(raterId);
+    final seller = _storage.userById(sellerId);
+    if (rater == null || rater.isGuest) {
+      throw TradeException(t('Za ocjenu se prijavi.'));
+    }
+    if (seller == null) throw TradeException(t('Korisnik ne postoji.'));
+    if (raterId == sellerId) {
+      throw TradeException(t('Ne možeš ocijeniti svoju trgovinu.'));
+    }
+    if (stars < 1 || stars > 5) {
+      throw TradeException(t('Odaberi od 1 do 5 zvjezdica.'));
+    }
+    final text = comment.trim();
+    if (text.length > Review.maxComment) {
+      throw TradeException(
+        t('Komentar može imati najviše {0} znakova.', [Review.maxComment]),
+      );
+    }
+    final review = Review(
+      id: 'shop-$raterId-$sellerId',
+      sellerId: sellerId,
+      buyerId: raterId,
+      buyerLabel: rater.handle,
+      deliveryId: '',
+      deviceName: '',
+      stars: stars,
+      comment: text,
+      createdAt: now ?? DateTime.now(),
+    );
+    final first = _storage.reviews.every((r) => r.id != review.id);
+    await _storage.putReview(review);
+    if (first) {
+      await Inbox(_storage).send(
+        sellerId,
+        NotificationKind.newReview,
+        args: [rater.handle, '${'★' * stars}${'☆' * (5 - stars)}'],
+        targetId: sellerId,
+        now: now,
+      );
+    }
+    return review;
+  }
+
   /// Kupac ocjenjuje prodavatelja nakon što je potvrdio primitak.
   Future<Review> review({
     required String buyerId,

@@ -52,21 +52,21 @@ class BargainService {
     if (value >= ask) {
       throw TradeException(
         t('Ponuda mora biti niža od cijene ({0}) — inače samo kupi.', [
-          formatCredits(ask),
+          formatCredits(buyTotal(ask)),
         ]),
       );
     }
     if (value < min) {
       throw TradeException(
         t('Najniža ponuda je {0} ({1}% cijene).', [
-          formatCredits(min),
+          formatCredits(buyTotal(min)),
           '${PriceOffer.minPercent}',
         ]),
       );
     }
     if (buyer.credits < buyTotal(value)) {
       throw TradeException(
-        t('Nemaš dovoljno novca za tu ponudu (treba {0} s naknadom).', [
+        t('Nemaš dovoljno novca za tu ponudu (treba {0}).', [
           formatCredits(buyTotal(value)),
         ]),
       );
@@ -150,7 +150,7 @@ class BargainService {
     await Inbox(_storage).send(
       o.buyerId,
       NotificationKind.bargainAccepted,
-      args: [_handle(sellerId), o.amount, o.deviceName],
+      args: [_handle(sellerId), buyTotal(o.amount), o.deviceName],
       targetId: o.deviceId,
       now: at,
     );
@@ -187,7 +187,7 @@ class BargainService {
     await Inbox(_storage).send(
       o.buyerId,
       NotificationKind.bargainCountered,
-      args: [_handle(sellerId), value, o.deviceName],
+      args: [_handle(sellerId), buyTotal(value), o.deviceName],
       targetId: o.deviceId,
       now: at,
     );

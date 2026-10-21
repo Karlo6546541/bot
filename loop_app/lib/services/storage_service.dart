@@ -35,6 +35,9 @@ class StorageService {
   static const _offersBox = 'offers';
   static const _bargainsBox = 'bargains';
 
+  /// Broj prikaza objava (oglasa): id predmeta → {count}.
+  static const _viewsBox = 'views';
+
   /// Sadržaj digitalnih datoteka u lokalnom načinu (web) — NE sinkronizira
   /// se (online datoteke su u Supabase Storageu).
   static const _filesBox = 'files';
@@ -56,6 +59,7 @@ class StorageService {
     _messagesBox,
     _offersBox,
     _bargainsBox,
+    _viewsBox,
   ];
 
   /// Povećaj kad se seed proširi — postojeće instalacije tada dobiju
@@ -91,6 +95,7 @@ class StorageService {
   late Box<Map> _messages;
   late Box<Map> _offers;
   late Box<Map> _bargains;
+  late Box<Map> _views;
 
   /// Poziva se nakon svake lokalne promjene (za sinkronizaciju s online
   /// bazom). `data == null` znači brisanje.
@@ -110,6 +115,7 @@ class StorageService {
     _messagesBox: _messages,
     _offersBox: _offers,
     _bargainsBox: _bargains,
+    _viewsBox: _views,
   };
 
   /// Svi zapisi prolaze ovuda kako bi ih sinkronizacija vidjela.
@@ -153,6 +159,7 @@ class StorageService {
     _messages = await Hive.openBox<Map>(_messagesBox, bytes: bytes);
     _offers = await Hive.openBox<Map>(_offersBox, bytes: bytes);
     _bargains = await Hive.openBox<Map>(_bargainsBox, bytes: bytes);
+    _views = await Hive.openBox<Map>(_viewsBox, bytes: bytes);
 
     if (_session.get(_seededKey) != true) {
       await _seed();
@@ -268,6 +275,7 @@ class StorageService {
       _messages,
       _offers,
       _bargains,
+      _views,
     ]) {
       await b.clear();
     }
@@ -495,6 +503,20 @@ class StorageService {
   );
 
   Future<void> clearSearchHistory() => _session.delete(_searchHistoryKey);
+
+  /// Prikazi po predmetu.
+  Map<String, int> get views => {
+    for (final e in _views.toMap().entries)
+      e.key.toString(): ((e.value['count'] as num?) ?? 0).toInt(),
+  };
+
+  int viewsOf(String deviceId) =>
+      ((_views.get(deviceId)?['count'] as num?) ?? 0).toInt();
+
+  Future<void> addView(String deviceId) => _write(_viewsBox, deviceId, {
+    'id': deviceId,
+    'count': viewsOf(deviceId) + 1,
+  });
 
   List<PriceOffer> get bargains =>
       _bargains.values.map(PriceOffer.fromMap).toList(growable: false);

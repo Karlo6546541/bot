@@ -38,7 +38,6 @@ class _ActivityScreenState extends ConsumerState<ActivityScreen> {
     double sum(TransactionType t) => all
         .where((tx) => tx.typeFor(me) == t)
         .fold(0.0, (acc, tx) => acc + tx.amountFor(me));
-    final fees = all.fold(0.0, (acc, tx) => acc + tx.feeFor(me));
     final txs = _type == null
         ? all
         : all.where((tx) => tx.typeFor(me) == _type).toList();
@@ -71,12 +70,6 @@ class _ActivityScreenState extends ConsumerState<ActivityScreen> {
                   label: t('Uplaćeno'),
                   value: formatCredits(sum(TransactionType.topUp)),
                   color: LoopColors.admin,
-                ),
-                _SummaryTile(
-                  icon: Icons.percent,
-                  label: t('Plaćeni fee'),
-                  value: formatCredits(fees),
-                  color: LoopColors.textSecondary,
                 ),
               ],
             ),
@@ -259,7 +252,7 @@ class TransactionTile extends StatelessWidget {
                     TransactionType.delivery => t('trošak dostave'),
                     TransactionType.promotion => t('isticanje'),
                     TransactionType.sell => t('bez naknade'),
-                    _ => t('fee {0}', [formatCredits(tx.feeFor(viewerId))]),
+                    _ => type.label,
                   },
                   style: TextStyle(
                     color: LoopColors.textSecondary,

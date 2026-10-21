@@ -8,7 +8,9 @@ import '../providers/app_providers.dart';
 import '../services/community_service.dart';
 import '../theme/app_theme.dart';
 import '../utils/formatters.dart';
+import '../services/market_filter.dart' show normalizeSearch;
 import '../widgets/empty_state.dart';
+import '../widgets/feed.dart' show ShopCard;
 import '../widgets/shop_widgets.dart';
 import '../widgets/trade_actions.dart';
 import '../widgets/user_avatar.dart';
@@ -324,4 +326,250 @@ Future<void> showShopNameDialog(BuildContext context, WidgetRef ref) async {
     () => ref.read(appProvider.notifier).setShopName(name),
     successMessage: t('Naziv trgovine je spremljen'),
   );
+}
+
+/// Sve trgovine (svaki račun s oglasima je webshop): pretraga i redoslijed.
+class ShopsScreen extends ConsumerStatefulWidget {
+  const ShopsScreen({super.key});
+
+  static Future<void> open(BuildContext context) => Navigator.of(
+    context,
+  ).push(MaterialPageRoute<void>(builder: (_) => const ShopsScreen()));
+
+  @override
+  ConsumerState<ShopsScreen> createState() => _ShopsScreenState();
+}
+
+enum _ShopOrder {
+  followers('Najviše pratitelja'),
+  rating('Najbolje ocijenjene'),
+  sales('Najviše prodaja'),
+  listings('Najviše oglasa');
+
+  const _ShopOrder(this._label);
+  final String _label;
+  String get label => t(_label);
+}
+
+class _ShopsScreenState extends ConsumerState<ShopsScreen> {
+  String _query = '';
+  _ShopOrder _order = _ShopOrder.followers;
+
+  @override
+  Widget build(BuildContext context) {
+    final state = ref.watch(appProvider);
+    final q = normalizeSearch(_query.replaceAll('@', ''));
+    final shops =
+        state.shops
+            .where(
+              (u) =>
+                  q.isEmpty ||
+                  normalizeSearch(
+                    '${u.username} ${u.name} ${u.shopName} ${u.city ?? ''}',
+                  ).contains(q),
+            )
+            .toList()
+          ..sort((a, b) {
+            num key(AppUser u) => switch (_order) {
+              _ShopOrder.followers => state.followersOf(u.id),
+              _ShopOrder.rating => state.ratingOf(u.id).average,
+              _ShopOrder.sales => state.salesCountOf(u.id),
+              _ShopOrder.listings => state.listingsOf(u.id).length,
+            };
+            final p = (b.isPromoted ? 1 : 0) - (a.isPromoted ? 1 : 0);
+            return p != 0 ? p : key(b).compareTo(key(a));
+          });
+    return Scaffold(
+      appBar: AppBar(title: Text(t('Trgovine'))),
+      body: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(12, 8, 12, 4),
+            child: Text(
+              t(
+                'Svaki račun na LOOP-u je webshop: objavi predmet i tvoja trgovina se pojavljuje ovdje.',
+              ),
+              style: TextStyle(color: LoopColors.textSecondary),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(12, 4, 12, 8),
+            child: Row(
+              children: [
+                Expanded(
+                  child: TextField(
+                    key: const ValueKey('shops-search'),
+                    onChanged: (v) => setState(() => _query = v),
+                    decoration: InputDecoration(
+                      isDense: true,
+                      hintText: t('Traži trgovinu ili korisnika…'),
+                      prefixIcon: const Icon(Icons.search),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                PopupMenuButton<_ShopOrder>(
+                  tooltip: t('Sortiraj'),
+                  initialValue: _order,
+                  onSelected: (v) => setState(() => _order = v),
+                  itemBuilder: (_) => [
+                    for (final o in _ShopOrder.values)
+                      PopupMenuItem(value: o, child: Text(o.label)),
+                  ],
+                  child: const Padding(
+                    padding: EdgeInsets.all(8),
+                    child: Icon(Icons.sort),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Expanded(
+            child: shops.isEmpty
+                ? EmptyState(
+                    icon: Icons.storefront_outlined,
+                    title: t('Nema trgovina'),
+                  )
+                : GridView.builder(
+                    padding: const EdgeInsets.fromLTRB(12, 4, 12, 24),
+                    gridDelegate:
+                        const SliverGridDelegateWithMaxCrossAxisExtent(
+                          maxCrossAxisExtent: 240,
+                          mainAxisExtent: 252,
+                          crossAxisSpacing: 10,
+                          mainAxisSpacing: 10,
+                        ),
+                    itemCount: shops.length,
+                    itemBuilder: (context, i) =>
+                        ShopCard(user: shops[i], width: double.infinity),
+                  ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Pratitelji i računi koje korisnik prati (dvije kartice).
+class FollowListScreen extends ConsumerWidget {
+  const FollowListScreen({
+    super.key,
+    required this.userId,
+    this.showFollowing = false,
+  });
+
+  final String userId;
+  final bool showFollowing;
+
+  static Future<void> open(
+    BuildContext context,
+    String userId, {
+    bool following = false,
+  }) => Navigator.of(context).push(
+    MaterialPageRoute<void>(
+      builder: (_) =>
+          FollowListScreen(userId: userId, showFollowing: following),
+    ),
+  );
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final state = ref.watch(appProvider);
+    final user = state.userById(userId);
+    final followers = state.followersListOf(userId);
+    final following = state.followingListOf(userId);
+    Widget list(List<AppUser> users, String empty) => users.isEmpty
+        ? EmptyState(icon: Icons.people_outline, title: empty)
+        : ListView.separated(
+            padding: const EdgeInsets.symmetric(vertical: 8),
+            itemCount: users.length,
+            separatorBuilder: (_, _) => const Divider(height: 1),
+            itemBuilder: (context, i) {
+              final u = users[i];
+              return ListTile(
+                leading: UserAvatar(user: u, size: 40),
+                title: Text(
+                  u.shopTitle,
+                  style: const TextStyle(fontWeight: FontWeight.w700),
+                ),
+                subtitle: Text(
+                  t('{0} · {1} pratitelja', [
+                    u.handle,
+                    '${state.followersOf(u.id)}',
+                  ]),
+                ),
+                trailing: FollowButton(userId: u.id, compact: true),
+                onTap: () => PublicProfileScreen.open(context, u.id),
+              );
+            },
+          );
+    return DefaultTabController(
+      length: 2,
+      initialIndex: showFollowing ? 1 : 0,
+      child: Scaffold(
+        appBar: AppBar(
+          title: Text(user?.shopTitle ?? ''),
+          bottom: TabBar(
+            tabs: [
+              Tab(text: t('Pratitelji ({0})', ['${followers.length}'])),
+              Tab(text: t('Prati ({0})', ['${following.length}'])),
+            ],
+          ),
+        ),
+        body: TabBarView(
+          children: [
+            list(followers, t('Još nema pratitelja')),
+            list(following, t('Još nikoga ne prati')),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Prodaje trgovine (predmet, datum, cijena).
+class SalesListScreen extends ConsumerWidget {
+  const SalesListScreen({super.key, required this.userId});
+  final String userId;
+
+  static Future<void> open(BuildContext context, String userId) =>
+      Navigator.of(context).push(
+        MaterialPageRoute<void>(
+          builder: (_) => SalesListScreen(userId: userId),
+        ),
+      );
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final state = ref.watch(appProvider);
+    final sales = state.salesOf(userId);
+    final user = state.userById(userId);
+    return Scaffold(
+      appBar: AppBar(title: Text(t('Prodaje: {0}', [user?.shopTitle ?? '']))),
+      body: sales.isEmpty
+          ? EmptyState(icon: Icons.sell_outlined, title: t('Još nema prodaja'))
+          : ListView.separated(
+              padding: const EdgeInsets.symmetric(vertical: 8),
+              itemCount: sales.length,
+              separatorBuilder: (_, _) => const Divider(height: 1),
+              itemBuilder: (context, i) {
+                final s = sales[i];
+                return ListTile(
+                  leading: const Icon(Icons.check_circle_outline),
+                  title: Text(s.deviceName),
+                  subtitle: Text(
+                    t('{0} · kupac {1}', [
+                      formatDateTime(s.createdAt),
+                      s.buyerLabel,
+                    ]),
+                  ),
+                  trailing: Text(
+                    formatCredits(s.price),
+                    style: const TextStyle(fontWeight: FontWeight.w800),
+                  ),
+                );
+              },
+            ),
+    );
+  }
 }

@@ -7,6 +7,7 @@ import '../models/device.dart';
 import '../models/review.dart';
 import '../services/market_filter.dart' show normalizeSearch;
 import '../widgets/shop_widgets.dart';
+import 'shop_screens.dart';
 import '../widgets/community_widgets.dart';
 import '../providers/app_providers.dart';
 import '../theme/app_theme.dart';
@@ -133,6 +134,7 @@ class _PublicProfileScreenState extends ConsumerState<PublicProfileScreen> {
           if (user.username.isNotEmpty)
             ShareButton(
               url: publicLink(shop: user.username),
+              text: t('Trgovina {0} na LOOP-u', [user.shopTitle]),
               tooltip: t('Podijeli trgovinu'),
             ),
           if (!isMe && state.currentUser != null && !state.currentUser!.isGuest)
@@ -190,10 +192,21 @@ class _PublicProfileScreenState extends ConsumerState<PublicProfileScreen> {
                   ProfileHeader(user: user, rating: state.ratingOf(user.id)),
                   const SizedBox(height: 10),
                   _ShopStats(
+                    userId: user.id,
                     followers: state.followersOf(user.id),
+                    following: state.followingListOf(user.id).length,
                     sales: state.salesCountOf(user.id),
                     listings: allListings.length,
                     promoted: user.isPromoted,
+                  ),
+                  const SizedBox(height: 10),
+                  _ShopRatingCard(
+                    sellerId: user.id,
+                    sellerLabel: user.shopTitle,
+                    canRate:
+                        !isMe &&
+                        state.currentUser != null &&
+                        !state.currentUser!.isGuest,
                   ),
                   if (!isMe && !blocked) ...[
                     const SizedBox(height: 10),
@@ -272,6 +285,7 @@ class _PublicProfileScreenState extends ConsumerState<PublicProfileScreen> {
                     : () => confirmAndBuy(context, ref, d),
                 onTap: () => DeviceDetailScreen.open(context, d),
                 promoted: user!.isPromoted,
+                sellerView: isMe,
                 isFavorite: state.isFavorite(d.id),
                 onFavorite: isMe ? null : () => toggleFavorite(ref, d),
               ),
@@ -410,48 +424,151 @@ class ProfileHeader extends StatelessWidget {
   }
 }
 
-/// Pratitelji, prodaje i broj oglasa trgovine.
+/// Pratitelji, pratim, prodaje i oglasi (dodir otvara popis).
 class _ShopStats extends StatelessWidget {
   const _ShopStats({
+    required this.userId,
     required this.followers,
+    required this.following,
     required this.sales,
     required this.listings,
     required this.promoted,
   });
+  final String userId;
   final int followers;
+  final int following;
   final int sales;
   final int listings;
   final bool promoted;
 
   @override
   Widget build(BuildContext context) {
-    Widget stat(String value, String label) => Expanded(
-      child: Column(
-        children: [
-          Text(
-            value,
-            style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w900),
+    Widget stat(String value, String label, VoidCallback? onTap, Key key) =>
+        Expanded(
+          child: InkWell(
+            key: key,
+            borderRadius: BorderRadius.circular(12),
+            onTap: onTap,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 4),
+              child: Column(
+                children: [
+                  Text(
+                    value,
+                    style: const TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                  Text(
+                    label,
+                    style: TextStyle(
+                      color: LoopColors.textSecondary,
+                      fontSize: 12,
+                    ),
+                  ),
+                ],
+              ),
+            ),
           ),
-          Text(
-            label,
-            style: TextStyle(color: LoopColors.textSecondary, fontSize: 12),
-          ),
-        ],
-      ),
-    );
+        );
     return Card(
       child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
+        padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 6),
         child: Column(
           children: [
             Row(
               children: [
-                stat('$followers', t('pratitelja')),
-                stat('$sales', t('prodaja')),
-                stat('$listings', t('oglasa')),
+                stat(
+                  '$followers',
+                  t('pratitelja'),
+                  () => FollowListScreen.open(context, userId),
+                  const ValueKey('stat-followers'),
+                ),
+                stat(
+                  '$following',
+                  t('prati'),
+                  () => FollowListScreen.open(context, userId, following: true),
+                  const ValueKey('stat-following'),
+                ),
+                stat(
+                  '$sales',
+                  t('prodaja'),
+                  () => SalesListScreen.open(context, userId),
+                  const ValueKey('stat-sales'),
+                ),
+                stat(
+                  '$listings',
+                  t('oglasa'),
+                  null,
+                  const ValueKey('stat-listings'),
+                ),
               ],
             ),
             if (promoted) ...[const SizedBox(height: 8), const PromotedBadge()],
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Ocjena trgovine (prosjek zvjezdica) i gumb "Ocijeni trgovinu".
+class _ShopRatingCard extends ConsumerWidget {
+  const _ShopRatingCard({
+    required this.sellerId,
+    required this.sellerLabel,
+    required this.canRate,
+  });
+  final String sellerId;
+  final String sellerLabel;
+  final bool canRate;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final state = ref.watch(appProvider);
+    final rating = state.ratingOf(sellerId);
+    final mine = state.myShopReviewOf(sellerId);
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(14),
+        child: Wrap(
+          alignment: WrapAlignment.spaceBetween,
+          crossAxisAlignment: WrapCrossAlignment.center,
+          spacing: 12,
+          runSpacing: 10,
+          children: [
+            ConstrainedBox(
+              constraints: const BoxConstraints(minWidth: 140),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    t('Ocjena trgovine'),
+                    style: const TextStyle(fontWeight: FontWeight.w800),
+                  ),
+                  const SizedBox(height: 4),
+                  RatingBadge(rating: rating),
+                ],
+              ),
+            ),
+            if (canRate)
+              FilledButton.tonalIcon(
+                key: const ValueKey('rate-shop'),
+                onPressed: () => showShopRatingDialog(
+                  context,
+                  ref,
+                  sellerId: sellerId,
+                  sellerLabel: sellerLabel,
+                ),
+                icon: const Icon(Icons.star_outline),
+                label: Text(
+                  mine == null
+                      ? t('Ocijeni')
+                      : t('Tvoja ocjena: {0}★', ['${mine.stars}']),
+                ),
+              ),
           ],
         ),
       ),

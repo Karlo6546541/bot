@@ -363,18 +363,70 @@ class _ShopCard extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final state = ref.watch(appProvider);
     final toAnswer = state.bargainsToAnswer.length;
+    Widget stat(String value, String label, VoidCallback onTap, String key) =>
+        Expanded(
+          child: InkWell(
+            key: ValueKey(key),
+            onTap: onTap,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 12),
+              child: Column(
+                children: [
+                  Text(
+                    value,
+                    style: const TextStyle(
+                      fontSize: 22,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                  Text(
+                    label,
+                    style: TextStyle(
+                      color: LoopColors.textSecondary,
+                      fontSize: 12,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
     return Card(
       child: Column(
         children: [
+          Row(
+            children: [
+              stat(
+                '${state.followersOf(user.id)}',
+                t('pratitelja'),
+                () => FollowListScreen.open(context, user.id),
+                'my-followers',
+              ),
+              stat(
+                '${state.followingListOf(user.id).length}',
+                t('pratim'),
+                () => FollowListScreen.open(context, user.id, following: true),
+                'my-following',
+              ),
+              stat(
+                '${state.salesCountOf(user.id)}',
+                t('prodaja'),
+                () => SalesListScreen.open(context, user.id),
+                'my-sales',
+              ),
+            ],
+          ),
+          const Divider(height: 1),
           ListTile(
             key: const ValueKey('my-shop'),
             leading: const Icon(Icons.storefront_outlined),
             title: Text(t('Moja trgovina: {0}', [user.shopTitle])),
             subtitle: Text(
-              t('{0} pratitelja · {1} prodaja · {2} oglasa', [
-                '${state.followersOf(user.id)}',
-                '${state.salesCountOf(user.id)}',
+              t('{0} oglasa · ocjena {1}', [
                 '${state.listingsOf(user.id).length}',
+                state.ratingOf(user.id).count == 0
+                    ? '–'
+                    : state.ratingOf(user.id).average.toStringAsFixed(1),
               ]),
             ),
             trailing: const Icon(Icons.chevron_right),
@@ -388,7 +440,13 @@ class _ShopCard extends ConsumerWidget {
             trailing: IconButton(
               tooltip: t('Kopiraj poveznicu trgovine'),
               icon: const Icon(Icons.ios_share),
-              onPressed: () => shareLink(publicLink(shop: user.username)),
+              onPressed: () => shareLink(
+                context,
+                publicLink(shop: user.username),
+                text: t('Pogledaj moju trgovinu {0} na LOOP-u', [
+                  user.shopTitle,
+                ]),
+              ),
             ),
             onTap: () => showShopNameDialog(context, ref),
           ),

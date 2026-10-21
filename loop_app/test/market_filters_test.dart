@@ -51,16 +51,9 @@ void main() {
     expect(f.copyWith(clearSection: true).category, isNull);
   });
 
-  test('prodavatelj: LOOP ili korisnici', () {
-    final users = const MarketFilter(
-      seller: SellerFilter.users,
-    ).apply(all, state);
-    expect(users.map((d) => d.id), ['seed-9']);
-    final loop = const MarketFilter(
-      seller: SellerFilter.loop,
-    ).apply(all, state);
-    expect(loop.every((d) => d.isOnMarket), isTrue);
-    expect(users.length + loop.length, all.length);
+  test('samo trgovine koje pratim', () {
+    // Demo još nikoga ne prati.
+    expect(const MarketFilter(onlyFollowing: true).apply(all, state), isEmpty);
   });
 
   test('pretraga po nazivu, opisu i kategoriji; sortiranje po cijeni', () {

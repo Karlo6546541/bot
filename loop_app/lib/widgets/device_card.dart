@@ -21,6 +21,7 @@ class DeviceCard extends StatefulWidget {
     this.onFavorite,
     this.badge,
     this.promoted = false,
+    this.sellerView = false,
   });
 
   final Device device;
@@ -36,6 +37,9 @@ class DeviceCard extends StatefulWidget {
 
   /// Prodavatelj ima plaćeno isticanje (oznaka ⭐).
   final bool promoted;
+
+  /// Vlastiti predmet: cijena oglasa (koliko dobivam), a ne cijena kupca.
+  final bool sellerView;
 
   String? get _badgeText =>
       badge == null ? null : (promoted ? '⭐ $badge' : badge);
@@ -173,7 +177,7 @@ class _DeviceCardState extends State<DeviceCard> {
               FittedBox(
                 fit: BoxFit.scaleDown,
                 alignment: Alignment.centerLeft,
-                child: _price(d, 16),
+                child: _price(d, 16, widget.sellerView),
               ),
               const SizedBox(height: 8),
               FilledButton.icon(
@@ -274,7 +278,7 @@ class _DeviceCardState extends State<DeviceCard> {
               child: FittedBox(
                 fit: BoxFit.scaleDown,
                 alignment: Alignment.centerLeft,
-                child: _price(d, 18),
+                child: _price(d, 18, widget.sellerView),
               ),
             ),
             FilledButton.icon(
@@ -431,15 +435,17 @@ Widget _conditionChip(Device d) => d.isDigital
     : _Chip(label: d.condition.label, dot: d.condition.color);
 
 /// Cijena; na popustu crvena uz prekriženu redovnu cijenu.
-Widget _price(Device d, double size) {
+Widget _price(Device d, double size, bool sellerView) {
   final cut = d.hasDiscount;
+  final price = sellerView ? d.askPrice : d.shownPrice;
+  final base = sellerView ? d.basePrice : d.shownBasePrice;
   return Row(
     mainAxisSize: MainAxisSize.min,
     crossAxisAlignment: CrossAxisAlignment.baseline,
     textBaseline: TextBaseline.alphabetic,
     children: [
       Text(
-        formatCredits(d.askPrice),
+        formatCredits(price),
         style: TextStyle(
           fontWeight: FontWeight.w900,
           fontSize: size,
@@ -449,7 +455,7 @@ Widget _price(Device d, double size) {
       if (cut) ...[
         const SizedBox(width: 6),
         Text(
-          formatCredits(d.basePrice),
+          formatCredits(base),
           style: TextStyle(
             fontSize: size * 0.7,
             color: LoopColors.textSecondary,

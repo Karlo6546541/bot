@@ -162,6 +162,27 @@ ne sinkronizira; online prijavu vodi Supabase Auth i lozinke ne prolaze kroz na�
   Vlasnik prihvaća ili odbija; nakon prihvaćanja predmeti mijenjaju vlasnike, nadoplata
   ide vlasniku u cijelosti (ponuditelj plaća + 2%), a oboje biraju dostavu u *Moje dostave*.
 
+## Objave kao TikTok, trgovine i pratitelji
+
+- **Početna** odmah ispod stanja: gumb **Gledaj objave**, „Trgovine za tebe” i mreža
+  **objava** (oglasi drugih prodavatelja, nasumičnim redom, s prednošću za trgovine koje
+  pratiš, istaknute račune, popuste i popularne trgovine).
+- Dodir na objavu otvara **swipe feed preko cijelog ekrana** (gore/dolje kao TikTok):
+  avatar prodavatelja s **+ (Prati)**, **♥ lajk** (broj lajkova = koliko ljudi ima predmet u
+  favoritima; dvostruki dodir lajka), **Ponudi** cijenu, **Podijeli**, **broj prikaza**, te
+  *Kupi* i *Detalji*. Market ostaje klasičan popis s filterima.
+- **Svaki račun je webshop**: kartica „Tvoja trgovina” na početnoj, zaslon **Trgovine**
+  (Market → *Trgovine* ili *Sve trgovine*) s pretragom i redoslijedom (pratitelji, ocjena,
+  prodaje, oglasi), filter *Samo trgovine koje pratim*.
+- **Pratitelji**: na profilu i trgovini su brojevi *pratitelja*, *prati/pratim* i *prodaja* —
+  dodir otvara popis pratitelja / koga prati, odnosno popis prodaja.
+- **Ocjena trgovine** zvjezdicama s profila trgovine (*Ocijeni*); jedna ocjena po korisniku,
+  može se promijeniti. Ulazi u prosjek zajedno s ocjenama kupnji.
+- **Dijeljenje** otvara sistemski izbornik (WhatsApp, Instagram, Viber, SMS…) na mobitelu
+  (i u pregledniku na mobitelu); na računalu izbornik s WhatsAppom, Viberom, Instagramom,
+  Facebookom, Telegramom, X-om, SMS-om, e-mailom i kopiranjem poveznice.
+- Online: prikazi su u tablici `loop_views` — pokreni ponovno `supabase/schema.sql`.
+
 ## Mini webshop, cjenkanje, popusti i praćenje
 
 - **Količina na zalihi**: pri objavi (i u *Cijena i zaliha*) upisuješ broj komada. Svaka
@@ -373,19 +394,16 @@ Apple Watch, Sony A7 III, PS5, Switch) i po 4–5 iz svakog novog odjeljka.
 
 ## Poslovna pravila
 
-| Akcija           | Formula                   | Primjer (cijena 310 €)    |
-|------------------|---------------------------|---------------------------|
-| **Prodaj odmah** | dobivaš `cijena`          | +310 € (bez naknade)      |
-| **Kupi odmah**   | plaćaš `cijena × 1.02`    | −316,20 € (naknada 6,20)  |
-
-- Svaki račun je i kupac i prodavatelj. **Prodavatelj ne plaća naknadu**; kupac plaća 2%.
-- Prodani uređaj ide u **Market** (otkupljuje ga platforma) gdje ga drugi mogu kupiti.
-- **Objava u Marketu** (od korisnika): kupac plaća `cijena × 1.02`, prodavatelj dobiva
-  punu cijenu. Popust i dogovorena cijena (cjenkanje) smanjuju `cijena`.
+- Postoje samo **kupci i prodavatelji** — nema više „LOOP Marketa” ni prodaje platformi.
+  Stari predmeti platforme automatski dobiju demo prodavatelje (@ana.kolekcija, @marko,
+  @test) i objave se po svojoj cijeni.
+- **Prodavatelj ne plaća naknadu** i dobiva punu cijenu oglasa.
+- **Kupac vidi jednu cijenu** u koju je uračunata naknada platforme od 2% (oglas 100 € →
+  kupac vidi i plaća 102 €). Naknada se kupcu ne prikazuje kao zasebna stavka; prodavatelj
+  pri objavi vidi „Kupci vide cijenu …” i „Ti dobivaš …”.
+- Popust i dogovorena cijena (cjenkanje) smanjuju cijenu oglasa.
 - **Aukcije**: pobjednik plaća svoju ponudu, prodavatelj dobiva cijeli iznos.
 - **Zamjena**: nadoplatu plaća ponuditelj (+ 2%), vlasnik dobiva cijelu nadoplatu.
-- Kupnja je moguća samo ako imaš dovoljno novca za cijenu **+ 2% naknade**.
-- Prije svake transakcije prikazuje se dijalog s cijenom, naknadom i konačnim iznosom.
 - **Status** = stanje + vrijednost portfolija: Bronze < 2000 € · Silver 2000–5000 € · Gold > 5000 €.
 - **Isticanje računa**: 4,99 € tjedno (1–4 tjedna), plaća se sa stanja.
 

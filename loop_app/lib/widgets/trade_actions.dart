@@ -82,37 +82,6 @@ bool blockGuest(BuildContext context) {
   return true;
 }
 
-/// INSTANT SELL — dijalog s cijenom i iznosom (prodaja je bez naknade).
-Future<bool> confirmAndSell(
-  BuildContext context,
-  WidgetRef ref,
-  Device device,
-) async {
-  if (blockGuest(context)) return false;
-  final ok = await _showTradeDialog(
-    context,
-    title: t('Prodaj odmah'),
-    device: device,
-    rows: [
-      _Row(t('Originalna cijena'), formatCredits(device.price)),
-      _Row(t('Naknada'), t('bez naknade')),
-      _Row(
-        t('Dobivaš'),
-        formatCredits(sellPayout(device.price)),
-        highlight: true,
-      ),
-    ],
-    note: t('Iznos ide na tvoje LOOP stanje (u eurima).'),
-    confirmLabel: t('Potvrdi prodaju'),
-  );
-  if (!ok || !context.mounted) return false;
-  return runWithLoading(
-    context,
-    () => ref.read(appProvider.notifier).sell(device.id),
-    successMessage: t('Uspješno prodano'),
-  );
-}
-
 /// INSTANT BUY — provjera kredita, dijalog s fee-om, pa kupnja.
 Future<bool> confirmAndBuy(
   BuildContext context,
@@ -137,13 +106,12 @@ Future<bool> confirmAndBuy(
     final topUp = await confirmDialog(
       context,
       title: t('Nemaš dovoljno novca'),
-      message:
-          t('Za "{0}" treba {1} (s feejem), a imaš {2}.\nNedostaje ti {3}.', [
-            device.name,
-            formatCredits(total),
-            formatCredits(user.credits),
-            formatCredits(missing),
-          ]),
+      message: t('Za "{0}" treba {1}, a imaš {2}.\nNedostaje ti {3}.', [
+        device.name,
+        formatCredits(total),
+        formatCredits(user.credits),
+        formatCredits(missing),
+      ]),
       confirmLabel: t('Uplati novac'),
     );
     if (!topUp || !context.mounted) return false;
@@ -264,9 +232,8 @@ class _CheckoutSheetState extends State<_CheckoutSheet> {
                 child: Column(
                   children: [
                     if (price < d.basePrice)
-                      row(t('Redovna cijena'), formatCredits(d.basePrice)),
-                    row(t('Cijena'), formatCredits(price)),
-                    row(t('Naknada (2%)'), '+ ${formatCredits(feeFor(price))}'),
+                      row(t('Redovna cijena'), formatCredits(d.shownBasePrice)),
+                    row(t('Cijena'), formatCredits(buyTotal(price))),
                     row(
                       t('Dostava'),
                       shipping == 0
@@ -346,11 +313,10 @@ Future<void> toggleFavorite(WidgetRef ref, Device device) async {
 }
 
 class _Row {
-  const _Row(this.label, this.value, {this.highlight = false, this.color});
+  const _Row(this.label, this.value, {this.highlight = false});
   final String label;
   final String value;
   final bool highlight;
-  final Color? color;
 }
 
 Future<bool> _showTradeDialog(
@@ -403,11 +369,9 @@ Future<bool> _showTradeDialog(
                     Text(
                       r.value,
                       style: TextStyle(
-                        color:
-                            r.color ??
-                            (r.highlight
-                                ? LoopColors.accent
-                                : LoopColors.textPrimary),
+                        color: r.highlight
+                            ? LoopColors.accent
+                            : LoopColors.textPrimary,
                         fontWeight: r.highlight
                             ? FontWeight.w800
                             : FontWeight.w600,
@@ -595,13 +559,11 @@ class _ListDialogState extends State<_ListDialog> {
             const SizedBox(height: 12),
             if (v != null && v > 0) ...[
               Text(
-                t('Kupac plaća {0}', [formatCredits(buyTotal(v))]),
+                t('Kupci vide cijenu {0}', [formatCredits(buyTotal(v))]),
                 style: TextStyle(color: LoopColors.textSecondary),
               ),
               Text(
-                t('Ti dobivaš {0} (bez naknade)', [
-                  formatCredits(sellPayout(v)),
-                ]),
+                t('Ti dobivaš {0}', [formatCredits(sellPayout(v))]),
                 style: const TextStyle(fontWeight: FontWeight.w800),
               ),
             ],
@@ -630,15 +592,7 @@ Future<bool> _buyDigital(
     context,
     title: t('Kupi i preuzmi'),
     device: device,
-    rows: [
-      _Row(t('Cijena'), formatCredits(price)),
-      _Row(
-        t('Naknada (2%)'),
-        '+ ${formatCredits(feeFor(price))}',
-        color: LoopColors.error,
-      ),
-      _Row(t('Ukupno plaćaš'), formatCredits(buyTotal(price)), highlight: true),
-    ],
+    rows: [_Row(t('Cijena'), formatCredits(buyTotal(price)), highlight: true)],
     note: t(
       'Digitalni proizvod: datoteka {0} ({1}) preuzima se odmah nakon plaćanja i ostaje ti u "Moje digitalne kupnje".',
       [device.file?.name ?? '', device.file?.sizeLabel ?? ''],

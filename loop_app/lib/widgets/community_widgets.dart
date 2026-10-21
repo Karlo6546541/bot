@@ -33,11 +33,15 @@ class RatingBadge extends StatelessWidget {
       children: [
         Icon(Icons.star_rounded, color: _starColor, size: compact ? 16 : 20),
         const SizedBox(width: 2),
-        Text(
-          compact ? avg : t('{0} ({1} ocjena)', [avg, rating.count]),
-          style: TextStyle(
-            fontWeight: FontWeight.w800,
-            fontSize: compact ? 13 : 14,
+        Flexible(
+          child: Text(
+            compact ? avg : t('{0} ({1} ocjena)', [avg, rating.count]),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              fontWeight: FontWeight.w800,
+              fontSize: compact ? 13 : 14,
+            ),
           ),
         ),
       ],
@@ -113,7 +117,9 @@ class ReviewTile extends StatelessWidget {
           Text(review.comment),
         ],
         Text(
-          review.deviceName,
+          review.deviceName.isEmpty
+              ? t('Ocjena trgovine')
+              : t('Kupnja: {0}', [review.deviceName]),
           style: TextStyle(color: LoopColors.textSecondary, fontSize: 12),
         ),
       ],
@@ -137,18 +143,51 @@ Future<bool> showReviewDialog(
   return saved ?? false;
 }
 
+/// Ocjena trgovine (zvjezdice) s javnog profila. Postojeća ocjena se
+/// može promijeniti.
+Future<bool> showShopRatingDialog(
+  BuildContext context,
+  WidgetRef ref, {
+  required String sellerId,
+  required String sellerLabel,
+}) async {
+  final mine = ref.read(appProvider).myShopReviewOf(sellerId);
+  final saved = await showDialog<bool>(
+    context: context,
+    builder: (_) => _ReviewDialog(
+      deliveryId: '',
+      sellerLabel: sellerLabel,
+      shopSellerId: sellerId,
+      initialStars: mine?.stars ?? 0,
+      initialComment: mine?.comment ?? '',
+    ),
+  );
+  return saved ?? false;
+}
+
 class _ReviewDialog extends ConsumerStatefulWidget {
-  const _ReviewDialog({required this.deliveryId, required this.sellerLabel});
+  const _ReviewDialog({
+    required this.deliveryId,
+    required this.sellerLabel,
+    this.shopSellerId,
+    this.initialStars = 0,
+    this.initialComment = '',
+  });
   final String deliveryId;
   final String sellerLabel;
+
+  /// Ocjena trgovine (umjesto ocjene kupnje).
+  final String? shopSellerId;
+  final int initialStars;
+  final String initialComment;
 
   @override
   ConsumerState<_ReviewDialog> createState() => _ReviewDialogState();
 }
 
 class _ReviewDialogState extends ConsumerState<_ReviewDialog> {
-  int _stars = 0;
-  final _comment = TextEditingController();
+  late int _stars = widget.initialStars;
+  late final _comment = TextEditingController(text: widget.initialComment);
   String? _error;
 
   @override
@@ -163,9 +202,12 @@ class _ReviewDialogState extends ConsumerState<_ReviewDialog> {
       return;
     }
     try {
-      await ref
-          .read(appProvider.notifier)
-          .reviewSeller(widget.deliveryId, _stars, _comment.text);
+      final c = ref.read(appProvider.notifier);
+      if (widget.shopSellerId != null) {
+        await c.rateShop(widget.shopSellerId!, _stars, _comment.text);
+      } else {
+        await c.reviewSeller(widget.deliveryId, _stars, _comment.text);
+      }
       if (mounted) Navigator.pop(context, true);
       showLoopSnackBar(t('Hvala na ocjeni! ⭐'));
     } on TradeException catch (e) {
@@ -175,7 +217,11 @@ class _ReviewDialogState extends ConsumerState<_ReviewDialog> {
 
   @override
   Widget build(BuildContext context) => AlertDialog(
-    title: Text(t('Ocijeni prodavatelja {0}', [widget.sellerLabel])),
+    title: Text(
+      widget.shopSellerId != null
+          ? t('Ocijeni trgovinu {0}', [widget.sellerLabel])
+          : t('Ocijeni prodavatelja {0}', [widget.sellerLabel]),
+    ),
     content: ConstrainedBox(
       constraints: const BoxConstraints(maxWidth: 380),
       child: Column(

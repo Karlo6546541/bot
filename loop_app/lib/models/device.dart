@@ -1,4 +1,5 @@
 import '../l10n/tr.dart';
+import '../services/fee.dart';
 
 /// Glavni odjeljak Marketa. Svaka kategorija pripada jednom odjeljku.
 enum ItemSection {
@@ -196,8 +197,14 @@ class Device {
       ? ((basePrice * (100 - discountPercent)).roundToDouble()) / 100
       : basePrice;
 
-  /// Cijena za kupca u Marketu (s popustom ako vrijedi).
+  /// Cijena za kupca u Marketu (s popustom ako vrijedi), bez naknade.
   double get askPrice => priceAt(DateTime.now());
+
+  /// Cijena koju kupac vidi i plaća (uključuje naknadu platforme).
+  double get shownPrice => buyTotal(askPrice);
+
+  /// Redovna cijena za kupca (prije popusta), s uključenom naknadom.
+  double get shownBasePrice => buyTotal(basePrice);
 
   /// Više komada na zalihi (kupnja ne prenosi oglas, nego kopiju predmeta).
   bool get hasStock => !isDigital && quantity > 1;

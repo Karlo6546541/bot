@@ -2,12 +2,15 @@ import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:share_plus/share_plus.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../l10n/tr.dart';
 import '../models/device.dart';
 import '../models/price_offer.dart';
 import '../providers/app_providers.dart';
 import '../services/fee.dart';
+import '../services/native_share/native_share.dart';
 import '../services/trade_service.dart';
 import '../theme/app_theme.dart';
 import '../utils/formatters.dart';
@@ -28,23 +31,194 @@ String publicLink({String? item, String? shop}) {
   return '$root?$query';
 }
 
-/// Kopira poveznicu u međuspremnik (za slanje porukom, objavu…).
-Future<void> shareLink(String url) async {
-  await Clipboard.setData(ClipboardData(text: url));
-  showLoopSnackBar(t('Poveznica je kopirana — zalijepi je gdje želiš.'));
+/// Testovi: uvijek prikaži vlastiti izbornik umjesto sistemskog.
+@visibleForTesting
+bool debugForceShareSheet = false;
+
+/// Dijeli poveznicu: otvara sistemski izbornik (WhatsApp, Instagram,
+/// Viber, SMS, e-mail…). Gdje ga nema (preglednik na računalu) prikazuje
+/// vlastiti izbornik s istim aplikacijama.
+Future<void> shareLink(BuildContext context, String url, {String? text}) async {
+  final message = text == null ? url : '$text\n$url';
+  if (canNativeShare() && !debugForceShareSheet) {
+    try {
+      final box = context.findRenderObject() as RenderBox?;
+      final result = await SharePlus.instance.share(
+        ShareParams(
+          text: message,
+          subject: text,
+          sharePositionOrigin: box == null
+              ? null
+              : box.localToGlobal(Offset.zero) & box.size,
+        ),
+      );
+      if (result.status != ShareResultStatus.unavailable) return;
+    } catch (_) {
+      // nastavi s vlastitim izbornikom
+    }
+  }
+  if (!context.mounted) return;
+  await showModalBottomSheet<void>(
+    context: context,
+    showDragHandle: true,
+    backgroundColor: LoopColors.background,
+    constraints: const BoxConstraints(maxWidth: 560),
+    builder: (_) => _ShareSheet(url: url, text: text ?? ''),
+  );
+}
+
+class _ShareSheet extends StatelessWidget {
+  const _ShareSheet({required this.url, required this.text});
+  final String url;
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    final u = Uri.encodeComponent(url);
+    final msg = Uri.encodeComponent(text.isEmpty ? url : '$text $url');
+    final targets = <(String, IconData, Color, String?)>[
+      (
+        'WhatsApp',
+        Icons.chat,
+        const Color(0xFF25D366),
+        'https://wa.me/?text=$msg',
+      ),
+      (
+        'Viber',
+        Icons.phone_in_talk,
+        const Color(0xFF7360F2),
+        'viber://forward?text=$msg',
+      ),
+      ('Instagram', Icons.camera_alt_outlined, const Color(0xFFE1306C), null),
+      (
+        'Facebook',
+        Icons.facebook,
+        const Color(0xFF1877F2),
+        'https://www.facebook.com/sharer/sharer.php?u=$u',
+      ),
+      (
+        'Telegram',
+        Icons.send,
+        const Color(0xFF229ED9),
+        'https://t.me/share/url?url=$u&text=${Uri.encodeComponent(text)}',
+      ),
+      (
+        'X',
+        Icons.alternate_email,
+        Colors.black,
+        'https://twitter.com/intent/tweet?url=$u&text=${Uri.encodeComponent(text)}',
+      ),
+      ('SMS', Icons.sms_outlined, const Color(0xFF34C759), 'sms:?&body=$msg'),
+      (
+        t('E-mail'),
+        Icons.mail_outline,
+        const Color(0xFF8E8E93),
+        'mailto:?subject=${Uri.encodeComponent(text)}&body=$msg',
+      ),
+    ];
+    Future<void> open(String? link) async {
+      Navigator.pop(context);
+      if (link == null) {
+        // Instagram nema dijeljenje poveznice s weba: kopiraj i otvori.
+        await Clipboard.setData(ClipboardData(text: url));
+        showLoopSnackBar(
+          t(
+            'Poveznica je kopirana — zalijepi je u Instagram poruku ili priču.',
+          ),
+        );
+        await launchUrl(
+          Uri.parse('https://www.instagram.com/direct/inbox/'),
+          mode: LaunchMode.externalApplication,
+        );
+        return;
+      }
+      final ok = await launchUrl(
+        Uri.parse(link),
+        mode: LaunchMode.externalApplication,
+      );
+      if (!ok) {
+        showLoopSnackBar(
+          t('Aplikacija nije dostupna na ovom uređaju.'),
+          error: true,
+        );
+      }
+    }
+
+    return SafeArea(
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text(
+              t('Podijeli'),
+              style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w900),
+            ),
+            const SizedBox(height: 12),
+            Wrap(
+              spacing: 12,
+              runSpacing: 14,
+              children: [
+                for (final (name, icon, color, link) in targets)
+                  SizedBox(
+                    width: 76,
+                    child: InkWell(
+                      key: ValueKey('share-$name'),
+                      borderRadius: BorderRadius.circular(12),
+                      onTap: () => open(link),
+                      child: Column(
+                        children: [
+                          CircleAvatar(
+                            radius: 26,
+                            backgroundColor: color,
+                            child: Icon(icon, color: Colors.white),
+                          ),
+                          const SizedBox(height: 6),
+                          Text(
+                            name,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(fontSize: 12),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            OutlinedButton.icon(
+              key: const ValueKey('share-copy'),
+              onPressed: () async {
+                Navigator.pop(context);
+                await Clipboard.setData(ClipboardData(text: url));
+                showLoopSnackBar(t('Poveznica je kopirana.'));
+              },
+              icon: const Icon(Icons.link),
+              label: Text(t('Kopiraj poveznicu')),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 }
 
 class ShareButton extends StatelessWidget {
-  const ShareButton({super.key, required this.url, this.tooltip});
+  const ShareButton({super.key, required this.url, this.text, this.tooltip});
   final String url;
+  final String? text;
   final String? tooltip;
 
   @override
-  Widget build(BuildContext context) => IconButton(
-    key: const ValueKey('share'),
-    tooltip: tooltip ?? t('Podijeli'),
-    icon: const Icon(Icons.ios_share),
-    onPressed: () => shareLink(url),
+  Widget build(BuildContext context) => Builder(
+    builder: (context) => IconButton(
+      key: const ValueKey('share'),
+      tooltip: tooltip ?? t('Podijeli'),
+      icon: const Icon(Icons.ios_share),
+      onPressed: () => shareLink(context, url, text: text),
+    ),
   );
 }
 
@@ -104,18 +278,23 @@ class PriceTag extends StatelessWidget {
     super.key,
     required this.device,
     required this.price,
+    this.basePrice,
     this.fontSize = 16,
     this.center = false,
   });
 
   final Device device;
   final double price;
+
+  /// Redovna cijena (zadano: cijena oglasa prije popusta).
+  final double? basePrice;
   final double fontSize;
   final bool center;
 
   @override
   Widget build(BuildContext context) {
-    final cut = price < device.basePrice;
+    final base = basePrice ?? device.basePrice;
+    final cut = price < base;
     return Wrap(
       alignment: center ? WrapAlignment.center : WrapAlignment.start,
       crossAxisAlignment: WrapCrossAlignment.center,
@@ -132,7 +311,7 @@ class PriceTag extends StatelessWidget {
         ),
         if (cut)
           Text(
-            formatCredits(device.basePrice),
+            formatCredits(base),
             style: TextStyle(
               fontSize: fontSize * 0.62,
               color: LoopColors.textSecondary,
@@ -419,7 +598,6 @@ class _AmountDialogState extends State<_AmountDialog> {
 
   @override
   Widget build(BuildContext context) {
-    final v = _value;
     return AlertDialog(
       title: Text(widget.title),
       content: ConstrainedBox(
@@ -462,11 +640,6 @@ class _AmountDialogState extends State<_AmountDialog> {
                 labelText: t('Iznos'),
                 suffixText: '€',
                 errorText: _error,
-                helperText: v == null
-                    ? null
-                    : t('S naknadom kupac plaća {0}', [
-                        formatCredits(buyTotal(v)),
-                      ]),
               ),
             ),
           ],
@@ -494,7 +667,8 @@ Future<void> showBargainDialog(
   Device device,
 ) async {
   if (blockGuest(context)) return;
-  final ask = device.askPrice;
+  // Kupac vidi i nudi cijene koje plaća; prodavatelj vidi koliko dobiva.
+  final ask = device.shownPrice;
   final amount = await _amountDialog(
     context,
     title: t('Ponudi cijenu'),
@@ -508,7 +682,9 @@ Future<void> showBargainDialog(
   if (amount == null || !context.mounted) return;
   await runWithLoading(
     context,
-    () => ref.read(appProvider.notifier).makeBargain(device.id, amount),
+    () => ref
+        .read(appProvider.notifier)
+        .makeBargain(device.id, listPriceFor(amount)),
     successMessage: t('Ponuda je poslana prodavatelju'),
   );
 }
@@ -537,14 +713,14 @@ class BuyerBargainCard extends ConsumerWidget {
     switch (offer.status) {
       case BargainStatus.accepted:
         text = t('✅ Dogovorena cijena {0} vrijedi do {1}. Kupi gumbom iznad.', [
-          formatCredits(offer.agreedPrice),
+          formatCredits(buyTotal(offer.agreedPrice)),
           formatDateTime(offer.validUntil!),
         ]);
         actions = const [];
       case BargainStatus.countered:
         text = t('↩️ Prodavatelj nudi {0} (tvoja ponuda: {1}).', [
-          formatCredits(offer.counterAmount!),
-          formatCredits(offer.amount),
+          formatCredits(buyTotal(offer.counterAmount!)),
+          formatCredits(buyTotal(offer.amount)),
         ]);
         actions = [
           FilledButton(
@@ -567,7 +743,7 @@ class BuyerBargainCard extends ConsumerWidget {
         ];
       default:
         text = t('⏳ Ponudio si {0} — čeka se odgovor prodavatelja.', [
-          formatCredits(offer.amount),
+          formatCredits(buyTotal(offer.amount)),
         ]);
         actions = [
           TextButton(
@@ -650,14 +826,19 @@ class BargainTile extends ConsumerWidget {
         ? BargainStatus.expired
         : offer.status;
 
+    // Prodavatelj vidi koliko dobiva, kupac koliko plaća.
+    double money(double v) => iAmSeller ? v : buyTotal(v);
     final title = iAmSeller
         ? t('{0} nudi {1}', [other, formatCredits(offer.amount)])
-        : t('Ponudio si {0} ({1})', [formatCredits(offer.amount), other]);
+        : t('Ponudio si {0} ({1})', [
+            formatCredits(money(offer.amount)),
+            other,
+          ]);
     final details = [
       if (showItem) '"${offer.deviceName}"',
-      t('cijena {0}', [formatCredits(offer.listPrice)]),
+      t('cijena {0}', [formatCredits(money(offer.listPrice))]),
       if (offer.counterAmount != null)
-        t('protuponuda {0}', [formatCredits(offer.counterAmount!)]),
+        t('protuponuda {0}', [formatCredits(money(offer.counterAmount!))]),
       status.label,
     ].join(' · ');
 

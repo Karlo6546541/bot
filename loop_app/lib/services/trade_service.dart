@@ -6,6 +6,7 @@ import '../models/loop_transaction.dart';
 import '../models/price_offer.dart';
 import '../utils/formatters.dart';
 import 'bargain_service.dart';
+import 'seed_data.dart';
 import 'fee.dart';
 import 'storage_service.dart';
 import '../l10n/tr.dart';
@@ -333,7 +334,7 @@ class TradeService {
           await inbox.send(
             u.id,
             NotificationKind.priceDrop,
-            args: [device.name, listed.askPrice],
+            args: [device.name, listed.shownPrice],
             targetId: device.id,
           );
         }
@@ -449,7 +450,7 @@ class TradeService {
         seller.handle,
         '$percent',
         device.name,
-        updated.priceAt(at),
+        buyTotal(updated.priceAt(at)),
       ];
       await inbox.toFollowers(
         userId,
@@ -482,7 +483,7 @@ class TradeService {
     await Inbox(_storage).toFollowers(
       owner.id,
       NotificationKind.followedNewItem,
-      args: [owner.handle, d.name, d.askPrice],
+      args: [owner.handle, d.name, d.shownPrice],
       targetId: d.id,
     );
   }
@@ -505,6 +506,37 @@ class TradeService {
     final at = now ?? DateTime.now();
     return BargainService(_storage).usable(userId, d.id, at)?.agreedPrice ??
         d.priceAt(at);
+  }
+
+  /// Demo prodavatelji koji preuzimaju predmete bivšeg "LOOP Marketa".
+  static const platformHeirs = [
+    SeedData.anaUserId,
+    SeedData.markoUserId,
+    SeedData.testUserId,
+  ];
+
+  /// U aplikaciji postoje samo kupci i prodavatelji: predmeti bez vlasnika
+  /// (stari LOOP Market) dodijele se demo prodavateljima i objave po svojoj
+  /// cijeni. Raspodjela ovisi samo o ID-u predmeta, pa svi uređaji dođu do
+  /// istog rezultata. Vraća broj dodijeljenih predmeta.
+  Future<int> assignPlatformItems({DateTime? now}) async {
+    final at = now ?? DateTime.now();
+    final heirs = [
+      for (final id in platformHeirs)
+        if (_storage.userById(id) case final u? when !u.pendingDeletion) u.id,
+    ];
+    if (heirs.isEmpty) return 0;
+    var n = 0;
+    for (final d in _storage.devices) {
+      if (d.ownerId != null) continue;
+      final owner =
+          heirs[d.id.codeUnits.fold(0, (a, b) => a + b) % heirs.length];
+      await _storage.putDevice(
+        d.withOwner(owner).withListing(d.price, at: d.listedAt ?? at),
+      );
+      n++;
+    }
+    return n;
   }
 
   // ---------------------------------------------------- digitalni proizvodi

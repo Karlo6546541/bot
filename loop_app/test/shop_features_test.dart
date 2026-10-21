@@ -143,7 +143,7 @@ void main() {
       final n = inbox(
         tester,
       ).firstWhere((n) => n.kind == NotificationKind.followedDiscount);
-      expect(n.text, '@demo: popust −10% na "Šalica" — sada 27 €.');
+      expect(n.text, '@demo: popust −10% na "Šalica" — sada 27,54 €.');
       // Marko ne prati demo — ništa ne dobiva.
       expect(
         inbox(marko).where((n) => n.kind == NotificationKind.followedDiscount),
@@ -294,4 +294,57 @@ void main() {
       expect(storage.searchHistory, isEmpty);
     },
   );
+
+  test('nema LOOP Marketa: predmeti platforme dobiju prodavatelje', () async {
+    final before = storage.devices.where((d) => d.ownerId == null).length;
+    expect(before, greaterThan(0));
+    expect(await trade.assignPlatformItems(), before);
+    expect(storage.devices.where((d) => d.ownerId == null), isEmpty);
+    final heirs = storage.devices
+        .where((d) => d.id.startsWith('seed-') && d.isListed)
+        .map((d) => d.ownerId)
+        .toSet();
+    expect(heirs, containsAll(TradeService.platformHeirs));
+    // Drugi prolaz ništa ne mijenja (svi uređaji dođu do istog rezultata).
+    expect(await trade.assignPlatformItems(), 0);
+    // Kupnja ide od prodavatelja: on dobiva punu cijenu.
+    final d = storage.deviceById('seed-5')!;
+    final sellerBefore = storage.userById(d.ownerId!)!.credits;
+    await trade.buy(userId: demo, deviceId: d.id);
+    expect(storage.userById(d.ownerId!), isNotNull);
+    expect(
+      storage.userById(storage.transactions.first.sellerId!)!.credits,
+      sellerBefore + 185,
+    );
+  });
+
+  test('ocjena trgovine: jedna po korisniku, zamjenjuje se', () async {
+    await community.rateShop(raterId: tester, sellerId: demo, stars: 5);
+    await community.rateShop(raterId: tester, sellerId: demo, stars: 3);
+    await community.rateShop(raterId: marko, sellerId: demo, stars: 4);
+    await storage.saveSession(userId: tester);
+    final state = AppState.fromStorage(storage);
+    expect(state.ratingOf(demo).count, 2);
+    expect(state.ratingOf(demo).average, 3.5);
+    expect(state.myShopReviewOf(demo)!.stars, 3);
+    await expectLater(
+      community.rateShop(raterId: demo, sellerId: demo, stars: 5),
+      throwsA(isA<TradeException>()),
+    );
+  });
+
+  test('prikazi, lajkovi, pratitelji i prodaje', () async {
+    await storage.addView('seed-9');
+    await storage.addView('seed-9');
+    await trade.toggleFavorite(tester, 'seed-9');
+    await community.toggleFollow(tester, demo);
+    await community.toggleFollow(marko, demo);
+    await community.toggleFollow(demo, marko);
+    await storage.saveSession(userId: demo);
+    final state = AppState.fromStorage(storage);
+    expect(state.viewsOf('seed-9'), 2);
+    expect(state.likesOf('seed-9'), 1);
+    expect(state.followersListOf(demo).map((u) => u.id), {tester, marko});
+    expect(state.followingListOf(demo).single.id, marko);
+  });
 }

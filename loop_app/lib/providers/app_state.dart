@@ -40,6 +40,7 @@ class AppState {
     this.offers = const [],
     this.bargains = const [],
     this.searchHistory = const [],
+    this.views = const {},
   });
 
   factory AppState.fromStorage(StorageService storage) {
@@ -85,6 +86,7 @@ class AppState {
           ),
         ),
       searchHistory: storage.searchHistory,
+      views: storage.views,
       myHistory: storage.currentUserId == null
           ? const []
           : storage.historyOf(storage.currentUserId!),
@@ -132,6 +134,64 @@ class AppState {
 
   /// Nedavne pretrage na ovom uređaju (najnovije prvo).
   final List<String> searchHistory;
+
+  /// Broj prikaza po objavi (predmetu).
+  final Map<String, int> views;
+
+  int viewsOf(String deviceId) => views[deviceId] ?? 0;
+
+  /// "Lajkovi" objave = koliko korisnika ima predmet u favoritima.
+  int likesOf(String deviceId) =>
+      users.where((u) => u.favorites.contains(deviceId)).length;
+
+  /// Pratitelji korisnika (najnoviji računi prvi).
+  List<AppUser> followersListOf(String userId) => users
+      .where((u) => u.following.contains(userId) && !u.pendingDeletion)
+      .toList()
+      .reversed
+      .toList();
+
+  /// Računi koje korisnik prati.
+  List<AppUser> followingListOf(String userId) {
+    final ids = userById(userId)?.following ?? const [];
+    return [
+      for (final id in ids.reversed)
+        if (userById(id) case final u? when !u.pendingDeletion) u,
+    ];
+  }
+
+  /// Prodaje korisnika drugim korisnicima (najnovije prvo).
+  List<LoopTransaction> salesOf(String userId) => transactions
+      .where(
+        (t) =>
+            t.type == TransactionType.sell &&
+            (t.sellerId ?? t.userId) == userId &&
+            t.buyerId != null &&
+            t.buyerId != userId,
+      )
+      .toList();
+
+  /// Svi računi koji imaju trgovinu (barem jedan oglas), bez mene i
+  /// blokiranih.
+  List<AppUser> get shops {
+    final owners = <String>{
+      for (final d in marketDevices)
+        if (d.ownerId != null) d.ownerId!,
+    };
+    return users.where((u) => owners.contains(u.id)).toList();
+  }
+
+  /// Moja ocjena trgovine (ako sam je ocijenio).
+  Review? myShopReviewOf(String sellerId) {
+    for (final r in reviews) {
+      if (r.sellerId == sellerId &&
+          r.buyerId == currentUserId &&
+          r.deliveryId.isEmpty) {
+        return r;
+      }
+    }
+    return null;
+  }
 
   /// Ponude cijena u kojima sudjeluje trenutni korisnik.
   List<PriceOffer> get myBargains => currentUserId == null

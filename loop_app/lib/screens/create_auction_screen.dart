@@ -262,15 +262,15 @@ class _CreateAuctionScreenState extends ConsumerState<CreateAuctionScreen> {
                       const SizedBox(height: 10),
                       OutlinedButton.icon(
                         onPressed: () async {
-                          final ok = await confirmAndSell(
+                          final ok = await showListDialog(
                             context,
                             ref,
                             selected,
                           );
                           if (ok && context.mounted) Navigator.pop(context);
                         },
-                        icon: const Icon(Icons.bolt),
-                        label: Text(t('Radije prodaj odmah')),
+                        icon: const Icon(Icons.storefront_outlined),
+                        label: Text(t('Radije objavi u Marketu')),
                       ),
                     ],
                   ],
@@ -455,10 +455,12 @@ class _CompareCard extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          col('⚡', t('Prodaj odmah'), [
-            t('Dobivaš {0} odmah', [formatCredits(sellPayout(device.price))]),
+          col('🏷️', t('Market'), [
+            t('Prodaješ po svojoj cijeni ({0})', [
+              formatCredits(sellPayout(device.price)),
+            ]),
             t('Bez naknade za objavu'),
-            t('Bez čekanja'),
+            t('Kupci mogu ponuditi cijenu'),
           ], LoopColors.mint),
           const SizedBox(width: 10),
           col('🔨', t('Aukcija'), [
