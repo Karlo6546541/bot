@@ -162,23 +162,26 @@ class _MarketScreenState extends ConsumerState<MarketScreen> {
           ),
         ),
         SliverToBoxAdapter(
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
-            child: Wrap(
-              spacing: 8,
-              runSpacing: 4,
-              crossAxisAlignment: WrapCrossAlignment.center,
+          child: SizedBox(
+            height: 52,
+            child: ListView(
+              scrollDirection: Axis.horizontal,
+              padding: const EdgeInsets.symmetric(horizontal: 16),
               children: [
                 ChoiceChip(
                   label: Text(t('Mogu kupiti')),
                   selected: _onlyAffordable,
                   onSelected: (v) => setState(() => _onlyAffordable = v),
                 ),
+                const SizedBox(width: 8),
                 for (final limit in const [100.0, 250.0, 500.0, 1000.0])
-                  ChoiceChip(
-                    label: Text('${limit.toInt()} LC'),
-                    selected: _maxPrice == limit,
-                    onSelected: (v) => setState(() => _maxPrice = v ? limit : null),
+                  Padding(
+                    padding: const EdgeInsets.only(right: 8),
+                    child: ChoiceChip(
+                      label: Text('${limit.toInt()} LC'),
+                      selected: _maxPrice == limit,
+                      onSelected: (v) => setState(() => _maxPrice = v ? limit : null),
+                    ),
                   ),
                 if (_condition != null || _maxPrice != null || _minPrice != null || _onlyAffordable || _search.text.isNotEmpty || _section != null || _category != null || _onlyFavorites)
                   TextButton.icon(
