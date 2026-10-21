@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../l10n/tr.dart';
 import '../models/app_user.dart';
+import '../models/review.dart';
+import '../widgets/community_widgets.dart';
 import '../providers/app_providers.dart';
 import '../theme/app_theme.dart';
 import '../widgets/empty_state.dart';
@@ -67,14 +69,63 @@ class PublicProfileScreen extends ConsumerWidget {
         ),
       ),
     );
+    final reviews = state.reviewsOf(user.id);
+    final blocked = state.isBlocked(user.id);
+    final other = user;
     return Scaffold(
-      appBar: AppBar(title: Text(user.handle)),
+      appBar: AppBar(
+        title: Text(user.handle),
+        actions: [
+          if (!isMe && state.currentUser != null && !state.currentUser!.isGuest)
+            PopupMenuButton<String>(
+              key: const ValueKey('profile-menu'),
+              onSelected: (v) async {
+                if (v == 'report') {
+                  await showReportSheet(
+                    context,
+                    ref,
+                    targetType: 'user',
+                    targetId: other.id,
+                    targetLabel: other.handle,
+                  );
+                } else if (v == 'block') {
+                  final now = await ref
+                      .read(appProvider.notifier)
+                      .toggleBlock(other.id);
+                  showLoopSnackBar(
+                    now
+                        ? t('{0} je blokiran — ne vidiš njegove oglase.', [
+                            other.handle,
+                          ])
+                        : t('{0} je odblokiran.', [other.handle]),
+                  );
+                }
+              },
+              itemBuilder: (_) => [
+                PopupMenuItem(
+                  value: 'report',
+                  child: ListTile(
+                    leading: const Icon(Icons.flag_outlined),
+                    title: Text(t('Prijavi korisnika')),
+                  ),
+                ),
+                PopupMenuItem(
+                  value: 'block',
+                  child: ListTile(
+                    leading: const Icon(Icons.block),
+                    title: Text(blocked ? t('Odblokiraj') : t('Blokiraj')),
+                  ),
+                ),
+              ],
+            ),
+        ],
+      ),
       body: CustomScrollView(
         slivers: [
           box(
             Padding(
               padding: const EdgeInsets.only(top: 8),
-              child: ProfileHeader(user: user),
+              child: ProfileHeader(user: user, rating: state.ratingOf(user.id)),
             ),
           ),
           box(title(t('Na prodaju u Marketu ({0})', [listings.length]))),
@@ -114,9 +165,36 @@ class PublicProfileScreen extends ConsumerWidget {
               box(
                 Padding(
                   padding: const EdgeInsets.only(bottom: 10),
-                  child: AuctionCard(auction: a, viewerId: viewer),
+                  // Kartica je rađena za mrežu (popunjava visinu reda).
+                  child: IntrinsicHeight(
+                    child: AuctionCard(auction: a, viewerId: viewer),
+                  ),
                 ),
               ),
+          box(title(t('Ocjene ({0})', [reviews.length]))),
+          if (reviews.isEmpty)
+            box(
+              Text(
+                t('Još nema ocjena'),
+                style: TextStyle(color: LoopColors.textSecondary),
+              ),
+            )
+          else
+            box(
+              Card(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: Column(
+                    children: [
+                      for (final (i, r) in reviews.take(20).indexed) ...[
+                        if (i > 0) const Divider(height: 1),
+                        ReviewTile(review: r),
+                      ],
+                    ],
+                  ),
+                ),
+              ),
+            ),
           const SliverToBoxAdapter(child: SizedBox(height: 32)),
         ],
       ),
@@ -126,10 +204,18 @@ class PublicProfileScreen extends ConsumerWidget {
 
 /// Zaglavlje profila (javni profil i "Profil" tab).
 class ProfileHeader extends StatelessWidget {
-  const ProfileHeader({super.key, required this.user, this.trailing});
+  const ProfileHeader({
+    super.key,
+    required this.user,
+    this.trailing,
+    this.rating,
+  });
 
   final AppUser user;
   final Widget? trailing;
+
+  /// Prosjek ocjena (prikazuje se na javnom profilu).
+  final Rating? rating;
 
   @override
   Widget build(BuildContext context) {
@@ -166,6 +252,10 @@ class ProfileHeader extends StatelessWidget {
                           fontSize: user.name.isEmpty ? 20 : 14,
                         ),
                       ),
+                      if (rating != null) ...[
+                        const SizedBox(height: 4),
+                        RatingBadge(rating: rating!),
+                      ],
                       const SizedBox(height: 4),
                       Wrap(
                         spacing: 12,

@@ -1,7 +1,9 @@
 import '../l10n/tr.dart';
 import '../models/app_user.dart';
 import '../utils/formatters.dart';
+import '../models/app_notification.dart';
 import 'auth_backend.dart';
+import 'inbox.dart';
 import 'fee.dart';
 import 'storage_service.dart';
 import 'trade_service.dart';
@@ -225,6 +227,12 @@ class AccountService {
         ),
       );
       await _storage.recordSnapshot(referrer.id);
+      await Inbox(_storage).send(
+        referrer.id,
+        NotificationKind.referral,
+        args: [user.handle, referralBonus],
+        targetId: user.id,
+      );
     }
     await _storage.setPendingAuth(null);
     return user;

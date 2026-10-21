@@ -9,6 +9,8 @@ import 'fee.dart';
 import 'storage_service.dart';
 import 'trade_service.dart';
 import '../l10n/tr.dart';
+import '../models/app_notification.dart';
+import 'inbox.dart';
 
 /// Ishod završene aukcije (za obavijesti sudionicima).
 class AuctionResult {
@@ -135,6 +137,10 @@ class AuctionService {
     if (a.sellerId == userId) {
       throw TradeException(t('Ne možeš licitirati na svoju aukciju.'));
     }
+    // Prodavatelj je blokirao ponuđača.
+    if (_storage.userById(a.sellerId)?.blockedIds.contains(userId) ?? false) {
+      throw TradeException(t('Ne možeš licitirati na ovu aukciju.'));
+    }
     if (a.highestBid?.userId == userId) {
       throw TradeException(
         t(
@@ -172,6 +178,23 @@ class AuctionService {
       endsAt: remaining < extendWindow ? at.add(extendWindow) : null,
     );
     await _storage.putAuction(updated);
+    final inbox = Inbox(_storage);
+    if (previous != null && previous.userId != userId) {
+      await inbox.send(
+        previous.userId,
+        NotificationKind.outbid,
+        args: [a.deviceName, bid],
+        targetId: a.id,
+        now: at,
+      );
+    }
+    await inbox.send(
+      a.sellerId,
+      NotificationKind.newBid,
+      args: [a.deviceName, bid],
+      targetId: a.id,
+      now: at,
+    );
     return updated;
   }
 
@@ -238,6 +261,13 @@ class AuctionService {
     if (top == null) {
       final done = a.copyWith(status: AuctionStatus.unsold);
       await _storage.putAuction(done);
+      await Inbox(_storage).send(
+        a.sellerId,
+        NotificationKind.auctionUnsold,
+        args: [a.deviceName],
+        targetId: a.id,
+        now: at,
+      );
       return AuctionResult(done);
     }
 
@@ -283,6 +313,33 @@ class AuctionService {
     );
     await _storage.recordSnapshot(seller.id, now: at);
     await _storage.recordSnapshot(winner.id, now: at);
+    final inbox = Inbox(_storage);
+    await inbox.send(
+      winner.id,
+      NotificationKind.auctionWon,
+      args: [a.deviceName, top.amount],
+      targetId: a.id,
+      now: at,
+    );
+    await inbox.send(
+      seller.id,
+      NotificationKind.auctionSold,
+      args: [a.deviceName, top.amount],
+      targetId: a.id,
+      now: at,
+    );
+    for (final loser in {
+      for (final b in a.bids)
+        if (b.userId != winner.id) b.userId,
+    }) {
+      await inbox.send(
+        loser,
+        NotificationKind.auctionLost,
+        args: [a.deviceName],
+        targetId: a.id,
+        now: at,
+      );
+    }
     // Pobjednik bira način dostave u "Moje dostave".
     await DeliveryService(_storage).createPending(
       userId: winner.id,

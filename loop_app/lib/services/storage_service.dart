@@ -2,7 +2,12 @@ import 'dart:typed_data';
 
 import 'package:hive_flutter/hive_flutter.dart';
 
+import '../models/app_notification.dart';
 import '../models/app_user.dart';
+import '../models/chat_message.dart';
+import '../models/report.dart';
+import '../models/review.dart';
+import '../models/swap_offer.dart';
 import '../models/auction.dart';
 import '../models/delivery.dart';
 import '../models/device.dart';
@@ -22,6 +27,12 @@ class StorageService {
   static const _auctionsBox = 'auctions';
   static const _deliveriesBox = 'deliveries';
 
+  static const _reviewsBox = 'reviews';
+  static const _notificationsBox = 'notifications';
+  static const _reportsBox = 'reports';
+  static const _messagesBox = 'messages';
+  static const _offersBox = 'offers';
+
   /// Lokalne lozinke (sažeci) — NE sinkronizira se.
   static const _credentialsBox = 'credentials';
 
@@ -33,6 +44,11 @@ class StorageService {
     _historyBox,
     _auctionsBox,
     _deliveriesBox,
+    _reviewsBox,
+    _notificationsBox,
+    _reportsBox,
+    _messagesBox,
+    _offersBox,
   ];
 
   /// Povećaj kad se seed proširi — postojeće instalacije tada dobiju
@@ -59,6 +75,11 @@ class StorageService {
   late Box<Map> _auctions;
   late Box<Map> _deliveries;
   late Box<Map> _credentials;
+  late Box<Map> _reviews;
+  late Box<Map> _notifications;
+  late Box<Map> _reports;
+  late Box<Map> _messages;
+  late Box<Map> _offers;
 
   /// Poziva se nakon svake lokalne promjene (za sinkronizaciju s online
   /// bazom). `data == null` znači brisanje.
@@ -72,6 +93,11 @@ class StorageService {
     _historyBox: _history,
     _auctionsBox: _auctions,
     _deliveriesBox: _deliveries,
+    _reviewsBox: _reviews,
+    _notificationsBox: _notifications,
+    _reportsBox: _reports,
+    _messagesBox: _messages,
+    _offersBox: _offers,
   };
 
   /// Svi zapisi prolaze ovuda kako bi ih sinkronizacija vidjela.
@@ -108,6 +134,11 @@ class StorageService {
     _auctions = await Hive.openBox<Map>(_auctionsBox, bytes: bytes);
     _deliveries = await Hive.openBox<Map>(_deliveriesBox, bytes: bytes);
     _credentials = await Hive.openBox<Map>(_credentialsBox, bytes: bytes);
+    _reviews = await Hive.openBox<Map>(_reviewsBox, bytes: bytes);
+    _notifications = await Hive.openBox<Map>(_notificationsBox, bytes: bytes);
+    _reports = await Hive.openBox<Map>(_reportsBox, bytes: bytes);
+    _messages = await Hive.openBox<Map>(_messagesBox, bytes: bytes);
+    _offers = await Hive.openBox<Map>(_offersBox, bytes: bytes);
 
     if (_session.get(_seededKey) != true) {
       await _seed();
@@ -206,6 +237,9 @@ class StorageService {
     await _auctions.clear();
     await _deliveries.clear();
     await _credentials.clear();
+    for (final b in [_reviews, _notifications, _reports, _messages, _offers]) {
+      await b.clear();
+    }
     await _seed();
   }
 
@@ -357,6 +391,45 @@ class StorageService {
   Future<void> putDelivery(Delivery d) =>
       _write(_deliveriesBox, d.id, d.toMap());
 
+  // ------------------------------------------------- ocjene, obavijesti…
+
+  List<Review> get reviews =>
+      _reviews.values.map(Review.fromMap).toList(growable: false);
+
+  Future<void> putReview(Review r) => _write(_reviewsBox, r.id, r.toMap());
+
+  List<AppNotification> get notifications => _notifications.values
+      .map(AppNotification.fromMap)
+      .toList(growable: false);
+
+  Future<void> putNotification(AppNotification n) =>
+      _write(_notificationsBox, n.id, n.toMap());
+
+  Future<void> deleteNotification(String id) => _remove(_notificationsBox, id);
+
+  List<Report> get reports =>
+      _reports.values.map(Report.fromMap).toList(growable: false);
+
+  Future<void> putReport(Report r) => _write(_reportsBox, r.id, r.toMap());
+
+  List<ChatMessage> get messages =>
+      _messages.values.map(ChatMessage.fromMap).toList(growable: false);
+
+  Future<void> putMessage(ChatMessage m) =>
+      _write(_messagesBox, m.id, m.toMap());
+
+  Future<void> deleteMessage(String id) => _remove(_messagesBox, id);
+
+  List<SwapOffer> get offers =>
+      _offers.values.map(SwapOffer.fromMap).toList(growable: false);
+
+  SwapOffer? offerById(String id) {
+    final m = _offers.get(id);
+    return m == null ? null : SwapOffer.fromMap(m);
+  }
+
+  Future<void> putOffer(SwapOffer o) => _write(_offersBox, o.id, o.toMap());
+
   // ---------------------------------------------------------- sinkronizacija
 
   /// Svi sinkronizirani zapisi: tablica → (id → podaci).
@@ -390,10 +463,11 @@ class StorageService {
   Future<void> replaceAllFromRemote(
     Map<String, Map<String, Map<String, dynamic>>> data,
   ) async {
-    for (final t in syncedTables) {
+    // Samo tablice koje postoje online (ostale ostaju lokalne).
+    for (final t in syncedTables.where(data.containsKey)) {
       final box = _tables[t]!;
       await box.clear();
-      await box.putAll(data[t] ?? const {});
+      await box.putAll(data[t]!);
     }
   }
 

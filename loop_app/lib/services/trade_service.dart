@@ -7,6 +7,8 @@ import '../utils/formatters.dart';
 import 'fee.dart';
 import 'storage_service.dart';
 import '../l10n/tr.dart';
+import '../models/app_notification.dart';
+import 'inbox.dart';
 
 /// Greška poslovne logike koja se prikazuje korisniku.
 class TradeException implements Exception {
@@ -137,7 +139,10 @@ class TradeService {
       throw TradeException(t('Predmet više nije dostupan.'));
     }
     final seller = device.isListed ? _storage.userById(device.ownerId!) : null;
-    if (device.isListed && (seller == null || seller.pendingDeletion)) {
+    if (device.isListed &&
+        (seller == null ||
+            seller.pendingDeletion ||
+            seller.blockedIds.contains(userId))) {
       throw TradeException(t('Predmet više nije dostupan.'));
     }
 
@@ -200,6 +205,13 @@ class TradeService {
         ),
       );
       await _snapshot(seller.id);
+      await Inbox(_storage).send(
+        seller.id,
+        NotificationKind.itemSold,
+        args: [device.name, user.handle, payout],
+        targetId: device.id,
+        now: now,
+      );
     }
     await _snapshot(userId);
     return tx;
@@ -229,6 +241,21 @@ class TradeService {
     }
     final listed = device.withListing(roundCredits(price));
     await _storage.putDevice(listed);
+    // Pojeftinjenje: javi onima kojima je predmet na listi želja.
+    final before = device.isListed ? device.askPrice : null;
+    if (before != null && listed.askPrice < before) {
+      final inbox = Inbox(_storage);
+      for (final u in _storage.users) {
+        if (u.id != userId && u.favorites.contains(device.id)) {
+          await inbox.send(
+            u.id,
+            NotificationKind.priceDrop,
+            args: [device.name, listed.askPrice],
+            targetId: device.id,
+          );
+        }
+      }
+    }
     return listed;
   }
 

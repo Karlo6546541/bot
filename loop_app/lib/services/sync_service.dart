@@ -36,12 +36,21 @@ class SyncService {
   final _pending = <String, (String, String, Map<String, dynamic>?)>{};
   Timer? _retry;
 
-  static const _tables = StorageService.syncedTables;
+  /// Tablice koje postoje u online bazi (ostale rade samo lokalno).
+  List<String> _tables = StorageService.syncedTables;
+
+  List<String> get onlineTables => _tables;
 
   Future<void> start({Duration timeout = const Duration(seconds: 10)}) async {
     status = SyncStatus.connecting;
     try {
-      final remote = await _remote.pullAll(_tables).timeout(timeout);
+      final remote = await _remote
+          .pullAll(StorageService.syncedTables)
+          .timeout(timeout);
+      _tables = [
+        for (final t in StorageService.syncedTables)
+          if (remote.containsKey(t)) t,
+      ];
       final remoteEmpty = remote.values.every((m) => m.isEmpty);
       if (remoteEmpty) {
         // Prvi korisnik: baza je prazna — pošalji demo podatke.
@@ -61,7 +70,7 @@ class SyncService {
 
   Future<void> _pushAll() async {
     final all = _storage.exportAll();
-    for (final t in all.entries) {
+    for (final t in all.entries.where((e) => _tables.contains(e.key))) {
       for (final row in t.value.entries) {
         await _remote.upsert(t.key, row.key, row.value);
       }
@@ -77,6 +86,7 @@ class SyncService {
   }
 
   void _queue(String table, String id, Map<String, dynamic>? data) {
+    if (!_tables.contains(table)) return;
     _pending['$table/$id'] = (table, id, data);
     _flush();
   }

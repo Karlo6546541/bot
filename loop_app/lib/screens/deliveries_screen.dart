@@ -8,6 +8,7 @@ import '../models/delivery.dart';
 import '../providers/app_providers.dart';
 import '../services/delivery_service.dart';
 import '../theme/app_theme.dart';
+import '../widgets/community_widgets.dart';
 import '../widgets/delivery_picker.dart';
 import '../widgets/empty_state.dart';
 import '../widgets/formatters.dart';
@@ -270,13 +271,44 @@ class DeliveryCard extends ConsumerWidget {
               if (delivered && d.confirmedAt == null) ...[
                 const SizedBox(height: 12),
                 OutlinedButton.icon(
-                  onPressed: () => runWithLoading(
-                    context,
-                    () => ref.read(appProvider.notifier).confirmReceipt(d.id),
-                    successMessage: t('Hvala! Primitak potvrđen.'),
-                  ),
+                  onPressed: () async {
+                    final ok = await runWithLoading(
+                      context,
+                      () => ref.read(appProvider.notifier).confirmReceipt(d.id),
+                      successMessage: t('Hvala! Primitak potvrđen.'),
+                    );
+                    // Odmah ponudi ocjenu prodavatelja (ako je korisnik).
+                    if (ok && d.sellerId != null && context.mounted) {
+                      await showReviewDialog(
+                        context,
+                        ref,
+                        deliveryId: d.id,
+                        sellerLabel: ref
+                            .read(appProvider)
+                            .userLabel(d.sellerId),
+                      );
+                    }
+                  },
                   icon: const Icon(Icons.task_alt),
                   label: Text(t('Potvrdi primitak')),
+                ),
+              ],
+              if (d.canReview) ...[
+                const SizedBox(height: 12),
+                OutlinedButton.icon(
+                  key: ValueKey('review-${d.id}'),
+                  onPressed: () => showReviewDialog(
+                    context,
+                    ref,
+                    deliveryId: d.id,
+                    sellerLabel: ref.read(appProvider).userLabel(d.sellerId),
+                  ),
+                  icon: const Icon(Icons.star_outline_rounded),
+                  label: Text(
+                    t('Ocijeni prodavatelja {0}', [
+                      ref.read(appProvider).userLabel(d.sellerId),
+                    ]),
+                  ),
                 ),
               ],
             ],

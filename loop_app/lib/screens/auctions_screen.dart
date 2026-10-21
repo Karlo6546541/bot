@@ -69,7 +69,8 @@ class _AuctionsScreenState extends ConsumerState<AuctionsScreen> {
   AuctionView _view = AuctionView.live;
 
   List<Auction> _filter(AppState s, String me) => switch (_view) {
-    AuctionView.live => s.activeAuctions,
+    AuctionView.live =>
+      s.activeAuctions.where((a) => !s.isBlocked(a.sellerId)).toList(),
     AuctionView.myBids =>
       s.auctions.where((a) => a.bids.any((b) => b.userId == me)).toList(),
     AuctionView.mine => s.auctions.where((a) => a.sellerId == me).toList(),

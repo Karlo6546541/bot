@@ -13,6 +13,9 @@ class RemoteChange {
 /// Online pohrana dokumenata: tablica → (id → JSON podaci).
 /// Sučelje postoji kako bi se sinkronizacija mogla testirati bez mreže.
 abstract class RemoteStore {
+  /// Vraća podatke tablica koje postoje u bazi. Tablica koje još nema
+  /// (npr. SQL za novu verziju nije pokrenut) nema u rezultatu — ona
+  /// tada radi samo lokalno.
   Future<Map<String, Map<String, Map<String, dynamic>>>> pullAll(
     List<String> tables,
   );
@@ -40,7 +43,18 @@ class SupabaseRemoteStore implements RemoteStore {
   ) async {
     final out = <String, Map<String, Map<String, dynamic>>>{};
     for (final t in tables) {
-      final rows = await _client.from(tableName(t)).select('id, data');
+      final List<Map<String, dynamic>> rows;
+      try {
+        rows = await _client.from(tableName(t)).select('id, data');
+      } on PostgrestException catch (e) {
+        if (e.code == '42P01' ||
+            e.code == 'PGRST205' ||
+            e.message.contains('does not exist') ||
+            e.message.contains('Could not find')) {
+          continue; // tablica još ne postoji
+        }
+        rethrow;
+      }
       out[t] = {
         for (final r in rows)
           r['id'] as String: Map<String, dynamic>.from(r['data'] as Map),

@@ -371,6 +371,17 @@ class _AccountCard extends ConsumerWidget {
               onTap: () => showChangePasswordDialog(context),
             ),
           ],
+          if (user.blockedIds.isNotEmpty) ...[
+            const Divider(height: 1),
+            ListTile(
+              leading: const Icon(Icons.block),
+              title: Text(
+                t('Blokirani korisnici ({0})', [user.blockedIds.length]),
+              ),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () => BlockedUsersScreen.open(context),
+            ),
+          ],
           const Divider(height: 1),
           ListTile(
             leading: const Icon(Icons.download_outlined),

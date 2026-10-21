@@ -736,4 +736,94 @@ const kEn = <String, String>{
       '• You lose {0} — credits can\'t be withdrawn.',
   '• Imaš {0} dana za predomišljanje: prijavi se i račun se vraća.':
       '• You have {0} days to change your mind: log in and the account comes back.',
+  '"{0}" bit će uklonjen, a prijava označena kao riješena.':
+      '"{0}" will be removed and the report marked as resolved.',
+  'Blokiraj': 'Block',
+  'Blokirani korisnici': 'Blocked users',
+  'Blokirani korisnici ({0})': 'Blocked users ({0})',
+  'Hvala na ocjeni! ⭐': 'Thanks for rating! ⭐',
+  'Još nema ocjena': 'No ratings yet',
+  'Kasnije': 'Later',
+  'Komentar (neobavezno)': 'Comment (optional)',
+  'Komentar može imati najviše {0} znakova.':
+      'The comment can be at most {0} characters.',
+  'LOOP Market se ne ocjenjuje.': 'LOOP Market can\'t be rated.',
+  'Ne možeš blokirati sam sebe.': 'You can\'t block yourself.',
+  'Ne možeš licitirati na ovu aukciju.': 'You can\'t bid on this auction.',
+  'Ne možeš prijaviti sam sebe.': 'You can\'t report yourself.',
+  'Ne možeš prijaviti vlastiti oglas.': 'You can\'t report your own listing.',
+  'Nema obavijesti': 'No notifications',
+  'Nema prijava': 'No reports',
+  'Nikoga nisi blokirao.': 'You haven\'t blocked anyone.',
+  'Obavijesti': 'Notifications',
+  'Ocijeni prodavatelja {0}': 'Rate seller {0}',
+  'Ocijeniti možeš nakon potvrde primitka.':
+      'You can rate after confirming receipt.',
+  'Ocjene ({0})': 'Ratings ({0})',
+  'Odaberi od 1 do 5 zvjezdica.': 'Choose 1 to 5 stars.',
+  'Odbaci': 'Dismiss',
+  'Odbačeno': 'Dismissed',
+  'Odblokiraj': 'Unblock',
+  'Opis može imati najviše {0} znakova.':
+      'The description can be at most {0} characters.',
+  'Otvorene prijave: {0}': 'Open reports: {0}',
+  'Ovdje stižu ponude na aukcijama, prodaje, ocjene i poruke.':
+      'Auction bids, sales, ratings and messages arrive here.',
+  'Ovo si već prijavio — admin će pregledati.':
+      'You\'ve already reported this — an admin will review it.',
+  'Označi sve kao pročitano': 'Mark all as read',
+  'Pošalji ocjenu': 'Send rating',
+  'Pošalji prijavu': 'Send report',
+  'Prijava poslana. Admin će je pregledati.':
+      'Report sent. An admin will review it.',
+  'Prijava riješena': 'Report resolved',
+  'Prijave': 'Reports',
+  'Prijavi korisnika': 'Report user',
+  'Prijavi oglas': 'Report listing',
+  'Prikaži i zatvorene': 'Show closed too',
+  'Riješeno': 'Resolved',
+  'Već si ocijenio ovu kupnju.': 'You\'ve already rated this purchase.',
+  'npr. Sve kao u opisu, brza dostava.':
+      'e.g. Exactly as described, fast delivery.',
+  '{0} ({1} ocjena)': '{0} ({1} ratings)',
+  '{0} je blokiran — ne vidiš njegove oglase.':
+      '{0} is blocked — you won\'t see their listings.',
+  '{0} je odblokiran.': '{0} is unblocked.',
+  '{0} · prijavio {1} · {2}': '{0} · reported by {1} · {2}',
+  'Netko te nadmašio na aukciji "{0}" — nova ponuda {1}.':
+      'Someone outbid you on "{0}" — new bid {1}.',
+  'Nova ponuda na tvojoj aukciji "{0}": {1}.':
+      'New bid on your auction "{0}": {1}.',
+  'Osvojio si aukciju "{0}" za {1}. Odaberi dostavu.':
+      'You won the auction "{0}" for {1}. Choose delivery.',
+  'Aukcija "{0}" je završila — nisi pobijedio.':
+      'The auction "{0}" has ended — you didn\'t win.',
+  'Tvoja aukcija "{0}" je završila: prodano za {1}.':
+      'Your auction "{0}" has ended: sold for {1}.',
+  'Tvoja aukcija "{0}" je završila bez ponuda.':
+      'Your auction "{0}" ended without bids.',
+  '{1} je kupio tvoj predmet "{0}". Dobivaš {2}.':
+      '{1} bought your item "{0}". You get {2}.',
+  'Predmet s tvoje liste želja "{0}" je pojeftinio na {1}.':
+      '"{0}" from your wishlist dropped to {1}.',
+  '{0} te ocijenio: {1}': '{0} rated you: {1}',
+  '{0} se registrirao s tvojim kodom — dobivaš {1}.':
+      '{0} signed up with your code — you get {1}.',
+  'Nova poruka od {0}: {1}': 'New message from {0}: {1}',
+  '{0} ti nudi zamjenu za "{1}".': '{0} offers you a swap for "{1}".',
+  '{0} je prihvatio zamjenu za "{1}".': '{0} accepted the swap for "{1}".',
+  '{0} je odbio zamjenu za "{1}".': '{0} declined the swap for "{1}".',
+  'Tvoja prijava je obrađena. Hvala!':
+      'Your report has been handled. Thank you!',
+  'Prevara ili lažni oglas': 'Scam or fake listing',
+  'Zabranjen predmet': 'Prohibited item',
+  'Netočan opis ili slike': 'Wrong description or photos',
+  'Uvredljiv sadržaj ili ponašanje': 'Offensive content or behaviour',
+  'Spam': 'Spam',
+  'Nešto drugo': 'Something else',
+  'Čeka odgovor': 'Awaiting reply',
+  'Prihvaćeno': 'Accepted',
+  'Odbijeno': 'Declined',
+  'Povučeno': 'Withdrawn',
+  'Nije uspjelo': 'Failed',
 };

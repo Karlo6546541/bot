@@ -2,6 +2,18 @@ import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:loop_app/l10n/en.dart';
+import 'package:loop_app/l10n/tr.dart';
+import 'package:loop_app/models/app_notification.dart';
+import 'package:loop_app/models/auction.dart';
+import 'package:loop_app/models/delivery.dart';
+import 'package:loop_app/models/device.dart';
+import 'package:loop_app/models/loop_transaction.dart';
+import 'package:loop_app/models/report.dart';
+import 'package:loop_app/models/swap_offer.dart';
+import 'package:loop_app/screens/auctions_screen.dart';
+import 'package:loop_app/screens/market_screen.dart';
+import 'package:loop_app/services/credit_shop.dart';
+import 'package:loop_app/widgets/portfolio_chart.dart';
 
 /// Svaki tekst u kodu (`t('...')`) mora imati engleski prijevod, s istim
 /// mjestima za vrijednosti ({0}, {1}…).
@@ -42,6 +54,39 @@ void main() {
       isEmpty,
       reason: 'Nedostaju prijevodi:\n${missing.join('\n')}',
     );
+  });
+
+  test('tekstovi u enumima (kategorije, statusi, obavijesti…)', () {
+    Tr.lang = AppLang.en;
+    Tr.missing.clear();
+    final texts = [
+      for (final v in ItemSection.values) v.label,
+      for (final v in DeviceCategory.values) ...[v.label, v.singular],
+      for (final v in DeviceCondition.values) v.label,
+      for (final v in TransactionType.values) v.label,
+      for (final v in AuctionStatus.values) v.label,
+      for (final v in DeliveryMethod.values) ...[v.label, v.subtitle],
+      for (final v in DeliveryStatus.values) v.label,
+      for (final v in PaymentMethod.values) ...[v.label, v.subtitle],
+      for (final v in ReportReason.values) v.label,
+      for (final v in SwapStatus.values) v.label,
+      for (final v in AuctionView.values) v.label,
+      for (final v in AuctionRole.values)
+        if (v != AuctionRole.none) v.label,
+      for (final v in MarketSort.values) v.label,
+      for (final v in ChartRange.values) v.label,
+      for (final k in NotificationKind.values)
+        AppNotification(
+          id: 'x',
+          userId: 'u',
+          kind: k,
+          args: const ['a', 'b', 'c'],
+          createdAt: DateTime(2026),
+        ).text,
+    ];
+    Tr.lang = AppLang.hr;
+    expect(texts, isNotEmpty);
+    expect(Tr.missing, isEmpty);
   });
 
   test('prijevodi imaju ista mjesta za vrijednosti', () {

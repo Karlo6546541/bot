@@ -8,6 +8,7 @@ import '../services/trade_service.dart';
 import '../theme/app_theme.dart';
 import '../widgets/category_style.dart';
 import '../widgets/formatters.dart';
+import '../widgets/community_widgets.dart';
 import '../widgets/description_card.dart';
 import '../widgets/item_image.dart';
 import '../widgets/photo_viewer.dart';
@@ -67,6 +68,19 @@ class DeviceDetailScreen extends ConsumerWidget {
               icon: Icon(
                 isFav ? Icons.favorite : Icons.favorite_border,
                 color: isFav ? const Color(0xFFFF5C8A) : null,
+              ),
+            ),
+          if (!isMine && owner != null && !user.isGuest)
+            IconButton(
+              key: const ValueKey('report-item'),
+              tooltip: t('Prijavi oglas'),
+              icon: const Icon(Icons.flag_outlined),
+              onPressed: () => showReportSheet(
+                context,
+                ref,
+                targetType: 'device',
+                targetId: device.id,
+                targetLabel: '${device.name} ${device.model}',
               ),
             ),
         ],
@@ -184,6 +198,13 @@ class DeviceDetailScreen extends ConsumerWidget {
                         leading: UserAvatar(user: owner, size: 32),
                         title: Text(
                           device.isListed ? t('Prodavatelj') : t('Vlasnik'),
+                        ),
+                        subtitle: Align(
+                          alignment: Alignment.centerLeft,
+                          child: RatingBadge(
+                            rating: state.ratingOf(owner.id),
+                            compact: true,
+                          ),
                         ),
                         trailing: UserHandle(
                           user: owner,

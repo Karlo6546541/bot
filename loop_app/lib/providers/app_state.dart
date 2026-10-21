@@ -2,7 +2,12 @@ import 'package:flutter/material.dart' show ThemeMode;
 
 import '../l10n/tr.dart';
 import '../services/auth_backend.dart';
+import '../models/app_notification.dart';
 import '../models/app_user.dart';
+import '../models/chat_message.dart';
+import '../models/report.dart';
+import '../models/review.dart';
+import '../models/swap_offer.dart';
 import '../models/auction.dart';
 import '../models/delivery.dart';
 import '../models/device.dart';
@@ -27,6 +32,11 @@ class AppState {
     this.lang = AppLang.hr,
     this.pendingSignup,
     this.showHowItWorks = true,
+    this.reviews = const [],
+    this.notifications = const [],
+    this.reports = const [],
+    this.messages = const [],
+    this.offers = const [],
   });
 
   factory AppState.fromStorage(StorageService storage) {
@@ -55,6 +65,16 @@ class AppState {
         ..sort((a, b) => b.createdAt.compareTo(a.createdAt)),
       auctions: [...storage.auctions]
         ..sort((a, b) => a.endsAt.compareTo(b.endsAt)),
+      reviews: [...storage.reviews]
+        ..sort((a, b) => b.createdAt.compareTo(a.createdAt)),
+      notifications: [...storage.notifications]
+        ..sort((a, b) => b.createdAt.compareTo(a.createdAt)),
+      reports: [...storage.reports]
+        ..sort((a, b) => b.createdAt.compareTo(a.createdAt)),
+      messages: [...storage.messages]
+        ..sort((a, b) => a.createdAt.compareTo(b.createdAt)),
+      offers: [...storage.offers]
+        ..sort((a, b) => b.createdAt.compareTo(a.createdAt)),
       myHistory: storage.currentUserId == null
           ? const []
           : storage.historyOf(storage.currentUserId!),
@@ -81,6 +101,37 @@ class AppState {
 
   /// Prikazati karticu "Kako LOOP radi" na početnoj.
   final bool showHowItWorks;
+
+  /// Ocjene prodavatelja, najnovije prvo.
+  final List<Review> reviews;
+
+  /// Sve obavijesti (najnovije prvo) — prikazuju se samo vlastite.
+  final List<AppNotification> notifications;
+
+  /// Prijave (za admina), najnovije prvo.
+  final List<Report> reports;
+
+  /// Poruke, najstarije prvo.
+  final List<ChatMessage> messages;
+
+  /// Ponude zamjene, najnovije prvo.
+  final List<SwapOffer> offers;
+
+  List<Review> reviewsOf(String userId) =>
+      reviews.where((r) => r.sellerId == userId).toList();
+
+  Rating ratingOf(String userId) => Rating.of(reviewsOf(userId));
+
+  List<AppNotification> get myNotifications => currentUserId == null
+      ? const []
+      : notifications.where((n) => n.userId == currentUserId).toList();
+
+  int get unreadNotifications => myNotifications.where((n) => !n.read).length;
+
+  List<Report> get openReports => reports.where((r) => r.isOpen).toList();
+
+  bool isBlocked(String userId) =>
+      currentUser?.blockedIds.contains(userId) ?? false;
 
   /// Sve aukcije, sortirane po vremenu završetka.
   final List<Auction> auctions;

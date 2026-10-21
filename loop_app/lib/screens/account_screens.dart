@@ -746,3 +746,40 @@ Future<void> exportMyData(BuildContext context, WidgetRef ref) async {
     showLoopSnackBar(t('Greška: {0}', [e]), error: true);
   }
 }
+
+/// Blokirani korisnici — njihovi oglasi i aukcije su skriveni.
+class BlockedUsersScreen extends ConsumerWidget {
+  const BlockedUsersScreen({super.key});
+
+  static Future<void> open(BuildContext context) => Navigator.of(
+    context,
+  ).push(MaterialPageRoute<void>(builder: (_) => const BlockedUsersScreen()));
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final state = ref.watch(appProvider);
+    final ids = state.currentUser?.blockedIds ?? const [];
+    return Scaffold(
+      appBar: AppBar(title: Text(t('Blokirani korisnici'))),
+      body: ids.isEmpty
+          ? Center(child: Text(t('Nikoga nisi blokirao.')))
+          : ListView(
+              padding: const EdgeInsets.all(12),
+              children: [
+                for (final id in ids)
+                  Card(
+                    child: ListTile(
+                      leading: UserAvatar(user: state.userById(id), size: 36),
+                      title: Text(state.userLabel(id)),
+                      trailing: TextButton(
+                        onPressed: () =>
+                            ref.read(appProvider.notifier).toggleBlock(id),
+                        child: Text(t('Odblokiraj')),
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+    );
+  }
+}

@@ -7,6 +7,7 @@ import '../widgets/adaptive_shell.dart';
 import 'admin_auctions_screen.dart';
 import 'admin_dashboard_screen.dart';
 import 'admin_devices_screen.dart';
+import 'admin_reports_screen.dart';
 import 'admin_transactions_screen.dart';
 import 'admin_users_screen.dart';
 import '../l10n/tr.dart';
@@ -34,6 +35,7 @@ class _AdminShellState extends ConsumerState<AdminShell> {
     ),
     ShellDestination(t('Aukcije'), Icons.gavel_outlined, Icons.gavel),
     ShellDestination(t('Transakcije'), Icons.swap_horiz, Icons.swap_horiz),
+    ShellDestination(t('Prijave'), Icons.flag_outlined, Icons.flag),
   ];
 
   @override
@@ -84,6 +86,7 @@ class _AdminShellState extends ConsumerState<AdminShell> {
           AdminDevicesScreen(),
           AdminAuctionsScreen(),
           AdminTransactionsScreen(),
+          AdminReportsScreen(),
         ],
       ),
     );

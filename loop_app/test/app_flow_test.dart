@@ -25,6 +25,7 @@ void main() {
   accountTests();
   listingTests();
   deletionTests();
+  communityTests();
   for (final size in const [Size(1400, 1000), Size(400, 860)]) {
     testWidgets('login → prodaja → kupnja → aktivnost ($size)', (tester) async {
       tester.view.physicalSize = size;
@@ -557,6 +558,89 @@ void deletionTests() {
     await tester.pumpAndSettle();
     expect(
       find.text('Dobro došao natrag! Brisanje računa je otkazano.'),
+      findsOneWidget,
+    );
+  });
+}
+
+void communityTests() {
+  testWidgets('obavijest "nadmašen", ocjene i prijava oglasa', (tester) async {
+    tester.view.physicalSize = const Size(1400, 1000);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+
+    Future<void> login(String email) async {
+      await tester.enterText(
+        find.widgetWithText(TextFormField, 'E-mail ili korisničko ime'),
+        email,
+      );
+      await tester.ensureVisible(find.text('Prijavi se').last);
+      await tester.tap(find.text('Prijavi se').last);
+      await tester.pumpAndSettle();
+    }
+
+    Future<void> logout() async {
+      await tester.tap(find.text('Profil').last);
+      await tester.pumpAndSettle();
+      await tester.scrollUntilVisible(find.text('Odjavi se'), 200);
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Odjavi se'));
+      await tester.pumpAndSettle();
+    }
+
+    await tester.pumpWidget(await buildApp(tester));
+    await login('demo@loop.com');
+
+    // Demo nadmaši Marka na Polaroidu.
+    await tester.tap(find.text('Aukcije').last);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Polaroid SX-70'));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byType(TextField), '70');
+    await tester.tap(find.text('Licitiraj'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Licitiraj').last);
+    await tester.pumpAndSettle();
+    await tester.pageBack();
+    await tester.pumpAndSettle();
+    await logout();
+
+    // Marko vidi obavijest na zvonu.
+    await login('@marko');
+    final bell = find.byKey(const ValueKey('notification-bell'));
+    expect(find.descendant(of: bell, matching: find.text('1')), findsOneWidget);
+    await tester.tap(bell);
+    await tester.pumpAndSettle();
+    final text =
+        'Netko te nadmašio na aukciji "Polaroid SX-70" — nova ponuda 70 kredita.';
+    expect(find.text(text), findsOneWidget);
+    await tester.tap(find.text(text));
+    await tester.pumpAndSettle();
+    expect(find.text('Povijest ponuda (2)'), findsOneWidget);
+    await tester.pageBack();
+    await tester.pumpAndSettle();
+    await tester.pageBack();
+    await tester.pumpAndSettle();
+    expect(find.descendant(of: bell, matching: find.text('1')), findsNothing);
+
+    // Javni profil prodavateljice: ocjene i izbornik prijave/blokiranja.
+    await tester.tap(find.text('Aukcije').last);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Polaroid SX-70'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.textContaining('@ana.kolekcija'));
+    await tester.pumpAndSettle();
+    expect(find.text('Ocjene (0)'), findsOneWidget);
+    await tester.tap(find.byKey(const ValueKey('profile-menu')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Prijavi korisnika'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Spam'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Pošalji prijavu'));
+    await tester.pumpAndSettle();
+    expect(
+      find.text('Prijava poslana. Admin će je pregledati.'),
       findsOneWidget,
     );
   });

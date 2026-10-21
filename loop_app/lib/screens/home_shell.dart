@@ -16,6 +16,7 @@ import 'portfolio_screen.dart';
 import 'profile_screen.dart';
 import '../l10n/tr.dart';
 import '../widgets/language_button.dart';
+import 'notifications_screen.dart';
 
 /// Glavni okvir za prijavljenog korisnika s 4 taba.
 class HomeShell extends ConsumerStatefulWidget {
@@ -70,6 +71,7 @@ class _HomeShellState extends ConsumerState<HomeShell> {
             // Na uskom ekranu logo se smanji da stanu jezik i krediti.
             : const FittedBox(fit: BoxFit.scaleDown, child: LoopLogo(size: 22)),
         actions: [
+          const NotificationBell(),
           LanguageButton(compact: phone),
           const SizedBox(width: 6),
           const _CreditsPill(),

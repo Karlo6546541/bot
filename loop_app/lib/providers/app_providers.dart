@@ -11,6 +11,8 @@ import '../models/auction.dart';
 import '../services/account_service.dart';
 import '../services/auction_service.dart';
 import '../services/auth_backend.dart';
+import '../services/community_service.dart';
+import '../models/report.dart';
 import '../services/credit_shop.dart';
 import '../services/delivery_service.dart';
 import '../services/fee.dart';
@@ -64,6 +66,10 @@ class PasswordRecovery extends Notifier<bool> {
 
   void set(bool value) => state = value;
 }
+
+final communityServiceProvider = Provider<CommunityService>(
+  (ref) => CommunityService(ref.watch(storageProvider)),
+);
 
 final tradeServiceProvider = Provider<TradeService>(
   (ref) => TradeService(ref.watch(storageProvider)),
@@ -306,6 +312,60 @@ class AppController extends Notifier<AppState> {
   Future<void> removeAvatar() async {
     final old = await _accounts.setAvatar(_requireUserId(), null);
     if (old != null) await ref.read(imageStoreProvider).delete([old]);
+    _refresh();
+  }
+
+  // ----------------------------------------------- zajednica i obavijesti
+
+  CommunityService get _community => ref.read(communityServiceProvider);
+
+  Future<void> reviewSeller(
+    String deliveryId,
+    int stars,
+    String comment,
+  ) async {
+    await _community.review(
+      buyerId: _requireUserId(),
+      deliveryId: deliveryId,
+      stars: stars,
+      comment: comment,
+    );
+    _refresh();
+  }
+
+  Future<void> report({
+    required String targetType,
+    required String targetId,
+    required ReportReason reason,
+    String note = '',
+  }) async {
+    await _community.report(
+      reporterId: _requireUserId(),
+      targetType: targetType,
+      targetId: targetId,
+      reason: reason,
+      note: note,
+    );
+    _refresh();
+  }
+
+  /// Vraća `true` ako je korisnik sada blokiran.
+  Future<bool> toggleBlock(String otherId) async {
+    final blocked = await _community.toggleBlock(_requireUserId(), otherId);
+    _refresh();
+    return blocked;
+  }
+
+  Future<void> markNotificationsRead({String? id}) async {
+    final user = state.currentUser;
+    if (user == null) return;
+    await _community.markRead(user.id, notificationId: id);
+    _refresh();
+  }
+
+  /// Admin: zatvori prijavu.
+  Future<void> closeReport(String reportId, ReportStatus status) async {
+    await _community.closeReport(reportId, status);
     _refresh();
   }
 
