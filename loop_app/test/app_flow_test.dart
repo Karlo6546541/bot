@@ -28,6 +28,7 @@ void main() {
   deletionTests();
   communityTests();
   chatTests();
+  logoTests();
   for (final size in const [Size(1400, 1000), Size(400, 860)]) {
     testWidgets('login → prodaja → kupnja → aktivnost ($size)', (tester) async {
       tester.view.physicalSize = size;
@@ -781,4 +782,28 @@ void chatTests() {
       findsNothing,
     );
   });
+}
+
+void logoTests() {
+  for (final size in const [Size(400, 860), Size(1400, 1000)]) {
+    testWidgets('logo vodi na početnu ($size)', (tester) async {
+      tester.view.physicalSize = size;
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
+
+      await tester.pumpWidget(await buildApp(tester));
+      await tester.ensureVisible(find.text('Prijavi se'));
+      await tester.tap(find.text('Prijavi se'));
+      await tester.pumpAndSettle();
+      expect(find.text('Bok, Demo 👋'), findsOneWidget);
+
+      // Market → detalji predmeta → logo.
+      await tester.tap(find.text('Market').last);
+      await tester.pumpAndSettle();
+      expect(find.text('Bok, Demo 👋'), findsNothing);
+      await tester.tap(find.byKey(const ValueKey('logo-home')));
+      await tester.pumpAndSettle();
+      expect(find.text('Bok, Demo 👋'), findsOneWidget);
+    });
+  }
 }

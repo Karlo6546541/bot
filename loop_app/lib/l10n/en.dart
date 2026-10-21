@@ -929,4 +929,5 @@ const kEn = <String, String>{
   'Očisti pretragu i filtere': 'Clear search and filters',
   'Imam dovoljno kredita (s 5% fee): {0}':
       'I have enough credits (with 5% fee): {0}',
+  'Početna': 'Home',
 };

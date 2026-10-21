@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../l10n/tr.dart';
+
 import '../theme/app_theme.dart';
 
 /// Širina od koje prikazujemo bočni izbornik umjesto donje navigacije.
@@ -93,14 +95,17 @@ class AdaptiveShell extends StatelessWidget {
 
 /// LOOP logotip.
 class LoopLogo extends StatelessWidget {
-  const LoopLogo({super.key, this.size = 28, this.color});
+  const LoopLogo({super.key, this.size = 28, this.color, this.onTap});
   final double size;
   final Color? color;
+
+  /// Dodir na logo (npr. povratak na početnu).
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
     final c = color ?? Theme.of(context).colorScheme.primary;
-    return Row(
+    final logo = Row(
       mainAxisSize: MainAxisSize.min,
       children: [
         Icon(Icons.all_inclusive, color: c, size: size * 1.1),
@@ -115,6 +120,19 @@ class LoopLogo extends StatelessWidget {
           ),
         ),
       ],
+    );
+    if (onTap == null) return logo;
+    return Tooltip(
+      message: t('Početna'),
+      child: InkWell(
+        key: const ValueKey('logo-home'),
+        borderRadius: BorderRadius.circular(8),
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
+          child: logo,
+        ),
+      ),
     );
   }
 }

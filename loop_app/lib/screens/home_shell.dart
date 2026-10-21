@@ -32,6 +32,12 @@ class _HomeShellState extends ConsumerState<HomeShell> {
 
   void _go(int i) => ref.read(homeTabProvider.notifier).select(i);
 
+  /// Logo vodi na početnu: zatvara otvorene ekrane i bira Portfolio.
+  void _goHome() {
+    Navigator.of(context).popUntil((r) => r.isFirst);
+    _go(0);
+  }
+
   static List<ShellDestination> get _destinations => [
     ShellDestination(
       'Portfolio',
@@ -62,15 +68,18 @@ class _HomeShellState extends ConsumerState<HomeShell> {
       destinations: _destinations,
       selectedIndex: _index,
       onSelect: _go,
-      railHeader: const Padding(
-        padding: EdgeInsets.symmetric(vertical: 20),
-        child: LoopLogo(size: 22),
+      railHeader: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 20),
+        child: LoopLogo(size: 22, onTap: _goHome),
       ),
       appBar: AppBar(
         title: isDesktop
             ? Text(_destinations[_index].label)
             // Na uskom ekranu logo se smanji da stanu jezik i krediti.
-            : const FittedBox(fit: BoxFit.scaleDown, child: LoopLogo(size: 22)),
+            : FittedBox(
+                fit: BoxFit.scaleDown,
+                child: LoopLogo(size: 22, onTap: _goHome),
+              ),
         actions: [
           const MessagesButton(),
           const NotificationBell(),
