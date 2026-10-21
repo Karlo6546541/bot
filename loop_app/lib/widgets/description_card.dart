@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../theme/app_theme.dart';
+import '../l10n/tr.dart';
 
 /// Opis predmeta; dulji tekst se skraćuje uz "Prikaži više".
 class DescriptionCard extends StatefulWidget {
@@ -23,8 +24,8 @@ class _DescriptionCardState extends State<DescriptionCard> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
-              'Opis',
+            Text(
+              t('Opis'),
               style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16),
             ),
             const SizedBox(height: 6),
@@ -38,7 +39,7 @@ class _DescriptionCardState extends State<DescriptionCard> {
               TextButton(
                 style: TextButton.styleFrom(padding: EdgeInsets.zero),
                 onPressed: () => setState(() => _expanded = !_expanded),
-                child: Text(_expanded ? 'Prikaži manje' : 'Prikaži više'),
+                child: Text(_expanded ? t('Prikaži manje') : t('Prikaži više')),
               )
             else
               const SizedBox(height: 6),

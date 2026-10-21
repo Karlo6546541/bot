@@ -11,6 +11,7 @@ import '../services/delivery_service.dart';
 import 'delivery_picker.dart';
 import 'formatters.dart';
 import 'loop_snackbar.dart';
+import '../l10n/tr.dart';
 
 export 'loop_snackbar.dart';
 
@@ -29,7 +30,7 @@ Future<bool> runWithLoading(
     context: context,
     barrierDismissible: false,
     useRootNavigator: true,
-    builder: (_) => const PopScope(
+    builder: (_) => PopScope(
       canPop: false,
       child: Center(child: CircularProgressIndicator()),
     ),
@@ -41,7 +42,7 @@ Future<bool> runWithLoading(
     return true;
   } catch (e) {
     navigator.pop();
-    final msg = e is TradeException ? e.message : 'Greška: $e';
+    final msg = e is TradeException ? e.message : t('Greška: {0}', [e]);
     showLoopSnackBar(msg, error: true);
     return false;
   }
@@ -55,25 +56,31 @@ Future<bool> confirmAndSell(
 ) async {
   final ok = await _showTradeDialog(
     context,
-    title: 'Prodaj odmah',
+    title: t('Prodaj odmah'),
     device: device,
     rows: [
-      _Row('Originalna cijena', formatCredits(device.price)),
+      _Row(t('Originalna cijena'), formatCredits(device.price)),
       _Row(
-        'Fee (5%)',
+        t('Fee (5%)'),
         '− ${formatCredits(feeFor(device.price))}',
         color: LoopColors.error,
       ),
-      _Row('Dobivaš', formatCredits(sellPayout(device.price)), highlight: true),
+      _Row(
+        t('Dobivaš'),
+        formatCredits(sellPayout(device.price)),
+        highlight: true,
+      ),
     ],
-    note: 'Dobivaš LOOP kredite koje možeš potrošiti samo unutar aplikacije.',
-    confirmLabel: 'Potvrdi prodaju',
+    note: t(
+      'Dobivaš LOOP kredite koje možeš potrošiti samo unutar aplikacije.',
+    ),
+    confirmLabel: t('Potvrdi prodaju'),
   );
   if (!ok || !context.mounted) return false;
   return runWithLoading(
     context,
     () => ref.read(appProvider.notifier).sell(device.id),
-    successMessage: 'Uspješno prodano',
+    successMessage: t('Uspješno prodano'),
   );
 }
 
@@ -92,12 +99,15 @@ Future<bool> confirmAndBuy(
     final missing = total - user.credits;
     final topUp = await confirmDialog(
       context,
-      title: 'Nemaš dovoljno kredita',
+      title: t('Nemaš dovoljno kredita'),
       message:
-          'Za "${device.name}" treba ${formatCredits(total)} (s feejem), '
-          'a imaš ${formatCredits(user.credits)}.\n'
-          'Nedostaje ti ${formatCredits(missing)}.',
-      confirmLabel: 'Kupi kredite',
+          t('Za "{0}" treba {1} (s feejem), a imaš {2}.\nNedostaje ti {3}.', [
+            device.name,
+            formatCredits(total),
+            formatCredits(user.credits),
+            formatCredits(missing),
+          ]),
+      confirmLabel: t('Kupi kredite'),
     );
     if (!topUp || !context.mounted) return false;
     final bought = await BuyCreditsScreen.open(context, needed: missing);
@@ -112,7 +122,7 @@ Future<bool> confirmAndBuy(
     isScrollControlled: true,
     showDragHandle: true,
     backgroundColor: LoopColors.background,
-    constraints: const BoxConstraints(maxWidth: 560),
+    constraints: BoxConstraints(maxWidth: 560),
     builder: (_) => _CheckoutSheet(device: device, credits: user.credits),
   );
   if (choice == null || !context.mounted) return false;
@@ -121,7 +131,7 @@ Future<bool> confirmAndBuy(
     () => ref
         .read(appProvider.notifier)
         .buy(device.id, method: choice.method, destination: choice.destination),
-    successMessage: 'Uspješno kupljeno — prati dostavu u "Moje dostave"',
+    successMessage: t('Uspješno kupljeno — prati dostavu u "Moje dostave"'),
   );
 }
 
@@ -147,7 +157,7 @@ class _CheckoutSheetState extends State<_CheckoutSheet> {
     final enough = widget.credits >= total;
 
     Widget row(String k, String v, {bool bold = false}) => Padding(
-      padding: const EdgeInsets.symmetric(vertical: 3),
+      padding: EdgeInsets.symmetric(vertical: 3),
       child: Row(
         children: [
           Expanded(
@@ -173,24 +183,24 @@ class _CheckoutSheetState extends State<_CheckoutSheet> {
     return Padding(
       padding: EdgeInsets.only(bottom: MediaQuery.viewInsetsOf(context).bottom),
       child: SingleChildScrollView(
-        padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
+        padding: EdgeInsets.fromLTRB(20, 0, 20, 24),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Text(
               d.name,
-              style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w900),
+              style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900),
             ),
             Text(
               '${d.model} · ${d.condition.label}',
               style: TextStyle(color: LoopColors.textSecondary),
             ),
-            const SizedBox(height: 16),
-            const Text(
-              'Dostava',
+            SizedBox(height: 16),
+            Text(
+              t('Dostava'),
               style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16),
             ),
-            const SizedBox(height: 8),
+            SizedBox(height: 8),
             Consumer(
               builder: (context, ref, _) => DeliveryPicker(
                 methods: DeliveryService.methodsFor(d),
@@ -201,24 +211,24 @@ class _CheckoutSheetState extends State<_CheckoutSheet> {
                 }),
               ),
             ),
-            const SizedBox(height: 12),
+            SizedBox(height: 12),
             Card(
               child: Padding(
-                padding: const EdgeInsets.all(14),
+                padding: EdgeInsets.all(14),
                 child: Column(
                   children: [
-                    row('Cijena', formatCredits(d.price)),
-                    row('Fee (5%)', '+ ${formatCredits(feeFor(d.price))}'),
+                    row(t('Cijena'), formatCredits(d.price)),
+                    row(t('Fee (5%)'), '+ ${formatCredits(feeFor(d.price))}'),
                     row(
-                      'Dostava',
+                      t('Dostava'),
                       shipping == 0
-                          ? 'besplatno'
+                          ? t('besplatno')
                           : '+ ${formatCredits(shipping)}',
                     ),
-                    const Divider(height: 16),
-                    row('Ukupno', formatCredits(total), bold: true),
+                    Divider(height: 16),
+                    row(t('Ukupno'), formatCredits(total), bold: true),
                     row(
-                      'Krediti nakon kupnje',
+                      t('Krediti nakon kupnje'),
                       formatCredits(widget.credits - total),
                     ),
                   ],
@@ -226,10 +236,10 @@ class _CheckoutSheetState extends State<_CheckoutSheet> {
               ),
             ),
             if (_error != null) ...[
-              const SizedBox(height: 8),
+              SizedBox(height: 8),
               Text(_error!, style: TextStyle(color: LoopColors.error)),
             ],
-            const SizedBox(height: 14),
+            SizedBox(height: 14),
             if (enough)
               FilledButton.icon(
                 onPressed: _choice == null
@@ -245,8 +255,8 @@ class _CheckoutSheetState extends State<_CheckoutSheet> {
                         }
                         Navigator.pop(context, _choice);
                       },
-                icon: const Icon(Icons.lock_outline),
-                label: const Text('Potvrdi kupnju'),
+                icon: Icon(Icons.lock_outline),
+                label: Text(t('Potvrdi kupnju')),
               )
             else
               FilledButton.icon(
@@ -257,9 +267,11 @@ class _CheckoutSheetState extends State<_CheckoutSheet> {
                   );
                   if (ok && context.mounted) Navigator.pop(context);
                 },
-                icon: const Icon(Icons.add_card),
+                icon: Icon(Icons.add_card),
                 label: Text(
-                  'Nedostaje ${formatCredits(total - widget.credits)} — kupi kredite',
+                  t('Nedostaje {0} — kupi kredite', [
+                    formatCredits(total - widget.credits),
+                  ]),
                 ),
               ),
           ],
@@ -274,8 +286,8 @@ Future<void> toggleFavorite(WidgetRef ref, Device device) async {
   final added = await ref.read(appProvider.notifier).toggleFavorite(device.id);
   showLoopSnackBar(
     added
-        ? '${device.name} dodan u favorite'
-        : '${device.name} uklonjen iz favorita',
+        ? t('{0} dodan u favorite', [device.name])
+        : t('{0} uklonjen iz favorita', [device.name]),
   );
 }
 
@@ -300,23 +312,23 @@ Future<bool> _showTradeDialog(
     builder: (context) => AlertDialog(
       title: Text(title),
       content: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 380),
+        constraints: BoxConstraints(maxWidth: 380),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
               device.name,
-              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
             ),
             Text(
               '${device.model} · ${device.condition.label}',
               style: TextStyle(color: LoopColors.textSecondary),
             ),
-            const SizedBox(height: 16),
+            SizedBox(height: 16),
             for (final r in rows)
               Padding(
-                padding: const EdgeInsets.symmetric(vertical: 6),
+                padding: EdgeInsets.symmetric(vertical: 6),
                 child: Row(
                   children: [
                     Expanded(
@@ -350,7 +362,7 @@ Future<bool> _showTradeDialog(
                 ),
               ),
             if (note != null) ...[
-              const SizedBox(height: 12),
+              SizedBox(height: 12),
               Text(
                 note,
                 style: TextStyle(color: LoopColors.textSecondary, fontSize: 12),
@@ -362,11 +374,11 @@ Future<bool> _showTradeDialog(
       actions: [
         TextButton(
           onPressed: () => Navigator.pop(context, false),
-          child: const Text('Odustani'),
+          child: Text(t('Odustani')),
         ),
         FilledButton(
           onPressed: () => Navigator.pop(context, true),
-          style: FilledButton.styleFrom(minimumSize: const Size(0, 44)),
+          style: FilledButton.styleFrom(minimumSize: Size(0, 44)),
           child: Text(confirmLabel),
         ),
       ],
@@ -380,7 +392,7 @@ Future<bool> confirmDialog(
   BuildContext context, {
   required String title,
   required String message,
-  String confirmLabel = 'Potvrdi',
+  String? confirmLabel,
   bool destructive = false,
 }) async {
   final result = await showDialog<bool>(
@@ -391,7 +403,7 @@ Future<bool> confirmDialog(
       actions: [
         TextButton(
           onPressed: () => Navigator.pop(context, false),
-          child: const Text('Odustani'),
+          child: Text(t('Odustani')),
         ),
         FilledButton(
           onPressed: () => Navigator.pop(context, true),
@@ -400,7 +412,7 @@ Future<bool> confirmDialog(
             backgroundColor: destructive ? LoopColors.error : null,
             foregroundColor: destructive ? Colors.white : null,
           ),
-          child: Text(confirmLabel),
+          child: Text(confirmLabel ?? t('Potvrdi')),
         ),
       ],
     ),

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import 'item_image.dart';
+import '../l10n/tr.dart';
 
 /// Listanje prstom, mišem i touchpadom (na webu PageView inače ne reagira
 /// na povlačenje mišem).
@@ -204,7 +205,7 @@ class _PhotoViewerState extends State<PhotoViewer> {
                                 ),
                               const Spacer(),
                               IconButton.filledTonal(
-                                tooltip: 'Zatvori',
+                                tooltip: t('Zatvori'),
                                 style: IconButton.styleFrom(
                                   backgroundColor: Colors.black54,
                                   foregroundColor: Colors.white,

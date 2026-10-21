@@ -116,6 +116,22 @@ svjetline, kontrast i razlučivost za daltonizam.
 
 ---
 
+## Jezik: hrvatski / English
+
+- Gumb **🇭🇷 HR / 🇬🇧 EN** u gornjoj traci (i na ekranu prijave i u admin panelu) prebacuje
+  jezik jednim dodirom; na mobitelu se prikazuje samo zastavica.
+- U **Profilu** je postavka *Jezik / Language* (🇭🇷 Hrvatski / 🇬🇧 English).
+- Odabir se pamti na uređaju (kao i tema) i ostaje nakon resetiranja demo podataka.
+- Na engleskom se mijenja i zapis brojeva i datuma: `1,250 credits`, `€49.99`, `Oct 21, 2026 14:30`.
+- Prijevodi su u `lib/l10n/en.dart`; ključ je hrvatski tekst iz koda, npr.
+  `t('Prodaj odmah')` → *Sell now*, a `{0}` je mjesto za vrijednost:
+  `t('Bok, {0} 👋', [ime])`. Nazivi predmeta, opisi i povijest transakcija ostaju kako su upisani.
+
+Svaki predmet ima i **opis** (neobavezno, do 500 znakova) koji se upisuje pri dodavanju i
+prikazuje na detaljima predmeta i aukcije.
+
+---
+
 ## Dostava kupljenih predmeta (demo)
 
 - **Market:** pri kupnji se otvara blagajna s odabirom dostave i ukupnim iznosom
@@ -275,6 +291,7 @@ lib/
 ├── admin/                    # admin panel: dashboard, korisnici, uređaji, transakcije
 ├── widgets/                  # kartice, dijalozi, responzivni okvir, formatiranje
 ├── config/                   # postavke online baze (--dart-define)
+├── l10n/                     # t('...') + engleski prijevodi (kEn)
 ├── utils/                    # formatiranje iznosa i datuma (hrvatski zapis)
 └── theme/                    # svijetla i tamna Material 3 tema, paleta boja
 ```
@@ -294,7 +311,7 @@ flutter test
 
 Testovi pokrivaju fee, status, prodaju, kupnju (uključujući nedovoljno kredita), favorite,
 povijest vrijednosti, fotografije, odjeljke, **kupnju kredita** (bonus, dnevni limit),
-hrvatski format iznosa, promjenu teme, **pravila aukcija** (blokiranje i povrat
+hrvatski i engleski format iznosa, promjenu teme i **jezika** (svaki tekst ima prijevod), **pravila aukcija** (blokiranje i povrat
 kredita, obvezujuće ponude, limit kredita, produljenje, zaključivanje, nadogradnja), admin akcije
 i reset te UI tokove (login → prodaja →
 kupnja → aktivnost; kategorije, favoriti, detalji; grafikon i odjeljci) na desktop i mobilnoj širini.

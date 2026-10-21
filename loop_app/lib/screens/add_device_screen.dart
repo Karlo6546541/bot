@@ -12,6 +12,7 @@ import '../widgets/formatters.dart';
 import '../widgets/item_image.dart';
 import '../widgets/photo_viewer.dart';
 import '../widgets/trade_actions.dart';
+import '../l10n/tr.dart';
 
 /// Forma za dodavanje uređaja u portfolio. Sva polja su obavezna.
 class AddDeviceScreen extends ConsumerStatefulWidget {
@@ -62,7 +63,10 @@ class _AddDeviceScreenState extends ConsumerState<AddDeviceScreen> {
           .pick(camera: camera, limit: maxImages - _photos.length);
       if (mounted) setState(() => _photos.addAll(paths));
     } catch (e) {
-      showLoopSnackBar('Fotografiju nije moguće učitati: $e', error: true);
+      showLoopSnackBar(
+        t('Fotografiju nije moguće učitati: {0}', [e]),
+        error: true,
+      );
     }
   }
 
@@ -85,20 +89,20 @@ class _AddDeviceScreenState extends ConsumerState<AddDeviceScreen> {
             imagePaths: List.of(_photos),
             description: _description.text,
           ),
-      successMessage: 'Predmet dodan u portfolio',
+      successMessage: t('Predmet dodan u portfolio'),
     );
     if (ok) _saved = true;
     if (ok && mounted) Navigator.of(context).pop();
   }
 
   String? _required(String? v) =>
-      (v == null || v.trim().isEmpty) ? 'Obavezno polje' : null;
+      (v == null || v.trim().isEmpty) ? t('Obavezno polje') : null;
 
   @override
   Widget build(BuildContext context) {
     const gap = SizedBox(height: 14);
     return Scaffold(
-      appBar: AppBar(title: const Text('Dodaj predmet')),
+      appBar: AppBar(title: Text(t('Dodaj predmet'))),
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(
@@ -127,9 +131,9 @@ class _AddDeviceScreenState extends ConsumerState<AddDeviceScreen> {
                       controller: _name,
                       onChanged: (_) => setState(() {}),
                       textCapitalization: TextCapitalization.words,
-                      decoration: const InputDecoration(
-                        labelText: 'Naziv',
-                        hintText: 'npr. iPhone 15 Pro, LEGO set, radionica…',
+                      decoration: InputDecoration(
+                        labelText: t('Naziv'),
+                        hintText: t('npr. iPhone 15 Pro, LEGO set, radionica…'),
                       ),
                       validator: _required,
                     ),
@@ -137,10 +141,11 @@ class _AddDeviceScreenState extends ConsumerState<AddDeviceScreen> {
                     TextFormField(
                       controller: _model,
                       onChanged: (_) => setState(() {}),
-                      decoration: const InputDecoration(
-                        labelText: 'Model / detalji',
-                        hintText:
-                            'npr. 256GB Titanium, godina, veličina, termin…',
+                      decoration: InputDecoration(
+                        labelText: t('Model / detalji'),
+                        hintText: t(
+                          'npr. 256GB Titanium, godina, veličina, termin…',
+                        ),
                       ),
                       validator: _required,
                     ),
@@ -152,18 +157,18 @@ class _AddDeviceScreenState extends ConsumerState<AddDeviceScreen> {
                       maxLines: 6,
                       maxLength: Device.maxDescription,
                       textCapitalization: TextCapitalization.sentences,
-                      decoration: const InputDecoration(
-                        labelText: 'Opis (neobavezno)',
-                        hintText:
-                            'Stanje, oštećenja, što dolazi u paketu, '
-                            'razlog prodaje…',
+                      decoration: InputDecoration(
+                        labelText: t('Opis (neobavezno)'),
+                        hintText: t(
+                          'Stanje, oštećenja, što dolazi u paketu, razlog prodaje…',
+                        ),
                         alignLabelWithHint: true,
                       ),
                     ),
                     gap,
                     DropdownButtonFormField<DeviceCondition>(
                       initialValue: _condition,
-                      decoration: const InputDecoration(labelText: 'Stanje'),
+                      decoration: InputDecoration(labelText: t('Stanje')),
                       items: [
                         for (final c in DeviceCondition.values)
                           DropdownMenuItem(
@@ -185,18 +190,19 @@ class _AddDeviceScreenState extends ConsumerState<AddDeviceScreen> {
                           ),
                       ],
                       onChanged: (c) => setState(() => _condition = c),
-                      validator: (v) => v == null ? 'Odaberi stanje' : null,
+                      validator: (v) => v == null ? t('Odaberi stanje') : null,
                     ),
                     gap,
                     // Kategorija se bira dodirom na pločicu.
                     FormField<DeviceCategory>(
                       initialValue: _category,
-                      validator: (v) => v == null ? 'Odaberi kategoriju' : null,
+                      validator: (v) =>
+                          v == null ? t('Odaberi kategoriju') : null,
                       builder: (field) => Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            'Odjeljak',
+                            t('Odjeljak'),
                             style: TextStyle(color: LoopColors.textSecondary),
                           ),
                           const SizedBox(height: 8),
@@ -221,7 +227,7 @@ class _AddDeviceScreenState extends ConsumerState<AddDeviceScreen> {
                           ),
                           const SizedBox(height: 14),
                           Text(
-                            'Kategorija',
+                            t('Kategorija'),
                             style: TextStyle(color: LoopColors.textSecondary),
                           ),
                           const SizedBox(height: 8),
@@ -264,14 +270,14 @@ class _AddDeviceScreenState extends ConsumerState<AddDeviceScreen> {
                       inputFormatters: [
                         FilteringTextInputFormatter.allow(RegExp(r'[0-9.,]')),
                       ],
-                      decoration: const InputDecoration(
-                        labelText: 'Cijena',
-                        suffixText: 'kredita',
+                      decoration: InputDecoration(
+                        labelText: t('Cijena'),
+                        suffixText: t('kredita'),
                       ),
                       validator: (v) {
                         final p = _parsePrice(v);
-                        if (p == null) return 'Unesi ispravnu cijenu';
-                        if (p <= 0) return 'Cijena mora biti veća od 0';
+                        if (p == null) return t('Unesi ispravnu cijenu');
+                        if (p <= 0) return t('Cijena mora biti veća od 0');
                         return null;
                       },
                     ),
@@ -287,7 +293,7 @@ class _AddDeviceScreenState extends ConsumerState<AddDeviceScreen> {
                     FilledButton.icon(
                       onPressed: _submit,
                       icon: const Icon(Icons.add),
-                      label: const Text('Dodaj u portfolio'),
+                      label: Text(t('Dodaj u portfolio')),
                     ),
                   ],
                 ),
@@ -412,7 +418,7 @@ class _Preview extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'PREGLED',
+                  t('PREGLED'),
                   style: TextStyle(
                     color: LoopColors.textSecondary,
                     fontSize: 11,
@@ -420,12 +426,12 @@ class _Preview extends StatelessWidget {
                   ),
                 ),
                 Text(
-                  name.trim().isEmpty ? 'Naziv predmeta' : name.trim(),
+                  name.trim().isEmpty ? t('Naziv predmeta') : name.trim(),
                   overflow: TextOverflow.ellipsis,
                   style: const TextStyle(fontWeight: FontWeight.w700),
                 ),
                 Text(
-                  model.trim().isEmpty ? 'Model' : model.trim(),
+                  model.trim().isEmpty ? t('Model') : model.trim(),
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(color: LoopColors.textSecondary),
                 ),
@@ -441,7 +447,7 @@ class _Preview extends StatelessWidget {
                   style: const TextStyle(fontWeight: FontWeight.w800),
                 ),
                 Text(
-                  'prodaja: ${formatCredits(sellPayout(price!))}',
+                  t('prodaja: {0}', [formatCredits(sellPayout(price!))]),
                   style: TextStyle(
                     color: LoopColors.textSecondary,
                     fontSize: 12,
@@ -476,7 +482,7 @@ class _PhotoPicker extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'Fotografije (${photos.length}/$maxImages) · neobavezno',
+          t('Fotografije ({0}/{1}) · neobavezno', [photos.length, maxImages]),
           style: TextStyle(color: LoopColors.textSecondary),
         ),
         const SizedBox(height: 8),
@@ -536,13 +542,13 @@ class _PhotoPicker extends StatelessWidget {
               if (!full && canUseCamera)
                 _PickTile(
                   icon: Icons.photo_camera_outlined,
-                  label: 'Uslikaj',
+                  label: t('Uslikaj'),
                   onTap: () => onPick(camera: true),
                 ),
               if (!full)
                 _PickTile(
                   icon: Icons.add_photo_alternate_outlined,
-                  label: 'Galerija',
+                  label: t('Galerija'),
                   onTap: () => onPick(),
                 ),
             ],

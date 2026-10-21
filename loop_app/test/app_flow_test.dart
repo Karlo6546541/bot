@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hive/hive.dart';
 import 'package:loop_app/app.dart';
+import 'package:loop_app/l10n/tr.dart';
 import 'package:loop_app/providers/app_providers.dart';
 import 'package:loop_app/services/storage_service.dart';
 
@@ -323,5 +324,59 @@ void main() {
     expect(find.text('AirPods Pro 2 USB-C'), findsOneWidget);
     expect(find.text('Naručeno'), findsOneWidget);
     expect(find.textContaining('LOOP-'), findsOneWidget);
+  });
+
+  testWidgets('engleski jezik: gumb gore i postavka u Profilu', (tester) async {
+    tester.view.physicalSize = const Size(400, 860);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    addTearDown(() => Tr.lang = AppLang.hr);
+    Tr.missing.clear();
+
+    await tester.pumpWidget(await buildApp(tester));
+    // Gumb za jezik na ekranu prijave.
+    await tester.tap(find.byKey(const ValueKey('language-button')));
+    await tester.pumpAndSettle();
+    expect(find.text('Log in'), findsWidgets);
+    expect(find.text('Continue as guest'), findsOneWidget);
+
+    await tester.ensureVisible(find.text('Log in').last);
+    await tester.tap(find.text('Log in').last);
+    await tester.pumpAndSettle();
+    // Engleski zapis brojeva i "credits".
+    expect(find.text('1,250'), findsWidgets);
+    expect(find.text('Your credits'), findsOneWidget);
+    expect(find.text('Total 2,010 credits · 2 items'), findsOneWidget);
+    await tester.scrollUntilVisible(find.text('iPhone 13'), 300);
+    await tester.pumpAndSettle();
+
+    // Prodaja na engleskom.
+    await tester.ensureVisible(find.text('Sell now').first);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Sell now').first);
+    await tester.pumpAndSettle();
+    expect(find.text('Confirm sale'), findsOneWidget);
+    await tester.tap(find.text('Cancel'));
+    await tester.pumpAndSettle();
+
+    for (final tab in ['Market', 'Auctions', 'Activity', 'Profile']) {
+      await tester.tap(find.text(tab).last);
+      await tester.pumpAndSettle();
+    }
+    expect(find.text('Log out'), findsOneWidget);
+    expect(find.text('Language / Jezik'), findsOneWidget);
+    expect(Tr.missing, isEmpty, reason: 'nedostaju prijevodi');
+
+    // Natrag na hrvatski iz Profila.
+    // Donja navigacija prekriva dno — skrolaj dok gumb nije iznad nje.
+    await tester.scrollUntilVisible(find.text('Reset demo data'), 200);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('🇭🇷 Hrvatski'));
+    await tester.pumpAndSettle();
+    // Promjena jezika ponovno gradi sučelje; ostaje na Profilu.
+    expect(find.text('Profil'), findsWidgets);
+    await tester.scrollUntilVisible(find.text('Jezik / Language'), 200);
+    expect(find.text('Jezik / Language'), findsOneWidget);
+    expect(Tr.lang, AppLang.hr);
   });
 }

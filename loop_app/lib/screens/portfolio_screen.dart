@@ -20,6 +20,7 @@ import 'auction_detail_screen.dart';
 import 'buy_credits_screen.dart';
 import 'deliveries_screen.dart';
 import 'device_detail_screen.dart';
+import '../l10n/tr.dart';
 
 /// Početna stranica: krediti, status, vrijednost i uređaji korisnika.
 class PortfolioScreen extends ConsumerWidget {
@@ -98,7 +99,7 @@ class PortfolioScreen extends ConsumerWidget {
           child: Padding(
             padding: const EdgeInsets.fromLTRB(16, 4, 16, 12),
             child: Text(
-              'Moji predmeti',
+              t('Moji predmeti'),
               style: Theme.of(
                 context,
               ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700),
@@ -110,12 +111,12 @@ class PortfolioScreen extends ConsumerWidget {
             hasScrollBody: false,
             child: EmptyState(
               icon: Icons.inventory_2_outlined,
-              title: 'Portfolio je prazan',
-              message: 'Dodaj svoj predmet ili kupi nešto u Marketu.',
+              title: t('Portfolio je prazan'),
+              message: t('Dodaj svoj predmet ili kupi nešto u Marketu.'),
               action: OutlinedButton.icon(
                 onPressed: onGoToMarket,
                 icon: const Icon(Icons.storefront),
-                label: const Text('Otvori Market'),
+                label: Text(t('Otvori Market')),
               ),
             ),
           )
@@ -127,7 +128,9 @@ class PortfolioScreen extends ConsumerWidget {
               // Predmet na aukciji: umjesto prodaje vodi na aukciju.
               return DeviceCard(
                 device: d,
-                actionLabel: auction != null ? 'Na aukciji' : 'Prodaj odmah',
+                actionLabel: auction != null
+                    ? t('Na aukciji')
+                    : t('Prodaj odmah'),
                 actionIcon: auction != null ? Icons.gavel : Icons.sell_outlined,
                 onAction: auction != null
                     ? () => AuctionDetailScreen.open(context, auction.id)
@@ -201,7 +204,7 @@ class _CreditsHero extends StatelessWidget {
                   children: [
                     Expanded(
                       child: Text(
-                        'Bok, $name 👋',
+                        t('Bok, {0} 👋', [name]),
                         overflow: TextOverflow.ellipsis,
                         style: const TextStyle(
                           fontSize: 18,
@@ -214,7 +217,7 @@ class _CreditsHero extends StatelessWidget {
                 ),
                 const SizedBox(height: 14),
                 Text(
-                  'Tvoji krediti',
+                  t('Tvoji krediti'),
                   style: TextStyle(
                     color: LoopColors.textSecondary,
                     fontWeight: FontWeight.w600,
@@ -257,9 +260,14 @@ class _CreditsHero extends StatelessWidget {
                 if (compact) ...[
                   // Mobitel: sažetak u jednom retku + gumb preko cijele širine.
                   Text(
-                    'Ukupno ${formatCredits(totalValue)} · '
-                    '$deviceCount ${deviceCount == 1 ? 'predmet' : 'predmeta'}'
-                    '${held > 0 ? ' · blokirano ${formatCredits(held)}' : ''}',
+                    t('Ukupno {0} · {1} {2}{3}', [
+                      formatCredits(totalValue),
+                      deviceCount,
+                      deviceCount == 1 ? t('predmet') : t('predmeta'),
+                      held > 0
+                          ? t(' · blokirano {0}', [formatCredits(held)])
+                          : '',
+                    ]),
                     style: TextStyle(
                       color: LoopColors.textSecondary,
                       fontWeight: FontWeight.w700,
@@ -272,7 +280,7 @@ class _CreditsHero extends StatelessWidget {
                       minimumSize: const Size.fromHeight(46),
                     ),
                     icon: const Icon(Icons.add, size: 20),
-                    label: const Text('Dopuni kredite'),
+                    label: Text(t('Dopuni kredite')),
                   ),
                 ] else
                   Wrap(
@@ -286,22 +294,22 @@ class _CreditsHero extends StatelessWidget {
                           padding: const EdgeInsets.symmetric(horizontal: 18),
                         ),
                         icon: const Icon(Icons.add, size: 20),
-                        label: const Text('Dopuni kredite'),
+                        label: Text(t('Dopuni kredite')),
                       ),
                       _Pill(
                         icon: Icons.stacked_line_chart,
-                        text: 'Ukupno ${formatCredits(totalValue)}',
+                        text: t('Ukupno {0}', [formatCredits(totalValue)]),
                       ),
                       _Pill(
                         icon: Icons.inventory_2_outlined,
                         text:
-                            '$deviceCount ${deviceCount == 1 ? 'predmet' : 'predmeta'}'
+                            '$deviceCount ${deviceCount == 1 ? t('predmet') : t('predmeta')}'
                             ' · ${formatCredits(portfolioValue)}',
                       ),
                       if (held > 0)
                         _Pill(
                           icon: Icons.lock_outline,
-                          text: 'Blokirano ${formatCredits(held)}',
+                          text: t('Blokirano {0}', [formatCredits(held)]),
                         ),
                     ],
                   ),
@@ -360,20 +368,20 @@ class _QuickActions extends ConsumerWidget {
     final actions = [
       (
         '🪙',
-        'Kupi kredite',
+        t('Kupi kredite'),
         LoopColors.sunny,
         () => BuyCreditsScreen.open(context),
       ),
       (
         '📦',
-        'Dodaj predmet',
+        t('Dodaj predmet'),
         LoopColors.mint,
         () => Navigator.of(context).push(
           MaterialPageRoute<void>(builder: (_) => const AddDeviceScreen()),
         ),
       ),
-      ('🛒', 'Istraži Market', LoopColors.sky, () => tabs.select(1)),
-      ('🔨', 'Aukcije', LoopColors.lilac, () => tabs.select(2)),
+      ('🛒', t('Istraži Market'), LoopColors.sky, () => tabs.select(1)),
+      ('🔨', t('Aukcije'), LoopColors.lilac, () => tabs.select(2)),
     ];
     if (MediaQuery.sizeOf(context).width < 600) {
       // Mobitel: red od 4 okrugle ikone s natpisom ispod.
@@ -480,19 +488,24 @@ class _HowItWorks extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    const steps = [
-      ('1', '📸', 'Dodaj predmet', 'Uslikaj stvar koju više ne koristiš.'),
+    final steps = [
+      (
+        '1',
+        '📸',
+        t('Dodaj predmet'),
+        t('Uslikaj stvar koju više ne koristiš.'),
+      ),
       (
         '2',
         '🔁',
-        'Prodaj ili licitiraj',
-        'Prodaj odmah ili na aukciji — dobivaš LOOP kredite.',
+        t('Prodaj ili licitiraj'),
+        t('Prodaj odmah ili na aukciji — dobivaš LOOP kredite.'),
       ),
       (
         '3',
         '🎁',
-        'Uzmi nešto novo',
-        'Kredite troši na druge stvari u LOOP-u. Bez novca, samo razmjena.',
+        t('Uzmi nešto novo'),
+        t('Kredite troši na druge stvari u LOOP-u. Bez novca, samo razmjena.'),
       ),
     ];
     return Card(
@@ -503,14 +516,14 @@ class _HowItWorks extends ConsumerWidget {
           children: [
             Row(
               children: [
-                const Expanded(
+                Expanded(
                   child: Text(
-                    'Kako LOOP radi',
+                    t('Kako LOOP radi'),
                     style: TextStyle(fontSize: 17, fontWeight: FontWeight.w900),
                   ),
                 ),
                 IconButton(
-                  tooltip: 'Sakrij',
+                  tooltip: t('Sakrij'),
                   onPressed: () =>
                       ref.read(appProvider.notifier).dismissHowItWorks(),
                   icon: const Icon(Icons.close),
@@ -598,8 +611,11 @@ class _StatusProgress extends StatelessWidget {
             Expanded(
               child: Text(
                 next == null
-                    ? 'Najviši status — Gold 🏆'
-                    : 'Još ${formatCredits(threshold! - total)} do ${next.label}',
+                    ? t('Najviši status — Gold 🏆')
+                    : t('Još {0} do {1}', [
+                        formatCredits(threshold! - total),
+                        next.label,
+                      ]),
                 style: TextStyle(color: LoopColors.textSecondary, fontSize: 12),
               ),
             ),
@@ -652,7 +668,7 @@ class _Breakdown extends StatelessWidget {
     final bySection = AppState.valueBySection(devices);
     if (bySection.length > 1) {
       return _Breakdown(
-        title: 'Raspodjela po odjeljcima',
+        title: t('Raspodjela po odjeljcima'),
         slices: [
           for (final sec in ItemSection.values)
             if (bySection[sec] != null)
@@ -662,7 +678,7 @@ class _Breakdown extends StatelessWidget {
     }
     final byCat = AppState.valueByCategory(devices);
     return _Breakdown(
-      title: 'Raspodjela po kategorijama',
+      title: t('Raspodjela po kategorijama'),
       slices: [
         for (final c in DeviceCategory.values)
           if (byCat[c] != null) _Slice(c.label, c.icon, c.color, byCat[c]!),
@@ -781,7 +797,7 @@ class _DeliveryBanner extends StatelessWidget {
     final first = deliveries.first;
     final waiting = deliveries.where((d) => d.awaitingChoice).length;
     final text = waiting > 0
-        ? 'Odaberi dostavu za osvojeni predmet ($waiting)'
+        ? t('Odaberi dostavu za osvojeni predmet ({0})', [waiting])
         : '${first.deviceName}: ${first.status(DateTime.now()).label}';
     return Material(
       color: LoopColors.sky,
@@ -801,8 +817,8 @@ class _DeliveryBanner extends StatelessWidget {
                   children: [
                     Text(
                       deliveries.length == 1
-                          ? '1 dostava u tijeku'
-                          : '${deliveries.length} dostave u tijeku',
+                          ? t('1 dostava u tijeku')
+                          : t('{0} dostave u tijeku', [deliveries.length]),
                       style: const TextStyle(fontWeight: FontWeight.w900),
                     ),
                     Text(

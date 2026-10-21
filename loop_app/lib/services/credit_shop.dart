@@ -5,6 +5,7 @@ import '../utils/formatters.dart';
 import 'fee.dart';
 import 'storage_service.dart';
 import 'trade_service.dart';
+import '../l10n/tr.dart';
 
 /// Paket kredita. 1 kredit = 1 €, veći paketi donose bonus kredite.
 class CreditPackage {
@@ -30,9 +31,11 @@ enum PaymentMethod {
   googlePay('Google Pay', 'Brzo plaćanje s Androida'),
   paypal('PayPal', 'Plaćanje PayPal računom');
 
-  const PaymentMethod(this.label, this.subtitle);
-  final String label;
-  final String subtitle;
+  const PaymentMethod(this._label, this._subtitle);
+  final String _label;
+  String get label => t(_label);
+  final String _subtitle;
+  String get subtitle => t(_subtitle);
 }
 
 /// Kupnja LOOP kredita (simulirana). Pravila:
@@ -95,17 +98,19 @@ class CreditShop {
   }) async {
     final at = now ?? DateTime.now();
     final user = _storage.userById(userId);
-    if (user == null) throw const TradeException('Korisnik ne postoji.');
+    if (user == null) throw TradeException(t('Korisnik ne postoji.'));
     if (credits < minAmount || credits > maxSingle) {
-      throw const TradeException(
-        'Iznos mora biti između $minAmount i $maxSingle kredita.',
+      throw TradeException(
+        t('Iznos mora biti između {0} i {1} kredita.', [minAmount, maxSingle]),
       );
     }
     final left = remainingToday(userId, now: at);
     if (credits > left) {
       throw TradeException(
-        'Dnevni limit je $dailyLimit kredita. Danas možeš kupiti još '
-        '${formatCredits(left)}.',
+        t('Dnevni limit je {0} kredita. Danas možeš kupiti još {1}.', [
+          dailyLimit,
+          formatCredits(left),
+        ]),
       );
     }
 

@@ -7,6 +7,7 @@ import '../theme/app_theme.dart';
 import '../widgets/category_style.dart';
 import '../widgets/empty_state.dart';
 import '../widgets/formatters.dart';
+import '../l10n/tr.dart';
 
 /// Povijest transakcija trenutnog korisnika, najnovije na vrhu,
 /// sa sažetkom i filterom (Sve / Kupnje / Prodaje).
@@ -27,10 +28,10 @@ class _ActivityScreenState extends ConsumerState<ActivityScreen> {
     final me = ref.watch(appProvider.select((s) => s.currentUserId)) ?? '';
 
     if (all.isEmpty) {
-      return const EmptyState(
+      return EmptyState(
         icon: Icons.receipt_long_outlined,
-        title: 'Još nema aktivnosti',
-        message: 'Kupnje i prodaje pojavit će se ovdje.',
+        title: t('Još nema aktivnosti'),
+        message: t('Kupnje i prodaje pojavit će se ovdje.'),
       );
     }
 
@@ -45,9 +46,9 @@ class _ActivityScreenState extends ConsumerState<ActivityScreen> {
     return Align(
       alignment: Alignment.topCenter,
       child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 820),
+        constraints: BoxConstraints(maxWidth: 820),
         child: ListView(
-          padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+          padding: EdgeInsets.fromLTRB(16, 8, 16, 24),
           children: [
             Wrap(
               spacing: 10,
@@ -55,48 +56,48 @@ class _ActivityScreenState extends ConsumerState<ActivityScreen> {
               children: [
                 _SummaryTile(
                   icon: Icons.north_east,
-                  label: 'Zarađeno prodajom',
+                  label: t('Zarađeno prodajom'),
                   value: formatCredits(sum(TransactionType.sell)),
                   color: LoopColors.success,
                 ),
                 _SummaryTile(
                   icon: Icons.south_west,
-                  label: 'Potrošeno na kupnje',
+                  label: t('Potrošeno na kupnje'),
                   value: formatCredits(sum(TransactionType.buy)),
                   color: LoopColors.accent,
                 ),
                 _SummaryTile(
                   icon: Icons.add_card,
-                  label: 'Kupljeno kredita',
+                  label: t('Kupljeno kredita'),
                   value: formatCredits(sum(TransactionType.topUp)),
                   color: LoopColors.admin,
                 ),
                 _SummaryTile(
                   icon: Icons.percent,
-                  label: 'Plaćeni fee',
+                  label: t('Plaćeni fee'),
                   value: formatCredits(fees),
                   color: LoopColors.textSecondary,
                 ),
               ],
             ),
-            const SizedBox(height: 16),
+            SizedBox(height: 16),
             SegmentedButton<TransactionType?>(
               showSelectedIcon: false,
-              segments: const [
-                ButtonSegment(value: null, label: Text('Sve')),
+              segments: [
+                ButtonSegment(value: null, label: Text(t('Sve'))),
                 ButtonSegment(
                   value: TransactionType.buy,
-                  label: Text('Kupnje'),
+                  label: Text(t('Kupnje')),
                   icon: Icon(Icons.south_west, size: 16),
                 ),
                 ButtonSegment(
                   value: TransactionType.sell,
-                  label: Text('Prodaje'),
+                  label: Text(t('Prodaje')),
                   icon: Icon(Icons.north_east, size: 16),
                 ),
                 ButtonSegment(
                   value: TransactionType.topUp,
-                  label: Text('Dopune'),
+                  label: Text(t('Dopune')),
                   icon: Icon(Icons.add_card, size: 16),
                 ),
               ],
@@ -109,7 +110,7 @@ class _ActivityScreenState extends ConsumerState<ActivityScreen> {
                 padding: EdgeInsets.only(top: 32),
                 child: Center(
                   child: Text(
-                    'Nema transakcija ovog tipa.',
+                    t('Nema transakcija ovog tipa.'),
                     style: TextStyle(color: LoopColors.textSecondary),
                   ),
                 ),
@@ -226,7 +227,7 @@ class TransactionTile extends StatelessWidget {
                   ),
                   const SizedBox(height: 2),
                   Text(
-                    '${tx.isAuction ? 'Aukcija · ' : ''}${type.label} · '
+                    '${tx.isAuction ? t('Aukcija · ') : ''}${type.label} · '
                     '${formatDateTime(tx.createdAt)}',
                     style: TextStyle(
                       color: LoopColors.textSecondary,
@@ -246,10 +247,12 @@ class TransactionTile extends StatelessWidget {
                 ),
                 Text(
                   switch (type) {
-                    TransactionType.topUp => 'plaćeno ${formatEuro(tx.price)}',
-                    TransactionType.auctionFee => 'naknada za objavu',
-                    TransactionType.delivery => 'trošak dostave',
-                    _ => 'fee ${formatCredits(tx.feeFor(viewerId))}',
+                    TransactionType.topUp => t('plaćeno {0}', [
+                      formatEuro(tx.price),
+                    ]),
+                    TransactionType.auctionFee => t('naknada za objavu'),
+                    TransactionType.delivery => t('trošak dostave'),
+                    _ => t('fee {0}', [formatCredits(tx.feeFor(viewerId))]),
                   },
                   style: TextStyle(
                     color: LoopColors.textSecondary,

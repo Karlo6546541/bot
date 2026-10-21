@@ -1,3 +1,5 @@
+import '../l10n/tr.dart';
+
 enum TransactionType {
   buy('Kupnja'),
   sell('Prodaja'),
@@ -5,8 +7,9 @@ enum TransactionType {
   auctionFee('Objava aukcije'),
   delivery('Dostava');
 
-  const TransactionType(this.label);
-  final String label;
+  const TransactionType(this._label);
+  final String _label;
+  String get label => t(_label);
 }
 
 /// Zapis jedne transakcije. Kupac/prodavatelj su spremljeni i kao ID i kao

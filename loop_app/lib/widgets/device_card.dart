@@ -5,6 +5,7 @@ import '../theme/app_theme.dart';
 import 'category_style.dart';
 import 'item_image.dart';
 import 'formatters.dart';
+import '../l10n/tr.dart';
 
 /// Kartica uređaja s jednim akcijskim gumbom ("Prodaj odmah" / "Kupi odmah").
 /// Dodir na karticu otvara detalje ([onTap]); [onFavorite] prikazuje srce.
@@ -110,8 +111,8 @@ class _DeviceCardState extends State<DeviceCard> {
                   child: IconButton(
                     visualDensity: VisualDensity.compact,
                     tooltip: widget.isFavorite
-                        ? 'Ukloni iz favorita'
-                        : 'Favorit',
+                        ? t('Ukloni iz favorita')
+                        : t('Favorit'),
                     onPressed: widget.onFavorite,
                     icon: Icon(
                       widget.isFavorite
@@ -217,7 +218,9 @@ class _DeviceCardState extends State<DeviceCard> {
             ),
             if (widget.onFavorite != null)
               IconButton(
-                tooltip: widget.isFavorite ? 'Ukloni iz favorita' : 'Favorit',
+                tooltip: widget.isFavorite
+                    ? t('Ukloni iz favorita')
+                    : t('Favorit'),
                 onPressed: widget.onFavorite,
                 icon: AnimatedSwitcher(
                   duration: const Duration(milliseconds: 200),

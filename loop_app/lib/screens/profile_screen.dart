@@ -9,6 +9,8 @@ import '../widgets/status_badge.dart';
 import '../widgets/trade_actions.dart';
 import 'buy_credits_screen.dart';
 import 'deliveries_screen.dart';
+import '../l10n/tr.dart';
+import '../widgets/language_button.dart';
 
 class ProfileScreen extends ConsumerWidget {
   const ProfileScreen({super.key});
@@ -83,25 +85,25 @@ class ProfileScreen extends ConsumerWidget {
                     children: [
                       _InfoTile(
                         icon: Icons.toll,
-                        label: 'Trenutni krediti',
+                        label: t('Trenutni krediti'),
                         value: formatCredits(user.credits),
                       ),
                       const Divider(height: 1),
                       _InfoTile(
                         icon: Icons.workspace_premium,
-                        label: 'Status',
+                        label: t('Status'),
                         value: status.label,
                       ),
                       const Divider(height: 1),
                       _InfoTile(
                         icon: Icons.devices,
-                        label: 'Predmeti u portfoliju',
+                        label: t('Predmeti u portfoliju'),
                         value: '${state.myDevices.length}',
                       ),
                       const Divider(height: 1),
                       _InfoTile(
                         icon: Icons.stacked_line_chart,
-                        label: 'Ukupna vrijednost',
+                        label: t('Ukupna vrijednost'),
                         value: formatCredits(state.totalValueOf(user)),
                       ),
                     ],
@@ -109,9 +111,9 @@ class ProfileScreen extends ConsumerWidget {
                 ),
                 const SizedBox(height: 12),
                 Text(
-                  'LOOP krediti se ne mogu isplatiti — koriste se isključivo '
-                  'za kupnju predmeta unutar aplikacije. Status: Bronze < 2000, '
-                  'Silver 2000–5000, Gold > 5000 (krediti + portfolio).',
+                  t(
+                    'LOOP krediti se ne mogu isplatiti — koriste se isključivo za kupnju predmeta unutar aplikacije. Status: Bronze < 2000, Silver 2000–5000, Gold > 5000 (krediti + portfolio).',
+                  ),
                   style: TextStyle(
                     color: LoopColors.textSecondary,
                     fontSize: 12,
@@ -121,7 +123,7 @@ class ProfileScreen extends ConsumerWidget {
                 FilledButton.icon(
                   onPressed: () => BuyCreditsScreen.open(context),
                   icon: const Icon(Icons.add_card),
-                  label: const Text('Kupi kredite'),
+                  label: Text(t('Kupi kredite')),
                 ),
                 const SizedBox(height: 10),
                 OutlinedButton.icon(
@@ -129,33 +131,35 @@ class ProfileScreen extends ConsumerWidget {
                   icon: const Icon(Icons.local_shipping_outlined),
                   label: Text(
                     state.myOpenDeliveries.isEmpty
-                        ? 'Moje dostave'
-                        : 'Moje dostave (${state.myOpenDeliveries.length} u tijeku)',
+                        ? t('Moje dostave')
+                        : t('Moje dostave ({0} u tijeku)', [
+                            state.myOpenDeliveries.length,
+                          ]),
                   ),
                 ),
                 const SizedBox(height: 12),
                 const _SyncStatusTile(),
-                const SizedBox(height: 20),
-                const Text(
-                  'Izgled',
+                SizedBox(height: 20),
+                Text(
+                  t('Izgled'),
                   style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16),
                 ),
-                const SizedBox(height: 8),
+                SizedBox(height: 8),
                 SegmentedButton<ThemeMode>(
-                  segments: const [
+                  segments: [
                     ButtonSegment(
                       value: ThemeMode.light,
-                      label: Text('Svijetla'),
+                      label: Text(t('Svijetla')),
                       icon: Icon(Icons.light_mode_outlined),
                     ),
                     ButtonSegment(
                       value: ThemeMode.dark,
-                      label: Text('Tamna'),
+                      label: Text(t('Tamna')),
                       icon: Icon(Icons.dark_mode_outlined),
                     ),
                     ButtonSegment(
                       value: ThemeMode.system,
-                      label: Text('Sustav'),
+                      label: Text(t('Sustav')),
                       icon: Icon(Icons.settings_suggest_outlined),
                     ),
                   ],
@@ -163,11 +167,23 @@ class ProfileScreen extends ConsumerWidget {
                   onSelectionChanged: (m) =>
                       ref.read(appProvider.notifier).setThemeMode(m.first),
                 ),
+                const SizedBox(height: 20),
+                Text(
+                  Tr.lang == AppLang.hr
+                      ? 'Jezik / Language'
+                      : 'Language / Jezik',
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w800,
+                    fontSize: 16,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                const LanguageSelector(),
                 const SizedBox(height: 24),
                 OutlinedButton.icon(
                   onPressed: () => ref.read(appProvider.notifier).logout(),
                   icon: const Icon(Icons.logout),
-                  label: const Text('Odjavi se'),
+                  label: Text(t('Odjavi se')),
                 ),
                 const SizedBox(height: 12),
                 OutlinedButton.icon(
@@ -177,7 +193,7 @@ class ProfileScreen extends ConsumerWidget {
                   ),
                   onPressed: () => _reset(context, ref),
                   icon: const Icon(Icons.restart_alt),
-                  label: const Text('Resetiraj demo podatke'),
+                  label: Text(t('Resetiraj demo podatke')),
                 ),
               ],
             ),
@@ -190,11 +206,11 @@ class ProfileScreen extends ConsumerWidget {
   Future<void> _reset(BuildContext context, WidgetRef ref) async {
     final ok = await confirmDialog(
       context,
-      title: 'Resetirati demo podatke?',
-      message:
-          'Svi korisnici, predmeti i transakcije bit će obrisani i '
-          'vraćeni na početne demo podatke. Bit ćeš odjavljen.',
-      confirmLabel: 'Resetiraj',
+      title: t('Resetirati demo podatke?'),
+      message: t(
+        'Svi korisnici, predmeti i transakcije bit će obrisani i vraćeni na početne demo podatke. Bit ćeš odjavljen.',
+      ),
+      confirmLabel: t('Resetiraj'),
       destructive: true,
     );
     if (!ok || !context.mounted) return;
@@ -203,7 +219,7 @@ class ProfileScreen extends ConsumerWidget {
     await runWithLoading(
       context,
       () => ref.read(appProvider.notifier).resetDemoData(),
-      successMessage: 'Demo podaci resetirani',
+      successMessage: t('Demo podaci resetirani'),
     );
   }
 }
@@ -241,19 +257,19 @@ class _SyncStatusTile extends ConsumerWidget {
     final (emoji, title, subtitle) = switch (sync?.status) {
       SyncStatus.online => (
         '🟢',
-        'Online baza: povezano',
-        'Promjene se dijele sa svim testerima u stvarnom vremenu.',
+        t('Online baza: povezano'),
+        t('Promjene se dijele sa svim testerima u stvarnom vremenu.'),
       ),
       SyncStatus.error => (
         '🟠',
-        'Online baza: nedostupna',
-        'Radiš lokalno. ${sync?.lastError ?? ''}',
+        t('Online baza: nedostupna'),
+        t('Radiš lokalno. {0}', [sync?.lastError ?? '']),
       ),
-      SyncStatus.connecting => ('🟡', 'Povezivanje…', ''),
+      SyncStatus.connecting => ('🟡', t('Povezivanje…'), ''),
       _ => (
         '⚪',
-        'Lokalni način rada',
-        'Podaci su samo na ovom uređaju (online baza nije postavljena).',
+        t('Lokalni način rada'),
+        t('Podaci su samo na ovom uređaju (online baza nije postavljena).'),
       ),
     };
     return Container(

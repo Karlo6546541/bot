@@ -14,6 +14,7 @@ import '../widgets/photo_viewer.dart';
 import '../widgets/trade_actions.dart';
 import 'auction_detail_screen.dart';
 import 'create_auction_screen.dart';
+import '../l10n/tr.dart';
 
 /// Detalji uređaja: veliki prikaz, specifikacije, izračun fee-a i akcija
 /// (kupnja za uređaje iz Marketa, prodaja za vlastite).
@@ -39,7 +40,7 @@ class DeviceDetailScreen extends ConsumerWidget {
     if (device == null || user == null) {
       return Scaffold(
         appBar: AppBar(),
-        body: const Center(child: Text('Predmet više nije dostupan.')),
+        body: Center(child: Text(t('Predmet više nije dostupan.'))),
       );
     }
 
@@ -56,7 +57,7 @@ class DeviceDetailScreen extends ConsumerWidget {
         actions: [
           if (canBuy)
             IconButton(
-              tooltip: isFav ? 'Ukloni iz favorita' : 'Dodaj u favorite',
+              tooltip: isFav ? t('Ukloni iz favorita') : t('Dodaj u favorite'),
               onPressed: () => toggleFavorite(ref, device),
               icon: Icon(
                 isFav ? Icons.favorite : Icons.favorite_border,
@@ -144,25 +145,25 @@ class DeviceDetailScreen extends ConsumerWidget {
                   children: [
                     _Spec(
                       Icons.category_outlined,
-                      'Kategorija',
+                      t('Kategorija'),
                       cat.singular,
                       cat.color,
                     ),
                     _Spec(
                       Icons.verified_outlined,
-                      'Stanje',
+                      t('Stanje'),
                       device.condition.label,
                       device.condition.color,
                     ),
                     _Spec(
                       Icons.person_outline,
-                      'Vlasnik',
-                      isMine ? 'Ti' : state.userLabel(device.ownerId),
+                      t('Vlasnik'),
+                      isMine ? t('Ti') : state.userLabel(device.ownerId),
                       null,
                     ),
                     _Spec(
                       Icons.schedule,
-                      'Dodano',
+                      t('Dodano'),
                       formatDateTime(device.createdAt),
                       null,
                     ),
@@ -175,14 +176,14 @@ class DeviceDetailScreen extends ConsumerWidget {
                   padding: const EdgeInsets.all(16),
                   child: Column(
                     children: [
-                      _Line('Cijena', formatCredits(device.price)),
+                      _Line(t('Cijena'), formatCredits(device.price)),
                       _Line(
-                        'Fee platforme (5%)',
+                        t('Fee platforme (5%)'),
                         '${isMine ? '−' : '+'} ${formatCredits(fee)}',
                       ),
                       const Divider(height: 20),
                       _Line(
-                        isMine ? 'Dobivaš prodajom' : 'Ukupno plaćaš',
+                        isMine ? t('Dobivaš prodajom') : t('Ukupno plaćaš'),
                         formatCredits(
                           isMine
                               ? sellPayout(device.price)
@@ -191,7 +192,7 @@ class DeviceDetailScreen extends ConsumerWidget {
                         bold: true,
                       ),
                       if (canBuy)
-                        _Line('Tvoji krediti', formatCredits(user.credits)),
+                        _Line(t('Tvoji krediti'), formatCredits(user.credits)),
                     ],
                   ),
                 ),
@@ -211,9 +212,13 @@ class DeviceDetailScreen extends ConsumerWidget {
                       const SizedBox(width: 10),
                       Expanded(
                         child: Text(
-                          'Na aukciji · ${auction.bids.length} ponuda · '
-                          'trenutno ${formatCredits(auction.currentPrice)}. '
-                          'Predmet se ne može prodati dok aukcija traje.',
+                          t(
+                            'Na aukciji · {0} ponuda · trenutno {1}. Predmet se ne može prodati dok aukcija traje.',
+                            [
+                              auction.bids.length,
+                              formatCredits(auction.currentPrice),
+                            ],
+                          ),
                         ),
                       ),
                     ],
@@ -224,7 +229,7 @@ class DeviceDetailScreen extends ConsumerWidget {
                   onPressed: () =>
                       AuctionDetailScreen.open(context, auction.id),
                   icon: const Icon(Icons.gavel),
-                  label: const Text('Pogledaj aukciju'),
+                  label: Text(t('Pogledaj aukciju')),
                 ),
               ] else if (isMine) ...[
                 FilledButton.icon(
@@ -233,14 +238,14 @@ class DeviceDetailScreen extends ConsumerWidget {
                     if (ok && context.mounted) Navigator.pop(context);
                   },
                   icon: const Icon(Icons.sell_outlined),
-                  label: const Text('Prodaj odmah'),
+                  label: Text(t('Prodaj odmah')),
                 ),
                 const SizedBox(height: 10),
                 OutlinedButton.icon(
                   onPressed: () =>
                       CreateAuctionScreen.open(context, deviceId: device.id),
                   icon: const Icon(Icons.gavel),
-                  label: const Text('Stavi na aukciju'),
+                  label: Text(t('Stavi na aukciju')),
                 ),
               ] else if (canBuy)
                 FilledButton.icon(
@@ -249,7 +254,7 @@ class DeviceDetailScreen extends ConsumerWidget {
                     if (ok && context.mounted) Navigator.pop(context);
                   },
                   icon: const Icon(Icons.shopping_bag_outlined),
-                  label: const Text('Kupi odmah'),
+                  label: Text(t('Kupi odmah')),
                 ),
             ],
           ),
@@ -343,13 +348,16 @@ class _PhotoActions extends ConsumerWidget {
           .addImages(device.id, camera: camera);
       if (n > 0) {
         showLoopSnackBar(
-          n == 1 ? 'Fotografija dodana' : 'Dodano fotografija: $n',
+          n == 1 ? t('Fotografija dodana') : t('Dodano fotografija: {0}', [n]),
         );
       }
     } on TradeException catch (e) {
       showLoopSnackBar(e.message, error: true);
     } catch (e) {
-      showLoopSnackBar('Fotografiju nije moguće učitati: $e', error: true);
+      showLoopSnackBar(
+        t('Fotografiju nije moguće učitati: {0}', [e]),
+        error: true,
+      );
     }
   }
 
@@ -364,7 +372,7 @@ class _PhotoActions extends ConsumerWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'Fotografije (${device.imagePaths.length}/$maxImages)',
+              t('Fotografije ({0}/{1})', [device.imagePaths.length, maxImages]),
               style: const TextStyle(fontWeight: FontWeight.w700),
             ),
             const SizedBox(height: 10),
@@ -383,13 +391,13 @@ class _PhotoActions extends ConsumerWidget {
                 if (!full && store.canUseCamera)
                   _AddTile(
                     icon: Icons.photo_camera_outlined,
-                    label: 'Uslikaj',
+                    label: t('Uslikaj'),
                     onTap: () => _add(ref, camera: true),
                   ),
                 if (!full)
                   _AddTile(
                     icon: Icons.add_photo_alternate_outlined,
-                    label: 'Galerija',
+                    label: t('Galerija'),
                     onTap: () => _add(ref),
                   ),
               ],

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'admin/admin_shell.dart';
+import 'l10n/tr.dart';
 import 'providers/app_providers.dart';
 import 'screens/home_shell.dart';
 import 'screens/login_screen.dart';
@@ -31,6 +32,9 @@ class LoopApp extends ConsumerWidget {
     };
     // Boje (LoopColors) čitaju aktivnu paletu — postavi je prije gradnje.
     LoopColors.use(brightness);
+    // Isto za jezik: t('...') čita Tr.lang tijekom gradnje.
+    final lang = ref.watch(appProvider.select((s) => s.lang));
+    Tr.lang = lang;
 
     final Widget home;
     if (isAdmin) {
@@ -42,9 +46,9 @@ class LoopApp extends ConsumerWidget {
     }
 
     return MaterialApp(
-      // Ključ po temi: promjena teme ponovno gradi cijelo sučelje, pa
-      // svaki widget preuzme nove boje.
-      key: ValueKey(brightness),
+      // Ključ po temi i jeziku: promjena ponovno gradi cijelo sučelje, pa
+      // svaki widget preuzme nove boje i tekstove.
+      key: ValueKey((brightness, lang)),
       title: 'LOOP',
       debugShowCheckedModeBanner: false,
       scaffoldMessengerKey: rootMessengerKey,

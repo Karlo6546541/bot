@@ -9,6 +9,7 @@ import '../utils/formatters.dart';
 import 'fee.dart';
 import 'storage_service.dart';
 import 'trade_service.dart';
+import '../l10n/tr.dart';
 
 /// Dostava kupljenih predmeta (simulirana).
 ///
@@ -39,10 +40,10 @@ class DeliveryService {
   static String? validate(DeliveryMethod m, String? destination) {
     final dest = destination?.trim() ?? '';
     if (m.needsAddress && dest.length < 8) {
-      return 'Upiši adresu za dostavu (ulica, broj, mjesto).';
+      return t('Upiši adresu za dostavu (ulica, broj, mjesto).');
     }
     if (m.needsLocker && !kDemoLockers.contains(dest)) {
-      return 'Odaberi paketomat.';
+      return t('Odaberi paketomat.');
     }
     return null;
   }
@@ -101,10 +102,10 @@ class DeliveryService {
   }) async {
     final d = _storage.deliveryById(deliveryId);
     if (d == null || d.buyerId != userId) {
-      throw const TradeException('Pošiljka ne postoji.');
+      throw TradeException(t('Pošiljka ne postoji.'));
     }
     if (!d.awaitingChoice) {
-      throw const TradeException('Dostava je već odabrana.');
+      throw TradeException(t('Dostava je već odabrana.'));
     }
     return _start(d, userId, method, destination, now: now);
   }
@@ -120,11 +121,13 @@ class DeliveryService {
     final error = validate(method, destination);
     if (error != null) throw TradeException(error);
     final user = _storage.userById(userId);
-    if (user == null) throw const TradeException('Korisnik ne postoji.');
+    if (user == null) throw TradeException(t('Korisnik ne postoji.'));
     if (user.credits < method.cost) {
       throw TradeException(
-        'Za dostavu treba ${formatCredits(method.cost)}, '
-        'a imaš ${formatCredits(user.credits)}.',
+        t('Za dostavu treba {0}, a imaš {1}.', [
+          formatCredits(method.cost),
+          formatCredits(user.credits),
+        ]),
       );
     }
 
@@ -175,10 +178,10 @@ class DeliveryService {
     final at = now ?? DateTime.now();
     final d = _storage.deliveryById(deliveryId);
     if (d == null || d.buyerId != userId) {
-      throw const TradeException('Pošiljka ne postoji.');
+      throw TradeException(t('Pošiljka ne postoji.'));
     }
     if (!d.isDelivered(at)) {
-      throw const TradeException('Pošiljka još nije stigla.');
+      throw TradeException(t('Pošiljka još nije stigla.'));
     }
     await _storage.putDelivery(d.copyWith(confirmedAt: at));
   }

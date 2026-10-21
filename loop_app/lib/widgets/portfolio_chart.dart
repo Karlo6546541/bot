@@ -6,6 +6,7 @@ import 'package:intl/intl.dart' show DateFormat;
 import '../models/portfolio_point.dart';
 import '../theme/app_theme.dart';
 import 'formatters.dart';
+import '../l10n/tr.dart';
 
 /// Raspon prikaza grafikona.
 enum ChartRange {
@@ -13,8 +14,9 @@ enum ChartRange {
   month('30D', Duration(days: 30)),
   all('Sve', null);
 
-  const ChartRange(this.label, this.duration);
-  final String label;
+  const ChartRange(this._label, this.duration);
+  final String _label;
+  String get label => t(_label);
   final Duration? duration;
 }
 
@@ -98,8 +100,8 @@ class _PortfolioChartState extends State<PortfolioChart> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text(
-                        'Vrijednost portfolija',
+                      Text(
+                        t('Vrijednost portfolija'),
                         style: TextStyle(fontWeight: FontWeight.w700),
                       ),
                       const SizedBox(height: 4),
@@ -117,7 +119,7 @@ class _PortfolioChartState extends State<PortfolioChart> {
                             child: Text(
                               '${up ? '+' : '−'}${formatCredits(change.abs())} '
                               '(${up ? '+' : '−'}${pct.abs().toStringAsFixed(1)}%) '
-                              '· ${_range == ChartRange.all ? 'ukupno' : 'zadnjih ${_range.duration!.inDays} dana'}',
+                              '· ${_range == ChartRange.all ? t('ukupno') : t('zadnjih {0} dana', [_range.duration!.inDays])}',
                               style: TextStyle(
                                 color: LoopColors.textSecondary,
                                 fontSize: 12,
@@ -139,7 +141,9 @@ class _PortfolioChartState extends State<PortfolioChart> {
                     }),
                   ),
                 IconButton(
-                  tooltip: _table ? 'Prikaži grafikon' : 'Prikaži tablicu',
+                  tooltip: _table
+                      ? t('Prikaži grafikon')
+                      : t('Prikaži tablicu'),
                   onPressed: () => setState(() => _table = !_table),
                   icon: Icon(
                     _table ? Icons.show_chart : Icons.table_rows_outlined,
@@ -301,7 +305,7 @@ class _ChartPainter extends CustomPainter {
     );
     _text(
       canvas,
-      'sada',
+      t('sada'),
       Offset(size.width - 8 - 60, geo.plotH + 6),
       width: 60,
       align: TextAlign.right,
@@ -429,8 +433,10 @@ class _Tooltip extends StatelessWidget {
               ),
               SizedBox(height: 2),
               Text(
-                'Krediti ${formatNumber(point.credits)}\n'
-                'Predmeti ${formatNumber(point.portfolio)}',
+                t('Krediti {0}\nPredmeti {1}', [
+                  formatNumber(point.credits),
+                  formatNumber(point.portfolio),
+                ]),
                 style: TextStyle(
                   color: LoopColors.textSecondary,
                   fontSize: 11,
@@ -458,18 +464,26 @@ class _TableView extends StatelessWidget {
       children: [
         Row(
           children: [
-            Expanded(flex: 3, child: Text('Vrijeme', style: head)),
+            Expanded(flex: 3, child: Text(t('Vrijeme'), style: head)),
             Expanded(
               flex: 2,
-              child: Text('Krediti', style: head, textAlign: TextAlign.right),
+              child: Text(
+                t('Krediti'),
+                style: head,
+                textAlign: TextAlign.right,
+              ),
             ),
             Expanded(
               flex: 2,
-              child: Text('Predmeti', style: head, textAlign: TextAlign.right),
+              child: Text(
+                t('Predmeti'),
+                style: head,
+                textAlign: TextAlign.right,
+              ),
             ),
             Expanded(
               flex: 2,
-              child: Text('Ukupno', style: head, textAlign: TextAlign.right),
+              child: Text(t('Ukupno'), style: head, textAlign: TextAlign.right),
             ),
           ],
         ),

@@ -14,6 +14,8 @@ import 'create_auction_screen.dart';
 import 'market_screen.dart';
 import 'portfolio_screen.dart';
 import 'profile_screen.dart';
+import '../l10n/tr.dart';
+import '../widgets/language_button.dart';
 
 /// Glavni okvir za prijavljenog korisnika s 4 taba.
 class HomeShell extends ConsumerStatefulWidget {
@@ -28,20 +30,20 @@ class _HomeShellState extends ConsumerState<HomeShell> {
 
   void _go(int i) => ref.read(homeTabProvider.notifier).select(i);
 
-  static const _destinations = [
+  static List<ShellDestination> get _destinations => [
     ShellDestination(
       'Portfolio',
       Icons.account_balance_wallet_outlined,
       Icons.account_balance_wallet,
     ),
     ShellDestination('Market', Icons.storefront_outlined, Icons.storefront),
-    ShellDestination('Aukcije', Icons.gavel_outlined, Icons.gavel),
+    ShellDestination(t('Aukcije'), Icons.gavel_outlined, Icons.gavel),
     ShellDestination(
-      'Aktivnost',
+      t('Aktivnost'),
       Icons.receipt_long_outlined,
       Icons.receipt_long,
     ),
-    ShellDestination('Profil', Icons.person_outline, Icons.person),
+    ShellDestination(t('Profil'), Icons.person_outline, Icons.person),
   ];
 
   void _openAddDevice() {
@@ -67,31 +69,37 @@ class _HomeShellState extends ConsumerState<HomeShell> {
       appBar: AppBar(
         title: isDesktop
             ? Text(_destinations[_index].label)
-            : const LoopLogo(size: 22),
-        actions: const [_CreditsPill(), SizedBox(width: 12)],
+            // Na uskom ekranu logo se smanji da stanu jezik i krediti.
+            : const FittedBox(fit: BoxFit.scaleDown, child: LoopLogo(size: 22)),
+        actions: [
+          LanguageButton(compact: phone),
+          const SizedBox(width: 6),
+          const _CreditsPill(),
+          const SizedBox(width: 12),
+        ],
       ),
       // Na mobitelu: početna ima "Dodaj predmet" u brzim akcijama, a za
       // aukcije je dovoljan okrugli gumb koji ne prekriva kartice.
       floatingActionButton: switch (_index) {
         0 when phone => null,
         2 when phone => FloatingActionButton(
-          tooltip: 'Nova aukcija',
+          tooltip: t('Nova aukcija'),
           onPressed: () => CreateAuctionScreen.open(context),
           child: const Icon(Icons.gavel),
         ),
         0 => FloatingActionButton.extended(
           onPressed: _openAddDevice,
           icon: const Icon(Icons.add),
-          label: const Text(
-            'Dodaj predmet',
+          label: Text(
+            t('Dodaj predmet'),
             style: TextStyle(fontWeight: FontWeight.w700),
           ),
         ),
         2 => FloatingActionButton.extended(
           onPressed: () => CreateAuctionScreen.open(context),
           icon: const Icon(Icons.gavel),
-          label: const Text(
-            'Nova aukcija',
+          label: Text(
+            t('Nova aukcija'),
             style: TextStyle(fontWeight: FontWeight.w700),
           ),
         ),
@@ -122,7 +130,7 @@ class _CreditsPill extends ConsumerWidget {
       appProvider.select((s) => s.currentUser?.credits ?? 0),
     );
     return Tooltip(
-      message: 'Kupi kredite',
+      message: t('Kupi kredite'),
       child: Material(
         color: LoopColors.sunny,
         shape: const StadiumBorder(),

@@ -19,6 +19,7 @@ import '../services/storage_service.dart';
 import '../services/sync_service.dart';
 import '../services/trade_service.dart';
 import 'app_state.dart';
+import '../l10n/tr.dart';
 
 /// Inicijalizirani [StorageService] — postavlja se u `main()` preko override-a.
 final storageProvider = Provider<StorageService>(
@@ -122,7 +123,7 @@ class AppController extends Notifier<AppState> {
 
   Future<void> adminLogin(String email, String password) async {
     if (!_trade.isAdminLogin(email, password)) {
-      throw const TradeException('Pogrešni admin podaci.');
+      throw TradeException(t('Pogrešni admin podaci.'));
     }
     await _storage.saveSession(isAdmin: true);
     _refresh();
@@ -182,14 +183,16 @@ class AppController extends Notifier<AppState> {
     final userId = _requireUserId();
     final device = state.deviceById(deviceId);
     final user = state.currentUser!;
-    if (device == null) throw const TradeException('Predmet ne postoji.');
+    if (device == null) throw TradeException(t('Predmet ne postoji.'));
     final error = DeliveryService.validate(method, destination);
     if (error != null) throw TradeException(error);
     final total = buyTotal(device.price) + method.cost;
     if (user.credits < total) {
       throw TradeException(
-        'Nemaš dovoljno kredita: treba ${formatCredits(total)} '
-        '(s feejem i dostavom), imaš ${formatCredits(user.credits)}.',
+        t(
+          'Nemaš dovoljno kredita: treba {0} (s feejem i dostavom), imaš {1}.',
+          [formatCredits(total), formatCredits(user.credits)],
+        ),
       );
     }
     final tx = await _trade.buy(userId: userId, deviceId: deviceId);
@@ -239,10 +242,12 @@ class AppController extends Notifier<AppState> {
   /// Vraća broj dodanih fotografija.
   Future<int> addImages(String deviceId, {bool camera = false}) async {
     final device = state.deviceById(deviceId);
-    if (device == null) throw const TradeException('Predmet ne postoji.');
+    if (device == null) throw TradeException(t('Predmet ne postoji.'));
     final free = maxImages - device.imagePaths.length;
     if (free <= 0) {
-      throw const TradeException('Najviše $maxImages fotografije po predmetu.');
+      throw TradeException(
+        t('Najviše {0} fotografije po predmetu.', [maxImages]),
+      );
     }
     final paths = await ref
         .read(imageStoreProvider)
@@ -283,6 +288,11 @@ class AppController extends Notifier<AppState> {
 
   Future<void> setThemeMode(ThemeMode mode) async {
     await _storage.setThemeMode(mode.name);
+    _refresh();
+  }
+
+  Future<void> setLang(AppLang lang) async {
+    await _storage.setLang(lang.name);
     _refresh();
   }
 
@@ -344,16 +354,21 @@ class AppController extends Notifier<AppState> {
         final a = r.auction;
         final price = formatCredits(a.highestBid?.amount ?? 0);
         if (r.winnerId != null && r.winnerId == me) {
-          showLoopSnackBar('🏆 Osvojio si aukciju: ${a.deviceName} za $price');
+          showLoopSnackBar(
+            t('🏆 Osvojio si aukciju: {0} za {1}', [a.deviceName, price]),
+          );
         } else if (a.sellerId == me) {
           showLoopSnackBar(
             r.winnerId != null
-                ? 'Tvoja aukcija je završila: ${a.deviceName} prodano za $price'
-                : 'Aukcija za ${a.deviceName} je završila bez ponuda',
+                ? t('Tvoja aukcija je završila: {0} prodano za {1}', [
+                    a.deviceName,
+                    price,
+                  ])
+                : t('Aukcija za {0} je završila bez ponuda', [a.deviceName]),
           );
         } else if (me != null && a.bids.any((b) => b.userId == me)) {
           showLoopSnackBar(
-            'Aukcija ${a.deviceName} je završila — nisi pobijedio',
+            t('Aukcija {0} je završila — nisi pobijedio', [a.deviceName]),
           );
         }
       }
@@ -384,7 +399,7 @@ class AppController extends Notifier<AppState> {
 
   String _requireUserId() {
     final id = state.currentUser?.id;
-    if (id == null) throw const TradeException('Nisi prijavljen.');
+    if (id == null) throw TradeException(t('Nisi prijavljen.'));
     return id;
   }
 }

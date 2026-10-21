@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../models/delivery.dart';
 import '../theme/app_theme.dart';
 import 'formatters.dart';
+import '../l10n/tr.dart';
 
 /// Odabrana dostava (način + odredište).
 class DeliveryChoice {
@@ -129,7 +130,7 @@ class _DeliveryPickerState extends State<DeliveryPicker> {
                         ),
                       ),
                       Text(
-                        m.cost == 0 ? 'Besplatno' : formatCredits(m.cost),
+                        m.cost == 0 ? t('Besplatno') : formatCredits(m.cost),
                         style: const TextStyle(fontWeight: FontWeight.w800),
                       ),
                     ],
@@ -142,9 +143,9 @@ class _DeliveryPickerState extends State<DeliveryPicker> {
           const SizedBox(height: 4),
           TextField(
             controller: _address,
-            decoration: const InputDecoration(
-              labelText: 'Adresa za dostavu',
-              hintText: 'npr. Ilica 1, 10000 Zagreb',
+            decoration: InputDecoration(
+              labelText: t('Adresa za dostavu'),
+              hintText: t('npr. Ilica 1, 10000 Zagreb'),
               prefixIcon: Icon(Icons.home_outlined),
             ),
             onChanged: (_) => _emit(),
@@ -155,8 +156,8 @@ class _DeliveryPickerState extends State<DeliveryPicker> {
           DropdownButtonFormField<String>(
             initialValue: _locker,
             isExpanded: true,
-            decoration: const InputDecoration(
-              labelText: 'Paketomat',
+            decoration: InputDecoration(
+              labelText: t('Paketomat'),
               prefixIcon: Icon(Icons.place_outlined),
             ),
             items: [

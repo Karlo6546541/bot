@@ -11,6 +11,7 @@ import '../widgets/empty_state.dart';
 import '../widgets/formatters.dart';
 import '../widgets/trade_actions.dart';
 import 'device_detail_screen.dart';
+import '../l10n/tr.dart';
 
 /// Redoslijed uređaja u Marketu.
 enum MarketSort {
@@ -19,8 +20,9 @@ enum MarketSort {
   priceDesc('Cijena: viša prvo'),
   name('Naziv A–Ž');
 
-  const MarketSort(this.label);
-  final String label;
+  const MarketSort(this._label);
+  final String _label;
+  String get label => t(_label);
 
   int compare(Device a, Device b) => switch (this) {
     MarketSort.newest => b.createdAt.compareTo(a.createdAt),
@@ -89,7 +91,9 @@ class _MarketScreenState extends ConsumerState<MarketScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Dostupno: ${formatCredits(credits)} · fee 5% na kupnju',
+                  t('Dostupno: {0} · fee 5% na kupnju', [
+                    formatCredits(credits),
+                  ]),
                   style: TextStyle(color: LoopColors.textSecondary),
                 ),
                 const SizedBox(height: 12),
@@ -102,7 +106,7 @@ class _MarketScreenState extends ConsumerState<MarketScreen> {
                           controller: _search,
                           onChanged: (_) => setState(() {}),
                           decoration: InputDecoration(
-                            hintText: 'Pretraži po nazivu…',
+                            hintText: t('Pretraži po nazivu…'),
                             prefixIcon: const Icon(Icons.search),
                             suffixIcon: _search.text.isEmpty
                                 ? null
@@ -131,7 +135,7 @@ class _MarketScreenState extends ConsumerState<MarketScreen> {
           child: _ChipRow(
             children: [
               _CategoryChip(
-                label: 'Sve',
+                label: t('Sve'),
                 icon: Icons.apps,
                 color: Theme.of(context).colorScheme.primary,
                 count: all.length,
@@ -155,7 +159,7 @@ class _MarketScreenState extends ConsumerState<MarketScreen> {
                   }),
                 ),
               _CategoryChip(
-                label: 'Favoriti',
+                label: t('Favoriti'),
                 icon: Icons.favorite,
                 color: const Color(0xFFFF5C8A),
                 count: favCount,
@@ -196,15 +200,15 @@ class _MarketScreenState extends ConsumerState<MarketScreen> {
             child: EmptyState(
               icon: _onlyFavorites ? Icons.favorite_border : Icons.search_off,
               title: all.isEmpty
-                  ? 'Market je trenutno prazan'
+                  ? t('Market je trenutno prazan')
                   : _onlyFavorites && favCount == 0
-                  ? 'Još nemaš favorita'
-                  : 'Nema rezultata',
+                  ? t('Još nemaš favorita')
+                  : t('Nema rezultata'),
               message: all.isEmpty
-                  ? 'Prodani predmeti pojavljuju se ovdje.'
+                  ? t('Prodani predmeti pojavljuju se ovdje.')
                   : _onlyFavorites && favCount == 0
-                  ? 'Dodirni ♥ na predmetu da ga spremiš ovdje.'
-                  : 'Promijeni pretragu, odjeljak ili kategoriju.',
+                  ? t('Dodirni ♥ na predmetu da ga spremiš ovdje.')
+                  : t('Promijeni pretragu, odjeljak ili kategoriju.'),
             ),
           )
         else
@@ -213,7 +217,7 @@ class _MarketScreenState extends ConsumerState<MarketScreen> {
             padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
             itemBuilder: (context, d) => DeviceCard(
               device: d,
-              actionLabel: 'Kupi odmah',
+              actionLabel: t('Kupi odmah'),
               actionIcon: Icons.shopping_bag_outlined,
               onAction: () => confirmAndBuy(context, ref, d),
               onTap: () => DeviceDetailScreen.open(context, d),
@@ -343,7 +347,7 @@ class _SortButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return PopupMenuButton<MarketSort>(
-      tooltip: 'Sortiraj',
+      tooltip: t('Sortiraj'),
       initialValue: value,
       onSelected: onChanged,
       color: LoopColors.surfaceHover,

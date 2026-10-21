@@ -7,6 +7,7 @@ import '../providers/app_state.dart';
 import '../widgets/category_style.dart';
 import '../theme/app_theme.dart';
 import '../widgets/formatters.dart';
+import '../l10n/tr.dart';
 
 class AdminDashboardScreen extends ConsumerWidget {
   const AdminDashboardScreen({super.key});
@@ -17,33 +18,37 @@ class AdminDashboardScreen extends ConsumerWidget {
     final onMarket = s.devices.where((d) => d.isOnMarket).length;
 
     final tiles = [
-      _Tile(Icons.group, 'Korisnici', '${s.users.length}'),
+      _Tile(Icons.group, t('Korisnici'), '${s.users.length}'),
       _Tile(
         Icons.devices,
-        'Predmeti',
+        t('Predmeti'),
         '${s.devices.length}',
-        sub: '$onMarket u Marketu',
+        sub: t('{0} u Marketu', [onMarket]),
       ),
       _Tile(
         Icons.gavel,
-        'Aukcije',
+        t('Aukcije'),
         '${s.activeAuctions.length}',
-        sub: 'aktivnih · ${s.auctions.length} ukupno',
+        sub: t('aktivnih · {0} ukupno', [s.auctions.length]),
       ),
       _Tile(
         Icons.local_shipping_outlined,
-        'Dostave',
+        t('Dostave'),
         '${s.deliveries.where((d) => !d.isDelivered(DateTime.now())).length}',
-        sub: 'u tijeku · ${s.deliveries.length} ukupno',
+        sub: t('u tijeku · {0} ukupno', [s.deliveries.length]),
       ),
-      _Tile(Icons.swap_horiz, 'Transakcije', '${s.transactions.length}'),
+      _Tile(Icons.swap_horiz, t('Transakcije'), '${s.transactions.length}'),
       _Tile(
         Icons.stacked_line_chart,
-        'Ukupni volume',
+        t('Ukupni volume'),
         formatCredits(s.totalVolume),
       ),
-      _Tile(Icons.percent, 'Prihod od fee-a (5%)', formatCredits(s.totalFees)),
-      _Tile(Icons.add_card, 'Prodano kredita', formatEuro(s.totalTopUpEur)),
+      _Tile(
+        Icons.percent,
+        t('Prihod od fee-a (5%)'),
+        formatCredits(s.totalFees),
+      ),
+      _Tile(Icons.add_card, t('Prodano kredita'), formatEuro(s.totalTopUpEur)),
     ];
 
     return SingleChildScrollView(
@@ -126,14 +131,14 @@ class _CategoryStats extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
-              'Predmeti po odjeljcima',
+            Text(
+              t('Predmeti po odjeljcima'),
               style: TextStyle(fontWeight: FontWeight.w700, fontSize: 16),
             ),
             const SizedBox(height: 16),
             if (entries.isEmpty)
               Text(
-                'Nema predmeta.',
+                t('Nema predmeta.'),
                 style: TextStyle(color: LoopColors.textSecondary),
               ),
             for (final e in entries)

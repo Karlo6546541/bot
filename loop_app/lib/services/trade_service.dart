@@ -6,6 +6,7 @@ import '../models/loop_transaction.dart';
 import '../utils/formatters.dart';
 import 'fee.dart';
 import 'storage_service.dart';
+import '../l10n/tr.dart';
 
 /// Greška poslovne logike koja se prikazuje korisniku.
 class TradeException implements Exception {
@@ -44,13 +45,13 @@ class TradeService {
   Future<AppUser> login(String email, String password) async {
     final cleaned = email.trim();
     if (cleaned.isEmpty || !cleaned.contains('@')) {
-      throw const TradeException('Unesi ispravan e-mail.');
+      throw TradeException(t('Unesi ispravan e-mail.'));
     }
     if (password.isEmpty) {
-      throw const TradeException('Unesi lozinku.');
+      throw TradeException(t('Unesi lozinku.'));
     }
     if (cleaned.toLowerCase() == adminEmail) {
-      throw const TradeException('Za admin račun koristi "Admin prijava".');
+      throw TradeException(t('Za admin račun koristi "Admin prijava".'));
     }
     final existing = _storage.userByEmail(cleaned);
     if (existing != null) return existing;
@@ -97,13 +98,13 @@ class TradeService {
     String description = '',
   }) async {
     if (name.trim().isEmpty || model.trim().isEmpty) {
-      throw const TradeException('Naziv i model su obavezni.');
+      throw TradeException(t('Naziv i model su obavezni.'));
     }
     if (price <= 0) {
-      throw const TradeException('Cijena mora biti veća od 0.');
+      throw TradeException(t('Cijena mora biti veća od 0.'));
     }
     if (description.trim().length > Device.maxDescription) {
-      throw const TradeException('Opis može imati najviše 500 znakova.');
+      throw TradeException(t('Opis može imati najviše 500 znakova.'));
     }
     _requireUser(userId);
     final device = Device(
@@ -131,11 +132,11 @@ class TradeService {
     final user = _requireUser(userId);
     final device = _requireDevice(deviceId);
     if (device.ownerId != userId) {
-      throw const TradeException('Ovaj predmet nije u tvom portfoliju.');
+      throw TradeException(t('Ovaj predmet nije u tvom portfoliju.'));
     }
     if (_storage.activeAuctionFor(deviceId) != null) {
-      throw const TradeException(
-        'Predmet je na aukciji i ne može se prodati dok aukcija traje.',
+      throw TradeException(
+        t('Predmet je na aukciji i ne može se prodati dok aukcija traje.'),
       );
     }
 
@@ -176,18 +177,20 @@ class TradeService {
     final user = _requireUser(userId);
     final device = _requireDevice(deviceId);
     if (device.ownerId == userId) {
-      throw const TradeException('Ovaj predmet je već tvoj.');
+      throw TradeException(t('Ovaj predmet je već tvoj.'));
     }
     if (!device.isOnMarket) {
-      throw const TradeException('Predmet više nije dostupan.');
+      throw TradeException(t('Predmet više nije dostupan.'));
     }
 
     final fee = feeFor(device.price);
     final total = buyTotal(device.price);
     if (user.credits < total) {
       throw TradeException(
-        'Nemaš dovoljno kredita. Potrebno: ${formatCredits(total)}, '
-        'imaš: ${formatCredits(user.credits)}.',
+        t('Nemaš dovoljno kredita. Potrebno: {0}, imaš: {1}.', [
+          formatCredits(total),
+          formatCredits(user.credits),
+        ]),
       );
     }
 
@@ -230,7 +233,7 @@ class TradeService {
 
   Future<void> addCredits(String userId, double amount) async {
     if (amount <= 0) {
-      throw const TradeException('Iznos mora biti veći od 0.');
+      throw TradeException(t('Iznos mora biti veći od 0.'));
     }
     final user = _requireUser(userId);
     await _storage.putUser(
@@ -270,7 +273,7 @@ class TradeService {
   ) async {
     final device = _requireDevice(deviceId);
     if (device.ownerId != userId) {
-      throw const TradeException('Fotografije može mijenjati samo vlasnik.');
+      throw TradeException(t('Fotografije može mijenjati samo vlasnik.'));
     }
     await _storage.putDevice(device.withImages(paths));
   }
@@ -288,13 +291,13 @@ class TradeService {
 
   AppUser _requireUser(String id) {
     final user = _storage.userById(id);
-    if (user == null) throw const TradeException('Korisnik ne postoji.');
+    if (user == null) throw TradeException(t('Korisnik ne postoji.'));
     return user;
   }
 
   Device _requireDevice(String id) {
     final device = _storage.deviceById(id);
-    if (device == null) throw const TradeException('Predmet ne postoji.');
+    if (device == null) throw TradeException(t('Predmet ne postoji.'));
     return device;
   }
 }

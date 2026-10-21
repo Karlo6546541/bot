@@ -8,6 +8,7 @@ import '../services/trade_service.dart';
 import '../theme/app_theme.dart';
 import '../widgets/formatters.dart';
 import '../widgets/trade_actions.dart';
+import '../l10n/tr.dart';
 
 /// Kupnja LOOP kredita: paketi s bonusom ili vlastiti iznos, odabir načina
 /// plaćanja i (simulirana) obrada. Demo ništa ne naplaćuje i ne traži
@@ -73,8 +74,10 @@ class _BuyCreditsScreenState extends ConsumerState<BuyCreditsScreen> {
     if (user == null) return;
     if (_credits < CreditShop.minAmount || _credits > CreditShop.maxSingle) {
       setState(
-        () => _error =
-            'Iznos od ${CreditShop.minAmount} do ${CreditShop.maxSingle}',
+        () => _error = t('Iznos od {0} do {1}', [
+          CreditShop.minAmount,
+          CreditShop.maxSingle,
+        ]),
       );
       return;
     }
@@ -96,7 +99,7 @@ class _BuyCreditsScreenState extends ConsumerState<BuyCreditsScreen> {
               const SizedBox(width: 18),
               Expanded(
                 child: Text(
-                  'Obrada plaćanja (${_method.label})…',
+                  t('Obrada plaćanja ({0})…', [_method.label]),
                   style: const TextStyle(fontWeight: FontWeight.w700),
                 ),
               ),
@@ -131,7 +134,7 @@ class _BuyCreditsScreenState extends ConsumerState<BuyCreditsScreen> {
         : ref.read(creditShopProvider).remainingToday(user.id);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Kupi kredite')),
+      appBar: AppBar(title: Text(t('Kupi kredite'))),
       body: Align(
         alignment: Alignment.topCenter,
         child: ConstrainedBox(
@@ -141,7 +144,7 @@ class _BuyCreditsScreenState extends ConsumerState<BuyCreditsScreen> {
             children: [
               _Header(credits: user?.credits ?? 0, needed: widget.needed),
               const SizedBox(height: 20),
-              _sectionTitle('Odaberi paket'),
+              _sectionTitle(t('Odaberi paket')),
               const SizedBox(height: 10),
               Wrap(
                 spacing: 10,
@@ -174,11 +177,12 @@ class _BuyCreditsScreenState extends ConsumerState<BuyCreditsScreen> {
                   keyboardType: TextInputType.number,
                   inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                   decoration: InputDecoration(
-                    labelText: 'Vlastiti iznos',
-                    suffixText: 'kredita',
-                    helperText:
-                        'Od ${CreditShop.minAmount} do ${CreditShop.maxSingle} · '
-                        'bonus od 250 kredita naviše',
+                    labelText: t('Vlastiti iznos'),
+                    suffixText: t('kredita'),
+                    helperText: t(
+                      'Od {0} do {1} · bonus od 250 kredita naviše',
+                      [CreditShop.minAmount, CreditShop.maxSingle],
+                    ),
                     errorText: _error,
                   ),
                   onChanged: (v) => setState(() {
@@ -188,7 +192,7 @@ class _BuyCreditsScreenState extends ConsumerState<BuyCreditsScreen> {
                 ),
               ],
               const SizedBox(height: 22),
-              _sectionTitle('Način plaćanja'),
+              _sectionTitle(t('Način plaćanja')),
               const SizedBox(height: 10),
               for (final m in PaymentMethod.values)
                 _MethodTile(
@@ -202,15 +206,14 @@ class _BuyCreditsScreenState extends ConsumerState<BuyCreditsScreen> {
               FilledButton.icon(
                 onPressed: _credits > 0 ? _pay : null,
                 icon: const Icon(Icons.lock_outline),
-                label: Text('Plati ${formatEuro(_credits.toDouble())}'),
+                label: Text(t('Plati {0}', [formatEuro(_credits.toDouble())])),
               ),
               const SizedBox(height: 14),
               Text(
-                'Demo verzija: ništa se stvarno ne naplaćuje i ne unose se '
-                'podaci kartice. Kupljeni krediti služe isključivo za '
-                'kupnju unutar LOOP-a i ne mogu se isplatiti. '
-                'Dnevni limit: ${CreditShop.dailyLimit} kredita '
-                '(danas još ${formatCredits(left)}).',
+                t(
+                  'Demo verzija: ništa se stvarno ne naplaćuje i ne unose se podaci kartice. Kupljeni krediti služe isključivo za kupnju unutar LOOP-a i ne mogu se isplatiti. Dnevni limit: {0} kredita (danas još {1}).',
+                  [CreditShop.dailyLimit, formatCredits(left)],
+                ),
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   color: LoopColors.textSecondary,
@@ -268,7 +271,7 @@ class _Header extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Trenutno imaš',
+                  t('Trenutno imaš'),
                   style: TextStyle(color: LoopColors.textSecondary),
                 ),
                 Text(
@@ -280,7 +283,7 @@ class _Header extends StatelessWidget {
                 ),
                 if (needed != null && needed! > 0)
                   Text(
-                    'Nedostaje ti ${formatCredits(needed!)}',
+                    t('Nedostaje ti {0}', [formatCredits(needed!)]),
                     style: const TextStyle(fontWeight: FontWeight.w700),
                   ),
               ],
@@ -333,10 +336,10 @@ class _PackageTile extends StatelessWidget {
                 SizedBox(
                   height: 22,
                   child: package.popular
-                      ? _Ribbon(text: 'Najpopularnije', color: accent)
+                      ? _Ribbon(text: t('Najpopularnije'), color: accent)
                       : package.bonus > 0
                       ? _Ribbon(
-                          text: '+${package.bonus} bonus',
+                          text: t('+{0} bonus', [package.bonus]),
                           color: LoopColors.success,
                         )
                       : null,
@@ -351,8 +354,8 @@ class _PackageTile extends StatelessWidget {
                 ),
                 Text(
                   package.bonus > 0
-                      ? '+ ${package.bonus} bonus kredita'
-                      : 'kredita',
+                      ? t('+ {0} bonus kredita', [package.bonus])
+                      : t('kredita'),
                   style: TextStyle(
                     color: LoopColors.textSecondary,
                     fontSize: 12,
@@ -402,8 +405,8 @@ class _CustomTile extends StatelessWidget {
               children: [
                 Icon(Icons.edit_outlined, color: LoopColors.textSecondary),
                 const SizedBox(height: 6),
-                const Text(
-                  'Vlastiti iznos',
+                Text(
+                  t('Vlastiti iznos'),
                   style: TextStyle(fontWeight: FontWeight.w700),
                 ),
               ],
@@ -562,15 +565,16 @@ class _Summary extends StatelessWidget {
         padding: const EdgeInsets.all(16),
         child: Column(
           children: [
-            row('Krediti', formatCredits(credits.toDouble())),
-            if (bonus > 0) row('Bonus', '+ ${formatCredits(bonus.toDouble())}'),
+            row(t('Krediti'), formatCredits(credits.toDouble())),
+            if (bonus > 0)
+              row(t('Bonus'), '+ ${formatCredits(bonus.toDouble())}'),
             const Divider(height: 16),
             row(
-              'Dobivaš',
+              t('Dobivaš'),
               formatCredits((credits + bonus).toDouble()),
               bold: true,
             ),
-            row('Plaćaš', formatEuro(credits.toDouble()), bold: true),
+            row(t('Plaćaš'), formatEuro(credits.toDouble()), bold: true),
           ],
         ),
       ),
@@ -605,13 +609,15 @@ class _SuccessDialog extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 16),
-          const Text(
-            'Plaćanje uspješno! 🎉',
+          Text(
+            t('Plaćanje uspješno! 🎉'),
             style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900),
           ),
           const SizedBox(height: 6),
           Text(
-            'Na račun ti je dodano ${formatCredits(credits.toDouble())}.',
+            t('Na račun ti je dodano {0}.', [
+              formatCredits(credits.toDouble()),
+            ]),
             textAlign: TextAlign.center,
           ),
         ],
@@ -620,7 +626,7 @@ class _SuccessDialog extends StatelessWidget {
         FilledButton(
           onPressed: () => Navigator.of(context).pop(),
           style: FilledButton.styleFrom(minimumSize: const Size(120, 46)),
-          child: const Text('Super'),
+          child: Text(t('Super')),
         ),
       ],
     );

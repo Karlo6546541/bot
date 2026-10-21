@@ -11,6 +11,7 @@ import 'services/storage_service.dart';
 import 'services/sync_service.dart';
 import 'theme/app_theme.dart';
 import 'widgets/adaptive_shell.dart';
+import 'l10n/tr.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -71,7 +72,9 @@ class _BootstrapState extends State<_Bootstrap> {
                   ? Padding(
                       padding: const EdgeInsets.all(24),
                       child: Text(
-                        'Greška pri učitavanju podataka:\n${snapshot.error}',
+                        t('Greška pri učitavanju podataka:\n{0}', [
+                          snapshot.error,
+                        ]),
                         textAlign: TextAlign.center,
                       ),
                     )

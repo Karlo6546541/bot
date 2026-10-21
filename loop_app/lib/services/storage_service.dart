@@ -43,6 +43,7 @@ class StorageService {
   static const _currentUserKey = 'currentUserId';
   static const _isAdminKey = 'isAdmin';
   static const _themeKey = 'themeMode';
+  static const _langKey = 'lang';
   static const _howItWorksKey = 'howItWorksDismissed';
 
   late Box<Map> _users;
@@ -166,10 +167,12 @@ class StorageService {
     await _users.clear();
     await _devices.clear();
     await _transactions.clear();
-    // Odabrana tema je postavka uređaja, ne demo podatak — čuvamo je.
+    // Tema i jezik su postavke uređaja, ne demo podaci — čuvamo ih.
     final theme = _session.get(_themeKey);
+    final lang = _session.get(_langKey);
     await _session.clear();
     if (theme != null) await _session.put(_themeKey, theme);
+    if (lang != null) await _session.put(_langKey, lang);
     await _history.clear();
     await _auctions.clear();
     await _deliveries.clear();
@@ -353,6 +356,11 @@ class StorageService {
   String get themeMode => _session.get(_themeKey) as String? ?? 'light';
 
   Future<void> setThemeMode(String mode) => _session.put(_themeKey, mode);
+
+  /// 'hr' | 'en' (zadano: hrvatski).
+  String get lang => _session.get(_langKey) as String? ?? 'hr';
+
+  Future<void> setLang(String lang) => _session.put(_langKey, lang);
 
   bool get howItWorksDismissed => _session.get(_howItWorksKey) == true;
 

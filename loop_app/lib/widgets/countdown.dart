@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../providers/app_providers.dart';
 import '../theme/app_theme.dart';
+import '../l10n/tr.dart';
 
 /// Odbrojavanje do kraja aukcije. Osvježava se prema [tickIntervalProvider]
 /// (u testovima je statično).
@@ -22,13 +23,13 @@ class AuctionCountdown extends ConsumerStatefulWidget {
 
   /// "2 d 4 h", "3 h 05 min", "04:59", "Završava…"
   static String format(Duration left) {
-    if (left <= Duration.zero) return 'Završava…';
+    if (left <= Duration.zero) return t('Završava…');
     final d = left.inDays;
     final h = left.inHours % 24;
     final m = left.inMinutes % 60;
     final s = left.inSeconds % 60;
-    if (d > 0) return '$d d $h h';
-    if (h > 0) return '$h h ${m.toString().padLeft(2, '0')} min';
+    if (d > 0) return t('{0} d {1} h', [d, h]);
+    if (h > 0) return t('{0} h {1} min', [h, m.toString().padLeft(2, '0')]);
     return '${m.toString().padLeft(2, '0')}:${s.toString().padLeft(2, '0')}';
   }
 

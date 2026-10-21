@@ -10,6 +10,7 @@ import '../widgets/formatters.dart';
 import '../widgets/status_badge.dart';
 import '../widgets/trade_actions.dart';
 import 'admin_shell.dart';
+import '../l10n/tr.dart';
 
 class AdminUsersScreen extends ConsumerWidget {
   const AdminUsersScreen({super.key});
@@ -18,7 +19,7 @@ class AdminUsersScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final s = ref.watch(appProvider);
     if (s.users.isEmpty) {
-      return const EmptyState(icon: Icons.group_off, title: 'Nema korisnika');
+      return EmptyState(icon: Icons.group_off, title: t('Nema korisnika'));
     }
     return AdminList(
       itemCount: s.users.length,
@@ -51,8 +52,10 @@ class AdminUsersScreen extends ConsumerWidget {
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        '${formatCredits(u.credits)} · '
-                        '${s.devicesOf(u.id).length} predmeta',
+                        t('{0} · {1} predmeta', [
+                          formatCredits(u.credits),
+                          s.devicesOf(u.id).length,
+                        ]),
                         style: TextStyle(color: LoopColors.textSecondary),
                       ),
                     ],
@@ -68,11 +71,11 @@ class AdminUsersScreen extends ConsumerWidget {
                         minimumSize: const Size(0, 44),
                       ),
                       icon: const Icon(Icons.add_card, size: 18),
-                      label: const Text('Dodaj kredite'),
+                      label: Text(t('Dodaj kredite')),
                     ),
                     const SizedBox(width: 8),
                     IconButton(
-                      tooltip: 'Obriši korisnika',
+                      tooltip: t('Obriši korisnika'),
                       color: LoopColors.error,
                       onPressed: () => _delete(context, ref, u),
                       icon: const Icon(Icons.delete_outline),
@@ -100,7 +103,10 @@ class AdminUsersScreen extends ConsumerWidget {
     await runWithLoading(
       context,
       () => ref.read(appProvider.notifier).addCredits(user.id, amount),
-      successMessage: 'Dodano ${formatCredits(amount)} korisniku ${user.email}',
+      successMessage: t('Dodano {0} korisniku {1}', [
+        formatCredits(amount),
+        user.email,
+      ]),
     );
   }
 
@@ -111,18 +117,19 @@ class AdminUsersScreen extends ConsumerWidget {
   ) async {
     final ok = await confirmDialog(
       context,
-      title: 'Obrisati korisnika?',
-      message:
-          '${user.email} bit će obrisan. Njegovi predmeti vraćaju se '
-          'u Market, a transakcije ostaju u povijesti.',
-      confirmLabel: 'Obriši',
+      title: t('Obrisati korisnika?'),
+      message: t(
+        '{0} bit će obrisan. Njegovi predmeti vraćaju se u Market, a transakcije ostaju u povijesti.',
+        [user.email],
+      ),
+      confirmLabel: t('Obriši'),
       destructive: true,
     );
     if (!ok || !context.mounted) return;
     await runWithLoading(
       context,
       () => ref.read(appProvider.notifier).deleteUser(user.id),
-      successMessage: 'Korisnik obrisan',
+      successMessage: t('Korisnik obrisan'),
     );
   }
 }
@@ -148,7 +155,7 @@ class _AddCreditsDialogState extends State<_AddCreditsDialog> {
   void _submit() {
     final v = double.tryParse(_controller.text.trim().replaceAll(',', '.'));
     if (v == null || v <= 0) {
-      setState(() => _error = 'Unesi pozitivan iznos');
+      setState(() => _error = t('Unesi pozitivan iznos'));
       return;
     }
     Navigator.pop(context, v);
@@ -157,7 +164,7 @@ class _AddCreditsDialogState extends State<_AddCreditsDialog> {
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-      title: const Text('Dodaj kredite'),
+      title: Text(t('Dodaj kredite')),
       content: ConstrainedBox(
         constraints: const BoxConstraints(maxWidth: 360),
         child: Column(
@@ -191,8 +198,8 @@ class _AddCreditsDialogState extends State<_AddCreditsDialog> {
                 FilteringTextInputFormatter.allow(RegExp(r'[0-9.,]')),
               ],
               decoration: InputDecoration(
-                labelText: 'Iznos',
-                suffixText: 'kredita',
+                labelText: t('Iznos'),
+                suffixText: t('kredita'),
                 errorText: _error,
               ),
               onSubmitted: (_) => _submit(),
@@ -203,7 +210,7 @@ class _AddCreditsDialogState extends State<_AddCreditsDialog> {
       actions: [
         TextButton(
           onPressed: () => Navigator.pop(context),
-          child: const Text('Odustani'),
+          child: Text(t('Odustani')),
         ),
         FilledButton(
           onPressed: _submit,
@@ -211,7 +218,7 @@ class _AddCreditsDialogState extends State<_AddCreditsDialog> {
             backgroundColor: LoopColors.admin,
             minimumSize: const Size(0, 44),
           ),
-          child: const Text('Dodaj'),
+          child: Text(t('Dodaj')),
         ),
       ],
     );

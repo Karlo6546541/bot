@@ -1,3 +1,5 @@
+import '../l10n/tr.dart';
+
 /// Način dostave. Cijena je u kreditima; trajanje je u demo verziji
 /// ubrzano (minute umjesto dana) kako bi se statusi mogli vidjeti uživo.
 enum DeliveryMethod {
@@ -8,15 +10,17 @@ enum DeliveryMethod {
   digital('Digitalna dostava', 'Ulaznica/vaučer na e-mail · odmah', 0, 1, 0);
 
   const DeliveryMethod(
-    this.label,
-    this.subtitle,
+    this._label,
+    this._subtitle,
     this.cost,
     this.demoMinutes,
     this.realDays,
   );
 
-  final String label;
-  final String subtitle;
+  final String _label;
+  String get label => t(_label);
+  final String _subtitle;
+  String get subtitle => t(_subtitle);
 
   /// Cijena dostave u kreditima.
   final double cost;
@@ -48,8 +52,9 @@ enum DeliveryStatus {
   sent('Poslano e-mailom'),
   delivered('Dostavljeno');
 
-  const DeliveryStatus(this.label);
-  final String label;
+  const DeliveryStatus(this._label);
+  final String _label;
+  String get label => t(_label);
 }
 
 /// Fiktivni paketomati za demo.

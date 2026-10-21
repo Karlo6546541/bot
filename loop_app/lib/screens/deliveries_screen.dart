@@ -12,6 +12,7 @@ import '../widgets/delivery_picker.dart';
 import '../widgets/empty_state.dart';
 import '../widgets/formatters.dart';
 import '../widgets/trade_actions.dart';
+import '../l10n/tr.dart';
 
 /// Moje dostave: pošiljke s vremenskom crtom statusa.
 class DeliveriesScreen extends ConsumerStatefulWidget {
@@ -50,14 +51,14 @@ class _DeliveriesScreenState extends ConsumerState<DeliveriesScreen> {
   Widget build(BuildContext context) {
     final list = ref.watch(appProvider.select((s) => s.myDeliveries));
     return Scaffold(
-      appBar: AppBar(title: const Text('Moje dostave')),
+      appBar: AppBar(title: Text(t('Moje dostave'))),
       body: list.isEmpty
-          ? const EmptyState(
+          ? EmptyState(
               icon: Icons.local_shipping_outlined,
-              title: 'Još nema dostava',
-              message:
-                  'Kad nešto kupiš ili osvojiš na aukciji, pošiljka '
-                  'će se pojaviti ovdje.',
+              title: t('Još nema dostava'),
+              message: t(
+                'Kad nešto kupiš ili osvojiš na aukciji, pošiljka će se pojaviti ovdje.',
+              ),
             )
           : Align(
               alignment: Alignment.topCenter,
@@ -72,9 +73,10 @@ class _DeliveriesScreenState extends ConsumerState<DeliveriesScreen> {
                         color: LoopColors.sky,
                         borderRadius: BorderRadius.circular(kRadius),
                       ),
-                      child: const Text(
-                        '🚚 Demo: dostava je ubrzana — umjesto dana traje '
-                        'nekoliko minuta, pa statuse možeš pratiti uživo.',
+                      child: Text(
+                        t(
+                          '🚚 Demo: dostava je ubrzana — umjesto dana traje nekoliko minuta, pa statuse možeš pratiti uživo.',
+                        ),
                       ),
                     ),
                     const SizedBox(height: 12),
@@ -119,7 +121,7 @@ class DeliveryCard extends ConsumerWidget {
       () => ref
           .read(appProvider.notifier)
           .chooseDelivery(delivery.id, choice.method, choice.destination),
-      successMessage: 'Dostava je krenula 🚚',
+      successMessage: t('Dostava je krenula 🚚'),
     );
   }
 
@@ -168,7 +170,7 @@ class DeliveryCard extends ConsumerWidget {
                       ),
                       Text(
                         m == null
-                            ? 'Osvojeno na aukciji · odaberi dostavu'
+                            ? t('Osvojeno na aukciji · odaberi dostavu')
                             : '${m.label}${d.destination != null ? ' · ${d.destination}' : ''}',
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
@@ -187,7 +189,7 @@ class DeliveryCard extends ConsumerWidget {
               FilledButton.icon(
                 onPressed: () => _choose(context, ref),
                 icon: const Icon(Icons.local_shipping_outlined),
-                label: const Text('Odaberi dostavu'),
+                label: Text(t('Odaberi dostavu')),
               ),
             ] else ...[
               const SizedBox(height: 14),
@@ -232,7 +234,7 @@ class DeliveryCard extends ConsumerWidget {
                         Clipboard.setData(
                           ClipboardData(text: d.trackingNumber!),
                         );
-                        showLoopSnackBar('Broj pošiljke kopiran');
+                        showLoopSnackBar(t('Broj pošiljke kopiran'));
                       },
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
@@ -255,12 +257,12 @@ class DeliveryCard extends ConsumerWidget {
                     ),
                   if (!delivered && d.eta() != null)
                     Text(
-                      'Stiže oko ${formatDateTime(d.eta()!)}',
+                      t('Stiže oko {0}', [formatDateTime(d.eta()!)]),
                       style: TextStyle(color: LoopColors.textSecondary),
                     ),
                   if (d.confirmedAt != null)
                     Text(
-                      'Primitak potvrđen ✅',
+                      t('Primitak potvrđen ✅'),
                       style: TextStyle(color: LoopColors.success),
                     ),
                 ],
@@ -271,10 +273,10 @@ class DeliveryCard extends ConsumerWidget {
                   onPressed: () => runWithLoading(
                     context,
                     () => ref.read(appProvider.notifier).confirmReceipt(d.id),
-                    successMessage: 'Hvala! Primitak potvrđen.',
+                    successMessage: t('Hvala! Primitak potvrđen.'),
                   ),
                   icon: const Icon(Icons.task_alt),
-                  label: const Text('Potvrdi primitak'),
+                  label: Text(t('Potvrdi primitak')),
                 ),
               ],
             ],
@@ -326,8 +328,8 @@ class _ChooseSheetState extends State<_ChooseSheet> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            const Text(
-              'Kako želiš preuzeti predmet?',
+            Text(
+              t('Kako želiš preuzeti predmet?'),
               style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900),
             ),
             const SizedBox(height: 12),
@@ -358,8 +360,8 @@ class _ChooseSheetState extends State<_ChooseSheet> {
                     },
               child: Text(
                 _choice == null || _choice!.method.cost == 0
-                    ? 'Potvrdi dostavu'
-                    : 'Potvrdi · ${formatCredits(_choice!.method.cost)}',
+                    ? t('Potvrdi dostavu')
+                    : t('Potvrdi · {0}', [formatCredits(_choice!.method.cost)]),
               ),
             ),
           ],

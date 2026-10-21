@@ -11,6 +11,7 @@ import '../widgets/empty_state.dart';
 import '../widgets/formatters.dart';
 import '../widgets/item_image.dart';
 import 'auction_detail_screen.dart';
+import '../l10n/tr.dart';
 
 /// Prikaz u odjeljku Aukcije.
 enum AuctionView {
@@ -19,8 +20,9 @@ enum AuctionView {
   mine('Moje aukcije', Icons.storefront_outlined),
   ended('Završene', Icons.history);
 
-  const AuctionView(this.label, this.icon);
-  final String label;
+  const AuctionView(this._label, this.icon);
+  final String _label;
+  String get label => t(_label);
   final IconData icon;
 }
 
@@ -32,8 +34,9 @@ enum AuctionRole {
   won('Osvojeno', Icons.emoji_events),
   none('', Icons.circle);
 
-  const AuctionRole(this.label, this.icon);
-  final String label;
+  const AuctionRole(this._label, this.icon);
+  final String _label;
+  String get label => t(_label);
   final IconData icon;
 
   /// Boja ovisi o temi, pa je getter (enum vrijednosti moraju biti const).
@@ -118,13 +121,13 @@ class _AuctionsScreenState extends ConsumerState<AuctionsScreen> {
             child: EmptyState(
               icon: Icons.gavel,
               title: switch (_view) {
-                AuctionView.live => 'Trenutno nema aukcija',
-                AuctionView.myBids => 'Još nisi dao nijednu ponudu',
-                AuctionView.mine => 'Nemaš svojih aukcija',
-                AuctionView.ended => 'Još nema završenih aukcija',
+                AuctionView.live => t('Trenutno nema aukcija'),
+                AuctionView.myBids => t('Još nisi dao nijednu ponudu'),
+                AuctionView.mine => t('Nemaš svojih aukcija'),
+                AuctionView.ended => t('Još nema završenih aukcija'),
               },
               message: _view == AuctionView.mine || _view == AuctionView.live
-                  ? 'Objavi predmet iz svog portfolija gumbom "Nova aukcija".'
+                  ? t('Objavi predmet iz svog portfolija gumbom "Nova aukcija".')
                   : null,
             ),
           )
@@ -157,33 +160,29 @@ class _RulesBanner extends StatelessWidget {
   final double credits;
   final double held;
 
-  static const _rules =
-      'Ponude su obvezujuće i ne mogu se povući. Iznos vodeće ponude se '
-      'blokira i vraća ti se čim te netko nadmaši. Ponuda ne može biti '
-      'veća od raspoloživih kredita.';
+  static String get _rules => t(
+    'Ponude su obvezujuće i ne mogu se povući. Iznos vodeće ponude se blokira i vraća ti se čim te netko nadmaši. Ponuda ne može biti veća od raspoloživih kredita.',
+  );
 
   void _showRules(BuildContext context) => showModalBottomSheet<void>(
     context: context,
     showDragHandle: true,
     backgroundColor: LoopColors.surface,
-    builder: (_) => const Padding(
+    builder: (_) => Padding(
       padding: EdgeInsets.fromLTRB(24, 0, 24, 32),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Pravila aukcija',
+            t('Pravila aukcija'),
             style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900),
           ),
           SizedBox(height: 12),
           Text(
-            '🔒  Ponuda je obvezujuća — ne može se povući ni smanjiti.\n\n'
-            '🥇  Dok vodiš, ne možeš licitirati ponovno.\n\n'
-            '🪙  Ponuda ne može biti veća od tvojih kredita. Iznos vodeće '
-            'ponude se blokira i vraća čim te netko nadmaši.\n\n'
-            '⏱️  Ponuda u zadnjoj minuti produljuje aukciju za 1 minutu.\n\n'
-            '🎁  Pobjednik dobiva predmet, prodavatelj ponudu − 5% fee.',
+            t(
+              '🔒  Ponuda je obvezujuća — ne može se povući ni smanjiti.\n\n🥇  Dok vodiš, ne možeš licitirati ponovno.\n\n🪙  Ponuda ne može biti veća od tvojih kredita. Iznos vodeće ponude se blokira i vraća čim te netko nadmaši.\n\n⏱️  Ponuda u zadnjoj minuti produljuje aukciju za 1 minutu.\n\n🎁  Pobjednik dobiva predmet, prodavatelj ponudu − 5% fee.',
+            ),
             style: TextStyle(height: 1.4, fontSize: 15),
           ),
         ],
@@ -205,8 +204,8 @@ class _RulesBanner extends StatelessWidget {
             padding: const EdgeInsets.fromLTRB(14, 10, 8, 10),
             child: Row(
               children: [
-                Expanded(child: _Kv('Raspoloživo', formatCredits(credits))),
-                Expanded(child: _Kv('Blokirano', formatCredits(held))),
+                Expanded(child: _Kv(t('Raspoloživo'), formatCredits(credits))),
+                Expanded(child: _Kv(t('Blokirano'), formatCredits(held))),
                 Icon(Icons.info_outline, color: LoopColors.textSecondary),
                 const SizedBox(width: 6),
               ],
@@ -229,8 +228,8 @@ class _RulesBanner extends StatelessWidget {
             spacing: 20,
             runSpacing: 6,
             children: [
-              _Kv('Raspoloživo za ponude', formatCredits(credits)),
-              _Kv('Blokirano u vodećim ponudama', formatCredits(held)),
+              _Kv(t('Raspoloživo za ponude'), formatCredits(credits)),
+              _Kv(t('Blokirano u vodećim ponudama'), formatCredits(held)),
             ],
           ),
           const SizedBox(height: 8),
@@ -321,8 +320,8 @@ class AuctionCard extends ConsumerWidget {
                         ),
                         Text(
                           a.sellerId == viewerId
-                              ? 'Prodaješ ti'
-                              : 'Prodaje ${a.sellerLabel}',
+                              ? t('Prodaješ ti')
+                              : t('Prodaje {0}', [a.sellerLabel]),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: TextStyle(
@@ -345,7 +344,9 @@ class AuctionCard extends ConsumerWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          a.bids.isEmpty ? 'Početna cijena' : 'Najviša ponuda',
+                          a.bids.isEmpty
+                              ? t('Početna cijena')
+                              : t('Najviša ponuda'),
                           style: TextStyle(
                             color: LoopColors.textSecondary,
                             fontSize: 12,
@@ -369,8 +370,9 @@ class AuctionCard extends ConsumerWidget {
                     crossAxisAlignment: CrossAxisAlignment.end,
                     children: [
                       Text(
-                        '${a.bids.length} '
-                        '${a.bids.length == 1 ? 'ponuda' : 'ponuda'}',
+                        a.bids.length == 1
+                            ? t('1 ponuda')
+                            : t('{0} ponuda', [a.bids.length]),
                         style: TextStyle(
                           color: LoopColors.textSecondary,
                           fontSize: 12,

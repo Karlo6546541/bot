@@ -1,3 +1,5 @@
+import '../l10n/tr.dart';
+
 /// Glavni odjeljak Marketa. Svaka kategorija pripada jednom odjeljku.
 enum ItemSection {
   electronics('Elektronika'),
@@ -6,8 +8,9 @@ enum ItemSection {
   crafts('Rukotvorine'),
   activities('Aktivnosti');
 
-  const ItemSection(this.label);
-  final String label;
+  const ItemSection(this._label);
+  final String _label;
+  String get label => t(_label);
 
   List<DeviceCategory> get categories =>
       DeviceCategory.values.where((c) => c.section == this).toList();
@@ -53,13 +56,15 @@ enum DeviceCategory {
   tickets('Ulaznice', 'Ulaznica', ItemSection.activities),
   experiences('Doživljaji', 'Doživljaj', ItemSection.activities);
 
-  const DeviceCategory(this.label, this.singular, this.section);
+  const DeviceCategory(this._label, this._singular, this.section);
 
   /// Množina — za filtere i grupe ("Mobiteli").
-  final String label;
+  final String _label;
+  String get label => t(_label);
 
   /// Jednina — za karticu i formu ("Mobitel").
-  final String singular;
+  final String _singular;
+  String get singular => t(_singular);
 
   final ItemSection section;
 
@@ -75,8 +80,9 @@ enum DeviceCondition {
   good('Dobro'),
   forParts('Za dijelove');
 
-  const DeviceCondition(this.label);
-  final String label;
+  const DeviceCondition(this._label);
+  final String _label;
+  String get label => t(_label);
 
   static DeviceCondition fromName(String? name) => DeviceCondition.values
       .firstWhere((c) => c.name == name, orElse: () => DeviceCondition.good);

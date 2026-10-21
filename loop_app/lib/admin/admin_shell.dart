@@ -9,6 +9,8 @@ import 'admin_dashboard_screen.dart';
 import 'admin_devices_screen.dart';
 import 'admin_transactions_screen.dart';
 import 'admin_users_screen.dart';
+import '../l10n/tr.dart';
+import '../widgets/language_button.dart';
 
 /// Admin panel. Koristi narančasti akcent i poseban AppBar kako bi bio
 /// jasno vizualno odvojen od korisničkog dijela aplikacije.
@@ -22,12 +24,16 @@ class AdminShell extends ConsumerStatefulWidget {
 class _AdminShellState extends ConsumerState<AdminShell> {
   int _index = 0;
 
-  static const _destinations = [
+  static List<ShellDestination> get _destinations => [
     ShellDestination('Dashboard', Icons.dashboard_outlined, Icons.dashboard),
-    ShellDestination('Korisnici', Icons.group_outlined, Icons.group),
-    ShellDestination('Predmeti', Icons.inventory_2_outlined, Icons.inventory_2),
-    ShellDestination('Aukcije', Icons.gavel_outlined, Icons.gavel),
-    ShellDestination('Transakcije', Icons.swap_horiz, Icons.swap_horiz),
+    ShellDestination(t('Korisnici'), Icons.group_outlined, Icons.group),
+    ShellDestination(
+      t('Predmeti'),
+      Icons.inventory_2_outlined,
+      Icons.inventory_2,
+    ),
+    ShellDestination(t('Aukcije'), Icons.gavel_outlined, Icons.gavel),
+    ShellDestination(t('Transakcije'), Icons.swap_horiz, Icons.swap_horiz),
   ];
 
   @override
@@ -53,17 +59,19 @@ class _AdminShellState extends ConsumerState<AdminShell> {
             const SizedBox(width: 10),
             Flexible(
               child: Text(
-                'LOOP Admin · ${_destinations[_index].label}',
+                t('LOOP Admin · {0}', [_destinations[_index].label]),
                 overflow: TextOverflow.ellipsis,
               ),
             ),
           ],
         ),
         actions: [
+          const LanguageButton(),
+          const SizedBox(width: 8),
           TextButton.icon(
             onPressed: () => ref.read(appProvider.notifier).logout(),
             icon: const Icon(Icons.logout),
-            label: const Text('Odjava'),
+            label: Text(t('Odjava')),
           ),
           const SizedBox(width: 8),
         ],

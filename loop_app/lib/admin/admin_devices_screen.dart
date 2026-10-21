@@ -9,6 +9,7 @@ import '../widgets/empty_state.dart';
 import '../widgets/formatters.dart';
 import '../widgets/trade_actions.dart';
 import 'admin_shell.dart';
+import '../l10n/tr.dart';
 
 class AdminDevicesScreen extends ConsumerWidget {
   const AdminDevicesScreen({super.key});
@@ -17,10 +18,7 @@ class AdminDevicesScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final s = ref.watch(appProvider);
     if (s.devices.isEmpty) {
-      return const EmptyState(
-        icon: Icons.devices_other,
-        title: 'Nema predmeta',
-      );
+      return EmptyState(icon: Icons.devices_other, title: t('Nema predmeta'));
     }
     return AdminList(
       itemCount: s.devices.length,
@@ -39,13 +37,16 @@ class AdminDevicesScreen extends ConsumerWidget {
               style: const TextStyle(fontWeight: FontWeight.w700),
             ),
             subtitle: Text(
-              '${d.condition.label} · ${formatCredits(d.price)}\n'
-              'Vlasnik: $owner',
+              t('{0} · {1}\nVlasnik: {2}', [
+                d.condition.label,
+                formatCredits(d.price),
+                owner,
+              ]),
               style: TextStyle(color: LoopColors.textSecondary),
             ),
             isThreeLine: true,
             trailing: IconButton(
-              tooltip: 'Obriši predmet',
+              tooltip: t('Obriši predmet'),
               color: LoopColors.error,
               icon: const Icon(Icons.delete_outline),
               onPressed: () => _delete(context, ref, d),
@@ -59,16 +60,16 @@ class AdminDevicesScreen extends ConsumerWidget {
   Future<void> _delete(BuildContext context, WidgetRef ref, Device d) async {
     final ok = await confirmDialog(
       context,
-      title: 'Obrisati predmet?',
-      message: '${d.name} (${d.model}) bit će trajno uklonjen.',
-      confirmLabel: 'Obriši',
+      title: t('Obrisati predmet?'),
+      message: t('{0} ({1}) bit će trajno uklonjen.', [d.name, d.model]),
+      confirmLabel: t('Obriši'),
       destructive: true,
     );
     if (!ok || !context.mounted) return;
     await runWithLoading(
       context,
       () => ref.read(appProvider.notifier).deleteDevice(d.id),
-      successMessage: 'Predmet obrisan',
+      successMessage: t('Predmet obrisan'),
     );
   }
 }

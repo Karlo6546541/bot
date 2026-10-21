@@ -1,3 +1,5 @@
+import '../l10n/tr.dart';
+
 /// Stanje aukcije.
 enum AuctionStatus {
   active('U tijeku'),
@@ -5,8 +7,9 @@ enum AuctionStatus {
   unsold('Bez ponuda'),
   cancelled('Otkazano');
 
-  const AuctionStatus(this.label);
-  final String label;
+  const AuctionStatus(this._label);
+  final String _label;
+  String get label => t(_label);
 
   static AuctionStatus fromName(String? name) => AuctionStatus.values
       .firstWhere((s) => s.name == name, orElse: () => AuctionStatus.cancelled);

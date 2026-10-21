@@ -8,6 +8,7 @@ import 'delivery_service.dart';
 import 'fee.dart';
 import 'storage_service.dart';
 import 'trade_service.dart';
+import '../l10n/tr.dart';
 
 /// Ishod završene aukcije (za obavijesti sudionicima).
 class AuctionResult {
@@ -35,12 +36,12 @@ class AuctionService {
   static const extendWindow = Duration(minutes: 1);
 
   /// Ponuđena trajanja (2 minute služe za brzo testiranje demo verzije).
-  static const durations = <(String, Duration)>[
-    ('2 min (test)', Duration(minutes: 2)),
-    ('1 sat', Duration(hours: 1)),
-    ('24 sata', Duration(hours: 24)),
-    ('3 dana', Duration(days: 3)),
-    ('7 dana', Duration(days: 7)),
+  static List<(String, Duration)> get durations => [
+    (t('2 min (test)'), Duration(minutes: 2)),
+    (t('1 sat'), Duration(hours: 1)),
+    (t('24 sata'), Duration(hours: 24)),
+    (t('3 dana'), Duration(days: 3)),
+    (t('7 dana'), Duration(days: 7)),
   ];
 
   // ------------------------------------------------------------ objava
@@ -56,19 +57,19 @@ class AuctionService {
     final user = _storage.userById(userId);
     final device = _storage.deviceById(deviceId);
     if (user == null || device == null) {
-      throw const TradeException('Predmet ne postoji.');
+      throw TradeException(t('Predmet ne postoji.'));
     }
     if (device.ownerId != userId) {
-      throw const TradeException('Na aukciju možeš staviti samo svoj predmet.');
+      throw TradeException(t('Na aukciju možeš staviti samo svoj predmet.'));
     }
     if (_storage.activeAuctionFor(deviceId) != null) {
-      throw const TradeException('Predmet je već na aukciji.');
+      throw TradeException(t('Predmet je već na aukciji.'));
     }
     if (startPrice <= 0) {
-      throw const TradeException('Početna cijena mora biti veća od 0.');
+      throw TradeException(t('Početna cijena mora biti veća od 0.'));
     }
     if (duration <= Duration.zero) {
-      throw const TradeException('Odaberi trajanje aukcije.');
+      throw TradeException(t('Odaberi trajanje aukcije.'));
     }
     // Pravila protiv masovnog objavljivanja (limit, naknada, pauza…).
     final reason = policy.blockReason(userId, device, now: at);
@@ -121,30 +122,32 @@ class AuctionService {
     final at = now ?? DateTime.now();
     final a = _requireAuction(auctionId);
     final user = _storage.userById(userId);
-    if (user == null) throw const TradeException('Korisnik ne postoji.');
+    if (user == null) throw TradeException(t('Korisnik ne postoji.'));
 
     if (!a.isActive || a.isExpired(at)) {
-      throw const TradeException('Aukcija je završila.');
+      throw TradeException(t('Aukcija je završila.'));
     }
     if (a.sellerId == userId) {
-      throw const TradeException('Ne možeš licitirati na svoju aukciju.');
+      throw TradeException(t('Ne možeš licitirati na svoju aukciju.'));
     }
     if (a.highestBid?.userId == userId) {
-      throw const TradeException(
-        'Već imaš najvišu ponudu. Ponuda je obvezujuća i ne može se '
-        'povući ni promijeniti dok te netko ne nadmaši.',
+      throw TradeException(
+        t(
+          'Već imaš najvišu ponudu. Ponuda je obvezujuća i ne može se povući ni promijeniti dok te netko ne nadmaši.',
+        ),
       );
     }
     final bid = roundCredits(amount);
     if (bid < a.minNextBid) {
       throw TradeException(
-        'Najmanja ponuda je ${formatCredits(a.minNextBid)}.',
+        t('Najmanja ponuda je {0}.', [formatCredits(a.minNextBid)]),
       );
     }
     if (bid > user.credits) {
       throw TradeException(
-        'Ponuda ne može biti veća od tvojih kredita '
-        '(${formatCredits(user.credits)}).',
+        t('Ponuda ne može biti veća od tvojih kredita ({0}).', [
+          formatCredits(user.credits),
+        ]),
       );
     }
 
@@ -173,12 +176,12 @@ class AuctionService {
   Future<void> cancelBySeller(String userId, String auctionId) async {
     final a = _requireAuction(auctionId);
     if (a.sellerId != userId) {
-      throw const TradeException('Samo prodavatelj može otkazati aukciju.');
+      throw TradeException(t('Samo prodavatelj može otkazati aukciju.'));
     }
-    if (!a.isActive) throw const TradeException('Aukcija je već završila.');
+    if (!a.isActive) throw TradeException(t('Aukcija je već završila.'));
     if (a.bids.isNotEmpty) {
-      throw const TradeException(
-        'Aukcija s ponudama ne može se otkazati — ponude su obvezujuće.',
+      throw TradeException(
+        t('Aukcija s ponudama ne može se otkazati — ponude su obvezujuće.'),
       );
     }
     await _storage.putAuction(a.copyWith(status: AuctionStatus.cancelled));
@@ -297,7 +300,7 @@ class AuctionService {
 
   Auction _requireAuction(String id) {
     final a = _storage.auctionById(id);
-    if (a == null) throw const TradeException('Aukcija ne postoji.');
+    if (a == null) throw TradeException(t('Aukcija ne postoji.'));
     return a;
   }
 }

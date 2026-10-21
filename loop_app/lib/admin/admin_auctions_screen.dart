@@ -9,6 +9,7 @@ import '../widgets/empty_state.dart';
 import '../widgets/formatters.dart';
 import '../widgets/trade_actions.dart';
 import 'admin_shell.dart';
+import '../l10n/tr.dart';
 
 /// Pregled svih aukcija; admin može otkazati aktivnu aukciju
 /// (vodeća ponuda se vraća ponuđaču).
@@ -19,7 +20,7 @@ class AdminAuctionsScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final auctions = ref.watch(appProvider.select((s) => s.auctions));
     if (auctions.isEmpty) {
-      return const EmptyState(icon: Icons.gavel, title: 'Nema aukcija');
+      return EmptyState(icon: Icons.gavel, title: t('Nema aukcija'));
     }
     // Aktivne prve, zatim završene.
     final list = [
@@ -48,8 +49,11 @@ class AdminAuctionsScreen extends ConsumerWidget {
                       ),
                       const SizedBox(height: 2),
                       Text(
-                        'Prodavatelj: ${a.sellerLabel} · ${a.bids.length} ponuda'
-                        '${top != null ? ' · vodi ${top.userLabel}' : ''}',
+                        t('Prodavatelj: {0} · {1} ponuda{2}', [
+                          a.sellerLabel,
+                          a.bids.length,
+                          top != null ? t(' · vodi {0}', [top.userLabel]) : '',
+                        ]),
                         style: TextStyle(
                           color: LoopColors.textSecondary,
                           fontSize: 12,
@@ -83,7 +87,7 @@ class AdminAuctionsScreen extends ConsumerWidget {
                       foregroundColor: LoopColors.error,
                     ),
                     icon: const Icon(Icons.cancel_outlined),
-                    label: const Text('Otkaži'),
+                    label: Text(t('Otkaži')),
                   ),
               ],
             ),
@@ -96,18 +100,23 @@ class AdminAuctionsScreen extends ConsumerWidget {
   Future<void> _cancel(BuildContext context, WidgetRef ref, Auction a) async {
     final ok = await confirmDialog(
       context,
-      title: 'Otkazati aukciju?',
-      message:
-          '"${a.deviceName}" ostaje prodavatelju. '
-          '${a.highestBid != null ? 'Vodeća ponuda (${formatCredits(a.highestBid!.amount)}) vraća se ponuđaču.' : ''}',
-      confirmLabel: 'Otkaži',
+      title: t('Otkazati aukciju?'),
+      message: t('"{0}" ostaje prodavatelju. {1}', [
+        a.deviceName,
+        a.highestBid != null
+            ? t('Vodeća ponuda ({0}) vraća se ponuđaču.', [
+                formatCredits(a.highestBid!.amount),
+              ])
+            : '',
+      ]),
+      confirmLabel: t('Otkaži'),
       destructive: true,
     );
     if (!ok || !context.mounted) return;
     await runWithLoading(
       context,
       () => ref.read(appProvider.notifier).adminCancelAuction(a.id),
-      successMessage: 'Aukcija otkazana',
+      successMessage: t('Aukcija otkazana'),
     );
   }
 }

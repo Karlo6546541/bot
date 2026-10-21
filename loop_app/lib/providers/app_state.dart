@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart' show ThemeMode;
 
+import '../l10n/tr.dart';
 import '../models/app_user.dart';
 import '../models/auction.dart';
 import '../models/delivery.dart';
@@ -22,6 +23,7 @@ class AppState {
     this.auctions = const [],
     this.deliveries = const [],
     this.themeMode = ThemeMode.light,
+    this.lang = AppLang.hr,
     this.showHowItWorks = true,
   });
 
@@ -42,6 +44,7 @@ class AppState {
         (m) => m.name == storage.themeMode,
         orElse: () => ThemeMode.light,
       ),
+      lang: AppLang.fromName(storage.lang),
       showHowItWorks: !storage.howItWorksDismissed,
       deliveries: [...storage.deliveries]
         ..sort((a, b) => b.createdAt.compareTo(a.createdAt)),
@@ -64,6 +67,9 @@ class AppState {
 
   /// Odabrana tema (svijetla / tamna / prema sustavu).
   final ThemeMode themeMode;
+
+  /// Jezik sučelja.
+  final AppLang lang;
 
   /// Prikazati karticu "Kako LOOP radi" na početnoj.
   final bool showHowItWorks;

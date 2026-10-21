@@ -6,6 +6,7 @@ import '../models/user_status.dart';
 import '../utils/formatters.dart';
 import 'fee.dart';
 import 'storage_service.dart';
+import '../l10n/tr.dart';
 
 /// Pravila koja sprječavaju masovno stavljanje svega na aukcije.
 ///
@@ -83,26 +84,36 @@ class AuctionPolicy {
     final status = statusOf(userId);
     final limit = maxActiveFor(status);
     if (activeCount(userId) >= limit) {
-      return 'Imaš već $limit aktivne aukcije — najviše za status '
-          '${status.label}. Pričekaj da neka završi ili prodaj na Marketu.';
+      return t(
+        'Imaš već {0} aktivne aukcije — najviše za status {1}. Pričekaj da neka završi ili prodaj na Marketu.',
+        [limit, status.label],
+      );
     }
     if (createdLast24h(userId, now: now) >= maxNewPerDay) {
-      return 'Danas si već objavio $maxNewPerDay aukcije. Nove možeš sutra.';
+      return t('Danas si već objavio {0} aukcije. Nove možeš sutra.', [
+        maxNewPerDay,
+      ]);
     }
     if (device.price < minItemValue) {
-      return 'Na aukciju idu predmeti vrijedni barem '
-          '${formatCredits(minItemValue)}. Ovaj prodaj na Marketu.';
+      return t(
+        'Na aukciju idu predmeti vrijedni barem {0}. Ovaj prodaj na Marketu.',
+        [formatCredits(minItemValue)],
+      );
     }
     final until = cooldownUntil(device.id, now: now);
     if (until != null) {
-      return 'Ovaj predmet se nije prodao na aukciji. Ponovno ga možeš '
-          'objaviti od ${formatDateTime(until)} — ili ga prodaj odmah.';
+      return t(
+        'Ovaj predmet se nije prodao na aukciji. Ponovno ga možeš objaviti od {0} — ili ga prodaj odmah.',
+        [formatDateTime(until)],
+      );
     }
     final user = _storage.userById(userId);
     final fee = listingFee(device);
     if (user != null && user.credits < fee) {
-      return 'Za naknadu objave treba ${formatCredits(fee)}, '
-          'a imaš ${formatCredits(user.credits)}.';
+      return t('Za naknadu objave treba {0}, a imaš {1}.', [
+        formatCredits(fee),
+        formatCredits(user.credits),
+      ]);
     }
     return null;
   }

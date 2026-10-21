@@ -7,6 +7,7 @@ import '../theme/app_theme.dart';
 import '../widgets/empty_state.dart';
 import '../widgets/formatters.dart';
 import 'admin_shell.dart';
+import '../l10n/tr.dart';
 
 class AdminTransactionsScreen extends ConsumerWidget {
   const AdminTransactionsScreen({super.key});
@@ -15,9 +16,9 @@ class AdminTransactionsScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final txs = ref.watch(appProvider.select((s) => s.transactions));
     if (txs.isEmpty) {
-      return const EmptyState(
+      return EmptyState(
         icon: Icons.swap_horiz,
-        title: 'Još nema transakcija',
+        title: t('Još nema transakcija'),
       );
     }
     return AdminList(
@@ -53,7 +54,7 @@ class _TxCard extends StatelessWidget {
                     borderRadius: BorderRadius.circular(999),
                   ),
                   child: Text(
-                    '${tx.isAuction ? 'Aukcija · ' : ''}${tx.type.label}',
+                    '${tx.isAuction ? t('Aukcija · ') : ''}${tx.type.label}',
                     style: TextStyle(
                       color: isSell ? LoopColors.success : LoopColors.admin,
                       fontWeight: FontWeight.w700,
@@ -83,19 +84,19 @@ class _TxCard extends StatelessWidget {
               spacing: 28,
               runSpacing: 8,
               children: [
-                _Field('Buyer', tx.buyerLabel),
-                _Field('Seller', tx.sellerLabel),
+                _Field(t('Buyer'), tx.buyerLabel),
+                _Field(t('Seller'), tx.sellerLabel),
                 if (tx.type == TransactionType.topUp) ...[
-                  _Field('Plaćeno', formatEuro(tx.price)),
-                  _Field('Krediti', formatCredits(tx.amount)),
+                  _Field(t('Plaćeno'), formatEuro(tx.price)),
+                  _Field(t('Krediti'), formatCredits(tx.amount)),
                 ] else if (tx.type == TransactionType.delivery) ...[
-                  _Field('Dostava', formatCredits(tx.amount)),
+                  _Field(t('Dostava'), formatCredits(tx.amount)),
                 ] else if (tx.type == TransactionType.auctionFee) ...[
-                  _Field('Naknada za objavu', formatCredits(tx.fee)),
+                  _Field(t('Naknada za objavu'), formatCredits(tx.fee)),
                 ] else ...[
-                  _Field('Cijena', formatCredits(tx.price)),
-                  _Field('Iznos', formatCredits(tx.amount)),
-                  _Field('Fee', formatCredits(tx.fee)),
+                  _Field(t('Cijena'), formatCredits(tx.price)),
+                  _Field(t('Iznos'), formatCredits(tx.amount)),
+                  _Field(t('Fee'), formatCredits(tx.fee)),
                 ],
               ],
             ),

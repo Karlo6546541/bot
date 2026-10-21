@@ -15,6 +15,7 @@ import '../widgets/formatters.dart';
 import '../widgets/item_image.dart';
 import '../widgets/trade_actions.dart';
 import 'auction_detail_screen.dart';
+import '../l10n/tr.dart';
 
 /// Objava aukcije za predmet iz vlastitog portfolija.
 class CreateAuctionScreen extends ConsumerStatefulWidget {
@@ -72,7 +73,7 @@ class _CreateAuctionScreenState extends ConsumerState<CreateAuctionScreen> {
     final price = _price;
     if (_deviceId == null) return;
     if (price == null || price <= 0) {
-      setState(() => _error = 'Unesi početnu cijenu veću od 0');
+      setState(() => _error = t('Unesi početnu cijenu veću od 0'));
       return;
     }
     Auction? created;
@@ -85,7 +86,7 @@ class _CreateAuctionScreenState extends ConsumerState<CreateAuctionScreen> {
             startPrice: price,
             duration: _duration,
           ),
-      successMessage: 'Aukcija je objavljena',
+      successMessage: t('Aukcija je objavljena'),
     );
     if (!ok || !mounted || created == null) return;
     Navigator.of(context).pushReplacement(
@@ -110,12 +111,12 @@ class _CreateAuctionScreenState extends ConsumerState<CreateAuctionScreen> {
     final fee = selected == null ? 0.0 : AuctionPolicy.listingFee(selected);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Nova aukcija')),
+      appBar: AppBar(title: Text(t('Nova aukcija'))),
       body: eligible.isEmpty && selected == null
-          ? const EmptyState(
+          ? EmptyState(
               icon: Icons.inventory_2_outlined,
-              title: 'Nemaš predmeta za aukciju',
-              message: 'Dodaj predmet u portfolio ili kupi nešto u Marketu.',
+              title: t('Nemaš predmeta za aukciju'),
+              message: t('Dodaj predmet u portfolio ili kupi nešto u Marketu.'),
             )
           : Align(
               alignment: Alignment.topCenter,
@@ -131,8 +132,8 @@ class _CreateAuctionScreenState extends ConsumerState<CreateAuctionScreen> {
                       today: policy.createdLast24h(me),
                     ),
                     const SizedBox(height: 16),
-                    const Text(
-                      '1. Odaberi predmet',
+                    Text(
+                      t('1. Odaberi predmet'),
                       style: TextStyle(fontWeight: FontWeight.w700),
                     ),
                     const SizedBox(height: 8),
@@ -152,8 +153,8 @@ class _CreateAuctionScreenState extends ConsumerState<CreateAuctionScreen> {
                     ),
                     if (selected != null) ...[
                       const SizedBox(height: 20),
-                      const Text(
-                        '2. Početna cijena',
+                      Text(
+                        t('2. Početna cijena'),
                         style: TextStyle(fontWeight: FontWeight.w700),
                       ),
                       const SizedBox(height: 8),
@@ -166,17 +167,18 @@ class _CreateAuctionScreenState extends ConsumerState<CreateAuctionScreen> {
                           FilteringTextInputFormatter.allow(RegExp(r'[0-9.,]')),
                         ],
                         decoration: InputDecoration(
-                          labelText: 'Početna cijena',
-                          suffixText: 'kredita',
-                          helperText:
-                              'Vrijednost predmeta: ${formatCredits(selected.price)}',
+                          labelText: t('Početna cijena'),
+                          suffixText: t('kredita'),
+                          helperText: t('Vrijednost predmeta: {0}', [
+                            formatCredits(selected.price),
+                          ]),
                           errorText: _error,
                         ),
                         onChanged: (_) => setState(() => _error = null),
                       ),
                       const SizedBox(height: 20),
-                      const Text(
-                        '3. Trajanje',
+                      Text(
+                        t('3. Trajanje'),
                         style: TextStyle(fontWeight: FontWeight.w700),
                       ),
                       const SizedBox(height: 8),
@@ -200,12 +202,16 @@ class _CreateAuctionScreenState extends ConsumerState<CreateAuctionScreen> {
                           borderRadius: BorderRadius.circular(kRadius),
                         ),
                         child: Text(
-                          '• Dok aukcija traje, predmet je zaključan (ne može se '
-                          'prodati).\n'
-                          '• Aukciju možeš otkazati samo dok nema ponuda.\n'
-                          '• Na kraju dobivaš najvišu ponudu − 5% fee'
-                          '${_price != null && _price! > 0 ? ' (najmanje ${formatCredits(sellPayout(_price!))})' : ''}.\n'
-                          '• Ako nitko ne ponudi, predmet ostaje tebi.',
+                          t(
+                            '• Dok aukcija traje, predmet je zaključan (ne može se prodati).\n• Aukciju možeš otkazati samo dok nema ponuda.\n• Na kraju dobivaš najvišu ponudu − 5% fee{0}.\n• Ako nitko ne ponudi, predmet ostaje tebi.',
+                            [
+                              _price != null && _price! > 0
+                                  ? t(' (najmanje {0})', [
+                                      formatCredits(sellPayout(_price!)),
+                                    ])
+                                  : '',
+                            ],
+                          ),
                           style: TextStyle(
                             color: LoopColors.textSecondary,
                             height: 1.5,
@@ -246,7 +252,9 @@ class _CreateAuctionScreenState extends ConsumerState<CreateAuctionScreen> {
                         onPressed: reason == null ? _submit : null,
                         icon: const Icon(Icons.gavel),
                         label: Text(
-                          'Objavi aukciju · naknada ${formatCredits(fee)}',
+                          t('Objavi aukciju · naknada {0}', [
+                            formatCredits(fee),
+                          ]),
                         ),
                       ),
                       const SizedBox(height: 10),
@@ -260,7 +268,7 @@ class _CreateAuctionScreenState extends ConsumerState<CreateAuctionScreen> {
                           if (ok && context.mounted) Navigator.pop(context);
                         },
                         icon: const Icon(Icons.bolt),
-                        label: const Text('Radije prodaj odmah'),
+                        label: Text(t('Radije prodaj odmah')),
                       ),
                     ],
                   ],
@@ -375,16 +383,25 @@ class _LimitsCard extends StatelessWidget {
           children: [
             Row(
               children: [
-                meter('Aktivne aukcije ($statusLabel)', active, maxActive),
+                meter(
+                  t('Aktivne aukcije ({0})', [statusLabel]),
+                  active,
+                  maxActive,
+                ),
                 const SizedBox(width: 16),
-                meter('Objavljeno u 24 h', today, AuctionPolicy.maxNewPerDay),
+                meter(
+                  t('Objavljeno u 24 h'),
+                  today,
+                  AuctionPolicy.maxNewPerDay,
+                ),
               ],
             ),
             const SizedBox(height: 10),
             Text(
-              'Aukcije su za vrijedne predmete (od '
-              '${formatCredits(AuctionPolicy.minItemValue)}). Viši status = '
-              'više aukcija: Bronze 2, Silver 4, Gold 6.',
+              t(
+                'Aukcije su za vrijedne predmete (od {0}). Viši status = više aukcija: Bronze 2, Silver 4, Gold 6.',
+                [formatCredits(AuctionPolicy.minItemValue)],
+              ),
               style: TextStyle(color: LoopColors.textSecondary, fontSize: 12),
             ),
           ],
@@ -436,16 +453,16 @@ class _CompareCard extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          col('⚡', 'Prodaj odmah', [
-            'Dobivaš ${formatCredits(sellPayout(device.price))} odmah',
-            'Bez naknade za objavu',
-            'Bez čekanja',
+          col('⚡', t('Prodaj odmah'), [
+            t('Dobivaš {0} odmah', [formatCredits(sellPayout(device.price))]),
+            t('Bez naknade za objavu'),
+            t('Bez čekanja'),
           ], LoopColors.mint),
           const SizedBox(width: 10),
-          col('🔨', 'Aukcija', [
-            'Naknada ${formatCredits(fee)} (ne vraća se)',
-            'Najviša ponuda − 5% fee',
-            'Ishod nije siguran',
+          col('🔨', t('Aukcija'), [
+            t('Naknada {0} (ne vraća se)', [formatCredits(fee)]),
+            t('Najviša ponuda − 5% fee'),
+            t('Ishod nije siguran'),
           ], LoopColors.lilac),
         ],
       ),

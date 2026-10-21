@@ -6,6 +6,8 @@ import '../services/trade_service.dart';
 import '../theme/app_theme.dart';
 import '../widgets/adaptive_shell.dart';
 import '../widgets/trade_actions.dart';
+import '../l10n/tr.dart';
+import '../widgets/language_button.dart';
 
 /// Demo prijava: bilo koji e-mail i lozinka rade.
 class LoginScreen extends ConsumerStatefulWidget {
@@ -73,37 +75,37 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            const Text(
-              'Prijava',
+            Text(
+              t('Prijava'),
               style: TextStyle(fontSize: 26, fontWeight: FontWeight.w900),
             ),
             const SizedBox(height: 4),
             Text(
-              'Dobro došao natrag! Demo: bilo koja lozinka radi.',
+              t('Dobro došao natrag! Demo: bilo koja lozinka radi.'),
               style: TextStyle(color: LoopColors.textSecondary),
             ),
             const SizedBox(height: 22),
             TextFormField(
               controller: _email,
               keyboardType: TextInputType.emailAddress,
-              decoration: const InputDecoration(
-                labelText: 'E-mail',
+              decoration: InputDecoration(
+                labelText: t('E-mail'),
                 prefixIcon: Icon(Icons.alternate_email),
               ),
               validator: (v) => (v == null || !v.contains('@'))
-                  ? 'Unesi ispravan e-mail'
+                  ? t('Unesi ispravan e-mail')
                   : null,
             ),
             const SizedBox(height: 12),
             TextFormField(
               controller: _password,
               obscureText: true,
-              decoration: const InputDecoration(
-                labelText: 'Lozinka',
+              decoration: InputDecoration(
+                labelText: t('Lozinka'),
                 prefixIcon: Icon(Icons.lock_outline),
               ),
               validator: (v) =>
-                  (v == null || v.isEmpty) ? 'Unesi lozinku' : null,
+                  (v == null || v.isEmpty) ? t('Unesi lozinku') : null,
               onFieldSubmitted: (_) => _login(),
             ),
             const SizedBox(height: 20),
@@ -115,7 +117,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       height: 22,
                       child: CircularProgressIndicator(strokeWidth: 2.5),
                     )
-                  : const Text('Prijavi se'),
+                  : Text(t('Prijavi se')),
             ),
             const SizedBox(height: 12),
             OutlinedButton.icon(
@@ -125,7 +127,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       () => ref.read(appProvider.notifier).loginAsGuest(),
                     ),
               icon: const Icon(Icons.person_outline),
-              label: const Text('Nastavi kao gost'),
+              label: Text(t('Nastavi kao gost')),
             ),
             const SizedBox(height: 12),
             TextButton.icon(
@@ -135,7 +137,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 color: LoopColors.admin,
               ),
               label: Text(
-                'Admin prijava',
+                t('Admin prijava'),
                 style: TextStyle(color: LoopColors.admin),
               ),
             ),
@@ -147,10 +149,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 borderRadius: BorderRadius.circular(kRadius),
               ),
               child: Text(
-                'Demo verzija — bilo koji e-mail i lozinka rade.\n'
-                'Demo računi: demo@loop.com · test@loop.com\n'
-                'Novi računi dobivaju ${TradeService.welcomeCredits} '
-                'LOOP kredita.',
+                t(
+                  'Demo verzija — bilo koji e-mail i lozinka rade.\nDemo računi: demo@loop.com · test@loop.com\nNovi računi dobivaju {0} LOOP kredita.',
+                  [TradeService.welcomeCredits],
+                ),
                 style: TextStyle(color: LoopColors.textSecondary, height: 1.5),
               ),
             ),
@@ -161,28 +163,33 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
     return Scaffold(
       body: SafeArea(
-        child: Center(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.all(24),
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 1040),
-              child: wide
-                  ? Row(
-                      children: [
-                        const Expanded(child: _WelcomeHero()),
-                        const SizedBox(width: 40),
-                        Expanded(child: Center(child: formCard)),
-                      ],
-                    )
-                  : Column(
-                      children: [
-                        const _WelcomeHero(compact: true),
-                        const SizedBox(height: 24),
-                        formCard,
-                      ],
-                    ),
+        child: Stack(
+          children: [
+            Center(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.all(24),
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 1040),
+                  child: wide
+                      ? Row(
+                          children: [
+                            const Expanded(child: _WelcomeHero()),
+                            const SizedBox(width: 40),
+                            Expanded(child: Center(child: formCard)),
+                          ],
+                        )
+                      : Column(
+                          children: [
+                            const _WelcomeHero(compact: true),
+                            const SizedBox(height: 24),
+                            formCard,
+                          ],
+                        ),
+                ),
+              ),
             ),
-          ),
+            const Positioned(top: 12, right: 12, child: LanguageButton()),
+          ],
         ),
       ),
     );
@@ -216,7 +223,7 @@ class _AdminLoginDialogState extends State<_AdminLoginDialog> {
         children: [
           Icon(Icons.admin_panel_settings, color: LoopColors.admin),
           SizedBox(width: 8),
-          Text('Admin prijava'),
+          Text(t('Admin prijava')),
         ],
       ),
       content: ConstrainedBox(
@@ -226,16 +233,16 @@ class _AdminLoginDialogState extends State<_AdminLoginDialog> {
           children: [
             TextField(
               controller: _email,
-              decoration: const InputDecoration(labelText: 'Admin e-mail'),
+              decoration: InputDecoration(labelText: t('Admin e-mail')),
             ),
             const SizedBox(height: 12),
             TextField(
               controller: _password,
               obscureText: true,
               autofocus: true,
-              decoration: const InputDecoration(
-                labelText: 'Lozinka',
-                helperText: 'Demo: admin123',
+              decoration: InputDecoration(
+                labelText: t('Lozinka'),
+                helperText: t('Demo: admin123'),
               ),
               onSubmitted: (_) => _submit(),
             ),
@@ -245,7 +252,7 @@ class _AdminLoginDialogState extends State<_AdminLoginDialog> {
       actions: [
         TextButton(
           onPressed: () => Navigator.pop(context),
-          child: const Text('Odustani'),
+          child: Text(t('Odustani')),
         ),
         FilledButton(
           onPressed: _submit,
@@ -253,7 +260,7 @@ class _AdminLoginDialogState extends State<_AdminLoginDialog> {
             backgroundColor: LoopColors.admin,
             minimumSize: const Size(0, 44),
           ),
-          child: const Text('Prijava'),
+          child: Text(t('Prijava')),
         ),
       ],
     );
@@ -265,15 +272,15 @@ class _WelcomeHero extends StatelessWidget {
   const _WelcomeHero({this.compact = false});
   final bool compact;
 
-  static const _bubbles = [
-    ('📱', 'Mobiteli'),
-    ('🎸', 'Instrumenti'),
-    ('🧶', 'Rukotvorine'),
-    ('🃏', 'Kartice'),
-    ('📚', 'Knjige'),
-    ('🎮', 'Konzole'),
-    ('🏺', 'Keramika'),
-    ('🎟️', 'Doživljaji'),
+  static List<(String, String)> get _bubbles => [
+    ('📱', t('Mobiteli')),
+    ('🎸', t('Instrumenti')),
+    ('🧶', t('Rukotvorine')),
+    ('🃏', t('Kartice')),
+    ('📚', t('Knjige')),
+    ('🎮', t('Konzole')),
+    ('🏺', t('Keramika')),
+    ('🎟️', t('Doživljaji')),
   ];
 
   @override
@@ -293,7 +300,7 @@ class _WelcomeHero extends StatelessWidget {
         LoopLogo(size: compact ? 34 : 40),
         const SizedBox(height: 18),
         Text(
-          'Mijenjaj stvari,\nne novac.',
+          t('Mijenjaj stvari,\nne novac.'),
           textAlign: compact ? TextAlign.center : TextAlign.start,
           style: TextStyle(
             fontSize: compact ? 30 : 48,
@@ -303,8 +310,9 @@ class _WelcomeHero extends StatelessWidget {
         ),
         const SizedBox(height: 12),
         Text(
-          "Trade. Don't sell. Prodaj ono što ne koristiš, dobij LOOP kredite "
-          'i uzmi nešto novo — od mobitela do ručno rađene keramike.',
+          t(
+            'Trade. Don\'t sell. Prodaj ono što ne koristiš, dobij LOOP kredite i uzmi nešto novo — od mobitela do ručno rađene keramike.',
+          ),
           textAlign: compact ? TextAlign.center : TextAlign.start,
           style: TextStyle(
             color: LoopColors.textSecondary,
