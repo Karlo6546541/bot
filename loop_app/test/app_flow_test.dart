@@ -8,6 +8,16 @@ import 'package:loop_app/l10n/tr.dart';
 import 'package:loop_app/providers/app_providers.dart';
 import 'package:loop_app/services/storage_service.dart';
 
+/// Početna počinje feedom — kartica sa stanjem je ispod; skrolaj do nje.
+Future<void> reveal(WidgetTester tester, Finder finder) async {
+  await tester.scrollUntilVisible(
+    finder,
+    300,
+    scrollable: find.byType(Scrollable).first,
+  );
+  await tester.pumpAndSettle();
+}
+
 Future<Widget> buildApp(WidgetTester tester) async {
   final storage = StorageService();
   await tester.runAsync(() => storage.init(inMemory: true));
@@ -42,6 +52,7 @@ void main() {
       await tester.pumpAndSettle();
 
       // Portfolio demo korisnika
+      await reveal(tester, find.text('SILVER'));
       expect(find.text('1.250'), findsWidgets); // kartica + traka
       expect(find.text('SILVER'), findsOneWidget);
       // Popis predmeta je ispod grafikona — skrolaj do njega.
@@ -278,6 +289,7 @@ void main() {
     await tester.pumpAndSettle();
 
     // Gumb na glavnoj kartici otvara uplatu; zadani iznos je 500 €.
+    await reveal(tester, find.text('SILVER'));
     await tester.tap(find.text('Uplati novac').first);
     await tester.pumpAndSettle();
     expect(find.text('Najpopularnije'), findsOneWidget);
@@ -411,6 +423,7 @@ void main() {
     await tester.tap(find.text('Log in').last);
     await tester.pumpAndSettle();
     // Engleski zapis brojeva i eura.
+    await reveal(tester, find.text('Your balance'));
     expect(find.textContaining('1,250'), findsWidgets);
     expect(find.text('Your balance'), findsOneWidget);
     expect(find.text('Total €2,010 · 2 items'), findsOneWidget);
@@ -509,6 +522,7 @@ void accountTests() {
     await tester.ensureVisible(find.byKey(const ValueKey('register-submit')));
     await tester.tap(find.byKey(const ValueKey('register-submit')));
     await tester.pumpAndSettle();
+    await reveal(tester, find.text('Bok, @novi_korisnik 👋'));
     expect(find.text('Bok, @novi_korisnik 👋'), findsOneWidget);
 
     // Profil prikazuje @ime; odjava.
@@ -904,6 +918,7 @@ void logoTests() {
       await tester.ensureVisible(find.text('Prijavi se'));
       await tester.tap(find.text('Prijavi se'));
       await tester.pumpAndSettle();
+      await reveal(tester, find.text('Bok, Demo 👋'));
       expect(find.text('Bok, Demo 👋'), findsOneWidget);
 
       // Market → detalji predmeta → logo.
