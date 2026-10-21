@@ -1,9 +1,11 @@
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 import '../models/device.dart';
+import '../services/image_store.dart';
 import '../theme/app_theme.dart';
 import 'category_style.dart';
 
@@ -23,14 +25,58 @@ class LocalPhoto extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (kIsWeb) return fallback;
-    return Image.file(
-      File(path),
-      fit: BoxFit.cover,
-      cacheWidth: cacheWidth,
-      gaplessPlayback: true,
-      errorBuilder: (_, _, _) => fallback,
-    );
+    Widget onError(BuildContext _, Object _, StackTrace? _) => fallback;
+    switch (PhotoSource.of(path)) {
+      case PhotoSource.network:
+        // Online baza (Supabase Storage).
+        return Image.network(
+          path,
+          fit: BoxFit.cover,
+          cacheWidth: cacheWidth,
+          gaplessPlayback: true,
+          errorBuilder: onError,
+          loadingBuilder: (context, child, progress) =>
+              progress == null ? child : fallback,
+        );
+      case PhotoSource.data:
+        // Web bez baze: slika spremljena u pregledniku.
+        final bytes = _decodeDataUrl(path);
+        if (bytes == null) return fallback;
+        return Image.memory(
+          bytes,
+          fit: BoxFit.cover,
+          cacheWidth: cacheWidth,
+          gaplessPlayback: true,
+          errorBuilder: onError,
+        );
+      case PhotoSource.file:
+        if (kIsWeb) return fallback;
+        return Image.file(
+          File(path),
+          fit: BoxFit.cover,
+          cacheWidth: cacheWidth,
+          gaplessPlayback: true,
+          errorBuilder: onError,
+        );
+    }
+  }
+
+  /// Dekodirane data: URL slike pamte se, da se ne dekodiraju pri svakom
+  /// iscrtavanju.
+  static final _decoded = <String, Uint8List>{};
+
+  static Uint8List? _decodeDataUrl(String url) {
+    final cached = _decoded[url];
+    if (cached != null) return cached;
+    final comma = url.indexOf(',');
+    if (comma < 0) return null;
+    try {
+      final bytes = base64Decode(url.substring(comma + 1));
+      if (_decoded.length > 60) _decoded.clear();
+      return _decoded[url] = bytes;
+    } catch (_) {
+      return null;
+    }
   }
 }
 

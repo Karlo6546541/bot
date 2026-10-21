@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart' show ThemeMode;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:supabase_flutter/supabase_flutter.dart' show Supabase;
 
 import '../models/device.dart';
 import '../models/loop_transaction.dart';
@@ -25,7 +26,12 @@ final storageProvider = Provider<StorageService>(
 );
 
 /// Spremište fotografija (u testovima se ne koristi).
-final imageStoreProvider = Provider<ImageStore>((ref) => ImageStore());
+final imageStoreProvider = Provider<ImageStore>(
+  // S online bazom slike idu u Supabase Storage (vide ih svi testeri).
+  (ref) => ImageStore(
+    client: ref.watch(syncProvider) != null ? Supabase.instance.client : null,
+  ),
+);
 
 /// Sinkronizacija s online bazom (`null` = lokalni način rada).
 final syncProvider = Provider<SyncService?>((ref) => null);

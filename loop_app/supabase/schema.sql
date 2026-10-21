@@ -65,3 +65,28 @@ create or replace view public.loop_stats
 -- Brisanje svih testnih podataka (pokreni ručno kad treba):
 -- truncate public.loop_users, public.loop_devices, public.loop_transactions,
 --          public.loop_history, public.loop_auctions, public.loop_deliveries;
+
+-- -----------------------------------------------------------------------------
+-- Fotografije predmeta (Supabase Storage). Isto kao supabase/storage.sql.
+-- -----------------------------------------------------------------------------
+insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+values (
+  'loop-images', 'loop-images', true, 5242880,
+  array['image/jpeg', 'image/png', 'image/webp', 'image/gif']
+)
+on conflict (id) do update set
+  public = true,
+  file_size_limit = excluded.file_size_limit,
+  allowed_mime_types = excluded.allowed_mime_types;
+
+drop policy if exists "loop_images_test_read" on storage.objects;
+create policy "loop_images_test_read" on storage.objects
+  for select to anon, authenticated using (bucket_id = 'loop-images');
+
+drop policy if exists "loop_images_test_insert" on storage.objects;
+create policy "loop_images_test_insert" on storage.objects
+  for insert to anon, authenticated with check (bucket_id = 'loop-images');
+
+drop policy if exists "loop_images_test_delete" on storage.objects;
+create policy "loop_images_test_delete" on storage.objects
+  for delete to anon, authenticated using (bucket_id = 'loop-images');

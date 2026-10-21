@@ -193,8 +193,9 @@ i objavljuje je na **https://karlo6546541.github.io/bot/**.
 4. Ako deploy javi da grana nije dopuštena: **Settings → Environments → github-pages →
    Deployment branches** i dodaj `claude/beautiful-newton-sftcyd` (ili spoji granu u `main`).
 
-Ograničenja web verzije: fotografije se na webu ne mogu dodavati, jer se spremaju na disk
-uređaja. Online bi trebale Supabase Storage.
+**Fotografije:** s online bazom spremaju se u Supabase Storage (bucket `loop-images`,
+`supabase/storage.sql`) i vide ih svi testeri, na webu i u aplikaciji. Bez baze se na webu
+spremaju u preglednik (smanjene), a na Windowsu i mobitelu u mapu aplikacije.
 
 ### Put do produkcije
 
@@ -204,7 +205,8 @@ korištenje treba:
 - **kupnje, ponude, dopune i zaključivanje aukcija kao funkcije na serveru** (Postgres
   funkcije ili Edge Functions), koje u jednoj transakciji provjeravaju kredite i pravila,
   da ih klijent ne može zaobići i da dvije istovremene kupnje istog predmeta ne prođu;
-- **Supabase Storage** za fotografije;
+- pravila za Storage po korisniku (svatko briše samo svoje slike) i provjeru veličine/vrste
+  na serveru;
 - zaključivanje aukcija i statuse dostava putem zakazanog posla (cron) na serveru.
 
 ---
