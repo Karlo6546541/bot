@@ -39,6 +39,9 @@ class _AddDeviceScreenState extends ConsumerState<AddDeviceScreen> {
   ItemSection _section = ItemSection.electronics;
   DeviceCategory? _category;
 
+  /// Novi predmet odmah ide u Market (može se isključiti).
+  bool _listOnMarket = true;
+
   /// Fotografije odabrane prije spremanja (već kopirane u mapu aplikacije).
   final _photos = <String>[];
   bool _saved = false;
@@ -95,8 +98,11 @@ class _AddDeviceScreenState extends ConsumerState<AddDeviceScreen> {
             category: _category!,
             imagePaths: List.of(_photos),
             description: _description.text,
+            listOnMarket: _listOnMarket,
           ),
-      successMessage: t('Predmet dodan u portfolio'),
+      successMessage: _listOnMarket
+          ? t('Predmet je objavljen u Marketu 🏷️')
+          : t('Predmet dodan u portfolio'),
     );
     if (ok) _saved = true;
     if (ok && mounted) Navigator.of(context).pop();
@@ -296,11 +302,44 @@ class _AddDeviceScreenState extends ConsumerState<AddDeviceScreen> {
                       category: _category,
                       price: _parsePrice(_price.text),
                     ),
+                    const SizedBox(height: 12),
+                    Material(
+                      color: _listOnMarket
+                          ? LoopColors.mint
+                          : LoopColors.surface,
+                      borderRadius: BorderRadius.circular(kRadius),
+                      child: SwitchListTile(
+                        key: const ValueKey('list-on-market'),
+                        value: _listOnMarket,
+                        onChanged: (v) => setState(() => _listOnMarket = v),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(kRadius),
+                        ),
+                        title: Text(
+                          t('Odmah objavi u Marketu'),
+                          style: const TextStyle(fontWeight: FontWeight.w800),
+                        ),
+                        subtitle: Text(
+                          _listOnMarket
+                              ? t(
+                                  'Predmet ostaje tvoj dok ga netko ne kupi. Dobivaš cijenu − 5% fee.',
+                                )
+                              : t(
+                                  'Ostaje samo u portfoliju — objaviti ga možeš kasnije.',
+                                ),
+                        ),
+                      ),
+                    ),
                     const SizedBox(height: 16),
                     FilledButton.icon(
+                      key: const ValueKey('add-submit'),
                       onPressed: _submit,
-                      icon: const Icon(Icons.add),
-                      label: Text(t('Dodaj u portfolio')),
+                      icon: Icon(_listOnMarket ? Icons.storefront : Icons.add),
+                      label: Text(
+                        _listOnMarket
+                            ? t('Objavi u Marketu')
+                            : t('Dodaj u portfolio'),
+                      ),
                     ),
                   ],
                 ),

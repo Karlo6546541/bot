@@ -137,7 +137,9 @@ class AppController extends Notifier<AppState> {
       sync.onRemoteChange = () {
         _remoteRefresh?.cancel();
         _remoteRefresh = Timer(const Duration(milliseconds: 150), () {
-          if (ref.mounted) _refresh();
+          if (!ref.mounted) return;
+          _refresh();
+          unawaited(_autoListPortfolios());
         });
       };
       ref.onDispose(() => _remoteRefresh?.cancel());
@@ -148,6 +150,7 @@ class AppController extends Notifier<AppState> {
     ref.onDispose(sub.cancel);
     // Računi kojima je istekao rok za predomišljanje brišu se trajno.
     Future.microtask(_purgeDeletedAccounts);
+    Future.microtask(_autoListPortfolios);
     return AppState.fromStorage(ref.watch(storageProvider));
   }
 
@@ -202,6 +205,7 @@ class AppController extends Notifier<AppState> {
       }
     }
     _refresh();
+    unawaited(_autoListPortfolios());
     return result;
   }
 
@@ -500,6 +504,34 @@ class AppController extends Notifier<AppState> {
     _refresh();
   }
 
+  bool _autoListing = false;
+
+  /// Jednokratno objavljuje stare predmete iz portfolija u Marketu.
+  /// Online samo kad je veza aktivna i korisnik prijavljen (baza ne
+  /// dopušta pisanje gostima).
+  Future<void> _autoListPortfolios() async {
+    if (!ref.mounted || _autoListing) return;
+    final sync = ref.read(syncProvider);
+    if (sync != null) {
+      final user = state.currentUser;
+      if (sync.status != SyncStatus.online || user == null || user.isGuest) {
+        return;
+      }
+    }
+    if (!_storage.devices.any((d) => d.ownerId != null && !d.marketChecked)) {
+      return;
+    }
+    _autoListing = true;
+    try {
+      await _trade.autoListPortfolios();
+      if (ref.mounted) _refresh();
+    } catch (_) {
+      // Pokušat će ponovno pri sljedećem osvježavanju.
+    } finally {
+      _autoListing = false;
+    }
+  }
+
   Future<void> _purgeDeletedAccounts() async {
     if (!ref.mounted) return;
     try {
@@ -541,6 +573,7 @@ class AppController extends Notifier<AppState> {
     required DeviceCategory category,
     List<String> imagePaths = const [],
     String description = '',
+    bool listOnMarket = true,
   }) async {
     final device = await _trade.addDevice(
       userId: _requireUserId(),
@@ -551,6 +584,7 @@ class AppController extends Notifier<AppState> {
       category: category,
       imagePaths: imagePaths,
       description: description,
+      listOnMarket: listOnMarket,
     );
     _refresh();
     return device;

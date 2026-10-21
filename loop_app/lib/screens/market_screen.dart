@@ -11,29 +11,10 @@ import '../widgets/empty_state.dart';
 import '../widgets/formatters.dart';
 import '../widgets/trade_actions.dart';
 import 'device_detail_screen.dart';
+import 'market_filters.dart';
+
+export 'market_filters.dart' show MarketSort;
 import '../l10n/tr.dart';
-
-/// Redoslijed uređaja u Marketu.
-enum MarketSort {
-  newest('Najnovije'),
-  priceAsc('Cijena: niža prvo'),
-  priceDesc('Cijena: viša prvo'),
-  name('Naziv A–Ž');
-
-  const MarketSort(this._label);
-  final String _label;
-  String get label => t(_label);
-
-  int compare(Device a, Device b) => switch (this) {
-    // Objavljeni predmet je "nov" od trenutka objave.
-    MarketSort.newest => (b.listedAt ?? b.createdAt).compareTo(
-      a.listedAt ?? a.createdAt,
-    ),
-    MarketSort.priceAsc => a.askPrice.compareTo(b.askPrice),
-    MarketSort.priceDesc => b.askPrice.compareTo(a.askPrice),
-    MarketSort.name => a.name.toLowerCase().compareTo(b.name.toLowerCase()),
-  };
-}
 
 class MarketScreen extends ConsumerStatefulWidget {
   const MarketScreen({super.key});
@@ -43,13 +24,9 @@ class MarketScreen extends ConsumerStatefulWidget {
 }
 
 class _MarketScreenState extends ConsumerState<MarketScreen> {
-  final _search = TextEditingController();
-
-  /// `null` = svi odjeljci / sve kategorije odjeljka.
-  ItemSection? _section;
-  DeviceCategory? _category;
-  bool _onlyFavorites = false;
-  MarketSort _sort = MarketSort.newest;
+  late final _search = TextEditingController(
+    text: ref.read(marketFilterProvider).query,
+  );
 
   @override
   void dispose() {
@@ -57,161 +34,184 @@ class _MarketScreenState extends ConsumerState<MarketScreen> {
     super.dispose();
   }
 
+  MarketFilterNotifier get _filters => ref.read(marketFilterProvider.notifier);
+
+  void _setQuery(String q) => _filters.update((f) => f.copyWith(query: q));
+
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(appProvider);
+    final f = ref.watch(marketFilterProvider);
     final all = state.marketDevices;
-    final counts = AppState.countByCategory(all);
-    final query = _search.text.trim().toLowerCase();
-
-    final devices =
-        all
-            .where((d) => _section == null || d.section == _section)
-            .where((d) => _category == null || d.category == _category)
-            .where((d) => !_onlyFavorites || state.isFavorite(d.id))
-            .where(
-              (d) =>
-                  query.isEmpty ||
-                  d.name.toLowerCase().contains(query) ||
-                  d.model.toLowerCase().contains(query) ||
-                  d.description.toLowerCase().contains(query),
-            )
-            .toList()
-          ..sort(_sort.compare);
+    final devices = f.apply(all, state);
     final credits = state.currentUser?.credits ?? 0;
-    final favCount = all.where((d) => state.isFavorite(d.id)).length;
     final sectionCounts = <ItemSection, int>{};
     for (final d in all) {
       sectionCounts[d.section] = (sectionCounts[d.section] ?? 0) + 1;
     }
+    final categoryCounts = AppState.countByCategory(
+      all.where((d) => d.section == f.section),
+    );
+
+    final searchRow = Row(
+      children: [
+        Expanded(
+          child: TextField(
+            controller: _search,
+            onChanged: (v) => setState(() => _setQuery(v)),
+            textInputAction: TextInputAction.search,
+            decoration: InputDecoration(
+              hintText: t('Pretraži po nazivu…'),
+              prefixIcon: const Icon(Icons.search),
+              suffixIcon: _search.text.isEmpty
+                  ? null
+                  : IconButton(
+                      tooltip: t('Očisti'),
+                      icon: const Icon(Icons.close),
+                      onPressed: () => setState(() {
+                        _search.clear();
+                        _setQuery('');
+                      }),
+                    ),
+            ),
+          ),
+        ),
+        const SizedBox(width: 8),
+        _FiltersButton(
+          count: f.activeCount,
+          onTap: () => showMarketFilterSheet(context, all: all),
+        ),
+      ],
+    );
+
+    // Brzi odabir odjeljka (i kategorija odabranog odjeljka).
+    final chips = _ChipRow(
+      children: [
+        _CategoryChip(
+          label: t('Sve'),
+          icon: Icons.apps,
+          color: Theme.of(context).colorScheme.primary,
+          count: all.length,
+          selected: f.section == null,
+          onTap: () => _filters.update((f) => f.copyWith(clearSection: true)),
+        ),
+        if (f.section == null)
+          for (final sec in ItemSection.values)
+            _CategoryChip(
+              label: sec.label,
+              icon: sec.icon,
+              color: sec.color,
+              count: sectionCounts[sec] ?? 0,
+              selected: false,
+              onTap: () => _filters.update(
+                (f) => f.copyWith(section: sec, clearCategory: true),
+              ),
+            )
+        else ...[
+          _CategoryChip(
+            label: f.section!.label,
+            icon: f.section!.icon,
+            color: f.section!.color,
+            count: sectionCounts[f.section] ?? 0,
+            selected: f.category == null,
+            onTap: () =>
+                _filters.update((f) => f.copyWith(clearCategory: true)),
+          ),
+          for (final c in f.section!.categories)
+            if ((categoryCounts[c] ?? 0) > 0)
+              _CategoryChip(
+                label: c.label,
+                icon: c.icon,
+                color: c.color,
+                count: categoryCounts[c]!,
+                selected: f.category == c,
+                small: true,
+                onTap: () => _filters.update(
+                  (x) => x.category == c
+                      ? x.copyWith(clearCategory: true)
+                      : x.copyWith(category: c),
+                ),
+              ),
+        ],
+      ],
+    );
 
     return CustomScrollView(
       slivers: [
         SliverToBoxAdapter(
           child: Padding(
-            padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+            child: Text(
+              t('Dostupno: {0} · fee 5% na kupnju', [formatCredits(credits)]),
+              style: TextStyle(color: LoopColors.textSecondary),
+            ),
+          ),
+        ),
+        // Pretraga, filteri i odjeljci ostaju vidljivi pri skrolanju.
+        SliverPersistentHeader(
+          pinned: true,
+          delegate: _PinnedHeader(
+            height: 124,
             child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  t('Dostupno: {0} · fee 5% na kupnju', [
-                    formatCredits(credits),
-                  ]),
-                  style: TextStyle(color: LoopColors.textSecondary),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 10, 16, 8),
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 720),
+                    child: searchRow,
+                  ),
                 ),
-                const SizedBox(height: 12),
-                Row(
-                  children: [
-                    Expanded(
-                      child: ConstrainedBox(
-                        constraints: const BoxConstraints(maxWidth: 520),
-                        child: TextField(
-                          controller: _search,
-                          onChanged: (_) => setState(() {}),
-                          decoration: InputDecoration(
-                            hintText: t('Pretraži po nazivu…'),
-                            prefixIcon: const Icon(Icons.search),
-                            suffixIcon: _search.text.isEmpty
-                                ? null
-                                : IconButton(
-                                    icon: const Icon(Icons.close),
-                                    onPressed: () =>
-                                        setState(() => _search.clear()),
-                                  ),
-                          ),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    _SortButton(
-                      value: _sort,
-                      onChanged: (s) => setState(() => _sort = s),
-                    ),
-                  ],
+                chips,
+              ],
+            ),
+          ),
+        ),
+        SliverToBoxAdapter(child: const ActiveFilterChips()),
+        SliverToBoxAdapter(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(16, 4, 8, 8),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    t('{0} predmeta', [devices.length]),
+                    key: const ValueKey('market-count'),
+                    style: const TextStyle(fontWeight: FontWeight.w800),
+                  ),
+                ),
+                _SortChip(
+                  value: f.sort,
+                  onChanged: (s) => _filters.update((f) => f.copyWith(sort: s)),
                 ),
               ],
             ),
           ),
         ),
-        // 1. red: odjeljci (+ favoriti).
-        SliverToBoxAdapter(
-          child: _ChipRow(
-            children: [
-              _CategoryChip(
-                label: t('Sve'),
-                icon: Icons.apps,
-                color: Theme.of(context).colorScheme.primary,
-                count: all.length,
-                selected: _section == null && !_onlyFavorites,
-                onTap: () => setState(() {
-                  _section = null;
-                  _category = null;
-                  _onlyFavorites = false;
-                }),
-              ),
-              for (final sec in ItemSection.values)
-                _CategoryChip(
-                  label: sec.label,
-                  icon: sec.icon,
-                  color: sec.color,
-                  count: sectionCounts[sec] ?? 0,
-                  selected: _section == sec,
-                  onTap: () => setState(() {
-                    _section = _section == sec ? null : sec;
-                    _category = null;
-                  }),
-                ),
-              _CategoryChip(
-                label: t('Favoriti'),
-                icon: Icons.favorite,
-                color: const Color(0xFFFF5C8A),
-                count: favCount,
-                selected: _onlyFavorites,
-                onTap: () => setState(() => _onlyFavorites = !_onlyFavorites),
-              ),
-            ],
-          ),
-        ),
-        // 2. red: kategorije odabranog odjeljka.
-        if (_section != null)
-          SliverToBoxAdapter(
-            child: Padding(
-              padding: const EdgeInsets.only(top: 10),
-              child: _ChipRow(
-                children: [
-                  for (final c in _section!.categories)
-                    if ((counts[c] ?? 0) > 0)
-                      _CategoryChip(
-                        label: c.label,
-                        icon: c.icon,
-                        color: c.color,
-                        count: counts[c]!,
-                        selected: _category == c,
-                        small: true,
-                        onTap: () => setState(
-                          () => _category = _category == c ? null : c,
-                        ),
-                      ),
-                ],
-              ),
-            ),
-          ),
-        const SliverToBoxAdapter(child: SizedBox(height: 16)),
         if (devices.isEmpty)
           SliverFillRemaining(
             hasScrollBody: false,
             child: EmptyState(
-              icon: _onlyFavorites ? Icons.favorite_border : Icons.search_off,
+              icon: f.onlyFavorites ? Icons.favorite_border : Icons.search_off,
               title: all.isEmpty
                   ? t('Market je trenutno prazan')
-                  : _onlyFavorites && favCount == 0
+                  : f.onlyFavorites && !all.any((d) => state.isFavorite(d.id))
                   ? t('Još nemaš favorita')
                   : t('Nema rezultata'),
               message: all.isEmpty
                   ? t('Prodani predmeti pojavljuju se ovdje.')
-                  : _onlyFavorites && favCount == 0
+                  : f.onlyFavorites
                   ? t('Dodirni ♥ na predmetu da ga spremiš ovdje.')
                   : t('Promijeni pretragu, odjeljak ili kategoriju.'),
+              action: f.isEmpty
+                  ? null
+                  : OutlinedButton.icon(
+                      onPressed: () => setState(() {
+                        _search.clear();
+                        _filters.set(MarketFilter(sort: f.sort));
+                      }),
+                      icon: const Icon(Icons.filter_alt_off_outlined),
+                      label: Text(t('Očisti pretragu i filtere')),
+                    ),
             ),
           )
         else
@@ -230,6 +230,78 @@ class _MarketScreenState extends ConsumerState<MarketScreen> {
             ),
           ),
       ],
+    );
+  }
+}
+
+/// Zaglavlje koje ostaje na vrhu pri skrolanju.
+class _PinnedHeader extends SliverPersistentHeaderDelegate {
+  _PinnedHeader({required this.height, required this.child});
+  final double height;
+  final Widget child;
+
+  @override
+  double get minExtent => height;
+  @override
+  double get maxExtent => height;
+
+  @override
+  Widget build(BuildContext context, double shrink, bool overlaps) => Material(
+    color: LoopColors.background,
+    elevation: overlaps ? 2 : 0,
+    shadowColor: Colors.black26,
+    child: child,
+  );
+
+  @override
+  bool shouldRebuild(_PinnedHeader old) => true;
+}
+
+/// "Filteri" s brojem aktivnih filtera.
+class _FiltersButton extends StatelessWidget {
+  const _FiltersButton({required this.count, required this.onTap});
+  final int count;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final active = count > 0;
+    return Material(
+      color: active ? LoopColors.accent : LoopColors.surface,
+      borderRadius: BorderRadius.circular(kRadius),
+      child: InkWell(
+        key: const ValueKey('filters-button'),
+        borderRadius: BorderRadius.circular(kRadius),
+        onTap: onTap,
+        child: Container(
+          height: 52,
+          padding: const EdgeInsets.symmetric(horizontal: 14),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(kRadius),
+            border: Border.all(
+              color: active ? LoopColors.accent : LoopColors.surfaceHover,
+              width: 1.5,
+            ),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                Icons.tune,
+                color: active ? LoopColors.onAccent : LoopColors.textPrimary,
+              ),
+              const SizedBox(width: 6),
+              Text(
+                active ? '${t('Filteri')} ($count)' : t('Filteri'),
+                style: TextStyle(
+                  fontWeight: FontWeight.w800,
+                  color: active ? LoopColors.onAccent : LoopColors.textPrimary,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }
@@ -343,50 +415,47 @@ class _CategoryChip extends StatelessWidget {
   }
 }
 
-class _SortButton extends StatelessWidget {
-  const _SortButton({required this.value, required this.onChanged});
+/// Odabir redoslijeda — prikazuje trenutni izbor.
+class _SortChip extends StatelessWidget {
+  const _SortChip({required this.value, required this.onChanged});
   final MarketSort value;
   final ValueChanged<MarketSort> onChanged;
 
   @override
   Widget build(BuildContext context) {
     return PopupMenuButton<MarketSort>(
+      key: const ValueKey('sort-button'),
       tooltip: t('Sortiraj'),
       initialValue: value,
       onSelected: onChanged,
-      color: LoopColors.surfaceHover,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(kRadius),
       ),
       itemBuilder: (_) => [
         for (final s in MarketSort.values)
-          PopupMenuItem(
+          CheckedPopupMenuItem(
             value: s,
-            child: Row(
-              children: [
-                Icon(
-                  s == value
-                      ? Icons.radio_button_checked
-                      : Icons.radio_button_off,
-                  size: 18,
-                  color: s == value
-                      ? Theme.of(context).colorScheme.primary
-                      : LoopColors.textSecondary,
-                ),
-                const SizedBox(width: 10),
-                Text(s.label),
-              ],
-            ),
+            checked: s == value,
+            child: Text(s.label),
           ),
       ],
-      child: Container(
-        height: 52,
-        width: 52,
-        decoration: BoxDecoration(
-          color: LoopColors.surface,
-          borderRadius: BorderRadius.circular(kRadius),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.swap_vert, size: 18, color: LoopColors.accent),
+            const SizedBox(width: 4),
+            Text(
+              value.label,
+              style: TextStyle(
+                color: LoopColors.accent,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+            Icon(Icons.arrow_drop_down, color: LoopColors.accent),
+          ],
         ),
-        child: const Icon(Icons.sort),
       ),
     );
   }

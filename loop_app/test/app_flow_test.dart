@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hive/hive.dart';
 import 'package:loop_app/app.dart';
+import 'package:loop_app/screens/market_screen.dart';
 import 'package:loop_app/l10n/tr.dart';
 import 'package:loop_app/providers/app_providers.dart';
 import 'package:loop_app/services/storage_service.dart';
@@ -123,20 +124,47 @@ void main() {
     expect(find.text('Nintendo Switch OLED'), findsOneWidget);
     expect(find.text('iPhone 15 Pro'), findsNothing);
 
-    // Favorit pa filter "Favoriti".
+    expect(find.text('2 predmeta'), findsOneWidget);
+
+    // Favorit, pa u listu filtera "Samo favoriti" (broj rezultata uživo).
     await tester.tap(find.byIcon(Icons.favorite_border).first);
     await tester.pumpAndSettle();
-    await tester.ensureVisible(find.text('Favoriti'));
+    await tester.tap(find.byKey(const ValueKey('filters-button')));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Favoriti'));
+    await tester.scrollUntilVisible(
+      find.text('Samo favoriti'),
+      200,
+      scrollable: find.byType(Scrollable).last,
+    );
+    await tester.tap(find.text('Samo favoriti'));
     await tester.pumpAndSettle();
-    expect(find.byIcon(Icons.favorite), findsWidgets);
+    expect(find.text('Prikaži 1 rezultata'), findsOneWidget);
+    await tester.tap(find.byKey(const ValueKey('filters-apply')));
+    await tester.pumpAndSettle();
+    expect(find.text('1 predmeta'), findsOneWidget);
+    expect(
+      find.text('Filteri (3)'),
+      findsOneWidget,
+    ); // odjeljak, kategorija, favoriti
+    // Aktivni filteri se vide kao čipovi i brišu jednim dodirom.
+    await tester.tap(find.byKey(const ValueKey('filters-clear-all')));
+    await tester.pumpAndSettle();
+    expect(find.text('Filteri'), findsOneWidget);
+
+    // Sortiranje: prikazuje trenutni izbor.
+    await tester.tap(find.byKey(const ValueKey('sort-button')));
+    await tester.pumpAndSettle();
+    await tester.tap(
+      find.widgetWithText(
+        CheckedPopupMenuItem<MarketSort>,
+        'Cijena: viša prvo',
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(find.text('Cijena: viša prvo'), findsOneWidget); // na čipu
+    expect(find.text('Najnovije'), findsNothing); // izbornik zatvoren
 
     // Detalji uređaja.
-    await tester.ensureVisible(find.text('Sve'));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('Sve'));
-    await tester.pumpAndSettle();
     await tester.ensureVisible(find.text('Sony A7 III'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Sony A7 III'));
@@ -473,10 +501,12 @@ void listingTests() {
     await tester.tap(find.text('iPhone 13'));
     await tester.pumpAndSettle();
 
-    // Objava po vlastitoj cijeni.
-    await tester.scrollUntilVisible(find.text('Objavi u Marketu'), 200);
+    // Stari predmet iz portfolija je automatski objavljen u Marketu.
+    expect(find.text('🏷️ U Marketu'), findsWidgets);
+    // Promjena cijene.
+    await tester.scrollUntilVisible(find.text('Promijeni cijenu'), 200);
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Objavi u Marketu'));
+    await tester.tap(find.text('Promijeni cijenu'));
     await tester.pumpAndSettle();
     await tester.enterText(find.widgetWithText(TextField, 'Cijena'), '350');
     await tester.pumpAndSettle();
@@ -484,8 +514,7 @@ void listingTests() {
     await tester.tap(find.text('Objavi'));
     await tester.pumpAndSettle();
     expect(find.text('Objavljeno u Marketu 🏷️'), findsOneWidget);
-    expect(find.text('🏷️ U Marketu'), findsWidgets);
-    expect(find.text('350 kredita'), findsWidgets);
+    expect(find.textContaining('U Marketu za 350 kredita'), findsOneWidget);
 
     // Ukloni iz Marketa.
     await tester.scrollUntilVisible(find.byKey(const ValueKey('unlist')), 200);
@@ -676,19 +705,7 @@ void chatTests() {
 
     await tester.pumpWidget(await buildApp(tester));
     await login('@demo');
-    // Demo objavljuje iPhone 13.
-    await tester.scrollUntilVisible(find.text('iPhone 13'), 300);
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('iPhone 13'));
-    await tester.pumpAndSettle();
-    await tester.scrollUntilVisible(find.text('Objavi u Marketu'), 200);
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('Objavi u Marketu'));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('Objavi'));
-    await tester.pumpAndSettle();
-    await tester.pageBack();
-    await tester.pumpAndSettle();
+    // Demo predmeti su automatski u Marketu.
     await logout();
 
     // Marko pita prodavatelja.

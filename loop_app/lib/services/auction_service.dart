@@ -67,11 +67,6 @@ class AuctionService {
     if (_storage.activeAuctionFor(deviceId) != null) {
       throw TradeException(t('Predmet je već na aukciji.'));
     }
-    if (device.isListed) {
-      throw TradeException(
-        t('Predmet je na prodaju u Marketu — prvo ga ukloni iz Marketa.'),
-      );
-    }
     if (startPrice <= 0) {
       throw TradeException(t('Početna cijena mora biti veća od 0.'));
     }
@@ -83,6 +78,8 @@ class AuctionService {
     if (reason != null) throw TradeException(reason);
 
     final fee = AuctionPolicy.listingFee(device);
+    // Predmet iz Marketa ide na aukciju — objava u Marketu se uklanja.
+    if (device.isListed) await _storage.putDevice(device.withListing(null));
     await _storage.putUser(
       user.copyWith(credits: roundCredits(user.credits - fee)),
     );

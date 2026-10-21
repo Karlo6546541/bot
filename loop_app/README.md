@@ -102,7 +102,11 @@ flutter run            # odaberi uređaj s popisa
   crosshair i tooltip na prelazak mišem ili dodir, te tablični prikaz istih podataka.
 - **Portfolio:** animirani krediti, traka napretka do sljedećeg statusa i raspodjela po
   odjeljcima/kategorijama.
-- **Market:** odjeljci, kategorije, pretraga, sortiranje i **favoriti** (♥).
+- **Market:** traka s pretragom i gumbom **Filteri** ostaje na vrhu pri skrolanju; brzi
+  odabir odjeljka/kategorije, a u listu filtera stanje, raspon cijene, prodavatelj (LOOP /
+  korisnici), samo favoriti i samo s fotografijom uz broj rezultata uživo. Aktivni filteri
+  su čipovi koji se brišu jednim dodirom (*Očisti sve*); sortiranje pokazuje trenutni izbor.
+  Filteri ostaju i nakon promjene taba, teme ili jezika.
 - **Detalji predmeta:** galerija, specifikacije, izračun feeja i kupnja/prodaja.
 - **Aktivnost:** sažetak (zarađeno, potrošeno, plaćeni fee) i filter Kupnje/Prodaje.
 - **Admin:** dashboard s predmetima po odjeljcima.
@@ -144,6 +148,10 @@ ne sinkronizira; online prijavu vodi Supabase Auth i lozinke ne prolaze kroz na�
 
 ## Objava u Marketu, poruke i zamjene
 
+- **Novi predmet odmah ide u Market** (prekidač *Odmah objavi u Marketu* u obrascu je
+  uključen). Predmeti koji su već bili u portfolijima jednom se automatski objave po svojoj
+  cijeni (osim onih na aukciji); kasnije *Ukloni iz Marketa* se poštuje, a kupljeni
+  predmeti se ne objavljuju sami. *Stavi na aukciju* predmet skida iz Marketa.
 - **Objavi u Marketu**: vlastiti predmet po svojoj cijeni — ostaje tvoj dok ga netko ne
   kupi. Kupac plaća cijenu + 5%, ti dobivaš cijenu − 5%. **Ukloni iz Marketa** ili
   **Promijeni cijenu** u svakom trenutku; **Obriši predmet** ga trajno briše.

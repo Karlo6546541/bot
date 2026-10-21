@@ -108,6 +108,7 @@ class Device {
     this.description = '',
     this.listPrice,
     this.listedAt,
+    this.marketChecked = false,
   });
 
   final String id;
@@ -131,6 +132,11 @@ class Device {
   /// objavljen). Kupac plaća ovu cijenu + 5%, a vlasnik dobiva − 5%.
   final double? listPrice;
   final DateTime? listedAt;
+
+  /// Predmet je prošao automatsku objavu u Marketu (ili ga je vlasnik sam
+  /// objavio/uklonio). Stari predmeti iz portfolija nemaju ovu oznaku pa se
+  /// jednom automatski objave — kasnije "Ukloni iz Marketa" se poštuje.
+  final bool marketChecked;
 
   /// Predmet platforme (LOOP Market) — svatko ga može kupiti.
   bool get isOnMarket => ownerId == null;
@@ -159,6 +165,8 @@ class Device {
     ownerId: ownerId,
     imagePaths: imagePaths,
     description: description,
+    // Kupljeni predmet se ne objavljuje sam od sebe.
+    marketChecked: true,
   );
 
   /// Objava u Marketu po cijeni [price] (`null` = ukloni iz Marketa).
@@ -175,6 +183,7 @@ class Device {
     description: description,
     listPrice: price,
     listedAt: price == null ? null : at ?? DateTime.now(),
+    marketChecked: true,
   );
 
   Device withImages(List<String> paths) => Device(
@@ -190,6 +199,7 @@ class Device {
     description: description,
     listPrice: listPrice,
     listedAt: listedAt,
+    marketChecked: marketChecked,
   );
 
   Map<String, dynamic> toMap() => {
@@ -205,6 +215,7 @@ class Device {
     'description': description,
     'listPrice': listPrice,
     'listedAt': listedAt?.toIso8601String(),
+    'marketChecked': marketChecked,
   };
 
   factory Device.fromMap(Map<dynamic, dynamic> map) => Device(
@@ -223,5 +234,6 @@ class Device {
     listedAt: map['listedAt'] == null
         ? null
         : DateTime.parse(map['listedAt'] as String),
+    marketChecked: map['marketChecked'] as bool? ?? false,
   );
 }

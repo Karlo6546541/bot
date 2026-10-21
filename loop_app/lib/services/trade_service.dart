@@ -51,6 +51,7 @@ class TradeService {
     required DeviceCategory category,
     List<String> imagePaths = const [],
     String description = '',
+    bool listOnMarket = true,
   }) async {
     if (name.trim().isEmpty || model.trim().isEmpty) {
       throw TradeException(t('Naziv i model su obavezni.'));
@@ -73,6 +74,11 @@ class TradeService {
       createdAt: DateTime.now(),
       imagePaths: imagePaths,
       description: description.trim(),
+      // Novi predmet odmah ide u Market (po svojoj cijeni), osim ako
+      // korisnik to isključi.
+      listPrice: listOnMarket ? roundCredits(price) : null,
+      listedAt: listOnMarket ? DateTime.now() : null,
+      marketChecked: true,
     );
     await _storage.putDevice(device);
     await _snapshot(userId);
@@ -286,6 +292,32 @@ class TradeService {
     await _storage.deleteDevice(deviceId);
     await _snapshot(userId);
     return device.imagePaths;
+  }
+
+  /// Jednokratno: predmeti iz portfolija koji još nisu prošli automatsku
+  /// objavu idu u Market po svojoj cijeni (osim onih na aukciji).
+  /// Vraća broj objavljenih predmeta.
+  Future<int> autoListPortfolios({DateTime? now}) async {
+    final at = now ?? DateTime.now();
+    var listed = 0;
+    for (final d in _storage.devices) {
+      if (d.ownerId == null || d.marketChecked) continue;
+      final owner = _storage.userById(d.ownerId!);
+      final skip =
+          owner == null ||
+          owner.isGuest ||
+          owner.pendingDeletion ||
+          _storage.activeAuctionFor(d.id) != null;
+      if (skip || d.isListed) {
+        await _storage.putDevice(
+          d.withListing(d.listPrice, at: d.listedAt ?? at),
+        );
+        continue;
+      }
+      await _storage.putDevice(d.withListing(d.price, at: at));
+      listed++;
+    }
+    return listed;
   }
 
   Device _requireOwn(String userId, String deviceId) {

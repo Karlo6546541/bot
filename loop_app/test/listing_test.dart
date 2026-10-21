@@ -1,6 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hive/hive.dart';
 import 'package:loop_app/models/delivery.dart';
+import 'package:loop_app/models/device.dart';
 import 'package:loop_app/models/loop_transaction.dart';
 import 'package:loop_app/providers/app_state.dart';
 import 'package:loop_app/services/auction_service.dart';
@@ -127,33 +128,80 @@ void main() {
     );
   });
 
-  test('objava i aukcija se isključuju', () async {
-    final auctions = AuctionService(storage);
-    await trade.list(userId: SeedData.demoUserId, deviceId: iphone, price: 300);
-    await expectLater(
-      auctions.create(
+  test(
+    'aukcija skida predmet iz Marketa; tijekom aukcije nema objave',
+    () async {
+      final auctions = AuctionService(storage);
+      await trade.list(
+        userId: SeedData.demoUserId,
+        deviceId: iphone,
+        price: 300,
+      );
+      await auctions.create(
         userId: SeedData.demoUserId,
         deviceId: iphone,
         startPrice: 100,
         duration: const Duration(hours: 1),
-      ),
-      throwsA(isA<TradeException>()),
+      );
+      expect(storage.deviceById(iphone)!.isListed, isFalse);
+      await expectLater(
+        trade.list(userId: SeedData.demoUserId, deviceId: iphone, price: 300),
+        throwsA(isA<TradeException>()),
+      );
+      await expectLater(
+        trade.deleteOwn(userId: SeedData.demoUserId, deviceId: iphone),
+        throwsA(isA<TradeException>()),
+      );
+    },
+  );
+
+  test('novi predmet odmah ide u Market (osim ako se isključi)', () async {
+    final listed = await trade.addDevice(
+      userId: SeedData.testUserId,
+      name: 'PS5',
+      model: 'Slim',
+      condition: DeviceCondition.excellent,
+      price: 400,
+      category: DeviceCategory.console,
     );
+    expect(listed.isListed, isTrue);
+    expect(listed.askPrice, 400);
+    expect(listed.ownerId, SeedData.testUserId);
+    final kept = await trade.addDevice(
+      userId: SeedData.testUserId,
+      name: 'Xbox',
+      model: 'One',
+      condition: DeviceCondition.good,
+      price: 150,
+      category: DeviceCategory.console,
+      listOnMarket: false,
+    );
+    expect(kept.isListed, isFalse);
+    // Ni jedan od njih ne objavljuje se ponovno automatski.
+    expect(await trade.autoListPortfolios(), 2); // samo demo predmeti
+    expect(storage.deviceById(kept.id)!.isListed, isFalse);
+  });
+
+  test('stari predmeti iz portfolija jednom idu u Market', () async {
+    // Demo ima 2 stara predmeta (bez oznake) — oba se objave po cijeni.
+    expect(await trade.autoListPortfolios(), 2);
+    final d = storage.deviceById(iphone)!;
+    expect(d.isListed, isTrue);
+    expect(d.askPrice, d.price);
+    // Vlasnik ga ukloni — ponovni prolaz ga NE vraća.
     await trade.unlist(userId: SeedData.demoUserId, deviceId: iphone);
-    await auctions.create(
-      userId: SeedData.demoUserId,
-      deviceId: iphone,
-      startPrice: 100,
-      duration: const Duration(hours: 1),
+    expect(await trade.autoListPortfolios(), 0);
+    expect(storage.deviceById(iphone)!.isListed, isFalse);
+    // Kupljeni predmet se ne objavljuje sam od sebe.
+    await trade.list(userId: SeedData.demoUserId, deviceId: iphone, price: 200);
+    await trade.buy(userId: SeedData.testUserId, deviceId: iphone);
+    expect(await trade.autoListPortfolios(), 0);
+    expect(storage.deviceById(iphone)!.isListed, isFalse);
+    // Predmeti na aukciji (Anini) ostaju na aukciji.
+    final onAuction = storage.devices.where(
+      (x) => x.ownerId == SeedData.anaUserId,
     );
-    await expectLater(
-      trade.list(userId: SeedData.demoUserId, deviceId: iphone, price: 300),
-      throwsA(isA<TradeException>()),
-    );
-    await expectLater(
-      trade.deleteOwn(userId: SeedData.demoUserId, deviceId: iphone),
-      throwsA(isA<TradeException>()),
-    );
+    expect(onAuction.every((x) => !x.isListed), isTrue);
   });
 
   test(

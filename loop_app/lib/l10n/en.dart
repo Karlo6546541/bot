@@ -903,4 +903,23 @@ const kEn = <String, String>{
       'Online database: connected, but tables are missing',
   'Pokreni supabase/schema.sql u Supabase SQL Editoru pa osvježi stranicu. Do tada ostaju samo na ovom uređaju: {0}':
       'Run supabase/schema.sql in the Supabase SQL Editor, then reload the page. Until then these stay on this device only: {0}',
+  'Predmet je objavljen u Marketu 🏷️': 'The item is listed in the Market 🏷️',
+  'Odmah objavi u Marketu': 'List in the Market right away',
+  'Predmet ostaje tvoj dok ga netko ne kupi. Dobivaš cijenu − 5% fee.':
+      'The item stays yours until someone buys it. You get the price − 5% fee.',
+  'Ostaje samo u portfoliju — objaviti ga možeš kasnije.':
+      'It stays in your portfolio only — you can list it later.',
+  'Svi prodavatelji': 'All sellers',
+  'Filteri': 'Filters',
+  'Očisti': 'Clear',
+  'Svi': 'All',
+  'Samo favoriti': 'Favorites only',
+  'Samo s fotografijom': 'With photo only',
+  'Prikaži {0} rezultata': 'Show {0} results',
+  'od {0}': 'from {0}',
+  'do {0}': 'up to {0}',
+  'S fotografijom': 'With photo',
+  'Očisti sve': 'Clear all',
+  '{0} predmeta': '{0} items',
+  'Očisti pretragu i filtere': 'Clear search and filters',
 };
