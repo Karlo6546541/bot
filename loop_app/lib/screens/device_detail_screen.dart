@@ -374,17 +374,17 @@ class _PhotoActions extends ConsumerWidget {
                         .read(appProvider.notifier)
                         .removeImage(device.id, path),
                   ),
+                if (!full && store.canUseCamera)
+                  _AddTile(
+                    icon: Icons.photo_camera_outlined,
+                    label: 'Uslikaj',
+                    onTap: () => _add(ref, camera: true),
+                  ),
                 if (!full)
                   _AddTile(
                     icon: Icons.add_photo_alternate_outlined,
                     label: 'Galerija',
                     onTap: () => _add(ref),
-                  ),
-                if (!full && store.canUseCamera)
-                  _AddTile(
-                    icon: Icons.photo_camera_outlined,
-                    label: 'Kamera',
-                    onTap: () => _add(ref, camera: true),
                   ),
               ],
             ),

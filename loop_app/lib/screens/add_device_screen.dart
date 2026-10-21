@@ -506,17 +506,17 @@ class _PhotoPicker extends StatelessWidget {
                     ),
                   ),
                 ),
+              if (!full && canUseCamera)
+                _PickTile(
+                  icon: Icons.photo_camera_outlined,
+                  label: 'Uslikaj',
+                  onTap: () => onPick(camera: true),
+                ),
               if (!full)
                 _PickTile(
                   icon: Icons.add_photo_alternate_outlined,
                   label: 'Galerija',
                   onTap: () => onPick(),
-                ),
-              if (!full && canUseCamera)
-                _PickTile(
-                  icon: Icons.photo_camera_outlined,
-                  label: 'Kamera',
-                  onTap: () => onPick(camera: true),
                 ),
             ],
           ),

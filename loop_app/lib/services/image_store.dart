@@ -26,8 +26,10 @@ class ImageStore {
 
   static const bucket = 'loop-images';
 
-  /// Kamera postoji samo na mobitelu; na Windowsu i webu se bira datoteka.
-  bool get canUseCamera => !kIsWeb && (Platform.isAndroid || Platform.isIOS);
+  /// Kamera: na mobitelu, i na webu (preglednik na mobitelu otvara kameru
+  /// izravno; na računalu umjesto toga ponudi odabir datoteke).
+  /// Windows aplikacija nema podršku za kameru.
+  bool get canUseCamera => kIsWeb || Platform.isAndroid || Platform.isIOS;
 
   /// Fotografije rade svugdje (na webu kao data: URL ili preko Supabasea).
   bool get supported => true;
