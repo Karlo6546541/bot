@@ -62,6 +62,10 @@ void main() {
       await tester.pumpAndSettle();
       await tester.enterText(find.byType(TextField).first, 'AirPods');
       await tester.pumpAndSettle();
+      // Novi filteri dodaju jedan red; na mobitelu gumb može biti
+      // niže u listi i zato ga treba dovesti u vidljivo područje.
+      await tester.ensureVisible(find.text('Kupi odmah'));
+      await tester.pumpAndSettle();
       await tester.tap(find.text('Kupi odmah'));
       await tester.pumpAndSettle();
       await tester.ensureVisible(find.text('Potvrdi kupnju'));
