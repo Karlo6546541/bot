@@ -123,7 +123,7 @@ svjetline, kontrast i razlučivost za daltonizam.
 ## Računi i profil
 
 - **Registracija** e-mailom, lozinkom (barem 6 znakova) i **korisničkim imenom**; prijava
-  e-mailom (lokalno i korisničkim imenom). Novi računi dobivaju 500 LC.
+  e-mailom (lokalno i korisničkim imenom). Novi računi počinju s 0 €.
 - **Jedinstveno korisničko ime** (`@ime`): 3–20 znakova (a–z, brojevi, `_`, `.`), počinje
   slovom, bez rezerviranih (`admin`, `loop`, `support`…) i neprimjerenih imena; "Karlo" i
   "karlo" su isto ime. Dok tipkaš vidiš je li slobodno, a ako nije, dobiješ prijedloge.
@@ -161,6 +161,33 @@ ne sinkronizira; online prijavu vodi Supabase Auth i lozinke ne prolaze kroz na�
 - **Ponudi zamjenu**: tvoj predmet (+ nadoplata u eurima) za tuđi objavljeni predmet.
   Vlasnik prihvaća ili odbija; nakon prihvaćanja predmeti mijenjaju vlasnike, nadoplata
   ide vlasniku u cijelosti (ponuditelj plaća + 2%), a oboje biraju dostavu u *Moje dostave*.
+
+## Mini webshop, cjenkanje, popusti i praćenje
+
+- **Količina na zalihi**: pri objavi (i u *Cijena i zaliha*) upisuješ broj komada. Svaka
+  kupnja skida jedan komad — kupac dobiva svoj primjerak, oglas ostaje dok se ne proda
+  zadnji komad (tada prodavatelj dobiva obavijest *Rasprodano*).
+- **Popust** na oglas: 5–90%, trajno ili 1 / 3 / 7 / 30 dana. Cijena se prikazuje crveno uz
+  prekriženu redovnu cijenu i oznaku „−20%”; u Marketu postoji filter **Na popustu**.
+  Pratitelji i oni kojima je predmet na listi želja dobiju obavijest.
+- **Ponudi cijenu (cjenkanje)**: kupac nudi iznos (najmanje 30% cijene); prodavatelj
+  **prihvaća**, **odbija** ili daje **protuponudu**, a kupac prihvaća ili odbija
+  protuponudu. Dogovorena cijena vrijedi **48 sati** i samo za tog kupca — gumb *Kupi*
+  tada naplaćuje dogovorenu cijenu. Sve ponude: *Profil → Ponude cijena*.
+- **Prati** prodavatelja (na oglasu ili trgovini): obavijest o novim oglasima i popustima,
+  a njegovi oglasi su prvi u feedu *Za tebe* na početnoj.
+- **Mini webshop**: javni profil je trgovina — naziv trgovine (*Profil → Naziv trgovine*),
+  pratitelji, broj prodaja, pretraga i sortiranje oglasa (najnovije, cijena, popust).
+- **Dijeljenje**: ikona dijeljenja na oglasu i trgovini kopira poveznicu
+  (`…/bot/?item=<id>` ili `…/bot/?shop=<korisnik>`); poveznica otvara oglas/trgovinu
+  nakon prijave.
+- **Feed *Za tebe*** na početnoj: praćeni prodavatelji, istaknuti računi, popusti, novo.
+- **Top prodavatelji**: ljestvica po broju prodaja (tjedan / mjesec / ukupno).
+- **Isticanje računa** (*Profil → Istakni račun*): 4,99 € tjedno — oglasi su prvi u Marketu
+  (sortiranje *Preporučeno*) i u feedu, s oznakom „⭐ Istaknuto”.
+- **Pretraga**: povijest pretraga (zadnjih 10, na uređaju), pretraga računa/trgovina po
+  imenu, a „c/s/z/d/dj” pronalaze i „č/ć/š/ž/đ”.
+- Online: ponude cijena su u tablici `loop_bargains` — pokreni ponovno `supabase/schema.sql`.
 
 ## Digitalni proizvodi (3D modeli, softver, e-knjige…)
 
@@ -326,12 +353,12 @@ Lokalni način (bez online baze):
 
 | Uloga    | E-mail / ime                        | Lozinka    | Napomena                                          |
 |----------|-------------------------------------|------------|---------------------------------------------------|
-| Korisnik | `demo@loop.com` / `@demo`           | `demo`     | 1 250 LC + iPhone 13 i Laptop Lenovo → **Silver** |
-| Korisnik | `test@loop.com` / `@test`           | `demo`     | 800 LC, prazan portfolio → **Bronze**             |
+| Korisnik | `demo@loop.com` / `@demo`           | `demo`     | 1.250 € + iPhone 13 i Laptop Lenovo → **Silver** |
+| Korisnik | `test@loop.com` / `@test`           | `demo`     | 800 €, prazan portfolio → **Bronze**             |
 | Admin    | `admin@loop.com`                    | `admin123` | preko gumba **"Admin prijava"**                   |
 | Gost     | —                                   | —          | **"Samo razgledaj (gost)"** — bez kupnje/prodaje  |
 | Korisnik | `ana@loop.com` / `@ana.kolekcija`   | `demo`     | prodaje 4 predmeta na aukcijama                   |
-| Korisnik | `marko@loop.com` / `@marko`         | `demo`     | vodi na 3 aukcije (470 LC blokirano)              |
+| Korisnik | `marko@loop.com` / `@marko`         | `demo`     | vodi na 3 aukcije (470 € blokirano)               |
 
 Novi račun: *Registracija* (e-mail, korisničko ime, lozinka) → stanje **0 €** (bez početnog poklona).
 Računi iz starijih verzije: prva lozinka kojom se prijaviš postaje lozinka računa.
@@ -346,18 +373,21 @@ Apple Watch, Sony A7 III, PS5, Switch) i po 4–5 iz svakog novog odjeljka.
 
 ## Poslovna pravila
 
-| Akcija           | Formula                   | Primjer (cijena 310 LC)   |
+| Akcija           | Formula                   | Primjer (cijena 310 €)    |
 |------------------|---------------------------|---------------------------|
-| **Prodaj odmah** | dobivaš `cijena × 0.95`   | +294.50 LC (fee 15.50)    |
-| **Kupi odmah**   | plaćaš `cijena × 1.05`    | −325.50 LC (fee 15.50)    |
+| **Prodaj odmah** | dobivaš `cijena`          | +310 € (bez naknade)      |
+| **Kupi odmah**   | plaćaš `cijena × 1.02`    | −316,20 € (naknada 6,20)  |
 
+- Svaki račun je i kupac i prodavatelj. **Prodavatelj ne plaća naknadu**; kupac plaća 2%.
 - Prodani uređaj ide u **Market** (otkupljuje ga platforma) gdje ga drugi mogu kupiti.
-- **Objava u Marketu** (od korisnika): kupac plaća `cijena × 1.05`, prodavatelj dobiva
-  `cijena × 0.95`.
-- **Zamjena**: nadoplatu plaća ponuditelj, vlasnik dobiva `nadoplata × 0.95`.
+- **Objava u Marketu** (od korisnika): kupac plaća `cijena × 1.02`, prodavatelj dobiva
+  punu cijenu. Popust i dogovorena cijena (cjenkanje) smanjuju `cijena`.
+- **Aukcije**: pobjednik plaća svoju ponudu, prodavatelj dobiva cijeli iznos.
+- **Zamjena**: nadoplatu plaća ponuditelj (+ 2%), vlasnik dobiva cijelu nadoplatu.
 - Kupnja je moguća samo ako imaš dovoljno novca za cijenu **+ 2% naknade**.
-- Prije svake transakcije prikazuje se dijalog s cijenom, fee-om i konačnim iznosom.
+- Prije svake transakcije prikazuje se dijalog s cijenom, naknadom i konačnim iznosom.
 - **Status** = stanje + vrijednost portfolija: Bronze < 2000 € · Silver 2000–5000 € · Gold > 5000 €.
+- **Isticanje računa**: 4,99 € tjedno (1–4 tjedna), plaća se sa stanja.
 
 Fee je definiran na jednom mjestu: `lib/services/fee.dart` (`kFeeRate`).
 

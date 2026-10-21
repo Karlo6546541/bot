@@ -1000,4 +1000,179 @@ const kEn = <String, String>{
       'The amount must be between €{0} and €{1}.',
   'Dnevni limit uplata je {0} €. Danas možeš uplatiti još {1}.':
       'The daily deposit limit is €{0}. You can add {1} more today.',
+  '1 dan': '1 day',
+  '1 tjedan': '1 week',
+  'Cijeli Market': 'Whole Market',
+  'Cijena i zaliha': 'Price and stock',
+  'Cijena je {0}. Prodavatelj može prihvatiti, odbiti ili dati protuponudu. Prihvaćena cijena vrijedi 48 sati samo za tebe.':
+      'The price is {0}. The seller can accept, decline or counter. An accepted price is valid for 48 hours, only for you.',
+  'Cijena se može ponuditi samo za oglase korisnika.':
+      'You can only make offers on user listings.',
+  'Cjenkanje s kupcima i prodavateljima': 'Haggle with buyers and sellers',
+  'Dogovoreno! Sada možeš kupiti po toj cijeni.':
+      'Deal! You can now buy at that price.',
+  'Imaš više istih komada? Svaka kupnja skida jedan s zalihe.':
+      'Have several identical pieces? Each purchase takes one from stock.',
+  'Istakni račun': 'Promote account',
+  'Istakni svoj račun ⭐': 'Promote your account ⭐',
+  'Istaknut do {0}': 'Promoted until {0}',
+  'Istaknut si do {0} — novo razdoblje se nadovezuje.':
+      'You\'re promoted until {0} — a new period is added on top.',
+  'Isticanje računa · {0} tj.': 'Account promotion · {0} wk',
+  'Isticanje se plaća za 1 do {0} tjedna.':
+      'Promotion can be bought for 1 to {0} weeks.',
+  'Još nema ponuda': 'No offers yet',
+  'Još nema prodaja u ovom razdoblju': 'No sales in this period yet',
+  'Količina mora biti između 1 i {0}.': 'Quantity must be between 1 and {0}.',
+  'Količina na zalihi': 'Quantity in stock',
+  'Kopiraj poveznicu trgovine': 'Copy shop link',
+  'Korisnik': 'User',
+  'Kupac nudi {0}, cijena je {1}.': 'The buyer offers {0}, the price is {1}.',
+  'Mjesec': 'Month',
+  'Moja trgovina: {0}': 'My shop: {0}',
+  'Na ovu ponudu ne možeš dati protuponudu.': 'You can\'t counter this offer.',
+  'Na popustu': 'On sale',
+  'Na tuđem oglasu dodirni "Ponudi cijenu". Ponude za tvoje oglase pojavit će se ovdje.':
+      'On someone\'s listing tap "Make an offer". Offers on your listings will appear here.',
+  'Najniža ponuda je {0} ({1}% cijene).':
+      'The lowest offer is {0} ({1}% of the price).',
+  'Naknada za prodavatelja': 'Seller fee',
+  'Naziv trgovine': 'Shop name',
+  'Naziv trgovine je spremljen': 'Shop name saved',
+  'Naziv trgovine može imati najviše {0} znakova.':
+      'The shop name can have at most {0} characters.',
+  'Ne možeš pratiti sam sebe.': 'You can\'t follow yourself.',
+  'Nemaš dovoljno novca za tu ponudu (treba {0} s naknadom).':
+      'Not enough money for that offer (you need {0} with the fee).',
+  'Nemaš dovoljno novca: isticanje košta {0}, imaš {1}.':
+      'Not enough money: promotion costs {0}, you have {1}.',
+  'Novo · {0}': 'New · {0}',
+  'Objavi oglas — prva prodaja te stavlja na ljestvicu.':
+      'Post a listing — your first sale puts you on the leaderboard.',
+  'Od 1 do {0}': 'From 1 to {0}',
+  'Ostale ponude': 'Other offers',
+  'Ovo je tvoj oglas.': 'This is your listing.',
+  'Ovu ponudu ne možeš odbiti.': 'You can\'t decline this offer.',
+  'Ovu ponudu ne možeš povući.': 'You can\'t withdraw this offer.',
+  'Ovu ponudu ne možeš prihvatiti.': 'You can\'t accept this offer.',
+  'Ovu protuponudu ne možeš prihvatiti.':
+      'You can\'t accept this counteroffer.',
+  'Očisti povijest': 'Clear history',
+  'Plaća se s LOOP stanja. Stanje: {0}':
+      'Paid from your LOOP balance. Balance: {0}',
+  'Podijeli': 'Share',
+  'Podijeli oglas': 'Share listing',
+  'Podijeli trgovinu': 'Share shop',
+  'Ponuda je poslana prodavatelju': 'Offer sent to the seller',
+  'Ponuda je povučena': 'Offer withdrawn',
+  'Ponuda je već prihvaćena — kupi po dogovorenoj cijeni.':
+      'Your offer was already accepted — buy at the agreed price.',
+  'Ponuda mora biti niža od cijene ({0}) — inače samo kupi.':
+      'The offer must be below the price ({0}) — otherwise just buy it.',
+  'Ponuda više nije otvorena.': 'The offer is no longer open.',
+  'Ponude cijena': 'Price offers',
+  'Ponude kupaca ({0})': 'Buyer offers ({0})',
+  'Ponudi cijenu': 'Make an offer',
+  'Ponudio si {0} ({1})': 'You offered {0} ({1})',
+  'Popust': 'Discount',
+  'Popust je uklonjen': 'Discount removed',
+  'Popust mora biti između 1 i {0}%.':
+      'The discount must be between 1 and {0}%.',
+  'Popust na "{0}"': 'Discount on "{0}"',
+  'Popust se može dati samo na oglas u Marketu.':
+      'Discounts can only be set on Market listings.',
+  'Popust {0}': 'Discount {0}',
+  'Popust −{0}% je aktivan — pratitelji su obaviješteni':
+      '−{0}% discount is live — followers were notified',
+  'Poruka': 'Message',
+  'Postavi popust': 'Set discount',
+  'Poveznica je kopirana — zalijepi je gdje želiš.':
+      'Link copied — paste it wherever you like.',
+  'Prati': 'Follow',
+  'Pratitelji i oni kojima je predmet na listi želja dobit će obavijest.':
+      'Followers and people with this item on their wishlist will be notified.',
+  'Pratiš': 'Following',
+  'Pratiš {0}': 'You follow {0}',
+  'Pratiš — javit ćemo ti nove oglase i popuste.':
+      'Following — we\'ll tell you about new listings and discounts.',
+  'Prazno = korisničko ime.': 'Empty = username.',
+  'Pretraži trgovinu…': 'Search the shop…',
+  'Prihvaćeno — kupac ima 48 sati za kupnju':
+      'Accepted — the buyer has 48 hours to buy',
+  'Protuponuda': 'Counteroffer',
+  'Protuponuda je poslana': 'Counteroffer sent',
+  'Protuponuda mora biti između {0} i {1}.':
+      'The counteroffer must be between {0} and {1}.',
+  'Račun je istaknut ⭐ — oglasi ti se prikazuju prvi':
+      'Account promoted ⭐ — your listings are shown first',
+  'Redovna cijena': 'Regular price',
+  'S naknadom kupac plaća {0}': 'With the fee the buyer pays {0}',
+  'Samo na popustu': 'On sale only',
+  'Svaka kupnja skida jedan komad.': 'Each purchase takes one piece.',
+  'Tjedan': 'Week',
+  'Top prodavatelji': 'Top sellers',
+  'Trajanje': 'Duration',
+  'Trajno': 'Permanent',
+  'Trgovina ({0})': 'Shop ({0})',
+  'Tvoji oglasi prikazuju se prvi u Marketu (Preporučeno) i na početnoj, s oznakom "Istaknuto". Cijena: {0} tjedno.':
+      'Your listings are shown first in the Market (Recommended) and on the home page, marked "Promoted". Price: {0} per week.',
+  'Ukloni': 'Remove',
+  'Ukloni popust': 'Remove discount',
+  'Već imaš otvorenu ponudu za ovaj predmet.':
+      'You already have an open offer for this item.',
+  'Više ne pratiš ovaj račun.': 'You no longer follow this account.',
+  'Za isticanje se prijavi.': 'Log in to promote.',
+  'Za ponudu se prijavi.': 'Log in to make an offer.',
+  'Za tebe': 'For you',
+  'cijena {0}': 'price {0}',
+  'isticanje': 'promotion',
+  'kom': 'pcs',
+  'na zalihi: {0} kom': 'in stock: {0} pcs',
+  'oglasa': 'listings',
+  'pratitelja': 'followers',
+  'prodaja': 'sales',
+  'protuponuda {0}': 'counteroffer {0}',
+  '{0} dana': '{0} days',
+  '{0} kom': '{0} pcs',
+  '{0} nudi {1}': '{0} offers {1}',
+  '{0} pratitelja · {1} prodaja': '{0} followers · {1} sales',
+  '{0} pratitelja · {1} prodaja · {2} oglasa':
+      '{0} followers · {1} sales · {2} listings',
+  '{0} prodaja · {1}': '{0} sales · {1}',
+  '{0} tjedna': '{0} weeks',
+  '{0} tjedno — oglasi se prikazuju više ljudi':
+      '{0} per week — your listings reach more people',
+  '{0} čeka tvoj odgovor': '{0} awaiting your reply',
+  'Čeka tvoj odgovor ({0})': 'Awaiting your reply ({0})',
+  '↩️ Prodavatelj nudi {0} (tvoja ponuda: {1}).':
+      '↩️ The seller offers {0} (your offer: {1}).',
+  '−{0}% do {1}': '−{0}% until {1}',
+  '−{0}% popust': '−{0}% off',
+  '−{0}% trajno': '−{0}% permanent',
+  '⏳ Ponudio si {0} — čeka se odgovor prodavatelja.':
+      '⏳ You offered {0} — waiting for the seller.',
+  '✅ Dogovorena cijena {0} vrijedi do {1}. Kupi gumbom iznad.':
+      '✅ The agreed price {0} is valid until {1}. Buy with the button above.',
+  '⭐ Istaknuto': '⭐ Promoted',
+  'Preporučeno': 'Recommended',
+  'Najveći popust': 'Biggest discount',
+  'Isticanje računa': 'Account promotion',
+  'Iskorišteno': 'Used',
+  'Isteklo': 'Expired',
+  '{0} nudi {1} za "{2}".': '{0} offers {1} for "{2}".',
+  '{0} je prihvatio tvoju ponudu od {1} za "{2}". Kupi u roku od 48 sati.':
+      '{0} accepted your offer of {1} for "{2}". Buy within 48 hours.',
+  'Ponuda za "{1}" je odbijena ({0}).':
+      'The offer for "{1}" was declined ({0}).',
+  '{0} ti daje protuponudu {1} za "{2}".': '{0} counters with {1} for "{2}".',
+  '{0} je prihvatio protuponudu {1} za "{2}".':
+      '{0} accepted the counteroffer {1} for "{2}".',
+  '{0} te sada prati.': '{0} is now following you.',
+  '{0} je objavio novi oglas: "{1}" za {2}.':
+      '{0} posted a new listing: "{1}" for {2}.',
+  '{0}: popust −{1}% na "{2}" — sada {3}.': '{0}: −{1}% off "{2}" — now {3}.',
+  'Rasprodano: "{0}" — prodan je zadnji komad.':
+      'Sold out: "{0}" — the last piece was sold.',
+  'Na zalihi: {0} kom — svaka kupnja skida jedan.':
+      'In stock: {0} pcs — each purchase takes one.',
 };

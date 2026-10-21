@@ -122,7 +122,9 @@ Future<bool> confirmAndBuy(
   if (blockGuest(context)) return false;
   final user = ref.read(appProvider).currentUser;
   if (user == null) return false;
-  final total = buyTotal(device.askPrice);
+  // Dogovorena cijena (prihvaćena ponuda) ili cijena oglasa s popustom.
+  final price = ref.read(appProvider).priceForMe(device);
+  final total = buyTotal(price);
   // Već kupljen digitalni proizvod — samo preuzmi.
   if (device.isDigital && ref.read(appProvider).hasPurchased(device.id)) {
     await downloadDigital(context, ref, device);
@@ -151,7 +153,7 @@ Future<bool> confirmAndBuy(
     return confirmAndBuy(context, ref, device);
   }
 
-  if (device.isDigital) return _buyDigital(context, ref, device);
+  if (device.isDigital) return _buyDigital(context, ref, device, price);
 
   // Blagajna: dostava + pregled iznosa.
   final choice = await showModalBottomSheet<DeliveryChoice>(
@@ -160,7 +162,8 @@ Future<bool> confirmAndBuy(
     showDragHandle: true,
     backgroundColor: LoopColors.background,
     constraints: BoxConstraints(maxWidth: 560),
-    builder: (_) => _CheckoutSheet(device: device, credits: user.credits),
+    builder: (_) =>
+        _CheckoutSheet(device: device, price: price, credits: user.credits),
   );
   if (choice == null || !context.mounted) return false;
   return runWithLoading(
@@ -174,8 +177,13 @@ Future<bool> confirmAndBuy(
 
 /// Blagajna: odabir dostave i ukupan iznos (predmet + fee + dostava).
 class _CheckoutSheet extends StatefulWidget {
-  const _CheckoutSheet({required this.device, required this.credits});
+  const _CheckoutSheet({
+    required this.device,
+    required this.price,
+    required this.credits,
+  });
   final Device device;
+  final double price;
   final double credits;
 
   @override
@@ -190,7 +198,8 @@ class _CheckoutSheetState extends State<_CheckoutSheet> {
   Widget build(BuildContext context) {
     final d = widget.device;
     final shipping = _choice?.method.cost ?? 0;
-    final total = buyTotal(d.askPrice) + shipping;
+    final price = widget.price;
+    final total = buyTotal(price) + shipping;
     final enough = widget.credits >= total;
 
     Widget row(String k, String v, {bool bold = false}) => Padding(
@@ -254,11 +263,10 @@ class _CheckoutSheetState extends State<_CheckoutSheet> {
                 padding: EdgeInsets.all(14),
                 child: Column(
                   children: [
-                    row(t('Cijena'), formatCredits(d.askPrice)),
-                    row(
-                      t('Naknada (2%)'),
-                      '+ ${formatCredits(feeFor(d.askPrice))}',
-                    ),
+                    if (price < d.basePrice)
+                      row(t('Redovna cijena'), formatCredits(d.basePrice)),
+                    row(t('Cijena'), formatCredits(price)),
+                    row(t('Naknada (2%)'), '+ ${formatCredits(feeFor(price))}'),
                     row(
                       t('Dostava'),
                       shipping == 0
@@ -468,22 +476,25 @@ Future<bool> confirmDialog(
   return result ?? false;
 }
 
-/// Objava vlastitog predmeta u Marketu: korisnik upisuje cijenu i vidi
-/// koliko dobiva nakon prodaje (cijena − 5%).
+/// Objava vlastitog predmeta u Marketu: korisnik upisuje cijenu (i
+/// količinu na zalihi) i vidi koliko dobiva nakon prodaje (puna cijena).
 Future<bool> showListDialog(
   BuildContext context,
   WidgetRef ref,
   Device device,
 ) async {
   if (blockGuest(context)) return false;
-  final price = await showDialog<double>(
+  final result = await showDialog<(double, int?)>(
     context: context,
     builder: (_) => _ListDialog(device: device),
   );
-  if (price == null || !context.mounted) return false;
+  if (result == null || !context.mounted) return false;
+  final (price, quantity) = result;
   return runWithLoading(
     context,
-    () => ref.read(appProvider.notifier).listOnMarket(device.id, price),
+    () => ref
+        .read(appProvider.notifier)
+        .listOnMarket(device.id, price, quantity: quantity),
     successMessage: t('Objavljeno u Marketu 🏷️'),
   );
 }
@@ -500,11 +511,14 @@ class _ListDialogState extends State<_ListDialog> {
   late final _price = TextEditingController(
     text: (widget.device.listPrice ?? widget.device.price).toStringAsFixed(0),
   );
+  late final _qty = TextEditingController(text: '${widget.device.quantity}');
   String? _error;
+  String? _qtyError;
 
   @override
   void dispose() {
     _price.dispose();
+    _qty.dispose();
     super.dispose();
   }
 
@@ -517,7 +531,15 @@ class _ListDialogState extends State<_ListDialog> {
       setState(() => _error = t('Unesi ispravnu cijenu'));
       return;
     }
-    Navigator.pop(context, v);
+    int? q;
+    if (!widget.device.isDigital) {
+      q = int.tryParse(_qty.text.trim());
+      if (q == null || q < 1 || q > Device.maxQuantity) {
+        setState(() => _qtyError = t('Od 1 do {0}', ['${Device.maxQuantity}']));
+        return;
+      }
+    }
+    Navigator.pop(context, (v, q));
   }
 
   @override
@@ -554,6 +576,22 @@ class _ListDialogState extends State<_ListDialog> {
                 errorText: _error,
               ),
             ),
+            if (!widget.device.isDigital) ...[
+              const SizedBox(height: 12),
+              TextField(
+                key: const ValueKey('list-quantity'),
+                controller: _qty,
+                keyboardType: TextInputType.number,
+                onChanged: (_) => setState(() => _qtyError = null),
+                onSubmitted: (_) => _submit(),
+                decoration: InputDecoration(
+                  labelText: t('Količina na zalihi'),
+                  suffixText: t('kom'),
+                  helperText: t('Svaka kupnja skida jedan komad.'),
+                  errorText: _qtyError,
+                ),
+              ),
+            ],
             const SizedBox(height: 12),
             if (v != null && v > 0) ...[
               Text(
@@ -586,8 +624,8 @@ Future<bool> _buyDigital(
   BuildContext context,
   WidgetRef ref,
   Device device,
+  double price,
 ) async {
-  final price = device.askPrice;
   final ok = await _showTradeDialog(
     context,
     title: t('Kupi i preuzmi'),

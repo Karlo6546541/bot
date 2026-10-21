@@ -40,4 +40,21 @@ class Inbox {
       await _storage.deleteNotification(old.id);
     }
   }
+
+  /// Obavijest svim pratiteljima prodavatelja [sellerId].
+  Future<int> toFollowers(
+    String sellerId,
+    NotificationKind kind, {
+    List<Object> args = const [],
+    String? targetId,
+    DateTime? now,
+  }) async {
+    var sent = 0;
+    for (final u in _storage.users) {
+      if (u.id == sellerId || !u.following.contains(sellerId)) continue;
+      await send(u.id, kind, args: args, targetId: targetId, now: now);
+      sent++;
+    }
+    return sent;
+  }
 }

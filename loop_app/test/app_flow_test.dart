@@ -514,17 +514,47 @@ void listingTests() {
     // Stari predmet iz portfolija je automatski objavljen u Marketu.
     expect(find.text('🏷️ U Marketu'), findsWidgets);
     // Promjena cijene.
-    await tester.scrollUntilVisible(find.text('Promijeni cijenu'), 200);
+    await tester.scrollUntilVisible(find.text('Cijena i zaliha'), 200);
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Promijeni cijenu'));
+    await tester.tap(find.text('Cijena i zaliha'));
     await tester.pumpAndSettle();
     await tester.enterText(find.widgetWithText(TextField, 'Cijena'), '350');
+    await tester.enterText(find.byKey(const ValueKey('list-quantity')), '3');
     await tester.pumpAndSettle();
     expect(find.text('Ti dobivaš 350 € (bez naknade)'), findsOneWidget);
     await tester.tap(find.text('Objavi'));
     await tester.pumpAndSettle();
     expect(find.text('Objavljeno u Marketu 🏷️'), findsOneWidget);
     expect(find.textContaining('U Marketu za 350 €'), findsOneWidget);
+    expect(
+      find.text('Na zalihi: 3 kom — svaka kupnja skida jedan.'),
+      findsOneWidget,
+    );
+
+    // Popust −20% na 3 dana: cijena 280 €, prekrižena 350 €.
+    await tester.tap(find.byKey(const ValueKey('discount')));
+    await tester.pumpAndSettle();
+    await tester.drag(
+      find.byKey(const ValueKey('discount-slider')),
+      const Offset(60, 0),
+    );
+    await tester.pumpAndSettle();
+    final percent = int.parse(
+      find
+          .textContaining(RegExp(r'^−\d+%$'))
+          .evaluate()
+          .map((e) => (e.widget as Text).data!)
+          .first
+          .substring(1)
+          .replaceAll('%', ''),
+    );
+    await tester.tap(find.byKey(const ValueKey('apply-discount')));
+    await tester.pumpAndSettle();
+    expect(
+      find.text('Popust −$percent% je aktivan — pratitelji su obaviješteni'),
+      findsOneWidget,
+    );
+    expect(find.textContaining('Popust −$percent% do'), findsOneWidget);
 
     // Ukloni iz Marketa.
     await tester.scrollUntilVisible(find.byKey(const ValueKey('unlist')), 200);
@@ -532,7 +562,7 @@ void listingTests() {
     await tester.tap(find.byKey(const ValueKey('unlist')));
     await tester.pumpAndSettle();
     expect(find.text('Uklonjeno iz Marketa'), findsOneWidget);
-    expect(find.text('🏷️ U Marketu'), findsNothing);
+    expect(find.textContaining('🏷️ U Marketu'), findsNothing);
 
     // Obriši predmet (pričekaj da poruka na dnu nestane).
     await tester.pump(const Duration(seconds: 6));
@@ -672,6 +702,10 @@ void communityTests() {
     await tester.pumpAndSettle();
     await tester.tap(find.textContaining('@ana.kolekcija'));
     await tester.pumpAndSettle();
+    // Trgovina: pratitelji, prodaje i gumb "Prati".
+    expect(find.text('pratitelja'), findsOneWidget);
+    expect(find.byKey(const ValueKey('follow')), findsOneWidget);
+    await tester.scrollUntilVisible(find.text('Ocjene (0)'), 300);
     expect(find.text('Ocjene (0)'), findsOneWidget);
     await tester.tap(find.byKey(const ValueKey('profile-menu')));
     await tester.pumpAndSettle();

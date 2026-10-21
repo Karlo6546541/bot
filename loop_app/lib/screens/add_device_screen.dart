@@ -36,6 +36,7 @@ class _AddDeviceScreenState extends ConsumerState<AddDeviceScreen> {
   final _name = TextEditingController();
   final _model = TextEditingController();
   final _price = TextEditingController();
+  final _quantity = TextEditingController(text: '1');
   final _description = TextEditingController();
   DeviceCondition? _condition;
   ItemSection _section = ItemSection.electronics;
@@ -88,6 +89,7 @@ class _AddDeviceScreenState extends ConsumerState<AddDeviceScreen> {
     _name.dispose();
     _model.dispose();
     _price.dispose();
+    _quantity.dispose();
     _description.dispose();
     super.dispose();
   }
@@ -125,6 +127,7 @@ class _AddDeviceScreenState extends ConsumerState<AddDeviceScreen> {
             imagePaths: List.of(_photos),
             description: _description.text,
             listOnMarket: _digital || _listOnMarket,
+            quantity: _digital ? 1 : int.tryParse(_quantity.text.trim()) ?? 1,
             file: _digital ? _file : null,
           ),
       successMessage: _digital || _listOnMarket
@@ -342,6 +345,31 @@ class _AddDeviceScreenState extends ConsumerState<AddDeviceScreen> {
                         return null;
                       },
                     ),
+                    if (!_digital) ...[
+                      gap,
+                      TextFormField(
+                        key: const ValueKey('quantity-field'),
+                        controller: _quantity,
+                        keyboardType: TextInputType.number,
+                        inputFormatters: [
+                          FilteringTextInputFormatter.digitsOnly,
+                        ],
+                        decoration: InputDecoration(
+                          labelText: t('Količina na zalihi'),
+                          suffixText: t('kom'),
+                          helperText: t(
+                            'Imaš više istih komada? Svaka kupnja skida jedan s zalihe.',
+                          ),
+                        ),
+                        validator: (v) {
+                          final q = int.tryParse((v ?? '').trim());
+                          if (q == null || q < 1 || q > Device.maxQuantity) {
+                            return t('Od 1 do {0}', ['${Device.maxQuantity}']);
+                          }
+                          return null;
+                        },
+                      ),
+                    ],
                     const SizedBox(height: 24),
                     _Preview(
                       photo: _photos.isEmpty ? null : _photos.first,

@@ -5,11 +5,13 @@ import 'package:flutter/material.dart' show ThemeMode;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart' show Supabase;
 
+import '../models/app_user.dart';
 import '../models/device.dart';
 import '../models/loop_transaction.dart';
 import '../models/auction.dart';
 import '../services/account_service.dart';
 import '../services/auction_service.dart';
+import '../services/bargain_service.dart';
 import '../services/auth_backend.dart';
 import '../services/chat_service.dart';
 import '../services/community_service.dart';
@@ -376,6 +378,22 @@ class AppController extends Notifier<AppState> {
   }
 
   /// Vraća `true` ako je korisnik sada blokiran.
+  /// Naziv mini webshopa (prazno = korisničko ime).
+  Future<void> setShopName(String name) async {
+    final user = state.currentUser;
+    if (user == null) return;
+    final v = name.trim();
+    if (v.length > AppUser.maxShopName) {
+      throw TradeException(
+        t('Naziv trgovine može imati najviše {0} znakova.', [
+          '${AppUser.maxShopName}',
+        ]),
+      );
+    }
+    await ref.read(storageProvider).putUser(user.copyWith(shopName: v));
+    _refresh();
+  }
+
   Future<bool> toggleBlock(String otherId) async {
     final blocked = await _community.toggleBlock(_requireUserId(), otherId);
     _refresh();
@@ -586,6 +604,7 @@ class AppController extends Notifier<AppState> {
     String description = '',
     bool listOnMarket = true,
     PickedFile? file,
+    int quantity = 1,
   }) async {
     final userId = _requireUserId();
     // Digitalni proizvod: najprije spremi datoteku (put ovisi o ID-u).
@@ -614,6 +633,7 @@ class AppController extends Notifier<AppState> {
         imagePaths: imagePaths,
         description: description,
         listOnMarket: listOnMarket,
+        quantity: quantity,
       );
     } catch (_) {
       if (saved != null) await ref.read(fileStoreProvider).delete(saved);
@@ -648,7 +668,7 @@ class AppController extends Notifier<AppState> {
     }
     final error = DeliveryService.validate(method, destination);
     if (error != null) throw TradeException(error);
-    final total = buyTotal(device.askPrice) + method.cost;
+    final total = buyTotal(state.priceForMe(device)) + method.cost;
     if (user.credits < total) {
       throw TradeException(
         t('Nemaš dovoljno novca: treba {0} (s feejem i dostavom), imaš {1}.', [
@@ -658,11 +678,13 @@ class AppController extends Notifier<AppState> {
       );
     }
     final tx = await _trade.buy(userId: userId, deviceId: deviceId);
+    // Kod zalihe kupac dobiva novi predmet (jedan komad) — dostava ide za njega.
+    final bought = ref.read(storageProvider).deviceById(tx.deviceId) ?? device;
     await ref
         .read(deliveryServiceProvider)
         .createForPurchase(
           userId: userId,
-          device: device,
+          device: bought,
           method: method,
           destination: destination,
           sellerId: tx.sellerId,
@@ -722,13 +744,105 @@ class AppController extends Notifier<AppState> {
     _refresh();
   }
 
-  /// Objavi vlastiti predmet u Marketu (ili promijeni cijenu).
-  Future<void> listOnMarket(String deviceId, double price) async {
+  /// Objavi vlastiti predmet u Marketu (ili promijeni cijenu i zalihu).
+  Future<void> listOnMarket(
+    String deviceId,
+    double price, {
+    int? quantity,
+  }) async {
     await _trade.list(
       userId: _requireUserId(),
       deviceId: deviceId,
       price: price,
+      quantity: quantity,
     );
+    _refresh();
+  }
+
+  /// Popust na vlastiti oglas (0 = ukloni), trajno ili na [duration].
+  Future<void> setDiscount(
+    String deviceId,
+    int percent, {
+    Duration? duration,
+  }) async {
+    await _trade.setDiscount(
+      userId: _requireUserId(),
+      deviceId: deviceId,
+      percent: percent,
+      duration: duration,
+    );
+    _refresh();
+  }
+
+  // ------------------------------------------------------------ cjenkanje
+
+  BargainService get _bargains => BargainService(ref.read(storageProvider));
+
+  Future<void> makeBargain(String deviceId, double amount) async {
+    await _bargains.make(
+      buyerId: _requireUserId(),
+      deviceId: deviceId,
+      amount: amount,
+    );
+    _refresh();
+  }
+
+  Future<void> acceptBargain(String id) async {
+    await _bargains.accept(_requireUserId(), id);
+    _refresh();
+  }
+
+  Future<void> counterBargain(String id, double amount) async {
+    await _bargains.counter(_requireUserId(), id, amount);
+    _refresh();
+  }
+
+  Future<void> acceptCounter(String id) async {
+    await _bargains.acceptCounter(_requireUserId(), id);
+    _refresh();
+  }
+
+  Future<void> declineBargain(String id) async {
+    await _bargains.decline(_requireUserId(), id);
+    _refresh();
+  }
+
+  Future<void> cancelBargain(String id) async {
+    await _bargains.cancel(_requireUserId(), id);
+    _refresh();
+  }
+
+  // ---------------------------------------------- praćenje i isticanje
+
+  /// Vraća `true` ako korisnik sada prati prodavatelja.
+  Future<bool> toggleFollow(String sellerId) async {
+    final followed = await _community.toggleFollow(_requireUserId(), sellerId);
+    _refresh();
+    return followed;
+  }
+
+  /// Plaćeno isticanje računa na [weeks] tjedana.
+  Future<void> promote(int weeks) async {
+    await _community.promote(_requireUserId(), weeks);
+    _refresh();
+  }
+
+  // ------------------------------------------------------ povijest pretrage
+
+  Future<void> addSearch(String query) async {
+    final storage = ref.read(storageProvider);
+    if (storage.searchHistory.firstOrNull == query.trim()) return;
+    await storage.addSearch(query);
+    _refresh();
+  }
+
+  Future<void> removeSearch(String query) async {
+    await ref.read(storageProvider).removeSearch(query);
+    _refresh();
+  }
+
+  Future<void> clearSearchHistory() async {
+    await ref.read(storageProvider).clearSearchHistory();
     _refresh();
   }
 

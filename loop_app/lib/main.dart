@@ -9,6 +9,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'config/backend_config.dart';
 import 'services/auth_backend.dart';
+import 'services/deep_link.dart';
 import 'services/remote_store.dart';
 import 'services/storage_service.dart';
 import 'services/sync_service.dart';
@@ -18,6 +19,8 @@ import 'l10n/tr.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
+  // Dijeljena poveznica (?item= / ?shop=) otvara se nakon prijave.
+  PendingLink.readFromUrl();
   runApp(const _Bootstrap());
 }
 

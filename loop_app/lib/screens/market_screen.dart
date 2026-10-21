@@ -11,7 +11,10 @@ import '../widgets/device_card.dart';
 import '../widgets/empty_state.dart';
 import '../widgets/formatters.dart';
 import '../widgets/trade_actions.dart';
+import '../services/market_filter.dart' show normalizeSearch;
+import '../widgets/user_avatar.dart';
 import 'device_detail_screen.dart';
+import 'public_profile_screen.dart';
 import 'market_filters.dart';
 
 export 'market_filters.dart' show MarketSort;
@@ -60,6 +63,7 @@ class _MarketScreenState extends ConsumerState<MarketScreen> {
           child: TextField(
             controller: _search,
             onChanged: (v) => setState(() => _setQuery(v)),
+            onSubmitted: (v) => ref.read(appProvider.notifier).addSearch(v),
             textInputAction: TextInputAction.search,
             decoration: InputDecoration(
               hintText: t('Pretraži po nazivu…'),
@@ -102,12 +106,26 @@ class _MarketScreenState extends ConsumerState<MarketScreen> {
           label: t('Mogu kupiti'),
           icon: Icons.account_balance_wallet_outlined,
           color: LoopColors.success,
-          count: all.where((d) => buyTotal(d.askPrice) <= credits).length,
+          count: all
+              .where((d) => buyTotal(state.priceForMe(d)) <= credits)
+              .length,
           selected: f.onlyAffordable,
           onTap: () => _filters.update(
             (f) => f.copyWith(onlyAffordable: !f.onlyAffordable),
           ),
         ),
+        if (all.any((d) => d.hasDiscount) || f.onlyDiscounted)
+          _CategoryChip(
+            key: const ValueKey('discount-chip'),
+            label: t('Na popustu'),
+            icon: Icons.local_offer_outlined,
+            color: LoopColors.error,
+            count: all.where((d) => d.hasDiscount).length,
+            selected: f.onlyDiscounted,
+            onTap: () => _filters.update(
+              (f) => f.copyWith(onlyDiscounted: !f.onlyDiscounted),
+            ),
+          ),
         if (f.section == null)
           for (final sec in ItemSection.values)
             _CategoryChip(
@@ -183,6 +201,16 @@ class _MarketScreenState extends ConsumerState<MarketScreen> {
         ),
         SliverToBoxAdapter(child: const ActiveFilterChips()),
         SliverToBoxAdapter(
+          child: f.query.trim().isEmpty
+              ? _SearchHistory(
+                  onPick: (q) => setState(() {
+                    _search.text = q;
+                    _setQuery(q);
+                  }),
+                )
+              : _AccountResults(query: f.query),
+        ),
+        SliverToBoxAdapter(
           child: Padding(
             padding: const EdgeInsets.fromLTRB(16, 4, 8, 8),
             child: Row(
@@ -248,7 +276,14 @@ class _MarketScreenState extends ConsumerState<MarketScreen> {
                   ? Icons.download
                   : Icons.shopping_bag_outlined,
               onAction: () => confirmAndBuy(context, ref, d),
-              onTap: () => DeviceDetailScreen.open(context, d),
+              onTap: () {
+                // Pretraga koja je dovela do oglasa ide u povijest.
+                if (f.query.trim().isNotEmpty) {
+                  ref.read(appProvider.notifier).addSearch(f.query);
+                }
+                DeviceDetailScreen.open(context, d);
+              },
+              promoted: state.isPromotedItem(d),
               isFavorite: state.isFavorite(d.id),
               onFavorite: () => toggleFavorite(ref, d),
               badge: d.isDigital && state.hasPurchased(d.id)
@@ -490,6 +525,101 @@ class _SortChip extends StatelessWidget {
             Icon(Icons.arrow_drop_down, color: LoopColors.accent),
           ],
         ),
+      ),
+    );
+  }
+}
+
+/// Nedavne pretrage (kad je polje za pretragu prazno).
+class _SearchHistory extends ConsumerWidget {
+  const _SearchHistory({required this.onPick});
+  final ValueChanged<String> onPick;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final history = ref.watch(appProvider.select((s) => s.searchHistory));
+    if (history.isEmpty) return const SizedBox.shrink();
+    final c = ref.read(appProvider.notifier);
+    return SizedBox(
+      height: 44,
+      child: ListView(
+        key: const ValueKey('search-history'),
+        scrollDirection: Axis.horizontal,
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+        children: [
+          Center(
+            child: Icon(
+              Icons.history,
+              size: 18,
+              color: LoopColors.textSecondary,
+            ),
+          ),
+          const SizedBox(width: 6),
+          for (final q in history)
+            Padding(
+              padding: const EdgeInsets.only(right: 6),
+              child: InputChip(
+                label: Text(q),
+                onPressed: () => onPick(q),
+                onDeleted: () => c.removeSearch(q),
+                deleteButtonTooltipMessage: t('Ukloni'),
+              ),
+            ),
+          TextButton(
+            onPressed: c.clearSearchHistory,
+            child: Text(t('Očisti povijest')),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Računi (trgovine) koji odgovaraju pretrazi.
+class _AccountResults extends ConsumerWidget {
+  const _AccountResults({required this.query});
+  final String query;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final state = ref.watch(appProvider);
+    final q = normalizeSearch(query.replaceAll('@', ''));
+    if (q.length < 2) return const SizedBox.shrink();
+    final users = state.users
+        .where(
+          (u) =>
+              !u.isGuest &&
+              !u.pendingDeletion &&
+              u.id != state.currentUserId &&
+              !state.isBlocked(u.id) &&
+              normalizeSearch(
+                '${u.username} ${u.name} ${u.shopName}',
+              ).contains(q),
+        )
+        .take(10)
+        .toList();
+    if (users.isEmpty) return const SizedBox.shrink();
+    return SizedBox(
+      height: 52,
+      child: ListView(
+        key: const ValueKey('account-results'),
+        scrollDirection: Axis.horizontal,
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+        children: [
+          for (final u in users)
+            Padding(
+              padding: const EdgeInsets.only(right: 8),
+              child: ActionChip(
+                avatar: UserAvatar(user: u, size: 24),
+                label: Text(
+                  u.shopName.isNotEmpty
+                      ? '${u.shopName} · ${u.handle}'
+                      : u.handle,
+                ),
+                onPressed: () => PublicProfileScreen.open(context, u.id),
+              ),
+            ),
+        ],
       ),
     );
   }

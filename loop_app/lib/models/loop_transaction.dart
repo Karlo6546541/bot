@@ -6,7 +6,8 @@ enum TransactionType {
   topUp('Uplata'),
   auctionFee('Objava aukcije'),
   delivery('Dostava'),
-  swap('Zamjena');
+  swap('Zamjena'),
+  promotion('Isticanje računa');
 
   const TransactionType(this._label);
   final String _label;

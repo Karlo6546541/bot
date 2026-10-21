@@ -38,10 +38,21 @@ class NotificationsScreen extends ConsumerWidget {
         if (id != null) await AuctionDetailScreen.open(context, id);
       case NotificationKind.auctionWon:
         await DeliveriesScreen.open(context);
-      case NotificationKind.itemSold || NotificationKind.priceDrop:
+      case NotificationKind.itemSold ||
+          NotificationKind.priceDrop ||
+          NotificationKind.bargainNew ||
+          NotificationKind.bargainAccepted ||
+          NotificationKind.bargainDeclined ||
+          NotificationKind.bargainCountered ||
+          NotificationKind.counterAccepted ||
+          NotificationKind.followedNewItem ||
+          NotificationKind.followedDiscount ||
+          NotificationKind.soldOut:
         final d = id == null ? null : state.deviceById(id);
         if (d != null) await DeviceDetailScreen.open(context, d);
-      case NotificationKind.newReview || NotificationKind.referral:
+      case NotificationKind.newReview ||
+          NotificationKind.referral ||
+          NotificationKind.newFollower:
         if (id != null) await PublicProfileScreen.open(context, id);
       case NotificationKind.newMessage ||
           NotificationKind.swapOffer ||

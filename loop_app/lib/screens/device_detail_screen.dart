@@ -17,6 +17,7 @@ import 'auction_detail_screen.dart';
 import 'create_auction_screen.dart';
 import 'messages_screen.dart';
 import 'public_profile_screen.dart';
+import '../widgets/shop_widgets.dart';
 import '../widgets/user_avatar.dart';
 import '../l10n/tr.dart';
 
@@ -53,7 +54,7 @@ class DeviceDetailScreen extends ConsumerWidget {
     final auction = state.activeAuctionFor(device.id);
     final cat = device.category;
     // Kupac vidi cijenu iz Marketa; vlasnik vrijednost i isplatu.
-    final price = isMine ? device.price : device.askPrice;
+    final price = isMine ? device.askPrice : state.priceForMe(device);
     final fee = feeFor(price);
     final owner = state.userById(device.ownerId);
     final isFav = state.isFavorite(device.id);
@@ -62,6 +63,11 @@ class DeviceDetailScreen extends ConsumerWidget {
       appBar: AppBar(
         title: Text(device.name, overflow: TextOverflow.ellipsis),
         actions: [
+          if (device.isForSale)
+            ShareButton(
+              url: publicLink(item: device.id),
+              tooltip: t('Podijeli oglas'),
+            ),
           if (canBuy)
             IconButton(
               tooltip: isFav ? t('Ukloni iz favorita') : t('Dodaj u favorite'),
@@ -140,22 +146,33 @@ class DeviceDetailScreen extends ConsumerWidget {
                       ),
                     ),
                     const SizedBox(height: 16),
-                    Text(
-                      formatCredits(isMine ? device.askPrice : price),
-                      style: const TextStyle(
-                        fontSize: 32,
-                        fontWeight: FontWeight.w900,
-                      ),
+                    PriceTag(
+                      device: device,
+                      price: isMine ? device.askPrice : price,
+                      fontSize: 32,
+                      center: true,
                     ),
                     if (device.isListed) ...[
                       const SizedBox(height: 6),
                       Text(
-                        t('🏷️ U Marketu'),
+                        [
+                          t('🏷️ U Marketu'),
+                          if (!device.isDigital && device.quantity > 1)
+                            t('na zalihi: {0} kom', ['${device.quantity}']),
+                          if (device.hasDiscount) discountLabel(device),
+                        ].join(' · '),
+                        textAlign: TextAlign.center,
                         style: TextStyle(
                           color: LoopColors.accent,
                           fontWeight: FontWeight.w800,
                         ),
                       ),
+                    ],
+                    if (owner != null &&
+                        owner.isPromoted &&
+                        device.isListed) ...[
+                      const SizedBox(height: 6),
+                      const PromotedBadge(),
                     ],
                     const SizedBox(height: 20),
                   ],
@@ -225,6 +242,27 @@ class DeviceDetailScreen extends ConsumerWidget {
                         onTap: () =>
                             PublicProfileScreen.open(context, owner.id),
                       ),
+                    if (owner != null && !isMine && !user.isGuest)
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+                        child: Row(
+                          children: [
+                            Expanded(
+                              child: Text(
+                                t('{0} pratitelja · {1} prodaja', [
+                                  '${state.followersOf(owner.id)}',
+                                  '${state.salesCountOf(owner.id)}',
+                                ]),
+                                style: TextStyle(
+                                  color: LoopColors.textSecondary,
+                                  fontSize: 13,
+                                ),
+                              ),
+                            ),
+                            FollowButton(userId: owner.id, compact: true),
+                          ],
+                        ),
+                      ),
                     _Spec(
                       Icons.schedule,
                       t('Dodano'),
@@ -241,13 +279,16 @@ class DeviceDetailScreen extends ConsumerWidget {
                   child: Column(
                     children: [
                       _Line(
-                        isMine ? t('Vrijednost') : t('Cijena'),
+                        isMine ? t('Cijena') : t('Cijena'),
                         formatCredits(price),
                       ),
-                      _Line(
-                        t('Naknada za kupca (2%)'),
-                        '${isMine ? '−' : '+'} ${formatCredits(fee)}',
-                      ),
+                      if (isMine)
+                        _Line(t('Naknada za prodavatelja'), t('bez naknade'))
+                      else
+                        _Line(
+                          t('Naknada za kupca (2%)'),
+                          '+ ${formatCredits(fee)}',
+                        ),
                       const Divider(height: 20),
                       _Line(
                         isMine ? t('Dobivaš prodajom') : t('Ukupno plaćaš'),
@@ -300,16 +341,40 @@ class DeviceDetailScreen extends ConsumerWidget {
                 if (device.isListed) ...[
                   _ListingInfo(device: device),
                   const SizedBox(height: 10),
+                  SellerBargainsCard(device: device),
                   Row(
                     children: [
                       Expanded(
                         child: OutlinedButton.icon(
                           onPressed: () => showListDialog(context, ref, device),
                           icon: const Icon(Icons.edit_outlined),
-                          label: Text(t('Promijeni cijenu')),
+                          label: Text(
+                            device.isDigital
+                                ? t('Promijeni cijenu')
+                                : t('Cijena i zaliha'),
+                          ),
                         ),
                       ),
                       const SizedBox(width: 10),
+                      Expanded(
+                        child: OutlinedButton.icon(
+                          key: const ValueKey('discount'),
+                          onPressed: () =>
+                              showDiscountSheet(context, ref, device),
+                          icon: const Icon(Icons.local_offer_outlined),
+                          label: Text(
+                            device.hasDiscount
+                                ? t('Popust {0}', [discountLabel(device)])
+                                : t('Popust'),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 10),
+                  Row(
+                    children: [
                       Expanded(
                         child: OutlinedButton.icon(
                           key: const ValueKey('unlist'),
@@ -390,6 +455,8 @@ class DeviceDetailScreen extends ConsumerWidget {
                   ),
                 ),
                 if (device.isListed && owner != null) ...[
+                  const SizedBox(height: 10),
+                  BuyerBargainCard(device: device),
                   const SizedBox(height: 10),
                   Row(
                     children: [
@@ -575,7 +642,7 @@ Future<void> _delete(BuildContext context, WidgetRef ref, Device d) async {
   if (done && context.mounted) Navigator.pop(context);
 }
 
-/// "U Marketu za X — kupac plaća X + 5%, ti dobivaš X − 5%".
+/// "U Marketu za X — ti dobivaš punu cijenu".
 class _ListingInfo extends StatelessWidget {
   const _ListingInfo({required this.device});
   final Device device;
@@ -594,11 +661,23 @@ class _ListingInfo extends StatelessWidget {
           const Text('🏷️', style: TextStyle(fontSize: 22)),
           const SizedBox(width: 10),
           Expanded(
-            child: Text(
-              t(
-                'U Marketu za {0}. Kad netko kupi, dobivaš {1} (bez naknade), a predmet prelazi kupcu.',
-                [formatCredits(p), formatCredits(sellPayout(p))],
-              ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  t(
+                    'U Marketu za {0}. Kad netko kupi, dobivaš {1} (bez naknade), a predmet prelazi kupcu.',
+                    [formatCredits(p), formatCredits(sellPayout(p))],
+                  ),
+                ),
+                if (device.hasStock)
+                  Text(
+                    t('Na zalihi: {0} kom — svaka kupnja skida jedan.', [
+                      '${device.quantity}',
+                    ]),
+                    style: const TextStyle(fontWeight: FontWeight.w700),
+                  ),
+              ],
             ),
           ),
         ],

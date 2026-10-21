@@ -11,6 +11,7 @@ import '../theme/app_theme.dart';
 import '../widgets/category_style.dart';
 import '../widgets/device_card.dart';
 import '../widgets/empty_state.dart';
+import '../widgets/feed.dart';
 import '../widgets/formatters.dart';
 import '../widgets/portfolio_chart.dart';
 import '../widgets/status_badge.dart';
@@ -68,6 +69,12 @@ class PortfolioScreen extends ConsumerWidget {
           child: Padding(
             padding: EdgeInsets.fromLTRB(16, 0, 16, 16),
             child: _QuickActions(),
+          ),
+        ),
+        SliverToBoxAdapter(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+            child: HomeFeed(onGoToMarket: onGoToMarket),
           ),
         ),
         if (state.showHowItWorks)

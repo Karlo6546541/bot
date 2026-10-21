@@ -17,7 +17,19 @@ enum NotificationKind {
   swapOffer('🔄', '{0} ti nudi zamjenu za "{1}".'),
   swapAccepted('🤝', '{0} je prihvatio zamjenu za "{1}".'),
   swapDeclined('✖️', '{0} je odbio zamjenu za "{1}".'),
-  reportResolved('🛡️', 'Tvoja prijava je obrađena. Hvala!');
+  reportResolved('🛡️', 'Tvoja prijava je obrađena. Hvala!'),
+  bargainNew('💶', '{0} nudi {1} za "{2}".'),
+  bargainAccepted(
+    '✅',
+    '{0} je prihvatio tvoju ponudu od {1} za "{2}". Kupi u roku od 48 sati.',
+  ),
+  bargainDeclined('✖️', 'Ponuda za "{1}" je odbijena ({0}).'),
+  bargainCountered('↩️', '{0} ti daje protuponudu {1} za "{2}".'),
+  counterAccepted('🤝', '{0} je prihvatio protuponudu {1} za "{2}".'),
+  newFollower('👤', '{0} te sada prati.'),
+  followedNewItem('🆕', '{0} je objavio novi oglas: "{1}" za {2}.'),
+  followedDiscount('🏷️', '{0}: popust −{1}% na "{2}" — sada {3}.'),
+  soldOut('📦', 'Rasprodano: "{0}" — prodan je zadnji komad.');
 
   const NotificationKind(this.emoji, this._template);
   final String emoji;

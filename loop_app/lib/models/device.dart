@@ -118,6 +118,9 @@ class Device {
     this.listedAt,
     this.marketChecked = false,
     this.file,
+    this.quantity = 1,
+    this.discountPercent = 0,
+    this.discountUntil,
   });
 
   final String id;
@@ -138,7 +141,8 @@ class Device {
   static const maxDescription = 500;
 
   /// Cijena po kojoj vlasnik prodaje predmet u Marketu (`null` = nije
-  /// objavljen). Kupac plaća ovu cijenu + 5%, a vlasnik dobiva − 5%.
+  /// objavljen). Kupac plaća ovu cijenu (umanjenu za popust) + 2%, a
+  /// vlasnik dobiva punu cijenu.
   final double? listPrice;
   final DateTime? listedAt;
 
@@ -149,6 +153,19 @@ class Device {
 
   /// Datoteka digitalnog proizvoda (3D model, softver, e-knjiga…).
   final DigitalFile? file;
+
+  /// Količina na zalihi (komada). Svaka kupnja skida jedan komad; zadnji
+  /// komad prelazi kupcu. Digitalni proizvodi nemaju zalihu.
+  final int quantity;
+
+  static const maxQuantity = 999;
+
+  /// Popust u postocima (0 = bez popusta) — vrijedi trajno ili do
+  /// [discountUntil].
+  final int discountPercent;
+  final DateTime? discountUntil;
+
+  static const maxDiscount = 90;
 
   /// Digitalni proizvod: prodaje se više puta, vlasnik ga zadržava, a
   /// kupac preuzima datoteku odmah nakon plaćanja.
@@ -163,81 +180,102 @@ class Device {
   /// Može se kupiti u Marketu (od platforme ili od korisnika).
   bool get isForSale => isOnMarket || isListed;
 
-  /// Cijena za kupca u Marketu.
-  double get askPrice => listPrice ?? price;
+  /// Cijena prije popusta.
+  double get basePrice => listPrice ?? price;
+
+  /// Popust vrijedi u trenutku [now] (samo za objavljene predmete).
+  bool discountActiveAt(DateTime now) =>
+      isListed &&
+      discountPercent > 0 &&
+      (discountUntil == null || now.isBefore(discountUntil!));
+
+  bool get hasDiscount => discountActiveAt(DateTime.now());
+
+  /// Cijena u trenutku [now] (s popustom ako vrijedi).
+  double priceAt(DateTime now) => discountActiveAt(now)
+      ? ((basePrice * (100 - discountPercent)).roundToDouble()) / 100
+      : basePrice;
+
+  /// Cijena za kupca u Marketu (s popustom ako vrijedi).
+  double get askPrice => priceAt(DateTime.now());
+
+  /// Više komada na zalihi (kupnja ne prenosi oglas, nego kopiju predmeta).
+  bool get hasStock => !isDigital && quantity > 1;
 
   ItemSection get section => category.section;
 
-  /// Kopija s novim vlasnikom; `null` vraća predmet u Market.
-  /// Novi vlasnik poništava objavu u Marketu.
-  Device withOwner(String? ownerId) => Device(
-    id: id,
+  Device _copy({
+    String? id,
+    Object? ownerId = _keep,
+    List<String>? imagePaths,
+    Object? listPrice = _keep,
+    Object? listedAt = _keep,
+    bool? marketChecked,
+    Object? file = _keep,
+    int? quantity,
+    int? discountPercent,
+    Object? discountUntil = _keep,
+    DateTime? createdAt,
+  }) => Device(
+    id: id ?? this.id,
     name: name,
     model: model,
     condition: condition,
     price: price,
     category: category,
-    createdAt: createdAt,
-    ownerId: ownerId,
-    imagePaths: imagePaths,
+    createdAt: createdAt ?? this.createdAt,
+    ownerId: ownerId == _keep ? this.ownerId : ownerId as String?,
+    imagePaths: imagePaths ?? this.imagePaths,
     description: description,
-    // Kupljeni predmet se ne objavljuje sam od sebe.
-    marketChecked: true,
-    file: file,
+    listPrice: listPrice == _keep ? this.listPrice : listPrice as double?,
+    listedAt: listedAt == _keep ? this.listedAt : listedAt as DateTime?,
+    marketChecked: marketChecked ?? this.marketChecked,
+    file: file == _keep ? this.file : file as DigitalFile?,
+    quantity: quantity ?? this.quantity,
+    discountPercent: discountPercent ?? this.discountPercent,
+    discountUntil: discountUntil == _keep
+        ? this.discountUntil
+        : discountUntil as DateTime?,
   );
 
-  /// Objava u Marketu po cijeni [price] (`null` = ukloni iz Marketa).
-  Device withListing(double? price, {DateTime? at}) => Device(
-    id: id,
-    name: name,
-    model: model,
-    condition: condition,
-    price: this.price,
-    category: category,
-    createdAt: createdAt,
+  /// Kopija s novim vlasnikom; `null` vraća predmet u Market.
+  /// Novi vlasnik poništava objavu, zalihu i popust.
+  Device withOwner(String? ownerId) => _copy(
     ownerId: ownerId,
-    imagePaths: imagePaths,
-    description: description,
+    listPrice: null,
+    listedAt: null,
+    // Kupljeni predmet se ne objavljuje sam od sebe.
+    marketChecked: true,
+    quantity: 1,
+    discountPercent: 0,
+    discountUntil: null,
+  );
+
+  /// Jedan komad sa zalihe za kupca (novi predmet u njegovom portfoliju).
+  Device unitFor(String buyerId, String newId, DateTime at) =>
+      _copy(id: newId, createdAt: at).withOwner(buyerId);
+
+  /// Objava u Marketu po cijeni [price] (`null` = ukloni iz Marketa).
+  Device withListing(double? price, {DateTime? at, int? quantity}) => _copy(
     listPrice: price,
     listedAt: price == null ? null : at ?? DateTime.now(),
     marketChecked: true,
-    file: file,
+    quantity: quantity,
   );
 
-  Device withImages(List<String> paths) => Device(
-    id: id,
-    name: name,
-    model: model,
-    condition: condition,
-    price: price,
-    category: category,
-    createdAt: createdAt,
-    ownerId: ownerId,
-    imagePaths: paths,
-    description: description,
-    listPrice: listPrice,
-    listedAt: listedAt,
-    marketChecked: marketChecked,
-    file: file,
+  /// Zaliha nakon prodaje jednog komada.
+  Device withQuantity(int quantity) => _copy(quantity: quantity);
+
+  /// Popust [percent] % do [until] (`null` = trajno); 0 uklanja popust.
+  Device withDiscount(int percent, DateTime? until) => _copy(
+    discountPercent: percent,
+    discountUntil: percent == 0 ? null : until,
   );
+
+  Device withImages(List<String> paths) => _copy(imagePaths: paths);
 
   /// Kopija s novom datotekom (vlasnik je zamijenio datoteku).
-  Device withFile(DigitalFile f) => Device(
-    id: id,
-    name: name,
-    model: model,
-    condition: condition,
-    price: price,
-    category: category,
-    createdAt: createdAt,
-    ownerId: ownerId,
-    imagePaths: imagePaths,
-    description: description,
-    listPrice: listPrice,
-    listedAt: listedAt,
-    marketChecked: marketChecked,
-    file: f,
-  );
+  Device withFile(DigitalFile f) => _copy(file: f);
 
   Map<String, dynamic> toMap() => {
     'id': id,
@@ -254,6 +292,9 @@ class Device {
     'listedAt': listedAt?.toIso8601String(),
     'marketChecked': marketChecked,
     'file': file?.toMap(),
+    'quantity': quantity,
+    'discountPercent': discountPercent,
+    'discountUntil': discountUntil?.toIso8601String(),
   };
 
   factory Device.fromMap(Map<dynamic, dynamic> map) => Device(
@@ -274,8 +315,15 @@ class Device {
         : DateTime.parse(map['listedAt'] as String),
     marketChecked: map['marketChecked'] as bool? ?? false,
     file: map['file'] == null ? null : DigitalFile.fromMap(map['file'] as Map),
+    quantity: (map['quantity'] as num?)?.toInt() ?? 1,
+    discountPercent: (map['discountPercent'] as num?)?.toInt() ?? 0,
+    discountUntil: map['discountUntil'] == null
+        ? null
+        : DateTime.parse(map['discountUntil'] as String),
   );
 }
+
+const _keep = Object();
 
 /// Datoteka digitalnog proizvoda. [ref] je mjesto pohrane (online put u
 /// privatnom spremištu ili lokalni ključ) — vidi `FileStore`.

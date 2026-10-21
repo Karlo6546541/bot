@@ -13,6 +13,7 @@ import '../widgets/formatters.dart';
 
 /// Redoslijed predmeta u Marketu.
 enum MarketSort {
+  recommended('Preporučeno'),
   newest('Najnovije'),
   priceAsc('Cijena: niža prvo'),
   priceDesc('Cijena: viša prvo'),
@@ -24,9 +25,8 @@ enum MarketSort {
 
   int compare(Device a, Device b) => switch (this) {
     // Objavljeni predmet je "nov" od trenutka objave.
-    MarketSort.newest => (b.listedAt ?? b.createdAt).compareTo(
-      a.listedAt ?? a.createdAt,
-    ),
+    MarketSort.newest || MarketSort.recommended =>
+      (b.listedAt ?? b.createdAt).compareTo(a.listedAt ?? a.createdAt),
     MarketSort.priceAsc => a.askPrice.compareTo(b.askPrice),
     MarketSort.priceDesc => b.askPrice.compareTo(a.askPrice),
     MarketSort.name => a.name.toLowerCase().compareTo(b.name.toLowerCase()),
@@ -58,7 +58,8 @@ class MarketFilter {
     this.onlyFavorites = false,
     this.withPhotos = false,
     this.onlyAffordable = false,
-    this.sort = MarketSort.newest,
+    this.onlyDiscounted = false,
+    this.sort = MarketSort.recommended,
   });
 
   final String query;
@@ -71,8 +72,11 @@ class MarketFilter {
   final bool onlyFavorites;
   final bool withPhotos;
 
-  /// Samo predmeti za koje imam dovoljno novca (cijena + 5% fee).
+  /// Samo predmeti za koje imam dovoljno novca (cijena + 2% naknade).
   final bool onlyAffordable;
+
+  /// Samo predmeti na popustu.
+  final bool onlyDiscounted;
   final MarketSort sort;
 
   /// Broj aktivnih filtera (bez pretrage i sortiranja) — za značku.
@@ -84,7 +88,8 @@ class MarketFilter {
       (seller != SellerFilter.all ? 1 : 0) +
       (onlyFavorites ? 1 : 0) +
       (withPhotos ? 1 : 0) +
-      (onlyAffordable ? 1 : 0);
+      (onlyAffordable ? 1 : 0) +
+      (onlyDiscounted ? 1 : 0);
 
   bool get isEmpty => activeCount == 0 && query.trim().isEmpty;
 
@@ -102,6 +107,7 @@ class MarketFilter {
     bool? onlyFavorites,
     bool? withPhotos,
     bool? onlyAffordable,
+    bool? onlyDiscounted,
     MarketSort? sort,
   }) => MarketFilter(
     query: query ?? this.query,
@@ -114,6 +120,7 @@ class MarketFilter {
     onlyFavorites: onlyFavorites ?? this.onlyFavorites,
     withPhotos: withPhotos ?? this.withPhotos,
     onlyAffordable: onlyAffordable ?? this.onlyAffordable,
+    onlyDiscounted: onlyDiscounted ?? this.onlyDiscounted,
     sort: sort ?? this.sort,
   );
 
@@ -139,7 +146,10 @@ class MarketFilter {
       if (seller == SellerFilter.users && !d.isListed) return false;
       if (onlyFavorites && !state.isFavorite(d.id)) return false;
       if (withPhotos && d.imagePaths.isEmpty) return false;
-      if (onlyAffordable && buyTotal(d.askPrice) > credits) return false;
+      if (onlyAffordable && buyTotal(state.priceForMe(d)) > credits) {
+        return false;
+      }
+      if (onlyDiscounted && !d.hasDiscount) return false;
       if (terms.isNotEmpty) {
         final text = normalizeSearch(
           [
@@ -155,8 +165,18 @@ class MarketFilter {
         if (!terms.every(text.contains)) return false;
       }
       return true;
-    }).toList()..sort(sort.compare);
+    }).toList()..sort((a, b) {
+      if (sort == MarketSort.recommended) {
+        // Istaknuti računi (plaćeno isticanje) prvi, zatim popusti.
+        final p = _rank(state, b).compareTo(_rank(state, a));
+        if (p != 0) return p;
+      }
+      return sort.compare(a, b);
+    });
   }
+
+  static int _rank(AppState state, Device d) =>
+      (state.isPromotedItem(d) ? 2 : 0) + (d.hasDiscount ? 1 : 0);
 }
 
 final marketFilterProvider =
@@ -403,6 +423,15 @@ class _FilterSheet extends ConsumerWidget {
                   ),
                 ),
                 SwitchListTile(
+                  key: const ValueKey('discounted-switch'),
+                  contentPadding: EdgeInsets.zero,
+                  value: f.onlyDiscounted,
+                  onChanged: (v) =>
+                      notifier.update((f) => f.copyWith(onlyDiscounted: v)),
+                  secondary: const Icon(Icons.local_offer_outlined),
+                  title: Text(t('Samo na popustu')),
+                ),
+                SwitchListTile(
                   contentPadding: EdgeInsets.zero,
                   value: f.withPhotos,
                   onChanged: (v) =>
@@ -487,6 +516,11 @@ class ActiveFilterChips extends ConsumerWidget {
         _chip(
           t('Mogu kupiti'),
           () => n.update((f) => f.copyWith(onlyAffordable: false)),
+        ),
+      if (f.onlyDiscounted)
+        _chip(
+          t('Na popustu'),
+          () => n.update((f) => f.copyWith(onlyDiscounted: false)),
         ),
       if (f.withPhotos)
         _chip(

@@ -3,7 +3,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../l10n/tr.dart';
 import '../models/app_user.dart';
+import '../models/device.dart';
 import '../models/review.dart';
+import '../services/market_filter.dart' show normalizeSearch;
+import '../widgets/shop_widgets.dart';
 import '../widgets/community_widgets.dart';
 import '../providers/app_providers.dart';
 import '../theme/app_theme.dart';
@@ -16,8 +19,9 @@ import 'messages_screen.dart';
 import '../widgets/device_card.dart';
 import '../widgets/trade_actions.dart';
 
-/// Javni profil korisnika: fotografija, @ime, opis, grad i aukcije.
-class PublicProfileScreen extends ConsumerWidget {
+/// Javni profil korisnika kao mini webshop: naziv trgovine, pratitelji,
+/// prodaje, pretraga i sortiranje oglasa, aukcije i ocjene.
+class PublicProfileScreen extends ConsumerStatefulWidget {
   const PublicProfileScreen({super.key, required this.userId});
 
   final String userId;
@@ -30,7 +34,55 @@ class PublicProfileScreen extends ConsumerWidget {
       );
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<PublicProfileScreen> createState() =>
+      _PublicProfileScreenState();
+}
+
+/// Redoslijed oglasa u trgovini.
+enum _ShopSort {
+  newest('Najnovije'),
+  priceAsc('Cijena: niža prvo'),
+  priceDesc('Cijena: viša prvo'),
+  discount('Najveći popust');
+
+  const _ShopSort(this._label);
+  final String _label;
+  String get label => t(_label);
+}
+
+class _PublicProfileScreenState extends ConsumerState<PublicProfileScreen> {
+  String _query = '';
+  _ShopSort _sort = _ShopSort.newest;
+
+  String get userId => widget.userId;
+
+  List<Device> _shopItems(List<Device> all) {
+    final q = normalizeSearch(_query);
+    final list = all
+        .where(
+          (d) =>
+              q.isEmpty ||
+              normalizeSearch(
+                '${d.name} ${d.model} ${d.description} ${d.category.label}',
+              ).contains(q),
+        )
+        .toList();
+    int discount(Device d) => d.hasDiscount ? d.discountPercent : 0;
+    list.sort(
+      (a, b) => switch (_sort) {
+        _ShopSort.newest => (b.listedAt ?? b.createdAt).compareTo(
+          a.listedAt ?? a.createdAt,
+        ),
+        _ShopSort.priceAsc => a.askPrice.compareTo(b.askPrice),
+        _ShopSort.priceDesc => b.askPrice.compareTo(a.askPrice),
+        _ShopSort.discount => discount(b).compareTo(discount(a)),
+      },
+    );
+    return list;
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final state = ref.watch(appProvider);
     AppUser? user;
     for (final u in state.users) {
@@ -47,7 +99,8 @@ class PublicProfileScreen extends ConsumerWidget {
     }
     final viewer = state.currentUserId ?? '';
     final isMe = viewer == user.id;
-    final listings = state.listingsOf(user.id);
+    final allListings = state.listingsOf(user.id);
+    final listings = _shopItems(allListings);
     final auctions = state.activeAuctions
         .where((a) => a.sellerId == user!.id)
         .toList();
@@ -75,8 +128,13 @@ class PublicProfileScreen extends ConsumerWidget {
     final other = user;
     return Scaffold(
       appBar: AppBar(
-        title: Text(user.handle),
+        title: Text(user.shopTitle, overflow: TextOverflow.ellipsis),
         actions: [
+          if (user.username.isNotEmpty)
+            ShareButton(
+              url: publicLink(shop: user.username),
+              tooltip: t('Podijeli trgovinu'),
+            ),
           if (!isMe && state.currentUser != null && !state.currentUser!.isGuest)
             PopupMenuButton<String>(
               key: const ValueKey('profile-menu'),
@@ -130,20 +188,68 @@ class PublicProfileScreen extends ConsumerWidget {
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   ProfileHeader(user: user, rating: state.ratingOf(user.id)),
+                  const SizedBox(height: 10),
+                  _ShopStats(
+                    followers: state.followersOf(user.id),
+                    sales: state.salesCountOf(user.id),
+                    listings: allListings.length,
+                    promoted: user.isPromoted,
+                  ),
                   if (!isMe && !blocked) ...[
                     const SizedBox(height: 10),
-                    FilledButton.icon(
-                      key: const ValueKey('profile-message'),
-                      onPressed: () => ChatScreen.open(context, other.id),
-                      icon: const Icon(Icons.chat_bubble_outline),
-                      label: Text(t('Pošalji poruku')),
+                    Row(
+                      children: [
+                        Expanded(child: FollowButton(userId: other.id)),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: OutlinedButton.icon(
+                            key: const ValueKey('profile-message'),
+                            onPressed: () => ChatScreen.open(context, other.id),
+                            icon: const Icon(Icons.chat_bubble_outline),
+                            label: Text(t('Poruka')),
+                          ),
+                        ),
+                      ],
                     ),
                   ],
                 ],
               ),
             ),
           ),
-          box(title(t('Na prodaju u Marketu ({0})', [listings.length]))),
+          box(title(t('Trgovina ({0})', [allListings.length]))),
+          if (allListings.length > 3)
+            box(
+              Row(
+                children: [
+                  Expanded(
+                    child: TextField(
+                      key: const ValueKey('shop-search'),
+                      onChanged: (v) => setState(() => _query = v),
+                      decoration: InputDecoration(
+                        isDense: true,
+                        hintText: t('Pretraži trgovinu…'),
+                        prefixIcon: const Icon(Icons.search),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  PopupMenuButton<_ShopSort>(
+                    tooltip: t('Sortiraj'),
+                    initialValue: _sort,
+                    onSelected: (v) => setState(() => _sort = v),
+                    itemBuilder: (_) => [
+                      for (final v in _ShopSort.values)
+                        PopupMenuItem(value: v, child: Text(v.label)),
+                    ],
+                    child: Chip(
+                      avatar: const Icon(Icons.sort, size: 18),
+                      label: Text(_sort.label),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          if (allListings.length > 3) box(const SizedBox(height: 10)),
           if (listings.isEmpty)
             box(
               Text(
@@ -165,6 +271,9 @@ class PublicProfileScreen extends ConsumerWidget {
                     ? () => DeviceDetailScreen.open(context, d)
                     : () => confirmAndBuy(context, ref, d),
                 onTap: () => DeviceDetailScreen.open(context, d),
+                promoted: user!.isPromoted,
+                isFavorite: state.isFavorite(d.id),
+                onFavorite: isMe ? null : () => toggleFavorite(ref, d),
               ),
             ),
           box(title(t('Aktivne aukcije ({0})', [auctions.length]))),
@@ -294,6 +403,55 @@ class ProfileHeader extends StatelessWidget {
               const SizedBox(height: 14),
               Text(user.bio, style: const TextStyle(height: 1.4)),
             ],
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Pratitelji, prodaje i broj oglasa trgovine.
+class _ShopStats extends StatelessWidget {
+  const _ShopStats({
+    required this.followers,
+    required this.sales,
+    required this.listings,
+    required this.promoted,
+  });
+  final int followers;
+  final int sales;
+  final int listings;
+  final bool promoted;
+
+  @override
+  Widget build(BuildContext context) {
+    Widget stat(String value, String label) => Expanded(
+      child: Column(
+        children: [
+          Text(
+            value,
+            style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w900),
+          ),
+          Text(
+            label,
+            style: TextStyle(color: LoopColors.textSecondary, fontSize: 12),
+          ),
+        ],
+      ),
+    );
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
+        child: Column(
+          children: [
+            Row(
+              children: [
+                stat('$followers', t('pratitelja')),
+                stat('$sales', t('prodaja')),
+                stat('$listings', t('oglasa')),
+              ],
+            ),
+            if (promoted) ...[const SizedBox(height: 8), const PromotedBadge()],
           ],
         ),
       ),

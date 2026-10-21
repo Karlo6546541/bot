@@ -7,6 +7,7 @@ import '../models/app_user.dart';
 import '../models/chat_message.dart';
 import '../models/report.dart';
 import '../models/review.dart';
+import '../models/price_offer.dart';
 import '../models/swap_offer.dart';
 import '../models/auction.dart';
 import '../models/delivery.dart';
@@ -37,6 +38,8 @@ class AppState {
     this.reports = const [],
     this.messages = const [],
     this.offers = const [],
+    this.bargains = const [],
+    this.searchHistory = const [],
   });
 
   factory AppState.fromStorage(StorageService storage) {
@@ -75,6 +78,13 @@ class AppState {
         ..sort((a, b) => a.createdAt.compareTo(b.createdAt)),
       offers: [...storage.offers]
         ..sort((a, b) => b.createdAt.compareTo(a.createdAt)),
+      bargains: [...storage.bargains]
+        ..sort(
+          (a, b) => (b.updatedAt ?? b.createdAt).compareTo(
+            a.updatedAt ?? a.createdAt,
+          ),
+        ),
+      searchHistory: storage.searchHistory,
       myHistory: storage.currentUserId == null
           ? const []
           : storage.historyOf(storage.currentUserId!),
@@ -116,6 +126,103 @@ class AppState {
 
   /// Ponude zamjene, najnovije prvo.
   final List<SwapOffer> offers;
+
+  /// Ponude cijena (cjenkanje), najnovije prvo.
+  final List<PriceOffer> bargains;
+
+  /// Nedavne pretrage na ovom uređaju (najnovije prvo).
+  final List<String> searchHistory;
+
+  /// Ponude cijena u kojima sudjeluje trenutni korisnik.
+  List<PriceOffer> get myBargains => currentUserId == null
+      ? const []
+      : bargains
+            .where(
+              (o) => o.buyerId == currentUserId || o.sellerId == currentUserId,
+            )
+            .toList();
+
+  /// Ponude cijena koje čekaju MOJ odgovor (kao prodavatelj ili kupac
+  /// s protuponudom).
+  List<PriceOffer> get bargainsToAnswer {
+    final now = DateTime.now();
+    return myBargains
+        .where(
+          (o) =>
+              !o.staleAt(now) &&
+              ((o.status == BargainStatus.pending &&
+                      o.sellerId == currentUserId) ||
+                  (o.status == BargainStatus.countered &&
+                      o.buyerId == currentUserId)),
+        )
+        .toList();
+  }
+
+  /// Moja otvorena ili prihvaćena ponuda za predmet (kao kupac).
+  PriceOffer? myBargainFor(String deviceId) {
+    final now = DateTime.now();
+    for (final o in bargains) {
+      if (o.buyerId == currentUserId &&
+          o.deviceId == deviceId &&
+          (o.usableAt(now) || (o.isOpen && !o.staleAt(now)))) {
+        return o;
+      }
+    }
+    return null;
+  }
+
+  /// Cijena koju bih sada platio za predmet (dogovorena ili oglasa).
+  double priceForMe(Device d) {
+    final o = myBargainFor(d.id);
+    return o != null && o.usableAt(DateTime.now()) ? o.agreedPrice : d.askPrice;
+  }
+
+  /// Broj pratitelja korisnika.
+  int followersOf(String userId) =>
+      users.where((u) => u.following.contains(userId)).length;
+
+  bool isFollowing(String userId) =>
+      currentUser?.following.contains(userId) ?? false;
+
+  /// Prodavatelj predmeta ima plaćeno isticanje.
+  bool isPromotedItem(Device d) => userById(d.ownerId)?.isPromoted ?? false;
+
+  /// Ljestvica prodavatelja po prodaji drugim korisnicima u zadnjih
+  /// [days] dana (`null` = ukupno): broj prodaja i promet.
+  List<SellerStats> leaderboard({int? days, int limit = 20}) {
+    final since = days == null
+        ? null
+        : DateTime.now().subtract(Duration(days: days));
+    final stats = <String, SellerStats>{};
+    for (final t in transactions) {
+      if (t.type != TransactionType.sell) continue;
+      final seller = t.sellerId ?? t.userId;
+      // Samo prodaje drugim korisnicima (ne LOOP-u).
+      if (t.buyerId == null || t.buyerId == seller) continue;
+      if (since != null && t.createdAt.isBefore(since)) continue;
+      final user = userById(seller);
+      if (user == null || user.pendingDeletion) continue;
+      final s = stats[seller] ?? SellerStats(user);
+      stats[seller] = s.add(t.price);
+    }
+    final list = stats.values.toList()
+      ..sort((a, b) {
+        final c = b.sales.compareTo(a.sales);
+        return c != 0 ? c : b.revenue.compareTo(a.revenue);
+      });
+    return list.take(limit).toList();
+  }
+
+  /// Broj prodaja korisnika (drugim korisnicima).
+  int salesCountOf(String userId) => transactions
+      .where(
+        (t) =>
+            t.type == TransactionType.sell &&
+            (t.sellerId ?? t.userId) == userId &&
+            t.buyerId != null &&
+            t.buyerId != userId,
+      )
+      .length;
 
   List<Review> reviewsOf(String userId) =>
       reviews.where((r) => r.sellerId == userId).toList();
@@ -357,14 +464,18 @@ class AppState {
     return 'obrisan korisnik';
   }
 
-  /// Promet trgovanja (bez kupnje kredita).
+  /// Promet trgovanja (bez uplata i isticanja).
   double get totalVolume => transactions
-      .where((t) => t.type != TransactionType.topUp)
+      .where(
+        (t) =>
+            t.type != TransactionType.topUp &&
+            t.type != TransactionType.promotion,
+      )
       .fold(0, (sum, t) => sum + t.price);
 
   double get totalFees => transactions.fold(0, (sum, t) => sum + t.fee);
 
-  /// Ukupno prodano kredita, u eurima.
+  /// Ukupno uplaćeno, u eurima.
   double get totalTopUpEur => transactions
       .where((t) => t.type == TransactionType.topUp)
       .fold(0, (sum, t) => sum + t.price);
@@ -380,4 +491,15 @@ class Conversation {
   final String otherId;
   final ChatMessage last;
   final int unread;
+}
+
+/// Statistika prodavatelja za ljestvicu.
+class SellerStats {
+  const SellerStats(this.user, {this.sales = 0, this.revenue = 0});
+  final AppUser user;
+  final int sales;
+  final double revenue;
+
+  SellerStats add(double price) =>
+      SellerStats(user, sales: sales + 1, revenue: revenue + price);
 }

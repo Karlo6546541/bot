@@ -16,7 +16,10 @@ import 'portfolio_screen.dart';
 import 'profile_screen.dart';
 import '../l10n/tr.dart';
 import '../widgets/language_button.dart';
+import '../services/deep_link.dart';
+import 'device_detail_screen.dart';
 import 'messages_screen.dart';
+import 'public_profile_screen.dart';
 import 'notifications_screen.dart';
 
 /// Glavni okvir za prijavljenog korisnika s 4 taba.
@@ -54,12 +57,42 @@ class _HomeShellState extends ConsumerState<HomeShell> {
     ShellDestination(t('Profil'), Icons.person_outline, Icons.person),
   ];
 
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) => _openPendingLink());
+  }
+
+  /// Otvara dijeljeni oglas ili trgovinu (kad se podaci učitaju).
+  void _openPendingLink() {
+    if (!mounted || !PendingLink.isPending) return;
+    final state = ref.read(appProvider);
+    final item = PendingLink.item;
+    final shop = PendingLink.shop;
+    if (item != null) {
+      final d = state.deviceById(item);
+      if (d == null) return; // možda se još sinkronizira
+      PendingLink.clear();
+      DeviceDetailScreen.open(context, d);
+    } else if (shop != null) {
+      final user = state.users
+          .where((u) => u.username.toLowerCase() == shop)
+          .firstOrNull;
+      if (user == null) return;
+      PendingLink.clear();
+      PublicProfileScreen.open(context, user.id);
+    }
+  }
+
   void _openAddDevice() {
     AddDeviceScreen.open(context);
   }
 
   @override
   Widget build(BuildContext context) {
+    if (PendingLink.isPending) {
+      ref.listen(appProvider, (_, _) => _openPendingLink());
+    }
     final width = MediaQuery.sizeOf(context).width;
     final isDesktop = width >= kDesktopBreakpoint;
     final phone = width < 600;

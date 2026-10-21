@@ -51,6 +51,8 @@ String normalizeSearch(String text) => text
     .toLowerCase()
     .replaceAll(RegExp('[čć]'), 'c')
     .replaceAll('đ', 'd')
+    // "dj" se često piše umjesto "đ" ("medjed" = "međed").
+    .replaceAll('dj', 'd')
     .replaceAll('š', 's')
     .replaceAll('ž', 'z')
     .replaceAll(RegExp('[áàâä]'), 'a')

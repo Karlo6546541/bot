@@ -7,6 +7,7 @@ import '../models/app_user.dart';
 import '../models/chat_message.dart';
 import '../models/report.dart';
 import '../models/review.dart';
+import '../models/price_offer.dart';
 import '../models/swap_offer.dart';
 import '../models/auction.dart';
 import '../models/delivery.dart';
@@ -32,6 +33,7 @@ class StorageService {
   static const _reportsBox = 'reports';
   static const _messagesBox = 'messages';
   static const _offersBox = 'offers';
+  static const _bargainsBox = 'bargains';
 
   /// Sadržaj digitalnih datoteka u lokalnom načinu (web) — NE sinkronizira
   /// se (online datoteke su u Supabase Storageu).
@@ -53,6 +55,7 @@ class StorageService {
     _reportsBox,
     _messagesBox,
     _offersBox,
+    _bargainsBox,
   ];
 
   /// Povećaj kad se seed proširi — postojeće instalacije tada dobiju
@@ -70,6 +73,8 @@ class StorageService {
   static const _langKey = 'lang';
   static const _howItWorksKey = 'howItWorksDismissed';
   static const _pendingAuthKey = 'pendingAuth';
+  static const _searchHistoryKey = 'searchHistory';
+  static const maxSearchHistory = 10;
 
   late Box<Map> _users;
   late Box<Map> _devices;
@@ -85,6 +90,7 @@ class StorageService {
   late Box<Map> _reports;
   late Box<Map> _messages;
   late Box<Map> _offers;
+  late Box<Map> _bargains;
 
   /// Poziva se nakon svake lokalne promjene (za sinkronizaciju s online
   /// bazom). `data == null` znači brisanje.
@@ -103,6 +109,7 @@ class StorageService {
     _reportsBox: _reports,
     _messagesBox: _messages,
     _offersBox: _offers,
+    _bargainsBox: _bargains,
   };
 
   /// Svi zapisi prolaze ovuda kako bi ih sinkronizacija vidjela.
@@ -145,6 +152,7 @@ class StorageService {
     _reports = await Hive.openBox<Map>(_reportsBox, bytes: bytes);
     _messages = await Hive.openBox<Map>(_messagesBox, bytes: bytes);
     _offers = await Hive.openBox<Map>(_offersBox, bytes: bytes);
+    _bargains = await Hive.openBox<Map>(_bargainsBox, bytes: bytes);
 
     if (_session.get(_seededKey) != true) {
       await _seed();
@@ -253,7 +261,14 @@ class StorageService {
     await _deliveries.clear();
     await _credentials.clear();
     await _files.clear();
-    for (final b in [_reviews, _notifications, _reports, _messages, _offers]) {
+    for (final b in [
+      _reviews,
+      _notifications,
+      _reports,
+      _messages,
+      _offers,
+      _bargains,
+    ]) {
       await b.clear();
     }
     await _seed();
@@ -459,6 +474,38 @@ class StorageService {
   }
 
   Future<void> putOffer(SwapOffer o) => _write(_offersBox, o.id, o.toMap());
+
+  /// Nedavne pretrage (lokalno, najnovije prvo).
+  List<String> get searchHistory =>
+      (_session.get(_searchHistoryKey) as List?)?.cast<String>() ?? const [];
+
+  Future<void> addSearch(String query) async {
+    final q = query.trim();
+    if (q.length < 2) return;
+    final list = [
+      q,
+      ...searchHistory.where((x) => x.toLowerCase() != q.toLowerCase()),
+    ].take(maxSearchHistory).toList();
+    await _session.put(_searchHistoryKey, list);
+  }
+
+  Future<void> removeSearch(String query) async => _session.put(
+    _searchHistoryKey,
+    searchHistory.where((x) => x != query).toList(),
+  );
+
+  Future<void> clearSearchHistory() => _session.delete(_searchHistoryKey);
+
+  List<PriceOffer> get bargains =>
+      _bargains.values.map(PriceOffer.fromMap).toList(growable: false);
+
+  PriceOffer? bargainById(String id) {
+    final m = _bargains.get(id);
+    return m == null ? null : PriceOffer.fromMap(m);
+  }
+
+  Future<void> putBargain(PriceOffer o) =>
+      _write(_bargainsBox, o.id, o.toMap());
 
   // ---------------------------------------------------------- sinkronizacija
 

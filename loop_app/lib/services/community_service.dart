@@ -2,8 +2,12 @@ import 'package:uuid/uuid.dart';
 
 import '../l10n/tr.dart';
 import '../models/app_notification.dart';
+import '../models/app_user.dart';
+import '../models/loop_transaction.dart';
 import '../models/report.dart';
 import '../models/review.dart';
+import '../utils/formatters.dart';
+import 'fee.dart';
 import 'inbox.dart';
 import 'storage_service.dart';
 import 'trade_service.dart';
@@ -152,6 +156,92 @@ class CommunityService {
     if (blocked) list.add(otherId);
     await _storage.putUser(user.copyWith(blockedIds: list));
     return blocked;
+  }
+
+  // ------------------------------------------------------------ praćenje
+
+  /// Prati ili prestaje pratiti prodavatelja. Vraća `true` ako ga sada prati.
+  Future<bool> toggleFollow(String userId, String sellerId) async {
+    if (userId == sellerId) {
+      throw TradeException(t('Ne možeš pratiti sam sebe.'));
+    }
+    final user = _storage.userById(userId);
+    final seller = _storage.userById(sellerId);
+    if (user == null || seller == null) {
+      throw TradeException(t('Korisnik ne postoji.'));
+    }
+    final list = [...user.following];
+    final followed = !list.remove(sellerId);
+    if (followed) list.add(sellerId);
+    await _storage.putUser(user.copyWith(following: list));
+    if (followed) {
+      await Inbox(_storage).send(
+        sellerId,
+        NotificationKind.newFollower,
+        args: [user.handle],
+        targetId: userId,
+      );
+    }
+    return followed;
+  }
+
+  /// Broj pratitelja korisnika.
+  int followersOf(String userId) =>
+      _storage.users.where((u) => u.following.contains(userId)).length;
+
+  // ----------------------------------------------------------- isticanje
+
+  /// Cijena isticanja računa za jedan tjedan.
+  static const promotionWeekly = 4.99;
+  static const maxPromotionWeeks = 4;
+
+  /// Plaća isticanje računa na [weeks] tjedana: oglasi se prikazuju prvi
+  /// (oznaka "Istaknuto"), a račun je istaknut i na početnoj. Produljuje
+  /// postojeće isticanje.
+  Future<AppUser> promote(String userId, int weeks, {DateTime? now}) async {
+    final at = now ?? DateTime.now();
+    final user = _storage.userById(userId);
+    if (user == null || user.isGuest) {
+      throw TradeException(t('Za isticanje se prijavi.'));
+    }
+    if (weeks < 1 || weeks > maxPromotionWeeks) {
+      throw TradeException(
+        t('Isticanje se plaća za 1 do {0} tjedna.', ['$maxPromotionWeeks']),
+      );
+    }
+    final cost = roundCredits(promotionWeekly * weeks);
+    if (user.credits < cost) {
+      throw TradeException(
+        t('Nemaš dovoljno novca: isticanje košta {0}, imaš {1}.', [
+          formatCredits(cost),
+          formatCredits(user.credits),
+        ]),
+      );
+    }
+    final from = user.promotedAt(at) ? user.promotedUntil! : at;
+    final updated = user.copyWith(
+      credits: roundCredits(user.credits - cost),
+      promotedUntil: from.add(Duration(days: 7 * weeks)),
+    );
+    await _storage.putUser(updated);
+    await _storage.putTransaction(
+      LoopTransaction(
+        id: _uuid.v4(),
+        type: TransactionType.promotion,
+        userId: userId,
+        deviceId: '',
+        deviceName: t('Isticanje računa · {0} tj.', ['$weeks']),
+        price: cost,
+        fee: 0,
+        amount: cost,
+        buyerId: userId,
+        buyerLabel: user.handle,
+        sellerLabel: 'LOOP',
+        createdAt: at,
+      ),
+    );
+    await _storage.recordSnapshot(userId, now: at);
+    return updated;
   }
 
   // ----------------------------------------------------------- obavijesti

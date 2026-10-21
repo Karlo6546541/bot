@@ -15,7 +15,7 @@
 --   • korisničko ime je jedinstveno (tablica loop_usernames),
 --   • korisnik može obrisati samo SVOJ račun za prijavu.
 --
--- ⚠️ I dalje TESTNA verzija: pravila trgovanja (krediti, ponude) provjerava
+-- ⚠️ I dalje TESTNA verzija: pravila trgovanja (stanje, ponude) provjerava
 -- aplikacija, ne server — prijavljeni korisnik bi teoretski mogao ručno
 -- mijenjati tuđe zapise. Za pravi novac/korisnike to ide u funkcije na
 -- serveru (vidi README, "Put do produkcije").
@@ -29,7 +29,7 @@ begin
     'loop_users', 'loop_devices', 'loop_transactions',
     'loop_history', 'loop_auctions', 'loop_deliveries',
     'loop_reviews', 'loop_notifications', 'loop_reports',
-    'loop_messages', 'loop_offers'
+    'loop_messages', 'loop_offers', 'loop_bargains'
   ]
   loop
     execute format(
@@ -149,13 +149,14 @@ create or replace view public.loop_stats
   union all select 'reports', count(*) from public.loop_reports
   union all select 'messages', count(*) from public.loop_messages
   union all select 'offers', count(*) from public.loop_offers
+  union all select 'bargains', count(*) from public.loop_bargains
   union all select 'usernames', count(*) from public.loop_usernames;
 
 -- Brisanje svih testnih podataka (pokreni ručno kad treba):
 -- truncate public.loop_users, public.loop_devices, public.loop_transactions,
 --          public.loop_history, public.loop_auctions, public.loop_deliveries,
 --          public.loop_reviews, public.loop_notifications, public.loop_reports,
---          public.loop_messages, public.loop_offers;
+--          public.loop_messages, public.loop_offers, public.loop_bargains;
 
 -- -----------------------------------------------------------------------------
 -- Fotografije (predmeti i profilne slike) — Supabase Storage.

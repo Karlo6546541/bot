@@ -20,6 +20,7 @@ class DeviceCard extends StatefulWidget {
     this.isFavorite = false,
     this.onFavorite,
     this.badge,
+    this.promoted = false,
   });
 
   final Device device;
@@ -32,6 +33,12 @@ class DeviceCard extends StatefulWidget {
 
   /// Kratka oznaka (npr. prodavatelj "@ana" ili "U Marketu").
   final String? badge;
+
+  /// Prodavatelj ima plaćeno isticanje (oznaka ⭐).
+  final bool promoted;
+
+  String? get _badgeText =>
+      badge == null ? null : (promoted ? '⭐ $badge' : badge);
 
   @override
   State<DeviceCard> createState() => _DeviceCardState();
@@ -131,14 +138,16 @@ class _DeviceCardState extends State<DeviceCard> {
                 ),
               ),
             Positioned(left: 8, bottom: 8, child: _conditionChip(d)),
-            if (widget.badge != null)
+            if (d.hasDiscount)
+              Positioned(right: 8, bottom: 8, child: _discount(d)),
+            if (widget._badgeText != null)
               Positioned(
                 left: 8,
                 top: 8,
                 right: widget.onFavorite != null ? 52 : 8,
                 child: Align(
                   alignment: Alignment.centerLeft,
-                  child: _Badge(widget.badge!),
+                  child: _Badge(widget._badgeText!),
                 ),
               ),
           ],
@@ -164,13 +173,7 @@ class _DeviceCardState extends State<DeviceCard> {
               FittedBox(
                 fit: BoxFit.scaleDown,
                 alignment: Alignment.centerLeft,
-                child: Text(
-                  formatCredits(d.askPrice),
-                  style: const TextStyle(
-                    fontWeight: FontWeight.w900,
-                    fontSize: 16,
-                  ),
-                ),
+                child: _price(d, 16),
               ),
               const SizedBox(height: 8),
               FilledButton.icon(
@@ -254,7 +257,13 @@ class _DeviceCardState extends State<DeviceCard> {
           children: [
             _conditionChip(d),
             _Chip(label: d.category.singular, dot: d.category.color),
-            if (widget.badge != null) _Badge(widget.badge!),
+            if (widget._badgeText != null) _Badge(widget._badgeText!),
+            if (d.hasDiscount) _discount(d),
+            if (d.isListed && d.quantity > 1)
+              _Chip(
+                label: t('{0} kom', ['${d.quantity}']),
+                dot: LoopColors.info,
+              ),
           ],
         ),
         const Spacer(),
@@ -265,13 +274,7 @@ class _DeviceCardState extends State<DeviceCard> {
               child: FittedBox(
                 fit: BoxFit.scaleDown,
                 alignment: Alignment.centerLeft,
-                child: Text(
-                  formatCredits(d.askPrice),
-                  style: const TextStyle(
-                    fontWeight: FontWeight.w800,
-                    fontSize: 18,
-                  ),
-                ),
+                child: _price(d, 18),
               ),
             ),
             FilledButton.icon(
@@ -426,3 +429,50 @@ Widget _conditionChip(Device d) => d.isDigital
         dot: d.category.color,
       )
     : _Chip(label: d.condition.label, dot: d.condition.color);
+
+/// Cijena; na popustu crvena uz prekriženu redovnu cijenu.
+Widget _price(Device d, double size) {
+  final cut = d.hasDiscount;
+  return Row(
+    mainAxisSize: MainAxisSize.min,
+    crossAxisAlignment: CrossAxisAlignment.baseline,
+    textBaseline: TextBaseline.alphabetic,
+    children: [
+      Text(
+        formatCredits(d.askPrice),
+        style: TextStyle(
+          fontWeight: FontWeight.w900,
+          fontSize: size,
+          color: cut ? LoopColors.error : null,
+        ),
+      ),
+      if (cut) ...[
+        const SizedBox(width: 6),
+        Text(
+          formatCredits(d.basePrice),
+          style: TextStyle(
+            fontSize: size * 0.7,
+            color: LoopColors.textSecondary,
+            decoration: TextDecoration.lineThrough,
+          ),
+        ),
+      ],
+    ],
+  );
+}
+
+Widget _discount(Device d) => Container(
+  padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+  decoration: BoxDecoration(
+    color: LoopColors.error,
+    borderRadius: BorderRadius.circular(20),
+  ),
+  child: Text(
+    '−${d.discountPercent}%',
+    style: const TextStyle(
+      color: Colors.white,
+      fontWeight: FontWeight.w900,
+      fontSize: 11,
+    ),
+  ),
+);

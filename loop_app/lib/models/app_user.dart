@@ -1,5 +1,5 @@
-/// Korisnik aplikacije. Krediti su LOOP krediti — ne mogu se isplatiti,
-/// koriste se isključivo za kupnju unutar aplikacije.
+/// Korisnik aplikacije — svaki račun je i kupac i prodavatelj. Stanje
+/// ([credits]) je u eurima.
 ///
 /// Ovo je javni profil (u online načinu ga vide svi testeri), pa ne sadrži
 /// lozinku. Lokalne lozinke su u zasebnom, nesinkroniziranom boxu, a online
@@ -25,6 +25,9 @@ class AppUser {
     this.blockedIds = const [],
     this.referredBy,
     this.deletionRequestedAt,
+    this.following = const [],
+    this.promotedUntil,
+    this.shopName = '',
   }) : username = username ?? '';
 
   final String id;
@@ -74,7 +77,26 @@ class AppUser {
   /// a prijava u tom roku ga vraća).
   final DateTime? deletionRequestedAt;
 
+  /// Prodavatelji koje korisnik prati (obavijesti o novim oglasima i
+  /// popustima, feed na početnoj).
+  final List<String> following;
+
+  /// Plaćeno isticanje računa (oglasi se prikazuju više) do ovog trenutka.
+  final DateTime? promotedUntil;
+
+  /// Naziv mini webshopa (prazno = korisničko ime).
+  final String shopName;
+
   static const maxBio = 160;
+  static const maxShopName = 40;
+
+  bool promotedAt(DateTime now) =>
+      promotedUntil != null && now.isBefore(promotedUntil!);
+
+  bool get isPromoted => promotedAt(DateTime.now());
+
+  /// Naziv trgovine: [shopName] ili korisničko ime.
+  String get shopTitle => shopName.isNotEmpty ? shopName : handle;
   static const usernameLockDays = 30;
   static const deletionGraceDays = 7;
 
@@ -108,6 +130,9 @@ class AppUser {
     DateTime? deletionRequestedAt,
     bool clearDeletion = false,
     String? email,
+    List<String>? following,
+    DateTime? promotedUntil,
+    String? shopName,
   }) => AppUser(
     id: id,
     email: email ?? this.email,
@@ -130,6 +155,9 @@ class AppUser {
     deletionRequestedAt: clearDeletion
         ? null
         : deletionRequestedAt ?? this.deletionRequestedAt,
+    following: following ?? this.following,
+    promotedUntil: promotedUntil ?? this.promotedUntil,
+    shopName: shopName ?? this.shopName,
   );
 
   Map<String, dynamic> toMap() => {
@@ -151,6 +179,9 @@ class AppUser {
     'blockedIds': blockedIds,
     'referredBy': referredBy,
     'deletionRequestedAt': deletionRequestedAt?.toIso8601String(),
+    'following': following,
+    'promotedUntil': promotedUntil?.toIso8601String(),
+    'shopName': shopName,
     'createdAt': createdAt.toIso8601String(),
   };
 
@@ -176,6 +207,9 @@ class AppUser {
     blockedIds: (map['blockedIds'] as List?)?.cast<String>() ?? const [],
     referredBy: map['referredBy'] as String?,
     deletionRequestedAt: _date(map['deletionRequestedAt']),
+    following: (map['following'] as List?)?.cast<String>() ?? const [],
+    promotedUntil: _date(map['promotedUntil']),
+    shopName: map['shopName'] as String? ?? '',
     createdAt: DateTime.parse(map['createdAt'] as String),
   );
 }

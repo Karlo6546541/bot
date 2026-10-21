@@ -3,7 +3,9 @@ import 'package:uuid/uuid.dart';
 import '../models/app_user.dart';
 import '../models/device.dart';
 import '../models/loop_transaction.dart';
+import '../models/price_offer.dart';
 import '../utils/formatters.dart';
+import 'bargain_service.dart';
 import 'fee.dart';
 import 'storage_service.dart';
 import '../l10n/tr.dart';
@@ -54,8 +56,14 @@ class TradeService {
     bool listOnMarket = true,
     String? id,
     DigitalFile? file,
+    int quantity = 1,
   }) async {
     final digital = category.section == ItemSection.digital;
+    if (quantity < 1 || quantity > Device.maxQuantity) {
+      throw TradeException(
+        t('Količina mora biti između 1 i {0}.', ['${Device.maxQuantity}']),
+      );
+    }
     if (digital && file == null) {
       throw TradeException(
         t('Digitalni proizvod treba datoteku koju kupac preuzima.'),
@@ -90,9 +98,11 @@ class TradeService {
       listedAt: list ? DateTime.now() : null,
       marketChecked: true,
       file: file,
+      quantity: digital ? 1 : quantity,
     );
     await _storage.putDevice(device);
     await _snapshot(userId);
+    if (list) await _announceListing(device);
     return device;
   }
 
@@ -154,6 +164,7 @@ class TradeService {
   Future<LoopTransaction> buy({
     required String userId,
     required String deviceId,
+    DateTime? now,
   }) async {
     final user = _requireUser(userId);
     final device = _requireDevice(deviceId);
@@ -176,7 +187,10 @@ class TradeService {
       throw TradeException(t('Predmet više nije dostupan.'));
     }
 
-    final price = device.askPrice;
+    final at = now ?? DateTime.now();
+    // Dogovorena cijena (prihvaćena ponuda) ima prednost pred cijenom oglasa.
+    final bargain = BargainService(_storage).usable(userId, deviceId, at);
+    final price = bargain?.agreedPrice ?? device.priceAt(at);
     final fee = feeFor(price);
     final total = buyTotal(price);
     if (user.credits < total) {
@@ -188,12 +202,19 @@ class TradeService {
       );
     }
 
-    final now = DateTime.now();
     // Digitalni proizvod ostaje prodavatelju (prodaje se više puta), a
-    // kupac dobiva pravo preuzimanja (zapis kupnje).
-    if (!device.isDigital) {
+    // kupac dobiva pravo preuzimanja (zapis kupnje). Kod predmeta s više
+    // komada na zalihi kupac dobiva jedan komad, a oglas ostaje.
+    var boughtId = device.id;
+    if (device.hasStock && device.isListed) {
+      final unit = device.unitFor(userId, _uuid.v4(), at);
+      boughtId = unit.id;
+      await _storage.putDevice(unit);
+      await _storage.putDevice(device.withQuantity(device.quantity - 1));
+    } else if (!device.isDigital) {
       await _storage.putDevice(device.withOwner(userId));
     }
+    if (bargain != null) await BargainService(_storage).markUsed(bargain, at);
     await _storage.putUser(
       user.copyWith(credits: roundCredits(user.credits - total)),
     );
@@ -202,7 +223,7 @@ class TradeService {
       id: _uuid.v4(),
       type: TransactionType.buy,
       userId: userId,
-      deviceId: device.id,
+      deviceId: boughtId,
       deviceName: '${device.name} ${device.model}',
       price: price,
       fee: fee,
@@ -211,7 +232,7 @@ class TradeService {
       buyerLabel: user.handle,
       sellerId: seller?.id,
       sellerLabel: seller?.handle ?? marketLabel,
-      createdAt: now,
+      createdAt: at,
     );
     await _storage.putTransaction(tx);
 
@@ -235,17 +256,37 @@ class TradeService {
           sellerLabel: seller.handle,
           buyerId: userId,
           buyerLabel: user.handle,
-          createdAt: now,
+          createdAt: at,
         ),
       );
       await _snapshot(seller.id);
-      await Inbox(_storage).send(
+      final inbox = Inbox(_storage);
+      await inbox.send(
         seller.id,
         NotificationKind.itemSold,
         args: [device.name, user.handle, payout],
         targetId: device.id,
-        now: now,
+        now: at,
       );
+      if (!device.isDigital && !device.hasStock) {
+        // Zadnji komad: oglas je rasprodan; otvorene ponude više ne vrijede.
+        for (final o in _storage.bargains) {
+          if (o.deviceId == device.id && (o.isOpen || o.usableAt(at))) {
+            await _storage.putBargain(
+              o.copyWith(status: BargainStatus.expired, updatedAt: at),
+            );
+          }
+        }
+        if (device.quantity > 1 || _wasStocked(device)) {
+          await inbox.send(
+            seller.id,
+            NotificationKind.soldOut,
+            args: [device.name],
+            targetId: boughtId,
+            now: at,
+          );
+        }
+      }
     }
     await _snapshot(userId);
     return tx;
@@ -261,6 +302,7 @@ class TradeService {
     required String userId,
     required String deviceId,
     required double price,
+    int? quantity,
   }) async {
     final device = _requireOwn(userId, deviceId);
     if (_storage.activeAuctionFor(deviceId) != null) {
@@ -273,8 +315,15 @@ class TradeService {
         t('Cijena mora biti između 1 i {0}.', [formatCredits(maxListPrice)]),
       );
     }
-    final listed = device.withListing(roundCredits(price));
+    if (quantity != null &&
+        (quantity < 1 || quantity > Device.maxQuantity || device.isDigital)) {
+      throw TradeException(
+        t('Količina mora biti između 1 i {0}.', ['${Device.maxQuantity}']),
+      );
+    }
+    final listed = device.withListing(roundCredits(price), quantity: quantity);
     await _storage.putDevice(listed);
+    if (!device.isListed) await _announceListing(listed);
     // Pojeftinjenje: javi onima kojima je predmet na listi želja.
     final before = device.isListed ? device.askPrice : null;
     if (before != null && listed.askPrice < before) {
@@ -354,6 +403,108 @@ class TradeService {
       listed++;
     }
     return listed;
+  }
+
+  // --------------------------------------------------------------- popusti
+
+  /// Trajanja popusta koja se nude u aplikaciji (`null` = trajno).
+  static const discountDurations = <Duration?>[
+    Duration(days: 1),
+    Duration(days: 3),
+    Duration(days: 7),
+    Duration(days: 30),
+    null,
+  ];
+
+  /// Popust [percent] % na vlastiti objavljeni predmet, trajno ili za
+  /// [duration]. 0 uklanja popust. Pratitelji i oni kojima je predmet na
+  /// listi želja dobiju obavijest.
+  Future<Device> setDiscount({
+    required String userId,
+    required String deviceId,
+    required int percent,
+    Duration? duration,
+    DateTime? now,
+  }) async {
+    final at = now ?? DateTime.now();
+    final device = _requireOwn(userId, deviceId);
+    if (!device.isListed) {
+      throw TradeException(t('Popust se može dati samo na oglas u Marketu.'));
+    }
+    if (percent < 0 || percent > Device.maxDiscount) {
+      throw TradeException(
+        t('Popust mora biti između 1 i {0}%.', ['${Device.maxDiscount}']),
+      );
+    }
+    final updated = device.withDiscount(
+      percent,
+      duration == null ? null : at.add(duration),
+    );
+    await _storage.putDevice(updated);
+    final wasActive = device.discountActiveAt(at);
+    if (percent > 0 && (!wasActive || percent > device.discountPercent)) {
+      final seller = _storage.userById(userId)!;
+      final inbox = Inbox(_storage);
+      final args = <Object>[
+        seller.handle,
+        '$percent',
+        device.name,
+        updated.priceAt(at),
+      ];
+      await inbox.toFollowers(
+        userId,
+        NotificationKind.followedDiscount,
+        args: args,
+        targetId: deviceId,
+        now: at,
+      );
+      for (final u in _storage.users) {
+        if (u.id != userId &&
+            !u.following.contains(userId) &&
+            u.favorites.contains(deviceId)) {
+          await inbox.send(
+            u.id,
+            NotificationKind.followedDiscount,
+            args: args,
+            targetId: deviceId,
+            now: at,
+          );
+        }
+      }
+    }
+    return updated;
+  }
+
+  /// Javlja pratiteljima da je prodavatelj objavio novi oglas.
+  Future<void> _announceListing(Device d) async {
+    final owner = d.ownerId == null ? null : _storage.userById(d.ownerId!);
+    if (owner == null) return;
+    await Inbox(_storage).toFollowers(
+      owner.id,
+      NotificationKind.followedNewItem,
+      args: [owner.handle, d.name, d.askPrice],
+      targetId: d.id,
+    );
+  }
+
+  /// Je li predmet prodavan u više komada (prije zadnjeg su prodani i
+  /// drugi komadi istog oglasa).
+  bool _wasStocked(Device d) =>
+      _storage.transactions
+          .where(
+            (t) =>
+                t.type == TransactionType.sell &&
+                t.deviceId == d.id &&
+                t.userId == d.ownerId,
+          )
+          .length >
+      1;
+
+  /// Cijena koju bi kupac [userId] sada platio (dogovorena ili oglasa).
+  double priceFor(String userId, Device d, {DateTime? now}) {
+    final at = now ?? DateTime.now();
+    return BargainService(_storage).usable(userId, d.id, at)?.agreedPrice ??
+        d.priceAt(at);
   }
 
   // ---------------------------------------------------- digitalni proizvodi

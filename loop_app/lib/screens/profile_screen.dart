@@ -15,6 +15,9 @@ import '../widgets/language_button.dart';
 import '../models/app_user.dart';
 import 'account_screens.dart';
 import 'public_profile_screen.dart';
+import 'shop_screens.dart';
+import '../services/community_service.dart';
+import '../widgets/shop_widgets.dart';
 import 'package:flutter/services.dart';
 import '../widgets/user_avatar.dart';
 
@@ -45,8 +48,11 @@ class ProfileScreen extends ConsumerWidget {
                 const SizedBox(height: 12),
                 if (user.isGuest)
                   const _GuestCard()
-                else
+                else ...[
+                  _ShopCard(user: user),
+                  const SizedBox(height: 12),
                   _AccountCard(user: user),
+                ],
                 const SizedBox(height: 12),
                 Card(
                   child: Column(
@@ -343,6 +349,87 @@ class _GuestCard extends ConsumerWidget {
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+/// Mini webshop: trgovina, ponude cijena, isticanje, ljestvica.
+class _ShopCard extends ConsumerWidget {
+  const _ShopCard({required this.user});
+  final AppUser user;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final state = ref.watch(appProvider);
+    final toAnswer = state.bargainsToAnswer.length;
+    return Card(
+      child: Column(
+        children: [
+          ListTile(
+            key: const ValueKey('my-shop'),
+            leading: const Icon(Icons.storefront_outlined),
+            title: Text(t('Moja trgovina: {0}', [user.shopTitle])),
+            subtitle: Text(
+              t('{0} pratitelja · {1} prodaja · {2} oglasa', [
+                '${state.followersOf(user.id)}',
+                '${state.salesCountOf(user.id)}',
+                '${state.listingsOf(user.id).length}',
+              ]),
+            ),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () => PublicProfileScreen.open(context, user.id),
+          ),
+          const Divider(height: 1),
+          ListTile(
+            leading: const Icon(Icons.badge_outlined),
+            title: Text(t('Naziv trgovine')),
+            subtitle: Text(user.shopTitle),
+            trailing: IconButton(
+              tooltip: t('Kopiraj poveznicu trgovine'),
+              icon: const Icon(Icons.ios_share),
+              onPressed: () => shareLink(publicLink(shop: user.username)),
+            ),
+            onTap: () => showShopNameDialog(context, ref),
+          ),
+          const Divider(height: 1),
+          ListTile(
+            key: const ValueKey('open-bargains'),
+            leading: const Icon(Icons.price_change_outlined),
+            title: Text(t('Ponude cijena')),
+            subtitle: Text(
+              toAnswer > 0
+                  ? t('{0} čeka tvoj odgovor', ['$toAnswer'])
+                  : t('Cjenkanje s kupcima i prodavateljima'),
+            ),
+            trailing: toAnswer > 0
+                ? Badge(label: Text('$toAnswer'))
+                : const Icon(Icons.chevron_right),
+            onTap: () => BargainsScreen.open(context),
+          ),
+          const Divider(height: 1),
+          ListTile(
+            key: const ValueKey('promote'),
+            leading: const Icon(Icons.campaign_outlined),
+            title: Text(t('Istakni račun')),
+            subtitle: Text(
+              user.isPromoted
+                  ? t('Istaknut do {0}', [formatDateTime(user.promotedUntil!)])
+                  : t('{0} tjedno — oglasi se prikazuju više ljudi', [
+                      formatCredits(CommunityService.promotionWeekly),
+                    ]),
+            ),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () => showPromoteSheet(context, ref),
+          ),
+          const Divider(height: 1),
+          ListTile(
+            leading: const Icon(Icons.emoji_events_outlined),
+            title: Text(t('Top prodavatelji')),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () => LeaderboardScreen.open(context),
+          ),
+        ],
       ),
     );
   }
