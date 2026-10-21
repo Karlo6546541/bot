@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 
 import '../models/device.dart';
 import '../services/image_store.dart';
+import 'photo_viewer.dart';
 import '../theme/app_theme.dart';
 import 'category_style.dart';
 
@@ -17,11 +18,13 @@ class LocalPhoto extends StatelessWidget {
     required this.path,
     required this.fallback,
     this.cacheWidth,
+    this.fit = BoxFit.cover,
   });
 
   final String path;
   final Widget fallback;
   final int? cacheWidth;
+  final BoxFit fit;
 
   @override
   Widget build(BuildContext context) {
@@ -31,7 +34,7 @@ class LocalPhoto extends StatelessWidget {
         // Online baza (Supabase Storage).
         return Image.network(
           path,
-          fit: BoxFit.cover,
+          fit: fit,
           cacheWidth: cacheWidth,
           gaplessPlayback: true,
           errorBuilder: onError,
@@ -44,7 +47,7 @@ class LocalPhoto extends StatelessWidget {
         if (bytes == null) return fallback;
         return Image.memory(
           bytes,
-          fit: BoxFit.cover,
+          fit: fit,
           cacheWidth: cacheWidth,
           gaplessPlayback: true,
           errorBuilder: onError,
@@ -53,7 +56,7 @@ class LocalPhoto extends StatelessWidget {
         if (kIsWeb) return fallback;
         return Image.file(
           File(path),
-          fit: BoxFit.cover,
+          fit: fit,
           cacheWidth: cacheWidth,
           gaplessPlayback: true,
           errorBuilder: onError,
@@ -143,14 +146,62 @@ class _ItemGalleryState extends State<ItemGallery> {
       height: widget.height,
       child: Stack(
         children: [
-          PageView.builder(
-            controller: _controller,
-            itemCount: photos.length,
-            onPageChanged: (i) => setState(() => _page = i),
-            itemBuilder: (_, i) => LocalPhoto(
-              path: photos[i],
-              fallback: illustration,
-              cacheWidth: 1200,
+          // Dodir na sliku otvara pregled preko cijelog ekrana.
+          ScrollConfiguration(
+            behavior: const AnyDeviceDragBehavior(),
+            child: PageView.builder(
+              controller: _controller,
+              itemCount: photos.length,
+              onPageChanged: (i) => setState(() => _page = i),
+              itemBuilder: (context, i) => GestureDetector(
+                onTap: () => PhotoViewer.open(context, photos, initial: i),
+                child: MouseRegion(
+                  cursor: SystemMouseCursors.zoomIn,
+                  child: LocalPhoto(
+                    path: photos[i],
+                    fallback: illustration,
+                    cacheWidth: 1200,
+                  ),
+                ),
+              ),
+            ),
+          ),
+          // Brojač + naznaka da se slika može otvoriti.
+          Positioned(
+            top: 10,
+            right: 10,
+            child: IgnorePointer(
+              child: Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 5,
+                ),
+                decoration: BoxDecoration(
+                  color: Colors.black54,
+                  borderRadius: BorderRadius.circular(999),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(
+                      Icons.zoom_out_map,
+                      size: 14,
+                      color: Colors.white,
+                    ),
+                    if (photos.length > 1) ...[
+                      const SizedBox(width: 6),
+                      Text(
+                        '${_page + 1} / ${photos.length}',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w800,
+                          fontSize: 12,
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
             ),
           ),
           if (photos.length > 1) ...[

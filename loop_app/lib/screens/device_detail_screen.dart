@@ -9,6 +9,7 @@ import '../theme/app_theme.dart';
 import '../widgets/category_style.dart';
 import '../widgets/formatters.dart';
 import '../widgets/item_image.dart';
+import '../widgets/photo_viewer.dart';
 import '../widgets/trade_actions.dart';
 import 'auction_detail_screen.dart';
 import 'create_auction_screen.dart';
@@ -414,12 +415,19 @@ class _Thumb extends StatelessWidget {
       child: Stack(
         children: [
           Positioned.fill(
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(12),
-              child: LocalPhoto(
-                path: path,
-                cacheWidth: 216,
-                fallback: CategoryAvatar(category: device.category, size: 72),
+            child: GestureDetector(
+              onTap: () => PhotoViewer.open(
+                context,
+                device.imagePaths,
+                initial: device.imagePaths.indexOf(path),
+              ),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(12),
+                child: LocalPhoto(
+                  path: path,
+                  cacheWidth: 216,
+                  fallback: CategoryAvatar(category: device.category, size: 72),
+                ),
               ),
             ),
           ),

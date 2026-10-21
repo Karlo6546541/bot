@@ -10,6 +10,7 @@ import '../theme/app_theme.dart';
 import '../widgets/category_style.dart';
 import '../widgets/formatters.dart';
 import '../widgets/item_image.dart';
+import '../widgets/photo_viewer.dart';
 import '../widgets/trade_actions.dart';
 
 /// Forma za dodavanje uređaja u portfolio. Sva polja su obavezna.
@@ -473,12 +474,19 @@ class _PhotoPicker extends StatelessWidget {
                     child: Stack(
                       children: [
                         Positioned.fill(
-                          child: ClipRRect(
-                            borderRadius: BorderRadius.circular(kRadius),
-                            child: LocalPhoto(
-                              path: path,
-                              cacheWidth: 264,
-                              fallback: Container(color: LoopColors.surface),
+                          child: GestureDetector(
+                            onTap: () => PhotoViewer.open(
+                              context,
+                              photos,
+                              initial: photos.indexOf(path),
+                            ),
+                            child: ClipRRect(
+                              borderRadius: BorderRadius.circular(kRadius),
+                              child: LocalPhoto(
+                                path: path,
+                                cacheWidth: 264,
+                                fallback: Container(color: LoopColors.surface),
+                              ),
                             ),
                           ),
                         ),
