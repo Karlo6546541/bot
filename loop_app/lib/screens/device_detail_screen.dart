@@ -128,7 +128,7 @@ class DeviceDetailScreen extends ConsumerWidget {
                   ],
                 ),
               ),
-              if (isMine) ...[
+              if (isMine && ref.read(imageStoreProvider).supported) ...[
                 const SizedBox(height: 12),
                 _PhotoActions(device: device),
               ],

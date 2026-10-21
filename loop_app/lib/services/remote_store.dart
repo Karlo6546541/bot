@@ -1,0 +1,101 @@
+import 'dart:async';
+
+import 'package:supabase_flutter/supabase_flutter.dart';
+
+/// Promjena koja je stigla iz online baze (`data == null` = brisanje).
+class RemoteChange {
+  const RemoteChange(this.table, this.id, this.data);
+  final String table;
+  final String id;
+  final Map<String, dynamic>? data;
+}
+
+/// Online pohrana dokumenata: tablica → (id → JSON podaci).
+/// Sučelje postoji kako bi se sinkronizacija mogla testirati bez mreže.
+abstract class RemoteStore {
+  Future<Map<String, Map<String, Map<String, dynamic>>>> pullAll(
+    List<String> tables,
+  );
+  Future<void> upsert(String table, String id, Map<String, dynamic> data);
+  Future<void> delete(String table, String id);
+  Future<void> clearAll(List<String> tables);
+
+  /// Promjene drugih korisnika u stvarnom vremenu.
+  Stream<RemoteChange> changes(List<String> tables);
+}
+
+/// Supabase: svaka lokalna tablica je Postgres tablica `loop_<ime>`
+/// sa stupcima `id text`, `data jsonb`, `updated_at` (vidi
+/// `supabase/schema.sql`).
+class SupabaseRemoteStore implements RemoteStore {
+  SupabaseRemoteStore(this._client);
+
+  final SupabaseClient _client;
+
+  static String tableName(String t) => 'loop_$t';
+
+  @override
+  Future<Map<String, Map<String, Map<String, dynamic>>>> pullAll(
+    List<String> tables,
+  ) async {
+    final out = <String, Map<String, Map<String, dynamic>>>{};
+    for (final t in tables) {
+      final rows = await _client.from(tableName(t)).select('id, data');
+      out[t] = {
+        for (final r in rows)
+          r['id'] as String: Map<String, dynamic>.from(r['data'] as Map),
+      };
+    }
+    return out;
+  }
+
+  @override
+  Future<void> upsert(String table, String id, Map<String, dynamic> data) =>
+      _client.from(tableName(table)).upsert({
+        'id': id,
+        'data': data,
+        'updated_at': DateTime.now().toUtc().toIso8601String(),
+      });
+
+  @override
+  Future<void> delete(String table, String id) =>
+      _client.from(tableName(table)).delete().eq('id', id);
+
+  @override
+  Future<void> clearAll(List<String> tables) async {
+    for (final t in tables) {
+      await _client.from(tableName(t)).delete().neq('id', '');
+    }
+  }
+
+  @override
+  Stream<RemoteChange> changes(List<String> tables) {
+    final controller = StreamController<RemoteChange>.broadcast();
+    var channel = _client.channel('loop-sync');
+    for (final t in tables) {
+      channel = channel.onPostgresChanges(
+        event: PostgresChangeEvent.all,
+        schema: 'public',
+        table: tableName(t),
+        callback: (p) {
+          if (p.eventType == PostgresChangeEvent.delete) {
+            final id = p.oldRecord['id'] as String?;
+            if (id != null) controller.add(RemoteChange(t, id, null));
+          } else {
+            final rec = p.newRecord;
+            controller.add(
+              RemoteChange(
+                t,
+                rec['id'] as String,
+                Map<String, dynamic>.from(rec['data'] as Map),
+              ),
+            );
+          }
+        },
+      );
+    }
+    channel.subscribe();
+    controller.onCancel = () => _client.removeChannel(channel);
+    return controller.stream;
+  }
+}

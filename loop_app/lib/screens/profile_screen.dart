@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../providers/app_providers.dart';
+import '../services/sync_service.dart';
 import '../theme/app_theme.dart';
 import '../widgets/formatters.dart';
 import '../widgets/status_badge.dart';
@@ -132,6 +133,8 @@ class ProfileScreen extends ConsumerWidget {
                         : 'Moje dostave (${state.myOpenDeliveries.length} u tijeku)',
                   ),
                 ),
+                const SizedBox(height: 12),
+                const _SyncStatusTile(),
                 const SizedBox(height: 20),
                 const Text(
                   'Izgled',
@@ -223,6 +226,69 @@ class _InfoTile extends StatelessWidget {
       trailing: Text(
         value,
         style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 15),
+      ),
+    );
+  }
+}
+
+/// Je li aplikacija spojena na online bazu (Supabase) ili radi lokalno.
+class _SyncStatusTile extends ConsumerWidget {
+  const _SyncStatusTile();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final sync = ref.watch(syncProvider);
+    final (emoji, title, subtitle) = switch (sync?.status) {
+      SyncStatus.online => (
+        '🟢',
+        'Online baza: povezano',
+        'Promjene se dijele sa svim testerima u stvarnom vremenu.',
+      ),
+      SyncStatus.error => (
+        '🟠',
+        'Online baza: nedostupna',
+        'Radiš lokalno. ${sync?.lastError ?? ''}',
+      ),
+      SyncStatus.connecting => ('🟡', 'Povezivanje…', ''),
+      _ => (
+        '⚪',
+        'Lokalni način rada',
+        'Podaci su samo na ovom uređaju (online baza nije postavljena).',
+      ),
+    };
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: LoopColors.surface,
+        borderRadius: BorderRadius.circular(kRadius),
+        border: Border.all(color: LoopColors.surfaceHover),
+      ),
+      child: Row(
+        children: [
+          Text(emoji, style: const TextStyle(fontSize: 18)),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: const TextStyle(fontWeight: FontWeight.w800),
+                ),
+                if (subtitle.isNotEmpty)
+                  Text(
+                    subtitle,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      color: LoopColors.textSecondary,
+                      fontSize: 12,
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }

@@ -107,16 +107,18 @@ class _AddDeviceScreenState extends ConsumerState<AddDeviceScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    _PhotoPicker(
-                      photos: _photos,
-                      canUseCamera: ref.read(imageStoreProvider).canUseCamera,
-                      onPick: _pickPhotos,
-                      onRemove: (path) {
-                        setState(() => _photos.remove(path));
-                        ref.read(imageStoreProvider).delete([path]);
-                      },
-                    ),
-                    gap,
+                    if (_store.supported) ...[
+                      _PhotoPicker(
+                        photos: _photos,
+                        canUseCamera: ref.read(imageStoreProvider).canUseCamera,
+                        onPick: _pickPhotos,
+                        onRemove: (path) {
+                          setState(() => _photos.remove(path));
+                          ref.read(imageStoreProvider).delete([path]);
+                        },
+                      ),
+                      gap,
+                    ],
                     TextFormField(
                       controller: _name,
                       onChanged: (_) => setState(() {}),

@@ -116,6 +116,99 @@ svjetline, kontrast i razlučivost za daltonizam.
 
 ---
 
+## Dostava kupljenih predmeta (demo)
+
+- **Market:** pri kupnji se otvara blagajna s odabirom dostave i ukupnim iznosom
+  (predmet + 5% fee + dostava).
+- **Aukcije:** pobjednik dobiva pošiljku koja čeka odabir dostave (*Profil → Moje dostave*
+  ili traka na početnoj).
+
+| Način | Cijena | Demo trajanje | Napomena |
+|---|---|---|---|
+| Osobno preuzimanje | besplatno | 2 min | LOOP točka |
+| Paketomat | 3 kredita | 3 min | odabir paketomata |
+| Kurir na adresu | 6 kredita | 4 min | adresa se pamti |
+| Ekspresna dostava | 12 kredita | 2 min | |
+| Digitalna dostava | besplatno | 1 min | samo za Aktivnosti (ulaznice, radionice…) |
+
+Statusi (Naručeno → Zapakirano → Poslano → U dostavi → Dostavljeno) računaju se iz vremena,
+pa su isti na svim uređajima. Trajanje je ubrzano s dana na minute kako bi se moglo pratiti
+uživo. Svaka pošiljka ima broj za praćenje (`LOOP-XXXXXXXX`), a kupac nakon isporuke
+potvrđuje primitak.
+
+### Ideje za pravu dostavu (sljedeći koraci)
+
+- **Escrow:** krediti kupca se drže dok ne potvrdi primitak (ili 3 dana nakon isporuke), a tek
+  onda idu prodavatelju. To štiti od neisporuke i vrijedi posebno za aukcije među korisnicima.
+- **Prava dostavna služba:** API dostavljača (npr. paketomati i kurirske službe u RH) za
+  naljepnice, praćenje u stvarnom vremenu (webhook → status pošiljke) i odabir paketomata na karti.
+- **Slanje prodanog predmeta LOOP-u:** besplatna naljepnica za "Prodaj odmah"; krediti stižu
+  nakon provjere stanja predmeta na LOOP točki (sprječava prodaju neispravnih uređaja).
+- **Provjera stanja + reklamacija:** 48 h nakon primitka za prijavu problema s fotografijama;
+  povrat kredita ako se predmet ne slaže s opisom.
+- **Osiguranje pošiljke** za skuplje predmete (npr. iznad 500 kredita) kao dodatna opcija.
+- **Osobna primopredaja** među korisnicima u istom gradu, uz QR kod koji potvrđuje primopredaju.
+- **Ocjene** prodavatelja i dostave nakon potvrde primitka.
+
+---
+
+## Online testiranje (Supabase + web link)
+
+Aplikacija radi **lokalno prvo**: čita i piše na uređaju, a kad je postavljena online baza,
+sve promjene šalje u **Supabase** i u stvarnom vremenu prima promjene drugih testera.
+Bez postavki radi offline, kao prije.
+
+### 1. Supabase (besplatno)
+
+1. Otvori račun na https://supabase.com i **New project** (regija npr. *Frankfurt*).
+2. **SQL Editor → New query** → zalijepi cijeli `supabase/schema.sql` → **Run**.
+3. **Project Settings → API**: kopiraj **Project URL** i **Publishable key**
+   (`sb_publishable_…`; u starijim projektima *anon public* ključ).
+
+> ⚠️ Testna shema dopušta svakome s javnim ključem čitanje i pisanje svih podataka.
+> Koristi je samo za testiranje s izmišljenim podacima.
+
+### 2. Pokretanje aplikacije spojene na bazu
+
+```powershell
+flutter run -d windows `
+  --dart-define=SUPABASE_URL=https://TVOJ-PROJEKT.supabase.co `
+  --dart-define=SUPABASE_KEY=sb_publishable_TVOJ_KLJUC
+```
+
+Prvi klijent koji se spoji na praznu bazu pošalje u nju demo podatke, a svi sljedeći ih
+preuzmu. *Profil* prikazuje stanje veze (🟢 povezano / 🟠 nedostupno / ⚪ lokalno).
+*Resetiraj demo podatke* resetira i online bazu.
+
+### 3. Web link za testere (GitHub Pages, besplatno)
+
+Workflow `.github/workflows/loop-web.yml` pri svakom pushu pokreće testove, gradi web verziju
+i objavljuje je na **https://karlo6546541.github.io/bot/**.
+
+1. GitHub → repozitorij → **Settings → Pages → Build and deployment → Source:
+   GitHub Actions**.
+2. **Settings → Secrets and variables → Actions → New repository secret**:
+   `SUPABASE_URL` i `SUPABASE_KEY` (iste vrijednosti kao gore).
+3. **Actions → LOOP web (GitHub Pages) → Run workflow**.
+4. Ako deploy javi da grana nije dopuštena: **Settings → Environments → github-pages →
+   Deployment branches** i dodaj `claude/beautiful-newton-sftcyd` (ili spoji granu u `main`).
+
+Ograničenja web verzije: fotografije se na webu ne mogu dodavati, jer se spremaju na disk
+uređaja. Online bi trebale Supabase Storage.
+
+### Put do produkcije
+
+Testna verzija sinkronizira dokumente i pravila provjerava u aplikaciji. Za pravo
+korištenje treba:
+- **Supabase Auth** (pravi računi) i RLS pravila po korisniku: svatko piše samo svoje podatke;
+- **kupnje, ponude, dopune i zaključivanje aukcija kao funkcije na serveru** (Postgres
+  funkcije ili Edge Functions), koje u jednoj transakciji provjeravaju kredite i pravila,
+  da ih klijent ne može zaobići i da dvije istovremene kupnje istog predmeta ne prođu;
+- **Supabase Storage** za fotografije;
+- zaključivanje aukcija i statuse dostava putem zakazanog posla (cron) na serveru.
+
+---
+
 ## Demo podaci za login
 
 | Uloga    | E-mail           | Lozinka    | Napomena                                              |
@@ -166,6 +259,10 @@ lib/
 │   ├── trade_service.dart    # poslovna logika: login, sell, buy, povijest, admin akcije
 │   ├── auction_service.dart  # aukcije: objava, ponude, blokiranje kredita, zaključivanje
 │   ├── credit_shop.dart      # kupnja kredita: paketi, bonus, dnevni limit (demo)
+│   ├── delivery_service.dart # dostava: načini, naplata, praćenje, potvrda primitka
+│   ├── auction_policy.dart   # limiti i naknada za objavu aukcija
+│   ├── remote_store.dart     # Supabase (online baza) + sučelje za testove
+│   ├── sync_service.dart     # sinkronizacija lokalno ⇄ online u stvarnom vremenu
 │   ├── image_store.dart      # odabir i lokalno spremanje fotografija
 │   ├── fee.dart              # 5% fee i izračuni
 │   └── seed_data.dart        # demo podaci
@@ -175,6 +272,7 @@ lib/
 ├── screens/                  # login, portfolio, market, dodaj uređaj, aktivnost, profil
 ├── admin/                    # admin panel: dashboard, korisnici, uređaji, transakcije
 ├── widgets/                  # kartice, dijalozi, responzivni okvir, formatiranje
+├── config/                   # postavke online baze (--dart-define)
 ├── utils/                    # formatiranje iznosa i datuma (hrvatski zapis)
 └── theme/                    # svijetla i tamna Material 3 tema, paleta boja
 ```

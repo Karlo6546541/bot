@@ -1,0 +1,66 @@
+# Gradi web verziju aplikacije LOOP i objavljuje je na GitHub Pages:
+# https://<korisnik>.github.io/bot/
+#
+# Jednokratno postavljanje (Settings repozitorija):
+#   1. Pages → Build and deployment → Source: "GitHub Actions".
+#   2. (Neobavezno, za online bazu) Secrets and variables → Actions →
+#      New repository secret: SUPABASE_URL i SUPABASE_KEY.
+#      Bez njih web verzija radi lokalno (podaci samo u pregledniku).
+name: LOOP web (GitHub Pages)
+
+on:
+  push:
+    branches: [main, claude/beautiful-newton-sftcyd]
+    paths: ["loop_app/**", ".github/workflows/loop-web.yml"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: loop-pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: loop_app
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          flutter-version: "3.47.7"
+          cache: true
+
+      - run: flutter pub get
+      - run: flutter analyze
+      - run: flutter test
+
+      - name: Build web
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
+        run: >
+          flutter build web --release --base-href /bot/ --no-web-resources-cdn
+          --dart-define=SUPABASE_URL="$SUPABASE_URL"
+          --dart-define=SUPABASE_KEY="$SUPABASE_KEY"
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: loop_app/build/web
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

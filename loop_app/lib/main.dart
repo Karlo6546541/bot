@@ -3,7 +3,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'app.dart';
 import 'providers/app_providers.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+
+import 'config/backend_config.dart';
+import 'services/remote_store.dart';
 import 'services/storage_service.dart';
+import 'services/sync_service.dart';
 import 'theme/app_theme.dart';
 import 'widgets/adaptive_shell.dart';
 
@@ -22,22 +27,38 @@ class _Bootstrap extends StatefulWidget {
 }
 
 class _BootstrapState extends State<_Bootstrap> {
-  late final Future<StorageService> _init = _initStorage();
+  late final Future<(StorageService, SyncService?)> _init = _initStorage();
 
-  Future<StorageService> _initStorage() async {
+  Future<(StorageService, SyncService?)> _initStorage() async {
     final storage = StorageService();
     await storage.init();
-    return storage;
+    // Online baza (Supabase) ako su predane postavke; inače lokalno.
+    SyncService? sync;
+    if (BackendConfig.isOnline) {
+      await Supabase.initialize(
+        url: BackendConfig.supabaseUrl,
+        publishableKey: BackendConfig.supabaseKey,
+      );
+      sync = SyncService(
+        storage,
+        SupabaseRemoteStore(Supabase.instance.client),
+      );
+      await sync.start();
+    }
+    return (storage, sync);
   }
 
   @override
   Widget build(BuildContext context) {
-    return FutureBuilder<StorageService>(
+    return FutureBuilder<(StorageService, SyncService?)>(
       future: _init,
       builder: (context, snapshot) {
         if (snapshot.hasData) {
           return ProviderScope(
-            overrides: [storageProvider.overrideWithValue(snapshot.data!)],
+            overrides: [
+              storageProvider.overrideWithValue(snapshot.data!.$1),
+              syncProvider.overrideWithValue(snapshot.data!.$2),
+            ],
             child: const LoopApp(),
           );
         }

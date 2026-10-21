@@ -15,6 +15,10 @@ class ImageStore {
   /// Kamera postoji samo na mobitelu; na Windowsu se bira datoteka.
   bool get canUseCamera => !kIsWeb && (Platform.isAndroid || Platform.isIOS);
 
+  /// Fotografije se spremaju u mapu na disku, koje u pregledniku nema.
+  /// (Za web bi trebalo online spremište, npr. Supabase Storage.)
+  bool get supported => !kIsWeb;
+
   Future<Directory> _dir() async {
     final base = await getApplicationSupportDirectory();
     final dir = Directory(p.join(base.path, 'loop_images'));

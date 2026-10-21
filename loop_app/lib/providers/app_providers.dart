@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart' show ThemeMode;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -13,6 +15,7 @@ import '../services/image_store.dart';
 import '../utils/formatters.dart';
 import '../widgets/loop_snackbar.dart';
 import '../services/storage_service.dart';
+import '../services/sync_service.dart';
 import '../services/trade_service.dart';
 import 'app_state.dart';
 
@@ -23,6 +26,9 @@ final storageProvider = Provider<StorageService>(
 
 /// Spremište fotografija (u testovima se ne koristi).
 final imageStoreProvider = Provider<ImageStore>((ref) => ImageStore());
+
+/// Sinkronizacija s online bazom (`null` = lokalni način rada).
+final syncProvider = Provider<SyncService?>((ref) => null);
 
 final tradeServiceProvider = Provider<TradeService>(
   (ref) => TradeService(ref.watch(storageProvider)),
@@ -71,7 +77,23 @@ class AppController extends Notifier<AppState> {
   AuctionService get _auctions => ref.read(auctionServiceProvider);
 
   @override
-  AppState build() => AppState.fromStorage(ref.watch(storageProvider));
+  AppState build() {
+    // Tuđe promjene iz online baze → osvježi prikaz (grupirano, jer ih
+    // može stići više odjednom).
+    final sync = ref.watch(syncProvider);
+    if (sync != null) {
+      sync.onRemoteChange = () {
+        _remoteRefresh?.cancel();
+        _remoteRefresh = Timer(const Duration(milliseconds: 150), () {
+          if (ref.mounted) _refresh();
+        });
+      };
+      ref.onDispose(() => _remoteRefresh?.cancel());
+    }
+    return AppState.fromStorage(ref.watch(storageProvider));
+  }
+
+  Timer? _remoteRefresh;
 
   /// Ponovno učitava stanje iz pohrane nakon svake promjene.
   void _refresh() => state = AppState.fromStorage(_storage);
@@ -108,6 +130,7 @@ class AppController extends Notifier<AppState> {
 
   Future<void> resetDemoData() async {
     await _storage.resetAll();
+    await ref.read(syncProvider)?.resetRemote();
     await ref.read(imageStoreProvider).clearAll();
     _refresh();
   }
