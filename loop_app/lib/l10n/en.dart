@@ -899,4 +899,8 @@ const kEn = <String, String>{
   'Radiš lokalno — promjene čekaju i šalju se čim veza proradi. Ponovni pokušaj je automatski.':
       'Working locally — changes wait and are sent as soon as the connection works. It retries automatically.',
   'Pokušaj ponovno': 'Try again',
+  'Online baza: povezano, ali nedostaju tablice':
+      'Online database: connected, but tables are missing',
+  'Pokreni supabase/schema.sql u Supabase SQL Editoru pa osvježi stranicu. Do tada ostaju samo na ovom uređaju: {0}':
+      'Run supabase/schema.sql in the Supabase SQL Editor, then reload the page. Until then these stay on this device only: {0}',
 };

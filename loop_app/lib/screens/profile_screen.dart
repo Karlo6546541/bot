@@ -230,6 +230,14 @@ class _SyncStatusTile extends ConsumerWidget {
 
   Widget _tile(BuildContext context, SyncService? sync, SyncStatus? status) {
     final (emoji, title, subtitle) = switch (status) {
+      SyncStatus.online when sync!.missingTables.isNotEmpty => (
+        '🟠',
+        t('Online baza: povezano, ali nedostaju tablice'),
+        t(
+          'Pokreni supabase/schema.sql u Supabase SQL Editoru pa osvježi stranicu. Do tada ostaju samo na ovom uređaju: {0}',
+          [sync.missingTables.join(', ')],
+        ),
+      ),
       SyncStatus.online => (
         '🟢',
         t('Online baza: povezano'),
@@ -271,7 +279,7 @@ class _SyncStatusTile extends ConsumerWidget {
                 if (subtitle.isNotEmpty)
                   Text(
                     subtitle,
-                    maxLines: 3,
+                    maxLines: 4,
                     overflow: TextOverflow.ellipsis,
                     style: TextStyle(
                       color: LoopColors.textSecondary,

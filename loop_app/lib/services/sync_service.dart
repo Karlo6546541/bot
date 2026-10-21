@@ -43,6 +43,15 @@ class SyncService {
 
   List<String> get onlineTables => _tables;
 
+  /// Tablice kojih nema u online bazi (SQL za novu verziju nije pokrenut) —
+  /// njihovi podaci (npr. poruke) ostaju samo na ovom uređaju.
+  List<String> get missingTables => status == SyncStatus.online
+      ? [
+          for (final t in StorageService.syncedTables)
+            if (!_tables.contains(t)) t,
+        ]
+      : const [];
+
   /// Stanje veze za prikaz (Profil) — mijenja se i nakon ponovnog spajanja.
   final statusListenable = ValueNotifier<SyncStatus>(SyncStatus.offline);
 
