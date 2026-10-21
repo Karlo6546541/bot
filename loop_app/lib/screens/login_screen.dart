@@ -2,14 +2,19 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../providers/app_providers.dart';
+import '../services/account_service.dart';
+import '../services/seed_data.dart';
 import '../services/trade_service.dart';
 import '../theme/app_theme.dart';
 import '../widgets/adaptive_shell.dart';
+import '../widgets/formatters.dart';
 import '../widgets/trade_actions.dart';
+import '../widgets/username_field.dart';
 import '../l10n/tr.dart';
 import '../widgets/language_button.dart';
 
-/// Demo prijava: bilo koji e-mail i lozinka rade.
+/// Prijava i registracija (e-mail + lozinka, Google na webu s online
+/// bazom), gost i admin.
 class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
 
@@ -18,15 +23,37 @@ class LoginScreen extends ConsumerStatefulWidget {
 }
 
 class _LoginScreenState extends ConsumerState<LoginScreen> {
-  final _formKey = GlobalKey<FormState>();
-  final _email = TextEditingController(text: 'demo@loop.com');
-  final _password = TextEditingController(text: 'demo');
+  final _loginKey = GlobalKey<FormState>();
+  final _registerKey = GlobalKey<FormState>();
+  late final _identifier = TextEditingController(
+    text: _online ? '' : 'demo@loop.com',
+  );
+  late final _password = TextEditingController(
+    text: _online ? '' : SeedData.demoPassword,
+  );
+  final _regEmail = TextEditingController();
+  final _regUsername = TextEditingController();
+  final _regPassword = TextEditingController();
+  final _regReferral = TextEditingController();
+  bool _register = false;
+  bool _showReferral = false;
   bool _loading = false;
+  bool _obscure = true;
+
+  bool get _online => ref.read(authBackendProvider).isOnline;
 
   @override
   void dispose() {
-    _email.dispose();
-    _password.dispose();
+    for (final c in [
+      _identifier,
+      _password,
+      _regEmail,
+      _regUsername,
+      _regPassword,
+      _regReferral,
+    ]) {
+      c.dispose();
+    }
     super.dispose();
   }
 
@@ -34,17 +61,83 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     setState(() => _loading = true);
     try {
       await action();
+    } on UsernameTakenException catch (e) {
+      showLoopSnackBar(
+        e.suggestions.isEmpty
+            ? e.message
+            : '${e.message} ${t('Probaj: {0}', [e.suggestions.map((s) => '@$s').join(', ')])}',
+        error: true,
+      );
     } on TradeException catch (e) {
       showLoopSnackBar(e.message, error: true);
+    } catch (e) {
+      showLoopSnackBar(t('Greška: {0}', [e]), error: true);
     } finally {
       if (mounted) setState(() => _loading = false);
     }
   }
 
   void _login() {
-    if (!_formKey.currentState!.validate()) return;
-    _run(
-      () => ref.read(appProvider.notifier).login(_email.text, _password.text),
+    if (!_loginKey.currentState!.validate()) return;
+    _run(() async {
+      await ref
+          .read(appProvider.notifier)
+          .login(_identifier.text, _password.text);
+    });
+  }
+
+  void _doRegister() {
+    if (!_registerKey.currentState!.validate()) return;
+    _run(() async {
+      final result = await ref
+          .read(appProvider.notifier)
+          .register(
+            email: _regEmail.text,
+            password: _regPassword.text,
+            username: _regUsername.text,
+            referral: _regReferral.text,
+          );
+      if (result is NeedsEmailConfirmation && mounted) {
+        await showDialog<void>(
+          context: context,
+          builder: (_) => AlertDialog(
+            icon: const Icon(Icons.mark_email_unread_outlined, size: 40),
+            title: Text(t('Provjeri e-mail')),
+            content: Text(
+              t(
+                'Poslali smo link za potvrdu na {0}. Otvori ga na ovom uređaju i bit ćeš prijavljen.',
+                [result.email],
+              ),
+            ),
+            actions: [
+              FilledButton(
+                onPressed: () => Navigator.pop(context),
+                child: Text(t('U redu')),
+              ),
+            ],
+          ),
+        );
+        if (mounted) {
+          setState(() {
+            _register = false;
+            _identifier.text = result.email;
+            _password.clear();
+          });
+        }
+      }
+    });
+  }
+
+  Future<void> _google() =>
+      _run(() => ref.read(appProvider.notifier).signInWithGoogle());
+
+  Future<void> _forgotPassword() async {
+    await showDialog<void>(
+      context: context,
+      builder: (_) => _ForgotPasswordDialog(
+        initialEmail: _identifier.text.contains('@') ? _identifier.text : '',
+        online: _online,
+      ),
     );
   }
 
@@ -59,9 +152,124 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     );
   }
 
+  Widget _passwordField(TextEditingController c, {VoidCallback? onSubmit}) =>
+      TextFormField(
+        controller: c,
+        obscureText: _obscure,
+        decoration: InputDecoration(
+          labelText: t('Lozinka'),
+          prefixIcon: const Icon(Icons.lock_outline),
+          suffixIcon: IconButton(
+            tooltip: _obscure ? t('Prikaži lozinku') : t('Sakrij lozinku'),
+            icon: Icon(_obscure ? Icons.visibility : Icons.visibility_off),
+            onPressed: () => setState(() => _obscure = !_obscure),
+          ),
+        ),
+        validator: (v) => (v == null || v.isEmpty) ? t('Unesi lozinku') : null,
+        onFieldSubmitted: (_) => onSubmit?.call(),
+      );
+
+  Widget _loadingOr(String label) => _loading
+      ? const SizedBox(
+          width: 22,
+          height: 22,
+          child: CircularProgressIndicator(strokeWidth: 2.5),
+        )
+      : Text(label);
+
+  List<Widget> _loginFields() => [
+    TextFormField(
+      controller: _identifier,
+      keyboardType: TextInputType.emailAddress,
+      autocorrect: false,
+      decoration: InputDecoration(
+        labelText: _online ? t('E-mail') : t('E-mail ili korisničko ime'),
+        prefixIcon: const Icon(Icons.alternate_email),
+      ),
+      validator: (v) => (v == null || v.trim().isEmpty)
+          ? t('Upiši e-mail ili korisničko ime.')
+          : null,
+    ),
+    const SizedBox(height: 12),
+    _passwordField(_password, onSubmit: _login),
+    Align(
+      alignment: Alignment.centerRight,
+      child: TextButton(
+        onPressed: _loading ? null : _forgotPassword,
+        child: Text(t('Zaboravljena lozinka?')),
+      ),
+    ),
+    const SizedBox(height: 4),
+    FilledButton(
+      onPressed: _loading ? null : _login,
+      child: _loadingOr(t('Prijavi se')),
+    ),
+  ];
+
+  List<Widget> _registerFields() => [
+    TextFormField(
+      controller: _regEmail,
+      keyboardType: TextInputType.emailAddress,
+      autocorrect: false,
+      decoration: InputDecoration(
+        labelText: t('E-mail'),
+        prefixIcon: const Icon(Icons.alternate_email),
+      ),
+      validator: (v) => AccountService.validateEmail(v ?? ''),
+    ),
+    const SizedBox(height: 12),
+    UsernameField(controller: _regUsername),
+    const SizedBox(height: 12),
+    TextFormField(
+      controller: _regPassword,
+      obscureText: _obscure,
+      decoration: InputDecoration(
+        labelText: t('Lozinka'),
+        helperText: t('Barem {0} znakova', [AccountService.minPassword]),
+        prefixIcon: const Icon(Icons.lock_outline),
+        suffixIcon: IconButton(
+          tooltip: _obscure ? t('Prikaži lozinku') : t('Sakrij lozinku'),
+          icon: Icon(_obscure ? Icons.visibility : Icons.visibility_off),
+          onPressed: () => setState(() => _obscure = !_obscure),
+        ),
+      ),
+      validator: (v) => AccountService.validatePassword(v ?? ''),
+    ),
+    const SizedBox(height: 8),
+    if (_showReferral)
+      TextFormField(
+        controller: _regReferral,
+        autocorrect: false,
+        decoration: InputDecoration(
+          labelText: t('Kod za poziv (neobavezno)'),
+          helperText: t('Korisničko ime prijatelja — oboje dobivate {0}.', [
+            formatCredits(AccountService.referralBonus),
+          ]),
+          prefixText: '@',
+          prefixIcon: const Icon(Icons.card_giftcard),
+        ),
+      )
+    else
+      Align(
+        alignment: Alignment.centerLeft,
+        child: TextButton.icon(
+          onPressed: () => setState(() => _showReferral = true),
+          icon: const Icon(Icons.card_giftcard, size: 18),
+          label: Text(t('Imaš kod za poziv?')),
+        ),
+      ),
+    const SizedBox(height: 12),
+    FilledButton(
+      key: const ValueKey('register-submit'),
+      onPressed: _loading ? null : _doRegister,
+      child: _loadingOr(t('Napravi račun')),
+    ),
+  ];
+
   @override
   Widget build(BuildContext context) {
     final wide = MediaQuery.sizeOf(context).width >= 900;
+    final backend = ref.watch(authBackendProvider);
     final formCard = Container(
       constraints: const BoxConstraints(maxWidth: 440),
       padding: const EdgeInsets.all(24),
@@ -71,54 +279,64 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         boxShadow: LoopColors.softShadow,
       ),
       child: Form(
-        key: _formKey,
+        key: _register ? _registerKey : _loginKey,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
+            SegmentedButton<bool>(
+              segments: [
+                ButtonSegment(value: false, label: Text(t('Prijava'))),
+                ButtonSegment(value: true, label: Text(t('Registracija'))),
+              ],
+              selected: {_register},
+              showSelectedIcon: false,
+              onSelectionChanged: (s) => setState(() => _register = s.first),
+            ),
+            const SizedBox(height: 18),
             Text(
-              t('Prijava'),
-              style: TextStyle(fontSize: 26, fontWeight: FontWeight.w900),
+              _register ? t('Novi račun') : t('Dobro došao natrag!'),
+              style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w900),
             ),
             const SizedBox(height: 4),
             Text(
-              t('Dobro došao natrag! Demo: bilo koja lozinka radi.'),
+              _register
+                  ? t('Novi računi dobivaju {0} LOOP kredita.', [
+                      TradeService.welcomeCredits,
+                    ])
+                  : t('Prijavi se e-mailom i lozinkom.'),
               style: TextStyle(color: LoopColors.textSecondary),
             ),
-            const SizedBox(height: 22),
-            TextFormField(
-              controller: _email,
-              keyboardType: TextInputType.emailAddress,
-              decoration: InputDecoration(
-                labelText: t('E-mail'),
-                prefixIcon: Icon(Icons.alternate_email),
+            const SizedBox(height: 18),
+            ...(_register ? _registerFields() : _loginFields()),
+            if (backend.supportsGoogle) ...[
+              const SizedBox(height: 14),
+              Row(
+                children: [
+                  const Expanded(child: Divider()),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 10),
+                    child: Text(
+                      t('ili'),
+                      style: TextStyle(color: LoopColors.textSecondary),
+                    ),
+                  ),
+                  const Expanded(child: Divider()),
+                ],
               ),
-              validator: (v) => (v == null || !v.contains('@'))
-                  ? t('Unesi ispravan e-mail')
-                  : null,
-            ),
-            const SizedBox(height: 12),
-            TextFormField(
-              controller: _password,
-              obscureText: true,
-              decoration: InputDecoration(
-                labelText: t('Lozinka'),
-                prefixIcon: Icon(Icons.lock_outline),
+              const SizedBox(height: 14),
+              OutlinedButton.icon(
+                onPressed: _loading ? null : _google,
+                icon: const Text(
+                  'G',
+                  style: TextStyle(
+                    fontWeight: FontWeight.w900,
+                    fontSize: 18,
+                    color: Color(0xFF4285F4),
+                  ),
+                ),
+                label: Text(t('Nastavi s Googleom')),
               ),
-              validator: (v) =>
-                  (v == null || v.isEmpty) ? t('Unesi lozinku') : null,
-              onFieldSubmitted: (_) => _login(),
-            ),
-            const SizedBox(height: 20),
-            FilledButton(
-              onPressed: _loading ? null : _login,
-              child: _loading
-                  ? const SizedBox(
-                      width: 22,
-                      height: 22,
-                      child: CircularProgressIndicator(strokeWidth: 2.5),
-                    )
-                  : Text(t('Prijavi se')),
-            ),
+            ],
             const SizedBox(height: 12),
             OutlinedButton.icon(
               onPressed: _loading
@@ -127,9 +345,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       () => ref.read(appProvider.notifier).loginAsGuest(),
                     ),
               icon: const Icon(Icons.person_outline),
-              label: Text(t('Nastavi kao gost')),
+              label: Text(t('Samo razgledaj (gost)')),
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 8),
             TextButton.icon(
               onPressed: _loading ? null : _adminLogin,
               icon: Icon(
@@ -141,7 +359,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 style: TextStyle(color: LoopColors.admin),
               ),
             ),
-            const SizedBox(height: 24),
+            const SizedBox(height: 16),
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
@@ -149,10 +367,13 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 borderRadius: BorderRadius.circular(kRadius),
               ),
               child: Text(
-                t(
-                  'Demo verzija — bilo koji e-mail i lozinka rade.\nDemo računi: demo@loop.com · test@loop.com\nNovi računi dobivaju {0} LOOP kredita.',
-                  [TradeService.welcomeCredits],
-                ),
+                backend.isOnline
+                    ? t(
+                        'Online testna verzija: napravi račun e-mailom ili Googleom. Gost može samo razgledavati.',
+                      )
+                    : t(
+                        'Demo računi: demo@loop.com ili @demo, test@loop.com — lozinka: demo.\nPodaci i lozinke su samo na ovom uređaju.',
+                      ),
                 style: TextStyle(color: LoopColors.textSecondary, height: 1.5),
               ),
             ),
@@ -393,6 +614,130 @@ class _WelcomeHero extends StatelessWidget {
                   ),
                 ),
             ],
+          ),
+      ],
+    );
+  }
+}
+
+/// Zaboravljena lozinka: online šalje link na e-mail, lokalno odmah
+/// postavlja novu lozinku (podaci su samo na ovom uređaju).
+class _ForgotPasswordDialog extends ConsumerStatefulWidget {
+  const _ForgotPasswordDialog({
+    required this.initialEmail,
+    required this.online,
+  });
+  final String initialEmail;
+  final bool online;
+
+  @override
+  ConsumerState<_ForgotPasswordDialog> createState() =>
+      _ForgotPasswordDialogState();
+}
+
+class _ForgotPasswordDialogState extends ConsumerState<_ForgotPasswordDialog> {
+  late final _email = TextEditingController(text: widget.initialEmail);
+  final _password = TextEditingController();
+  bool _busy = false;
+  bool _sent = false;
+  String? _error;
+
+  @override
+  void dispose() {
+    _email.dispose();
+    _password.dispose();
+    super.dispose();
+  }
+
+  Future<void> _submit() async {
+    setState(() {
+      _busy = true;
+      _error = null;
+    });
+    final c = ref.read(appProvider.notifier);
+    try {
+      if (widget.online) {
+        await c.requestPasswordReset(_email.text);
+        setState(() => _sent = true);
+      } else {
+        await c.resetPasswordLocally(_email.text, _password.text);
+        if (mounted) Navigator.pop(context);
+        showLoopSnackBar(t('Nova lozinka je postavljena. Prijavi se.'));
+      }
+    } on TradeException catch (e) {
+      setState(() => _error = e.message);
+    } catch (e) {
+      setState(() => _error = t('Greška: {0}', [e]));
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: Text(t('Zaboravljena lozinka')),
+      content: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 380),
+        child: _sent
+            ? Text(
+                t(
+                  'Ako postoji račun za {0}, poslali smo link za novu lozinku. Otvori ga na ovom uređaju.',
+                  [_email.text.trim()],
+                ),
+              )
+            : Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Text(
+                    widget.online
+                        ? t(
+                            'Upiši e-mail računa i poslat ćemo ti link za novu lozinku.',
+                          )
+                        : t(
+                            'Lokalni način: računi su samo na ovom uređaju, pa novu lozinku možeš postaviti odmah.',
+                          ),
+                    style: TextStyle(color: LoopColors.textSecondary),
+                  ),
+                  const SizedBox(height: 14),
+                  TextField(
+                    controller: _email,
+                    keyboardType: TextInputType.emailAddress,
+                    decoration: InputDecoration(
+                      labelText: t('E-mail'),
+                      prefixIcon: const Icon(Icons.alternate_email),
+                    ),
+                  ),
+                  if (!widget.online) ...[
+                    const SizedBox(height: 12),
+                    TextField(
+                      controller: _password,
+                      obscureText: true,
+                      decoration: InputDecoration(
+                        labelText: t('Nova lozinka'),
+                        prefixIcon: const Icon(Icons.lock_reset),
+                      ),
+                    ),
+                  ],
+                  if (_error != null) ...[
+                    const SizedBox(height: 10),
+                    Text(_error!, style: TextStyle(color: LoopColors.error)),
+                  ],
+                ],
+              ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: Text(_sent ? t('Zatvori') : t('Odustani')),
+        ),
+        if (!_sent)
+          FilledButton(
+            onPressed: _busy ? null : _submit,
+            child: Text(
+              widget.online ? t('Pošalji link') : t('Postavi lozinku'),
+            ),
           ),
       ],
     );

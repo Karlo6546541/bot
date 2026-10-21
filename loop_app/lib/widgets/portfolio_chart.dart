@@ -234,8 +234,9 @@ class _Geometry {
     minV = math.max(0, lo - pad);
     maxV = hi + pad;
     t0 = series.first.time.millisecondsSinceEpoch.toDouble();
-    t1 = series.last.time.millisecondsSinceEpoch.toDouble();
-    if (t1 - t0 < 1) t1 = t0 + 1;
+    final last = series.last.time.millisecondsSinceEpoch.toDouble();
+    // Jedna točka (novi korisnik): raspon od barem 1 ms.
+    t1 = last - t0 < 1 ? t0 + 1 : last;
   }
 
   static const left = 58.0; // mjesto za oznake osi Y

@@ -22,6 +22,7 @@ Future<Widget> buildApp(WidgetTester tester) async {
 }
 
 void main() {
+  accountTests();
   for (final size in const [Size(1400, 1000), Size(400, 860)]) {
     testWidgets('login → prodaja → kupnja → aktivnost ($size)', (tester) async {
       tester.view.physicalSize = size;
@@ -245,7 +246,8 @@ void main() {
     // Tamna tema iz Profila: sučelje se ponovno izgradi bez grešaka.
     await tester.tap(find.text('Profil').last);
     await tester.pumpAndSettle();
-    await tester.ensureVisible(find.text('Tamna'));
+    await tester.scrollUntilVisible(find.text('Tamna'), 200);
+    await tester.pumpAndSettle();
     await tester.tap(find.text('Tamna'));
     await tester.pumpAndSettle();
     expect(find.text('Profil'), findsWidgets); // ostali smo na istom tabu
@@ -318,7 +320,11 @@ void main() {
     // Moje dostave iz Profila.
     await tester.tap(find.text('Profil').last);
     await tester.pumpAndSettle();
-    await tester.ensureVisible(find.text('Moje dostave (1 u tijeku)'));
+    await tester.scrollUntilVisible(
+      find.text('Moje dostave (1 u tijeku)'),
+      200,
+    );
+    await tester.pumpAndSettle();
     await tester.tap(find.text('Moje dostave (1 u tijeku)'));
     await tester.pumpAndSettle();
     expect(find.text('AirPods Pro 2 USB-C'), findsOneWidget);
@@ -338,7 +344,7 @@ void main() {
     await tester.tap(find.byKey(const ValueKey('language-button')));
     await tester.pumpAndSettle();
     expect(find.text('Log in'), findsWidgets);
-    expect(find.text('Continue as guest'), findsOneWidget);
+    expect(find.text('Just browse (guest)'), findsOneWidget);
 
     await tester.ensureVisible(find.text('Log in').last);
     await tester.tap(find.text('Log in').last);
@@ -363,7 +369,8 @@ void main() {
       await tester.tap(find.text(tab).last);
       await tester.pumpAndSettle();
     }
-    expect(find.text('Log out'), findsOneWidget);
+    expect(find.text('Edit profile'), findsOneWidget);
+    await tester.scrollUntilVisible(find.text('Language / Jezik'), 200);
     expect(find.text('Language / Jezik'), findsOneWidget);
     expect(Tr.missing, isEmpty, reason: 'nedostaju prijevodi');
 
@@ -378,5 +385,71 @@ void main() {
     await tester.scrollUntilVisible(find.text('Jezik / Language'), 200);
     expect(find.text('Jezik / Language'), findsOneWidget);
     expect(Tr.lang, AppLang.hr);
+  });
+}
+
+void accountTests() {
+  testWidgets('registracija: provjera imena uživo, novi račun, gost', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(400, 860);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+
+    await tester.pumpWidget(await buildApp(tester));
+    await tester.tap(find.text('Registracija'));
+    await tester.pumpAndSettle();
+
+    // Zauzeto ime → poruka i prijedlozi.
+    await tester.enterText(
+      find.byKey(const ValueKey('username-field')),
+      'Demo',
+    );
+    await tester.pumpAndSettle();
+    expect(find.text('@demo je zauzeto.'), findsOneWidget);
+    expect(find.text('Slobodno:'), findsOneWidget);
+    // Slobodno ime.
+    await tester.enterText(
+      find.byKey(const ValueKey('username-field')),
+      'novi_korisnik',
+    );
+    await tester.pumpAndSettle();
+    expect(find.text('@novi_korisnik je slobodno ✓'), findsOneWidget);
+
+    await tester.enterText(
+      find.widgetWithText(TextFormField, 'E-mail'),
+      'novi@loop.com',
+    );
+    await tester.enterText(
+      find.widgetWithText(TextFormField, 'Lozinka'),
+      'tajna123',
+    );
+    await tester.ensureVisible(find.byKey(const ValueKey('register-submit')));
+    await tester.tap(find.byKey(const ValueKey('register-submit')));
+    await tester.pumpAndSettle();
+    expect(find.text('Bok, @novi_korisnik 👋'), findsOneWidget);
+
+    // Profil prikazuje @ime; odjava.
+    await tester.tap(find.text('Profil').last);
+    await tester.pumpAndSettle();
+    expect(find.text('@novi_korisnik'), findsWidgets);
+    await tester.scrollUntilVisible(find.text('Odjavi se'), 200);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Odjavi se'));
+    await tester.pumpAndSettle();
+
+    // Gost može razgledavati, ali ne i kupovati.
+    await tester.ensureVisible(find.text('Samo razgledaj (gost)'));
+    await tester.tap(find.text('Samo razgledaj (gost)'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Market').last);
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byType(TextField).first, 'AirPods');
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Kupi odmah'));
+    await tester.pumpAndSettle();
+    expect(find.text('Napravi besplatan račun'), findsOneWidget);
+    await tester.tap(find.text('Nastavi razgledavati'));
+    await tester.pumpAndSettle();
   });
 }

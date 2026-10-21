@@ -546,4 +546,138 @@ const kEn = <String, String>{
   'Cijena: viša prvo': 'Price: high to low',
   'Naziv A–Ž': 'Name A–Z',
   'Jezik': 'Language',
+  '@{0} je slobodno ✓': '@{0} is available ✓',
+  '@{0} je zauzeto.': '@{0} is taken.',
+  'Ako postoji račun za {0}, poslali smo link za novu lozinku. Otvori ga na ovom uređaju.':
+      'If an account exists for {0}, we\'ve sent a link to set a new password. Open it on this device.',
+  'Barem {0} znakova': 'At least {0} characters',
+  'Demo računi: demo@loop.com ili @demo, test@loop.com — lozinka: demo.\nPodaci i lozinke su samo na ovom uređaju.':
+      'Demo accounts: demo@loop.com or @demo, test@loop.com — password: demo.\nData and passwords stay on this device only.',
+  'Dobro došao natrag!': 'Welcome back!',
+  'Dobro došao natrag! Brisanje računa je otkazano.':
+      'Welcome back! Account deletion has been cancelled.',
+  'Dopuštena su samo slova a–z, brojevi, _ i točka.':
+      'Only letters a–z, numbers, _ and dot are allowed.',
+  'E-mail ili korisničko ime': 'E-mail or username',
+  'Fotografija, ime, korisničko ime, opis, grad':
+      'Photo, name, username, bio, city',
+  'Google prijava radi na web linku s online bazom.':
+      'Google sign-in works on the web link with the online database.',
+  'Gost': 'Guest',
+  'Gost može samo razgledavati. Napravi besplatan račun za kupnju i prodaju.':
+      'Guests can only browse. Create a free account to buy and sell.',
+  'Grad (za osobno preuzimanje)': 'City (for personal pickup)',
+  'Imaš kod za poziv?': 'Have an invite code?',
+  'Ime (neobavezno)': 'Name (optional)',
+  'Ime može imati najviše {0} znakova.':
+      'The name can be at most {0} characters.',
+  'Ime možeš mijenjati jednom u {0} dana; staro ostaje zaključano isto toliko.':
+      'You can change your username once every {0} days; the old one stays locked for the same time.',
+  'Kod kopiran': 'Code copied',
+  'Kod za poziv "{0}" ne postoji.': 'Invite code "{0}" doesn\'t exist.',
+  'Kod za poziv (neobavezno)': 'Invite code (optional)',
+  'Kod za poziv: {0} — oboje dobivate bonus kredite.':
+      'Invite code: {0} — you both get bonus credits.',
+  'Kopiraj': 'Copy',
+  'Korisničko ime': 'Username',
+  'Korisničko ime mora imati {0}–{1} znakova.':
+      'The username must have {0}–{1} characters.',
+  'Korisničko ime mora počinjati slovom.':
+      'The username must start with a letter.',
+  'Korisničko ime možeš ponovno promijeniti {0}.':
+      'You can change your username again on {0}.',
+  'Korisničko ime prijatelja — oboje dobivate {0}.':
+      'Your friend\'s username — you both get {0}.',
+  'Lokalni način rada nema slanje e-maila — postavi novu lozinku ovdje.':
+      'Local mode can\'t send e-mail — set a new password here.',
+  'Lokalni način: računi su samo na ovom uređaju, pa novu lozinku možeš postaviti odmah.':
+      'Local mode: accounts exist only on this device, so you can set a new password right away.',
+  'Lozinka je promijenjena': 'Password changed',
+  'Lozinka mora imati barem {0} znakova.':
+      'The password must have at least {0} characters.',
+  'Lozinka nije prihvaćena: {0}': 'Password not accepted: {0}',
+  'Lozinke se ne podudaraju.': 'Passwords don\'t match.',
+  'Moj javni profil': 'My public profile',
+  'Napravi račun': 'Create account',
+  'Nastavi': 'Continue',
+  'Nastavi s Googleom': 'Continue with Google',
+  'Ne postoji korisnik @{0}.': 'User @{0} doesn\'t exist.',
+  'Ne postoji račun s tim e-mailom. Registriraj se.':
+      'No account with that e-mail. Sign up.',
+  'Nova lozinka': 'New password',
+  'Nova lozinka je postavljena. Prijavi se.': 'New password set. Log in.',
+  'Nova lozinka je spremljena.': 'New password saved.',
+  'Novi račun': 'New account',
+  'Novi računi dobivaju {0} LOOP kredita.':
+      'New accounts get {0} LOOP credits.',
+  'O meni': 'About me',
+  'Odaberi korisničko ime': 'Choose a username',
+  'Online testna verzija: napravi račun e-mailom ili Googleom. Gost može samo razgledavati.':
+      'Online test version: create an account with e-mail or Google. Guests can only browse.',
+  'Opis profila može imati najviše {0} znakova.':
+      'The profile bio can be at most {0} characters.',
+  'Ovo korisničko ime je rezervirano.': 'This username is reserved.',
+  'Ovo korisničko ime nije dopušteno.': 'This username isn\'t allowed.',
+  'Pogrešan e-mail ili lozinka.': 'Wrong e-mail or password.',
+  'Ponovi lozinku': 'Repeat password',
+  'Poslali smo link za potvrdu na {0}. Otvori ga na ovom uređaju i bit ćeš prijavljen.':
+      'We\'ve sent a confirmation link to {0}. Open it on this device and you\'ll be logged in.',
+  'Postavi lozinku': 'Set password',
+  'Potvrdi (demo)': 'Verify (demo)',
+  'Pozovi prijatelja': 'Invite a friend',
+  'Pošalji link': 'Send link',
+  'Previše pokušaja. Pričekaj malo pa pokušaj ponovno.':
+      'Too many attempts. Wait a bit and try again.',
+  'Prijava Googleom': 'Google sign-in',
+  'Prijava e-mailom': 'E-mail sign-in',
+  'Prijava je istekla.': 'The sign-in has expired.',
+  'Prijavi se e-mailom i lozinkom.': 'Log in with your e-mail and password.',
+  'Prijavljen kao {0}': 'Signed in as {0}',
+  'Prikazuje se drugima umjesto e-maila, npr. kod aukcija. Mora biti jedinstveno.':
+      'Shown to others instead of your e-mail, e.g. in auctions. It must be unique.',
+  'Prikaži lozinku': 'Show password',
+  'Probaj: {0}': 'Try: {0}',
+  'Profil je spremljen': 'Profile saved',
+  'Promijeni fotografiju': 'Change photo',
+  'Promijeni lozinku': 'Change password',
+  'Provjeren': 'Verified',
+  'Provjeren korisnik': 'Verified user',
+  'Provjeri e-mail': 'Check your e-mail',
+  'Prvo potvrdi e-mail (link je u tvom inboxu), pa se prijavi.':
+      'Confirm your e-mail first (the link is in your inbox), then log in.',
+  'Razgledavaš kao gost': 'You\'re browsing as a guest',
+  'Račun s ovim e-mailom već postoji. Prijavi se.':
+      'An account with this e-mail already exists. Log in.',
+  'Registracija': 'Sign up',
+  'Sakrij lozinku': 'Hide password',
+  'Samo razgledaj (gost)': 'Just browse (guest)',
+  'Slobodno:': 'Available:',
+  'Spremi': 'Save',
+  'Spremi lozinku': 'Save password',
+  'Točka ne smije biti na kraju ni dvaput zaredom.':
+      'A dot can\'t be at the end or twice in a row.',
+  'Trenutna lozinka': 'Current password',
+  'Trenutna lozinka nije točna.': 'The current password is wrong.',
+  'U redu': 'OK',
+  'Ukloni fotografiju': 'Remove photo',
+  'Upiši e-mail ili korisničko ime.': 'Enter your e-mail or username.',
+  'Upiši e-mail računa i poslat ćemo ti link za novu lozinku.':
+      'Enter your account e-mail and we\'ll send you a link for a new password.',
+  'Upiši korisničko ime.': 'Enter a username.',
+  'Uredi profil': 'Edit profile',
+  'Za kupnju, prodaju i aukcije napravi besplatan račun — dobivaš početne kredite.':
+      'To buy, sell and bid, create a free account — you get starting credits.',
+  'Za prijavu upiši e-mail.': 'Enter your e-mail to log in.',
+  'Zaboravljena lozinka': 'Forgot password',
+  'Zaboravljena lozinka?': 'Forgot password?',
+  'ili': 'or',
+  'npr. Skupljam LEGO i stare ploče 🎶':
+      'e.g. I collect LEGO and old records 🎶',
+  '{0}–{1} znakova: slova, brojevi, _ i točka':
+      '{0}–{1} characters: letters, numbers, _ and dot',
+  'Član od {0}': 'Member since {0}',
+  'Napravi besplatan račun': 'Create a free account',
+  'Nastavi razgledavati': 'Keep browsing',
+  'Brisanje računa u bazi nije postavljeno (pokreni supabase/schema.sql).':
+      'Account deletion isn\'t set up in the database (run supabase/schema.sql).',
 };

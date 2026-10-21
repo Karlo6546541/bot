@@ -159,7 +159,7 @@ class DeliveryService {
           fee: 0,
           amount: method.cost,
           buyerId: userId,
-          buyerLabel: user.email,
+          buyerLabel: user.handle,
           sellerLabel: 'LOOP dostava',
           createdAt: at,
         ),

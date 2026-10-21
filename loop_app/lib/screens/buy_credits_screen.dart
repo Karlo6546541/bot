@@ -21,6 +21,7 @@ class BuyCreditsScreen extends ConsumerStatefulWidget {
 
   /// Otvara ekran; vraća `true` ako je kupnja uspjela.
   static Future<bool> open(BuildContext context, {double? needed}) async {
+    if (blockGuest(context)) return false;
     final ok = await Navigator.of(context).push<bool>(
       MaterialPageRoute(builder: (_) => BuyCreditsScreen(needed: needed)),
     );

@@ -17,7 +17,7 @@ class TradeException implements Exception {
   String toString() => message;
 }
 
-/// Sva poslovna pravila LOOP-a: prijava, dodavanje, prodaja, kupnja
+/// Poslovna pravila LOOP-a: dodavanje, prodaja, kupnja
 /// i admin akcije. Radi direktno nad [StorageService].
 class TradeService {
   TradeService(this._storage);
@@ -35,55 +35,8 @@ class TradeService {
   /// Oznaka platforme kao druge strane u transakciji.
   static const marketLabel = 'LOOP Market';
 
-  // ------------------------------------------------------------- prijava
-
   bool isAdminLogin(String email, String password) =>
       email.trim().toLowerCase() == adminEmail && password == adminPassword;
-
-  /// Demo prijava: bilo koji e-mail + lozinka. Ako korisnik ne postoji,
-  /// automatski se kreira s [welcomeCredits].
-  Future<AppUser> login(String email, String password) async {
-    final cleaned = email.trim();
-    if (cleaned.isEmpty || !cleaned.contains('@')) {
-      throw TradeException(t('Unesi ispravan e-mail.'));
-    }
-    if (password.isEmpty) {
-      throw TradeException(t('Unesi lozinku.'));
-    }
-    if (cleaned.toLowerCase() == adminEmail) {
-      throw TradeException(t('Za admin račun koristi "Admin prijava".'));
-    }
-    final existing = _storage.userByEmail(cleaned);
-    if (existing != null) return existing;
-
-    final user = AppUser(
-      id: _uuid.v4(),
-      email: cleaned.toLowerCase(),
-      name: cleaned.split('@').first,
-      credits: welcomeCredits.toDouble(),
-      createdAt: DateTime.now(),
-    );
-    await _storage.putUser(user);
-    await _snapshot(user.id);
-    return user;
-  }
-
-  /// Gost je jedan zajednički lokalni račun.
-  Future<AppUser> loginAsGuest() async {
-    final existing = _storage.userByEmail(guestEmail);
-    if (existing != null) return existing;
-    final guest = AppUser(
-      id: 'user-guest',
-      email: guestEmail,
-      name: 'Gost',
-      credits: welcomeCredits.toDouble(),
-      isGuest: true,
-      createdAt: DateTime.now(),
-    );
-    await _storage.putUser(guest);
-    await _snapshot(guest.id);
-    return guest;
-  }
 
   // ------------------------------------------------------------- uređaji
 
@@ -158,7 +111,7 @@ class TradeService {
       fee: fee,
       amount: payout,
       sellerId: userId,
-      sellerLabel: user.email,
+      sellerLabel: user.handle,
       buyerId: null,
       buyerLabel: marketLabel,
       createdAt: DateTime.now(),
@@ -209,7 +162,7 @@ class TradeService {
       fee: fee,
       amount: total,
       buyerId: userId,
-      buyerLabel: user.email,
+      buyerLabel: user.handle,
       sellerId: null,
       sellerLabel: marketLabel,
       createdAt: DateTime.now(),

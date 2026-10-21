@@ -24,12 +24,14 @@ class CreateAuctionScreen extends ConsumerStatefulWidget {
   /// Unaprijed odabrani predmet (npr. s ekrana detalja).
   final String? deviceId;
 
-  static Future<void> open(BuildContext context, {String? deviceId}) =>
-      Navigator.of(context).push(
-        MaterialPageRoute<void>(
-          builder: (_) => CreateAuctionScreen(deviceId: deviceId),
-        ),
-      );
+  static Future<void> open(BuildContext context, {String? deviceId}) async {
+    if (blockGuest(context)) return;
+    await Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => CreateAuctionScreen(deviceId: deviceId),
+      ),
+    );
+  }
 
   @override
   ConsumerState<CreateAuctionScreen> createState() =>

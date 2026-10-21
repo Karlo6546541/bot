@@ -11,6 +11,11 @@ import 'buy_credits_screen.dart';
 import 'deliveries_screen.dart';
 import '../l10n/tr.dart';
 import '../widgets/language_button.dart';
+import '../models/app_user.dart';
+import 'account_screens.dart';
+import 'public_profile_screen.dart';
+import 'package:flutter/services.dart';
+import '../widgets/user_avatar.dart';
 
 class ProfileScreen extends ConsumerWidget {
   const ProfileScreen({super.key});
@@ -22,7 +27,6 @@ class ProfileScreen extends ConsumerWidget {
     if (user == null) return const SizedBox.shrink();
 
     final status = state.statusOf(user);
-    final initial = user.name.isEmpty ? '?' : user.name[0].toUpperCase();
 
     return ListView(
       padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
@@ -33,52 +37,15 @@ class ProfileScreen extends ConsumerWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                Card(
-                  child: Padding(
-                    padding: const EdgeInsets.all(20),
-                    child: Row(
-                      children: [
-                        CircleAvatar(
-                          radius: 30,
-                          backgroundColor: LoopColors.accent.withValues(
-                            alpha: 0.18,
-                          ),
-                          child: Text(
-                            initial,
-                            style: TextStyle(
-                              fontSize: 24,
-                              fontWeight: FontWeight.w800,
-                              color: LoopColors.accent,
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 16),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                user.name,
-                                style: const TextStyle(
-                                  fontSize: 20,
-                                  fontWeight: FontWeight.w700,
-                                ),
-                              ),
-                              Text(
-                                user.email,
-                                style: TextStyle(
-                                  color: LoopColors.textSecondary,
-                                ),
-                              ),
-                              const SizedBox(height: 8),
-                              StatusBadge(status: status),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
+                ProfileHeader(
+                  user: user,
+                  trailing: user.isGuest ? null : StatusBadge(status: status),
                 ),
+                const SizedBox(height: 12),
+                if (user.isGuest)
+                  const _GuestCard()
+                else
+                  _AccountCard(user: user),
                 const SizedBox(height: 12),
                 Card(
                   child: Column(
@@ -302,6 +269,124 @@ class _SyncStatusTile extends ConsumerWidget {
                     ),
                   ),
               ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Gost: samo razgledavanje — poziv na registraciju.
+class _GuestCard extends ConsumerWidget {
+  const _GuestCard();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    return Card(
+      color: LoopColors.sunny,
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text(
+              t('Razgledavaš kao gost'),
+              style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 16),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              t(
+                'Za kupnju, prodaju i aukcije napravi besplatan račun — dobivaš početne kredite.',
+              ),
+            ),
+            const SizedBox(height: 12),
+            FilledButton.icon(
+              onPressed: () => ref.read(appProvider.notifier).logout(),
+              icon: const Icon(Icons.person_add_alt_1),
+              label: Text(t('Napravi račun')),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Račun: uređivanje profila, lozinka, potvrda e-maila, kod za poziv.
+class _AccountCard extends ConsumerWidget {
+  const _AccountCard({required this.user});
+  final AppUser user;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final online = ref.watch(authBackendProvider).isOnline;
+    final email = ref.read(appProvider.notifier).currentEmail;
+    return Card(
+      child: Column(
+        children: [
+          if (email.isNotEmpty)
+            ListTile(
+              leading: Icon(
+                Icons.alternate_email,
+                color: LoopColors.textSecondary,
+              ),
+              title: Text(email),
+              subtitle: Text(
+                user.authProvider == 'google'
+                    ? t('Prijava Googleom')
+                    : t('Prijava e-mailom'),
+              ),
+              trailing: user.emailVerified
+                  ? const VerifiedBadgeLabel()
+                  : online
+                  ? null
+                  : TextButton(
+                      onPressed: () =>
+                          ref.read(appProvider.notifier).verifyEmailDemo(),
+                      child: Text(t('Potvrdi (demo)')),
+                    ),
+            ),
+          const Divider(height: 1),
+          ListTile(
+            leading: const Icon(Icons.edit_outlined),
+            title: Text(t('Uredi profil')),
+            subtitle: Text(t('Fotografija, ime, korisničko ime, opis, grad')),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () => EditProfileScreen.open(context),
+          ),
+          const Divider(height: 1),
+          ListTile(
+            leading: const Icon(Icons.public),
+            title: Text(t('Moj javni profil')),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () => PublicProfileScreen.open(context, user.id),
+          ),
+          if (user.authProvider != 'google') ...[
+            const Divider(height: 1),
+            ListTile(
+              leading: const Icon(Icons.password),
+              title: Text(t('Promijeni lozinku')),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () => showChangePasswordDialog(context),
+            ),
+          ],
+          const Divider(height: 1),
+          ListTile(
+            leading: const Icon(Icons.card_giftcard),
+            title: Text(t('Pozovi prijatelja')),
+            subtitle: Text(
+              t('Kod za poziv: {0} — oboje dobivate bonus kredite.', [
+                user.handle,
+              ]),
+            ),
+            trailing: IconButton(
+              tooltip: t('Kopiraj'),
+              icon: const Icon(Icons.copy),
+              onPressed: () {
+                Clipboard.setData(ClipboardData(text: user.username));
+                showLoopSnackBar(t('Kod kopiran'));
+              },
             ),
           ),
         ],

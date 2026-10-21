@@ -6,6 +6,7 @@ import 'providers/app_providers.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'config/backend_config.dart';
+import 'services/auth_backend.dart';
 import 'services/remote_store.dart';
 import 'services/storage_service.dart';
 import 'services/sync_service.dart';
@@ -45,6 +46,15 @@ class _BootstrapState extends State<_Bootstrap> {
         SupabaseRemoteStore(Supabase.instance.client),
       );
       await sync.start();
+      // Lokalna sesija bez važeće online prijave (npr. istekla) → odjava.
+      final user = storage.currentUserId == null
+          ? null
+          : storage.userById(storage.currentUserId!);
+      if (user != null &&
+          !user.isGuest &&
+          Supabase.instance.client.auth.currentSession == null) {
+        await storage.saveSession();
+      }
     }
     return (storage, sync);
   }
@@ -59,6 +69,10 @@ class _BootstrapState extends State<_Bootstrap> {
             overrides: [
               storageProvider.overrideWithValue(snapshot.data!.$1),
               syncProvider.overrideWithValue(snapshot.data!.$2),
+              if (snapshot.data!.$2 != null)
+                authBackendProvider.overrideWithValue(
+                  SupabaseAuthBackend(Supabase.instance.client),
+                ),
             ],
             child: const LoopApp(),
           );

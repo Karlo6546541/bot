@@ -94,20 +94,16 @@ void main() {
     expect(storage.transactions, isEmpty);
   });
 
-  test('dodavanje uređaja i login novog korisnika', () async {
-    final user = await trade.login('novi@loop.com', 'x');
-    expect(user.credits, TradeService.welcomeCredits);
+  test('dodavanje uređaja', () async {
     final d = await trade.addDevice(
-      userId: user.id,
+      userId: SeedData.testUserId,
       name: 'PS5',
       model: 'Slim',
       condition: DeviceCondition.excellent,
       price: 400,
       category: DeviceCategory.console,
     );
-    expect(storage.deviceById(d.id)!.ownerId, user.id);
-    // Ponovna prijava istim e-mailom vraća istog korisnika.
-    expect((await trade.login('NOVI@loop.com', 'y')).id, user.id);
+    expect(storage.deviceById(d.id)!.ownerId, SeedData.testUserId);
   });
 
   test('admin: brisanje korisnika vraća uređaje u Market; reset', () async {

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart' show ThemeMode;
 
 import '../l10n/tr.dart';
+import '../services/auth_backend.dart';
 import '../models/app_user.dart';
 import '../models/auction.dart';
 import '../models/delivery.dart';
@@ -24,6 +25,7 @@ class AppState {
     this.deliveries = const [],
     this.themeMode = ThemeMode.light,
     this.lang = AppLang.hr,
+    this.pendingSignup,
     this.showHowItWorks = true,
   });
 
@@ -45,6 +47,9 @@ class AppState {
         orElse: () => ThemeMode.light,
       ),
       lang: AppLang.fromName(storage.lang),
+      pendingSignup: storage.pendingAuth == null
+          ? null
+          : AuthIdentity.fromMap(storage.pendingAuth!),
       showHowItWorks: !storage.howItWorksDismissed,
       deliveries: [...storage.deliveries]
         ..sort((a, b) => b.createdAt.compareTo(a.createdAt)),
@@ -70,6 +75,9 @@ class AppState {
 
   /// Jezik sučelja.
   final AppLang lang;
+
+  /// Prijava koja čeka odabir korisničkog imena.
+  final AuthIdentity? pendingSignup;
 
   /// Prikazati karticu "Kako LOOP radi" na početnoj.
   final bool showHowItWorks;
@@ -186,7 +194,7 @@ class AppState {
   String userLabel(String? userId) {
     if (userId == null) return 'LOOP Market';
     for (final u in users) {
-      if (u.id == userId) return u.email;
+      if (u.id == userId) return u.handle;
     }
     return 'obrisan korisnik';
   }

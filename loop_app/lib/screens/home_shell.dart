@@ -47,9 +47,7 @@ class _HomeShellState extends ConsumerState<HomeShell> {
   ];
 
   void _openAddDevice() {
-    Navigator.of(
-      context,
-    ).push(MaterialPageRoute<void>(builder: (_) => const AddDeviceScreen()));
+    AddDeviceScreen.open(context);
   }
 
   @override

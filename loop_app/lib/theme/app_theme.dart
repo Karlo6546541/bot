@@ -40,6 +40,10 @@ class LoopColors {
   static Color get success =>
       _dark ? const Color(0xFF4CC38A) : const Color(0xFF1A7F4E);
 
+  /// Plava za bedž "Provjeren" i informativne oznake.
+  static Color get info =>
+      _dark ? const Color(0xFF6CB4FF) : const Color(0xFF1E6FD9);
+
   /// Akcent admin panela — namjerno drugačiji (indigo) da je admin
   /// vizualno odvojen od korisničkog dijela.
   static Color get admin =>

@@ -84,7 +84,7 @@ class AuctionService {
       deviceId: deviceId,
       deviceName: '${device.name} ${device.model}',
       sellerId: userId,
-      sellerLabel: user.email,
+      sellerLabel: user.handle,
       startPrice: roundCredits(startPrice),
       createdAt: at,
       endsAt: at.add(duration),
@@ -103,7 +103,7 @@ class AuctionService {
         amount: fee,
         buyerLabel: 'LOOP',
         sellerId: userId,
-        sellerLabel: user.email,
+        sellerLabel: user.handle,
         createdAt: at,
       ),
     );
@@ -162,7 +162,7 @@ class AuctionService {
     final updated = a.copyWith(
       bids: [
         ...a.bids,
-        Bid(userId: userId, userLabel: user.email, amount: bid, time: at),
+        Bid(userId: userId, userLabel: user.handle, amount: bid, time: at),
       ],
       endsAt: remaining < extendWindow ? at.add(extendWindow) : null,
     );
@@ -269,9 +269,9 @@ class AuctionService {
         fee: fee,
         amount: payout,
         sellerId: seller.id,
-        sellerLabel: seller.email,
+        sellerLabel: seller.handle,
         buyerId: winner.id,
-        buyerLabel: winner.email,
+        buyerLabel: winner.handle,
         createdAt: at,
         isAuction: true,
       ),

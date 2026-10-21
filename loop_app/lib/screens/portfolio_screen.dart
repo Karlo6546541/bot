@@ -45,7 +45,9 @@ class PortfolioScreen extends ConsumerWidget {
           child: Padding(
             padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
             child: _CreditsHero(
-              name: user.name,
+              name: user.name.isNotEmpty
+                  ? user.name.split(' ').first
+                  : user.handle,
               credits: user.credits,
               status: status,
               portfolioValue: portfolioValue,
@@ -376,9 +378,7 @@ class _QuickActions extends ConsumerWidget {
         '📦',
         t('Dodaj predmet'),
         LoopColors.mint,
-        () => Navigator.of(context).push(
-          MaterialPageRoute<void>(builder: (_) => const AddDeviceScreen()),
-        ),
+        () => AddDeviceScreen.open(context),
       ),
       ('🛒', t('Istraži Market'), LoopColors.sky, () => tabs.select(1)),
       ('🔨', t('Aukcije'), LoopColors.lilac, () => tabs.select(2)),

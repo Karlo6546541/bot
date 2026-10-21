@@ -48,6 +48,7 @@ class _AuctionDetailScreenState extends ConsumerState<AuctionDetailScreen> {
       double.tryParse(_amount.text.trim().replaceAll(',', '.'));
 
   Future<void> _bid(Auction a) async {
+    if (blockGuest(context)) return;
     final amount = _parsed;
     final credits = ref.read(appProvider).currentUser?.credits ?? 0;
     // Iste provjere radi i servis; ovdje samo za brzu poruku uz polje.

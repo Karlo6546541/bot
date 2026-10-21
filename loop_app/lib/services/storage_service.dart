@@ -9,6 +9,7 @@ import '../models/device.dart';
 import '../models/loop_transaction.dart';
 import '../models/portfolio_point.dart';
 import 'seed_data.dart';
+import 'username_rules.dart';
 
 /// Lokalna pohrana na Hive-u. Svaki entitet je spremljen kao obična mapa
 /// (ključ = ID), pa nisu potrebni generirani TypeAdapteri.
@@ -20,6 +21,9 @@ class StorageService {
   static const _historyBox = 'history';
   static const _auctionsBox = 'auctions';
   static const _deliveriesBox = 'deliveries';
+
+  /// Lokalne lozinke (sažeci) — NE sinkronizira se.
+  static const _credentialsBox = 'credentials';
 
   /// Tablice koje se sinkroniziraju s online bazom (sesija ostaje lokalna).
   static const syncedTables = [
@@ -33,7 +37,7 @@ class StorageService {
 
   /// Povećaj kad se seed proširi — postojeće instalacije tada dobiju
   /// nove demo predmete bez resetiranja (vidi [_migrateSeed]).
-  static const _seedVersion = 4;
+  static const _seedVersion = 5;
   static const _seedVersionKey = 'seedVersion';
 
   /// Najviše točaka povijesti po korisniku.
@@ -45,6 +49,7 @@ class StorageService {
   static const _themeKey = 'themeMode';
   static const _langKey = 'lang';
   static const _howItWorksKey = 'howItWorksDismissed';
+  static const _pendingAuthKey = 'pendingAuth';
 
   late Box<Map> _users;
   late Box<Map> _devices;
@@ -53,6 +58,7 @@ class StorageService {
   late Box<Map> _history;
   late Box<Map> _auctions;
   late Box<Map> _deliveries;
+  late Box<Map> _credentials;
 
   /// Poziva se nakon svake lokalne promjene (za sinkronizaciju s online
   /// bazom). `data == null` znači brisanje.
@@ -101,6 +107,7 @@ class StorageService {
     _history = await Hive.openBox<Map>(_historyBox, bytes: bytes);
     _auctions = await Hive.openBox<Map>(_auctionsBox, bytes: bytes);
     _deliveries = await Hive.openBox<Map>(_deliveriesBox, bytes: bytes);
+    _credentials = await Hive.openBox<Map>(_credentialsBox, bytes: bytes);
 
     if (_session.get(_seededKey) != true) {
       await _seed();
@@ -139,6 +146,7 @@ class StorageService {
     for (final u in users) {
       if (historyOf(u.id).isEmpty) await recordSnapshot(u.id, now: now);
     }
+    await ensureAccounts();
     await _session.put(_seedVersionKey, _seedVersion);
   }
 
@@ -158,8 +166,29 @@ class StorageService {
         'points': [for (final p in entry.value) p.toMap()],
       });
     }
+    await ensureAccounts();
     await _session.put(_seededKey, true);
     await _session.put(_seedVersionKey, _seedVersion);
+  }
+
+  /// Demo računi dobivaju lozinku "demo", a svi računi bez korisničkog
+  /// imena (iz starijih verzija) dobivaju slobodno ime iz e-maila.
+  Future<void> ensureAccounts() async {
+    for (final u in SeedData.users(DateTime.now())) {
+      if (_users.containsKey(u.id) && credentialFor(u.email) == null) {
+        await putCredential(u.email, SeedData.demoCredential(u.id));
+      }
+    }
+    for (final u in users) {
+      if (u.username.isEmpty && !u.isGuest) {
+        final others = users.where((o) => o.id != u.id);
+        final name = UsernameRules.firstFree(
+          u.email.isNotEmpty ? u.email : u.name,
+          others,
+        );
+        await putUser(u.copyWith(username: name));
+      }
+    }
   }
 
   /// Briše sve podatke (uključujući sesiju) i ponovno kreira demo podatke.
@@ -176,6 +205,7 @@ class StorageService {
     await _history.clear();
     await _auctions.clear();
     await _deliveries.clear();
+    await _credentials.clear();
     await _seed();
   }
 
@@ -207,6 +237,27 @@ class StorageService {
     }
     return null;
   }
+
+  AppUser? userByUsername(String username) {
+    final needle = UsernameRules.normalize(username);
+    for (final u in users) {
+      if (u.username.toLowerCase() == needle) return u;
+    }
+    return null;
+  }
+
+  // ---------------------------------------------------------- lozinke
+
+  Map<String, dynamic>? credentialFor(String email) {
+    final m = _credentials.get(email.trim().toLowerCase());
+    return m == null ? null : Map<String, dynamic>.from(m);
+  }
+
+  Future<void> putCredential(String email, Map<String, dynamic> data) =>
+      _credentials.put(email.trim().toLowerCase(), data);
+
+  Future<void> deleteCredential(String email) =>
+      _credentials.delete(email.trim().toLowerCase());
 
   // ---------------------------------------------------------------- pisanje
 
@@ -361,6 +412,14 @@ class StorageService {
   String get lang => _session.get(_langKey) as String? ?? 'hr';
 
   Future<void> setLang(String lang) => _session.put(_langKey, lang);
+
+  /// Prijava čeka odabir korisničkog imena (npr. prva Google prijava).
+  Map<dynamic, dynamic>? get pendingAuth =>
+      _session.get(_pendingAuthKey) as Map?;
+
+  Future<void> setPendingAuth(Map<String, dynamic>? data) => data == null
+      ? _session.delete(_pendingAuthKey)
+      : _session.put(_pendingAuthKey, data);
 
   bool get howItWorksDismissed => _session.get(_howItWorksKey) == true;
 

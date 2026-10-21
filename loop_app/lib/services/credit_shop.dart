@@ -132,7 +132,7 @@ class CreditShop {
       fee: 0,
       amount: total.toDouble(),
       buyerId: userId,
-      buyerLabel: user.email,
+      buyerLabel: user.handle,
       sellerLabel: 'LOOP',
       createdAt: at,
     );

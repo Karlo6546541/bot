@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'admin/admin_shell.dart';
 import 'l10n/tr.dart';
 import 'providers/app_providers.dart';
+import 'screens/account_screens.dart';
 import 'screens/home_shell.dart';
 import 'screens/login_screen.dart';
 import 'theme/app_theme.dart';
@@ -36,11 +37,20 @@ class LoopApp extends ConsumerWidget {
     final lang = ref.watch(appProvider.select((s) => s.lang));
     Tr.lang = lang;
 
+    final pendingSignup = ref.watch(
+      appProvider.select((s) => s.pendingSignup != null),
+    );
+    final recovery = ref.watch(passwordRecoveryProvider);
+
     final Widget home;
-    if (isAdmin) {
+    if (recovery) {
+      home = const PasswordRecoveryScreen();
+    } else if (isAdmin) {
       home = const AdminShell();
     } else if (loggedIn) {
       home = const HomeShell();
+    } else if (pendingSignup) {
+      home = const UsernameSetupScreen();
     } else {
       home = const LoginScreen();
     }

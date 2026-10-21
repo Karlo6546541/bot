@@ -48,12 +48,47 @@ Future<bool> runWithLoading(
   }
 }
 
+/// Gost samo razgledava: umjesto akcije nudi izradu računa.
+/// Vraća `true` ako je akcija blokirana.
+bool blockGuest(BuildContext context) {
+  final container = ProviderScope.containerOf(context, listen: false);
+  final user = container.read(appProvider).currentUser;
+  if (user == null || !user.isGuest) return false;
+  showDialog<void>(
+    context: context,
+    builder: (ctx) => AlertDialog(
+      icon: const Icon(Icons.person_add_alt_1, size: 36),
+      title: Text(t('Napravi besplatan račun')),
+      content: Text(
+        t(
+          'Gost može samo razgledavati. Napravi besplatan račun za kupnju i prodaju.',
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(ctx),
+          child: Text(t('Nastavi razgledavati')),
+        ),
+        FilledButton(
+          onPressed: () {
+            Navigator.pop(ctx);
+            container.read(appProvider.notifier).logout();
+          },
+          child: Text(t('Napravi račun')),
+        ),
+      ],
+    ),
+  );
+  return true;
+}
+
 /// INSTANT SELL — dijalog s cijenom, fee-om i iznosom, pa prodaja.
 Future<bool> confirmAndSell(
   BuildContext context,
   WidgetRef ref,
   Device device,
 ) async {
+  if (blockGuest(context)) return false;
   final ok = await _showTradeDialog(
     context,
     title: t('Prodaj odmah'),
@@ -90,6 +125,7 @@ Future<bool> confirmAndBuy(
   WidgetRef ref,
   Device device,
 ) async {
+  if (blockGuest(context)) return false;
   final user = ref.read(appProvider).currentUser;
   if (user == null) return false;
   final total = buyTotal(device.price);
@@ -283,7 +319,13 @@ class _CheckoutSheetState extends State<_CheckoutSheet> {
 
 /// Srce na uređaju: dodaje/uklanja iz favorita uz kratku poruku.
 Future<void> toggleFavorite(WidgetRef ref, Device device) async {
-  final added = await ref.read(appProvider.notifier).toggleFavorite(device.id);
+  final bool added;
+  try {
+    added = await ref.read(appProvider.notifier).toggleFavorite(device.id);
+  } on TradeException catch (e) {
+    showLoopSnackBar(e.message, error: true);
+    return;
+  }
   showLoopSnackBar(
     added
         ? t('{0} dodan u favorite', [device.name])

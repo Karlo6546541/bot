@@ -7,7 +7,9 @@ import 'package:supabase_flutter/supabase_flutter.dart' show Supabase;
 import '../models/device.dart';
 import '../models/loop_transaction.dart';
 import '../models/auction.dart';
+import '../services/account_service.dart';
 import '../services/auction_service.dart';
+import '../services/auth_backend.dart';
 import '../services/credit_shop.dart';
 import '../services/delivery_service.dart';
 import '../services/fee.dart';
@@ -36,6 +38,31 @@ final imageStoreProvider = Provider<ImageStore>(
 
 /// Sinkronizacija s online bazom (`null` = lokalni način rada).
 final syncProvider = Provider<SyncService?>((ref) => null);
+
+/// Prijava: lokalno, ili Supabase Auth kad je online baza postavljena
+/// (override u `main()`).
+final authBackendProvider = Provider<AuthBackend>(
+  (ref) => LocalAuthBackend(ref.watch(storageProvider)),
+);
+
+final accountServiceProvider = Provider<AccountService>(
+  (ref) => AccountService(
+    ref.watch(storageProvider),
+    ref.watch(authBackendProvider),
+  ),
+);
+
+/// Korisnik je otvorio link za novu lozinku (Supabase) — prikaži obrazac.
+final passwordRecoveryProvider = NotifierProvider<PasswordRecovery, bool>(
+  PasswordRecovery.new,
+);
+
+class PasswordRecovery extends Notifier<bool> {
+  @override
+  bool build() => false;
+
+  void set(bool value) => state = value;
+}
 
 final tradeServiceProvider = Provider<TradeService>(
   (ref) => TradeService(ref.watch(storageProvider)),
@@ -81,6 +108,7 @@ const maxImages = 4;
 class AppController extends Notifier<AppState> {
   StorageService get _storage => ref.read(storageProvider);
   TradeService get _trade => ref.read(tradeServiceProvider);
+  AccountService get _accounts => ref.read(accountServiceProvider);
   AuctionService get _auctions => ref.read(auctionServiceProvider);
 
   @override
@@ -97,6 +125,10 @@ class AppController extends Notifier<AppState> {
       };
       ref.onDispose(() => _remoteRefresh?.cancel());
     }
+    // Prijave koje ne pokreće aplikacija: povratak s Google prijave,
+    // link iz e-maila (potvrda, nova lozinka), istek sesije.
+    final sub = ref.watch(authBackendProvider).events.listen(_onAuthEvent);
+    ref.onDispose(sub.cancel);
     return AppState.fromStorage(ref.watch(storageProvider));
   }
 
@@ -107,16 +139,76 @@ class AppController extends Notifier<AppState> {
 
   // ------------------------------------------------------------- sesija
 
-  Future<void> login(String email, String password) async {
-    final user = await _trade.login(email, password);
-    await _trade.ensureHistory(user.id);
-    await _storage.saveSession(userId: user.id);
+  /// Prijava e-mailom (ili lokalno korisničkim imenom) i lozinkom.
+  Future<SignInResult> login(String identifier, String password) async =>
+      _apply(await _accounts.login(identifier, password));
+
+  Future<SignInResult> register({
+    required String email,
+    required String password,
+    required String username,
+    String referral = '',
+  }) async => _apply(
+    await _accounts.register(
+      email: email,
+      password: password,
+      username: username,
+      referral: referral,
+    ),
+  );
+
+  Future<void> signInWithGoogle() =>
+      ref.read(authBackendProvider).signInWithGoogle();
+
+  /// Korisnik je odabrao korisničko ime za novu prijavu (npr. Google).
+  Future<void> chooseUsername(String username) async {
+    final identity = _accounts.pendingIdentity;
+    if (identity == null) throw TradeException(t('Prijava je istekla.'));
+    final user = await _accounts.createProfile(identity, username);
+    await _apply(SignedIn(user));
+  }
+
+  Future<void> cancelPendingSignup() async {
+    await _accounts.cancelPending();
+    await ref.read(authBackendProvider).signOut();
     _refresh();
   }
 
+  Future<SignInResult> _apply(SignInResult result) async {
+    if (result is SignedIn) {
+      await _trade.ensureHistory(result.user.id);
+      await _storage.saveSession(userId: result.user.id);
+      if (result.restored) {
+        showLoopSnackBar(t('Dobro došao natrag! Brisanje računa je otkazano.'));
+      }
+    }
+    _refresh();
+    return result;
+  }
+
+  Future<void> _onAuthEvent(AuthEvent event) async {
+    if (!ref.mounted) return;
+    switch (event) {
+      case AuthSignedIn(:final identity):
+        if (state.isAdmin || state.currentUserId == identity.uid) return;
+        try {
+          await _apply(await _accounts.completeSignIn(identity));
+        } on TradeException catch (e) {
+          showLoopSnackBar(e.message, error: true);
+        }
+      case AuthPasswordRecovery():
+        ref.read(passwordRecoveryProvider.notifier).set(true);
+      case AuthSignedOut():
+        final user = state.currentUser;
+        if (user != null && !user.isGuest) {
+          await _storage.saveSession();
+          _refresh();
+        }
+    }
+  }
+
   Future<void> loginAsGuest() async {
-    final user = await _trade.loginAsGuest();
-    await _trade.ensureHistory(user.id);
+    final user = await _accounts.loginAsGuest();
     await _storage.saveSession(userId: user.id);
     _refresh();
   }
@@ -131,7 +223,91 @@ class AppController extends Notifier<AppState> {
 
   Future<void> logout() async {
     ref.read(homeTabProvider.notifier).select(0);
+    final wasGuest = state.currentUser?.isGuest ?? true;
     await _storage.saveSession();
+    _refresh();
+    if (!wasGuest) {
+      try {
+        await ref.read(authBackendProvider).signOut();
+      } catch (_) {
+        // Odjava lokalno uspijeva i bez mreže.
+      }
+    }
+  }
+
+  // ------------------------------------------------------------- račun
+
+  Future<void> requestPasswordReset(String email) =>
+      _accounts.requestPasswordReset(email);
+
+  Future<void> resetPasswordLocally(String email, String newPassword) =>
+      _accounts.resetPasswordLocally(email, newPassword);
+
+  /// Nova lozinka nakon linka iz e-maila (online).
+  Future<void> setRecoveredPassword(String newPassword) async {
+    await _accounts.changePassword(email: '', newPassword: newPassword);
+    ref.read(passwordRecoveryProvider.notifier).set(false);
+  }
+
+  Future<void> changePassword(String oldPassword, String newPassword) =>
+      _accounts.changePassword(
+        email: _currentEmail,
+        oldPassword: oldPassword,
+        newPassword: newPassword,
+      );
+
+  /// E-mail trenutnog korisnika (online ga daje Supabase Auth).
+  String get _currentEmail {
+    final user = state.currentUser;
+    if (user == null) return '';
+    if (user.email.isNotEmpty) return user.email;
+    return ref.read(authBackendProvider).isOnline
+        ? Supabase.instance.client.auth.currentUser?.email ?? ''
+        : '';
+  }
+
+  String get currentEmail => _currentEmail;
+
+  Future<void> changeUsername(String username) async {
+    await _accounts.changeUsername(_requireUserId(), username);
+    _refresh();
+  }
+
+  Future<void> updateProfile({
+    required String name,
+    required String bio,
+    required String city,
+  }) async {
+    await _accounts.updateProfile(
+      _requireUserId(),
+      name: name,
+      bio: bio,
+      city: city,
+    );
+    _refresh();
+  }
+
+  /// Nova profilna fotografija iz galerije/kamere (`false` = odustao).
+  Future<bool> pickAvatar({bool camera = false}) async {
+    final id = _requireUserId();
+    final paths = await ref
+        .read(imageStoreProvider)
+        .pick(camera: camera, limit: 1);
+    if (paths.isEmpty) return false;
+    final old = await _accounts.setAvatar(id, paths.first);
+    if (old != null) await ref.read(imageStoreProvider).delete([old]);
+    _refresh();
+    return true;
+  }
+
+  Future<void> removeAvatar() async {
+    final old = await _accounts.setAvatar(_requireUserId(), null);
+    if (old != null) await ref.read(imageStoreProvider).delete([old]);
+    _refresh();
+  }
+
+  Future<void> verifyEmailDemo() async {
+    await _accounts.verifyEmailDemo(_requireUserId());
     _refresh();
   }
 
@@ -398,8 +574,15 @@ class AppController extends Notifier<AppState> {
   }
 
   String _requireUserId() {
-    final id = state.currentUser?.id;
-    if (id == null) throw TradeException(t('Nisi prijavljen.'));
-    return id;
+    final user = state.currentUser;
+    if (user == null) throw TradeException(t('Nisi prijavljen.'));
+    if (user.isGuest) {
+      throw TradeException(
+        t(
+          'Gost može samo razgledavati. Napravi besplatan račun za kupnju i prodaju.',
+        ),
+      );
+    }
+    return user.id;
   }
 }

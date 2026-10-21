@@ -18,6 +18,13 @@ import '../l10n/tr.dart';
 class AddDeviceScreen extends ConsumerStatefulWidget {
   const AddDeviceScreen({super.key});
 
+  static Future<void> open(BuildContext context) async {
+    if (blockGuest(context)) return;
+    await Navigator.of(
+      context,
+    ).push(MaterialPageRoute<void>(builder: (_) => const AddDeviceScreen()));
+  }
+
   @override
   ConsumerState<AddDeviceScreen> createState() => _AddDeviceScreenState();
 }

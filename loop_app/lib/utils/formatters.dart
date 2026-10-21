@@ -10,6 +10,8 @@ final _wholeEn = NumberFormat('#,##0', 'en_US');
 final _decimalEn = NumberFormat('#,##0.00', 'en_US');
 final _dateTimeHr = DateFormat('dd.MM.yyyy. HH:mm', 'en_US');
 final _dateTimeEn = DateFormat('MMM d, yyyy HH:mm', 'en_US');
+final _dateHr = DateFormat('dd.MM.yyyy.', 'en_US');
+final _dateEn = DateFormat('MMM d, yyyy', 'en_US');
 
 bool get _en => Tr.lang == AppLang.en;
 
@@ -40,6 +42,9 @@ String formatCredits(double value) =>
 
 String formatDateTime(DateTime value) =>
     (_en ? _dateTimeEn : _dateTimeHr).format(value);
+
+/// Samo datum: "21.10.2026." / "Oct 21, 2026".
+String formatDate(DateTime value) => (_en ? _dateEn : _dateHr).format(value);
 
 /// Iznos u eurima (za kupnju kredita): "49,99 €" / "€49.99".
 String formatEuro(double value) =>

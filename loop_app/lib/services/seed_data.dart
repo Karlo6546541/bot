@@ -17,9 +17,24 @@ class SeedData {
   static const _markoTotal = 1500.0;
   static const _markoHeld = 470.0;
 
+  /// Lozinka svih demo računa.
+  static const demoPassword = 'demo';
+
+  /// Unaprijed izračunat sažetak lozinke "demo" (vidi `LocalAuthBackend`).
+  static Map<String, dynamic> demoCredential(String userId) => {
+    'userId': userId,
+    'salt': _demoSalt,
+    'hash': _demoHash,
+  };
+
+  static const _demoSalt = 'loop-demo-salt';
+  static const _demoHash = 'QkOJINXrf3/IutVq32Dzqw9rndFQ03vBTz2lR2YhzR0=';
+
   static List<AppUser> users(DateTime now) => [
     AppUser(
       id: demoUserId,
+      username: 'demo',
+      emailVerified: true,
       email: 'demo@loop.com',
       name: 'Demo Korisnik',
       credits: 1250,
@@ -27,6 +42,8 @@ class SeedData {
     ),
     AppUser(
       id: testUserId,
+      username: 'test',
+      emailVerified: true,
       email: 'test@loop.com',
       name: 'Test Korisnik',
       credits: 800,
@@ -34,6 +51,8 @@ class SeedData {
     ),
     AppUser(
       id: anaUserId,
+      username: 'ana.kolekcija',
+      emailVerified: true,
       email: 'ana@loop.com',
       name: 'Ana Kolekcionarka',
       credits: 400,
@@ -41,6 +60,8 @@ class SeedData {
     ),
     AppUser(
       id: markoUserId,
+      username: 'marko',
+      emailVerified: true,
       email: 'marko@loop.com',
       name: 'Marko',
       credits: _markoTotal - _markoHeld,
@@ -384,7 +405,7 @@ class SeedData {
       deviceId: deviceId,
       deviceName: name,
       sellerId: anaUserId,
-      sellerLabel: 'ana@loop.com',
+      sellerLabel: '@ana.kolekcija',
       startPrice: start,
       createdAt: now.subtract(const Duration(days: 1)),
       endsAt: now.add(endsIn),
@@ -399,12 +420,12 @@ class SeedData {
         300,
         const Duration(hours: 26),
         [
-          bid(testUserId, 'test@loop.com', 300, 600),
-          bid(markoUserId, 'marko@loop.com', 320, 300),
+          bid(testUserId, '@test', 300, 600),
+          bid(markoUserId, '@marko', 320, 300),
         ],
       ),
       a('2', 'seed-35', 'Polaroid SX-70', 60, const Duration(hours: 3), [
-        bid(markoUserId, 'marko@loop.com', 60, 120),
+        bid(markoUserId, '@marko', 60, 120),
       ]),
       a(
         '3',
@@ -420,7 +441,7 @@ class SeedData {
         'Ulaznica – Ultra Europe',
         90,
         const Duration(minutes: 40),
-        [bid(markoUserId, 'marko@loop.com', 90, 30)],
+        [bid(markoUserId, '@marko', 90, 30)],
       ),
     ];
   }
