@@ -197,6 +197,7 @@ class TransactionTile extends StatelessWidget {
       TransactionType.buy => Icons.shopping_bag_outlined,
       TransactionType.topUp => Icons.add_card,
       TransactionType.auctionFee => Icons.gavel,
+      TransactionType.delivery => Icons.local_shipping_outlined,
     };
     return Card(
       child: Padding(
@@ -247,6 +248,7 @@ class TransactionTile extends StatelessWidget {
                   switch (type) {
                     TransactionType.topUp => 'plaćeno ${formatEuro(tx.price)}',
                     TransactionType.auctionFee => 'naknada za objavu',
+                    TransactionType.delivery => 'trošak dostave',
                     _ => 'fee ${formatCredits(tx.feeFor(viewerId))}',
                   },
                   style: TextStyle(

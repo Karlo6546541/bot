@@ -7,6 +7,8 @@ import '../services/fee.dart';
 import '../services/trade_service.dart';
 import '../theme/app_theme.dart';
 import '../screens/buy_credits_screen.dart';
+import '../services/delivery_service.dart';
+import 'delivery_picker.dart';
 import 'formatters.dart';
 import 'loop_snackbar.dart';
 
@@ -104,28 +106,167 @@ Future<bool> confirmAndBuy(
     return confirmAndBuy(context, ref, device);
   }
 
-  final ok = await _showTradeDialog(
-    context,
-    title: 'Kupi odmah',
-    device: device,
-    rows: [
-      _Row('Cijena', formatCredits(device.price)),
-      _Row(
-        'Fee (5%)',
-        '+ ${formatCredits(feeFor(device.price))}',
-        color: LoopColors.error,
-      ),
-      _Row('Ukupno plaćaš', formatCredits(total), highlight: true),
-      _Row('Krediti nakon kupnje', formatCredits(user.credits - total)),
-    ],
-    confirmLabel: 'Potvrdi kupnju',
+  // Blagajna: dostava + pregled iznosa.
+  final choice = await showModalBottomSheet<DeliveryChoice>(
+    context: context,
+    isScrollControlled: true,
+    showDragHandle: true,
+    backgroundColor: LoopColors.background,
+    constraints: const BoxConstraints(maxWidth: 560),
+    builder: (_) => _CheckoutSheet(device: device, credits: user.credits),
   );
-  if (!ok || !context.mounted) return false;
+  if (choice == null || !context.mounted) return false;
   return runWithLoading(
     context,
-    () => ref.read(appProvider.notifier).buy(device.id),
-    successMessage: 'Uspješno kupljeno',
+    () => ref
+        .read(appProvider.notifier)
+        .buy(device.id, method: choice.method, destination: choice.destination),
+    successMessage: 'Uspješno kupljeno — prati dostavu u "Moje dostave"',
   );
+}
+
+/// Blagajna: odabir dostave i ukupan iznos (predmet + fee + dostava).
+class _CheckoutSheet extends StatefulWidget {
+  const _CheckoutSheet({required this.device, required this.credits});
+  final Device device;
+  final double credits;
+
+  @override
+  State<_CheckoutSheet> createState() => _CheckoutSheetState();
+}
+
+class _CheckoutSheetState extends State<_CheckoutSheet> {
+  DeliveryChoice? _choice;
+  String? _error;
+
+  @override
+  Widget build(BuildContext context) {
+    final d = widget.device;
+    final shipping = _choice?.method.cost ?? 0;
+    final total = buyTotal(d.price) + shipping;
+    final enough = widget.credits >= total;
+
+    Widget row(String k, String v, {bool bold = false}) => Padding(
+      padding: const EdgeInsets.symmetric(vertical: 3),
+      child: Row(
+        children: [
+          Expanded(
+            child: Text(
+              k,
+              style: TextStyle(
+                color: bold ? LoopColors.textPrimary : LoopColors.textSecondary,
+                fontWeight: bold ? FontWeight.w800 : FontWeight.w500,
+              ),
+            ),
+          ),
+          Text(
+            v,
+            style: TextStyle(
+              fontWeight: bold ? FontWeight.w900 : FontWeight.w700,
+              fontSize: bold ? 17 : 14,
+            ),
+          ),
+        ],
+      ),
+    );
+
+    return Padding(
+      padding: EdgeInsets.only(bottom: MediaQuery.viewInsetsOf(context).bottom),
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text(
+              d.name,
+              style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w900),
+            ),
+            Text(
+              '${d.model} · ${d.condition.label}',
+              style: TextStyle(color: LoopColors.textSecondary),
+            ),
+            const SizedBox(height: 16),
+            const Text(
+              'Dostava',
+              style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16),
+            ),
+            const SizedBox(height: 8),
+            Consumer(
+              builder: (context, ref, _) => DeliveryPicker(
+                methods: DeliveryService.methodsFor(d),
+                savedAddress: ref.read(appProvider).currentUser?.address,
+                onChanged: (c) => setState(() {
+                  _choice = c;
+                  _error = null;
+                }),
+              ),
+            ),
+            const SizedBox(height: 12),
+            Card(
+              child: Padding(
+                padding: const EdgeInsets.all(14),
+                child: Column(
+                  children: [
+                    row('Cijena', formatCredits(d.price)),
+                    row('Fee (5%)', '+ ${formatCredits(feeFor(d.price))}'),
+                    row(
+                      'Dostava',
+                      shipping == 0
+                          ? 'besplatno'
+                          : '+ ${formatCredits(shipping)}',
+                    ),
+                    const Divider(height: 16),
+                    row('Ukupno', formatCredits(total), bold: true),
+                    row(
+                      'Krediti nakon kupnje',
+                      formatCredits(widget.credits - total),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            if (_error != null) ...[
+              const SizedBox(height: 8),
+              Text(_error!, style: TextStyle(color: LoopColors.error)),
+            ],
+            const SizedBox(height: 14),
+            if (enough)
+              FilledButton.icon(
+                onPressed: _choice == null
+                    ? null
+                    : () {
+                        final err = DeliveryService.validate(
+                          _choice!.method,
+                          _choice!.destination,
+                        );
+                        if (err != null) {
+                          setState(() => _error = err);
+                          return;
+                        }
+                        Navigator.pop(context, _choice);
+                      },
+                icon: const Icon(Icons.lock_outline),
+                label: const Text('Potvrdi kupnju'),
+              )
+            else
+              FilledButton.icon(
+                onPressed: () async {
+                  final ok = await BuyCreditsScreen.open(
+                    context,
+                    needed: total - widget.credits,
+                  );
+                  if (ok && context.mounted) Navigator.pop(context);
+                },
+                icon: const Icon(Icons.add_card),
+                label: Text(
+                  'Nedostaje ${formatCredits(total - widget.credits)} — kupi kredite',
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
 }
 
 /// Srce na uređaju: dodaje/uklanja iz favorita uz kratku poruku.

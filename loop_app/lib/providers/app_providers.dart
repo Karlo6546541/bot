@@ -6,6 +6,9 @@ import '../models/loop_transaction.dart';
 import '../models/auction.dart';
 import '../services/auction_service.dart';
 import '../services/credit_shop.dart';
+import '../services/delivery_service.dart';
+import '../services/fee.dart';
+import '../models/delivery.dart';
 import '../services/image_store.dart';
 import '../utils/formatters.dart';
 import '../widgets/loop_snackbar.dart';
@@ -23,6 +26,10 @@ final imageStoreProvider = Provider<ImageStore>((ref) => ImageStore());
 
 final tradeServiceProvider = Provider<TradeService>(
   (ref) => TradeService(ref.watch(storageProvider)),
+);
+
+final deliveryServiceProvider = Provider<DeliveryService>(
+  (ref) => DeliveryService(ref.watch(storageProvider)),
 );
 
 final creditShopProvider = Provider<CreditShop>(
@@ -134,10 +141,61 @@ class AppController extends Notifier<AppState> {
     return tx;
   }
 
-  Future<LoopTransaction> buy(String deviceId) async {
-    final tx = await _trade.buy(userId: _requireUserId(), deviceId: deviceId);
+  /// Kupnja iz Marketa s odabranom dostavom. Najprije se provjeri da
+  /// krediti pokrivaju predmet + fee + dostavu, pa tek onda kupuje.
+  Future<LoopTransaction> buy(
+    String deviceId, {
+    DeliveryMethod method = DeliveryMethod.pickup,
+    String? destination,
+  }) async {
+    final userId = _requireUserId();
+    final device = state.deviceById(deviceId);
+    final user = state.currentUser!;
+    if (device == null) throw const TradeException('Predmet ne postoji.');
+    final error = DeliveryService.validate(method, destination);
+    if (error != null) throw TradeException(error);
+    final total = buyTotal(device.price) + method.cost;
+    if (user.credits < total) {
+      throw TradeException(
+        'Nemaš dovoljno kredita: treba ${formatCredits(total)} '
+        '(s feejem i dostavom), imaš ${formatCredits(user.credits)}.',
+      );
+    }
+    final tx = await _trade.buy(userId: userId, deviceId: deviceId);
+    await ref
+        .read(deliveryServiceProvider)
+        .createForPurchase(
+          userId: userId,
+          device: device,
+          method: method,
+          destination: destination,
+        );
     _refresh();
     return tx;
+  }
+
+  /// Pobjednik aukcije bira način dostave.
+  Future<void> chooseDelivery(
+    String deliveryId,
+    DeliveryMethod method,
+    String? destination,
+  ) async {
+    await ref
+        .read(deliveryServiceProvider)
+        .choose(
+          userId: _requireUserId(),
+          deliveryId: deliveryId,
+          method: method,
+          destination: destination,
+        );
+    _refresh();
+  }
+
+  Future<void> confirmReceipt(String deliveryId) async {
+    await ref
+        .read(deliveryServiceProvider)
+        .confirmReceipt(_requireUserId(), deliveryId);
+    _refresh();
   }
 
   Future<bool> toggleFavorite(String deviceId) async {

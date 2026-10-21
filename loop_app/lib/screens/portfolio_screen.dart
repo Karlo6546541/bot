@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../models/device.dart';
+import '../models/delivery.dart';
 import '../models/portfolio_point.dart';
 import '../models/user_status.dart';
 import '../providers/app_providers.dart';
@@ -17,6 +18,7 @@ import '../widgets/trade_actions.dart';
 import 'add_device_screen.dart';
 import 'auction_detail_screen.dart';
 import 'buy_credits_screen.dart';
+import 'deliveries_screen.dart';
 import 'device_detail_screen.dart';
 
 /// Početna stranica: krediti, status, vrijednost i uređaji korisnika.
@@ -52,6 +54,13 @@ class PortfolioScreen extends ConsumerWidget {
             ),
           ),
         ),
+        if (state.myOpenDeliveries.isNotEmpty)
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+              child: _DeliveryBanner(deliveries: state.myOpenDeliveries),
+            ),
+          ),
         const SliverToBoxAdapter(
           child: Padding(
             padding: EdgeInsets.fromLTRB(16, 0, 16, 16),
@@ -756,6 +765,58 @@ class _Glow extends StatelessWidget {
         shape: BoxShape.circle,
         gradient: RadialGradient(
           colors: [color.withValues(alpha: 0.22), color.withValues(alpha: 0)],
+        ),
+      ),
+    );
+  }
+}
+
+/// Traka s pošiljkama u tijeku; dodir otvara "Moje dostave".
+class _DeliveryBanner extends StatelessWidget {
+  const _DeliveryBanner({required this.deliveries});
+  final List<Delivery> deliveries;
+
+  @override
+  Widget build(BuildContext context) {
+    final first = deliveries.first;
+    final waiting = deliveries.where((d) => d.awaitingChoice).length;
+    final text = waiting > 0
+        ? 'Odaberi dostavu za osvojeni predmet ($waiting)'
+        : '${first.deviceName}: ${first.status(DateTime.now()).label}';
+    return Material(
+      color: LoopColors.sky,
+      borderRadius: BorderRadius.circular(kRadius),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(kRadius),
+        onTap: () => DeliveriesScreen.open(context),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+          child: Row(
+            children: [
+              const Text('🚚', style: TextStyle(fontSize: 24)),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      deliveries.length == 1
+                          ? '1 dostava u tijeku'
+                          : '${deliveries.length} dostave u tijeku',
+                      style: const TextStyle(fontWeight: FontWeight.w900),
+                    ),
+                    Text(
+                      text,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(color: LoopColors.textSecondary),
+                    ),
+                  ],
+                ),
+              ),
+              Icon(Icons.chevron_right, color: LoopColors.textSecondary),
+            ],
+          ),
         ),
       ),
     );

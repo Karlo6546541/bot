@@ -30,6 +30,12 @@ class AdminDashboardScreen extends ConsumerWidget {
         '${s.activeAuctions.length}',
         sub: 'aktivnih · ${s.auctions.length} ukupno',
       ),
+      _Tile(
+        Icons.local_shipping_outlined,
+        'Dostave',
+        '${s.deliveries.where((d) => !d.isDelivered(DateTime.now())).length}',
+        sub: 'u tijeku · ${s.deliveries.length} ukupno',
+      ),
       _Tile(Icons.swap_horiz, 'Transakcije', '${s.transactions.length}'),
       _Tile(
         Icons.stacked_line_chart,

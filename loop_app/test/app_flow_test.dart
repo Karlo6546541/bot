@@ -58,9 +58,11 @@ void main() {
       await tester.pumpAndSettle();
       await tester.tap(find.text('Kupi odmah'));
       await tester.pumpAndSettle();
+      await tester.ensureVisible(find.text('Potvrdi kupnju'));
+      await tester.pumpAndSettle();
       await tester.tap(find.text('Potvrdi kupnju'));
       await tester.pumpAndSettle();
-      expect(find.text('Uspješno kupljeno'), findsOneWidget);
+      expect(find.textContaining('Uspješno kupljeno'), findsOneWidget);
 
       // Aktivnost: najnovije na vrhu
       await tester.tap(find.text('Aktivnost').last);
@@ -276,5 +278,50 @@ void main() {
     // Predložen je najmanji paket koji pokriva manjak (734,50 → 1000).
     await tester.scrollUntilVisible(find.text('Plati 1.000,00 €'), 200);
     expect(find.text('Plati 1.000,00 €'), findsOneWidget);
+  });
+
+  testWidgets('kupnja s dostavom kurirom i praćenje pošiljke', (tester) async {
+    tester.view.physicalSize = const Size(1400, 1000);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+
+    await tester.pumpWidget(await buildApp(tester));
+    await tester.ensureVisible(find.text('Prijavi se'));
+    await tester.tap(find.text('Prijavi se'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Market').last);
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byType(TextField).first, 'AirPods');
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Kupi odmah'));
+    await tester.pumpAndSettle();
+
+    // Kurir bez adrese → greška; s adresom → kupnja.
+    await tester.tap(find.text('Kurir na adresu'));
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(find.text('Potvrdi kupnju'));
+    await tester.tap(find.text('Potvrdi kupnju'));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('Upiši adresu'), findsOneWidget);
+    await tester.enterText(
+      find.widgetWithText(TextField, 'Adresa za dostavu'),
+      'Ilica 1, 10000 Zagreb',
+    );
+    await tester.pumpAndSettle();
+    expect(find.text('200,25 kredita'), findsOneWidget); // 185 + 9,25 + 6
+    await tester.ensureVisible(find.text('Potvrdi kupnju'));
+    await tester.tap(find.text('Potvrdi kupnju'));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('Uspješno kupljeno'), findsOneWidget);
+
+    // Moje dostave iz Profila.
+    await tester.tap(find.text('Profil').last);
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(find.text('Moje dostave (1 u tijeku)'));
+    await tester.tap(find.text('Moje dostave (1 u tijeku)'));
+    await tester.pumpAndSettle();
+    expect(find.text('AirPods Pro 2 USB-C'), findsOneWidget);
+    expect(find.text('Naručeno'), findsOneWidget);
+    expect(find.textContaining('LOOP-'), findsOneWidget);
   });
 }

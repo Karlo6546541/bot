@@ -4,6 +4,7 @@ import 'package:hive_flutter/hive_flutter.dart';
 
 import '../models/app_user.dart';
 import '../models/auction.dart';
+import '../models/delivery.dart';
 import '../models/device.dart';
 import '../models/loop_transaction.dart';
 import '../models/portfolio_point.dart';
@@ -18,6 +19,17 @@ class StorageService {
   static const _sessionBox = 'session';
   static const _historyBox = 'history';
   static const _auctionsBox = 'auctions';
+  static const _deliveriesBox = 'deliveries';
+
+  /// Tablice koje se sinkroniziraju s online bazom (sesija ostaje lokalna).
+  static const syncedTables = [
+    _usersBox,
+    _devicesBox,
+    _transactionsBox,
+    _historyBox,
+    _auctionsBox,
+    _deliveriesBox,
+  ];
 
   /// Povećaj kad se seed proširi — postojeće instalacije tada dobiju
   /// nove demo predmete bez resetiranja (vidi [_migrateSeed]).
@@ -39,6 +51,36 @@ class StorageService {
   late Box _session;
   late Box<Map> _history;
   late Box<Map> _auctions;
+  late Box<Map> _deliveries;
+
+  /// Poziva se nakon svake lokalne promjene (za sinkronizaciju s online
+  /// bazom). `data == null` znači brisanje.
+  void Function(String table, String id, Map<String, dynamic>? data)?
+  onLocalChange;
+
+  Map<String, Box<Map>> get _tables => {
+    _usersBox: _users,
+    _devicesBox: _devices,
+    _transactionsBox: _transactions,
+    _historyBox: _history,
+    _auctionsBox: _auctions,
+    _deliveriesBox: _deliveries,
+  };
+
+  /// Svi zapisi prolaze ovuda kako bi ih sinkronizacija vidjela.
+  Future<void> _write(
+    String table,
+    String id,
+    Map<String, dynamic> data,
+  ) async {
+    await _tables[table]!.put(id, data);
+    onLocalChange?.call(table, id, data);
+  }
+
+  Future<void> _remove(String table, String id) async {
+    await _tables[table]!.delete(id);
+    onLocalChange?.call(table, id, null);
+  }
 
   /// Otvara boxove i puni demo podatke pri prvom pokretanju.
   /// [path] i [inMemory] koriste se u testovima; u aplikaciji Hive sam
@@ -57,6 +99,7 @@ class StorageService {
     _session = await Hive.openBox(_sessionBox, bytes: bytes);
     _history = await Hive.openBox<Map>(_historyBox, bytes: bytes);
     _auctions = await Hive.openBox<Map>(_auctionsBox, bytes: bytes);
+    _deliveries = await Hive.openBox<Map>(_deliveriesBox, bytes: bytes);
 
     if (_session.get(_seededKey) != true) {
       await _seed();
@@ -72,7 +115,7 @@ class StorageService {
     final newUsers = <String>{};
     for (final u in SeedData.users(now)) {
       if (!_users.containsKey(u.id)) {
-        await _users.put(u.id, u.toMap());
+        await _write(_usersBox, u.id, u.toMap());
         newUsers.add(u.id);
       }
     }
@@ -81,14 +124,14 @@ class StorageService {
       // Predmeti iz Marketa, ili predmeti upravo dodanih demo korisnika.
       if (!_devices.containsKey(d.id) &&
           (owner == null || newUsers.contains(owner))) {
-        await _devices.put(d.id, d.toMap());
+        await _write(_devicesBox, d.id, d.toMap());
       }
     }
     // Aukcije samo ako su i prodavatelj i predmet upravo dodani —
     // inače bi blokirani krediti ponuđača bili neusklađeni.
     for (final a in SeedData.auctions(now)) {
       if (!_auctions.containsKey(a.id) && newUsers.contains(a.sellerId)) {
-        await _auctions.put(a.id, a.toMap());
+        await _write(_auctionsBox, a.id, a.toMap());
       }
     }
     // Korisnici iz starije verzije dobivaju prvu točku povijesti.
@@ -101,16 +144,16 @@ class StorageService {
   Future<void> _seed() async {
     final now = DateTime.now();
     for (final u in SeedData.users(now)) {
-      await _users.put(u.id, u.toMap());
+      await _write(_usersBox, u.id, u.toMap());
     }
     for (final d in SeedData.devices(now)) {
-      await _devices.put(d.id, d.toMap());
+      await _write(_devicesBox, d.id, d.toMap());
     }
     for (final a in SeedData.auctions(now)) {
-      await _auctions.put(a.id, a.toMap());
+      await _write(_auctionsBox, a.id, a.toMap());
     }
     for (final entry in SeedData.history(now).entries) {
-      await _history.put(entry.key, {
+      await _write(_historyBox, entry.key, {
         'points': [for (final p in entry.value) p.toMap()],
       });
     }
@@ -129,6 +172,7 @@ class StorageService {
     if (theme != null) await _session.put(_themeKey, theme);
     await _history.clear();
     await _auctions.clear();
+    await _deliveries.clear();
     await _seed();
   }
 
@@ -163,17 +207,18 @@ class StorageService {
 
   // ---------------------------------------------------------------- pisanje
 
-  Future<void> putUser(AppUser user) => _users.put(user.id, user.toMap());
+  Future<void> putUser(AppUser user) =>
+      _write(_usersBox, user.id, user.toMap());
 
   Future<void> putDevice(Device device) =>
-      _devices.put(device.id, device.toMap());
+      _write(_devicesBox, device.id, device.toMap());
 
   Future<void> putTransaction(LoopTransaction tx) =>
-      _transactions.put(tx.id, tx.toMap());
+      _write(_transactionsBox, tx.id, tx.toMap());
 
-  Future<void> deleteUser(String id) => _users.delete(id);
+  Future<void> deleteUser(String id) => _remove(_usersBox, id);
 
-  Future<void> deleteDevice(String id) => _devices.delete(id);
+  Future<void> deleteDevice(String id) => _remove(_devicesBox, id);
 
   // --------------------------------------------------------------- povijest
 
@@ -195,12 +240,12 @@ class StorageService {
     final trimmed = points.length > _maxHistory
         ? points.sublist(points.length - _maxHistory)
         : points;
-    await _history.put(userId, {
+    await _write(_historyBox, userId, {
       'points': [for (final p in trimmed) p.toMap()],
     });
   }
 
-  Future<void> deleteHistory(String userId) => _history.delete(userId);
+  Future<void> deleteHistory(String userId) => _remove(_historyBox, userId);
 
   // ---------------------------------------------------------------- aukcije
 
@@ -212,7 +257,7 @@ class StorageService {
     return map == null ? null : Auction.fromMap(map);
   }
 
-  Future<void> putAuction(Auction a) => _auctions.put(a.id, a.toMap());
+  Future<void> putAuction(Auction a) => _write(_auctionsBox, a.id, a.toMap());
 
   /// Aktivna aukcija za predmet (najviše jedna).
   Auction? activeAuctionFor(String deviceId) {
@@ -243,6 +288,59 @@ class StorageService {
         portfolio: (portfolio * 100).round() / 100,
       ),
     );
+  }
+
+  // ---------------------------------------------------------------- dostave
+
+  List<Delivery> get deliveries =>
+      _deliveries.values.map(Delivery.fromMap).toList(growable: false);
+
+  Delivery? deliveryById(String id) {
+    final map = _deliveries.get(id);
+    return map == null ? null : Delivery.fromMap(map);
+  }
+
+  Future<void> putDelivery(Delivery d) =>
+      _write(_deliveriesBox, d.id, d.toMap());
+
+  // ---------------------------------------------------------- sinkronizacija
+
+  /// Svi sinkronizirani zapisi: tablica → (id → podaci).
+  Map<String, Map<String, Map<String, dynamic>>> exportAll() => {
+    for (final t in syncedTables)
+      t: {
+        for (final e in _tables[t]!.toMap().entries)
+          e.key.toString(): Map<String, dynamic>.from(e.value),
+      },
+  };
+
+  bool get hasData => _users.isNotEmpty;
+
+  /// Promjena stigla iz online baze — sprema se BEZ [onLocalChange]
+  /// (inače bi se vratila natrag u bazu).
+  Future<void> applyRemote(
+    String table,
+    String id,
+    Map<String, dynamic>? data,
+  ) async {
+    final box = _tables[table];
+    if (box == null) return;
+    if (data == null) {
+      await box.delete(id);
+    } else {
+      await box.put(id, data);
+    }
+  }
+
+  /// Zamjenjuje sve lokalne podatke onima iz online baze.
+  Future<void> replaceAllFromRemote(
+    Map<String, Map<String, Map<String, dynamic>>> data,
+  ) async {
+    for (final t in syncedTables) {
+      final box = _tables[t]!;
+      await box.clear();
+      await box.putAll(data[t] ?? const {});
+    }
   }
 
   // ----------------------------------------------------------------- sesija

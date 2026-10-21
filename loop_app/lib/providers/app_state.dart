@@ -2,6 +2,7 @@ import 'package:flutter/material.dart' show ThemeMode;
 
 import '../models/app_user.dart';
 import '../models/auction.dart';
+import '../models/delivery.dart';
 import '../models/device.dart';
 import '../models/loop_transaction.dart';
 import '../models/portfolio_point.dart';
@@ -19,6 +20,7 @@ class AppState {
     required this.isAdmin,
     this.myHistory = const [],
     this.auctions = const [],
+    this.deliveries = const [],
     this.themeMode = ThemeMode.light,
     this.showHowItWorks = true,
   });
@@ -41,6 +43,8 @@ class AppState {
         orElse: () => ThemeMode.light,
       ),
       showHowItWorks: !storage.howItWorksDismissed,
+      deliveries: [...storage.deliveries]
+        ..sort((a, b) => b.createdAt.compareTo(a.createdAt)),
       auctions: [...storage.auctions]
         ..sort((a, b) => a.endsAt.compareTo(b.endsAt)),
       myHistory: storage.currentUserId == null
@@ -66,6 +70,17 @@ class AppState {
 
   /// Sve aukcije, sortirane po vremenu završetka.
   final List<Auction> auctions;
+
+  /// Sve pošiljke, najnovije prvo.
+  final List<Delivery> deliveries;
+
+  List<Delivery> get myDeliveries => currentUserId == null
+      ? const []
+      : deliveries.where((d) => d.buyerId == currentUserId).toList();
+
+  /// Pošiljke koje još nisu potvrđene (za prikaz "u tijeku").
+  List<Delivery> get myOpenDeliveries =>
+      myDeliveries.where((d) => d.confirmedAt == null).toList();
 
   List<Auction> get activeAuctions =>
       auctions.where((a) => a.isActive).toList();

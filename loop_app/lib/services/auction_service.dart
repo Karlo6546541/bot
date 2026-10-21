@@ -4,6 +4,7 @@ import '../models/auction.dart';
 import '../models/loop_transaction.dart';
 import '../utils/formatters.dart';
 import 'auction_policy.dart';
+import 'delivery_service.dart';
 import 'fee.dart';
 import 'storage_service.dart';
 import 'trade_service.dart';
@@ -274,6 +275,13 @@ class AuctionService {
     );
     await _storage.recordSnapshot(seller.id, now: at);
     await _storage.recordSnapshot(winner.id, now: at);
+    // Pobjednik bira način dostave u "Moje dostave".
+    await DeliveryService(_storage).createPending(
+      userId: winner.id,
+      deviceId: device.id,
+      deviceName: a.deviceName,
+      now: at,
+    );
     return AuctionResult(done, winnerId: winner.id);
   }
 

@@ -7,6 +7,7 @@ import '../widgets/formatters.dart';
 import '../widgets/status_badge.dart';
 import '../widgets/trade_actions.dart';
 import 'buy_credits_screen.dart';
+import 'deliveries_screen.dart';
 
 class ProfileScreen extends ConsumerWidget {
   const ProfileScreen({super.key});
@@ -120,6 +121,16 @@ class ProfileScreen extends ConsumerWidget {
                   onPressed: () => BuyCreditsScreen.open(context),
                   icon: const Icon(Icons.add_card),
                   label: const Text('Kupi kredite'),
+                ),
+                const SizedBox(height: 10),
+                OutlinedButton.icon(
+                  onPressed: () => DeliveriesScreen.open(context),
+                  icon: const Icon(Icons.local_shipping_outlined),
+                  label: Text(
+                    state.myOpenDeliveries.isEmpty
+                        ? 'Moje dostave'
+                        : 'Moje dostave (${state.myOpenDeliveries.length} u tijeku)',
+                  ),
                 ),
                 const SizedBox(height: 20),
                 const Text(
