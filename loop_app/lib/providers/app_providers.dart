@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 
 import 'package:flutter/material.dart' show ThemeMode;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -129,6 +130,8 @@ class AppController extends Notifier<AppState> {
     // link iz e-maila (potvrda, nova lozinka), istek sesije.
     final sub = ref.watch(authBackendProvider).events.listen(_onAuthEvent);
     ref.onDispose(sub.cancel);
+    // Računi kojima je istekao rok za predomišljanje brišu se trajno.
+    Future.microtask(_purgeDeletedAccounts);
     return AppState.fromStorage(ref.watch(storageProvider));
   }
 
@@ -304,6 +307,84 @@ class AppController extends Notifier<AppState> {
     final old = await _accounts.setAvatar(_requireUserId(), null);
     if (old != null) await ref.read(imageStoreProvider).delete([old]);
     _refresh();
+  }
+
+  // ------------------------------------------------------- brisanje računa
+
+  List<String> get deletionBlockers {
+    final id = state.currentUser?.id;
+    return id == null ? const [] : _accounts.deletionBlockers(id);
+  }
+
+  /// Aukcije bez ponuda se otkazuju (s ponudama blokiraju brisanje).
+  Future<void> _cancelOpenAuctions(String userId) async {
+    for (final a in state.activeAuctions) {
+      if (a.sellerId == userId && a.bids.isEmpty) {
+        await _auctions.cancelBySeller(userId, a.id);
+      }
+    }
+  }
+
+  /// Zakaži brisanje (7 dana za predomišljanje) i odjavi se.
+  Future<void> requestAccountDeletion(String confirmUsername) async {
+    final id = _requireUserId();
+    final blockers = _accounts.deletionBlockers(id);
+    if (blockers.isNotEmpty) throw TradeException(blockers.join('\n'));
+    final user = state.currentUser!;
+    if (confirmUsername.trim().replaceFirst('@', '').toLowerCase() !=
+        user.username) {
+      throw TradeException(
+        t('Za potvrdu upiši svoje korisničko ime: {0}', [user.handle]),
+      );
+    }
+    await _cancelOpenAuctions(id);
+    await _accounts.requestDeletion(id, confirmUsername: confirmUsername);
+    await logout();
+  }
+
+  /// Odmah i trajno.
+  Future<void> deleteAccountNow(String confirmUsername) async {
+    final id = _requireUserId();
+    final email = _currentEmail;
+    final blockers = _accounts.deletionBlockers(id);
+    if (blockers.isNotEmpty) throw TradeException(blockers.join('\n'));
+    if (confirmUsername.trim().replaceFirst('@', '').toLowerCase() !=
+        state.currentUser!.username) {
+      throw TradeException(
+        t('Za potvrdu upiši svoje korisničko ime: {0}', [
+          state.currentUser!.handle,
+        ]),
+      );
+    }
+    await _cancelOpenAuctions(id);
+    final images = await _accounts.deleteNow(
+      id,
+      confirmUsername: confirmUsername,
+      email: email,
+    );
+    await ref.read(imageStoreProvider).delete(images);
+    ref.read(homeTabProvider.notifier).select(0);
+    await _storage.saveSession();
+    _refresh();
+  }
+
+  Future<void> _purgeDeletedAccounts() async {
+    if (!ref.mounted) return;
+    try {
+      final images = await _accounts.purgeExpired();
+      if (images.isNotEmpty) await ref.read(imageStoreProvider).delete(images);
+      if (ref.mounted) _refresh();
+    } catch (_) {
+      // Pokušat će ponovno pri sljedećem pokretanju.
+    }
+  }
+
+  /// Svi podaci trenutnog korisnika kao JSON (izvoz).
+  String exportMyData() {
+    final id = _requireUserId();
+    return const JsonEncoder.withIndent(
+      '  ',
+    ).convert(_accounts.exportData(id, email: _currentEmail));
   }
 
   Future<void> verifyEmailDemo() async {

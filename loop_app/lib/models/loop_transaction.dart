@@ -75,6 +75,24 @@ class LoopTransaction {
   /// Fee koji je korisnik platio (na aukciji ga plaća samo prodavatelj).
   double feeFor(String userId) => _isAuctionBuyer(userId) ? 0 : fee;
 
+  /// Kopija u kojoj je ime obrisanog korisnika zamijenjeno s [label].
+  LoopTransaction anonymize(String userId, String label) => LoopTransaction(
+    id: id,
+    type: type,
+    userId: this.userId,
+    deviceId: deviceId,
+    deviceName: deviceName,
+    price: price,
+    fee: fee,
+    amount: amount,
+    buyerId: buyerId,
+    sellerId: sellerId,
+    buyerLabel: buyerId == userId ? label : buyerLabel,
+    sellerLabel: sellerId == userId ? label : sellerLabel,
+    createdAt: createdAt,
+    isAuction: isAuction,
+  );
+
   Map<String, dynamic> toMap() => {
     'id': id,
     'type': type.name,

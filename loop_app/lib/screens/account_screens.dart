@@ -5,6 +5,7 @@ import '../l10n/tr.dart';
 import '../models/app_user.dart';
 import '../providers/app_providers.dart';
 import '../services/account_service.dart';
+import '../services/file_saver/file_saver.dart';
 import '../services/trade_service.dart';
 import '../theme/app_theme.dart';
 import '../widgets/adaptive_shell.dart';
@@ -527,5 +528,221 @@ class _ChangePasswordState extends ConsumerState<_ChangePassword> {
         ),
       ],
     );
+  }
+}
+
+/// Brisanje računa: pravila, posljedice i potvrda korisničkim imenom.
+class DeleteAccountScreen extends ConsumerStatefulWidget {
+  const DeleteAccountScreen({super.key});
+
+  static Future<void> open(BuildContext context) => Navigator.of(
+    context,
+  ).push(MaterialPageRoute<void>(builder: (_) => const DeleteAccountScreen()));
+
+  @override
+  ConsumerState<DeleteAccountScreen> createState() =>
+      _DeleteAccountScreenState();
+}
+
+class _DeleteAccountScreenState extends ConsumerState<DeleteAccountScreen> {
+  final _confirm = TextEditingController();
+  bool _busy = false;
+
+  @override
+  void dispose() {
+    _confirm.dispose();
+    super.dispose();
+  }
+
+  Future<void> _run(Future<void> Function() action, String done) async {
+    setState(() => _busy = true);
+    final navigator = Navigator.of(context);
+    try {
+      await action();
+      navigator.popUntil((r) => r.isFirst);
+      showLoopSnackBar(done);
+    } on TradeException catch (e) {
+      showLoopSnackBar(e.message, error: true);
+    } catch (e) {
+      showLoopSnackBar(t('Greška: {0}', [e]), error: true);
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final state = ref.watch(appProvider);
+    final user = state.currentUser;
+    if (user == null) return const SizedBox.shrink();
+    final controller = ref.read(appProvider.notifier);
+    final blockers = controller.deletionBlockers;
+    final matches =
+        _confirm.text.trim().replaceFirst('@', '').toLowerCase() ==
+        user.username;
+    final canDelete = blockers.isEmpty && matches && !_busy;
+    final items = state.myDevices.length;
+    final bullet = TextStyle(height: 1.5, color: LoopColors.textPrimary);
+
+    return Scaffold(
+      appBar: AppBar(title: Text(t('Obriši račun'))),
+      body: Align(
+        alignment: Alignment.topCenter,
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 560),
+          child: ListView(
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 32),
+            children: [
+              Card(
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        t('Što se događa'),
+                        style: const TextStyle(
+                          fontWeight: FontWeight.w900,
+                          fontSize: 16,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        t('• Gubiš {0} — krediti se ne mogu isplatiti.', [
+                          formatCredits(user.credits),
+                        ]),
+                        style: bullet.copyWith(
+                          fontWeight: FontWeight.w800,
+                          color: LoopColors.error,
+                        ),
+                      ),
+                      Text(
+                        t(
+                          '• Briše se {0} tvojih predmeta i njihove objave u Marketu.',
+                          [items],
+                        ),
+                        style: bullet,
+                      ),
+                      Text(
+                        t(
+                          '• Drugima povijest kupnji ostaje, ali umjesto tvog imena piše @obrisani.',
+                        ),
+                        style: bullet,
+                      ),
+                      Text(
+                        t(
+                          '• Aukcije bez ponuda se otkazuju, a korisničko ime se oslobađa.',
+                        ),
+                        style: bullet,
+                      ),
+                      Text(
+                        t(
+                          '• Imaš {0} dana za predomišljanje: prijavi se i račun se vraća.',
+                          [AppUser.deletionGraceDays],
+                        ),
+                        style: bullet,
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 12),
+              OutlinedButton.icon(
+                onPressed: () => exportMyData(context, ref),
+                icon: const Icon(Icons.download_outlined),
+                label: Text(t('Prvo preuzmi moje podatke')),
+              ),
+              if (blockers.isNotEmpty) ...[
+                const SizedBox(height: 16),
+                Container(
+                  padding: const EdgeInsets.all(14),
+                  decoration: BoxDecoration(
+                    color: LoopColors.error.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(kRadius),
+                    border: Border.all(
+                      color: LoopColors.error.withValues(alpha: 0.4),
+                    ),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        t('Račun se još ne može obrisati:'),
+                        style: TextStyle(
+                          fontWeight: FontWeight.w900,
+                          color: LoopColors.error,
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      for (final b in blockers)
+                        Text('• $b', style: const TextStyle(height: 1.5)),
+                    ],
+                  ),
+                ),
+              ],
+              const SizedBox(height: 20),
+              TextField(
+                key: const ValueKey('delete-confirm'),
+                controller: _confirm,
+                enabled: blockers.isEmpty,
+                onChanged: (_) => setState(() {}),
+                decoration: InputDecoration(
+                  labelText: t('Za potvrdu upiši {0}', [user.handle]),
+                  prefixIcon: const Icon(Icons.warning_amber_outlined),
+                ),
+              ),
+              const SizedBox(height: 16),
+              FilledButton.icon(
+                key: const ValueKey('delete-schedule'),
+                style: FilledButton.styleFrom(
+                  backgroundColor: LoopColors.error,
+                  foregroundColor: Colors.white,
+                ),
+                onPressed: canDelete
+                    ? () => _run(
+                        () => controller.requestAccountDeletion(_confirm.text),
+                        t(
+                          'Račun će biti obrisan za {0} dana. Prijavi se u tom roku ako se predomisliš.',
+                          [AppUser.deletionGraceDays],
+                        ),
+                      )
+                    : null,
+                icon: const Icon(Icons.schedule),
+                label: Text(
+                  t('Obriši račun (za {0} dana)', [AppUser.deletionGraceDays]),
+                ),
+              ),
+              const SizedBox(height: 8),
+              TextButton(
+                style: TextButton.styleFrom(foregroundColor: LoopColors.error),
+                onPressed: canDelete
+                    ? () => _run(
+                        () => controller.deleteAccountNow(_confirm.text),
+                        t('Račun je trajno obrisan.'),
+                      )
+                    : null,
+                child: Text(t('Obriši odmah, bez povratka')),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Preuzimanje svih vlastitih podataka (JSON).
+Future<void> exportMyData(BuildContext context, WidgetRef ref) async {
+  try {
+    final json = ref.read(appProvider.notifier).exportMyData();
+    final user = ref.read(appProvider).currentUser!;
+    final name =
+        'loop-${user.username}-${DateTime.now().toIso8601String().substring(0, 10)}.json';
+    final where = await saveTextFile(name, json);
+    showLoopSnackBar(t('Podaci spremljeni: {0}', [where]));
+  } on TradeException catch (e) {
+    showLoopSnackBar(e.message, error: true);
+  } catch (e) {
+    showLoopSnackBar(t('Greška: {0}', [e]), error: true);
   }
 }

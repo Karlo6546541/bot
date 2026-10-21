@@ -24,6 +24,7 @@ Future<Widget> buildApp(WidgetTester tester) async {
 void main() {
   accountTests();
   listingTests();
+  deletionTests();
   for (final size in const [Size(1400, 1000), Size(400, 860)]) {
     testWidgets('login → prodaja → kupnja → aktivnost ($size)', (tester) async {
       tester.view.physicalSize = size;
@@ -507,5 +508,56 @@ void listingTests() {
     await tester.pumpAndSettle();
     expect(find.text('Predmet obrisan'), findsOneWidget);
     expect(find.text('iPhone 13'), findsNothing);
+  });
+}
+
+void deletionTests() {
+  testWidgets('brisanje računa uz potvrdu imenom, povratak prijavom', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(1400, 1000);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+
+    await tester.pumpWidget(await buildApp(tester));
+    await tester.ensureVisible(find.text('Prijavi se'));
+    await tester.tap(find.text('Prijavi se'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Profil').last);
+    await tester.pumpAndSettle();
+    await tester.scrollUntilVisible(find.text('Obriši račun'), 200);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Obriši račun'));
+    await tester.pumpAndSettle();
+    expect(
+      find.text('• Gubiš 1.250 kredita — krediti se ne mogu isplatiti.'),
+      findsOneWidget,
+    );
+
+    // Gumb je onemogućen dok se ne upiše korisničko ime.
+    final button = find.byKey(const ValueKey('delete-schedule'));
+    expect(tester.widget<ButtonStyleButton>(button).enabled, isFalse);
+    await tester.enterText(
+      find.byKey(const ValueKey('delete-confirm')),
+      '@demo',
+    );
+    await tester.pumpAndSettle();
+    expect(tester.widget<ButtonStyleButton>(button).enabled, isTrue);
+    await tester.tap(button);
+    await tester.pumpAndSettle();
+    expect(
+      find.textContaining('Račun će biti obrisan za 7 dana'),
+      findsOneWidget,
+    );
+    expect(find.text('Prijavi se'), findsWidgets); // odjavljen
+
+    // Ponovna prijava vraća račun.
+    await tester.ensureVisible(find.text('Prijavi se').last);
+    await tester.tap(find.text('Prijavi se').last);
+    await tester.pumpAndSettle();
+    expect(
+      find.text('Dobro došao natrag! Brisanje računa je otkazano.'),
+      findsOneWidget,
+    );
   });
 }

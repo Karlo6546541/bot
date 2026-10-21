@@ -122,6 +122,10 @@ abstract class AuthBackend {
   /// Trajno briše račun za prijavu (podatke profila briše aplikacija).
   Future<void> deleteAccount({required String email, String? uid});
 
+  /// Briše račune za prijavu kojima je istekao rok za predomišljanje
+  /// (online: funkcija u bazi; lokalno: lozinke briše aplikacija).
+  Future<void> purgeDeleted();
+
   Stream<AuthEvent> get events;
 }
 
@@ -262,6 +266,9 @@ class LocalAuthBackend implements AuthBackend {
   @override
   Future<void> deleteAccount({required String email, String? uid}) =>
       _storage.deleteCredential(email.trim().toLowerCase());
+
+  @override
+  Future<void> purgeDeleted() async {}
 }
 
 // ---------------------------------------------------------------- online
@@ -462,6 +469,15 @@ class SupabaseAuthBackend implements AuthBackend {
       e.code == 'PGRST202' ||
       e.message.contains('does not exist') ||
       e.message.contains('Could not find');
+
+  @override
+  Future<void> purgeDeleted() async {
+    try {
+      await _client.rpc('loop_purge_deleted');
+    } catch (_) {
+      // Funkcija možda još nije u bazi — podaci profila se ipak brišu.
+    }
+  }
 
   @override
   Future<void> deleteAccount({required String email, String? uid}) async {

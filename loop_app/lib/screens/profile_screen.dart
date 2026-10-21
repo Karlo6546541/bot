@@ -373,6 +373,26 @@ class _AccountCard extends ConsumerWidget {
           ],
           const Divider(height: 1),
           ListTile(
+            leading: const Icon(Icons.download_outlined),
+            title: Text(t('Preuzmi moje podatke')),
+            subtitle: Text(t('Profil, predmeti, transakcije (JSON)')),
+            onTap: () => exportMyData(context, ref),
+          ),
+          const Divider(height: 1),
+          ListTile(
+            leading: Icon(
+              Icons.person_remove_outlined,
+              color: LoopColors.error,
+            ),
+            title: Text(
+              t('Obriši račun'),
+              style: TextStyle(color: LoopColors.error),
+            ),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () => DeleteAccountScreen.open(context),
+          ),
+          const Divider(height: 1),
+          ListTile(
             leading: const Icon(Icons.card_giftcard),
             title: Text(t('Pozovi prijatelja')),
             subtitle: Text(

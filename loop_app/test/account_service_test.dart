@@ -301,4 +301,83 @@ void main() {
     expect(UsernameRules.validate(old.username), isNull);
     expect(old.username, 'demo2');
   });
+
+  group('brisanje računa', () {
+    test('ponude i pošiljke blokiraju brisanje', () {
+      // Marko vodi na Aninim demo aukcijama, Ana ima aukcije s ponudama.
+      expect(accounts.deletionBlockers(SeedData.markoUserId), isNotEmpty);
+      expect(accounts.deletionBlockers(SeedData.anaUserId), isNotEmpty);
+      expect(accounts.deletionBlockers(SeedData.demoUserId), isEmpty);
+    });
+
+    test('potvrda imenom, 7 dana, prijava vraća račun', () async {
+      final now = DateTime(2026, 10, 1);
+      await expectLater(
+        accounts.requestDeletion(
+          SeedData.demoUserId,
+          confirmUsername: 'krivo',
+          now: now,
+        ),
+        throwsA(isA<TradeException>()),
+      );
+      await accounts.requestDeletion(
+        SeedData.demoUserId,
+        confirmUsername: '@demo',
+        now: now,
+      );
+      expect(storage.userById(SeedData.demoUserId)!.pendingDeletion, isTrue);
+      // Prije isteka roka se ne briše.
+      await accounts.purgeExpired(now: now.add(const Duration(days: 6)));
+      expect(storage.userById(SeedData.demoUserId), isNotNull);
+      // Prijava vraća račun.
+      final r = await accounts.login('demo@loop.com', 'demo');
+      expect((r as SignedIn).restored, isTrue);
+      expect(storage.userById(SeedData.demoUserId)!.pendingDeletion, isFalse);
+    });
+
+    test('nakon 7 dana: profil, predmeti i lozinka nestaju', () async {
+      final now = DateTime(2026, 10, 1);
+      // Demo je kupio nešto — u povijesti treba ostati anonimno.
+      await TradeService(
+        storage,
+      ).buy(userId: SeedData.demoUserId, deviceId: 'seed-5');
+      await accounts.requestDeletion(
+        SeedData.demoUserId,
+        confirmUsername: 'demo',
+        now: now,
+      );
+      await accounts.purgeExpired(now: now.add(const Duration(days: 7)));
+      expect(storage.userById(SeedData.demoUserId), isNull);
+      expect(
+        storage.devices.where((d) => d.ownerId == SeedData.demoUserId),
+        isEmpty,
+      );
+      expect(storage.credentialFor('demo@loop.com'), isNull);
+      final tx = storage.transactions.single;
+      expect(tx.buyerLabel, AccountService.deletedLabel);
+      // Ime je ponovno slobodno.
+      expect(UsernameRules.isTaken('demo', storage.users), isFalse);
+      await expectLater(
+        accounts.login('demo@loop.com', 'demo'),
+        throwsA(isA<TradeException>()),
+      );
+    });
+
+    test('odmah, bez povratka', () async {
+      await accounts.deleteNow(
+        SeedData.testUserId,
+        confirmUsername: 'test',
+        email: 'test@loop.com',
+      );
+      expect(storage.userById(SeedData.testUserId), isNull);
+    });
+  });
+
+  test('izvoz podataka: profil i predmeti, bez lozinke', () {
+    final data = accounts.exportData(SeedData.demoUserId);
+    expect((data['profile'] as Map)['username'], 'demo');
+    expect(data['items'], isNotEmpty);
+    expect(data.toString().contains('hash'), isFalse);
+    expect(data.toString().contains('salt'), isFalse);
+  });
 }

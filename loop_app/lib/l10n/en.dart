@@ -681,7 +681,8 @@ const kEn = <String, String>{
   'Brisanje računa u bazi nije postavljeno (pokreni supabase/schema.sql).':
       'Account deletion isn\'t set up in the database (run supabase/schema.sql).',
   ' i iz Marketa': ' and from the Market',
-  '"{0}" bit će trajno uklonjen iz tvog portfolija{1}. Ovo se ne može poništiti.': '"{0}" will be permanently removed from your portfolio{1}. This can\'t be undone.',
+  '"{0}" bit će trajno uklonjen iz tvog portfolija{1}. Ovo se ne može poništiti.':
+      '"{0}" will be permanently removed from your portfolio{1}. This can\'t be undone.',
   'Cijena mora biti između 1 i {0}.': 'The price must be between 1 and {0}.',
   'Detalji': 'Details',
   'Kupac plaća {0}': 'Buyer pays {0}',
@@ -689,16 +690,50 @@ const kEn = <String, String>{
   'Objavi': 'Publish',
   'Objavi u Marketu': 'List in the Market',
   'Objavljeno u Marketu 🏷️': 'Listed in the Market 🏷️',
-  'Predmet je na aukciji — prvo otkaži aukciju (moguće dok nema ponuda).': 'The item is on auction — cancel the auction first (possible while it has no bids).',
-  'Predmet je na prodaju u Marketu — prvo ga ukloni iz Marketa.': 'The item is for sale in the Market — remove it from the Market first.',
-  'Predmet ostaje tvoj dok ga netko ne kupi. Možeš ga ukloniti iz Marketa kad god želiš.': 'The item stays yours until someone buys it. You can remove it from the Market any time.',
+  'Predmet je na aukciji — prvo otkaži aukciju (moguće dok nema ponuda).':
+      'The item is on auction — cancel the auction first (possible while it has no bids).',
+  'Predmet je na prodaju u Marketu — prvo ga ukloni iz Marketa.':
+      'The item is for sale in the Market — remove it from the Market first.',
+  'Predmet ostaje tvoj dok ga netko ne kupi. Možeš ga ukloniti iz Marketa kad god želiš.':
+      'The item stays yours until someone buys it. You can remove it from the Market any time.',
   'Prodaj odmah LOOP-u': 'Sell to LOOP now',
   'Prodavatelj': 'Seller',
   'Promijeni cijenu': 'Change price',
   'Ti dobivaš {0} (− 5% fee)': 'You get {0} (− 5% fee)',
-  'U Marketu za {0}. Kad netko kupi, dobivaš {1} (− 5% fee), a predmet prelazi kupcu.': 'In the Market for {0}. When someone buys it, you get {1} (− 5% fee) and the item goes to the buyer.',
+  'U Marketu za {0}. Kad netko kupi, dobivaš {1} (− 5% fee), a predmet prelazi kupcu.':
+      'In the Market for {0}. When someone buys it, you get {1} (− 5% fee) and the item goes to the buyer.',
   'Ukloni iz Marketa': 'Remove from Market',
   'Uklonjeno iz Marketa': 'Removed from the Market',
   'Vrijednost': 'Value',
   '🏷️ U Marketu': '🏷️ In the Market',
+  'Aukcija s ponudama: {0}': 'Auction with bids: {0}',
+  'Obriši odmah, bez povratka': 'Delete now, no way back',
+  'Obriši račun': 'Delete account',
+  'Obriši račun (za {0} dana)': 'Delete account (in {0} days)',
+  'Podaci spremljeni: {0}': 'Data saved: {0}',
+  'Pošiljka u tijeku: {0}': 'Shipment in progress: {0}',
+  'Preuzmi moje podatke': 'Download my data',
+  'Prodani predmet još nije isporučen: {0}': 'Sold item not delivered yet: {0}',
+  'Profil, predmeti, transakcije (JSON)': 'Profile, items, transactions (JSON)',
+  'Prvo preuzmi moje podatke': 'Download my data first',
+  'Račun je trajno obrisan.': 'The account has been permanently deleted.',
+  'Račun se još ne može obrisati:': 'The account can\'t be deleted yet:',
+  'Račun će biti obrisan za {0} dana. Prijavi se u tom roku ako se predomisliš.':
+      'The account will be deleted in {0} days. Log in within that time if you change your mind.',
+  'Vodiš na aukciji: {0} (ponuda je obvezujuća)':
+      'You\'re leading the auction: {0} (the bid is binding)',
+  'Za potvrdu upiši svoje korisničko ime: {0}':
+      'To confirm, type your username: {0}',
+  'Za potvrdu upiši {0}': 'To confirm, type {0}',
+  'Što se događa': 'What happens',
+  '• Aukcije bez ponuda se otkazuju, a korisničko ime se oslobađa.':
+      '• Auctions without bids are cancelled and your username is released.',
+  '• Briše se {0} tvojih predmeta i njihove objave u Marketu.':
+      '• {0} of your items and their Market listings are deleted.',
+  '• Drugima povijest kupnji ostaje, ali umjesto tvog imena piše @obrisani.':
+      '• Others keep their purchase history, but your name shows as @obrisani.',
+  '• Gubiš {0} — krediti se ne mogu isplatiti.':
+      '• You lose {0} — credits can\'t be withdrawn.',
+  '• Imaš {0} dana za predomišljanje: prijavi se i račun se vraća.':
+      '• You have {0} days to change your mind: log in and the account comes back.',
 };

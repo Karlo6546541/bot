@@ -359,6 +359,157 @@ class AccountService {
     await _storage.putUser(user.copyWith(emailVerified: true));
   }
 
+  // --------------------------------------------------------- brisanje računa
+
+  /// Razlozi zbog kojih se račun još ne može obrisati (prazno = može).
+  /// Ponude su obvezujuće, a pošiljke moraju završiti.
+  List<String> deletionBlockers(String userId) {
+    final out = <String>[];
+    for (final a in _storage.auctions.where((a) => a.isActive)) {
+      if (a.sellerId == userId && a.bids.isNotEmpty) {
+        out.add(t('Aukcija s ponudama: {0}', [a.deviceName]));
+      } else if (a.highestBid?.userId == userId) {
+        out.add(
+          t('Vodiš na aukciji: {0} (ponuda je obvezujuća)', [a.deviceName]),
+        );
+      }
+    }
+    for (final d in _storage.deliveries.where((d) => d.confirmedAt == null)) {
+      if (d.buyerId == userId) {
+        out.add(t('Pošiljka u tijeku: {0}', [d.deviceName]));
+      } else if (d.sellerId == userId) {
+        out.add(t('Prodani predmet još nije isporučen: {0}', [d.deviceName]));
+      }
+    }
+    return out;
+  }
+
+  /// Zakazuje brisanje: račun se skriva odmah, a briše nakon
+  /// [AppUser.deletionGraceDays] dana. Prijava u tom roku ga vraća.
+  /// Aukcije bez ponuda treba otkazati prije poziva (radi kontroler).
+  Future<void> requestDeletion(
+    String userId, {
+    required String confirmUsername,
+    DateTime? now,
+  }) async {
+    final user = _require(userId);
+    if (UsernameRules.normalize(confirmUsername) != user.username) {
+      throw TradeException(
+        t('Za potvrdu upiši svoje korisničko ime: {0}', [user.handle]),
+      );
+    }
+    final blockers = deletionBlockers(userId);
+    if (blockers.isNotEmpty) throw TradeException(blockers.join('\n'));
+    // Objave nestaju iz Marketa.
+    for (final d in _storage.devices.where(
+      (d) => d.ownerId == userId && d.isListed,
+    )) {
+      await _storage.putDevice(d.withListing(null));
+    }
+    await _storage.putUser(
+      user.copyWith(deletionRequestedAt: now ?? DateTime.now()),
+    );
+  }
+
+  /// Trajno briše račune kojima je istekao rok. Vraća putanje fotografija
+  /// za brisanje.
+  Future<List<String>> purgeExpired({DateTime? now}) async {
+    final at = now ?? DateTime.now();
+    final images = <String>[];
+    var any = false;
+    for (final u in _storage.users) {
+      final requested = u.deletionRequestedAt;
+      if (requested != null &&
+          at.difference(requested).inDays >= AppUser.deletionGraceDays) {
+        images.addAll(await _erase(u));
+        any = true;
+      }
+    }
+    if (any) await backend.purgeDeleted();
+    return images;
+  }
+
+  /// Odmah i bez povratka (korisnik je prijavljen). Vraća putanje
+  /// fotografija za brisanje.
+  Future<List<String>> deleteNow(
+    String userId, {
+    required String confirmUsername,
+    required String email,
+  }) async {
+    final user = _require(userId);
+    if (UsernameRules.normalize(confirmUsername) != user.username) {
+      throw TradeException(
+        t('Za potvrdu upiši svoje korisničko ime: {0}', [user.handle]),
+      );
+    }
+    final blockers = deletionBlockers(userId);
+    if (blockers.isNotEmpty) throw TradeException(blockers.join('\n'));
+    await backend.deleteAccount(email: email, uid: userId);
+    return _erase(user);
+  }
+
+  /// Briše profil, predmete, povijest i lozinku; u transakcijama ime
+  /// postaje "@obrisani" (drugima povijest ostaje).
+  Future<List<String>> _erase(AppUser user) async {
+    final images = <String>[?user.avatarPath];
+    for (final d in _storage.devices.where((d) => d.ownerId == user.id)) {
+      if (_storage.activeAuctionFor(d.id) != null) continue;
+      images.addAll(d.imagePaths);
+      await _storage.deleteDevice(d.id);
+    }
+    for (final tx in _storage.transactions) {
+      if (tx.buyerId == user.id || tx.sellerId == user.id) {
+        await _storage.putTransaction(tx.anonymize(user.id, deletedLabel));
+      }
+    }
+    await _storage.deleteHistory(user.id);
+    if (user.email.isNotEmpty) await _storage.deleteCredential(user.email);
+    await _storage.deleteUser(user.id);
+    return images;
+  }
+
+  static const deletedLabel = '@obrisani';
+
+  /// Svi podaci korisnika (GDPR izvoz) — bez lozinki.
+  Map<String, dynamic> exportData(String userId, {String? email}) {
+    final user = _require(userId);
+    final profile = user.toMap();
+    if (email != null && email.isNotEmpty) profile['email'] = email;
+    return {
+      'exportedAt': DateTime.now().toIso8601String(),
+      'app': 'LOOP',
+      'profile': profile,
+      'items': [
+        for (final d in _storage.devices.where((d) => d.ownerId == userId))
+          d.toMap(),
+      ],
+      'transactions': [
+        for (final tx in _storage.transactions.where(
+          (tx) =>
+              tx.userId == userId ||
+              tx.buyerId == userId ||
+              tx.sellerId == userId,
+        ))
+          tx.toMap(),
+      ],
+      'deliveries': [
+        for (final d in _storage.deliveries.where(
+          (d) => d.buyerId == userId || d.sellerId == userId,
+        ))
+          d.toMap(),
+      ],
+      'auctions': [
+        for (final a in _storage.auctions.where(
+          (a) => a.sellerId == userId || a.bids.any((b) => b.userId == userId),
+        ))
+          a.toMap(),
+      ],
+      'portfolioHistory': [
+        for (final p in _storage.historyOf(userId)) p.toMap(),
+      ],
+    };
+  }
+
   AppUser _require(String id) {
     final user = _storage.userById(id);
     if (user == null) throw TradeException(t('Korisnik ne postoji.'));
