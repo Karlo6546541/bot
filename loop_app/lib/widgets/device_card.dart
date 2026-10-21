@@ -71,18 +71,115 @@ class _DeviceCardState extends State<DeviceCard> {
             type: MaterialType.transparency,
             child: InkWell(
               onTap: widget.onTap,
-              child: Stack(
-                children: [
-                  Padding(
-                    padding: const EdgeInsets.all(16),
-                    child: _content(d),
-                  ),
-                ],
-              ),
+              // Na mobitelu pločica sa slikom (2 stupca), inače široka kartica.
+              child: isCompactGrid(context)
+                  ? _tile(d)
+                  : Padding(
+                      padding: const EdgeInsets.all(16),
+                      child: _content(d),
+                    ),
             ),
           ),
         ),
       ),
+    );
+  }
+
+  /// Kompaktna pločica: slika gore, naziv, cijena i akcija ispod.
+  Widget _tile(Device d) {
+    final photo = d.imagePaths.isEmpty
+        ? ItemIllustration(category: d.category, iconSize: 40)
+        : LocalPhoto(
+            path: d.imagePaths.first,
+            cacheWidth: 480,
+            fallback: ItemIllustration(category: d.category, iconSize: 40),
+          );
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Stack(
+          children: [
+            AspectRatio(aspectRatio: 1.15, child: photo),
+            if (widget.onFavorite != null)
+              Positioned(
+                top: 6,
+                right: 6,
+                child: Material(
+                  color: LoopColors.surface.withValues(alpha: 0.9),
+                  shape: const CircleBorder(),
+                  child: IconButton(
+                    visualDensity: VisualDensity.compact,
+                    tooltip: widget.isFavorite
+                        ? 'Ukloni iz favorita'
+                        : 'Favorit',
+                    onPressed: widget.onFavorite,
+                    icon: Icon(
+                      widget.isFavorite
+                          ? Icons.favorite
+                          : Icons.favorite_border,
+                      size: 20,
+                      color: widget.isFavorite
+                          ? const Color(0xFFE5486F)
+                          : LoopColors.textSecondary,
+                    ),
+                  ),
+                ),
+              ),
+            Positioned(
+              left: 8,
+              bottom: 8,
+              child: _Chip(label: d.condition.label, dot: d.condition.color),
+            ),
+          ],
+        ),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(10, 8, 10, 10),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text(
+                d.name,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(fontWeight: FontWeight.w800),
+              ),
+              Text(
+                d.model,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(color: LoopColors.textSecondary, fontSize: 12),
+              ),
+              const SizedBox(height: 6),
+              FittedBox(
+                fit: BoxFit.scaleDown,
+                alignment: Alignment.centerLeft,
+                child: Text(
+                  formatCredits(d.price),
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w900,
+                    fontSize: 16,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 8),
+              FilledButton.icon(
+                onPressed: widget.onAction,
+                icon: Icon(widget.actionIcon ?? Icons.bolt, size: 16),
+                label: FittedBox(child: Text(widget.actionLabel)),
+                style: FilledButton.styleFrom(
+                  minimumSize: const Size(0, 38),
+                  padding: const EdgeInsets.symmetric(horizontal: 10),
+                  textStyle: const TextStyle(
+                    fontFamily: kFontFamily,
+                    fontWeight: FontWeight.w800,
+                    fontSize: 13,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
     );
   }
 
@@ -211,6 +308,10 @@ class _Chip extends StatelessWidget {
   }
 }
 
+/// Uski ekran (mobitel): predmeti se prikazuju kao pločice u 2 stupca.
+bool isCompactGrid(BuildContext context) =>
+    MediaQuery.sizeOf(context).width < 600;
+
 /// Responzivna mreža kartica: jedan stupac na mobitelu, više na desktopu.
 /// Redovi se prilagođavaju visini sadržaja (nema fiksne visine kartice),
 /// pa raspored radi i s većim sistemskim fontom.
@@ -236,9 +337,13 @@ class DeviceGrid extends StatelessWidget {
       sliver: SliverLayoutBuilder(
         builder: (context, constraints) {
           final width = constraints.crossAxisExtent;
-          final columns = ((width + _spacing) / (_maxCardWidth + _spacing))
-              .ceil()
-              .clamp(1, 6);
+          // Mobitel: 2 stupca pločica; šire: kartice do 420 px.
+          final columns = isCompactGrid(context)
+              ? 2
+              : ((width + _spacing) / (_maxCardWidth + _spacing)).ceil().clamp(
+                  1,
+                  6,
+                );
           final rows = (devices.length / columns).ceil();
           return SliverList.separated(
             itemCount: rows,

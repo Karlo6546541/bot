@@ -84,6 +84,7 @@ class _PortfolioChartState extends State<PortfolioChart> {
     final pct = startV == 0 ? 0.0 : change / startV * 100;
     final up = change >= 0;
 
+    final compact = MediaQuery.sizeOf(context).width < 600;
     return Card(
       child: Padding(
         padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
@@ -128,13 +129,15 @@ class _PortfolioChartState extends State<PortfolioChart> {
                     ],
                   ),
                 ),
-                _RangePicker(
-                  value: _range,
-                  onChanged: (r) => setState(() {
-                    _range = r;
-                    _hover = null;
-                  }),
-                ),
+                // Na mobitelu raspon ide u zaseban red ispod naslova.
+                if (!compact)
+                  _RangePicker(
+                    value: _range,
+                    onChanged: (r) => setState(() {
+                      _range = r;
+                      _hover = null;
+                    }),
+                  ),
                 IconButton(
                   tooltip: _table ? 'Prikaži grafikon' : 'Prikaži tablicu',
                   onPressed: () => setState(() => _table = !_table),
@@ -144,9 +147,22 @@ class _PortfolioChartState extends State<PortfolioChart> {
                 ),
               ],
             ),
+            if (compact) ...[
+              const SizedBox(height: 10),
+              Align(
+                alignment: Alignment.centerLeft,
+                child: _RangePicker(
+                  value: _range,
+                  onChanged: (r) => setState(() {
+                    _range = r;
+                    _hover = null;
+                  }),
+                ),
+              ),
+            ],
             const SizedBox(height: 12),
             SizedBox(
-              height: 200,
+              height: compact ? 180 : 200,
               child: _table ? _TableView(series: series) : _chart(series),
             ),
           ],

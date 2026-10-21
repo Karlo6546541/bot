@@ -192,8 +192,13 @@ class _Arrow extends StatelessWidget {
 /// Ilustracija kategorije za predmete bez fotografije: gradijent,
 /// dekorativni krugovi i velika ikona.
 class ItemIllustration extends StatelessWidget {
-  const ItemIllustration({super.key, required this.category});
+  const ItemIllustration({
+    super.key,
+    required this.category,
+    this.iconSize = 72,
+  });
   final DeviceCategory category;
+  final double iconSize;
 
   @override
   Widget build(BuildContext context) {
@@ -212,7 +217,7 @@ class ItemIllustration extends StatelessWidget {
           Positioned(left: -30, bottom: -60, child: _Ring(color: c, size: 160)),
           Center(
             child: Container(
-              padding: const EdgeInsets.all(28),
+              padding: EdgeInsets.all(iconSize * 0.39),
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 color: LoopColors.background.withValues(alpha: 0.35),
@@ -220,7 +225,7 @@ class ItemIllustration extends StatelessWidget {
               ),
               child: Icon(
                 category.icon,
-                size: 72,
+                size: iconSize,
                 color: LoopColors.textPrimary,
               ),
             ),

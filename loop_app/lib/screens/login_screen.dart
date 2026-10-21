@@ -296,7 +296,7 @@ class _WelcomeHero extends StatelessWidget {
           'Mijenjaj stvari,\nne novac.',
           textAlign: compact ? TextAlign.center : TextAlign.start,
           style: TextStyle(
-            fontSize: compact ? 32 : 48,
+            fontSize: compact ? 30 : 48,
             height: 1.05,
             fontWeight: FontWeight.w900,
           ),
@@ -312,39 +312,80 @@ class _WelcomeHero extends StatelessWidget {
             height: 1.4,
           ),
         ),
-        const SizedBox(height: 22),
-        Wrap(
-          alignment: compact ? WrapAlignment.center : WrapAlignment.start,
-          spacing: 8,
-          runSpacing: 8,
-          children: [
-            for (var i = 0; i < _bubbles.length; i++)
-              // Lagano "plutanje" mjehurića pri otvaranju.
-              TweenAnimationBuilder<double>(
-                tween: Tween(begin: 0, end: 1),
-                duration: Duration(milliseconds: 400 + i * 70),
-                curve: Curves.easeOutBack,
-                builder: (_, t, child) => Transform.scale(
-                  scale: 0.6 + 0.4 * t,
-                  child: Opacity(opacity: t.clamp(0, 1), child: child),
-                ),
-                child: Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 14,
-                    vertical: 9,
-                  ),
-                  decoration: BoxDecoration(
-                    color: pastel[i % pastel.length],
-                    borderRadius: BorderRadius.circular(999),
-                  ),
-                  child: Text(
-                    '${_bubbles[i].$1}  ${_bubbles[i].$2}',
-                    style: const TextStyle(fontWeight: FontWeight.w700),
-                  ),
-                ),
+        SizedBox(height: compact ? 14 : 22),
+        // Mobitel: jedan vodoravno pomični red, da obrazac stane na ekran.
+        if (compact)
+          SizedBox(
+            height: 40,
+            child: SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Row(
+                children: [
+                  for (var i = 0; i < _bubbles.length; i++)
+                    // Lagano "plutanje" mjehurića pri otvaranju.
+                    Padding(
+                      padding: const EdgeInsets.only(right: 8),
+                      child: TweenAnimationBuilder<double>(
+                        tween: Tween(begin: 0, end: 1),
+                        duration: Duration(milliseconds: 400 + i * 70),
+                        curve: Curves.easeOutBack,
+                        builder: (_, t, child) => Transform.scale(
+                          scale: 0.6 + 0.4 * t,
+                          child: Opacity(opacity: t.clamp(0, 1), child: child),
+                        ),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 14,
+                            vertical: 9,
+                          ),
+                          decoration: BoxDecoration(
+                            color: pastel[i % pastel.length],
+                            borderRadius: BorderRadius.circular(999),
+                          ),
+                          child: Text(
+                            '${_bubbles[i].$1}  ${_bubbles[i].$2}',
+                            style: const TextStyle(fontWeight: FontWeight.w700),
+                          ),
+                        ),
+                      ),
+                    ),
+                ],
               ),
-          ],
-        ),
+            ),
+          )
+        else
+          Wrap(
+            alignment: compact ? WrapAlignment.center : WrapAlignment.start,
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              for (var i = 0; i < _bubbles.length; i++)
+                // Lagano "plutanje" mjehurića pri otvaranju.
+                TweenAnimationBuilder<double>(
+                  tween: Tween(begin: 0, end: 1),
+                  duration: Duration(milliseconds: 400 + i * 70),
+                  curve: Curves.easeOutBack,
+                  builder: (_, t, child) => Transform.scale(
+                    scale: 0.6 + 0.4 * t,
+                    child: Opacity(opacity: t.clamp(0, 1), child: child),
+                  ),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 14,
+                      vertical: 9,
+                    ),
+                    decoration: BoxDecoration(
+                      color: pastel[i % pastel.length],
+                      borderRadius: BorderRadius.circular(999),
+                    ),
+                    child: Text(
+                      '${_bubbles[i].$1}  ${_bubbles[i].$2}',
+                      style: const TextStyle(fontWeight: FontWeight.w700),
+                    ),
+                  ),
+                ),
+            ],
+          ),
       ],
     );
   }

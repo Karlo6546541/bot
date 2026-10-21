@@ -153,6 +153,7 @@ class _CreditsHero extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final compact = MediaQuery.sizeOf(context).width < 600;
     return Container(
       clipBehavior: Clip.antiAlias,
       decoration: BoxDecoration(
@@ -177,13 +178,13 @@ class _CreditsHero extends StatelessWidget {
             bottom: -70,
             child: _Glow(color: LoopColors.mint, size: 160),
           ),
-          const Positioned(
-            right: 24,
-            top: 64,
-            child: Text('🛍️', style: TextStyle(fontSize: 44)),
+          Positioned(
+            right: compact ? 16 : 24,
+            top: compact ? 58 : 64,
+            child: Text('🛍️', style: TextStyle(fontSize: compact ? 34 : 44)),
           ),
           Padding(
-            padding: const EdgeInsets.all(22),
+            padding: EdgeInsets.all(compact ? 18 : 22),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -224,8 +225,8 @@ class _CreditsHero extends StatelessWidget {
                       children: [
                         Text(
                           formatNumber(value),
-                          style: const TextStyle(
-                            fontSize: 48,
+                          style: TextStyle(
+                            fontSize: compact ? 40 : 48,
                             fontWeight: FontWeight.w900,
                             letterSpacing: -1,
                           ),
@@ -244,36 +245,57 @@ class _CreditsHero extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 12),
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  children: [
-                    FilledButton.icon(
-                      onPressed: () => BuyCreditsScreen.open(context),
-                      style: FilledButton.styleFrom(
-                        minimumSize: const Size(0, 44),
-                        padding: const EdgeInsets.symmetric(horizontal: 18),
+                if (compact) ...[
+                  // Mobitel: sažetak u jednom retku + gumb preko cijele širine.
+                  Text(
+                    'Ukupno ${formatCredits(totalValue)} · '
+                    '$deviceCount ${deviceCount == 1 ? 'predmet' : 'predmeta'}'
+                    '${held > 0 ? ' · blokirano ${formatCredits(held)}' : ''}',
+                    style: TextStyle(
+                      color: LoopColors.textSecondary,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  FilledButton.icon(
+                    onPressed: () => BuyCreditsScreen.open(context),
+                    style: FilledButton.styleFrom(
+                      minimumSize: const Size.fromHeight(46),
+                    ),
+                    icon: const Icon(Icons.add, size: 20),
+                    label: const Text('Dopuni kredite'),
+                  ),
+                ] else
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: [
+                      FilledButton.icon(
+                        onPressed: () => BuyCreditsScreen.open(context),
+                        style: FilledButton.styleFrom(
+                          minimumSize: const Size(0, 44),
+                          padding: const EdgeInsets.symmetric(horizontal: 18),
+                        ),
+                        icon: const Icon(Icons.add, size: 20),
+                        label: const Text('Dopuni kredite'),
                       ),
-                      icon: const Icon(Icons.add, size: 20),
-                      label: const Text('Dopuni kredite'),
-                    ),
-                    _Pill(
-                      icon: Icons.stacked_line_chart,
-                      text: 'Ukupno ${formatCredits(totalValue)}',
-                    ),
-                    _Pill(
-                      icon: Icons.inventory_2_outlined,
-                      text:
-                          '$deviceCount ${deviceCount == 1 ? 'predmet' : 'predmeta'}'
-                          ' · ${formatCredits(portfolioValue)}',
-                    ),
-                    if (held > 0)
                       _Pill(
-                        icon: Icons.lock_outline,
-                        text: 'Blokirano ${formatCredits(held)}',
+                        icon: Icons.stacked_line_chart,
+                        text: 'Ukupno ${formatCredits(totalValue)}',
                       ),
-                  ],
-                ),
+                      _Pill(
+                        icon: Icons.inventory_2_outlined,
+                        text:
+                            '$deviceCount ${deviceCount == 1 ? 'predmet' : 'predmeta'}'
+                            ' · ${formatCredits(portfolioValue)}',
+                      ),
+                      if (held > 0)
+                        _Pill(
+                          icon: Icons.lock_outline,
+                          text: 'Blokirano ${formatCredits(held)}',
+                        ),
+                    ],
+                  ),
                 const SizedBox(height: 16),
                 _StatusProgress(status: status, total: totalValue),
               ],
@@ -344,6 +366,53 @@ class _QuickActions extends ConsumerWidget {
       ('🛒', 'Istraži Market', LoopColors.sky, () => tabs.select(1)),
       ('🔨', 'Aukcije', LoopColors.lilac, () => tabs.select(2)),
     ];
+    if (MediaQuery.sizeOf(context).width < 600) {
+      // Mobitel: red od 4 okrugle ikone s natpisom ispod.
+      return Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          for (final (emoji, label, color, onTap) in actions)
+            Expanded(
+              child: InkWell(
+                onTap: onTap,
+                borderRadius: BorderRadius.circular(kRadius),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 6),
+                  child: Column(
+                    children: [
+                      Container(
+                        width: 58,
+                        height: 58,
+                        decoration: BoxDecoration(
+                          color: color,
+                          shape: BoxShape.circle,
+                        ),
+                        child: Center(
+                          child: Text(
+                            emoji,
+                            style: const TextStyle(fontSize: 26),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      Text(
+                        label,
+                        textAlign: TextAlign.center,
+                        maxLines: 2,
+                        style: const TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w700,
+                          height: 1.2,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+        ],
+      );
+    }
     return LayoutBuilder(
       builder: (context, box) {
         final perRow = box.maxWidth > 640 ? 4 : 2;

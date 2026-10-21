@@ -52,7 +52,9 @@ class _HomeShellState extends ConsumerState<HomeShell> {
 
   @override
   Widget build(BuildContext context) {
-    final isDesktop = MediaQuery.sizeOf(context).width >= kDesktopBreakpoint;
+    final width = MediaQuery.sizeOf(context).width;
+    final isDesktop = width >= kDesktopBreakpoint;
+    final phone = width < 600;
 
     return AdaptiveShell(
       destinations: _destinations,
@@ -68,7 +70,15 @@ class _HomeShellState extends ConsumerState<HomeShell> {
             : const LoopLogo(size: 22),
         actions: const [_CreditsPill(), SizedBox(width: 12)],
       ),
+      // Na mobitelu: početna ima "Dodaj predmet" u brzim akcijama, a za
+      // aukcije je dovoljan okrugli gumb koji ne prekriva kartice.
       floatingActionButton: switch (_index) {
+        0 when phone => null,
+        2 when phone => FloatingActionButton(
+          tooltip: 'Nova aukcija',
+          onPressed: () => CreateAuctionScreen.open(context),
+          child: const Icon(Icons.gavel),
+        ),
         0 => FloatingActionButton.extended(
           onPressed: _openAddDevice,
           icon: const Icon(Icons.add),

@@ -132,9 +132,11 @@ class _AuctionsScreenState extends ConsumerState<AuctionsScreen> {
           SliverPadding(
             padding: const EdgeInsets.fromLTRB(16, 0, 16, 96),
             sliver: SliverGrid(
-              gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+              gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(
                 maxCrossAxisExtent: 420,
-                mainAxisExtent: 168,
+                mainAxisExtent: MediaQuery.sizeOf(context).width < 600
+                    ? 136
+                    : 156,
                 mainAxisSpacing: 12,
                 crossAxisSpacing: 12,
               ),
@@ -155,8 +157,64 @@ class _RulesBanner extends StatelessWidget {
   final double credits;
   final double held;
 
+  static const _rules =
+      'Ponude su obvezujuće i ne mogu se povući. Iznos vodeće ponude se '
+      'blokira i vraća ti se čim te netko nadmaši. Ponuda ne može biti '
+      'veća od raspoloživih kredita.';
+
+  void _showRules(BuildContext context) => showModalBottomSheet<void>(
+    context: context,
+    showDragHandle: true,
+    backgroundColor: LoopColors.surface,
+    builder: (_) => const Padding(
+      padding: EdgeInsets.fromLTRB(24, 0, 24, 32),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Pravila aukcija',
+            style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900),
+          ),
+          SizedBox(height: 12),
+          Text(
+            '🔒  Ponuda je obvezujuća — ne može se povući ni smanjiti.\n\n'
+            '🥇  Dok vodiš, ne možeš licitirati ponovno.\n\n'
+            '🪙  Ponuda ne može biti veća od tvojih kredita. Iznos vodeće '
+            'ponude se blokira i vraća čim te netko nadmaši.\n\n'
+            '⏱️  Ponuda u zadnjoj minuti produljuje aukciju za 1 minutu.\n\n'
+            '🎁  Pobjednik dobiva predmet, prodavatelj ponudu − 5% fee.',
+            style: TextStyle(height: 1.4, fontSize: 15),
+          ),
+        ],
+      ),
+    ),
+  );
+
   @override
   Widget build(BuildContext context) {
+    if (MediaQuery.sizeOf(context).width < 600) {
+      // Mobitel: jedan redak, pravila u donjem listu.
+      return Material(
+        color: LoopColors.surface,
+        borderRadius: BorderRadius.circular(kRadius),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(kRadius),
+          onTap: () => _showRules(context),
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(14, 10, 8, 10),
+            child: Row(
+              children: [
+                Expanded(child: _Kv('Raspoloživo', formatCredits(credits))),
+                Expanded(child: _Kv('Blokirano', formatCredits(held))),
+                Icon(Icons.info_outline, color: LoopColors.textSecondary),
+                const SizedBox(width: 6),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
@@ -177,9 +235,7 @@ class _RulesBanner extends StatelessWidget {
           ),
           const SizedBox(height: 8),
           Text(
-            'Ponude su obvezujuće i ne mogu se povući. Iznos vodeće ponude se '
-            'blokira i vraća ti se čim te netko nadmaši. Ponuda ne može biti '
-            'veća od raspoloživih kredita.',
+            _rules,
             style: TextStyle(color: LoopColors.textSecondary, fontSize: 12),
           ),
         ],
