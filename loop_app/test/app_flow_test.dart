@@ -782,6 +782,27 @@ void communityTests() {
     final text =
         'Netko te nadmašio na aukciji "Polaroid SX-70" — nova ponuda 70 €.';
     expect(find.text(text), findsOneWidget);
+    // Kartica aukcije: Marko je nadmašen → gumb za novu ponudu.
+    expect(find.text('Nadmašen'), findsOneWidget);
+    expect(find.text('Povisi ponudu'), findsOneWidget);
+    // Filter "Aukcije" sa sažetkom mojih aukcija.
+    await tester.tap(find.byKey(const ValueKey('notif-filter-auctions')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('auction-summary')), findsOneWidget);
+    expect(find.text(text), findsOneWidget);
+    // Postavke: isključi "Netko me nadmašio".
+    await tester.tap(find.byKey(const ValueKey('notification-settings')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('pref-outbid')));
+    await tester.pumpAndSettle();
+    final container = ProviderScope.containerOf(
+      tester.element(find.byKey(const ValueKey('pref-outbid'))),
+    );
+    expect(container.read(appProvider).currentUser!.mutedNotifications, [
+      'outbid',
+    ]);
+    await tester.tapAt(const Offset(10, 10));
+    await tester.pumpAndSettle();
     await tester.tap(find.text(text));
     await tester.pumpAndSettle();
     expect(find.text('Povijest ponuda (2)'), findsOneWidget);

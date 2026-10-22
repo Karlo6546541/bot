@@ -29,6 +29,7 @@ class AppUser {
     this.deletionRequestedAt,
     this.following = const [],
     this.wishlists = const [],
+    this.mutedNotifications = const [],
     this.promotedUntil,
     this.shopName = '',
     this.coverPath,
@@ -87,6 +88,9 @@ class AppUser {
 
   /// Liste želja (kolekcije).
   final List<Wishlist> wishlists;
+
+  /// Isključene obavijesti (nazivi [NotificationPref]).
+  final List<String> mutedNotifications;
 
   Wishlist? wishlistById(String id) {
     for (final w in wishlists) {
@@ -149,6 +153,7 @@ class AppUser {
     String? email,
     List<String>? following,
     List<Wishlist>? wishlists,
+    List<String>? mutedNotifications,
     DateTime? promotedUntil,
     String? shopName,
     String? coverPath,
@@ -177,6 +182,7 @@ class AppUser {
         : deletionRequestedAt ?? this.deletionRequestedAt,
     following: following ?? this.following,
     wishlists: wishlists ?? this.wishlists,
+    mutedNotifications: mutedNotifications ?? this.mutedNotifications,
     promotedUntil: promotedUntil ?? this.promotedUntil,
     shopName: shopName ?? this.shopName,
     coverPath: clearCover ? null : coverPath ?? this.coverPath,
@@ -203,6 +209,7 @@ class AppUser {
     'deletionRequestedAt': deletionRequestedAt?.toIso8601String(),
     'following': following,
     'wishlists': [for (final w in wishlists) w.toMap()],
+    if (mutedNotifications.isNotEmpty) 'mutedNotifications': mutedNotifications,
     'promotedUntil': promotedUntil?.toIso8601String(),
     'shopName': shopName,
     'coverPath': coverPath,
@@ -236,6 +243,8 @@ class AppUser {
       for (final w in (map['wishlists'] as List? ?? const []))
         Wishlist.fromMap(w as Map),
     ],
+    mutedNotifications:
+        (map['mutedNotifications'] as List?)?.cast<String>() ?? const [],
     promotedUntil: _date(map['promotedUntil']),
     shopName: map['shopName'] as String? ?? '',
     coverPath: map['coverPath'] as String?,

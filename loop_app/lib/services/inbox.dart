@@ -22,11 +22,15 @@ class Inbox {
     String? targetId,
     DateTime? now,
   }) async {
-    if (userId == null || _storage.userById(userId) == null) return;
+    final user = userId == null ? null : _storage.userById(userId);
+    if (user == null) return;
+    // Korisnik je isključio ovu vrstu obavijesti.
+    final pref = NotificationPref.of(kind);
+    if (pref != null && user.mutedNotifications.contains(pref.name)) return;
     await _storage.putNotification(
       AppNotification(
         id: _uuid.v4(),
-        userId: userId,
+        userId: user.id,
         kind: kind,
         args: args,
         targetId: targetId,
@@ -34,7 +38,7 @@ class Inbox {
       ),
     );
     final mine =
-        _storage.notifications.where((n) => n.userId == userId).toList()
+        _storage.notifications.where((n) => n.userId == user.id).toList()
           ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
     for (final old in mine.skip(maxPerUser)) {
       await _storage.deleteNotification(old.id);

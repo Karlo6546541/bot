@@ -46,6 +46,118 @@ enum NotificationKind {
 
   static NotificationKind fromName(String? n) => NotificationKind.values
       .firstWhere((k) => k.name == n, orElse: () => NotificationKind.newBid);
+
+  /// Skupina za filtre na ekranu obavijesti.
+  NotificationGroup get group => switch (this) {
+    outbid ||
+    outbidAuto ||
+    newBid ||
+    auctionWon ||
+    auctionLost ||
+    auctionSold ||
+    auctionUnsold ||
+    followedAuction ||
+    auctionEndingSoon => NotificationGroup.auctions,
+    itemSold ||
+    priceDrop ||
+    soldOut ||
+    followedNewItem ||
+    followedDiscount => NotificationGroup.trade,
+    bargainNew ||
+    bargainAccepted ||
+    bargainDeclined ||
+    bargainCountered ||
+    counterAccepted ||
+    swapOffer ||
+    swapAccepted ||
+    swapDeclined => NotificationGroup.offers,
+    newMessage => NotificationGroup.messages,
+    newReview ||
+    referral ||
+    newFollower ||
+    reportResolved => NotificationGroup.social,
+  };
+
+  /// Obavijesti o aukciji na kojoj korisnik licitira (gumb "Licitiraj").
+  bool get invitesBid =>
+      this == outbid ||
+      this == outbidAuto ||
+      this == auctionEndingSoon ||
+      this == followedAuction;
+}
+
+/// Skupine obavijesti (filteri).
+enum NotificationGroup {
+  auctions('🔨', 'Aukcije'),
+  trade('🛍️', 'Kupnje i prodaje'),
+  offers('💶', 'Ponude'),
+  social('👥', 'Društvo'),
+  messages('💬', 'Poruke');
+
+  const NotificationGroup(this.emoji, this._label);
+  final String emoji;
+  final String _label;
+  String get label => t(_label);
+}
+
+/// Obavijesti koje korisnik može isključiti (Postavke obavijesti). Važne
+/// obavijesti (rezultat aukcije, prodaja, poruke, ponude) uvijek stižu.
+enum NotificationPref {
+  outbid(
+    NotificationGroup.auctions,
+    'Netko me nadmašio',
+    'Kad tvoja ponuda više nije najviša (i automatska).',
+    [NotificationKind.outbid, NotificationKind.outbidAuto],
+  ),
+  newBid(
+    NotificationGroup.auctions,
+    'Nove ponude na mojim aukcijama',
+    'Svaka nova ponuda na aukciji koju si pokrenuo.',
+    [NotificationKind.newBid],
+  ),
+  endingSoon(
+    NotificationGroup.auctions,
+    'Aukcija uskoro završava',
+    '10 minuta prije kraja aukcija koje pratiš ili na kojima licitiraš.',
+    [NotificationKind.auctionEndingSoon],
+  ),
+  followedAuction(
+    NotificationGroup.auctions,
+    'Nove aukcije trgovina koje pratim',
+    'Kad trgovina koju pratiš pokrene aukciju.',
+    [NotificationKind.followedAuction],
+  ),
+  priceDrop(
+    NotificationGroup.trade,
+    'Pojeftinjenja',
+    'Kad predmet koji ti se sviđa pojeftini.',
+    [NotificationKind.priceDrop],
+  ),
+  followedShops(
+    NotificationGroup.trade,
+    'Novi oglasi i popusti trgovina koje pratim',
+    'Novi oglasi i sniženja u trgovinama koje pratiš.',
+    [NotificationKind.followedNewItem, NotificationKind.followedDiscount],
+  ),
+  newFollower(
+    NotificationGroup.social,
+    'Novi pratitelji',
+    'Kad te netko počne pratiti.',
+    [NotificationKind.newFollower],
+  );
+
+  const NotificationPref(this.group, this._title, this._hint, this.kinds);
+  final NotificationGroup group;
+  final String _title;
+  final String _hint;
+  final List<NotificationKind> kinds;
+
+  String get title => t(_title);
+  String get hint => t(_hint);
+
+  /// Postavka koja uključuje/isključuje [kind] (null = uvijek stiže).
+  static NotificationPref? of(NotificationKind kind) =>
+      values.where((p) => p.kinds.contains(kind)).firstOrNull;
 }
 
 /// Obavijest u aplikaciji. Tekst se gradi pri prikazu (na jeziku

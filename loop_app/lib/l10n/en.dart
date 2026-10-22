@@ -1436,4 +1436,16 @@ const kEn = <String, String>{
   'Imaš već {0} aktivne aukcije — to je najviše. Pričekaj da neka završi ili prodaj na Marketu.':
       'You already have {0} active auctions — that\'s the maximum. Wait for one to end or sell on the Market.',
   'Uplati': 'Top up',
+  'Danas': 'Today',
+  'Jučer': 'Yesterday',
+  'Nadmašen': 'Outbid',
+  'Ovaj tjedan': 'This week',
+  'Postavke obavijesti': 'Notification settings',
+  'Povisi ponudu': 'Raise bid',
+  'Ranije': 'Earlier',
+  'Rezultati aukcija, prodaje, ponude za cijenu i poruke stižu uvijek.':
+      'Auction results, sales, price offers and messages always arrive.',
+  'Tvoje aukcije': 'Your auctions',
+  'Vodiš ✓': 'Leading ✓',
+  '{0} · još {1} slične': '{0} · {1} more like this',
 };

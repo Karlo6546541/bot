@@ -246,6 +246,22 @@ ne sinkronizira; online prijavu vodi Supabase Auth i lozinke ne prolaze kroz na�
   imenu, a „c/s/z/d/dj” pronalaze i „č/ć/š/ž/đ”.
 - Online: ponude cijena su u tablici `loop_bargains` — pokreni ponovno `supabase/schema.sql`.
 
+## Obavijesti
+
+- Filteri: **Sve · Aukcije · Kupnje i prodaje · Ponude · Društvo · Poruke**
+  (s brojem nepročitanih), podjela po danima (Danas, Jučer, Ovaj tjedan,
+  Ranije). Više obavijesti o istoj aukciji spaja se u jednu karticu.
+- Kartica aukcije: slika predmeta, odbrojavanje, trenutna cijena, oznaka
+  *Vodiš ✓* / *Nadmašen* i gumb **Licitiraj / Povisi ponudu** (otvara list
+  za ponudu) ili **Odaberi dostavu** kad si pobijedio. Filter *Aukcije*
+  ima sažetak: koliko aukcija vodiš, gdje si nadmašen i koliko ih prodaješ.
+- Povlačenje ulijevo briše obavijest; gumb ✓✓ označava sve kao pročitano.
+- **Postavke obavijesti** (ikona gore desno): isključi "Netko me nadmašio",
+  "Nove ponude na mojim aukcijama", "Aukcija uskoro završava", "Nove aukcije
+  trgovina koje pratim", pojeftinjenja, oglase trgovina i nove pratitelje.
+  Rezultati aukcija, prodaje, ponude za cijenu i poruke stižu uvijek.
+  Postavke se spremaju uz korisnika (bez nove tablice).
+
 ## Liste želja i priče (stories)
 
 - **Liste želja**: na oglasu (ikona oznake) ili u objavama ("Spremi") predmet

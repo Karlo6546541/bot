@@ -13,6 +13,7 @@ import '../services/account_service.dart';
 import '../services/auction_service.dart';
 import '../services/bargain_service.dart';
 import '../services/social_service.dart';
+import '../models/app_notification.dart';
 import '../models/story.dart';
 import '../models/wishlist.dart';
 import '../services/auth_backend.dart';
@@ -544,6 +545,33 @@ class AppController extends Notifier<AppState> {
     final blocked = await _community.toggleBlock(_requireUserId(), otherId);
     _refresh();
     return blocked;
+  }
+
+  /// Uključuje/isključuje vrstu obavijesti. Vraća `true` ako je uključena.
+  Future<bool> toggleNotificationPref(NotificationPref pref) async {
+    final storage = ref.read(storageProvider);
+    final user = storage.userById(_requireUserId());
+    if (user == null) return false;
+    final muted = {...user.mutedNotifications};
+    // Bila je isključena → uključi; bila je uključena → isključi.
+    final wasMuted = muted.remove(pref.name);
+    if (!wasMuted) muted.add(pref.name);
+    await storage.putUser(user.copyWith(mutedNotifications: muted.toList()));
+    _refresh();
+    return wasMuted;
+  }
+
+  /// Briše jednu ili više mojih obavijesti.
+  Future<void> deleteNotifications(Iterable<String> ids) async {
+    final me = state.currentUserId;
+    final storage = ref.read(storageProvider);
+    final set = ids.toSet();
+    for (final n in storage.notifications) {
+      if (n.userId == me && set.contains(n.id)) {
+        await storage.deleteNotification(n.id);
+      }
+    }
+    _refresh();
   }
 
   Future<void> markNotificationsRead({String? id}) async {

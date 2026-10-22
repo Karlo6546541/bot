@@ -3,12 +3,15 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hive/hive.dart';
 import 'package:loop_app/app.dart';
+import 'package:loop_app/models/app_notification.dart';
+import 'package:loop_app/models/app_user.dart';
 import 'package:loop_app/models/device.dart';
 import 'package:loop_app/models/story.dart';
 import 'package:loop_app/models/wishlist.dart';
 import 'package:loop_app/providers/app_providers.dart';
 import 'package:loop_app/providers/app_state.dart';
 import 'package:loop_app/screens/device_detail_screen.dart';
+import 'package:loop_app/services/inbox.dart';
 import 'package:loop_app/services/seed_data.dart';
 import 'package:loop_app/services/social_service.dart';
 import 'package:loop_app/services/storage_service.dart';
@@ -88,6 +91,29 @@ void main() {
         expect(roundTrip['wishlists'], isNotEmpty);
       },
     );
+
+    test('isključene obavijesti ne stižu, važne stižu uvijek', () async {
+      final inbox = Inbox(storage);
+      final u = storage.userById(demo)!;
+      await storage.putUser(
+        u.copyWith(mutedNotifications: [NotificationPref.outbid.name]),
+      );
+      await inbox.send(demo, NotificationKind.outbid, args: ['X', 10]);
+      await inbox.send(demo, NotificationKind.outbidAuto, args: ['X', 10]);
+      await inbox.send(demo, NotificationKind.auctionWon, args: ['X', 10]);
+      await inbox.send(demo, NotificationKind.newBid, args: ['X', 10]);
+      final kinds = storage.notifications
+          .where((n) => n.userId == demo)
+          .map((n) => n.kind)
+          .toSet();
+      expect(kinds, {NotificationKind.auctionWon, NotificationKind.newBid});
+      expect(NotificationPref.of(NotificationKind.auctionWon), isNull);
+      expect(NotificationKind.outbid.group, NotificationGroup.auctions);
+      expect(
+        AppUser.fromMap(storage.userById(demo)!.toMap()).mutedNotifications,
+        ['outbid'],
+      );
+    });
 
     test('lista: najviše ${Wishlist.maxLists} lista', () async {
       for (var i = 0; i < Wishlist.maxLists; i++) {
