@@ -51,6 +51,25 @@ jobs:
           --dart-define=SUPABASE_URL="$SUPABASE_URL"
           --dart-define=SUPABASE_KEY="$SUPABASE_KEY"
 
+      # Spremljena kopija verzije prije pojednostavljenja sučelja:
+      # https://<korisnik>.github.io/bot/stara/
+      - uses: actions/checkout@v4
+        with:
+          ref: fc5bf8d7493d5da4e0eee25abfd44687e9d75bdd
+          path: stara
+
+      - name: Build saved copy (/bot/stara/)
+        working-directory: stara/loop_app
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
+        run: |
+          flutter pub get
+          flutter build web --release --base-href /bot/stara/ --no-web-resources-cdn \
+            --dart-define=SUPABASE_URL="$SUPABASE_URL" \
+            --dart-define=SUPABASE_KEY="$SUPABASE_KEY"
+          cp -r build/web "$GITHUB_WORKSPACE/loop_app/build/web/stara"
+
       - uses: actions/upload-pages-artifact@v3
         with:
           path: loop_app/build/web
