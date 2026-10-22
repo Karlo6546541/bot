@@ -53,7 +53,7 @@ void main() {
 
       // Portfolio demo korisnika
       await reveal(tester, find.text('SILVER'));
-      expect(find.text('1.250'), findsWidgets); // kartica + traka
+      expect(find.textContaining('1.250'), findsWidgets); // kartica + traka
       expect(find.text('SILVER'), findsOneWidget);
       // Popis predmeta je ispod grafikona — skrolaj do njega.
       await tester.scrollUntilVisible(

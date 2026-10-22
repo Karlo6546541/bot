@@ -545,21 +545,15 @@ String discountLabel(Device d) => d.discountUntil == null
 
 // --------------------------------------------------------------- cjenkanje
 
-/// Unos iznosa (ponuda ili protuponuda) u donjem listu: list se podigne
-/// iznad tipkovnice, a polje ostaje na mjestu i vidljivo.
+/// Unos iznosa (ponuda ili protuponuda) u malom skočnom prozoru.
 Future<double?> _amountDialog(
   BuildContext context, {
   required String title,
   required String message,
   required double suggestion,
   required double max,
-}) => showModalBottomSheet<double>(
+}) => showDialog<double>(
   context: context,
-  isScrollControlled: true,
-  useSafeArea: true,
-  showDragHandle: true,
-  backgroundColor: LoopColors.background,
-  constraints: const BoxConstraints(maxWidth: 520),
   builder: (_) => _AmountDialog(
     title: title,
     message: message,
@@ -612,66 +606,83 @@ class _AmountDialogState extends State<_AmountDialog> {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: EdgeInsets.only(bottom: MediaQuery.viewInsetsOf(context).bottom),
-      child: SingleChildScrollView(
-        padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Text(
-              widget.title,
-              style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w900),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              widget.message,
-              style: TextStyle(color: LoopColors.textSecondary),
-            ),
-            const SizedBox(height: 12),
-            Wrap(
-              spacing: 6,
-              runSpacing: 6,
-              children: [
-                for (final p in const [5, 10, 15, 20])
-                  ActionChip(
-                    label: Text('−$p%'),
-                    onPressed: () => setState(() {
-                      _c.text = _fmt(
-                        roundCredits(widget.max * (100 - p) / 100),
-                      );
-                      _error = null;
-                    }),
+    return Dialog(
+      insetPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 380),
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.fromLTRB(20, 18, 20, 12),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text(
+                widget.title,
+                style: const TextStyle(
+                  fontSize: 19,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                widget.message,
+                style: TextStyle(color: LoopColors.textSecondary, fontSize: 13),
+              ),
+              const SizedBox(height: 12),
+              Wrap(
+                spacing: 6,
+                runSpacing: 6,
+                children: [
+                  for (final p in const [5, 10, 15, 20])
+                    ActionChip(
+                      label: Text('−$p%'),
+                      onPressed: () => setState(() {
+                        _c.text = _fmt(
+                          roundCredits(widget.max * (100 - p) / 100),
+                        );
+                        _error = null;
+                      }),
+                    ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                key: const ValueKey('amount-field'),
+                controller: _c,
+                keyboardType: const TextInputType.numberWithOptions(
+                  decimal: true,
+                ),
+                textInputAction: TextInputAction.send,
+                style: const TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.w800,
+                ),
+                onChanged: (_) => setState(() => _error = null),
+                onSubmitted: (_) => _submit(),
+                decoration: InputDecoration(
+                  labelText: t('Iznos'),
+                  suffixText: '€',
+                  errorText: _error,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  TextButton(
+                    onPressed: () => Navigator.pop(context),
+                    child: Text(t('Odustani')),
                   ),
-              ],
-            ),
-            const SizedBox(height: 12),
-            TextField(
-              key: const ValueKey('amount-field'),
-              controller: _c,
-              autofocus: true,
-              keyboardType: const TextInputType.numberWithOptions(
-                decimal: true,
+                  const SizedBox(width: 8),
+                  FilledButton(
+                    key: const ValueKey('amount-submit'),
+                    onPressed: _submit,
+                    child: Text(t('Pošalji')),
+                  ),
+                ],
               ),
-              textInputAction: TextInputAction.send,
-              style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w800),
-              onChanged: (_) => setState(() => _error = null),
-              onSubmitted: (_) => _submit(),
-              decoration: InputDecoration(
-                labelText: t('Iznos'),
-                suffixText: '€',
-                errorText: _error,
-              ),
-            ),
-            const SizedBox(height: 14),
-            FilledButton.icon(
-              key: const ValueKey('amount-submit'),
-              onPressed: _submit,
-              icon: const Icon(Icons.send),
-              label: Text(t('Pošalji')),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );

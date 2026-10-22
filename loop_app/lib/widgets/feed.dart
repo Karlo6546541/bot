@@ -9,7 +9,6 @@ import '../providers/app_providers.dart';
 import '../providers/app_state.dart';
 import '../screens/add_device_screen.dart';
 import '../screens/public_profile_screen.dart';
-import '../screens/search_screen.dart';
 import '../screens/shop_screens.dart';
 import '../screens/swipe_feed_screen.dart';
 import '../theme/app_theme.dart';
@@ -109,43 +108,50 @@ class HomeFeed extends ConsumerWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        // Pretraga objava i računa.
-        Material(
-          color: LoopColors.surface,
-          borderRadius: BorderRadius.circular(kRadius),
-          child: InkWell(
-            key: const ValueKey('home-search'),
-            borderRadius: BorderRadius.circular(kRadius),
-            onTap: () => SearchScreen.open(context),
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
-              child: Row(
-                children: [
-                  Icon(Icons.search, color: LoopColors.textSecondary),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: Text(
-                      t('Traži objave i račune…'),
-                      style: TextStyle(color: LoopColors.textSecondary),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ),
-        const SizedBox(height: 12),
+        // 1. Objave (kao TikTok): mreža + "Gledaj" za listanje.
         if (posts.isNotEmpty) ...[
-          _WatchButton(
-            count: posts.length,
-            onTap: () => SwipeFeedScreen.open(context, posts, 0),
+          Row(
+            children: [
+              Expanded(child: Text(t('Objave'), style: heading)),
+              FilledButton.tonalIcon(
+                key: const ValueKey('watch-posts'),
+                onPressed: () => SwipeFeedScreen.open(context, posts, 0),
+                icon: const Icon(Icons.play_arrow_rounded),
+                label: Text(t('Gledaj')),
+              ),
+            ],
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 8),
+          LayoutBuilder(
+            builder: (context, c) {
+              final cols = c.maxWidth >= 900
+                  ? 5
+                  : c.maxWidth >= 600
+                  ? 4
+                  : 3;
+              final shown = posts.take(cols * 2).toList();
+              return GridView.builder(
+                key: const ValueKey('home-feed'),
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: cols,
+                  mainAxisSpacing: 4,
+                  crossAxisSpacing: 4,
+                  childAspectRatio: 3 / 4,
+                ),
+                itemCount: shown.length,
+                itemBuilder: (context, i) => PostTile(
+                  entry: shown[i],
+                  state: state,
+                  onTap: () => SwipeFeedScreen.open(context, posts, i),
+                ),
+              );
+            },
+          ),
+          const SizedBox(height: 20),
         ],
-        if (me != null && !me.isGuest) ...[
-          _OwnShopBanner(user: me),
-          const SizedBox(height: 16),
-        ],
+        // 2. Trgovine.
         if (shops.isNotEmpty) ...[
           Row(
             children: [
@@ -168,115 +174,15 @@ class HomeFeed extends ConsumerWidget {
               itemBuilder: (context, i) => ShopCard(user: shops[i]),
             ),
           ),
-          const SizedBox(height: 18),
         ],
-        if (posts.isNotEmpty) ...[
-          Row(
-            children: [
-              Expanded(child: Text(t('Objave'), style: heading)),
-              TextButton.icon(
-                key: const ValueKey('open-leaderboard'),
-                onPressed: () => LeaderboardScreen.open(context),
-                icon: const Icon(Icons.emoji_events_outlined, size: 18),
-                label: Text(t('Top prodavatelji')),
-              ),
-            ],
-          ),
-          const SizedBox(height: 6),
-          LayoutBuilder(
-            builder: (context, c) {
-              final cols = c.maxWidth >= 900
-                  ? 5
-                  : c.maxWidth >= 600
-                  ? 4
-                  : 3;
-              final shown = posts.take(cols * 4).toList();
-              return GridView.builder(
-                key: const ValueKey('home-feed'),
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: cols,
-                  mainAxisSpacing: 4,
-                  crossAxisSpacing: 4,
-                  childAspectRatio: 3 / 4,
-                ),
-                itemCount: shown.length,
-                itemBuilder: (context, i) => PostTile(
-                  entry: shown[i],
-                  state: state,
-                  onTap: () => SwipeFeedScreen.open(context, posts, i),
-                ),
-              );
-            },
-          ),
-          if (posts.length > 12) ...[
-            const SizedBox(height: 8),
-            OutlinedButton.icon(
-              onPressed: () => SwipeFeedScreen.open(context, posts, 0),
-              icon: const Icon(Icons.swipe_vertical_outlined),
-              label: Text(t('Još {0} objava — listaj', ['${posts.length}'])),
-            ),
-          ],
+        // 3. Poziv da i ti otvoriš trgovinu (dok nemaš oglasa).
+        if (me != null && !me.isGuest && state.listingsOf(me.id).isEmpty) ...[
+          const SizedBox(height: 16),
+          _OwnShopBanner(user: me),
         ],
       ],
     );
   }
-}
-
-/// Veliki gumb "Gledaj objave" (TikTok način).
-class _WatchButton extends StatelessWidget {
-  const _WatchButton({required this.count, required this.onTap});
-  final int count;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) => Material(
-    borderRadius: BorderRadius.circular(kRadius),
-    clipBehavior: Clip.antiAlias,
-    child: Ink(
-      decoration: const BoxDecoration(
-        gradient: LinearGradient(
-          colors: [Color(0xFFFF2D55), Color(0xFF7B2FF7)],
-        ),
-      ),
-      child: InkWell(
-        key: const ValueKey('watch-posts'),
-        onTap: onTap,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
-          child: Row(
-            children: [
-              const Icon(Icons.play_circle_fill, color: Colors.white, size: 40),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      t('Gledaj objave'),
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 18,
-                        fontWeight: FontWeight.w900,
-                      ),
-                    ),
-                    Text(
-                      t('{0} objava iz trgovina — listaj gore i dolje', [
-                        '$count',
-                      ]),
-                      style: const TextStyle(color: Colors.white70),
-                    ),
-                  ],
-                ),
-              ),
-              const Icon(Icons.swipe_vertical, color: Colors.white),
-            ],
-          ),
-        ),
-      ),
-    ),
-  );
 }
 
 /// Podsjetnik da je svaki račun trgovina.

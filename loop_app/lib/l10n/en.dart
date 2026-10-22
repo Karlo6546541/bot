@@ -1352,4 +1352,14 @@ const kEn = <String, String>{
   'Upiši naziv predmeta, kategoriju, trgovinu ili @korisnika.':
       'Type an item name, category, shop or @user.',
   '{0} oglasa': '{0} listings',
+  'Datoteka': 'File',
+  'Gledaj': 'Watch',
+  'Na zalihi': 'In stock',
+  'Objavljeno': 'Posted',
+  'Opis i detalji ›': 'Description and details ›',
+  'Otvori cijeli oglas': 'Open full listing',
+  'Prodavatelj nije dodao opis.': 'The seller hasn\'t added a description.',
+  'Trenutna ponuda': 'Current bid',
+  'Trgovina': 'Shop',
+  'Završava': 'Ends',
 };

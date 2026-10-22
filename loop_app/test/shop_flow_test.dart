@@ -89,6 +89,15 @@ void main() {
       expect(find.text('102 €'), findsOneWidget);
       expect(find.textContaining('aknad'), findsNothing);
 
+      // Dodir na opis: cijeli opis i detalji u donjem listu.
+      await tester.tap(find.byKey(const ValueKey('post-description')));
+      await tester.pumpAndSettle();
+      expect(find.byKey(const ValueKey('post-details')), findsOneWidget);
+      expect(find.text('Otvori cijeli oglas'), findsOneWidget);
+      await tester.tapAt(const Offset(20, 20)); // zatvori list
+      await tester.pumpAndSettle();
+      expect(find.byKey(const ValueKey('post-details')), findsNothing);
+
       // Lajk, prati, ponuda cijene.
       await tester.tap(find.byKey(const ValueKey('post-like')));
       await tester.pumpAndSettle();

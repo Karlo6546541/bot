@@ -391,12 +391,6 @@ class _QuickActions extends ConsumerWidget {
     final tabs = ref.read(homeTabProvider.notifier);
     final actions = [
       (
-        '🪙',
-        t('Uplati novac'),
-        LoopColors.sunny,
-        () => BuyCreditsScreen.open(context),
-      ),
-      (
         '📦',
         t('Dodaj predmet'),
         LoopColors.mint,

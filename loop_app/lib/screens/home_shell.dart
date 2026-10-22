@@ -107,12 +107,15 @@ class _HomeShellState extends ConsumerState<HomeShell> {
         child: LoopLogo(size: 22, onTap: _goHome),
       ),
       appBar: AppBar(
+        // Jednostavna traka: logo lijevo, desno samo pretraga, poruke,
+        // obavijesti i stanje (jezik je u Profilu → Postavke).
+        titleSpacing: phone ? 8 : null,
         title: isDesktop
             ? Text(_destinations[_index].label)
-            // Na uskom ekranu logo se smanji da stanu jezik i krediti.
             : FittedBox(
                 fit: BoxFit.scaleDown,
-                child: LoopLogo(size: 22, onTap: _goHome),
+                alignment: Alignment.centerLeft,
+                child: LoopLogo(size: 20, onTap: _goHome),
               ),
         actions: [
           IconButton(
@@ -123,10 +126,12 @@ class _HomeShellState extends ConsumerState<HomeShell> {
           ),
           const MessagesButton(),
           const NotificationBell(),
-          LanguageButton(compact: phone),
-          const SizedBox(width: 6),
+          if (!phone) ...[
+            const LanguageButton(compact: true),
+            const SizedBox(width: 6),
+          ],
           const _CreditsPill(),
-          const SizedBox(width: 12),
+          SizedBox(width: phone ? 8 : 12),
         ],
       ),
       // Na mobitelu: početna ima "Dodaj predmet" u brzim akcijama, a za
@@ -189,19 +194,10 @@ class _CreditsPill extends ConsumerWidget {
           customBorder: const StadiumBorder(),
           onTap: () => BuyCreditsScreen.open(context),
           child: Padding(
-            padding: const EdgeInsets.fromLTRB(12, 8, 8, 8),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Text('🪙', style: TextStyle(fontSize: 16)),
-                const SizedBox(width: 6),
-                Text(
-                  formatNumber(credits),
-                  style: const TextStyle(fontWeight: FontWeight.w900),
-                ),
-                const SizedBox(width: 4),
-                Icon(Icons.add_circle, size: 20, color: LoopColors.accent),
-              ],
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+            child: Text(
+              formatCredits(credits),
+              style: const TextStyle(fontWeight: FontWeight.w900),
             ),
           ),
         ),
