@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'seller_screens.dart';
+
 import '../models/auction.dart';
 import '../models/device.dart';
 import '../providers/app_providers.dart';
@@ -26,6 +28,7 @@ class CreateAuctionScreen extends ConsumerStatefulWidget {
 
   static Future<void> open(BuildContext context, {String? deviceId}) async {
     if (blockGuest(context)) return;
+    if (!await ensureSellerInfo(context) || !context.mounted) return;
     await Navigator.of(context).push(
       MaterialPageRoute<void>(
         builder: (_) => CreateAuctionScreen(deviceId: deviceId),

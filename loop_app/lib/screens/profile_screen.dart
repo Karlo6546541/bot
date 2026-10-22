@@ -7,7 +7,8 @@ import '../theme/app_theme.dart';
 import '../widgets/formatters.dart';
 import '../widgets/trade_actions.dart';
 import 'activity_screen.dart';
-import 'buy_credits_screen.dart';
+import 'legal_screen.dart';
+import 'seller_screens.dart';
 import 'portfolio_screen.dart';
 import 'wishlists_screen.dart';
 import 'deliveries_screen.dart';
@@ -61,7 +62,7 @@ class ProfileScreen extends ConsumerWidget {
                           Icons.account_balance_wallet_outlined,
                           color: LoopColors.textSecondary,
                         ),
-                        title: Text(t('Stanje')),
+                        title: Text(t('Zarada za isplatu')),
                         subtitle: Text(
                           formatCredits(user.credits),
                           style: const TextStyle(
@@ -70,9 +71,24 @@ class ProfileScreen extends ConsumerWidget {
                           ),
                         ),
                         trailing: FilledButton(
-                          key: const ValueKey('profile-topup'),
-                          onPressed: () => BuyCreditsScreen.open(context),
-                          child: Text(t('Uplati novac')),
+                          key: const ValueKey('profile-payout'),
+                          onPressed: user.credits > 0 && !user.isGuest
+                              ? () => showPayoutDialog(context, ref)
+                              : null,
+                          child: Text(t('Isplati')),
+                        ),
+                      ),
+                      const Divider(height: 1),
+                      ListTile(
+                        leading: Icon(
+                          Icons.credit_card,
+                          color: LoopColors.textSecondary,
+                        ),
+                        title: Text(t('Plaćanje karticom pri kupnji')),
+                        subtitle: Text(
+                          t(
+                            'Novac obrađuje pružatelj plaćanja — LOOP ne drži novac kupaca.',
+                          ),
                         ),
                       ),
                       const Divider(height: 1),
@@ -119,6 +135,15 @@ class ProfileScreen extends ConsumerWidget {
                   _SectionTitle(t('Račun'), Icons.manage_accounts_outlined),
                   _AccountCard(user: user),
                 ],
+                _SectionTitle(t('Pravno'), Icons.policy_outlined),
+                Card(
+                  child: _NavTile(
+                    key: const ValueKey('open-legal'),
+                    icon: Icons.description_outlined,
+                    title: t('Uvjeti, privatnost i impresum'),
+                    onTap: () => LegalListScreen.open(context),
+                  ),
+                ),
                 _SectionTitle(t('Postavke'), Icons.tune),
                 const _SyncStatusTile(),
                 SizedBox(height: 12),
@@ -428,6 +453,16 @@ class _ShopCard extends ConsumerWidget {
                 'my-sales',
               ),
             ],
+          ),
+          const Divider(height: 1),
+          _NavTile(
+            key: const ValueKey('seller-info'),
+            icon: Icons.badge_outlined,
+            title: t('Podaci prodavatelja'),
+            subtitle: user.seller == null
+                ? t('Nije ispunjeno — potrebno za objavu i isplatu')
+                : '${user.seller!.type.label} · ${user.seller!.maskedIban}',
+            onTap: () => SellerInfoScreen.open(context),
           ),
           const Divider(height: 1),
           _NavTile(

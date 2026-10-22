@@ -463,11 +463,6 @@ class AppState {
     return null;
   }
 
-  /// Krediti blokirani u vodećim ponudama.
-  double heldCreditsOf(String userId) => auctions
-      .where((a) => a.isActive && a.highestBid?.userId == userId)
-      .fold(0.0, (sum, a) => sum + a.highestBid!.amount);
-
   AppUser? get currentUser {
     if (currentUserId == null) return null;
     for (final u in users) {
@@ -577,8 +572,7 @@ class AppState {
 
   /// Ukupna vrijednost = krediti (uključujući blokirane u ponudama)
   /// + vrijednost portfolija.
-  double totalValueOf(AppUser user) =>
-      user.credits + heldCreditsOf(user.id) + portfolioValueOf(user.id);
+  double totalValueOf(AppUser user) => user.credits + portfolioValueOf(user.id);
 
   String userLabel(String? userId) {
     if (userId == null) return 'LOOP Market';
@@ -599,9 +593,9 @@ class AppState {
 
   double get totalFees => transactions.fold(0, (sum, t) => sum + t.fee);
 
-  /// Ukupno uplaćeno, u eurima.
-  double get totalTopUpEur => transactions
-      .where((t) => t.type == TransactionType.topUp)
+  /// Ukupno isplaćeno prodavateljima na račun.
+  double get totalPayouts => transactions
+      .where((t) => t.type == TransactionType.payout)
       .fold(0, (sum, t) => sum + t.price);
 }
 

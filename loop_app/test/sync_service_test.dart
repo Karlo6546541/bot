@@ -211,7 +211,11 @@ void main() {
     await storage.putUser(demo.copyWith(credits: 4321));
     await Future<void>.delayed(Duration.zero);
     expect(remote.upserts, before); // ništa nije poslano
-    expect(storage.pendingSync, ['users/${SeedData.demoUserId}']);
+    // Profil i (privatni) podaci prodavatelja čekaju slanje.
+    expect(storage.pendingSync, [
+      'users/${SeedData.demoUserId}',
+      'sellers/${SeedData.demoUserId}',
+    ]);
     await sync.dispose();
 
     // "Osvježavanje stranice": novo pokretanje povlači bazu, ali lokalna
@@ -219,7 +223,7 @@ void main() {
     sync = SyncService(storage, remote);
     await sync.start();
     expect(storage.userById(SeedData.demoUserId)!.credits, 4321);
-    expect(sync.pendingCount, 1);
+    expect(sync.pendingCount, 2);
     remote.canWrite = true;
     await sync.flushNow();
     expect(remote.data['users']![SeedData.demoUserId]!['credits'], 4321);
@@ -227,4 +231,18 @@ void main() {
     expect(storage.pendingSync, isEmpty);
     await sync.dispose();
   });
+
+  test(
+    'podaci prodavatelja idu u zasebnu tablicu, ne u javni profil',
+    () async {
+      await SyncService(storage, remote).start();
+      final users = remote.data['users']![SeedData.demoUserId]!;
+      expect(users.containsKey('seller'), isFalse);
+      expect(
+        remote.data['sellers']![SeedData.demoUserId]!['oib'],
+        '12345678903',
+      );
+      expect(storage.userById(SeedData.demoUserId)!.seller!.oib, '12345678903');
+    },
+  );
 }

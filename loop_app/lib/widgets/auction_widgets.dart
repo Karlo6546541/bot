@@ -5,7 +5,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../l10n/tr.dart';
 import '../models/auction.dart';
 import '../providers/app_providers.dart';
-import '../screens/buy_credits_screen.dart';
 import '../services/fee.dart';
 import '../services/trade_service.dart';
 import '../theme/app_theme.dart';
@@ -137,12 +136,11 @@ class _BidSheetState extends ConsumerState<_BidSheet> {
         roundCredits((myMax ?? (leading ? a.currentPrice : min)) * 1.25),
       );
     }
-    final available = me.credits + (leading ? a.currentPrice : 0);
     final quick = <double>{
       min,
       roundCredits(min + a.minIncrement),
       roundCredits(min + a.minIncrement * 3),
-    }.where((v) => v <= me.credits).toList();
+    }.toList();
     final bold = const TextStyle(fontWeight: FontWeight.w800);
 
     return Padding(
@@ -203,21 +201,6 @@ class _BidSheetState extends ConsumerState<_BidSheet> {
                 t('Licitiraj automatski najviše do'),
                 key: const ValueKey('bid-max'),
               ),
-            ] else if (me.credits < min) ...[
-              _Note(
-                icon: Icons.account_balance_wallet_outlined,
-                text: t('Za ponudu treba barem {0}, a imaš {1}.', [
-                  formatCredits(min),
-                  formatCredits(me.credits),
-                ]),
-              ),
-              const SizedBox(height: 10),
-              FilledButton.icon(
-                onPressed: () =>
-                    BuyCreditsScreen.open(context, needed: min - me.credits),
-                icon: const Icon(Icons.add_card),
-                label: Text(t('Uplati novac')),
-              ),
             ] else ...[
               Wrap(
                 spacing: 8,
@@ -260,20 +243,19 @@ class _BidSheetState extends ConsumerState<_BidSheet> {
               Text(_error!, style: TextStyle(color: LoopColors.error)),
             ],
             const SizedBox(height: 12),
-            if (leading || me.credits >= min)
-              FilledButton.icon(
-                key: const ValueKey('bid-submit'),
-                onPressed: _busy ? null : () => _bid(a, leading),
-                icon: const Icon(Icons.gavel),
-                label: Text(
-                  leading
-                      ? t('Spremi automatsku ponudu')
-                      : t('Licitiraj {0}', [
-                          formatCredits(_parse(_amount.text) ?? min),
-                        ]),
-                ),
+            FilledButton.icon(
+              key: const ValueKey('bid-submit'),
+              onPressed: _busy ? null : () => _bid(a, leading),
+              icon: const Icon(Icons.gavel),
+              label: Text(
+                leading
+                    ? t('Spremi automatsku ponudu')
+                    : t('Licitiraj {0}', [
+                        formatCredits(_parse(_amount.text) ?? min),
+                      ]),
               ),
-            if (a.canBuyNow && a.buyNowPrice! <= available) ...[
+            ),
+            if (a.canBuyNow) ...[
               const SizedBox(height: 8),
               OutlinedButton.icon(
                 key: const ValueKey('bid-buy-now'),
@@ -287,7 +269,7 @@ class _BidSheetState extends ConsumerState<_BidSheet> {
             const SizedBox(height: 10),
             Text(
               t(
-                'Ponude su obvezujuće. Blokira se samo trenutna vodeća ponuda i vraća ti se čim te netko nadmaši.',
+                'Ponude su obvezujuće. Pobjednik plaća karticom tek kad aukcija završi — ništa se ne blokira unaprijed.',
               ),
               textAlign: TextAlign.center,
               style: TextStyle(color: LoopColors.textSecondary, fontSize: 12),

@@ -275,9 +275,9 @@ class _PromoteSheetState extends ConsumerState<_PromoteSheet> {
             ),
             const SizedBox(height: 6),
             Text(
-              t('Plaća se s LOOP stanja. Stanje: {0}', [
-                formatCredits(user?.credits ?? 0),
-              ]),
+              t(
+                'Plaća se karticom. Istaknuti oglasi označeni su kao "Sponzorirano".',
+              ),
               textAlign: TextAlign.center,
               style: TextStyle(color: LoopColors.textSecondary, fontSize: 12),
             ),

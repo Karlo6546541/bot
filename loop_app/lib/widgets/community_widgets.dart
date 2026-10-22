@@ -117,10 +117,18 @@ class ReviewTile extends StatelessWidget {
           Text(review.comment),
         ],
         Text(
-          review.deviceName.isEmpty
-              ? t('Ocjena trgovine')
-              : t('Kupnja: {0}', [review.deviceName]),
-          style: TextStyle(color: LoopColors.textSecondary, fontSize: 12),
+          [
+            review.verified
+                ? t('✓ Provjerena kupnja')
+                : t('Bez provjerene kupnje'),
+            if (review.deviceName.isNotEmpty) review.deviceName,
+          ].join(' · '),
+          style: TextStyle(
+            color: review.verified
+                ? LoopColors.success
+                : LoopColors.textSecondary,
+            fontSize: 12,
+          ),
         ),
       ],
     ),

@@ -1,3 +1,4 @@
+import 'seller_info.dart';
 import 'wishlist.dart';
 
 /// Korisnik aplikacije — svaki račun je i kupac i prodavatelj. Stanje
@@ -30,6 +31,7 @@ class AppUser {
     this.following = const [],
     this.wishlists = const [],
     this.mutedNotifications = const [],
+    this.seller,
     this.promotedUntil,
     this.shopName = '',
     this.coverPath,
@@ -91,6 +93,11 @@ class AppUser {
 
   /// Isključene obavijesti (nazivi [NotificationPref]).
   final List<String> mutedNotifications;
+
+  /// Podaci prodavatelja (DAC7/DSA) — traže se prije prve objave.
+  final SellerInfo? seller;
+
+  bool get isTrader => seller?.isTrader ?? false;
 
   Wishlist? wishlistById(String id) {
     for (final w in wishlists) {
@@ -154,6 +161,7 @@ class AppUser {
     List<String>? following,
     List<Wishlist>? wishlists,
     List<String>? mutedNotifications,
+    SellerInfo? seller,
     DateTime? promotedUntil,
     String? shopName,
     String? coverPath,
@@ -183,6 +191,7 @@ class AppUser {
     following: following ?? this.following,
     wishlists: wishlists ?? this.wishlists,
     mutedNotifications: mutedNotifications ?? this.mutedNotifications,
+    seller: seller ?? this.seller,
     promotedUntil: promotedUntil ?? this.promotedUntil,
     shopName: shopName ?? this.shopName,
     coverPath: clearCover ? null : coverPath ?? this.coverPath,
@@ -210,6 +219,7 @@ class AppUser {
     'following': following,
     'wishlists': [for (final w in wishlists) w.toMap()],
     if (mutedNotifications.isNotEmpty) 'mutedNotifications': mutedNotifications,
+    if (seller != null) 'seller': seller!.toMap(),
     'promotedUntil': promotedUntil?.toIso8601String(),
     'shopName': shopName,
     'coverPath': coverPath,
@@ -245,6 +255,9 @@ class AppUser {
     ],
     mutedNotifications:
         (map['mutedNotifications'] as List?)?.cast<String>() ?? const [],
+    seller: map['seller'] is Map
+        ? SellerInfo.fromMap(map['seller'] as Map)
+        : null,
     promotedUntil: _date(map['promotedUntil']),
     shopName: map['shopName'] as String? ?? '',
     coverPath: map['coverPath'] as String?,

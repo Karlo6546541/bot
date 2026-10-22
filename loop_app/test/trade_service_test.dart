@@ -66,23 +66,26 @@ void main() {
     );
   });
 
-  test('instant buy: stanje −(cijena+2%), uređaj u portfoliju', () async {
-    // AirPods Pro 2 = 185 → 188.70
-    final tx = await trade.buy(userId: SeedData.testUserId, deviceId: 'seed-5');
-    expect(tx.amount, 188.7);
-    expect(storage.userById(SeedData.testUserId)!.credits, 611.3);
-    expect(storage.deviceById('seed-5')!.ownerId, SeedData.testUserId);
-  });
+  test(
+    'kupnja: kupac plaća karticom (cijena + 2 %), predmet je njegov',
+    () async {
+      // AirPods Pro 2 = 185 → 188.70
+      final tx = await trade.buy(
+        userId: SeedData.testUserId,
+        deviceId: 'seed-5',
+      );
+      expect(tx.amount, 188.7);
+      expect(storage.userById(SeedData.testUserId)!.credits, 800);
+      expect(storage.deviceById('seed-5')!.ownerId, SeedData.testUserId);
+    },
+  );
 
-  test('kupnja bez dovoljno kredita baca grešku i ništa ne mijenja', () async {
-    // MacBook Pro 1890 > 800 kredita
-    await expectLater(
-      trade.buy(userId: SeedData.testUserId, deviceId: 'seed-7'),
-      throwsA(isA<TradeException>()),
-    );
+  test('skupa kupnja ne ovisi o stanju (kartica)', () async {
+    // MacBook Pro 1890 > 800 zarade — plaća se karticom.
+    final tx = await trade.buy(userId: SeedData.testUserId, deviceId: 'seed-7');
+    expect(tx.amount, 1927.8);
     expect(storage.userById(SeedData.testUserId)!.credits, 800);
-    expect(storage.deviceById('seed-7')!.isOnMarket, isTrue);
-    expect(storage.transactions, isEmpty);
+    expect(storage.deviceById('seed-7')!.ownerId, SeedData.testUserId);
   });
 
   test('dodavanje uređaja', () async {

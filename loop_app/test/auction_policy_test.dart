@@ -57,13 +57,16 @@ void main() {
     expect(AuctionPolicy.listingFee(cheap), 2);
   });
 
-  test('objava naplaćuje naknadu i bilježi je u aktivnosti', () async {
-    await create(demo, 'seed-9'); // iPhone 13, 310 → 6,20
-    expect(storage.userById(demo)!.credits, 1243.8);
-    final tx = storage.transactions.single;
-    expect(tx.type, TransactionType.auctionFee);
-    expect(tx.fee, 6.2);
-  });
+  test(
+    'objava naplaćuje naknadu (karticom) i bilježi je u aktivnosti',
+    () async {
+      await create(demo, 'seed-9'); // iPhone 13, 310 → 6,20
+      expect(storage.userById(demo)!.credits, 1250); // zarada ostaje
+      final tx = storage.transactions.single;
+      expect(tx.type, TransactionType.auctionFee);
+      expect(tx.fee, 6.2);
+    },
+  );
 
   test('predmeti ispod 50 kredita ne idu na aukciju', () async {
     final cheap = await add(demo, 30);

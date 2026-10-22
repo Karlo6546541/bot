@@ -14,6 +14,7 @@ import '../widgets/item_image.dart';
 import '../widgets/photo_viewer.dart';
 import '../widgets/trade_actions.dart';
 import 'auction_detail_screen.dart';
+import 'seller_screens.dart';
 import 'wishlists_screen.dart';
 import 'create_auction_screen.dart';
 import 'messages_screen.dart';
@@ -208,6 +209,22 @@ class DeviceDetailScreen extends ConsumerWidget {
                         ),
                       ),
                     ],
+                    // Uz popust: najniža cijena u 30 dana (Omnibus).
+                    if (device.hasDiscount && !isMine) ...[
+                      const SizedBox(height: 4),
+                      Text(
+                        t('Najniža cijena u zadnjih 30 dana: {0}', [
+                          formatCredits(
+                            buyTotal(device.lowestPrice30(DateTime.now())),
+                          ),
+                        ]),
+                        key: const ValueKey('lowest-30'),
+                        style: TextStyle(
+                          color: LoopColors.textSecondary,
+                          fontSize: 12,
+                        ),
+                      ),
+                    ],
                     if (device.isListed) ...[
                       const SizedBox(height: 6),
                       Text(
@@ -313,6 +330,35 @@ class DeviceDetailScreen extends ConsumerWidget {
                           ],
                         ),
                       ),
+                    // Vrsta prodavatelja: o njoj ovise prava kupca.
+                    if (owner != null && device.isListed && !isMine)
+                      ListTile(
+                        key: const ValueKey('seller-type'),
+                        leading: Icon(
+                          owner.isTrader
+                              ? Icons.storefront_outlined
+                              : Icons.person_outline,
+                          color: LoopColors.textSecondary,
+                        ),
+                        title: Text(
+                          owner.isTrader
+                              ? t('Trgovac')
+                              : t('Privatni prodavatelj'),
+                        ),
+                        subtitle: Text(
+                          owner.isTrader
+                              ? t('Pravo na povrat u 14 dana i jamstvo.')
+                              : t(
+                                  'Kupnja od fizičke osobe: zakonsko pravo na povrat od 14 dana ne vrijedi.',
+                                ),
+                        ),
+                        trailing: owner.isTrader
+                            ? const Icon(Icons.chevron_right)
+                            : null,
+                        onTap: owner.isTrader && owner.seller != null
+                            ? () => showTraderInfo(context, owner)
+                            : null,
+                      ),
                     _Spec(
                       Icons.schedule,
                       t('Dodano'),
@@ -345,8 +391,6 @@ class DeviceDetailScreen extends ConsumerWidget {
                           formatCredits(buyTotal(price)),
                           bold: true,
                         ),
-                      if (canBuy)
-                        _Line(t('Tvoje stanje'), formatCredits(user.credits)),
                     ],
                   ),
                 ),

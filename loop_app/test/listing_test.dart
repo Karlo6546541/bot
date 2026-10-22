@@ -66,7 +66,8 @@ void main() {
       expect(tx.sellerId, SeedData.demoUserId);
       expect(tx.sellerLabel, '@demo');
 
-      expect(storage.userById(SeedData.testUserId)!.credits, buyerBefore - 204);
+      expect(tx.amount, 204); // kupac plaća karticom
+      expect(storage.userById(SeedData.testUserId)!.credits, buyerBefore);
       expect(
         storage.userById(SeedData.demoUserId)!.credits,
         sellerBefore + 200,
@@ -98,17 +99,27 @@ void main() {
     expect(delivery.canReview, isFalse); // tek nakon potvrde primitka
   });
 
-  test('premalo kredita za objavljeni predmet', () async {
+  test('skup oglas: kupac plaća karticom, prodavatelj dobiva zaradu', () async {
     await trade.list(
       userId: SeedData.demoUserId,
       deviceId: iphone,
       price: 5000,
     );
+    await trade.buy(userId: SeedData.testUserId, deviceId: iphone);
+    expect(storage.deviceById(iphone)!.ownerId, SeedData.testUserId);
+    expect(storage.userById(SeedData.demoUserId)!.credits, 1250 + 5000);
+  });
+
+  test('isplata zarade na IBAN prodavatelja', () async {
+    final tx = await trade.payout(userId: SeedData.demoUserId);
+    expect(tx.type, TransactionType.payout);
+    expect(tx.amount, 1250);
+    expect(storage.userById(SeedData.demoUserId)!.credits, 0);
+    // Nema zarade → nema isplate.
     await expectLater(
-      trade.buy(userId: SeedData.testUserId, deviceId: iphone),
+      trade.payout(userId: SeedData.demoUserId),
       throwsA(isA<TradeException>()),
     );
-    expect(storage.deviceById(iphone)!.ownerId, SeedData.demoUserId);
   });
 
   test('ukloni iz Marketa: više se ne može kupiti', () async {

@@ -83,17 +83,13 @@ class _AuctionsScreenState extends ConsumerState<AuctionsScreen> {
     final s = ref.watch(appProvider);
     final me = s.currentUserId ?? '';
     final list = _filter(s, me);
-    final held = s.heldCreditsOf(me);
 
     return CustomScrollView(
       slivers: [
         SliverToBoxAdapter(
           child: Padding(
             padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
-            child: _RulesBanner(
-              credits: s.currentUser?.credits ?? 0,
-              held: held,
-            ),
+            child: const _RulesBanner(),
           ),
         ),
         SliverToBoxAdapter(
@@ -155,15 +151,9 @@ class _AuctionsScreenState extends ConsumerState<AuctionsScreen> {
   }
 }
 
-/// Sažetak pravila i stanje kredita (raspoloživo / blokirano).
+/// Sažetak pravila aukcija (dodir otvara sva pravila).
 class _RulesBanner extends StatelessWidget {
-  const _RulesBanner({required this.credits, required this.held});
-  final double credits;
-  final double held;
-
-  static String get _rules => t(
-    'Ponude su obvezujuće i ne mogu se povući. Iznos vodeće ponude se blokira i vraća ti se čim te netko nadmaši. Ponuda ne može biti veća od raspoloživog stanja.',
-  );
+  const _RulesBanner();
 
   void _showRules(BuildContext context) => showModalBottomSheet<void>(
     context: context,
@@ -182,7 +172,7 @@ class _RulesBanner extends StatelessWidget {
           SizedBox(height: 12),
           Text(
             t(
-              '🔒  Ponuda je obvezujuća — ne može se povući ni smanjiti.\n\n🥇  Dok vodiš, ne možeš licitirati ponovno.\n\n🪙  Ponuda ne može biti veća od tvog stanja. Iznos vodeće ponude se blokira i vraća čim te netko nadmaši.\n\n⏱️  Ponuda u zadnjoj minuti produljuje aukciju za 1 minutu.\n\n🎁  Pobjednik dobiva predmet, prodavatelj cijelu ponudu (bez naknade).',
+              '🔒  Ponuda je obvezujuća — ne može se povući ni smanjiti.\n\n🥇  Dok vodiš, ne možeš licitirati ponovno (možeš povisiti automatsku ponudu).\n\n💳  Pobjednik plaća karticom kad aukcija završi — ništa se ne blokira unaprijed.\n\n⏱️  Ponuda u zadnjoj minuti produljuje aukciju za 1 minutu.\n\n🎁  Pobjednik dobiva predmet, prodavatelj cijelu ponudu (bez naknade).',
             ),
             style: TextStyle(height: 1.4, fontSize: 15),
           ),
@@ -192,70 +182,32 @@ class _RulesBanner extends StatelessWidget {
   );
 
   @override
-  Widget build(BuildContext context) {
-    if (MediaQuery.sizeOf(context).width < 600) {
-      // Mobitel: jedan redak, pravila u donjem listu.
-      return Material(
-        color: LoopColors.surface,
-        borderRadius: BorderRadius.circular(kRadius),
-        child: InkWell(
-          borderRadius: BorderRadius.circular(kRadius),
-          onTap: () => _showRules(context),
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(14, 10, 8, 10),
-            child: Row(
-              children: [
-                Expanded(child: _Kv(t('Raspoloživo'), formatCredits(credits))),
-                Expanded(child: _Kv(t('Blokirano'), formatCredits(held))),
-                Icon(Icons.info_outline, color: LoopColors.textSecondary),
-                const SizedBox(width: 6),
-              ],
+  Widget build(BuildContext context) => Material(
+    color: LoopColors.surface,
+    borderRadius: BorderRadius.circular(kRadius),
+    child: InkWell(
+      key: const ValueKey('auction-rules'),
+      borderRadius: BorderRadius.circular(kRadius),
+      onTap: () => _showRules(context),
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(14, 12, 10, 12),
+        child: Row(
+          children: [
+            const Text('🔒', style: TextStyle(fontSize: 18)),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                t(
+                  'Ponude su obvezujuće · pobjednik plaća karticom na kraju aukcije',
+                ),
+                style: const TextStyle(fontWeight: FontWeight.w700),
+              ),
             ),
-          ),
+            Icon(Icons.info_outline, color: LoopColors.textSecondary),
+          ],
         ),
-      );
-    }
-    return Container(
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: LoopColors.surface,
-        borderRadius: BorderRadius.circular(kRadius),
-        border: Border.all(color: LoopColors.surfaceHover),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Wrap(
-            spacing: 20,
-            runSpacing: 6,
-            children: [
-              _Kv(t('Raspoloživo za ponude'), formatCredits(credits)),
-              _Kv(t('Blokirano u vodećim ponudama'), formatCredits(held)),
-            ],
-          ),
-          const SizedBox(height: 8),
-          Text(
-            _rules,
-            style: TextStyle(color: LoopColors.textSecondary, fontSize: 12),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _Kv extends StatelessWidget {
-  const _Kv(this.k, this.v);
-  final String k;
-  final String v;
-
-  @override
-  Widget build(BuildContext context) => Column(
-    crossAxisAlignment: CrossAxisAlignment.start,
-    children: [
-      Text(k, style: TextStyle(color: LoopColors.textSecondary, fontSize: 12)),
-      Text(v, style: const TextStyle(fontWeight: FontWeight.w800)),
-    ],
+    ),
   );
 }
 

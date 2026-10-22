@@ -93,9 +93,8 @@ class AuctionService {
     final fee = AuctionPolicy.listingFee(device);
     // Predmet iz Marketa ide na aukciju — objava u Marketu se uklanja.
     if (device.isListed) await _storage.putDevice(device.withListing(null));
-    await _storage.putUser(
-      user.copyWith(credits: roundCredits(user.credits - fee)),
-    );
+    // Naknada za objavu plaća se karticom (pružatelj plaćanja) — bilježi
+    // se kao transakcija, stanje se ne dira.
     final auction = Auction(
       id: _uuid.v4(),
       deviceId: deviceId,
@@ -177,13 +176,6 @@ class AuctionService {
           ),
         );
       }
-      if (max > user.credits + leader!.amount) {
-        throw TradeException(
-          t('Automatska ponuda ne može biti veća od tvog stanja ({0}).', [
-            formatCredits(user.credits + leader.amount),
-          ]),
-        );
-      }
       final updated = a.copyWith(autoMax: {...a.autoMax, userId: max});
       await _storage.putAuction(updated);
       return updated;
@@ -194,21 +186,15 @@ class AuctionService {
         t('Najmanja ponuda je {0}.', [formatCredits(a.minNextBid)]),
       );
     }
-    if (bid > user.credits) {
-      throw TradeException(
-        t('Ponuda ne može biti veća od tvog stanja ({0}).', [
-          formatCredits(user.credits),
-        ]),
-      );
-    }
     final max = maxAmount == null ? bid : roundCredits(maxAmount);
     if (max < bid) {
       throw TradeException(
         t('Automatska ponuda mora biti barem koliko i ponuda.'),
       );
     }
-    // Koliko si korisnik zaista može priuštiti.
-    final myCap = max < user.credits ? max : user.credits;
+    // Pobjednik plaća karticom na kraju aukcije — ponude se ne ograničavaju
+    // stanjem i ništa se ne blokira.
+    final myCap = max;
 
     final bids = [...a.bids];
     final auto = {...a.autoMax}..remove(userId);
@@ -224,11 +210,7 @@ class AuctionService {
         Bid(userId: userId, userLabel: user.handle, amount: bid, time: at),
       );
     } else {
-      final lUser = _storage.userById(leader.userId);
-      final lMax = a.autoMaxOf(leader.userId) ?? leader.amount;
-      // Vodeći ne može ići iznad svog stanja + već blokiranog iznosa.
-      final lAfford = (lUser?.credits ?? 0) + leader.amount;
-      final lCap = lMax < lAfford ? lMax : lAfford;
+      final lCap = a.autoMaxOf(leader.userId) ?? leader.amount;
       if (myCap > lCap) {
         // Novi ponuđač vodi: cijena = korak iznad tuđeg maksimuma.
         final over = lCap + Auction.stepFor(lCap);
@@ -247,7 +229,6 @@ class AuctionService {
         bids.add(
           Bid(userId: userId, userLabel: user.handle, amount: price, time: at),
         );
-        await _refund(leader);
         auto.remove(leader.userId);
         outbidUser = leader.userId;
         newLeader = userId;
@@ -266,27 +247,14 @@ class AuctionService {
             time: at,
           ),
         );
-        if (lUser != null) {
-          await _storage.putUser(
-            lUser.copyWith(
-              credits: roundCredits(lUser.credits - (price - leader.amount)),
-            ),
-          );
-        }
-        if (lMax <= price) auto.remove(leader.userId);
+        if (lCap <= price) auto.remove(leader.userId);
         outbidUser = userId;
         outbidByAuto = true;
         newLeader = leader.userId;
       }
     }
 
-    if (newLeader == userId) {
-      final me = _storage.userById(userId)!;
-      await _storage.putUser(
-        me.copyWith(credits: roundCredits(me.credits - price)),
-      );
-      if (max > price) auto[userId] = max;
-    }
+    if (newLeader == userId && max > price) auto[userId] = max;
 
     final remaining = a.endsAt.difference(at);
     final updated = a.copyWith(
@@ -336,21 +304,6 @@ class AuctionService {
       throw TradeException(t('"Kupi odmah" više nije dostupno.'));
     }
     final price = a.buyNowPrice!;
-    final leader = a.highestBid;
-    final mine = leader?.userId == userId ? leader!.amount : 0.0;
-    if (user.credits + mine < price) {
-      throw TradeException(
-        t('Nemaš dovoljno novca: treba {0}, imaš {1}.', [
-          formatCredits(price),
-          formatCredits(user.credits + mine),
-        ]),
-      );
-    }
-    if (leader != null) await _refund(leader);
-    final me = _storage.userById(userId)!;
-    await _storage.putUser(
-      me.copyWith(credits: roundCredits(me.credits - price)),
-    );
     final updated = a.copyWith(
       bids: [
         ...a.bids,
@@ -421,14 +374,12 @@ class AuctionService {
     await _storage.putAuction(a.copyWith(status: AuctionStatus.cancelled));
   }
 
-  /// Admin može otkazati bilo koju aktivnu aukciju; vodeća ponuda se vraća.
+  /// Admin može otkazati bilo koju aktivnu aukciju (ništa nije naplaćeno —
+  /// pobjednik plaća tek na kraju).
   Future<void> cancelByAdmin(String auctionId) async {
     final a = _requireAuction(auctionId);
     if (!a.isActive) return;
-    final top = a.highestBid;
-    if (top != null) await _refund(top);
     await _storage.putAuction(a.copyWith(status: AuctionStatus.cancelled));
-    if (top != null) await _storage.recordSnapshot(top.userId);
   }
 
   /// Predmet se briše: otkaži njegovu aukciju (uz povrat ponude).
@@ -481,8 +432,7 @@ class AuctionService {
     final seller = _storage.userById(a.sellerId);
     final winner = _storage.userById(top.userId);
     if (device == null || seller == null || winner == null) {
-      // Ne može se izvršiti — vrati blokirani iznos ako je moguće.
-      if (winner != null) await _refund(top);
+      // Ne može se izvršiti (ništa nije naplaćeno).
       final done = a.copyWith(status: AuctionStatus.cancelled);
       await _storage.putAuction(done);
       return AuctionResult(done);
@@ -492,7 +442,8 @@ class AuctionService {
     // dobiva cijeli iznos.
     const fee = 0.0;
     final payout = sellPayout(top.amount);
-    // Kupčev iznos je već blokiran (oduzet) — samo prenosimo predmet.
+    // Pobjednik plaća karticom (pružatelj plaćanja), prodavatelj dobiva
+    // zaradu za isplatu.
     await _storage.putDevice(device.withOwner(winner.id));
     await _storage.putUser(
       seller.copyWith(credits: roundCredits(seller.credits + payout)),
@@ -560,14 +511,6 @@ class AuctionService {
   }
 
   // --------------------------------------------------------------- pomoćno
-
-  Future<void> _refund(Bid bid) async {
-    final u = _storage.userById(bid.userId);
-    if (u == null) return;
-    await _storage.putUser(
-      u.copyWith(credits: roundCredits(u.credits + bid.amount)),
-    );
-  }
 
   Auction _requireAuction(String id) {
     final a = _storage.auctionById(id);

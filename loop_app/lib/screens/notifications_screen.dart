@@ -6,12 +6,14 @@ import '../models/app_notification.dart';
 import '../models/auction.dart';
 import '../providers/app_providers.dart';
 import '../providers/app_state.dart';
+import '../services/trade_service.dart';
 import '../theme/app_theme.dart';
 import '../utils/formatters.dart';
 import '../widgets/auction_widgets.dart';
 import '../widgets/countdown.dart';
 import '../widgets/empty_state.dart';
 import '../widgets/item_image.dart';
+import '../widgets/loop_snackbar.dart';
 import 'auction_detail_screen.dart';
 import 'deliveries_screen.dart';
 import 'device_detail_screen.dart';
@@ -71,6 +73,8 @@ class NotificationsScreen extends ConsumerStatefulWidget {
         if (id != null) await ChatScreen.open(context, id);
       case NotificationKind.reportResolved:
         break;
+      case NotificationKind.contentRemoved:
+        if (id != null) await showAppealDialog(context, ref, id);
     }
   }
 
@@ -608,6 +612,85 @@ class _AuctionActions extends ConsumerWidget {
         ],
       ),
     );
+  }
+}
+
+/// Žalba na uklanjanje oglasa (DSA): kratko obrazloženje → admin.
+Future<void> showAppealDialog(
+  BuildContext context,
+  WidgetRef ref,
+  String reportId,
+) async {
+  final text = TextEditingController();
+  final sent = await showDialog<bool>(
+    context: context,
+    builder: (ctx) {
+      String? error;
+      return StatefulBuilder(
+        builder: (ctx, setState) => MediaQuery.removeViewInsets(
+          context: ctx,
+          removeBottom: true,
+          child: AlertDialog(
+            alignment: Alignment.topCenter,
+            scrollable: true,
+            title: Text(t('Žalba na odluku')),
+            content: SizedBox(
+              width: 380,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    t(
+                      'Žalbu pregledava druga osoba. Imaš i pravo na izvansudsko rješavanje spora i sudsku zaštitu.',
+                    ),
+                    style: TextStyle(
+                      color: LoopColors.textSecondary,
+                      fontSize: 12,
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  TextField(
+                    key: const ValueKey('appeal-text'),
+                    controller: text,
+                    maxLines: 4,
+                    maxLength: 300,
+                    decoration: InputDecoration(
+                      labelText: t('Zašto se ne slažeš?'),
+                      errorText: error,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx, false),
+                child: Text(t('Odustani')),
+              ),
+              FilledButton(
+                key: const ValueKey('appeal-send'),
+                onPressed: () async {
+                  try {
+                    await ref
+                        .read(appProvider.notifier)
+                        .appeal(reportId, text.text);
+                    if (ctx.mounted) Navigator.pop(ctx, true);
+                  } on TradeException catch (e) {
+                    setState(() => error = e.message);
+                  }
+                },
+                child: Text(t('Pošalji žalbu')),
+              ),
+            ],
+          ),
+        ),
+      );
+    },
+  );
+  text.dispose();
+  if (sent == true) {
+    showLoopSnackBar(t('Žalba je poslana — javit ćemo ti odluku.'));
   }
 }
 

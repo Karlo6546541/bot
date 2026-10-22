@@ -9,6 +9,7 @@ import '../theme/app_theme.dart';
 import '../widgets/adaptive_shell.dart';
 import '../widgets/trade_actions.dart';
 import '../widgets/username_field.dart';
+import 'legal_screen.dart';
 import '../l10n/tr.dart';
 import '../widgets/language_button.dart';
 
@@ -255,6 +256,53 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
           label: Text(t('Imaš kod za poziv?')),
         ),
       ),
+    // Obvezan pristanak: punoljetnost, Uvjeti i Pravila privatnosti.
+    FormField<bool>(
+      key: const ValueKey('accept-terms-field'),
+      initialValue: false,
+      validator: (v) => v == true
+          ? null
+          : t('Za registraciju prihvati Uvjete i potvrdi da imaš 18+.'),
+      builder: (field) => Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Vlastiti Material: kartica obrasca ima pozadinsku boju.
+          Material(
+            type: MaterialType.transparency,
+            child: CheckboxListTile(
+              key: const ValueKey('accept-terms'),
+              contentPadding: EdgeInsets.zero,
+              controlAffinity: ListTileControlAffinity.leading,
+              value: field.value ?? false,
+              onChanged: (v) => field.didChange(v),
+              title: Text(
+                t(
+                  'Imam 18 ili više godina i prihvaćam Uvjete korištenja i Pravila privatnosti.',
+                ),
+                style: const TextStyle(fontSize: 13),
+              ),
+            ),
+          ),
+          Wrap(
+            children: [
+              TextButton(
+                onPressed: () => LegalScreen.open(context, LegalDoc.terms),
+                child: Text(t('Uvjeti korištenja')),
+              ),
+              TextButton(
+                onPressed: () => LegalScreen.open(context, LegalDoc.privacy),
+                child: Text(t('Pravila privatnosti')),
+              ),
+            ],
+          ),
+          if (field.hasError)
+            Text(
+              field.errorText!,
+              style: TextStyle(color: LoopColors.error, fontSize: 12),
+            ),
+        ],
+      ),
+    ),
     const SizedBox(height: 12),
     FilledButton(
       key: const ValueKey('register-submit'),
@@ -297,7 +345,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
             const SizedBox(height: 4),
             Text(
               _register
-                  ? t('Registracija je besplatna, a stanje kreće od 0 €.')
+                  ? t('Registracija je besplatna.')
                   : t('Prijavi se e-mailom i lozinkom.'),
               style: TextStyle(color: LoopColors.textSecondary),
             ),
@@ -368,6 +416,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 style: TextStyle(color: LoopColors.admin),
               ),
             ),
+            const SizedBox(height: 8),
+            const LegalLinks(),
             const SizedBox(height: 16),
             Container(
               padding: const EdgeInsets.all(16),

@@ -635,9 +635,7 @@ class _SwapSheetState extends ConsumerState<_SwapSheet> {
               ),
               decoration: InputDecoration(
                 labelText: t('Nadoplata u eurima (neobavezno)'),
-                helperText: t('Imaš {0}', [
-                  formatCredits(state.currentUser?.credits ?? 0),
-                ]),
+                helperText: t('Plaća se karticom kad druga strana prihvati.'),
                 suffixText: t('€'),
               ),
             ),

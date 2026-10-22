@@ -3,7 +3,12 @@ import '../l10n/tr.dart';
 enum TransactionType {
   buy('Kupnja'),
   sell('Prodaja'),
+
+  /// Stara "uplata novca" (zapisi iz ranijih verzija).
   topUp('Uplata'),
+
+  /// Isplata zarade na bankovni račun prodavatelja.
+  payout('Isplata na račun'),
   auctionFee('Objava aukcije'),
   delivery('Dostava'),
   swap('Zamjena'),

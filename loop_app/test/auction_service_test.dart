@@ -37,25 +37,23 @@ void main() {
     await dir.delete(recursive: true);
   });
 
-  test('seed: 4 aukcije, Markovih 470 LC je blokirano', () {
+  test('seed: 4 aukcije, ponude ne blokiraju novac (plaća se karticom)', () {
     expect(storage.auctions.where((a) => a.isActive), hasLength(4));
-    expect(credits(marko), 1030);
-    expect(storage.heldCredits(marko), 470);
+    expect(credits(marko), 1500);
     expect(storage.deviceById('seed-34')!.ownerId, ana);
     expect(auction('1').currentPrice, 320);
     expect(auction('1').minNextBid, 336); // 320 + 5%
   });
 
-  test('ponuda blokira kredite, prethodni ponuđač dobiva povrat', () async {
+  test('ponuda ne dira stanje (pobjednik plaća karticom na kraju)', () async {
     await auctions.placeBid(
       userId: demo,
       auctionId: 'seed-auction-1',
       amount: 340,
     );
-    expect(credits(demo), 910); // 1250 − 340
-    expect(credits(marko), 1350); // 1030 + 320
+    expect(credits(demo), 1250);
+    expect(credits(marko), 1500);
     expect(auction('1').highestBid!.userId, demo);
-    expect(storage.heldCredits(demo), 340);
   });
 
   test('vodeći ponuđač ne može ponovno licitirati ni povući ponudu', () async {
@@ -72,32 +70,26 @@ void main() {
     expect(auction('1').bids, hasLength(3));
   });
 
-  test('ponuda ne može biti veća od kredita ni manja od minimuma', () async {
-    await expectLater(
-      auctions.placeBid(
+  test(
+    'ponuda ne može biti manja od minimuma; stanje je ne ograničava',
+    () async {
+      await expectLater(
+        auctions.placeBid(
+          userId: tester,
+          auctionId: 'seed-auction-1',
+          amount: 330,
+        ),
+        throwsA(isA<TradeException>()),
+      );
+      // Plaća se karticom: ponuda veća od zarade je dopuštena.
+      await auctions.placeBid(
         userId: tester,
         auctionId: 'seed-auction-1',
         amount: 801,
-      ),
-      throwsA(isA<TradeException>()),
-    );
-    await expectLater(
-      auctions.placeBid(
-        userId: tester,
-        auctionId: 'seed-auction-1',
-        amount: 330,
-      ),
-      throwsA(isA<TradeException>()),
-    );
-    expect(credits(tester), 800);
-    // Točno cijeli iznos kredita je dopušten.
-    await auctions.placeBid(
-      userId: tester,
-      auctionId: 'seed-auction-1',
-      amount: 800,
-    );
-    expect(credits(tester), 0);
-  });
+      );
+      expect(credits(tester), 800);
+    },
+  );
 
   test('prodavatelj ne licitira na svoju aukciju', () async {
     await expectLater(
@@ -129,8 +121,7 @@ void main() {
     // Do tada je istekla i aukcija 4 (ulaznica, 90 LC), pa se zaključuju obje.
     expect(auction('4').status, AuctionStatus.sold);
     expect(credits(ana), 550); // 400 + 60 + 90 (bez naknade)
-    expect(credits(marko), 1030); // iznosi su već bili blokirani
-    expect(storage.heldCredits(marko), 320); // ostaje samo aukcija 1
+    expect(credits(marko), 1500); // pobjednik plaća karticom
 
     final tx = storage.transactions.singleWhere((t) => t.deviceId == 'seed-35');
     expect(tx.isAuction, isTrue);
@@ -157,7 +148,8 @@ void main() {
     expect(auction('3').status, AuctionStatus.cancelled);
 
     await auctions.cancelByAdmin('seed-auction-1');
-    expect(credits(marko), 1350); // 1030 + 320
+    expect(auction('1').status, AuctionStatus.cancelled);
+    expect(credits(marko), 1500); // ništa nije bilo naplaćeno
   });
 
   test('predmet na aukciji ne može se prodati ni ponovno staviti', () async {
@@ -209,7 +201,7 @@ void main() {
     final upgraded = StorageService();
     await upgraded.init(path: dir.path);
     expect(upgraded.auctions.where((a) => a.isActive), hasLength(4));
-    expect(upgraded.userById(marko)!.credits, 1030);
+    expect(upgraded.userById(marko)!.credits, 1500);
     expect(upgraded.deviceById('seed-34')!.ownerId, ana);
   });
 
@@ -223,7 +215,7 @@ void main() {
         maxAmount: 500,
       );
       expect(auction('1').highestBid!.amount, 340);
-      expect(credits(demo), 910); // blokira se samo 340, ne 500
+      expect(credits(demo), 1250); // ništa se ne blokira
       expect(auction('1').autoMaxOf(demo), 500);
 
       // Test nudi 360 — demo automatski odgovara korakom (360 + 18).
@@ -234,8 +226,8 @@ void main() {
       );
       expect(auction('1').highestBid!.userId, demo);
       expect(auction('1').highestBid!.amount, 378);
-      expect(credits(demo), 872); // 910 − 38
-      expect(credits(tester), 800); // ništa blokirano
+      expect(credits(demo), 1250);
+      expect(credits(tester), 800);
       expect(
         storage.notifications.any(
           (n) => n.userId == tester && n.kind.name == 'outbidAuto',
@@ -254,11 +246,11 @@ void main() {
       expect(a.highestBid!.userId, tester);
       expect(a.highestBid!.amount, 525);
       expect(a.bids[a.bids.length - 2].amount, 500); // demo do maksimuma
-      expect(credits(demo), 1250); // povrat
-      expect(credits(tester), 275);
+      expect(credits(demo), 1250);
+      expect(credits(tester), 800);
       expect(a.autoMaxOf(demo), isNull);
 
-      // Vodeći smije povisiti svoj maksimum (do stanja + blokiranog).
+      // Vodeći smije samo povisiti svoj maksimum.
       await auctions.placeBid(
         userId: tester,
         auctionId: 'seed-auction-1',
@@ -271,7 +263,7 @@ void main() {
           userId: tester,
           auctionId: 'seed-auction-1',
           amount: 0,
-          maxAmount: 900,
+          maxAmount: 650,
         ),
         throwsA(isA<TradeException>()),
       );
@@ -291,8 +283,10 @@ void main() {
       expect(r.winnerId, tester);
       expect(r.auction.status, AuctionStatus.sold);
       expect(storage.deviceById('seed-9')!.ownerId, tester);
-      expect(credits(tester), 500);
-      expect(credits(marko), 1030); // 150 vraćeno
+      // Plaća se karticom: stanja kupaca se ne mijenjaju.
+      expect(credits(tester), 800);
+      expect(credits(marko), 1500);
+      expect(credits(demo), 1250 + 300); // prodavatelj dobiva zaradu
       await expectLater(
         auctions.buyNow(userId: marko, auctionId: a.id),
         throwsA(isA<TradeException>()),

@@ -4,7 +4,6 @@ import '../l10n/tr.dart';
 import '../models/app_notification.dart';
 import '../models/loop_transaction.dart';
 import '../models/swap_offer.dart';
-import '../utils/formatters.dart';
 import 'delivery_service.dart';
 import 'fee.dart';
 import 'inbox.dart';
@@ -59,13 +58,6 @@ class SwapService {
     }
     final extra = roundCredits(extraCredits);
     if (extra < 0) throw TradeException(t('Nadoplata ne može biti negativna.'));
-    if (buyTotal(extra) > from.credits) {
-      throw TradeException(
-        t('Nemaš dovoljno novca za nadoplatu ({0}).', [
-          formatCredits(from.credits),
-        ]),
-      );
-    }
     if (message.trim().length > SwapOffer.maxMessage) {
       throw TradeException(
         t('Poruka može imati najviše {0} znakova.', [SwapOffer.maxMessage]),
@@ -133,22 +125,13 @@ class SwapService {
         t('Zamjena više nije moguća — jedan od predmeta nije dostupan.'),
       );
     }
-    if (from.credits < buyTotal(o.extraCredits)) {
-      await _storage.putOffer(o.withStatus(SwapStatus.failed, at));
-      throw TradeException(
-        t('{0} više nema dovoljno novca za nadoplatu.', [from.handle]),
-      );
-    }
-
-    // Nadoplatu plaća ponuditelj (kao kupac: + 2%), vlasnik dobiva cijelu.
+    // Nadoplatu plaća ponuditelj karticom (kao kupac: + 2%), vlasnik
+    // dobiva cijeli iznos kao zaradu za isplatu.
     final fee = o.extraCredits > 0 ? feeFor(o.extraCredits) : 0.0;
     final paid = roundCredits(o.extraCredits + fee);
     final payout = o.extraCredits;
     await _storage.putDevice(wanted!.withOwner(from.id));
     await _storage.putDevice(offered!.withOwner(to.id));
-    await _storage.putUser(
-      from.copyWith(credits: roundCredits(from.credits - paid)),
-    );
     await _storage.putUser(
       to.copyWith(credits: roundCredits(to.credits + payout)),
     );

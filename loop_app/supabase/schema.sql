@@ -67,6 +67,34 @@ begin
 end $$;
 
 -- -----------------------------------------------------------------------------
+-- Podaci prodavatelja (OIB, IBAN, datum rođenja, adresa) — PRIVATNO.
+-- Za razliku od ostalih tablica, redak vidi i mijenja samo njegov vlasnik
+-- (id = korisnik). Potrebno za DAC7 i DSA; javno se prikazuje samo vrsta
+-- prodavatelja (i podaci o trgovcu kod obrta/tvrtki, preko aplikacije).
+-- -----------------------------------------------------------------------------
+create table if not exists public.loop_sellers (
+  id text primary key,
+  data jsonb not null,
+  updated_at timestamptz not null default now()
+);
+alter table public.loop_sellers enable row level security;
+drop policy if exists "sellers_own" on public.loop_sellers;
+create policy "sellers_own" on public.loop_sellers
+  for all to authenticated
+  using (id = (select auth.uid())::text)
+  with check (id = (select auth.uid())::text);
+do $$
+begin
+  if not exists (
+    select 1 from pg_publication_tables
+    where pubname = 'supabase_realtime'
+      and schemaname = 'public' and tablename = 'loop_sellers'
+  ) then
+    alter publication supabase_realtime add table public.loop_sellers;
+  end if;
+end $$;
+
+-- -----------------------------------------------------------------------------
 -- Jedinstvena korisnička imena. Ime je primarni ključ (mala slova), pa ni
 -- dva istovremena zahtjeva ne mogu dobiti isto ime. Brisanjem računa za
 -- prijavu ime se automatski oslobađa (on delete cascade).
@@ -153,6 +181,7 @@ create or replace view public.loop_stats
   union all select 'bargains', count(*) from public.loop_bargains
   union all select 'views', count(*) from public.loop_views
   union all select 'stories', count(*) from public.loop_stories
+  union all select 'sellers', count(*) from public.loop_sellers
   union all select 'usernames', count(*) from public.loop_usernames;
 
 -- Brisanje svih testnih podataka (pokreni ručno kad treba):
@@ -160,7 +189,7 @@ create or replace view public.loop_stats
 --          public.loop_history, public.loop_auctions, public.loop_deliveries,
 --          public.loop_reviews, public.loop_notifications, public.loop_reports,
 --          public.loop_messages, public.loop_offers, public.loop_bargains,
---          public.loop_views, public.loop_stories;
+--          public.loop_views, public.loop_stories, public.loop_sellers;
 
 -- -----------------------------------------------------------------------------
 -- Fotografije (predmeti i profilne slike) — Supabase Storage.

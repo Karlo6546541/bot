@@ -14,6 +14,7 @@ import '../services/auction_service.dart';
 import '../services/bargain_service.dart';
 import '../services/social_service.dart';
 import '../models/app_notification.dart';
+import '../models/seller_info.dart';
 import '../models/story.dart';
 import '../models/wishlist.dart';
 import '../services/auth_backend.dart';
@@ -21,9 +22,7 @@ import '../services/chat_service.dart';
 import '../services/community_service.dart';
 import '../services/swap_service.dart';
 import '../models/report.dart';
-import '../services/credit_shop.dart';
 import '../services/delivery_service.dart';
-import '../services/fee.dart';
 import '../models/delivery.dart';
 import '../services/file_store.dart';
 import '../services/image_store.dart';
@@ -104,10 +103,6 @@ final tradeServiceProvider = Provider<TradeService>(
 
 final deliveryServiceProvider = Provider<DeliveryService>(
   (ref) => DeliveryService(ref.watch(storageProvider)),
-);
-
-final creditShopProvider = Provider<CreditShop>(
-  (ref) => CreditShop(ref.watch(storageProvider)),
 );
 
 final auctionServiceProvider = Provider<AuctionService>(
@@ -408,6 +403,22 @@ class AppController extends Notifier<AppState> {
       targetId: targetId,
       reason: reason,
       note: note,
+    );
+    _refresh();
+  }
+
+  /// Admin: obrazloženje vlasniku prije uklanjanja prijavljenog oglasa.
+  Future<void> notifyRemoval(String reportId) async {
+    await _community.notifyRemoval(reportId);
+    _refresh();
+  }
+
+  /// Žalba na uklanjanje oglasa.
+  Future<void> appeal(String reportId, String text) async {
+    await _community.appeal(
+      userId: _requireUserId(),
+      reportId: reportId,
+      text: text,
     );
     _refresh();
   }
@@ -786,6 +797,7 @@ class AppController extends Notifier<AppState> {
     int quantity = 1,
   }) async {
     final userId = _requireUserId();
+    if (listOnMarket) _requireSellerInfo();
     // Digitalni proizvod: najprije spremi datoteku (put ovisi o ID-u).
     String? id;
     DigitalFile? saved;
@@ -831,7 +843,6 @@ class AppController extends Notifier<AppState> {
   }) async {
     final userId = _requireUserId();
     final device = state.deviceById(deviceId);
-    final user = state.currentUser!;
     if (device == null) throw TradeException(t('Predmet ne postoji.'));
     if (device.isDigital) {
       // Bez dostave — datoteka se preuzima odmah.
@@ -841,15 +852,7 @@ class AppController extends Notifier<AppState> {
     }
     final error = DeliveryService.validate(method, destination);
     if (error != null) throw TradeException(error);
-    final total = buyTotal(state.priceForMe(device)) + method.cost;
-    if (user.credits < total) {
-      throw TradeException(
-        t('Nemaš dovoljno novca: treba {0} (s dostavom), imaš {1}.', [
-          formatCredits(total),
-          formatCredits(user.credits),
-        ]),
-      );
-    }
+    // Predmet i dostavu kupac plaća karticom (pružatelj plaćanja).
     final tx = await _trade.buy(userId: userId, deviceId: deviceId);
     // Kod zalihe kupac dobiva novi predmet (jedan komad) — dostava ide za njega.
     final bought = ref.read(storageProvider).deviceById(tx.deviceId) ?? device;
@@ -923,6 +926,7 @@ class AppController extends Notifier<AppState> {
     double price, {
     int? quantity,
   }) async {
+    _requireSellerInfo();
     await _trade.list(
       userId: _requireUserId(),
       deviceId: deviceId,
@@ -1075,13 +1079,38 @@ class AppController extends Notifier<AppState> {
     _refresh();
   }
 
-  // -------------------------------------------------------- kupnja kredita
+  // ------------------------------------------- prodavatelj i isplata
 
-  /// Simulirana kupnja kredita (demo: ništa se ne naplaćuje).
-  Future<LoopTransaction> buyCredits(int credits, PaymentMethod method) async {
-    final tx = await ref
-        .read(creditShopProvider)
-        .purchase(userId: _requireUserId(), credits: credits, method: method);
+  /// Prije objave (Market ili aukcija) platforma mora imati podatke
+  /// prodavatelja (DAC7, DSA). UI ih traži unaprijed ([ensureSellerInfo]).
+  void _requireSellerInfo() {
+    final user = state.currentUser;
+    if (user != null && !user.isGuest && user.seller == null) {
+      throw TradeException(
+        t('Prije prve objave ispuni podatke prodavatelja (Profil).'),
+      );
+    }
+  }
+
+  Future<void> saveSellerInfo(SellerInfo info) async {
+    final user = _storage.userById(_requireUserId());
+    if (user == null) return;
+    final error = SellerInfo.validate(
+      type: info.type,
+      legalName: info.legalName,
+      oib: info.oib,
+      address: info.address,
+      iban: info.iban,
+      birthDate: info.birthDate,
+    );
+    if (error != null) throw TradeException(error);
+    await _storage.putUser(user.copyWith(seller: info));
+    _refresh();
+  }
+
+  /// Isplata zarade na IBAN prodavatelja (demo: ništa se ne šalje).
+  Future<LoopTransaction> payout() async {
+    final tx = await _trade.payout(userId: _requireUserId());
     _refresh();
     return tx;
   }
@@ -1111,6 +1140,7 @@ class AppController extends Notifier<AppState> {
     required Duration duration,
     double? buyNowPrice,
   }) async {
+    _requireSellerInfo();
     final a = await _auctions.create(
       userId: _requireUserId(),
       deviceId: deviceId,

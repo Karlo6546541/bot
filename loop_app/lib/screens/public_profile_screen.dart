@@ -15,6 +15,7 @@ import '../widgets/empty_state.dart';
 import '../widgets/formatters.dart';
 import '../widgets/item_image.dart';
 import '../widgets/stories.dart';
+import 'seller_screens.dart';
 import '../widgets/user_avatar.dart';
 import '../providers/app_state.dart';
 import '../widgets/category_style.dart';
@@ -684,6 +685,18 @@ class ProfileHeader extends ConsumerWidget {
                   const SizedBox(height: 4),
                   RatingBadge(rating: rating!),
                 ],
+                // Trgovac: podaci o trgovcu dostupni kupcima (DSA).
+                if (user.isTrader && user.seller != null)
+                  TextButton.icon(
+                    key: const ValueKey('profile-trader-info'),
+                    style: TextButton.styleFrom(
+                      padding: EdgeInsets.zero,
+                      visualDensity: VisualDensity.compact,
+                    ),
+                    onPressed: () => showTraderInfo(context, user),
+                    icon: const Icon(Icons.storefront_outlined, size: 18),
+                    label: Text(t('Trgovac · podaci o trgovcu')),
+                  ),
                 const SizedBox(height: 4),
                 Wrap(
                   spacing: 12,

@@ -6,7 +6,6 @@ import '../models/app_user.dart';
 import '../models/loop_transaction.dart';
 import '../models/report.dart';
 import '../models/review.dart';
-import '../utils/formatters.dart';
 import 'fee.dart';
 import 'inbox.dart';
 import 'storage_service.dart';
@@ -58,6 +57,10 @@ class CommunityService {
       stars: stars,
       comment: text,
       createdAt: now ?? DateTime.now(),
+      // Kupio je od ove trgovine → "Provjerena kupnja" (Omnibus).
+      verifiedFlag: _storage.transactions.any(
+        (t) => t.buyerId == raterId && t.sellerId == sellerId,
+      ),
     );
     final first = _storage.reviews.every((r) => r.id != review.id);
     await _storage.putReview(review);
@@ -178,6 +181,65 @@ class CommunityService {
     return r;
   }
 
+  /// Obrazloženje odluke (DSA čl. 17): vlasniku uklonjenog oglasa javlja
+  /// razlog i mogućnost žalbe. Zove se prije brisanja predmeta.
+  Future<void> notifyRemoval(String reportId, {DateTime? now}) async {
+    final r = _storage.reports.where((r) => r.id == reportId).firstOrNull;
+    if (r == null || !r.isDevice) return;
+    final owner = _storage.deviceById(r.targetId)?.ownerId;
+    if (owner == null) return;
+    await Inbox(_storage).send(
+      owner,
+      NotificationKind.contentRemoved,
+      args: [r.targetLabel, r.reason.label],
+      targetId: r.id,
+      now: now,
+    );
+  }
+
+  /// Žalba na odluku o uklanjanju (DSA čl. 20) — ide adminu kao prijava
+  /// vrste 'appeal'.
+  Future<Report> appeal({
+    required String userId,
+    required String reportId,
+    required String text,
+    DateTime? now,
+  }) async {
+    final user = _storage.userById(userId);
+    if (user == null) throw TradeException(t('Korisnik ne postoji.'));
+    final original = _storage.reports
+        .where((r) => r.id == reportId)
+        .firstOrNull;
+    if (original == null) throw TradeException(t('Odluka ne postoji.'));
+    final body = text.trim();
+    if (body.length < 10) {
+      throw TradeException(t('Napiši ukratko zašto se ne slažeš.'));
+    }
+    if (body.length > Report.maxNote) {
+      throw TradeException(
+        t('Opis može imati najviše {0} znakova.', [Report.maxNote]),
+      );
+    }
+    if (_storage.reports.any(
+      (r) => r.isAppeal && r.targetId == reportId && r.reporterId == userId,
+    )) {
+      throw TradeException(t('Žalbu si već poslao — javit ćemo ti odluku.'));
+    }
+    final r = Report(
+      id: _uuid.v4(),
+      reporterId: userId,
+      reporterLabel: user.handle,
+      targetType: 'appeal',
+      targetId: reportId,
+      targetLabel: t('Žalba: {0}', [original.targetLabel]),
+      reason: ReportReason.other,
+      note: body,
+      createdAt: now ?? DateTime.now(),
+    );
+    await _storage.putReport(r);
+    return r;
+  }
+
   /// Admin zatvara prijavu (riješeno / odbačeno) i javlja prijavitelju.
   Future<void> closeReport(
     String reportId,
@@ -262,17 +324,9 @@ class CommunityService {
       );
     }
     final cost = roundCredits(promotionWeekly * weeks);
-    if (user.credits < cost) {
-      throw TradeException(
-        t('Nemaš dovoljno novca: isticanje košta {0}, imaš {1}.', [
-          formatCredits(cost),
-          formatCredits(user.credits),
-        ]),
-      );
-    }
+    // Isticanje se plaća karticom (bilježi se kao transakcija).
     final from = user.promotedAt(at) ? user.promotedUntil! : at;
     final updated = user.copyWith(
-      credits: roundCredits(user.credits - cost),
       promotedUntil: from.add(Duration(days: 7 * weeks)),
     );
     await _storage.putUser(updated);

@@ -98,9 +98,12 @@ void main() {
       await tester.pumpAndSettle();
       await tester.tap(find.text('Kupi odmah'));
       await tester.pumpAndSettle();
-      await tester.ensureVisible(find.text('Potvrdi kupnju'));
+      // Blagajna: plaćanje karticom i prava kupca prema vrsti prodavatelja.
+      expect(find.byKey(const ValueKey('checkout-payment')), findsOneWidget);
+      expect(find.byKey(const ValueKey('checkout-rights')), findsOneWidget);
+      await tester.ensureVisible(find.textContaining('i potvrdi kupnju'));
       await tester.pumpAndSettle();
-      await tester.tap(find.text('Potvrdi kupnju'));
+      await tester.tap(find.textContaining('i potvrdi kupnju'));
       await tester.pumpAndSettle();
       expect(find.textContaining('Uspješno kupljeno'), findsOneWidget);
 
@@ -310,7 +313,7 @@ void main() {
     expect(find.byIcon(Icons.notifications_active), findsOneWidget);
   });
 
-  testWidgets('uplata novca i promjena teme', (tester) async {
+  testWidgets('isplata zarade na IBAN i promjena teme', (tester) async {
     tester.view.physicalSize = const Size(1400, 1000);
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.reset);
@@ -320,24 +323,16 @@ void main() {
     await tester.tap(find.text('Prijavi se'));
     await tester.pumpAndSettle();
 
-    // Gumb na glavnoj kartici otvara uplatu; zadani iznos je 500 €.
+    // Zarada (1.250 €) ide na IBAN iz podataka prodavatelja.
     await reveal(tester, find.byKey(const ValueKey('credits-balance')));
-    await tester.tap(find.text('Uplati').first);
+    await tester.tap(find.byKey(const ValueKey('payout')));
     await tester.pumpAndSettle();
-    expect(find.text('Najpopularnije'), findsOneWidget);
-    await tester.tap(find.text('PayPal'));
+    expect(find.text('Isplatiti zaradu?'), findsOneWidget);
+    expect(find.textContaining('HR25 •••• 1111'), findsOneWidget);
+    await tester.tap(find.text('Isplati').last);
     await tester.pumpAndSettle();
-    await tester.scrollUntilVisible(
-      find.text('Plati 500,00 €'),
-      200,
-      scrollable: find.byType(Scrollable).first,
-    );
-    await tester.tap(find.text('Plati 500,00 €'));
-    await tester.pumpAndSettle();
-    expect(find.text('Plaćanje uspješno! 🎉'), findsOneWidget);
-    await tester.tap(find.text('Super'));
-    await tester.pumpAndSettle();
-    expect(find.textContaining('1.750'), findsWidgets); // 1250 + 500
+    expect(find.text('Isplata je poslana na tvoj račun.'), findsOneWidget);
+    expect(find.text('0 €'), findsWidgets);
 
     // Tamna tema iz Profila: sučelje se ponovno izgradi bez grešaka.
     await tester.tap(find.text('Profil').last);
@@ -360,7 +355,9 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('premalo novca nudi uplatu', (tester) async {
+  testWidgets('skupa kupnja: plaćanje karticom, bez provjere stanja', (
+    tester,
+  ) async {
     tester.view.physicalSize = const Size(1400, 1000);
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.reset);
@@ -373,18 +370,103 @@ void main() {
     await tester.pumpAndSettle();
     await tester.enterText(find.byType(TextField).first, 'MacBook Pro');
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Kupi odmah')); // 1890 + 2% > 1250
+    await tester.tap(find.text('Kupi odmah')); // 1890 + 2 % > 1.250 zarade
     await tester.pumpAndSettle();
-    expect(find.text('Nemaš dovoljno novca'), findsOneWidget);
-    await tester.tap(find.text('Uplati novac'));
+    expect(find.text('Nemaš dovoljno novca'), findsNothing);
+    expect(find.text('Kartica •••• 4242 (demo)'), findsOneWidget);
+    expect(find.text('Plati 1.927,80 € i potvrdi kupnju'), findsOneWidget);
+  });
+
+  testWidgets('podaci prodavatelja prije prve objave; pravni dokumenti', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(1400, 1000);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+
+    await tester.pumpWidget(await buildApp(tester));
+    // Pravni dokumenti su dostupni već na prijavi.
+    await tester.ensureVisible(find.text('Uvjeti korištenja').first);
+    await tester.tap(find.text('Uvjeti korištenja').first);
     await tester.pumpAndSettle();
-    // Predložen je najmanji paket koji pokriva manjak (734,50 → 1000).
-    await tester.scrollUntilVisible(
-      find.text('Plati 1.000,00 €'),
-      200,
-      scrollable: find.byType(Scrollable).first,
+    expect(find.byKey(const ValueKey('legal-terms')), findsOneWidget);
+    await tester.pageBack();
+    await tester.pumpAndSettle();
+
+    // Gost razgleda; novi račun nema podatke prodavatelja.
+    await tester.tap(find.text('Registracija'));
+    await tester.pumpAndSettle();
+    await tester.enterText(
+      find.widgetWithText(TextFormField, 'E-mail'),
+      'prodavac@loop.com',
     );
-    expect(find.text('Plati 1.000,00 €'), findsOneWidget);
+    await tester.enterText(
+      find.byKey(const ValueKey('username-field')),
+      'prodavac',
+    );
+    await tester.enterText(
+      find.widgetWithText(TextFormField, 'Lozinka'),
+      'lozinka123',
+    );
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(find.byKey(const ValueKey('accept-terms')));
+    await tester.tap(find.byKey(const ValueKey('accept-terms')));
+    await tester.ensureVisible(find.byKey(const ValueKey('register-submit')));
+    await tester.tap(find.byKey(const ValueKey('register-submit')));
+    await tester.pumpAndSettle();
+
+    // + Objavi → Oglas traži podatke prodavatelja.
+    await tester.tap(find.byKey(const ValueKey('nav-create')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('create-item')));
+    await tester.pumpAndSettle();
+    expect(find.text('Podaci prodavatelja'), findsOneWidget);
+    await tester.tap(find.text('Ispuni podatke'));
+    await tester.pumpAndSettle();
+    await tester.enterText(
+      find.byKey(const ValueKey('seller-name')),
+      'Ivo Prodavac',
+    );
+    await tester.enterText(find.byKey(const ValueKey('seller-oib')), '1234');
+    await tester.enterText(
+      find.byKey(const ValueKey('seller-address')),
+      'Ulica 1, Zagreb',
+    );
+    await tester.enterText(
+      find.byKey(const ValueKey('seller-iban')),
+      'HR25 2340 0091 1111 1111 1',
+    );
+    await tester.tap(find.byKey(const ValueKey('seller-birth')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('OK'));
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(find.byKey(const ValueKey('seller-save')));
+    await tester.tap(find.byKey(const ValueKey('seller-save')));
+    await tester.pumpAndSettle();
+    expect(find.text('OIB nije ispravan (11 znamenki).'), findsOneWidget);
+    await tester.enterText(
+      find.byKey(const ValueKey('seller-oib')),
+      '45678901239',
+    );
+    await tester.ensureVisible(find.byKey(const ValueKey('seller-save')));
+    await tester.tap(find.byKey(const ValueKey('seller-save')));
+    await tester.pumpAndSettle();
+    // Spremljeno → otvara se obrazac za oglas.
+    expect(find.text('Dodaj datoteku'), findsNothing);
+    expect(find.byType(TextFormField), findsWidgets);
+    await tester.pageBack();
+    await tester.pumpAndSettle();
+
+    // Profil → Pravno → svi dokumenti.
+    await tester.tap(find.text('Profil').last);
+    await tester.pumpAndSettle();
+    await reveal(tester, find.byKey(const ValueKey('open-legal')));
+    await tester.tap(find.byKey(const ValueKey('open-legal')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('legal-open-imprint')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('legal-imprint')), findsOneWidget);
+    expect(tester.takeException(), isNull);
   });
 
   testWidgets('kupnja s dostavom kurirom i praćenje pošiljke', (tester) async {
@@ -406,8 +488,8 @@ void main() {
     // Kurir bez adrese → greška; s adresom → kupnja.
     await tester.tap(find.text('Kurir na adresu'));
     await tester.pumpAndSettle();
-    await tester.ensureVisible(find.text('Potvrdi kupnju'));
-    await tester.tap(find.text('Potvrdi kupnju'));
+    await tester.ensureVisible(find.textContaining('i potvrdi kupnju'));
+    await tester.tap(find.textContaining('i potvrdi kupnju'));
     await tester.pumpAndSettle();
     expect(find.textContaining('Upiši adresu'), findsOneWidget);
     await tester.enterText(
@@ -416,8 +498,8 @@ void main() {
     );
     await tester.pumpAndSettle();
     expect(find.text('194,70 €'), findsOneWidget); // 185 + 3,70 + 6
-    await tester.ensureVisible(find.text('Potvrdi kupnju'));
-    await tester.tap(find.text('Potvrdi kupnju'));
+    await tester.ensureVisible(find.textContaining('i potvrdi kupnju'));
+    await tester.tap(find.textContaining('i potvrdi kupnju'));
     await tester.pumpAndSettle();
     expect(find.textContaining('Uspješno kupljeno'), findsOneWidget);
 
@@ -553,11 +635,28 @@ void accountTests() {
       find.widgetWithText(TextFormField, 'Lozinka'),
       'tajna123',
     );
+    // Bez pristanka na Uvjete registracija ne prolazi.
     await tester.ensureVisible(find.byKey(const ValueKey('register-submit')));
     await tester.tap(find.byKey(const ValueKey('register-submit')));
     await tester.pumpAndSettle();
-    await reveal(tester, find.text('Bok, @novi_korisnik 👋'));
-    expect(find.text('Bok, @novi_korisnik 👋'), findsOneWidget);
+    expect(
+      find.text('Za registraciju prihvati Uvjete i potvrdi da imaš 18+.'),
+      findsOneWidget,
+    );
+    await tester.ensureVisible(find.byKey(const ValueKey('accept-terms')));
+    await tester.tap(find.byKey(const ValueKey('accept-terms')));
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(find.byKey(const ValueKey('register-submit')));
+    await tester.tap(find.byKey(const ValueKey('register-submit')));
+    await tester.pumpAndSettle();
+    await reveal(
+      tester,
+      find.text('Bok, @novi_korisnik 👋 · zarada za isplatu'),
+    );
+    expect(
+      find.text('Bok, @novi_korisnik 👋 · zarada za isplatu'),
+      findsOneWidget,
+    );
 
     // Profil prikazuje @ime; odjava.
     await tester.tap(find.text('Profil').last);
@@ -713,7 +812,7 @@ void deletionTests() {
     await tester.pumpAndSettle();
     expect(
       find.text(
-        '• Gubiš preostalo stanje (1.250 €) — u demo verziji nema isplate.',
+        '• Prije brisanja isplati zaradu (1.250 €) na svoj IBAN — poslije to više nije moguće.',
       ),
       findsOneWidget,
     );
@@ -978,16 +1077,16 @@ void logoTests() {
       await tester.ensureVisible(find.text('Prijavi se'));
       await tester.tap(find.text('Prijavi se'));
       await tester.pumpAndSettle();
-      await reveal(tester, find.text('Bok, Demo 👋'));
-      expect(find.text('Bok, Demo 👋'), findsOneWidget);
+      await reveal(tester, find.text('Bok, Demo 👋 · zarada za isplatu'));
+      expect(find.text('Bok, Demo 👋 · zarada za isplatu'), findsOneWidget);
 
       // Market → detalji predmeta → logo.
       await tester.tap(find.text('Market').last);
       await tester.pumpAndSettle();
-      expect(find.text('Bok, Demo 👋'), findsNothing);
+      expect(find.text('Bok, Demo 👋 · zarada za isplatu'), findsNothing);
       await tester.tap(find.byKey(const ValueKey('logo-home')));
       await tester.pumpAndSettle();
-      expect(find.text('Bok, Demo 👋'), findsOneWidget);
+      expect(find.text('Bok, Demo 👋 · zarada za isplatu'), findsOneWidget);
     });
   }
 }
@@ -1026,6 +1125,17 @@ void digitalTests() {
     await tester.pumpAndSettle();
     expect(find.text('Kupi i preuzmi'), findsWidgets); // dijalog, bez dostave
     expect(find.text('Kurir na adresu'), findsNothing);
+    // Bez izričitog pristanka (gubitak prava na povrat) nema kupnje.
+    expect(
+      tester
+          .widget<FilledButton>(
+            find.widgetWithText(FilledButton, 'Plati i preuzmi'),
+          )
+          .onPressed,
+      isNull,
+    );
+    await tester.tap(find.byKey(const ValueKey('digital-consent')));
+    await tester.pumpAndSettle();
     await tester.tap(find.text('Plati i preuzmi'));
     await tester.pumpAndSettle();
     // Nakon kupnje: gumb za preuzimanje umjesto kupnje.

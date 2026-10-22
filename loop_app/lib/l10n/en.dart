@@ -728,8 +728,6 @@ const kEn = <String, String>{
       '• {0} of your items and their Market listings are deleted.',
   '• Drugima povijest kupnji ostaje, ali umjesto tvog imena piše @obrisani.':
       '• Others keep their purchase history, but your name shows as @obrisani.',
-  '• Gubiš preostalo stanje ({0}) — u demo verziji nema isplate.':
-      '• You lose your remaining balance ({0}) — the demo has no payouts.',
   '• Imaš {0} dana za predomišljanje: prijavi se i račun se vraća.':
       '• You have {0} days to change your mind: log in and the account comes back.',
   '"{0}" bit će uklonjen, a prijava označena kao riješena.':
@@ -1481,4 +1479,142 @@ const kEn = <String, String>{
   'Fiksna cijena u Marketu': 'Fixed price in the Market',
   'Najviša ponuda pobjeđuje': 'Highest bid wins',
   'Vidljivo 24 sata': 'Visible for 24 hours',
+  'Adresa': 'Address',
+  'Adresa prebivališta': 'Home address',
+  'Bez provjerene kupnje': 'No verified purchase',
+  'Bok, {0} 👋 · zarada za isplatu': 'Hi, {0} 👋 · earnings to pay out',
+  'DAC7 izvještaj (Porezna uprava)': 'DAC7 report (Tax Administration)',
+  'Datum rođenja': 'Date of birth',
+  'IBAN nije ispravan.': 'The IBAN is not valid.',
+  'IBAN za isplatu': 'IBAN for payouts',
+  'Imam 18 ili više godina i prihvaćam Uvjete korištenja i Pravila privatnosti.':
+      'I am 18 or older and accept the Terms of use and the Privacy policy.',
+  'Ime i prezime': 'Full name',
+  'Isplata je poslana na tvoj račun.':
+      'The payout has been sent to your account.',
+  'Isplata na {0}': 'Payout to {0}',
+  'Isplate': 'Payouts',
+  'Isplati': 'Pay out',
+  'Isplatiti zaradu?': 'Pay out earnings?',
+  'Isplaćeno na račun': 'Paid out to bank',
+  'Isplaćeno prodavateljima': 'Paid out to sellers',
+  'Ispuni podatke': 'Fill in details',
+  'Kako slažemo oglase': 'How we order listings',
+  'Kako čuvamo podatke (Pravila privatnosti)':
+      'How we keep data (Privacy policy)',
+  'Kartica •••• 4242 (demo)': 'Card •••• 4242 (demo)',
+  'Kontakt': 'Contact',
+  'Koristimo samo nužnu pohranu (prijava, postavke) — bez kolačića za praćenje.':
+      'We only use necessary storage (login, settings) — no tracking cookies.',
+  'Kupnja od fizičke osobe: zakonsko pravo na povrat od 14 dana ne vrijedi.':
+      'Buying from a private person: the statutory 14-day right of withdrawal does not apply.',
+  'Najniža cijena u zadnjih 30 dana: {0}':
+      'Lowest price in the last 30 days: {0}',
+  'Napiši ukratko zašto se ne slažeš.': 'Briefly explain why you disagree.',
+  'Naziv obrta ili tvrtke': 'Business name',
+  'Nemaš zarade za isplatu.': 'You have no earnings to pay out.',
+  'Nije ispunjeno — potrebno za objavu i isplatu':
+      'Not filled in — needed to list and get paid',
+  'Novac obrađuje pružatelj plaćanja — LOOP ne drži novac kupaca.':
+      'Money is handled by a payment provider — LOOP does not hold buyers\' money.',
+  'OIB': 'OIB (tax number)',
+  'OIB nije ispravan (11 znamenki).': 'The OIB is not valid (11 digits).',
+  'Obrt ili tvrtka: kupci imaju pravo na povrat u 14 dana i jamstvo.':
+      'Business: buyers have a 14-day right of withdrawal and a warranty.',
+  'Odaberi': 'Choose',
+  'Odluka ne postoji.': 'The decision does not exist.',
+  'Platforma ih mora prikupiti prije prve objave (DAC7: izvještaj Poreznoj upravi za prodavatelje s 30+ prodaja ili više od 2.000 € godišnje; DSA: provjera trgovaca). Javno se prikazuje samo vrsta prodavatelja, a kod trgovca i podaci o trgovcu.':
+      'The platform must collect these before your first listing (DAC7: report to the Tax Administration for sellers with 30+ sales or more than €2,000 a year; DSA: trader checks). Only the seller type is public, plus trader details for businesses.',
+  'Plati {0} i potvrdi kupnju': 'Pay {0} and confirm',
+  'Plaća se karticom kad druga strana prihvati.':
+      'Paid by card when the other side accepts.',
+  'Plaća se karticom. Istaknuti oglasi označeni su kao "Sponzorirano".':
+      'Paid by card. Promoted listings are labelled "Sponsored".',
+  'Plaćanje karticom pri kupnji': 'Card payment at checkout',
+  'Plaćanje obrađuje pružatelj plaćanja; LOOP ne drži tvoj novac.':
+      'The payment is processed by a payment provider; LOOP does not hold your money.',
+  'Podaci o trgovcu': 'Trader details',
+  'Podaci prodavatelja': 'Seller details',
+  'Podaci prodavatelja su spremljeni.': 'Seller details saved.',
+  'Ponude su obvezujuće · pobjednik plaća karticom na kraju aukcije':
+      'Bids are binding · the winner pays by card when the auction ends',
+  'Ponude su obvezujuće. Pobjednik plaća karticom tek kad aukcija završi — ništa se ne blokira unaprijed.':
+      'Bids are binding. The winner pays by card only when the auction ends — nothing is held in advance.',
+  'Pošalji žalbu': 'Send appeal',
+  'Pravila privatnosti': 'Privacy policy',
+  'Pravno': 'Legal',
+  'Pravo na povrat u 14 dana i jamstvo.':
+      '14-day right of withdrawal and warranty.',
+  'Predložak: prije pokretanja zamijeni podatke u [zagradama] i daj tekst na pregled odvjetniku.':
+      'Template: before launch, replace the details in [brackets] and have a lawyer review the text.',
+  'Preuzmi CSV': 'Download CSV',
+  'Prijavljuju se prodavatelji s {0}+ prodaja ili više od {1} godišnje. Rok: 31. siječnja sljedeće godine.':
+      'Sellers with {0}+ sales or more than {1} a year are reported. Deadline: 31 January of the following year.',
+  'Prije prve objave ispuni podatke prodavatelja (Profil).':
+      'Fill in your seller details before your first listing (Profile).',
+  'Prije prve objave zakon traži tvoje podatke: ime ili naziv, OIB, adresu i IBAN za isplatu (EU pravila DAC7 i DSA). Kupci vide samo je li prodavatelj privatna osoba ili trgovac.':
+      'Before your first listing the law requires your details: name or business name, OIB, address and IBAN for payouts (EU rules DAC7 and DSA). Buyers only see whether the seller is a private person or a trader.',
+  'Pristajem da preuzimanje počne odmah i znam da time gubim pravo na povrat od 14 dana.':
+      'I agree that the download starts immediately and understand that I lose the 14-day right of withdrawal.',
+  'Privatna osoba': 'Private person',
+  'Privatni prodavatelj': 'Private seller',
+  'Prodaješ svoje stvari povremeno: kupci nemaju zakonsko pravo na povrat od 14 dana.':
+      'You occasionally sell your own things: buyers have no statutory 14-day right of withdrawal.',
+  'Prodavatelj je privatna osoba: zakonsko pravo na povrat od 14 dana ne vrijedi.':
+      'The seller is a private person: the statutory 14-day right of withdrawal does not apply.',
+  'Prodavatelj je trgovac: imaš pravo na povrat u 14 dana od primitka.':
+      'The seller is a trader: you may return the item within 14 days of receipt.',
+  'Prodavati mogu samo punoljetne osobe (18+).': 'Only adults (18+) can sell.',
+  'Registar': 'Register',
+  'Registar i broj (neobavezno)': 'Register and number (optional)',
+  'Registracija je besplatna.': 'Registration is free.',
+  'Sjedište': 'Registered office',
+  'Sponzorirano': 'Sponsored',
+  'Sponzorirano · {0}': 'Sponsored · {0}',
+  'Spremljeno: {0}': 'Saved: {0}',
+  'Trgovac': 'Trader',
+  'Trgovac · podaci o trgovcu': 'Trader · trader details',
+  'Upiši adresu.': 'Enter the address.',
+  'Upiši datum rođenja.': 'Enter the date of birth.',
+  'Upiši ime i prezime.': 'Enter your full name.',
+  'Upiši naziv obrta ili tvrtke.': 'Enter the business name.',
+  'Uvjeti korištenja': 'Terms of use',
+  'Uvjeti, privatnost i impresum': 'Terms, privacy and imprint',
+  'Za isplatu ispuni podatke prodavatelja (IBAN).':
+      'Fill in seller details (IBAN) to get paid.',
+  'Za registraciju prihvati Uvjete i potvrdi da imaš 18+.':
+      'To register, accept the Terms and confirm you are 18+.',
+  'Zarada za isplatu': 'Earnings to pay out',
+  'Zašto se ne slažeš?': 'Why do you disagree?',
+  'na bankovni račun': 'to bank account',
+  'npr. Obrtni registar, MBS': 'e.g. business register, company number',
+  'plaćeno karticom': 'paid by card',
+  '{0} bez podataka prodavatelja — zatraži ih.':
+      '{0} without seller details — ask for them.',
+  '{0} ide na račun {1}. Isplatu obrađuje pružatelj plaćanja (obično 1–2 radna dana).':
+      '{0} goes to account {1}. The payment provider processes payouts (usually 1–2 business days).',
+  '{0} prodavatelja s prodajom · {1} za prijavu':
+      '{0} sellers with sales · {1} to report',
+  'Žalba je poslana — javit ćemo ti odluku.':
+      'Appeal sent — we will let you know the decision.',
+  'Žalba na odluku': 'Appeal the decision',
+  'Žalba: {0}': 'Appeal: {0}',
+  'Žalbu pregledava druga osoba. Imaš i pravo na izvansudsko rješavanje spora i sudsku zaštitu.':
+      'A different person reviews the appeal. You also have the right to out-of-court dispute settlement and to judicial redress.',
+  'Žalbu si već poslao — javit ćemo ti odluku.':
+      'You already sent an appeal — we will let you know the decision.',
+  '🔒  Ponuda je obvezujuća — ne može se povući ni smanjiti.\n\n🥇  Dok vodiš, ne možeš licitirati ponovno (možeš povisiti automatsku ponudu).\n\n💳  Pobjednik plaća karticom kad aukcija završi — ništa se ne blokira unaprijed.\n\n⏱️  Ponuda u zadnjoj minuti produljuje aukciju za 1 minutu.\n\n🎁  Pobjednik dobiva predmet, prodavatelj cijelu ponudu (bez naknade).':
+      '🔒  A bid is binding — it cannot be withdrawn or lowered.\n\n🥇  While you lead you cannot bid again (you can raise your automatic bid).\n\n💳  The winner pays by card when the auction ends — nothing is held in advance.\n\n⏱️  A bid in the last minute extends the auction by 1 minute.\n\n🎁  The winner gets the item, the seller the full bid (no fee).',
+  '✓ Provjerena kupnja': '✓ Verified purchase',
+  'Isplata na račun': 'Bank payout',
+  'Trgovac (obrt ili tvrtka)': 'Trader (business)',
+  'Tvoj oglas "{0}" je uklonjen. Razlog: {1}. Ako se ne slažeš, podnesi žalbu.':
+      'Your listing "{0}" was removed. Reason: {1}. If you disagree, file an appeal.',
+  'Kolačići i pohrana': 'Cookies and storage',
+  'Pravila za prodavatelje': 'Seller rules',
+  'Rangiranje i oglašavanje': 'Ranking and advertising',
+  'Prijave, odluke i žalbe': 'Reports, decisions and appeals',
+  'Impresum': 'Imprint',
+  '• Prije brisanja isplati zaradu ({0}) na svoj IBAN — poslije to više nije moguće.':
+      '• Pay out your earnings ({0}) to your IBAN before deleting — afterwards it is no longer possible.',
 };

@@ -38,6 +38,10 @@ class StorageService {
 
   /// Priče trgovina (24 h).
   static const _storiesBox = 'stories';
+
+  /// Podaci prodavatelja (OIB, IBAN…) — odvojeno od javnog profila; online
+  /// ih vidi samo vlasnik (vidi supabase/schema.sql, loop_sellers).
+  static const _sellersBox = 'sellers';
   static const _seenStoriesKey = 'seenStories';
 
   /// Broj prikaza objava (oglasa): id predmeta → {count}.
@@ -66,6 +70,7 @@ class StorageService {
     _bargainsBox,
     _viewsBox,
     _storiesBox,
+    _sellersBox,
   ];
 
   /// Povećaj kad se seed proširi — postojeće instalacije tada dobiju
@@ -107,6 +112,7 @@ class StorageService {
   late Box<Map> _bargains;
   late Box<Map> _views;
   late Box<Map> _stories;
+  late Box<Map> _sellers;
 
   /// Poziva se nakon svake lokalne promjene (za sinkronizaciju s online
   /// bazom). `data == null` znači brisanje.
@@ -128,6 +134,7 @@ class StorageService {
     _bargainsBox: _bargains,
     _viewsBox: _views,
     _storiesBox: _stories,
+    _sellersBox: _sellers,
   };
 
   /// Svi zapisi prolaze ovuda kako bi ih sinkronizacija vidjela.
@@ -173,6 +180,7 @@ class StorageService {
     _bargains = await Hive.openBox<Map>(_bargainsBox, bytes: bytes);
     _views = await Hive.openBox<Map>(_viewsBox, bytes: bytes);
     _stories = await Hive.openBox<Map>(_storiesBox, bytes: bytes);
+    _sellers = await Hive.openBox<Map>(_sellersBox, bytes: bytes);
 
     if (_session.get(_seededKey) != true) {
       await _seed();
@@ -188,7 +196,7 @@ class StorageService {
     final newUsers = <String>{};
     for (final u in SeedData.users(now)) {
       if (!_users.containsKey(u.id)) {
-        await _write(_usersBox, u.id, u.toMap());
+        await _writeUser(u);
         newUsers.add(u.id);
       }
     }
@@ -226,7 +234,7 @@ class StorageService {
   Future<void> _seed() async {
     final now = DateTime.now();
     for (final u in SeedData.users(now)) {
-      await _write(_usersBox, u.id, u.toMap());
+      await _writeUser(u);
     }
     for (final d in SeedData.devices(now)) {
       await _write(_devicesBox, d.id, d.toMap());
@@ -299,7 +307,23 @@ class StorageService {
   // ---------------------------------------------------------------- čitanje
 
   List<AppUser> get users =>
-      _users.values.map(AppUser.fromMap).toList(growable: false);
+      _users.values.map(_readUser).toList(growable: false);
+
+  /// Profil + privatni podaci prodavatelja (iz zasebne tablice).
+  AppUser _readUser(Map<dynamic, dynamic> raw) {
+    final seller = _sellers.get(raw['id']);
+    return AppUser.fromMap(seller == null ? raw : {...raw, 'seller': seller});
+  }
+
+  /// Javni profil bez podataka prodavatelja; oni idu u [_sellersBox].
+  Future<void> _writeUser(AppUser u) async {
+    final map = u.toMap();
+    final seller = map.remove('seller');
+    await _write(_usersBox, u.id, map);
+    if (seller is Map<String, dynamic>) {
+      await _write(_sellersBox, u.id, seller);
+    }
+  }
 
   List<Device> get devices =>
       _devices.values.map(Device.fromMap).toList(growable: false);
@@ -309,7 +333,7 @@ class StorageService {
 
   AppUser? userById(String id) {
     final map = _users.get(id);
-    return map == null ? null : AppUser.fromMap(map);
+    return map == null ? null : _readUser(map);
   }
 
   Device? deviceById(String id) {
@@ -362,8 +386,7 @@ class StorageService {
 
   // ---------------------------------------------------------------- pisanje
 
-  Future<void> putUser(AppUser user) =>
-      _write(_usersBox, user.id, user.toMap());
+  Future<void> putUser(AppUser user) => _writeUser(user);
 
   Future<void> putDevice(Device device) =>
       _write(_devicesBox, device.id, device.toMap());
@@ -371,7 +394,10 @@ class StorageService {
   Future<void> putTransaction(LoopTransaction tx) =>
       _write(_transactionsBox, tx.id, tx.toMap());
 
-  Future<void> deleteUser(String id) => _remove(_usersBox, id);
+  Future<void> deleteUser(String id) async {
+    await _remove(_usersBox, id);
+    if (_sellers.containsKey(id)) await _remove(_sellersBox, id);
+  }
 
   Future<void> deleteDevice(String id) => _remove(_devicesBox, id);
 
@@ -422,11 +448,6 @@ class StorageService {
     return null;
   }
 
-  /// Krediti blokirani u vodećim ponudama korisnika.
-  double heldCredits(String userId) => auctions
-      .where((a) => a.isActive && a.highestBid?.userId == userId)
-      .fold(0.0, (sum, a) => sum + a.highestBid!.amount);
-
   /// Bilježi trenutnu ukupnu vrijednost korisnika u povijest
   /// (raspoloživi + blokirani krediti, plus vrijednost predmeta).
   Future<void> recordSnapshot(String userId, {DateTime? now}) async {
@@ -439,7 +460,7 @@ class StorageService {
       userId,
       PortfolioPoint(
         time: now ?? DateTime.now(),
-        credits: ((user.credits + heldCredits(userId)) * 100).round() / 100,
+        credits: (user.credits * 100).round() / 100,
         portfolio: (portfolio * 100).round() / 100,
       ),
     );

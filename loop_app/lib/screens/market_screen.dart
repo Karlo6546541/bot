@@ -12,6 +12,7 @@ import '../widgets/trade_actions.dart';
 import '../services/market_filter.dart' show normalizeSearch;
 import '../widgets/user_avatar.dart';
 import 'device_detail_screen.dart';
+import 'legal_screen.dart';
 import 'public_profile_screen.dart';
 import 'shop_screens.dart';
 import 'market_filters.dart';
@@ -208,6 +209,18 @@ class _MarketScreenState extends ConsumerState<MarketScreen> {
                           _filters.update((f) => f.copyWith(sort: s)),
                     ),
                   ),
+                ),
+                // Kako slažemo oglase i što znači "Sponzorirano" (DSA/P2B).
+                IconButton(
+                  key: const ValueKey('ranking-info'),
+                  tooltip: t('Kako slažemo oglase'),
+                  visualDensity: VisualDensity.compact,
+                  icon: Icon(
+                    Icons.info_outline,
+                    size: 20,
+                    color: LoopColors.textSecondary,
+                  ),
+                  onPressed: () => LegalScreen.open(context, LegalDoc.ranking),
                 ),
               ],
             ),

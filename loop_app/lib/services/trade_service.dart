@@ -194,14 +194,8 @@ class TradeService {
     final price = bargain?.agreedPrice ?? device.priceAt(at);
     final fee = feeFor(price);
     final total = buyTotal(price);
-    if (user.credits < total) {
-      throw TradeException(
-        t('Nemaš dovoljno novca. Potrebno: {0}, imaš: {1}.', [
-          formatCredits(total),
-          formatCredits(user.credits),
-        ]),
-      );
-    }
+    // Kupac plaća karticom preko pružatelja plaćanja (u demo verziji se
+    // plaćanje simulira) — aplikacija ne drži novac kupaca.
 
     // Digitalni proizvod ostaje prodavatelju (prodaje se više puta), a
     // kupac dobiva pravo preuzimanja (zapis kupnje). Kod predmeta s više
@@ -216,9 +210,6 @@ class TradeService {
       await _storage.putDevice(device.withOwner(userId));
     }
     if (bargain != null) await BargainService(_storage).markUsed(bargain, at);
-    await _storage.putUser(
-      user.copyWith(credits: roundCredits(user.credits - total)),
-    );
 
     final tx = LoopTransaction(
       id: _uuid.v4(),
@@ -595,6 +586,41 @@ class TradeService {
     if (added) favs.add(deviceId);
     await _storage.putUser(user.copyWith(favorites: favs));
     return added;
+  }
+
+  // -------------------------------------------------------------- isplata
+
+  /// Isplata cijele zarade na IBAN iz podataka prodavatelja. U pravoj
+  /// verziji isplatu radi pružatelj plaćanja (npr. Mangopay/Stripe).
+  Future<LoopTransaction> payout({
+    required String userId,
+    DateTime? now,
+  }) async {
+    final user = _requireUser(userId);
+    final seller = user.seller;
+    if (seller == null) {
+      throw TradeException(t('Za isplatu ispuni podatke prodavatelja (IBAN).'));
+    }
+    final amount = roundCredits(user.credits);
+    if (amount <= 0) throw TradeException(t('Nemaš zarade za isplatu.'));
+    final at = now ?? DateTime.now();
+    await _storage.putUser(user.copyWith(credits: 0));
+    final tx = LoopTransaction(
+      id: _uuid.v4(),
+      type: TransactionType.payout,
+      userId: userId,
+      deviceId: '',
+      deviceName: t('Isplata na {0}', [seller.maskedIban]),
+      price: amount,
+      fee: 0,
+      amount: amount,
+      buyerLabel: '',
+      sellerLabel: user.handle,
+      createdAt: at,
+    );
+    await _storage.putTransaction(tx);
+    await _snapshot(userId);
+    return tx;
   }
 
   // ---------------------------------------------------------------- admin

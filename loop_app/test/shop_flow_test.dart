@@ -291,9 +291,9 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.text('Kupi odmah'));
     await tester.pumpAndSettle();
-    await tester.ensureVisible(find.text('Potvrdi kupnju'));
+    await tester.ensureVisible(find.textContaining('i potvrdi kupnju'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Potvrdi kupnju'));
+    await tester.tap(find.textContaining('i potvrdi kupnju'));
     await tester.pumpAndSettle();
     expect(find.text('AirPods Pro 2'), findsNothing); // nije više u Marketu
     await tester.tap(find.text('Početna').last);

@@ -88,14 +88,6 @@ class AuctionPolicy {
         [formatDateTime(until)],
       );
     }
-    final user = _storage.userById(userId);
-    final fee = listingFee(device);
-    if (user != null && user.credits < fee) {
-      return t('Za naknadu objave treba {0}, a imaš {1}.', [
-        formatCredits(fee),
-        formatCredits(user.credits),
-      ]);
-    }
     return null;
   }
 }

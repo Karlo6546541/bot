@@ -264,7 +264,7 @@ class PromotedBadge extends StatelessWidget {
       borderRadius: BorderRadius.circular(99),
     ),
     child: Text(
-      t('⭐ Istaknuto'),
+      t('Sponzorirano'),
       style: TextStyle(
         color: Colors.black87,
         fontWeight: FontWeight.w800,

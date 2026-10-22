@@ -63,19 +63,18 @@ flutter run            # odaberi uređaj s popisa
   kartice, terakota akcent, pastelni detalji) i topla tamna tema, izbor u *Profil → Izgled*.
   Font je Nunito (ugrađen, radi offline; licenca u `assets/fonts/OFL.txt`). Iznosi se pišu
   hrvatski: „1.250 €”, „294,50 €”; engleski „€1,250”.
-- **Uplata novca (demo):** iznosi 50 / 100 / 250 / 500 / 1000 € ili vlastiti iznos (10–2000 €),
-  bez bonusa. Načini plaćanja: kartica, Apple Pay, Google Pay, PayPal.
-  **Ništa se stvarno ne naplaćuje i ne unose se podaci kartice.** Dnevni limit uplata je 2000 €.
-  Dostupno s početne („Uplati novac”), iz trake sa stanjem gore desno, iz Profila te
-  automatski kad za kupnju ili ponudu nema dovoljno novca.
-- **Početna:** brze akcije (Uplati novac, Dodaj predmet, Market, Aukcije) i kartica „Kako LOOP
-  radi” koja se može zatvoriti.
+- **Plaćanje (bez novčanika):** kupac plaća **karticom pri kupnji** (predmet + 2 % + dostava),
+  a prodavatelj dobiva **zaradu za isplatu** koju šalje na svoj IBAN (*Isplati*). Aplikacija ne
+  drži novac kupaca (to bi tražilo licencu HNB-a) — u pravoj verziji plaćanja i isplate radi
+  licencirani pružatelj (npr. Mangopay ili Stripe Connect). **U demo verziji plaćanje karticom
+  i isplata se samo simuliraju.**
+- **Početna:** zarada za isplatu, priče, objave i trgovine; kartica „Kako LOOP radi” se može
+  zatvoriti.
 - **Aukcije:** objavi predmet iz svog portfolija (početna cijena i trajanje od 2 min do 7 dana),
   ostali licitiraju. Pravila:
   - ponuda je **obvezujuća** i ne može se povući ni smanjiti;
   - vodeći ponuđač ne može dati novu ponudu dok ga netko ne nadmaši;
-  - ponuda ne može biti **veća od raspoloživog stanja**;
-  - iznos vodeće ponude se **blokira** na računu i vraća se čim te netko nadmaši;
+  - ništa se ne blokira: **pobjednik plaća karticom kad aukcija završi**;
   - najmanji korak je 5% trenutne cijene;
   - ponuda u zadnjoj minuti produljuje aukciju za 1 minutu;
   - na kraju pobjednik dobiva predmet, a prodavatelj cijelu najvišu ponudu (aukcije su bez naknade);
@@ -245,6 +244,35 @@ ne sinkronizira; online prijavu vodi Supabase Auth i lozinke ne prolaze kroz na�
 - **Pretraga**: povijest pretraga (zadnjih 10, na uređaju), pretraga računa/trgovina po
   imenu, a „c/s/z/d/dj” pronalaze i „č/ć/š/ž/đ”.
 - Online: ponude cijena su u tablici `loop_bargains` — pokreni ponovno `supabase/schema.sql`.
+
+## Pravno i usklađenost (HR / EU)
+
+Ugrađeno u aplikaciju (pravni tekstovi su **predlošci** — podatke u [zagradama] zamijeniti i
+dati na pregled odvjetniku prije pokretanja s pravim novcem):
+
+- **Plaćanja (PSD2):** nema novčanika ni uplata; kupac plaća karticom, prodavatelj isplaćuje
+  zaradu na IBAN, a novac obrađuje licencirani pružatelj plaćanja (u demo verziji simulirano).
+- **Podaci prodavatelja (DAC7, DSA):** prije prve objave (oglas, aukcija) ili isplate traže se
+  vrsta prodavatelja (privatna osoba / trgovac), ime ili naziv, OIB (provjera kontrolne
+  znamenke), datum rođenja (18+), adresa i IBAN (MOD 97). *Profil → Moja trgovina →
+  Podaci prodavatelja.*
+  Online se spremaju u zasebnu tablicu **`loop_sellers`** koju vidi samo vlasnik (RLS), a ne u
+  javni profil — nakon nadogradnje pokreni novu verziju `supabase/schema.sql`.
+- **Prava potrošača (Omnibus):** na oglasu i blagajni piše je li prodavatelj trgovac (povrat
+  14 dana) ili privatna osoba (bez prava na povrat); kod popusta se prikazuje **najniža
+  cijena u zadnjih 30 dana**; ocjene su označene **„✓ Provjerena kupnja”** ili „Bez provjerene
+  kupnje”; digitalni proizvod traži izričit pristanak na gubitak prava na povrat.
+- **DSA:** istaknuti oglasi označeni su **„Sponzorirano”**; objašnjenje rangiranja (ikona ⓘ
+  uz poredak u Marketu); **podaci o trgovcu** na oglasu i profilu trgovca; kad admin ukloni
+  prijavljeni oglas, vlasnik dobiva **obrazloženje** i može podnijeti **žalbu** (admin je vidi
+  među prijavama).
+- **DAC7 izvještaj:** admin → nadzorna ploča → *DAC7* (godina, broj prodavatelja za prijavu,
+  **Preuzmi CSV**). Prijavljuju se prodavatelji s 30+ prodaja ili više od 2.000 € godišnje.
+- **Dokumenti:** Uvjeti korištenja, Pravila privatnosti, Kolačići i pohrana, Pravila za
+  prodavatelje, Rangiranje i oglašavanje, Prijave/odluke/žalbe, Impresum — *Profil → Pravno*
+  i poveznice na ekranu prijave. Registracija traži pristanak na Uvjete i potvrdu 18+.
+- **Kolačići:** koristi se samo nužna pohrana (prijava, postavke) — bez praćenja, pa banner
+  za pristanak nije potreban (piše na ekranu prijave i u dokumentu *Kolačići*).
 
 ## Raspored sučelja
 
@@ -475,9 +503,11 @@ Lokalni način (bez online baze):
 | Admin    | `admin@loop.com`                    | `admin123` | preko gumba **"Admin prijava"**                   |
 | Gost     | —                                   | —          | **"Samo razgledaj (gost)"** — bez kupnje/prodaje  |
 | Korisnik | `ana@loop.com` / `@ana.kolekcija`   | `demo`     | prodaje 4 predmeta na aukcijama                   |
-| Korisnik | `marko@loop.com` / `@marko`         | `demo`     | vodi na 3 aukcije (470 € blokirano)               |
+| Korisnik | `marko@loop.com` / `@marko`         | `demo`     | vodi na 3 aukcije                                 |
 
-Novi račun: *Registracija* (e-mail, korisničko ime, lozinka) → stanje **0 €** (bez početnog poklona).
+Novi račun: *Registracija* (e-mail, korisničko ime, lozinka, pristanak na Uvjete i 18+) →
+zarada **0 €**. Demo računi imaju izmišljene podatke prodavatelja (ispravan oblik OIB-a i
+IBAN-a); Ana je trgovac (obrt), ostali su privatne osobe.
 Računi iz starijih verzije: prva lozinka kojom se prijaviš postaje lozinka računa.
 
 U Marketu je na početku 31 predmet: 12 iz elektronike (iPhone 15 Pro, MacBook Air M3,
@@ -526,8 +556,8 @@ lib/
 │   ├── swap_service.dart     # zamjene predmet-za-predmet
 │   ├── inbox.dart            # stvaranje obavijesti
 │   ├── file_saver/           # spremanje datoteke (preuzimanje na webu)
-│   ├── auction_service.dart  # aukcije: objava, ponude, blokiranje iznosa, zaključivanje
-│   ├── credit_shop.dart      # uplata novca: iznosi, dnevni limit (demo)
+│   ├── auction_service.dart  # aukcije: objava, ponude, automatska ponuda, zaključivanje
+│   ├── dac7.dart             # DAC7 izvještaj prodavatelja (CSV za Poreznu upravu)
 │   ├── delivery_service.dart # dostava: načini, naplata, praćenje, potvrda primitka
 │   ├── auction_policy.dart   # limiti i naknada za objavu aukcija
 │   ├── remote_store.dart     # Supabase (online baza) + sučelje za testove
@@ -560,10 +590,11 @@ flutter analyze
 flutter test
 ```
 
-Testovi pokrivaju fee, status, prodaju, kupnju (uključujući nedovoljno kredita), favorite,
-povijest vrijednosti, fotografije, odjeljke, **kupnju kredita** (bonus, dnevni limit),
+Testovi pokrivaju fee, prodaju, kupnju karticom i isplatu zarade, favorite,
+povijest vrijednosti, fotografije, odjeljke, **pravni dio** (OIB/IBAN, 18+, DAC7, najniža
+cijena u 30 dana, provjerene ocjene, obrazloženje i žalba),
 hrvatski i engleski format iznosa, promjenu teme i **jezika** (svaki tekst ima prijevod),
-**pravila aukcija** (blokiranje i povrat kredita, obvezujuće ponude, limit kredita,
+**pravila aukcija** (obvezujuće ponude, automatska ponuda, kupi odmah,
 produljenje, zaključivanje), **račune** (registracija, lozinke, jedinstveno korisničko
 ime, promjena imena, kod za poziv, Google prijava bez imena, brisanje računa i izvoz),
 **objave u Marketu**, **ocjene, obavijesti, prijave i blokiranje**, **poruke i zamjene**,

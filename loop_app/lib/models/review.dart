@@ -10,6 +10,7 @@ class Review {
     required this.stars,
     required this.createdAt,
     this.comment = '',
+    this.verifiedFlag,
   });
 
   final String id;
@@ -26,6 +27,13 @@ class Review {
 
   static const maxComment = 200;
 
+  /// Spremljena oznaka (starije ocjene je nemaju).
+  final bool? verifiedFlag;
+
+  /// Provjerena kupnja: ocjenjivač je kupio od ovog prodavatelja (ocjene
+  /// nakon pošiljke su uvijek provjerene).
+  bool get verified => verifiedFlag ?? deliveryId.isNotEmpty;
+
   Map<String, dynamic> toMap() => {
     'id': id,
     'sellerId': sellerId,
@@ -36,6 +44,7 @@ class Review {
     'stars': stars,
     'comment': comment,
     'createdAt': createdAt.toIso8601String(),
+    'verified': verified,
   };
 
   factory Review.fromMap(Map<dynamic, dynamic> m) => Review(
@@ -48,6 +57,7 @@ class Review {
     stars: (m['stars'] as num).toInt(),
     comment: m['comment'] as String? ?? '',
     createdAt: DateTime.parse(m['createdAt'] as String),
+    verifiedFlag: m['verified'] as bool?,
   );
 }
 

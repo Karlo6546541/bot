@@ -122,6 +122,7 @@ class Device {
     this.quantity = 1,
     this.discountPercent = 0,
     this.discountUntil,
+    this.priceLog = const [],
   });
 
   final String id;
@@ -167,6 +168,27 @@ class Device {
   final DateTime? discountUntil;
 
   static const maxDiscount = 90;
+
+  /// Povijest cijena oglasa (za "najnižu cijenu u zadnjih 30 dana" uz
+  /// popust — Omnibus direktiva).
+  final List<PriceLogEntry> priceLog;
+
+  /// Najniža cijena oglasa (bez popusta) u 30 dana prije [now].
+  double lowestPrice30(DateTime now) {
+    final since = now.subtract(const Duration(days: 30));
+    var lowest = basePrice;
+    PriceLogEntry? before;
+    for (final e in priceLog) {
+      if (e.at.isAfter(now)) continue;
+      if (e.at.isBefore(since)) {
+        if (before == null || e.at.isAfter(before.at)) before = e;
+      } else if (e.price < lowest) {
+        lowest = e.price;
+      }
+    }
+    if (before != null && before.price < lowest) lowest = before.price;
+    return lowest;
+  }
 
   /// Digitalni proizvod: prodaje se više puta, vlasnik ga zadržava, a
   /// kupac preuzima datoteku odmah nakon plaćanja.
@@ -223,6 +245,7 @@ class Device {
     int? discountPercent,
     Object? discountUntil = _keep,
     DateTime? createdAt,
+    List<PriceLogEntry>? priceLog,
   }) => Device(
     id: id ?? this.id,
     name: name,
@@ -243,6 +266,7 @@ class Device {
     discountUntil: discountUntil == _keep
         ? this.discountUntil
         : discountUntil as DateTime?,
+    priceLog: priceLog ?? this.priceLog,
   );
 
   /// Kopija s novim vlasnikom; `null` vraća predmet u Market.
@@ -256,6 +280,7 @@ class Device {
     quantity: 1,
     discountPercent: 0,
     discountUntil: null,
+    priceLog: const [],
   );
 
   /// Jedan komad sa zalihe za kupca (novi predmet u njegovom portfoliju).
@@ -263,12 +288,21 @@ class Device {
       _copy(id: newId, createdAt: at).withOwner(buyerId);
 
   /// Objava u Marketu po cijeni [price] (`null` = ukloni iz Marketa).
-  Device withListing(double? price, {DateTime? at, int? quantity}) => _copy(
-    listPrice: price,
-    listedAt: price == null ? null : at ?? DateTime.now(),
-    marketChecked: true,
-    quantity: quantity,
-  );
+  Device withListing(double? price, {DateTime? at, int? quantity}) {
+    final when = at ?? DateTime.now();
+    final log = [...priceLog];
+    if (price != null && (log.isEmpty || log.last.price != price)) {
+      log.add(PriceLogEntry(when, price));
+    }
+    return _copy(
+      listPrice: price,
+      listedAt: price == null ? null : when,
+      marketChecked: true,
+      quantity: quantity,
+      // Dovoljno za 30 dana unatrag i uz česte promjene cijene.
+      priceLog: log.length > 12 ? log.sublist(log.length - 12) : log,
+    );
+  }
 
   /// Zaliha nakon prodaje jednog komada.
   Device withQuantity(int quantity) => _copy(quantity: quantity);
@@ -302,6 +336,7 @@ class Device {
     'quantity': quantity,
     'discountPercent': discountPercent,
     'discountUntil': discountUntil?.toIso8601String(),
+    if (priceLog.isNotEmpty) 'priceLog': [for (final e in priceLog) e.toMap()],
   };
 
   factory Device.fromMap(Map<dynamic, dynamic> map) => Device(
@@ -327,6 +362,10 @@ class Device {
     discountUntil: map['discountUntil'] == null
         ? null
         : DateTime.parse(map['discountUntil'] as String),
+    priceLog: [
+      for (final e in (map['priceLog'] as List? ?? const []))
+        if (e is Map) PriceLogEntry.fromMap(e),
+    ],
   );
 }
 
@@ -376,5 +415,19 @@ class DigitalFile {
     name: m['name'] as String? ?? 'datoteka',
     size: (m['size'] as num?)?.toInt() ?? 0,
     uploadedAt: DateTime.parse(m['uploadedAt'] as String),
+  );
+}
+
+/// Jedna promjena cijene oglasa.
+class PriceLogEntry {
+  const PriceLogEntry(this.at, this.price);
+  final DateTime at;
+  final double price;
+
+  Map<String, dynamic> toMap() => {'at': at.toIso8601String(), 'price': price};
+
+  factory PriceLogEntry.fromMap(Map<dynamic, dynamic> m) => PriceLogEntry(
+    DateTime.parse(m['at'] as String),
+    (m['price'] as num).toDouble(),
   );
 }

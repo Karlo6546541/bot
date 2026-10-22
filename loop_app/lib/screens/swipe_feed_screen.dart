@@ -401,7 +401,7 @@ class _CornerBadge extends StatelessWidget {
       return _Pill(
         color: const Color(0xFFFFC233),
         child: Text(
-          t('⭐ Istaknuto'),
+          t('Sponzorirano'),
           style: _pillText.copyWith(color: Colors.black87),
         ),
       );

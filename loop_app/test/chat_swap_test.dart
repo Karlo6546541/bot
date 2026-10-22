@@ -140,7 +140,8 @@ void main() {
       expect(storage.deviceById(iphone)!.ownerId, SeedData.testUserId);
       expect(storage.deviceById(iphone)!.isListed, isFalse);
       expect(storage.deviceById(testItem)!.ownerId, SeedData.demoUserId);
-      expect(storage.userById(SeedData.testUserId)!.credits, testBefore - 102);
+      // Nadoplata se plaća karticom; vlasnik dobiva zaradu.
+      expect(storage.userById(SeedData.testUserId)!.credits, testBefore);
       expect(storage.userById(SeedData.demoUserId)!.credits, demoBefore + 100);
       expect(
         storage.transactions.where((t) => t.type == TransactionType.swap),
@@ -194,12 +195,12 @@ void main() {
           wantedDeviceId: iphone,
           offeredDeviceId: iphone,
         ),
-        // Previše kredita.
+        // Negativna nadoplata.
         () => swaps.offer(
           fromId: SeedData.testUserId,
           wantedDeviceId: iphone,
           offeredDeviceId: testItem,
-          extraCredits: 99999,
+          extraCredits: -5,
         ),
       ]) {
         await expectLater(f(), throwsA(isA<TradeException>()));

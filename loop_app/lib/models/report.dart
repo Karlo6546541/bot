@@ -41,7 +41,7 @@ class Report {
   final String reporterId;
   final String reporterLabel;
 
-  /// 'device' | 'user'.
+  /// 'device' | 'user' | 'appeal' (žalba na odluku; [targetId] je prijava).
   final String targetType;
   final String targetId;
 
@@ -57,6 +57,7 @@ class Report {
 
   bool get isOpen => status == ReportStatus.open;
   bool get isDevice => targetType == 'device';
+  bool get isAppeal => targetType == 'appeal';
 
   Report close(ReportStatus s, DateTime at) => Report(
     id: id,

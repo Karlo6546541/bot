@@ -2,13 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../providers/app_providers.dart';
-import '../theme/app_theme.dart';
-import '../widgets/formatters.dart';
 
 import '../widgets/adaptive_shell.dart';
 import '../widgets/create_sheet.dart';
 import 'auctions_screen.dart';
-import 'buy_credits_screen.dart';
 import 'market_screen.dart';
 import 'portfolio_screen.dart';
 import 'profile_screen.dart';
@@ -139,8 +136,6 @@ class _HomeShellState extends ConsumerState<HomeShell> {
             const LanguageButton(compact: true),
             const SizedBox(width: 6),
           ],
-          // Na početnoj je stanje na kartici — ne dupliciraj ga gore.
-          if (_index != 0) const _CreditsPill(),
           SizedBox(width: phone ? 8 : 12),
         ],
       ),
@@ -153,36 +148,6 @@ class _HomeShellState extends ConsumerState<HomeShell> {
           const AuctionsScreen(),
           const ProfileScreen(),
         ],
-      ),
-    );
-  }
-}
-
-/// Stanje kredita u gornjoj traci; dodir otvara kupnju kredita.
-class _CreditsPill extends ConsumerWidget {
-  const _CreditsPill();
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final credits = ref.watch(
-      appProvider.select((s) => s.currentUser?.credits ?? 0),
-    );
-    return Tooltip(
-      message: t('Uplati novac'),
-      child: Material(
-        color: LoopColors.sunny,
-        shape: const StadiumBorder(),
-        child: InkWell(
-          customBorder: const StadiumBorder(),
-          onTap: () => BuyCreditsScreen.open(context),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
-            child: Text(
-              formatCredits(credits),
-              style: const TextStyle(fontWeight: FontWeight.w900),
-            ),
-          ),
-        ),
       ),
     );
   }

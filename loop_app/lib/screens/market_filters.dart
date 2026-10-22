@@ -395,19 +395,6 @@ class _FilterSheet extends ConsumerWidget {
                   title: Text(t('Samo favoriti')),
                 ),
                 SwitchListTile(
-                  contentPadding: EdgeInsets.zero,
-                  value: f.onlyAffordable,
-                  onChanged: (v) =>
-                      notifier.update((f) => f.copyWith(onlyAffordable: v)),
-                  secondary: const Icon(Icons.account_balance_wallet_outlined),
-                  title: Text(t('Mogu kupiti')),
-                  subtitle: Text(
-                    t('Imam dovoljno novca: {0}', [
-                      formatCredits(state.currentUser?.credits ?? 0),
-                    ]),
-                  ),
-                ),
-                SwitchListTile(
                   key: const ValueKey('discounted-switch'),
                   contentPadding: EdgeInsets.zero,
                   value: f.onlyDiscounted,
@@ -496,11 +483,6 @@ class ActiveFilterChips extends ConsumerWidget {
         _chip(
           t('Favoriti'),
           () => n.update((f) => f.copyWith(onlyFavorites: false)),
-        ),
-      if (f.onlyAffordable)
-        _chip(
-          t('Mogu kupiti'),
-          () => n.update((f) => f.copyWith(onlyAffordable: false)),
         ),
       if (f.onlyDiscounted)
         _chip(

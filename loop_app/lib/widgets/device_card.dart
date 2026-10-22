@@ -41,8 +41,9 @@ class DeviceCard extends StatefulWidget {
   /// Vlastiti predmet: cijena oglasa (koliko dobivam), a ne cijena kupca.
   final bool sellerView;
 
-  String? get _badgeText =>
-      badge == null ? null : (promoted ? '⭐ $badge' : badge);
+  String? get _badgeText => badge == null
+      ? null
+      : (promoted ? t('Sponzorirano · {0}', [badge!]) : badge);
 
   @override
   State<DeviceCard> createState() => _DeviceCardState();

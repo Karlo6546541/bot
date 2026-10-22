@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'seller_screens.dart';
+
 import '../models/device.dart';
 import '../providers/app_providers.dart';
 import '../services/file_store.dart';
@@ -22,6 +24,8 @@ class AddDeviceScreen extends ConsumerStatefulWidget {
 
   static Future<void> open(BuildContext context) async {
     if (blockGuest(context)) return;
+    // Objava traži podatke prodavatelja (DAC7/DSA).
+    if (!await ensureSellerInfo(context) || !context.mounted) return;
     await Navigator.of(
       context,
     ).push(MaterialPageRoute<void>(builder: (_) => const AddDeviceScreen()));

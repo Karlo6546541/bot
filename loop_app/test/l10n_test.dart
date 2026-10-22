@@ -12,7 +12,6 @@ import 'package:loop_app/models/report.dart';
 import 'package:loop_app/models/swap_offer.dart';
 import 'package:loop_app/screens/auctions_screen.dart';
 import 'package:loop_app/screens/market_screen.dart';
-import 'package:loop_app/services/credit_shop.dart';
 import 'package:loop_app/widgets/portfolio_chart.dart';
 
 /// Svaki tekst u kodu (`t('...')`) mora imati engleski prijevod, s istim
@@ -67,7 +66,6 @@ void main() {
       for (final v in AuctionStatus.values) v.label,
       for (final v in DeliveryMethod.values) ...[v.label, v.subtitle],
       for (final v in DeliveryStatus.values) v.label,
-      for (final v in PaymentMethod.values) ...[v.label, v.subtitle],
       for (final v in ReportReason.values) v.label,
       for (final v in SwapStatus.values) v.label,
       for (final v in AuctionView.values) v.label,

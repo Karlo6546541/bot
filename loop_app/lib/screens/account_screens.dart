@@ -614,7 +614,7 @@ class _DeleteAccountScreenState extends ConsumerState<DeleteAccountScreen> {
                       const SizedBox(height: 8),
                       Text(
                         t(
-                          '• Gubiš preostalo stanje ({0}) — u demo verziji nema isplate.',
+                          '• Prije brisanja isplati zaradu ({0}) na svoj IBAN — poslije to više nije moguće.',
                           [formatCredits(user.credits)],
                         ),
                         style: bullet.copyWith(

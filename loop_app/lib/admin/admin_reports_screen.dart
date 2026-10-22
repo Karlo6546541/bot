@@ -84,6 +84,8 @@ class _ReportCard extends ConsumerWidget {
           : ref.read(appProvider).userById(r.targetId) != null;
       if (exists) {
         if (r.isDevice) {
+          // Vlasnik dobiva obrazloženje i mogućnost žalbe (DSA).
+          await c.notifyRemoval(r.id);
           await c.deleteDevice(r.targetId);
         } else {
           await c.deleteUser(r.targetId);
@@ -106,7 +108,11 @@ class _ReportCard extends ConsumerWidget {
             Row(
               children: [
                 Icon(
-                  r.isDevice ? Icons.sell_outlined : Icons.person_outline,
+                  r.isAppeal
+                      ? Icons.gavel
+                      : r.isDevice
+                      ? Icons.sell_outlined
+                      : Icons.person_outline,
                   color: LoopColors.admin,
                 ),
                 const SizedBox(width: 8),
@@ -144,17 +150,20 @@ class _ReportCard extends ConsumerWidget {
                 spacing: 8,
                 runSpacing: 8,
                 children: [
-                  FilledButton.icon(
-                    style: FilledButton.styleFrom(
-                      backgroundColor: LoopColors.error,
-                      foregroundColor: Colors.white,
+                  if (!r.isAppeal)
+                    FilledButton.icon(
+                      style: FilledButton.styleFrom(
+                        backgroundColor: LoopColors.error,
+                        foregroundColor: Colors.white,
+                      ),
+                      onPressed: () => _removeTarget(context, ref),
+                      icon: const Icon(Icons.delete_outline),
+                      label: Text(
+                        r.isDevice
+                            ? t('Obriši predmet')
+                            : t('Obriši korisnika'),
+                      ),
                     ),
-                    onPressed: () => _removeTarget(context, ref),
-                    icon: const Icon(Icons.delete_outline),
-                    label: Text(
-                      r.isDevice ? t('Obriši predmet') : t('Obriši korisnika'),
-                    ),
-                  ),
                   OutlinedButton(
                     onPressed: () => c.closeReport(r.id, ReportStatus.resolved),
                     child: Text(t('Riješeno')),

@@ -5,6 +5,7 @@ import 'package:loop_app/models/app_user.dart';
 import 'package:loop_app/services/account_service.dart';
 import 'package:loop_app/services/auth_backend.dart';
 import 'package:loop_app/models/device.dart';
+import 'package:loop_app/models/loop_transaction.dart';
 import 'package:loop_app/models/price_offer.dart';
 import 'package:loop_app/providers/app_state.dart';
 import 'package:loop_app/services/bargain_service.dart';
@@ -101,9 +102,8 @@ void main() {
       expect(cut.priceAt(now.add(const Duration(days: 4))), 50);
       expect(Device.fromMap(cut.toMap()).discountPercent, 20);
 
-      final before = storage.userById(tester)!.credits;
-      await trade.buy(userId: tester, deviceId: d.id);
-      expect(storage.userById(tester)!.credits, before - 40.8); // 40 + 2%
+      final tx = await trade.buy(userId: tester, deviceId: d.id);
+      expect(tx.amount, 40.8); // 40 + 2 %, karticom
     });
 
     test('trajni popust; samo na oglas; granice', () async {
@@ -177,11 +177,10 @@ void main() {
       expect(trade.priceFor(tester, d), 80);
       expect(trade.priceFor(marko, d), 100); // samo za tog kupca
 
-      final before = storage.userById(tester)!.credits;
       final sellerBefore = storage.userById(demo)!.credits;
       final tx = await trade.buy(userId: tester, deviceId: d.id);
       expect(tx.price, 80);
-      expect(storage.userById(tester)!.credits, before - 81.6);
+      expect(tx.amount, 81.6); // kupac plaća karticom
       expect(storage.userById(demo)!.credits, sellerBefore + 80);
       expect(storage.bargainById(o.id)!.status, BargainStatus.used);
     });
@@ -255,7 +254,14 @@ void main() {
       final now = DateTime(2026, 10, 1);
       final before = storage.userById(demo)!.credits;
       final u = await community.promote(demo, 1, now: now);
-      expect(u.credits, before - CommunityService.promotionWeekly);
+      // Plaća se karticom: zarada ostaje, a plaćanje je zabilježeno.
+      expect(u.credits, before);
+      expect(
+        storage.transactions.where(
+          (t) => t.type == TransactionType.promotion && t.userId == demo,
+        ),
+        hasLength(1),
+      );
       expect(u.promotedAt(now.add(const Duration(days: 6))), isTrue);
       expect(u.promotedAt(now.add(const Duration(days: 8))), isFalse);
       final u2 = await community.promote(demo, 2, now: now);

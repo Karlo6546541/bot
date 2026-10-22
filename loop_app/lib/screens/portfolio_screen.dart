@@ -16,7 +16,7 @@ import '../widgets/formatters.dart';
 import '../widgets/portfolio_chart.dart';
 import '../widgets/trade_actions.dart';
 import 'auction_detail_screen.dart';
-import 'buy_credits_screen.dart';
+import 'seller_screens.dart';
 import 'deliveries_screen.dart';
 import 'device_detail_screen.dart';
 import '../l10n/tr.dart';
@@ -49,7 +49,7 @@ class PortfolioScreen extends ConsumerWidget {
               credits: user.credits,
               totalValue: total,
               deviceCount: devices.length,
-              held: state.heldCreditsOf(user.id),
+              onPayout: () => showPayoutDialog(context, ref),
             ),
           ),
         ),
@@ -119,7 +119,7 @@ class MyItemsScreen extends ConsumerWidget {
                 history: state.myHistory,
                 current: PortfolioPoint(
                   time: DateTime.now(),
-                  credits: user.credits + state.heldCreditsOf(user.id),
+                  credits: user.credits,
                   portfolio: portfolioValue,
                 ),
               ),
@@ -210,10 +210,10 @@ class _CreditsHero extends StatelessWidget {
     required this.credits,
     required this.totalValue,
     required this.deviceCount,
-    required this.held,
+    required this.onPayout,
   });
 
-  final double held;
+  final VoidCallback onPayout;
   final String name;
   final double credits;
   final double totalValue;
@@ -249,7 +249,7 @@ class _CreditsHero extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        t('Bok, {0} 👋', [name]),
+                        t('Bok, {0} 👋 · zarada za isplatu', [name]),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: TextStyle(
@@ -293,11 +293,7 @@ class _CreditsHero extends StatelessWidget {
                                   deviceCount == 1
                                       ? t('predmet')
                                       : t('predmeta'),
-                                  held > 0
-                                      ? t(' · blokirano {0}', [
-                                          formatCredits(held),
-                                        ])
-                                      : '',
+                                  '',
                                 ]),
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
@@ -320,14 +316,16 @@ class _CreditsHero extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(width: 10),
+                // Zarada od prodaja ide na IBAN (novac kupaca ne držimo).
                 FilledButton.icon(
-                  onPressed: () => BuyCreditsScreen.open(context),
+                  key: const ValueKey('payout'),
+                  onPressed: credits > 0 ? onPayout : null,
                   style: FilledButton.styleFrom(
                     minimumSize: const Size(0, 42),
                     padding: const EdgeInsets.symmetric(horizontal: 14),
                   ),
-                  icon: const Icon(Icons.add, size: 18),
-                  label: Text(t('Uplati')),
+                  icon: const Icon(Icons.account_balance_outlined, size: 18),
+                  label: Text(t('Isplati')),
                 ),
               ],
             ),

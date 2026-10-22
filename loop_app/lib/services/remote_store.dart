@@ -77,17 +77,25 @@ class SupabaseRemoteStore implements RemoteStore {
   @override
   bool get canWrite => _client.auth.currentSession != null;
 
-  @override
-  Future<void> upsert(String table, String id, Map<String, dynamic> data) =>
-      _client.from(tableName(table)).upsert({
-        'id': id,
-        'data': data,
-        'updated_at': DateTime.now().toUtc().toIso8601String(),
-      });
+  /// Podaci prodavatelja su privatni: svatko šalje samo svoj redak (RLS u
+  /// bazi ionako odbija tuđe — npr. lokalne demo račune).
+  bool _skip(String table, String id) =>
+      table == 'sellers' && id != _client.auth.currentUser?.id;
 
   @override
-  Future<void> delete(String table, String id) =>
-      _client.from(tableName(table)).delete().eq('id', id);
+  Future<void> upsert(String table, String id, Map<String, dynamic> data) =>
+      _skip(table, id)
+      ? Future.value()
+      : _client.from(tableName(table)).upsert({
+          'id': id,
+          'data': data,
+          'updated_at': DateTime.now().toUtc().toIso8601String(),
+        });
+
+  @override
+  Future<void> delete(String table, String id) => _skip(table, id)
+      ? Future.value()
+      : _client.from(tableName(table)).delete().eq('id', id);
 
   @override
   Future<void> clearAll(List<String> tables) async {

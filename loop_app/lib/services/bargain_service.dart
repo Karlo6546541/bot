@@ -64,13 +64,6 @@ class BargainService {
         ]),
       );
     }
-    if (buyer.credits < buyTotal(value)) {
-      throw TradeException(
-        t('Nemaš dovoljno novca za tu ponudu (treba {0}).', [
-          formatCredits(buyTotal(value)),
-        ]),
-      );
-    }
     final existing = active(buyerId, deviceId, at);
     if (existing != null) {
       throw TradeException(

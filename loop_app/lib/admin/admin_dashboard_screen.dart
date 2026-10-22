@@ -4,6 +4,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/device.dart';
 import '../providers/app_providers.dart';
 import '../providers/app_state.dart';
+import '../services/dac7.dart';
+import '../services/file_saver/file_saver.dart';
+import '../widgets/loop_snackbar.dart';
 import '../widgets/category_style.dart';
 import '../theme/app_theme.dart';
 import '../widgets/formatters.dart';
@@ -48,7 +51,11 @@ class AdminDashboardScreen extends ConsumerWidget {
         t('Prihod od naknade (2%)'),
         formatCredits(s.totalFees),
       ),
-      _Tile(Icons.add_card, t('Uplaćeno'), formatEuro(s.totalTopUpEur)),
+      _Tile(
+        Icons.account_balance_outlined,
+        t('Isplaćeno prodavateljima'),
+        formatCredits(s.totalPayouts),
+      ),
     ];
 
     return SingleChildScrollView(
@@ -101,9 +108,100 @@ class AdminDashboardScreen extends ConsumerWidget {
           const SizedBox(height: 16),
           ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 804),
+            child: _Dac7Card(state: s),
+          ),
+          const SizedBox(height: 16),
+          ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 804),
             child: _CategoryStats(devices: s.devices),
           ),
         ],
+      ),
+    );
+  }
+}
+
+/// DAC7: prodavatelji koje treba prijaviti Poreznoj upravi (rok 31. 1.).
+class _Dac7Card extends StatefulWidget {
+  const _Dac7Card({required this.state});
+  final AppState state;
+
+  @override
+  State<_Dac7Card> createState() => _Dac7CardState();
+}
+
+class _Dac7CardState extends State<_Dac7Card> {
+  late int _year = DateTime.now().year;
+
+  @override
+  Widget build(BuildContext context) {
+    final s = widget.state;
+    final sellers = Dac7.sellers(s.users, s.transactions, _year);
+    final reportable = sellers.where((x) => x.reportable).toList();
+    final missing = reportable.where((x) => x.missingData).length;
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    t('DAC7 izvještaj (Porezna uprava)'),
+                    style: const TextStyle(
+                      fontWeight: FontWeight.w700,
+                      fontSize: 16,
+                    ),
+                  ),
+                ),
+                DropdownButton<int>(
+                  value: _year,
+                  items: [
+                    for (var y = DateTime.now().year; y >= 2024; y--)
+                      DropdownMenuItem(value: y, child: Text('$y')),
+                  ],
+                  onChanged: (y) => setState(() => _year = y ?? _year),
+                ),
+              ],
+            ),
+            Text(
+              t(
+                'Prijavljuju se prodavatelji s {0}+ prodaja ili više od {1} godišnje. Rok: 31. siječnja sljedeće godine.',
+                ['${Dac7.minSales}', formatCredits(Dac7.minAmount)],
+              ),
+              style: TextStyle(color: LoopColors.textSecondary, fontSize: 12),
+            ),
+            const SizedBox(height: 10),
+            Text(
+              t('{0} prodavatelja s prodajom · {1} za prijavu', [
+                '${sellers.length}',
+                '${reportable.length}',
+              ]),
+              key: const ValueKey('dac7-count'),
+              style: const TextStyle(fontWeight: FontWeight.w800),
+            ),
+            if (missing > 0)
+              Text(
+                t('{0} bez podataka prodavatelja — zatraži ih.', ['$missing']),
+                style: TextStyle(color: LoopColors.error, fontSize: 12),
+              ),
+            const SizedBox(height: 10),
+            OutlinedButton.icon(
+              key: const ValueKey('dac7-export'),
+              onPressed: () async {
+                final where = await saveTextFile(
+                  'dac7-$_year.csv',
+                  Dac7.csv(sellers, _year),
+                );
+                showLoopSnackBar(t('Spremljeno: {0}', [where]));
+              },
+              icon: const Icon(Icons.download_outlined),
+              label: Text(t('Preuzmi CSV')),
+            ),
+          ],
+        ),
       ),
     );
   }

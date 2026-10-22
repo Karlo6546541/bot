@@ -5,8 +5,6 @@ import 'package:uuid/uuid.dart';
 import '../models/delivery.dart';
 import '../models/device.dart';
 import '../models/loop_transaction.dart';
-import '../utils/formatters.dart';
-import 'fee.dart';
 import 'storage_service.dart';
 import 'trade_service.dart';
 import '../l10n/tr.dart';
@@ -127,22 +125,10 @@ class DeliveryService {
     if (error != null) throw TradeException(error);
     final user = _storage.userById(userId);
     if (user == null) throw TradeException(t('Korisnik ne postoji.'));
-    if (user.credits < method.cost) {
-      throw TradeException(
-        t('Za dostavu treba {0}, a imaš {1}.', [
-          formatCredits(method.cost),
-          formatCredits(user.credits),
-        ]),
-      );
-    }
-
-    // Naplati dostavu i zapamti adresu za sljedeći put.
+    // Dostava se plaća karticom; zapamti adresu za sljedeći put.
     final dest = destination?.trim();
     await _storage.putUser(
-      user.copyWith(
-        credits: roundCredits(user.credits - method.cost),
-        address: method.needsAddress ? dest : null,
-      ),
+      user.copyWith(address: method.needsAddress ? dest : null),
     );
     final started = d.copyWith(
       method: method,

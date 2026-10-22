@@ -6,7 +6,7 @@ import '../providers/app_providers.dart';
 import '../services/fee.dart';
 import '../services/trade_service.dart';
 import '../theme/app_theme.dart';
-import '../screens/buy_credits_screen.dart';
+import '../screens/seller_screens.dart';
 import '../screens/wishlists_screen.dart';
 import '../services/delivery_service.dart';
 import 'delivery_picker.dart';
@@ -83,7 +83,7 @@ bool blockGuest(BuildContext context) {
   return true;
 }
 
-/// INSTANT BUY — provjera kredita, dijalog s fee-om, pa kupnja.
+/// Kupnja: blagajna (dostava, iznos, plaćanje karticom), pa kupnja.
 Future<bool> confirmAndBuy(
   BuildContext context,
   WidgetRef ref,
@@ -94,32 +94,10 @@ Future<bool> confirmAndBuy(
   if (user == null) return false;
   // Dogovorena cijena (prihvaćena ponuda) ili cijena oglasa s popustom.
   final price = ref.read(appProvider).priceForMe(device);
-  final total = buyTotal(price);
   // Već kupljen digitalni proizvod — samo preuzmi.
   if (device.isDigital && ref.read(appProvider).hasPurchased(device.id)) {
     await downloadDigital(context, ref, device);
     return false;
-  }
-
-  if (user.credits < total) {
-    // Ponudi dopunu umjesto suhe greške.
-    final missing = total - user.credits;
-    final topUp = await confirmDialog(
-      context,
-      title: t('Nemaš dovoljno novca'),
-      message: t('Za "{0}" treba {1}, a imaš {2}.\nNedostaje ti {3}.', [
-        device.name,
-        formatCredits(total),
-        formatCredits(user.credits),
-        formatCredits(missing),
-      ]),
-      confirmLabel: t('Uplati novac'),
-    );
-    if (!topUp || !context.mounted) return false;
-    final bought = await BuyCreditsScreen.open(context, needed: missing);
-    if (!bought || !context.mounted) return false;
-    // Nakon dopune nastavi s kupnjom.
-    return confirmAndBuy(context, ref, device);
   }
 
   if (device.isDigital) return _buyDigital(context, ref, device, price);
@@ -131,8 +109,12 @@ Future<bool> confirmAndBuy(
     showDragHandle: true,
     backgroundColor: LoopColors.background,
     constraints: BoxConstraints(maxWidth: 560),
-    builder: (_) =>
-        _CheckoutSheet(device: device, price: price, credits: user.credits),
+    builder: (_) => _CheckoutSheet(
+      device: device,
+      price: price,
+      sellerIsTrader:
+          ref.read(appProvider).userById(device.ownerId)?.isTrader ?? false,
+    ),
   );
   if (choice == null || !context.mounted) return false;
   return runWithLoading(
@@ -149,11 +131,11 @@ class _CheckoutSheet extends StatefulWidget {
   const _CheckoutSheet({
     required this.device,
     required this.price,
-    required this.credits,
+    required this.sellerIsTrader,
   });
   final Device device;
   final double price;
-  final double credits;
+  final bool sellerIsTrader;
 
   @override
   State<_CheckoutSheet> createState() => _CheckoutSheetState();
@@ -169,7 +151,6 @@ class _CheckoutSheetState extends State<_CheckoutSheet> {
     final shipping = _choice?.method.cost ?? 0;
     final price = widget.price;
     final total = buyTotal(price) + shipping;
-    final enough = widget.credits >= total;
 
     Widget row(String k, String v, {bool bold = false}) => Padding(
       padding: EdgeInsets.symmetric(vertical: 3),
@@ -243,53 +224,84 @@ class _CheckoutSheetState extends State<_CheckoutSheet> {
                     ),
                     Divider(height: 16),
                     row(t('Ukupno'), formatCredits(total), bold: true),
-                    row(
-                      t('Stanje nakon kupnje'),
-                      formatCredits(widget.credits - total),
-                    ),
                   ],
                 ),
               ),
+            ),
+            SizedBox(height: 10),
+            // Plaćanje: licencirani pružatelj (u demo verziji simulirano).
+            Container(
+              key: ValueKey('checkout-payment'),
+              padding: EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: LoopColors.surface,
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(color: LoopColors.surfaceHover),
+              ),
+              child: Row(
+                children: [
+                  Icon(Icons.credit_card, color: LoopColors.textSecondary),
+                  SizedBox(width: 10),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          t('Kartica •••• 4242 (demo)'),
+                          style: TextStyle(fontWeight: FontWeight.w800),
+                        ),
+                        Text(
+                          t(
+                            'Plaćanje obrađuje pružatelj plaćanja; LOOP ne drži tvoj novac.',
+                          ),
+                          style: TextStyle(
+                            color: LoopColors.textSecondary,
+                            fontSize: 12,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            SizedBox(height: 8),
+            // Prava potrošača ovise o vrsti prodavatelja.
+            Text(
+              widget.sellerIsTrader
+                  ? t(
+                      'Prodavatelj je trgovac: imaš pravo na povrat u 14 dana od primitka.',
+                    )
+                  : t(
+                      'Prodavatelj je privatna osoba: zakonsko pravo na povrat od 14 dana ne vrijedi.',
+                    ),
+              key: ValueKey('checkout-rights'),
+              style: TextStyle(color: LoopColors.textSecondary, fontSize: 12),
             ),
             if (_error != null) ...[
               SizedBox(height: 8),
               Text(_error!, style: TextStyle(color: LoopColors.error)),
             ],
             SizedBox(height: 14),
-            if (enough)
-              FilledButton.icon(
-                onPressed: _choice == null
-                    ? null
-                    : () {
-                        final err = DeliveryService.validate(
-                          _choice!.method,
-                          _choice!.destination,
-                        );
-                        if (err != null) {
-                          setState(() => _error = err);
-                          return;
-                        }
-                        Navigator.pop(context, _choice);
-                      },
-                icon: Icon(Icons.lock_outline),
-                label: Text(t('Potvrdi kupnju')),
-              )
-            else
-              FilledButton.icon(
-                onPressed: () async {
-                  final ok = await BuyCreditsScreen.open(
-                    context,
-                    needed: total - widget.credits,
-                  );
-                  if (ok && context.mounted) Navigator.pop(context);
-                },
-                icon: Icon(Icons.add_card),
-                label: Text(
-                  t('Nedostaje {0} — uplati novac', [
-                    formatCredits(total - widget.credits),
-                  ]),
-                ),
+            FilledButton.icon(
+              onPressed: _choice == null
+                  ? null
+                  : () {
+                      final err = DeliveryService.validate(
+                        _choice!.method,
+                        _choice!.destination,
+                      );
+                      if (err != null) {
+                        setState(() => _error = err);
+                        return;
+                      }
+                      Navigator.pop(context, _choice);
+                    },
+              icon: Icon(Icons.lock_outline),
+              label: Text(
+                t('Plati {0} i potvrdi kupnju', [formatCredits(total)]),
               ),
+            ),
           ],
         ),
       ),
@@ -338,82 +350,99 @@ Future<bool> _showTradeDialog(
   required List<_Row> rows,
   required String confirmLabel,
   String? note,
+  String? consent,
 }) async {
+  var agreed = consent == null;
   final result = await showDialog<bool>(
     context: context,
-    builder: (context) => AlertDialog(
-      title: Text(title),
-      content: ConstrainedBox(
-        constraints: BoxConstraints(maxWidth: 380),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              device.name,
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
-            ),
-            Text(
-              device.isDigital
-                  ? device.model
-                  : '${device.model} · ${device.condition.label}',
-              style: TextStyle(color: LoopColors.textSecondary),
-            ),
-            SizedBox(height: 16),
-            for (final r in rows)
-              Padding(
-                padding: EdgeInsets.symmetric(vertical: 6),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: Text(
-                        r.label,
-                        style: TextStyle(
-                          color: r.highlight
-                              ? LoopColors.textPrimary
-                              : LoopColors.textSecondary,
-                          fontWeight: r.highlight
-                              ? FontWeight.w700
-                              : FontWeight.w400,
+    builder: (context) => StatefulBuilder(
+      builder: (context, setState) => AlertDialog(
+        title: Text(title),
+        content: ConstrainedBox(
+          constraints: BoxConstraints(maxWidth: 380),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                device.name,
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
+              ),
+              Text(
+                device.isDigital
+                    ? device.model
+                    : '${device.model} · ${device.condition.label}',
+                style: TextStyle(color: LoopColors.textSecondary),
+              ),
+              SizedBox(height: 16),
+              for (final r in rows)
+                Padding(
+                  padding: EdgeInsets.symmetric(vertical: 6),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          r.label,
+                          style: TextStyle(
+                            color: r.highlight
+                                ? LoopColors.textPrimary
+                                : LoopColors.textSecondary,
+                            fontWeight: r.highlight
+                                ? FontWeight.w700
+                                : FontWeight.w400,
+                          ),
                         ),
                       ),
-                    ),
-                    Text(
-                      r.value,
-                      style: TextStyle(
-                        color: r.highlight
-                            ? LoopColors.accent
-                            : LoopColors.textPrimary,
-                        fontWeight: r.highlight
-                            ? FontWeight.w800
-                            : FontWeight.w600,
-                        fontSize: r.highlight ? 17 : 14,
+                      Text(
+                        r.value,
+                        style: TextStyle(
+                          color: r.highlight
+                              ? LoopColors.accent
+                              : LoopColors.textPrimary,
+                          fontWeight: r.highlight
+                              ? FontWeight.w800
+                              : FontWeight.w600,
+                          fontSize: r.highlight ? 17 : 14,
+                        ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
-              ),
-            if (note != null) ...[
-              SizedBox(height: 12),
-              Text(
-                note,
-                style: TextStyle(color: LoopColors.textSecondary, fontSize: 12),
-              ),
+              if (note != null) ...[
+                SizedBox(height: 12),
+                Text(
+                  note,
+                  style: TextStyle(
+                    color: LoopColors.textSecondary,
+                    fontSize: 12,
+                  ),
+                ),
+              ],
+              // Digitalni sadržaj: izričit pristanak na gubitak prava na povrat.
+              if (consent != null)
+                CheckboxListTile(
+                  key: ValueKey('digital-consent'),
+                  contentPadding: EdgeInsets.zero,
+                  controlAffinity: ListTileControlAffinity.leading,
+                  value: agreed,
+                  onChanged: (v) => setState(() => agreed = v ?? false),
+                  title: Text(consent, style: TextStyle(fontSize: 13)),
+                ),
             ],
-          ],
+          ),
         ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: Text(t('Odustani')),
+          ),
+          FilledButton(
+            onPressed: agreed ? () => Navigator.pop(context, true) : null,
+            style: FilledButton.styleFrom(minimumSize: Size(0, 44)),
+            child: Text(confirmLabel),
+          ),
+        ],
       ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.pop(context, false),
-          child: Text(t('Odustani')),
-        ),
-        FilledButton(
-          onPressed: () => Navigator.pop(context, true),
-          style: FilledButton.styleFrom(minimumSize: Size(0, 44)),
-          child: Text(confirmLabel),
-        ),
-      ],
     ),
   );
   return result ?? false;
@@ -460,6 +489,7 @@ Future<bool> showListDialog(
   Device device,
 ) async {
   if (blockGuest(context)) return false;
+  if (!await ensureSellerInfo(context) || !context.mounted) return false;
   final result = await showDialog<(double, int?)>(
     context: context,
     // Pri vrhu i bez pomaka za tipkovnicu (mobilni preglednik).
@@ -618,6 +648,9 @@ Future<bool> _buyDigital(
       [device.file?.name ?? '', device.file?.sizeLabel ?? ''],
     ),
     confirmLabel: t('Plati i preuzmi'),
+    consent: t(
+      'Pristajem da preuzimanje počne odmah i znam da time gubim pravo na povrat od 14 dana.',
+    ),
   );
   if (!ok || !context.mounted) return false;
   final bought = await runWithLoading(

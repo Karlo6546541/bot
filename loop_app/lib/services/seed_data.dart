@@ -7,6 +7,7 @@ import '../models/app_user.dart';
 import '../models/auction.dart';
 import '../models/device.dart';
 import '../models/portfolio_point.dart';
+import '../models/seller_info.dart';
 import '../models/story.dart';
 
 /// Demo podaci koji se kreiraju pri prvom pokretanju (i nakon resetiranja).
@@ -16,10 +17,9 @@ class SeedData {
   static const anaUserId = 'user-ana';
   static const markoUserId = 'user-marko';
 
-  /// Markovi krediti: ukupno 1500, od čega je 470 blokirano u vodećim
-  /// ponudama na Aninim aukcijama (320 + 60 + 90).
+  /// Markova zarada za isplatu (ponude na aukcijama se ne blokiraju —
+  /// pobjednik plaća karticom na kraju).
   static const _markoTotal = 1500.0;
-  static const _markoHeld = 470.0;
 
   /// Lozinka svih demo računa.
   static const demoPassword = 'demo';
@@ -43,6 +43,16 @@ class SeedData {
       name: 'Demo Korisnik',
       credits: 1250,
       createdAt: now,
+      // Izmišljeni podaci ispravnog oblika (ne pripadaju stvarnoj osobi).
+      seller: SellerInfo(
+        type: SellerType.private,
+        legalName: 'Demo Korisnik',
+        oib: '12345678903',
+        birthDate: DateTime(1990, 1, 1),
+        address: 'Ilica 1, 10000 Zagreb',
+        iban: 'HR2523400091111111111',
+        updatedAt: now,
+      ),
     ),
     AppUser(
       id: testUserId,
@@ -52,6 +62,15 @@ class SeedData {
       name: 'Test Korisnik',
       credits: 800,
       createdAt: now,
+      seller: SellerInfo(
+        type: SellerType.private,
+        legalName: 'Test Korisnik',
+        oib: '23456789013',
+        birthDate: DateTime(1992, 2, 2),
+        address: 'Ilica 1, 10000 Zagreb',
+        iban: 'HR8024020062222222222',
+        updatedAt: now,
+      ),
     ),
     AppUser(
       id: anaUserId,
@@ -61,6 +80,15 @@ class SeedData {
       name: 'Ana Kolekcionarka',
       credits: 400,
       createdAt: now,
+      seller: SellerInfo(
+        type: SellerType.trader,
+        legalName: 'Ana Kolekcija, obrt za trgovinu',
+        oib: '34567890125',
+        address: 'Korzo 1, 51000 Rijeka',
+        iban: 'HR6724840083333333333',
+        registry: 'Obrtni registar 000000 (demo)',
+        updatedAt: now,
+      ),
     ),
     AppUser(
       id: markoUserId,
@@ -68,8 +96,17 @@ class SeedData {
       emailVerified: true,
       email: 'marko@loop.com',
       name: 'Marko',
-      credits: _markoTotal - _markoHeld,
+      credits: _markoTotal,
       createdAt: now,
+      seller: SellerInfo(
+        type: SellerType.private,
+        legalName: 'Marko Demo',
+        oib: '45678901239',
+        birthDate: DateTime(1988, 3, 3),
+        address: 'Riva 1, 21000 Split',
+        iban: 'HR0523600004444444444',
+        updatedAt: now,
+      ),
     ),
   ];
 

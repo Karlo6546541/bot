@@ -38,6 +38,10 @@ enum NotificationKind {
   outbidAuto(
     '🤖',
     'Automatska ponuda drugog kupca je viša na aukciji "{0}" — sada {1}.',
+  ),
+  contentRemoved(
+    '🛡️',
+    'Tvoj oglas "{0}" je uklonjen. Razlog: {1}. Ako se ne slažeš, podnesi žalbu.',
   );
 
   const NotificationKind(this.emoji, this._template);
@@ -75,7 +79,8 @@ enum NotificationKind {
     newReview ||
     referral ||
     newFollower ||
-    reportResolved => NotificationGroup.social,
+    reportResolved ||
+    contentRemoved => NotificationGroup.social,
   };
 
   /// Obavijesti o aukciji na kojoj korisnik licitira (gumb "Licitiraj").

@@ -49,7 +49,7 @@ void main() {
         destination: 'Ilica 1, Zagreb',
         now: start,
       );
-      expect(storage.userById(demo)!.credits, 1244);
+      expect(storage.userById(demo)!.credits, 1250); // dostava karticom
       expect(storage.userById(demo)!.address, 'Ilica 1, Zagreb');
       expect(d.trackingNumber, startsWith('LOOP-'));
       expect(storage.transactions.single.type, TransactionType.delivery);

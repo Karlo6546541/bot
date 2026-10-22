@@ -72,7 +72,14 @@ void main() {
 
     expect(storage.deviceById(d.id)!.ownerId, SeedData.demoUserId);
     expect(storage.deviceById(d.id)!.isListed, isTrue);
-    expect(storage.userById(SeedData.testUserId)!.credits, testBefore - 40.8);
+    // Kupac plaća karticom (40 + 2 %), stanje mu se ne mijenja.
+    expect(storage.userById(SeedData.testUserId)!.credits, testBefore);
+    expect(
+      storage.transactions.where(
+        (t) => t.buyerId == SeedData.testUserId && t.amount == 40.8,
+      ),
+      isNotEmpty,
+    );
     expect(storage.userById(SeedData.demoUserId)!.credits, demoBefore + 2 * 40);
     expect(trade.buyersOf(d.id), {SeedData.testUserId, SeedData.markoUserId});
 
