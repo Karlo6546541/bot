@@ -132,6 +132,64 @@ void main() {
       );
     });
 
+    test('priča s tekstovima: spremanje, granice, starije priče', () async {
+      final s = await stories.create(
+        userId: demo,
+        color: 3,
+        texts: const [
+          StoryText(
+            text: ' Akcija ',
+            x: 1.4,
+            y: -0.2,
+            size: 0.9,
+            rotation: 0.3,
+            font: StoryFont.neon,
+            color: 0xFFFF2D55,
+            align: TextAlign.right,
+            background: StoryTextBackground.soft,
+          ),
+          StoryText(text: '   '), // prazan tekst se preskače
+        ],
+      );
+      final saved = storage.stories.single;
+      expect(saved.texts, hasLength(1));
+      final l = saved.texts.single;
+      expect(l.text, 'Akcija');
+      expect((l.x, l.y, l.size), (1.0, 0.0, StoryText.maxSize));
+      expect(l.rotation, 0.3);
+      expect(l.font, StoryFont.neon);
+      expect(l.align, TextAlign.right);
+      expect(l.background, StoryTextBackground.soft);
+      expect(saved.text, 'Akcija'); // za starije verzije
+      expect(Story.fromMap(s.toMap()).texts.single.color, 0xFFFF2D55);
+
+      expect(
+        () => stories.create(
+          userId: demo,
+          texts: [
+            for (var i = 0; i <= Story.maxTexts; i++) StoryText(text: '$i'),
+          ],
+        ),
+        throwsA(isA<TradeException>()),
+      );
+      expect(
+        () => stories.create(
+          userId: demo,
+          texts: [StoryText(text: 'x' * (Story.maxText + 1))],
+        ),
+        throwsA(isA<TradeException>()),
+      );
+      // Starija priča (samo tekst) prikazuje se kao jedan tekst u sredini.
+      final legacy = Story.fromMap({
+        'id': 'a',
+        'userId': demo,
+        'text': 'Stara',
+        'createdAt': DateTime.now().toIso8601String(),
+      });
+      expect(legacy.layers.single.text, 'Stara');
+      expect(legacy.layers.single.x, 0.5);
+    });
+
     test('priča traje 24 h; istekle se brišu, grupe i "viđeno"', () async {
       final now = DateTime.now();
       final old = await stories.create(
@@ -211,17 +269,75 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.byKey(const ValueKey('story-viewer')), findsNothing);
 
-      // Moja priča.
+      // Moja priča u uredniku (kao na Instagramu).
       await tester.tap(find.byKey(const ValueKey('my-story')));
+      await tester.pumpAndSettle();
+      expect(find.byKey(const ValueKey('story-canvas')), findsOneWidget);
+      expect(find.text('Dodirni za tekst'), findsOneWidget);
+      await tester.tap(find.byKey(const ValueKey('story-add-text')));
       await tester.pumpAndSettle();
       await tester.enterText(
         find.byKey(const ValueKey('story-text')),
         'Danas −20%',
       );
+      await tester.scrollUntilVisible(
+        find.byKey(const ValueKey('story-font-script')),
+        100,
+        scrollable: find.descendant(
+          of: find.byKey(const ValueKey('story-fonts')),
+          matching: find.byType(Scrollable),
+        ),
+      );
+      await tester.tap(find.byKey(const ValueKey('story-font-script')));
+      await tester.tap(find.byKey(const ValueKey('story-color-4')));
+      await tester.tap(find.byKey(const ValueKey('story-text-bg')));
+      await tester.tap(find.byKey(const ValueKey('story-align')));
       await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('story-text-done')));
+      await tester.pumpAndSettle();
+      final layer0 = find.byKey(const ValueKey('story-layer-0'));
+      expect(layer0, findsOneWidget);
+      // Povuci tekst niže.
+      await tester.drag(layer0, const Offset(30, 110));
+      await tester.pumpAndSettle();
+
+      // Drugi tekst (dodir na prazno mjesto) pa ga povuci u kantu.
+      final canvas = tester.getRect(find.byKey(const ValueKey('story-canvas')));
+      await tester.tapAt(canvas.topLeft + const Offset(40, 100));
+      await tester.pumpAndSettle();
+      await tester.enterText(find.byKey(const ValueKey('story-text')), 'Briši');
+      await tester.tap(find.byKey(const ValueKey('story-text-done')));
+      await tester.pumpAndSettle();
+      final layer1 = find.byKey(const ValueKey('story-layer-1'));
+      expect(layer1, findsOneWidget);
+      final start = tester.getCenter(layer1);
+      await tester.dragFrom(
+        start,
+        canvas.bottomCenter - const Offset(0, 56) - start,
+      );
+      await tester.pumpAndSettle();
+      expect(find.byKey(const ValueKey('story-layer-1')), findsNothing);
+
+      // Ponovno uređivanje prvog teksta.
+      await tester.tap(layer0);
+      await tester.pumpAndSettle();
+      expect(find.text('Danas −20%'), findsOneWidget);
+      await tester.tap(find.byKey(const ValueKey('story-text-done')));
+      await tester.pumpAndSettle();
+
       await tester.tap(find.byKey(const ValueKey('publish-story')));
       await tester.pumpAndSettle();
       expect(storage.stories.where((s) => s.userId == demo), hasLength(1));
+      final mine = storage.stories.firstWhere((s) => s.userId == demo);
+      final l = mine.texts.single;
+      expect(l.text, 'Danas −20%');
+      expect(l.font, StoryFont.script);
+      expect(l.color, StoryText.colors[4]);
+      expect(l.background, StoryTextBackground.solid);
+      expect(l.align, TextAlign.left);
+      expect(l.y, greaterThan(0.45));
+      expect(l.x, greaterThan(0.5));
+
       await tester.pump(const Duration(seconds: 5));
       await tester.pumpAndSettle();
 

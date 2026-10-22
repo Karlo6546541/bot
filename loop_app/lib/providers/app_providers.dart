@@ -13,6 +13,7 @@ import '../services/account_service.dart';
 import '../services/auction_service.dart';
 import '../services/bargain_service.dart';
 import '../services/social_service.dart';
+import '../models/story.dart';
 import '../models/wishlist.dart';
 import '../services/auth_backend.dart';
 import '../services/chat_service.dart';
@@ -477,6 +478,7 @@ class AppController extends Notifier<AppState> {
     String? deviceId,
     String? imagePath,
     int color = 0,
+    List<StoryText> texts = const [],
   }) async {
     await _stories.create(
       userId: _requireUserId(),
@@ -484,6 +486,7 @@ class AppController extends Notifier<AppState> {
       deviceId: deviceId,
       imagePath: imagePath,
       color: color,
+      texts: texts,
     );
     _refresh();
   }

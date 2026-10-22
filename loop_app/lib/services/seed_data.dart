@@ -539,18 +539,56 @@ class SeedData {
   static List<Story> dailyStories(List<Device> devices, DateTime now) {
     final day = DateTime(now.year, now.month, now.day);
     final key = '${day.year}${day.month}${day.day}';
-    final texts = [t('Novo stiglo! 👀'), t('Danas posebna ponuda ✨')];
+    final looks = [
+      [
+        StoryText(
+          text: t('Novo stiglo! 👀'),
+          y: 0.22,
+          rotation: -0.08,
+          size: 0.1,
+          color: 0xFFFFFFFF,
+          background: StoryTextBackground.solid,
+        ),
+        StoryText(
+          text: t('samo danas'),
+          y: 0.33,
+          x: 0.62,
+          size: 0.075,
+          font: StoryFont.script,
+          color: 0xFFFFD60A,
+        ),
+      ],
+      [
+        StoryText(
+          text: t('Danas posebna ponuda ✨'),
+          y: 0.25,
+          size: 0.11,
+          font: StoryFont.modern,
+          color: 0xFFFFFFFF,
+        ),
+        StoryText(
+          text: t('javi se u poruke'),
+          y: 0.41,
+          size: 0.055,
+          font: StoryFont.typewriter,
+          color: 0xFF34C759,
+          background: StoryTextBackground.soft,
+        ),
+      ],
+    ];
     final out = <Story>[];
     var i = 0;
     for (final user in const [anaUserId, markoUserId]) {
       final d = devices
           .where((d) => d.ownerId == user && d.isForSale)
           .firstOrNull;
+      final texts = looks[i % looks.length];
       out.add(
         Story(
           id: 'demo-$user-$key',
           userId: user,
-          text: texts[i % texts.length],
+          text: texts.map((x) => x.text).join('\n'),
+          texts: texts,
           deviceId: d?.id,
           color: i * 2,
           createdAt: day,

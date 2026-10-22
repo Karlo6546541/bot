@@ -256,7 +256,16 @@ ne sinkronizira; online prijavu vodi Supabase Auth i lozinke ne prolaze kroz na�
   ostaju na listi s oznakom *Prodano*. Liste se spremaju uz korisnika
   (do 20 lista, 100 predmeta po listi).
 - **Priče** traju 24 sata: tekst na boji, fotografija i/ili vlastiti oglas
-  (s cijenom i gumbom *Pogledaj*). Red s pričama je na početnoj (praćene
+  (s cijenom i gumbom *Pogledaj*).
+- **Urednik priče** (kao na Instagramu): dodir na pozadinu ili *Aa* dodaje
+  tekst (do 6). Tekst se **povlači po pozadini** (vodilice za sredinu),
+  dva prsta ga povećavaju i rotiraju, a povlačenjem u kantu briše se.
+  Pri upisu: 5 fontova (Klasično, Moderno, Neon, Pisaći stroj, Rukopis),
+  9 boja, poravnanje, pozadina teksta (bez / puna / poluprozirna) i
+  klizač za veličinu. Gore su još boja pozadine, fotografija i oglas.
+  Priča se prikazuje u omjeru 9:16, pa je tekst na istom mjestu kao u
+  uredniku. Fontovi Bebas Neue, Space Mono i Pacifico su ugrađeni
+  (SIL Open Font License, `assets/fonts/OFL-*.txt`). Red s pričama je na početnoj (praćene
   trgovine prve, pogledane na kraju — siv prsten), a prsten se vidi i oko
   profilne slike trgovine. Preglednik: dodir lijevo/desno, držanje pauzira,
   povlačenje dolje zatvara; svoju priču možeš obrisati. Demo trgovine Ana i

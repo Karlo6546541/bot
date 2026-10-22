@@ -134,15 +134,30 @@ class StoryService {
     String? deviceId,
     String? imagePath,
     int color = 0,
+    List<StoryText> texts = const [],
     DateTime? now,
   }) async {
     final at = now ?? DateTime.now();
+    final layers = [
+      for (final x in texts)
+        if (x.text.trim().isNotEmpty) x.normalized(),
+    ];
+    if (layers.length > Story.maxTexts) {
+      throw TradeException(
+        t('Priča može imati najviše {0} tekstova.', ['${Story.maxTexts}']),
+      );
+    }
     final u = _storage.userById(userId);
     if (u == null || u.isGuest) {
       throw TradeException(t('Za priču se prijavi.'));
     }
-    final body = text.trim();
-    if (body.length > Story.maxText) {
+    final body = layers.isEmpty
+        ? text.trim()
+        : layers.map((x) => x.text).join('\n');
+    final tooLong = layers.isEmpty
+        ? body.length > Story.maxText
+        : layers.any((x) => x.text.length > Story.maxText);
+    if (tooLong) {
       throw TradeException(
         t('Tekst priče može imati najviše {0} znakova.', ['${Story.maxText}']),
       );
@@ -171,6 +186,7 @@ class StoryService {
       deviceId: deviceId,
       imagePath: imagePath,
       color: color,
+      texts: layers,
       createdAt: at,
     );
     await _storage.putStory(story);
