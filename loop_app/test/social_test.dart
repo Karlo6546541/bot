@@ -375,6 +375,15 @@ void main() {
         lamp,
       );
       await tester.pumpAndSettle();
+      // Jedno srce: lajk, a obavijest nudi spremanje u listu.
+      await tester.tap(find.byKey(const ValueKey('like-item')));
+      await tester.pumpAndSettle();
+      expect(storage.userById(demo)!.favorites, contains(lamp.id));
+      expect(find.widgetWithText(SnackBarAction, 'Spremi u listu'), findsOne);
+      await tester.pump(const Duration(seconds: 5));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('item-menu')));
+      await tester.pumpAndSettle();
       await tester.tap(find.byKey(const ValueKey('save-item')));
       await tester.pumpAndSettle();
       await tester.tap(find.byKey(const ValueKey('new-list')));

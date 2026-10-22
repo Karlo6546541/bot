@@ -115,7 +115,7 @@ class TradeService {
     final user = _requireUser(userId);
     final device = _requireDevice(deviceId);
     if (device.ownerId != userId) {
-      throw TradeException(t('Ovaj predmet nije u tvom portfoliju.'));
+      throw TradeException(t('Ovaj predmet nije među tvojim predmetima.'));
     }
     if (device.isDigital) {
       throw TradeException(
@@ -582,7 +582,7 @@ class TradeService {
     _requireUser(userId);
     final device = _requireDevice(deviceId);
     if (device.ownerId != userId) {
-      throw TradeException(t('Ovaj predmet nije u tvom portfoliju.'));
+      throw TradeException(t('Ovaj predmet nije među tvojim predmetima.'));
     }
     return device;
   }

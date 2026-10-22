@@ -78,38 +78,56 @@ class DeviceDetailScreen extends ConsumerWidget {
               ]),
               tooltip: t('Podijeli oglas'),
             ),
-          if (canBuy)
+          // Jedno srce: dodir = sviđa mi se (obavijest nudi spremanje u
+          // listu); ostale radnje su u izborniku ⋮.
+          if (!isMine && !user.isGuest)
             IconButton(
+              key: const ValueKey('like-item'),
               tooltip: isFav ? t('Ukloni iz favorita') : t('Dodaj u favorite'),
-              onPressed: () => toggleFavorite(ref, device),
+              onPressed: () => toggleFavorite(ref, device, context: context),
               icon: Icon(
                 isFav ? Icons.favorite : Icons.favorite_border,
                 color: isFav ? const Color(0xFFFF5C8A) : null,
               ),
             ),
           if (!isMine && !user.isGuest)
-            IconButton(
-              key: const ValueKey('save-item'),
-              tooltip: t('Spremi u listu'),
-              onPressed: () => showSaveToListSheet(context, ref, device),
-              icon: Icon(
-                user.wishlists.any((w) => w.deviceIds.contains(device.id))
-                    ? Icons.bookmark
-                    : Icons.bookmark_border,
-              ),
-            ),
-          if (!isMine && owner != null && !user.isGuest)
-            IconButton(
-              key: const ValueKey('report-item'),
-              tooltip: t('Prijavi oglas'),
-              icon: const Icon(Icons.flag_outlined),
-              onPressed: () => showReportSheet(
-                context,
-                ref,
-                targetType: 'device',
-                targetId: device.id,
-                targetLabel: '${device.name} ${device.model}',
-              ),
+            PopupMenuButton<String>(
+              key: const ValueKey('item-menu'),
+              tooltip: t('Više'),
+              onSelected: (v) {
+                if (v == 'save') {
+                  showSaveToListSheet(context, ref, device);
+                } else if (v == 'report' && owner != null) {
+                  showReportSheet(
+                    context,
+                    ref,
+                    targetType: 'device',
+                    targetId: device.id,
+                    targetLabel: '${device.name} ${device.model}',
+                  );
+                }
+              },
+              itemBuilder: (_) => [
+                PopupMenuItem(
+                  key: const ValueKey('save-item'),
+                  value: 'save',
+                  child: ListTile(
+                    contentPadding: EdgeInsets.zero,
+                    leading: const Icon(Icons.bookmarks_outlined),
+                    title: Text(t('Spremi u listu')),
+                  ),
+                ),
+                if (owner != null)
+                  PopupMenuItem(
+                    key: const ValueKey('report-item'),
+                    value: 'report',
+                    child: ListTile(
+                      contentPadding: EdgeInsets.zero,
+                      leading: const Icon(Icons.flag_outlined),
+                      title: Text(t('Prijavi oglas')),
+                    ),
+                  ),
+              ],
             ),
         ],
       ),

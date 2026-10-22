@@ -9,6 +9,21 @@ import '../widgets/empty_state.dart';
 import '../widgets/formatters.dart';
 import '../l10n/tr.dart';
 
+/// Povijest transakcija kao zaseban ekran (Profil → Novac i kupnje).
+class ActivityPage extends StatelessWidget {
+  const ActivityPage({super.key});
+
+  static Future<void> open(BuildContext context) => Navigator.of(
+    context,
+  ).push(MaterialPageRoute<void>(builder: (_) => const ActivityPage()));
+
+  @override
+  Widget build(BuildContext context) => Scaffold(
+    appBar: AppBar(title: Text(t('Povijest transakcija'))),
+    body: const ActivityScreen(),
+  );
+}
+
 /// Povijest transakcija trenutnog korisnika, najnovije na vrhu,
 /// sa sažetkom i filterom (Sve / Kupnje / Prodaje).
 class ActivityScreen extends ConsumerStatefulWidget {

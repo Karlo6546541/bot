@@ -15,14 +15,14 @@ import '../widgets/feed.dart';
 import '../widgets/formatters.dart';
 import '../widgets/portfolio_chart.dart';
 import '../widgets/trade_actions.dart';
-import 'add_device_screen.dart';
 import 'auction_detail_screen.dart';
 import 'buy_credits_screen.dart';
 import 'deliveries_screen.dart';
 import 'device_detail_screen.dart';
 import '../l10n/tr.dart';
 
-/// Početna stranica: krediti, status, vrijednost i uređaji korisnika.
+/// Početna: stanje, dostave u tijeku, priče, objave i trgovine.
+/// Moji predmeti (grafikon, raspodjela, popis) su na [MyItemsScreen].
 class PortfolioScreen extends ConsumerWidget {
   const PortfolioScreen({super.key, required this.onGoToMarket});
 
@@ -35,7 +35,6 @@ class PortfolioScreen extends ConsumerWidget {
     if (user == null) return const SizedBox.shrink();
 
     final devices = state.myDevices;
-    final portfolioValue = state.portfolioValueOf(user.id);
     final total = state.totalValueOf(user);
 
     return CustomScrollView(
@@ -61,12 +60,6 @@ class PortfolioScreen extends ConsumerWidget {
               child: _DeliveryBanner(deliveries: state.myOpenDeliveries),
             ),
           ),
-        const SliverToBoxAdapter(
-          child: Padding(
-            padding: EdgeInsets.fromLTRB(16, 0, 16, 16),
-            child: _QuickActions(),
-          ),
-        ),
         // Priče (24 h) kao na Instagramu.
         const SliverToBoxAdapter(
           child: Padding(
@@ -89,93 +82,124 @@ class PortfolioScreen extends ConsumerWidget {
               child: _HowItWorks(),
             ),
           ),
-        SliverToBoxAdapter(
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-            child: PortfolioChart(
-              history: state.myHistory,
-              current: PortfolioPoint(
-                time: DateTime.now(),
-                credits: user.credits + state.heldCreditsOf(user.id),
-                portfolio: portfolioValue,
-              ),
-            ),
-          ),
-        ),
-        if (devices.isNotEmpty)
+      ],
+    );
+  }
+}
+
+/// Moji predmeti: vrijednost kroz vrijeme, raspodjela i popis predmeta
+/// (otvara se iz kartice sa stanjem ili iz Profila).
+class MyItemsScreen extends ConsumerWidget {
+  const MyItemsScreen({super.key});
+
+  static Future<void> open(BuildContext context) => Navigator.of(
+    context,
+  ).push(MaterialPageRoute<void>(builder: (_) => const MyItemsScreen()));
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final state = ref.watch(appProvider);
+    final user = state.currentUser;
+    if (user == null) return const Scaffold();
+    final devices = state.myDevices;
+    final portfolioValue = state.portfolioValueOf(user.id);
+    void onGoToMarket() {
+      Navigator.of(context).popUntil((r) => r.isFirst);
+      ref.read(homeTabProvider.notifier).select(1);
+    }
+
+    return Scaffold(
+      appBar: AppBar(title: Text(t('Moji predmeti'))),
+      body: CustomScrollView(
+        slivers: [
           SliverToBoxAdapter(
             child: Padding(
               padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-              child: _Breakdown.of(devices),
-            ),
-          ),
-        SliverToBoxAdapter(
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(16, 4, 16, 12),
-            child: Text(
-              t('Moji predmeti'),
-              style: Theme.of(
-                context,
-              ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700),
-            ),
-          ),
-        ),
-        if (devices.isEmpty && state.myDigitalPurchases.isEmpty)
-          SliverFillRemaining(
-            hasScrollBody: false,
-            child: EmptyState(
-              icon: Icons.inventory_2_outlined,
-              title: t('Portfolio je prazan'),
-              message: t('Dodaj svoj predmet ili kupi nešto u Marketu.'),
-              action: OutlinedButton.icon(
-                onPressed: onGoToMarket,
-                icon: const Icon(Icons.storefront),
-                label: Text(t('Otvori Market')),
+              child: PortfolioChart(
+                history: state.myHistory,
+                current: PortfolioPoint(
+                  time: DateTime.now(),
+                  credits: user.credits + state.heldCreditsOf(user.id),
+                  portfolio: portfolioValue,
+                ),
               ),
             ),
-          )
-        else
-          DeviceGrid(
-            // Kupljeni digitalni proizvodi su također u portfoliju.
-            devices: [...devices, ...state.myDigitalPurchases],
-            itemBuilder: (context, d) {
-              if (d.ownerId != user.id) {
+          ),
+          if (devices.isNotEmpty)
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                child: _Breakdown.of(devices),
+              ),
+            ),
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(16, 4, 16, 12),
+              child: Text(
+                t('Moji predmeti'),
+                style: Theme.of(
+                  context,
+                ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700),
+              ),
+            ),
+          ),
+          if (devices.isEmpty && state.myDigitalPurchases.isEmpty)
+            SliverFillRemaining(
+              hasScrollBody: false,
+              child: EmptyState(
+                icon: Icons.inventory_2_outlined,
+                title: t('Još nemaš predmeta'),
+                message: t('Dodaj svoj predmet ili kupi nešto u Marketu.'),
+                action: OutlinedButton.icon(
+                  onPressed: onGoToMarket,
+                  icon: const Icon(Icons.storefront),
+                  label: Text(t('Otvori Market')),
+                ),
+              ),
+            )
+          else
+            DeviceGrid(
+              // Kupljeni digitalni proizvodi su također u portfoliju.
+              devices: [...devices, ...state.myDigitalPurchases],
+              itemBuilder: (context, d) {
+                if (d.ownerId != user.id) {
+                  return DeviceCard(
+                    device: d,
+                    actionLabel: t('Preuzmi'),
+                    actionIcon: Icons.download,
+                    onAction: () => downloadDigital(context, ref, d),
+                    onTap: () => DeviceDetailScreen.open(context, d),
+                    sellerView: true,
+                    badge: t('✓ Kupljeno'),
+                  );
+                }
+                final auction = state.activeAuctionFor(d.id);
+                // Predmet na aukciji: umjesto prodaje vodi na aukciju.
                 return DeviceCard(
                   device: d,
-                  actionLabel: t('Preuzmi'),
-                  actionIcon: Icons.download,
-                  onAction: () => downloadDigital(context, ref, d),
+                  actionLabel: auction != null
+                      ? t('Na aukciji')
+                      : d.isListed
+                      ? t('Detalji')
+                      : t('Objavi u Marketu'),
+                  actionIcon: auction != null
+                      ? Icons.gavel
+                      : d.isListed
+                      ? Icons.info_outline
+                      : Icons.storefront_outlined,
+                  onAction: auction != null
+                      ? () => AuctionDetailScreen.open(context, auction.id)
+                      : d.isListed
+                      ? () => DeviceDetailScreen.open(context, d)
+                      : () => showListDialog(context, ref, d),
                   onTap: () => DeviceDetailScreen.open(context, d),
                   sellerView: true,
-                  badge: t('✓ Kupljeno'),
+                  badge: d.isListed ? t('🏷️ U Marketu') : null,
                 );
-              }
-              final auction = state.activeAuctionFor(d.id);
-              // Predmet na aukciji: umjesto prodaje vodi na aukciju.
-              return DeviceCard(
-                device: d,
-                actionLabel: auction != null
-                    ? t('Na aukciji')
-                    : d.isListed
-                    ? t('Detalji')
-                    : t('Objavi u Marketu'),
-                actionIcon: auction != null
-                    ? Icons.gavel
-                    : d.isListed
-                    ? Icons.info_outline
-                    : Icons.storefront_outlined,
-                onAction: auction != null
-                    ? () => AuctionDetailScreen.open(context, auction.id)
-                    : d.isListed
-                    ? () => DeviceDetailScreen.open(context, d)
-                    : () => showListDialog(context, ref, d),
-                onTap: () => DeviceDetailScreen.open(context, d),
-                sellerView: true,
-                badge: d.isListed ? t('🏷️ U Marketu') : null,
-              );
-            },
-          ),
-      ],
+              },
+            ),
+        ],
+      ),
     );
   }
 }
@@ -254,21 +278,42 @@ class _CreditsHero extends StatelessWidget {
                           ),
                         ),
                       ),
-                      Text(
-                        t('Ukupno {0} · {1} {2}{3}', [
-                          formatCredits(totalValue),
-                          deviceCount,
-                          deviceCount == 1 ? t('predmet') : t('predmeta'),
-                          held > 0
-                              ? t(' · blokirano {0}', [formatCredits(held)])
-                              : '',
-                        ]),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                          color: LoopColors.textSecondary,
-                          fontWeight: FontWeight.w700,
-                          fontSize: 12,
+                      // Dodir otvara Moje predmete.
+                      InkWell(
+                        key: const ValueKey('open-my-items'),
+                        onTap: () => MyItemsScreen.open(context),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Flexible(
+                              child: Text(
+                                t('Ukupno {0} · {1} {2}{3}', [
+                                  formatCredits(totalValue),
+                                  deviceCount,
+                                  deviceCount == 1
+                                      ? t('predmet')
+                                      : t('predmeta'),
+                                  held > 0
+                                      ? t(' · blokirano {0}', [
+                                          formatCredits(held),
+                                        ])
+                                      : '',
+                                ]),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                  color: LoopColors.textSecondary,
+                                  fontWeight: FontWeight.w700,
+                                  fontSize: 12,
+                                ),
+                              ),
+                            ),
+                            Icon(
+                              Icons.chevron_right,
+                              size: 16,
+                              color: LoopColors.textSecondary,
+                            ),
+                          ],
                         ),
                       ),
                     ],
@@ -289,122 +334,6 @@ class _CreditsHero extends StatelessWidget {
           ),
         ],
       ),
-    );
-  }
-}
-
-/// Brze akcije: pastelne pločice prema glavnim radnjama.
-class _QuickActions extends ConsumerWidget {
-  const _QuickActions();
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final tabs = ref.read(homeTabProvider.notifier);
-    final actions = [
-      (
-        '📦',
-        t('Dodaj predmet'),
-        LoopColors.mint,
-        () => AddDeviceScreen.open(context),
-      ),
-      ('🛒', t('Istraži Market'), LoopColors.sky, () => tabs.select(1)),
-      ('🔨', t('Aukcije'), LoopColors.lilac, () => tabs.select(2)),
-    ];
-    if (MediaQuery.sizeOf(context).width < 600) {
-      // Mobitel: red od 4 okrugle ikone s natpisom ispod.
-      return Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          for (final (emoji, label, color, onTap) in actions)
-            Expanded(
-              child: InkWell(
-                onTap: onTap,
-                borderRadius: BorderRadius.circular(kRadius),
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 6),
-                  child: Column(
-                    children: [
-                      Container(
-                        width: 58,
-                        height: 58,
-                        decoration: BoxDecoration(
-                          color: color,
-                          shape: BoxShape.circle,
-                        ),
-                        child: Center(
-                          child: Text(
-                            emoji,
-                            style: const TextStyle(fontSize: 26),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 6),
-                      Text(
-                        label,
-                        textAlign: TextAlign.center,
-                        maxLines: 2,
-                        style: const TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w700,
-                          height: 1.2,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-        ],
-      );
-    }
-    return LayoutBuilder(
-      builder: (context, box) {
-        final perRow = box.maxWidth > 640 ? 4 : 2;
-        final w = (box.maxWidth - 10 * (perRow - 1)) / perRow;
-        return Wrap(
-          spacing: 10,
-          runSpacing: 10,
-          children: [
-            for (final (emoji, label, color, onTap) in actions)
-              SizedBox(
-                width: w,
-                child: Material(
-                  color: color,
-                  borderRadius: BorderRadius.circular(kRadius),
-                  child: InkWell(
-                    onTap: onTap,
-                    borderRadius: BorderRadius.circular(kRadius),
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 14,
-                        vertical: 16,
-                      ),
-                      child: Row(
-                        children: [
-                          Text(emoji, style: const TextStyle(fontSize: 26)),
-                          const SizedBox(width: 10),
-                          Expanded(
-                            child: Text(
-                              label,
-                              style: const TextStyle(
-                                fontWeight: FontWeight.w800,
-                                fontSize: 15,
-                              ),
-                            ),
-                          ),
-                          Icon(
-                            Icons.chevron_right,
-                            color: LoopColors.textSecondary,
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-          ],
-        );
-      },
     );
   }
 }

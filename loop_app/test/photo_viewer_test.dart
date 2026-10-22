@@ -47,6 +47,13 @@ void main() {
 
     // Detalji predmeta.
     await tester.scrollUntilVisible(
+      find.byKey(const ValueKey('open-my-items')),
+      300,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.tap(find.byKey(const ValueKey('open-my-items')));
+    await tester.pumpAndSettle();
+    await tester.scrollUntilVisible(
       find.text('iPhone 13'),
       300,
       scrollable: find.byType(Scrollable).first,

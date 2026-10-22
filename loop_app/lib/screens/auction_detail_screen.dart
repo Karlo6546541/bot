@@ -39,7 +39,7 @@ class _AuctionDetailScreenState extends ConsumerState<AuctionDetailScreen> {
     final ok = await confirmDialog(
       context,
       title: t('Otkazati aukciju?'),
-      message: t('Predmet ostaje u tvom portfoliju.'),
+      message: t('Predmet ostaje u tvojim predmetima.'),
       confirmLabel: t('Otkaži aukciju'),
       destructive: true,
     );

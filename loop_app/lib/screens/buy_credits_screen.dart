@@ -355,7 +355,9 @@ class _PackageTile extends StatelessWidget {
                 ),
                 Text(
                   package.bonus > 0
-                      ? t('+ {0} bonus kredita', [package.bonus])
+                      ? t('+ {0} bonus', [
+                          formatCredits(package.bonus.toDouble()),
+                        ])
                       : t('€'),
                   style: TextStyle(
                     color: LoopColors.textSecondary,

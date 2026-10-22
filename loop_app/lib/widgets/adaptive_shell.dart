@@ -8,10 +8,32 @@ import '../theme/app_theme.dart';
 const double kDesktopBreakpoint = 840;
 
 class ShellDestination {
-  const ShellDestination(this.label, this.icon, this.selectedIcon);
+  const ShellDestination(
+    this.label,
+    this.icon,
+    this.selectedIcon, {
+    this.action = false,
+  });
   final String label;
   final IconData icon;
   final IconData selectedIcon;
+
+  /// Radnja (npr. "+ Objavi"), a ne kartica: istaknuti okrugli gumb.
+  final bool action;
+
+  Widget iconWidget(BuildContext context, {bool selected = false}) {
+    if (!action) return Icon(selected ? selectedIcon : icon);
+    return Container(
+      key: const ValueKey('nav-create'),
+      width: 44,
+      height: 32,
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.primary,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Icon(icon, color: Colors.white),
+    );
+  }
 }
 
 /// Zajednički okvir: Bottom Navigation Bar na mobitelu,
@@ -52,8 +74,8 @@ class AdaptiveShell extends StatelessWidget {
           destinations: [
             for (final d in destinations)
               NavigationDestination(
-                icon: Icon(d.icon),
-                selectedIcon: Icon(d.selectedIcon),
+                icon: d.iconWidget(context),
+                selectedIcon: d.iconWidget(context, selected: true),
                 label: d.label,
               ),
           ],
@@ -73,8 +95,8 @@ class AdaptiveShell extends StatelessWidget {
             destinations: [
               for (final d in destinations)
                 NavigationRailDestination(
-                  icon: Icon(d.icon),
-                  selectedIcon: Icon(d.selectedIcon),
+                  icon: d.iconWidget(context),
+                  selectedIcon: d.iconWidget(context, selected: true),
                   label: Text(d.label),
                 ),
             ],

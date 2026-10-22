@@ -605,7 +605,7 @@ class _SwapSheetState extends ConsumerState<_SwapSheet> {
               Padding(
                 padding: const EdgeInsets.symmetric(vertical: 8),
                 child: Text(
-                  t('Nemaš predmeta za zamjenu — dodaj ga u portfolio.'),
+                  t('Nemaš predmeta za zamjenu — dodaj ga u Moje predmete.'),
                   style: TextStyle(color: LoopColors.textSecondary),
                 ),
               )

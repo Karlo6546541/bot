@@ -132,7 +132,7 @@ class _AddDeviceScreenState extends ConsumerState<AddDeviceScreen> {
           ),
       successMessage: _digital || _listOnMarket
           ? t('Predmet je objavljen u Marketu 🏷️')
-          : t('Predmet dodan u portfolio'),
+          : t('Predmet dodan u Moje predmete'),
     );
     if (ok) _saved = true;
     if (ok && mounted) Navigator.of(context).pop();
@@ -432,7 +432,7 @@ class _AddDeviceScreenState extends ConsumerState<AddDeviceScreen> {
                       label: Text(
                         _digital || _listOnMarket
                             ? t('Objavi u Marketu')
-                            : t('Dodaj u portfolio'),
+                            : t('Spremi u Moje predmete'),
                       ),
                     ),
                   ],

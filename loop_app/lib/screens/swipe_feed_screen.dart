@@ -19,7 +19,6 @@ import '../widgets/shop_widgets.dart';
 import '../widgets/trade_actions.dart';
 import '../widgets/user_avatar.dart';
 import 'auction_detail_screen.dart';
-import 'wishlists_screen.dart';
 import 'device_detail_screen.dart';
 import 'public_profile_screen.dart';
 
@@ -197,7 +196,9 @@ class _PostPageState extends ConsumerState<_PostPage> {
     Future.delayed(const Duration(milliseconds: 700), () {
       if (mounted) setState(() => _heart = false);
     });
-    if (!widget.state.isFavorite(d.id)) await toggleFavorite(ref, d);
+    if (!widget.state.isFavorite(d.id)) {
+      await toggleFavorite(ref, d, context: context);
+    }
   }
 
   @override
@@ -717,9 +718,6 @@ class _ActionRail extends ConsumerWidget {
     final d = device;
     final a = auction;
     final liked = state.isFavorite(d.id);
-    final saved =
-        state.currentUser?.wishlists.any((w) => w.deviceIds.contains(d.id)) ??
-        false;
     final watching = a != null && a.watchers.contains(state.currentUserId);
     void share() => shareLink(
       context,
@@ -742,7 +740,9 @@ class _ActionRail extends ConsumerWidget {
               icon: liked ? Icons.favorite : Icons.favorite_border,
               color: liked ? const Color(0xFFFF2D55) : Colors.white,
               label: '${state.likesOf(d.id)}',
-              onTap: isMine ? null : () => toggleFavorite(ref, d),
+              onTap: isMine
+                  ? null
+                  : () => toggleFavorite(ref, d, context: context),
             )
           else if (!isMine)
             _RailButton(
@@ -763,14 +763,6 @@ class _ActionRail extends ConsumerWidget {
                       : t('Više ne pratiš aukciju.'),
                 );
               },
-            ),
-          if (a == null && !isMine)
-            _RailButton(
-              key: const ValueKey('post-save'),
-              icon: saved ? Icons.bookmark : Icons.bookmark_border,
-              color: saved ? const Color(0xFFFFC233) : Colors.white,
-              label: saved ? t('Spremljeno') : t('Spremi'),
-              onTap: () => showSaveToListSheet(context, ref, d),
             ),
           if (a == null && !isMine && d.isListed)
             _RailButton(

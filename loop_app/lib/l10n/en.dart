@@ -1455,4 +1455,33 @@ const kEn = <String, String>{
   'Uredi oglas': 'Edit listing',
   'Zadnja greška: {0}': 'Last error: {0}',
   'Šalje se automatski…': 'Sending automatically…',
+  '+ {0} bonus': '+ {0} bonus',
+  'Dodaj predmet ili kupi nešto u Marketu.':
+      'Add an item or buy something in the Market.',
+  'Još nemaš predmeta': 'No items yet',
+  'Kupci licitiraju — najviša ponuda pobjeđuje.':
+      'Buyers bid — the highest offer wins.',
+  'Moji predmeti ({0})': 'My items ({0})',
+  'Nemaš predmeta za zamjenu — dodaj ga u Moje predmete.':
+      'You have no items to swap — add one in My items.',
+  'Oglas': 'Listing',
+  'Povijest transakcija': 'Transaction history',
+  'Predmet dodan u Moje predmete': 'Item added to My items',
+  'Priča': 'Story',
+  'Prodaj predmet u Marketu po fiksnoj cijeni.':
+      'Sell an item in the Market at a fixed price.',
+  'Spremi u Moje predmete': 'Save to My items',
+  'Sviđa ti se: {0}': 'You like: {0}',
+  'Tekst, fotografija ili oglas — vidljivo 24 sata.':
+      'Text, a photo or a listing — visible for 24 hours.',
+  'Više': 'More',
+  'Vrijednost, raspodjela i svi tvoji predmeti':
+      'Value, breakdown and all your items',
+  'Što želiš objaviti?': 'What do you want to post?',
+  'Vrijednost kroz vrijeme': 'Value over time',
+  'Ovaj predmet nije među tvojim predmetima.':
+      'This item isn\'t among your items.',
+  'Pokreni aukciju gumbom + u donjoj traci.':
+      'Start an auction with the + button in the bottom bar.',
+  'Predmet ostaje u tvojim predmetima.': 'The item stays among your items.',
 };

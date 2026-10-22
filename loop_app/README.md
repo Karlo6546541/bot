@@ -246,6 +246,23 @@ ne sinkronizira; online prijavu vodi Supabase Auth i lozinke ne prolaze kroz na�
   imenu, a „c/s/z/d/dj” pronalaze i „č/ć/š/ž/đ”.
 - Online: ponude cijena su u tablici `loop_bargains` — pokreni ponovno `supabase/schema.sql`.
 
+## Raspored sučelja
+
+- Donja traka: **Početna · Market · [+ Objavi] · Aukcije · Profil**.
+  **+ Objavi** nudi *Oglas*, *Aukciju* ili *Priču* (jedno mjesto za sve).
+- **Početna**: stanje (dodir na "Ukupno…" otvara *Moje predmete*), priče,
+  objave i trgovine. Grafikon vrijednosti, raspodjela i popis predmeta su
+  na ekranu **Moji predmeti** (i Profil → Moja trgovina).
+- **Profil**: *Moja trgovina* (statistika, moji predmeti, trgovina,
+  ponude cijena, isticanje) · *Novac i kupnje* (stanje i uplata, povijest
+  transakcija, dostave, digitalne kupnje, liste želja) · *Račun* · *Postavke*.
+- Srce na oglasu = "Sviđa mi se"; obavijest nudi *Spremi u listu*.
+  Spremanje i prijava oglasa su u izborniku ⋮.
+- Market: pretraga, gumb **Filteri** i odjeljci; moji oglasi su na kraju
+  s oznakom *Tvoj oglas*.
+- Spremljena kopija verzije prije ovog rasporeda: `/bot/stara/`
+  (gradi se iz commita `fc5bf8d` uz glavnu verziju).
+
 ## Obavijesti
 
 - Filteri: **Sve · Aukcije · Kupnje i prodaje · Ponude · Društvo · Poruke**

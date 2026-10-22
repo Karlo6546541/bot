@@ -282,7 +282,7 @@ void main() {
     await tester.tap(find.byTooltip('Back'));
     await tester.pumpAndSettle();
 
-    // Kupnja: predmet nestaje iz Marketa i pojavljuje se u portfoliju.
+    // Kupnja: predmet nestaje iz Marketa i pojavljuje se u Mojim predmetima.
     await tester.tap(find.text('Market').last);
     await tester.pumpAndSettle();
     await tester.enterText(find.byType(TextField).first, 'AirPods');
@@ -296,7 +296,14 @@ void main() {
     await tester.tap(find.text('Potvrdi kupnju'));
     await tester.pumpAndSettle();
     expect(find.text('AirPods Pro 2'), findsNothing); // nije više u Marketu
-    await tester.tap(find.text('Portfolio').last);
+    await tester.tap(find.text('Početna').last);
+    await tester.pumpAndSettle();
+    await tester.scrollUntilVisible(
+      find.byKey(const ValueKey('open-my-items')),
+      300,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.tap(find.byKey(const ValueKey('open-my-items')));
     await tester.pumpAndSettle();
     await tester.scrollUntilVisible(
       find.text('AirPods Pro 2'),

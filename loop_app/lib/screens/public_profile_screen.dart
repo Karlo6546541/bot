@@ -387,7 +387,9 @@ class _PublicProfileScreenState extends ConsumerState<PublicProfileScreen> {
                   promoted: user!.isPromoted,
                   sellerView: isMe,
                   isFavorite: state.isFavorite(d.id),
-                  onFavorite: isMe ? null : () => toggleFavorite(ref, d),
+                  onFavorite: isMe
+                      ? null
+                      : () => toggleFavorite(ref, d, context: context),
                 ),
               ),
           ],

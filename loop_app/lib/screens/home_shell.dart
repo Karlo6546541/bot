@@ -6,11 +6,9 @@ import '../theme/app_theme.dart';
 import '../widgets/formatters.dart';
 
 import '../widgets/adaptive_shell.dart';
-import 'activity_screen.dart';
-import 'add_device_screen.dart';
+import '../widgets/create_sheet.dart';
 import 'auctions_screen.dart';
 import 'buy_credits_screen.dart';
-import 'create_auction_screen.dart';
 import 'market_screen.dart';
 import 'portfolio_screen.dart';
 import 'profile_screen.dart';
@@ -24,7 +22,7 @@ import 'search_screen.dart';
 import 'wishlists_screen.dart';
 import 'notifications_screen.dart';
 
-/// Glavni okvir za prijavljenog korisnika s 4 taba.
+/// Glavni okvir: Početna · Market · [+ Objavi] · Aukcije · Profil.
 class HomeShell extends ConsumerStatefulWidget {
   const HomeShell({super.key});
 
@@ -44,20 +42,25 @@ class _HomeShellState extends ConsumerState<HomeShell> {
   }
 
   static List<ShellDestination> get _destinations => [
-    ShellDestination(
-      'Portfolio',
-      Icons.account_balance_wallet_outlined,
-      Icons.account_balance_wallet,
-    ),
+    ShellDestination(t('Početna'), Icons.home_outlined, Icons.home),
     ShellDestination('Market', Icons.storefront_outlined, Icons.storefront),
+    ShellDestination(t('Objavi'), Icons.add, Icons.add, action: true),
     ShellDestination(t('Aukcije'), Icons.gavel_outlined, Icons.gavel),
-    ShellDestination(
-      t('Aktivnost'),
-      Icons.receipt_long_outlined,
-      Icons.receipt_long,
-    ),
     ShellDestination(t('Profil'), Icons.person_outline, Icons.person),
   ];
+
+  /// Kartice: 0 Početna, 1 Market, 2 Aukcije, 3 Profil. U traci je "+" na
+  /// mjestu 2 pa su Aukcije i Profil pomaknuti za jedan.
+  static const _createSlot = 2;
+  static int _navIndex(int tab) => tab < _createSlot ? tab : tab + 1;
+
+  void _onNav(int nav) {
+    if (nav == _createSlot) {
+      showCreateSheet(context);
+      return;
+    }
+    _go(nav < _createSlot ? nav : nav - 1);
+  }
 
   @override
   void initState() {
@@ -95,10 +98,6 @@ class _HomeShellState extends ConsumerState<HomeShell> {
     }
   }
 
-  void _openAddDevice() {
-    AddDeviceScreen.open(context);
-  }
-
   @override
   Widget build(BuildContext context) {
     if (PendingLink.isPending) {
@@ -110,8 +109,8 @@ class _HomeShellState extends ConsumerState<HomeShell> {
 
     return AdaptiveShell(
       destinations: _destinations,
-      selectedIndex: _index,
-      onSelect: _go,
+      selectedIndex: _navIndex(_index),
+      onSelect: _onNav,
       railHeader: Padding(
         padding: const EdgeInsets.symmetric(vertical: 20),
         child: LoopLogo(size: 22, onTap: _goHome),
@@ -121,7 +120,7 @@ class _HomeShellState extends ConsumerState<HomeShell> {
         // obavijesti i stanje (jezik je u Profilu → Postavke).
         titleSpacing: phone ? 8 : null,
         title: isDesktop
-            ? Text(_destinations[_index].label)
+            ? Text(_destinations[_navIndex(_index)].label)
             : FittedBox(
                 fit: BoxFit.scaleDown,
                 alignment: Alignment.centerLeft,
@@ -140,37 +139,11 @@ class _HomeShellState extends ConsumerState<HomeShell> {
             const LanguageButton(compact: true),
             const SizedBox(width: 6),
           ],
-          const _CreditsPill(),
+          // Na početnoj je stanje na kartici — ne dupliciraj ga gore.
+          if (_index != 0) const _CreditsPill(),
           SizedBox(width: phone ? 8 : 12),
         ],
       ),
-      // Na mobitelu: početna ima "Dodaj predmet" u brzim akcijama, a za
-      // aukcije je dovoljan okrugli gumb koji ne prekriva kartice.
-      floatingActionButton: switch (_index) {
-        0 when phone => null,
-        2 when phone => FloatingActionButton(
-          tooltip: t('Nova aukcija'),
-          onPressed: () => CreateAuctionScreen.open(context),
-          child: const Icon(Icons.gavel),
-        ),
-        0 => FloatingActionButton.extended(
-          onPressed: _openAddDevice,
-          icon: const Icon(Icons.add),
-          label: Text(
-            t('Dodaj predmet'),
-            style: TextStyle(fontWeight: FontWeight.w700),
-          ),
-        ),
-        2 => FloatingActionButton.extended(
-          onPressed: () => CreateAuctionScreen.open(context),
-          icon: const Icon(Icons.gavel),
-          label: Text(
-            t('Nova aukcija'),
-            style: TextStyle(fontWeight: FontWeight.w700),
-          ),
-        ),
-        _ => null,
-      },
       // IndexedStack čuva stanje (npr. search u Marketu) pri promjeni taba.
       body: IndexedStack(
         index: _index,
@@ -178,7 +151,6 @@ class _HomeShellState extends ConsumerState<HomeShell> {
           PortfolioScreen(onGoToMarket: () => _go(1)),
           const MarketScreen(),
           const AuctionsScreen(),
-          const ActivityScreen(),
           const ProfileScreen(),
         ],
       ),

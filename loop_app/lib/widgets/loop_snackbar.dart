@@ -6,11 +6,19 @@ import '../theme/app_theme.dart';
 /// (npr. nakon odjave ili resetiranja podataka).
 final rootMessengerKey = GlobalKey<ScaffoldMessengerState>();
 
-void showLoopSnackBar(String message, {bool error = false}) {
+void showLoopSnackBar(
+  String message, {
+  bool error = false,
+  String? actionLabel,
+  VoidCallback? onAction,
+}) {
   rootMessengerKey.currentState
     ?..hideCurrentSnackBar()
     ..showSnackBar(
       SnackBar(
+        action: actionLabel == null || onAction == null
+            ? null
+            : SnackBarAction(label: actionLabel, onPressed: onAction),
         content: Row(
           children: [
             Icon(

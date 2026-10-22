@@ -128,7 +128,7 @@ class _AuctionsScreenState extends ConsumerState<AuctionsScreen> {
                 AuctionView.ended => t('Još nema završenih aukcija'),
               },
               message: _view == AuctionView.mine || _view == AuctionView.live
-                  ? t('Objavi predmet iz svog portfolija gumbom "Nova aukcija".')
+                  ? t('Pokreni aukciju gumbom + u donjoj traci.')
                   : null,
             ),
           )

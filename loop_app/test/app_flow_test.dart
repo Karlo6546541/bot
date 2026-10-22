@@ -18,6 +18,22 @@ Future<void> reveal(WidgetTester tester, Finder finder) async {
   await tester.pumpAndSettle();
 }
 
+/// Početna → kartica stanja → Moji predmeti.
+Future<void> openMyItems(WidgetTester tester) async {
+  await reveal(tester, find.byKey(const ValueKey('open-my-items')));
+  await tester.tap(find.byKey(const ValueKey('open-my-items')));
+  await tester.pumpAndSettle();
+}
+
+/// Profil → Povijest transakcija.
+Future<void> openActivity(WidgetTester tester) async {
+  await tester.tap(find.text('Profil').last);
+  await tester.pumpAndSettle();
+  await reveal(tester, find.byKey(const ValueKey('open-activity')));
+  await tester.tap(find.byKey(const ValueKey('open-activity')));
+  await tester.pumpAndSettle();
+}
+
 Future<Widget> buildApp(WidgetTester tester) async {
   final storage = StorageService();
   await tester.runAsync(() => storage.init(inMemory: true));
@@ -56,7 +72,8 @@ void main() {
       expect(find.textContaining('1.250'), findsWidgets); // kartica + traka
       // Nema više statusa (Bronze/Silver/Gold).
       expect(find.text('SILVER'), findsNothing);
-      // Popis predmeta je ispod grafikona — skrolaj do njega.
+      // Moji predmeti se otvaraju s kartice stanja (popis je ispod grafikona).
+      await openMyItems(tester);
       await tester.scrollUntilVisible(
         find.text('iPhone 13'),
         300,
@@ -64,6 +81,8 @@ void main() {
       );
       await tester.pumpAndSettle();
       expect(find.text('iPhone 13'), findsOneWidget);
+      await tester.pageBack();
+      await tester.pumpAndSettle();
 
       // Nema više prodaje "LOOP-u": vlastiti predmet je oglas u Marketu.
       expect(find.text('Prodaj odmah'), findsNothing);
@@ -85,9 +104,8 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.textContaining('Uspješno kupljeno'), findsOneWidget);
 
-      // Aktivnost: najnovije na vrhu
-      await tester.tap(find.text('Aktivnost').last);
-      await tester.pumpAndSettle();
+      // Povijest transakcija (Profil → Novac i kupnje): najnovije na vrhu.
+      await openActivity(tester);
       await tester.scrollUntilVisible(
         find.text('−188,70 €'),
         200,
@@ -205,14 +223,9 @@ void main() {
     await tester.tap(find.text('Prijavi se'));
     await tester.pumpAndSettle();
 
-    // Grafikon i promjena raspona.
-    await tester.scrollUntilVisible(
-      find.text('Vrijednost portfolija'),
-      300,
-      scrollable: find.byType(Scrollable).first,
-    );
-    await tester.pumpAndSettle();
-    expect(find.text('Vrijednost portfolija'), findsOneWidget);
+    // Grafikon (Moji predmeti) i promjena raspona.
+    await openMyItems(tester);
+    expect(find.text('Vrijednost kroz vrijeme'), findsOneWidget);
     await tester.tap(find.text('Sve'));
     await tester.pumpAndSettle();
     expect(find.textContaining('ukupno'), findsOneWidget);
@@ -228,6 +241,8 @@ void main() {
     await tester.tap(find.byTooltip('Prikaži tablicu'));
     await tester.pumpAndSettle();
     expect(find.text('Ukupno'), findsOneWidget);
+    await tester.pageBack();
+    await tester.pumpAndSettle();
 
     // Market: odjeljak Rukotvorine.
     await tester.tap(find.text('Market').last);
@@ -340,7 +355,7 @@ void main() {
       Theme.of(tester.element(find.text('Tamna'))).brightness,
       Brightness.dark,
     );
-    await tester.tap(find.text('Portfolio').last);
+    await tester.tap(find.text('Početna').last);
     await tester.pumpAndSettle();
     expect(tester.takeException(), isNull);
   });
@@ -443,12 +458,6 @@ void main() {
     await reveal(tester, find.byKey(const ValueKey('credits-balance')));
     expect(find.textContaining('1,250'), findsWidgets);
     expect(find.text('Total €2,010 · 2 items'), findsOneWidget);
-    await tester.scrollUntilVisible(
-      find.text('iPhone 13'),
-      300,
-      scrollable: find.byType(Scrollable).first,
-    );
-    await tester.pumpAndSettle();
 
     // Objave (swipe) na engleskom.
     await tester.scrollUntilVisible(
@@ -464,12 +473,17 @@ void main() {
     await tester.tap(find.byTooltip('Back'));
     await tester.pumpAndSettle();
 
-    for (final tab in ['Market', 'Auctions', 'Activity', 'Profile']) {
+    for (final tab in ['Market', 'Auctions', 'Profile']) {
       await tester.tap(find.text(tab).last);
       await tester.pumpAndSettle();
       // Moji oglasi su i u Marketu (s oznakom), da se vidi da su objavljeni.
+      // (iza tuđih oglasa — pretraga ih pokazuje odmah).
       if (tab == 'Market') {
-        expect(find.text('Your listing'), findsWidgets);
+        await tester.enterText(find.byType(TextField).first, 'iPhone 13');
+        await tester.pumpAndSettle();
+        expect(find.text('Your listing'), findsOneWidget);
+        await tester.enterText(find.byType(TextField).first, '');
+        await tester.pumpAndSettle();
       }
     }
     expect(find.text('Edit profile'), findsOneWidget);
@@ -584,6 +598,7 @@ void listingTests() {
     await tester.ensureVisible(find.text('Prijavi se'));
     await tester.tap(find.text('Prijavi se'));
     await tester.pumpAndSettle();
+    await openMyItems(tester);
     await tester.scrollUntilVisible(
       find.text('iPhone 13'),
       300,
@@ -1022,16 +1037,19 @@ void digitalTests() {
     expect(find.byKey(const ValueKey('download-file')), findsOneWidget);
     await tester.pageBack();
     await tester.pumpAndSettle();
-    // Kupljeni proizvod više nije u Marketu — nalazi se u portfoliju.
+    // Kupljeni proizvod više nije u Marketu — nalazi se u Mojim predmetima.
     expect(find.text('Kocka za kalibraciju'), findsNothing);
-    await tester.tap(find.text('Portfolio').last);
+    await tester.tap(find.text('Početna').last);
     await tester.pumpAndSettle();
+    await openMyItems(tester);
     await tester.scrollUntilVisible(
       find.text('✓ Kupljeno'),
       300,
       scrollable: find.byType(Scrollable).first,
     );
     expect(find.text('✓ Kupljeno'), findsOneWidget);
+    await tester.pageBack();
+    await tester.pumpAndSettle();
 
     // Profil → Moje digitalne kupnje.
     await tester.tap(find.text('Profil').last);
@@ -1049,10 +1067,10 @@ void digitalTests() {
     await tester.pageBack();
     await tester.pumpAndSettle();
 
-    // Obrazac: "Digitalno" skriva stanje i traži datoteku.
-    await tester.tap(find.text('Portfolio').last);
+    // Obrazac (+ Objavi → Oglas): "Digitalno" skriva stanje i traži datoteku.
+    await tester.tap(find.byKey(const ValueKey('nav-create')));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Dodaj predmet').first);
+    await tester.tap(find.byKey(const ValueKey('create-item')));
     await tester.pumpAndSettle();
     expect(find.text('Stanje'), findsOneWidget);
     await tester.ensureVisible(find.text('Digitalno'));

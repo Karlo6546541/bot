@@ -7,6 +7,7 @@ import '../services/fee.dart';
 import '../services/trade_service.dart';
 import '../theme/app_theme.dart';
 import '../screens/buy_credits_screen.dart';
+import '../screens/wishlists_screen.dart';
 import '../services/delivery_service.dart';
 import 'delivery_picker.dart';
 import 'formatters.dart';
@@ -297,7 +298,13 @@ class _CheckoutSheetState extends State<_CheckoutSheet> {
 }
 
 /// Srce na uređaju: dodaje/uklanja iz favorita uz kratku poruku.
-Future<void> toggleFavorite(WidgetRef ref, Device device) async {
+/// "Sviđa mi se" (srce). Nakon lajka obavijest nudi spremanje u listu
+/// želja — jedan gumb umjesto zasebnih "♥" i "Spremi".
+Future<void> toggleFavorite(
+  WidgetRef ref,
+  Device device, {
+  BuildContext? context,
+}) async {
   final bool added;
   try {
     added = await ref.read(appProvider.notifier).toggleFavorite(device.id);
@@ -305,10 +312,15 @@ Future<void> toggleFavorite(WidgetRef ref, Device device) async {
     showLoopSnackBar(e.message, error: true);
     return;
   }
+  final ctx = context;
   showLoopSnackBar(
     added
-        ? t('{0} dodan u favorite', [device.name])
+        ? t('Sviđa ti se: {0}', [device.name])
         : t('{0} uklonjen iz favorita', [device.name]),
+    actionLabel: added && ctx != null ? t('Spremi u listu') : null,
+    onAction: added && ctx != null && ctx.mounted
+        ? () => showSaveToListSheet(ctx, ref, device)
+        : null,
   );
 }
 

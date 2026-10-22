@@ -101,7 +101,7 @@ class _PortfolioChartState extends State<PortfolioChart> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        t('Vrijednost portfolija'),
+                        t('Vrijednost kroz vrijeme'),
                         style: TextStyle(fontWeight: FontWeight.w700),
                       ),
                       const SizedBox(height: 4),

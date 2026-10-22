@@ -2,14 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../models/device.dart';
-import '../services/fee.dart';
 import '../providers/app_providers.dart';
 import '../providers/app_state.dart';
 import '../theme/app_theme.dart';
 import '../widgets/category_style.dart';
 import '../widgets/device_card.dart';
 import '../widgets/empty_state.dart';
-import '../widgets/formatters.dart';
 import '../widgets/trade_actions.dart';
 import '../services/market_filter.dart' show normalizeSearch;
 import '../widgets/user_avatar.dart';
@@ -48,8 +46,15 @@ class _MarketScreenState extends ConsumerState<MarketScreen> {
     final state = ref.watch(appProvider);
     final f = ref.watch(marketFilterProvider);
     final all = state.marketDevicesFor(includeMine: true);
-    final devices = f.apply(all, state);
-    final credits = state.currentUser?.credits ?? 0;
+    final filtered = f.apply(all, state);
+    // Moji oglasi su vidljivi, ali iza tuđih (osim kad korisnik sam
+    // bira poredak, npr. po cijeni).
+    final devices = f.sort == MarketSort.recommended
+        ? [
+            ...filtered.where((d) => d.ownerId != state.currentUserId),
+            ...filtered.where((d) => d.ownerId == state.currentUserId),
+          ]
+        : filtered;
     final sectionCounts = <ItemSection, int>{};
     for (final d in all) {
       sectionCounts[d.section] = (sectionCounts[d.section] ?? 0) + 1;
@@ -110,32 +115,6 @@ class _MarketScreenState extends ConsumerState<MarketScreen> {
           selected: false,
           onTap: () => ShopsScreen.open(context),
         ),
-        // Brzi filter: samo ono što si mogu priuštiti.
-        _CategoryChip(
-          key: const ValueKey('affordable-chip'),
-          label: t('Mogu kupiti'),
-          icon: Icons.account_balance_wallet_outlined,
-          color: LoopColors.success,
-          count: all
-              .where((d) => buyTotal(state.priceForMe(d)) <= credits)
-              .length,
-          selected: f.onlyAffordable,
-          onTap: () => _filters.update(
-            (f) => f.copyWith(onlyAffordable: !f.onlyAffordable),
-          ),
-        ),
-        if (all.any((d) => d.hasDiscount) || f.onlyDiscounted)
-          _CategoryChip(
-            key: const ValueKey('discount-chip'),
-            label: t('Na popustu'),
-            icon: Icons.local_offer_outlined,
-            color: LoopColors.error,
-            count: all.where((d) => d.hasDiscount).length,
-            selected: f.onlyDiscounted,
-            onTap: () => _filters.update(
-              (f) => f.copyWith(onlyDiscounted: !f.onlyDiscounted),
-            ),
-          ),
         if (f.section == null)
           for (final sec in ItemSection.values)
             _CategoryChip(
@@ -179,15 +158,6 @@ class _MarketScreenState extends ConsumerState<MarketScreen> {
 
     return CustomScrollView(
       slivers: [
-        SliverToBoxAdapter(
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
-            child: Text(
-              t('Stanje: {0}', [formatCredits(credits)]),
-              style: TextStyle(color: LoopColors.textSecondary),
-            ),
-          ),
-        ),
         // Pretraga, filteri i odjeljci ostaju vidljivi pri skrolanju.
         SliverPersistentHeader(
           pinned: true,
@@ -304,7 +274,7 @@ class _MarketScreenState extends ConsumerState<MarketScreen> {
                     },
                     promoted: state.isPromotedItem(d),
                     isFavorite: state.isFavorite(d.id),
-                    onFavorite: () => toggleFavorite(ref, d),
+                    onFavorite: () => toggleFavorite(ref, d, context: context),
                     badge: d.isDigital && state.hasPurchased(d.id)
                         ? t('✓ Kupljeno')
                         : d.isListed

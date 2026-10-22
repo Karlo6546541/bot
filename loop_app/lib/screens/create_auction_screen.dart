@@ -129,7 +129,7 @@ class _CreateAuctionScreenState extends ConsumerState<CreateAuctionScreen> {
           ? EmptyState(
               icon: Icons.inventory_2_outlined,
               title: t('Nemaš predmeta za aukciju'),
-              message: t('Dodaj predmet u portfolio ili kupi nešto u Marketu.'),
+              message: t('Dodaj predmet ili kupi nešto u Marketu.'),
             )
           : Align(
               alignment: Alignment.topCenter,

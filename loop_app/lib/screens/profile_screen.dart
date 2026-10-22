@@ -6,7 +6,9 @@ import '../services/sync_service.dart';
 import '../theme/app_theme.dart';
 import '../widgets/formatters.dart';
 import '../widgets/trade_actions.dart';
+import 'activity_screen.dart';
 import 'buy_credits_screen.dart';
+import 'portfolio_screen.dart';
 import 'wishlists_screen.dart';
 import 'deliveries_screen.dart';
 import 'digital_library_screen.dart';
@@ -54,65 +56,66 @@ class ProfileScreen extends ConsumerWidget {
                 Card(
                   child: Column(
                     children: [
-                      _InfoTile(
-                        icon: Icons.toll,
-                        label: t('Trenutno stanje'),
-                        value: formatCredits(user.credits),
+                      ListTile(
+                        leading: Icon(
+                          Icons.account_balance_wallet_outlined,
+                          color: LoopColors.textSecondary,
+                        ),
+                        title: Text(t('Stanje')),
+                        subtitle: Text(
+                          formatCredits(user.credits),
+                          style: const TextStyle(
+                            fontWeight: FontWeight.w900,
+                            fontSize: 18,
+                          ),
+                        ),
+                        trailing: FilledButton(
+                          key: const ValueKey('profile-topup'),
+                          onPressed: () => BuyCreditsScreen.open(context),
+                          child: Text(t('Uplati novac')),
+                        ),
                       ),
                       const Divider(height: 1),
-                      _InfoTile(
-                        icon: Icons.devices,
-                        label: t('Predmeti u portfoliju'),
-                        value: '${state.myDevices.length}',
+                      _NavTile(
+                        key: const ValueKey('open-activity'),
+                        icon: Icons.receipt_long_outlined,
+                        title: t('Povijest transakcija'),
+                        onTap: () => ActivityPage.open(context),
                       ),
                       const Divider(height: 1),
-                      _InfoTile(
-                        icon: Icons.stacked_line_chart,
-                        label: t('Ukupna vrijednost'),
-                        value: formatCredits(state.totalValueOf(user)),
+                      _NavTile(
+                        icon: Icons.local_shipping_outlined,
+                        title: state.myOpenDeliveries.isEmpty
+                            ? t('Moje dostave')
+                            : t('Moje dostave ({0} u tijeku)', [
+                                state.myOpenDeliveries.length,
+                              ]),
+                        onTap: () => DeliveriesScreen.open(context),
                       ),
+                      const Divider(height: 1),
+                      _NavTile(
+                        key: const ValueKey('my-downloads'),
+                        icon: Icons.download_for_offline_outlined,
+                        title: t('Moje digitalne kupnje ({0})', [
+                          state.myDigitalPurchases.length,
+                        ]),
+                        onTap: () => DigitalLibraryScreen.open(context),
+                      ),
+                      if (!user.isGuest) ...[
+                        const Divider(height: 1),
+                        _NavTile(
+                          key: const ValueKey('my-wishlists'),
+                          icon: Icons.bookmarks_outlined,
+                          title: t('Liste želja ({0})', [
+                            user.wishlists.length + 1,
+                          ]),
+                          onTap: () => WishlistsScreen.open(context),
+                        ),
+                      ],
                     ],
                   ),
                 ),
-                const SizedBox(height: 16),
-                FilledButton.icon(
-                  onPressed: () => BuyCreditsScreen.open(context),
-                  icon: const Icon(Icons.add_card),
-                  label: Text(t('Uplati novac')),
-                ),
-                const SizedBox(height: 10),
-                OutlinedButton.icon(
-                  onPressed: () => DeliveriesScreen.open(context),
-                  icon: const Icon(Icons.local_shipping_outlined),
-                  label: Text(
-                    state.myOpenDeliveries.isEmpty
-                        ? t('Moje dostave')
-                        : t('Moje dostave ({0} u tijeku)', [
-                            state.myOpenDeliveries.length,
-                          ]),
-                  ),
-                ),
-                const SizedBox(height: 10),
-                OutlinedButton.icon(
-                  key: const ValueKey('my-downloads'),
-                  onPressed: () => DigitalLibraryScreen.open(context),
-                  icon: const Icon(Icons.download_for_offline_outlined),
-                  label: Text(
-                    t('Moje digitalne kupnje ({0})', [
-                      state.myDigitalPurchases.length,
-                    ]),
-                  ),
-                ),
                 if (!user.isGuest) ...[
-                  const SizedBox(height: 10),
-                  OutlinedButton.icon(
-                    key: const ValueKey('my-wishlists'),
-                    onPressed: () => WishlistsScreen.open(context),
-                    icon: const Icon(Icons.bookmarks_outlined),
-                    label: Text(
-                      t('Liste želja ({0})', [user.wishlists.length + 1]),
-                    ),
-                  ),
                   _SectionTitle(t('Račun'), Icons.manage_accounts_outlined),
                   _AccountCard(user: user),
                 ],
@@ -203,27 +206,28 @@ class ProfileScreen extends ConsumerWidget {
   }
 }
 
-class _InfoTile extends StatelessWidget {
-  const _InfoTile({
+/// Redak koji otvara drugi ekran.
+class _NavTile extends StatelessWidget {
+  const _NavTile({
+    super.key,
     required this.icon,
-    required this.label,
-    required this.value,
+    required this.title,
+    required this.onTap,
+    this.subtitle,
   });
   final IconData icon;
-  final String label;
-  final String value;
+  final String title;
+  final String? subtitle;
+  final VoidCallback onTap;
 
   @override
-  Widget build(BuildContext context) {
-    return ListTile(
-      leading: Icon(icon, color: LoopColors.textSecondary),
-      title: Text(label),
-      trailing: Text(
-        value,
-        style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 15),
-      ),
-    );
-  }
+  Widget build(BuildContext context) => ListTile(
+    leading: Icon(icon, color: LoopColors.textSecondary),
+    title: Text(title),
+    subtitle: subtitle == null ? null : Text(subtitle!),
+    trailing: const Icon(Icons.chevron_right),
+    onTap: onTap,
+  );
 }
 
 /// Je li aplikacija spojena na online bazu (Supabase) ili radi lokalno.
@@ -424,6 +428,16 @@ class _ShopCard extends ConsumerWidget {
                 'my-sales',
               ),
             ],
+          ),
+          const Divider(height: 1),
+          _NavTile(
+            key: const ValueKey('my-items'),
+            icon: Icons.inventory_2_outlined,
+            title: t('Moji predmeti ({0})', [
+              state.myDevices.length + state.myDigitalPurchases.length,
+            ]),
+            subtitle: t('Vrijednost, raspodjela i svi tvoji predmeti'),
+            onTap: () => MyItemsScreen.open(context),
           ),
           const Divider(height: 1),
           ListTile(
