@@ -141,6 +141,27 @@ void main() {
       expect(find.text('@demo · 0 pratitelja'), findsOneWidget);
       await tester.pageBack();
       await tester.pumpAndSettle();
+      // Filtar kategorija trgovine nastaje sam iz oglasa.
+      final cats = find.byKey(const ValueKey('shop-categories'));
+      await tester.scrollUntilVisible(
+        cats,
+        200,
+        scrollable: find.byType(Scrollable).first,
+      );
+      await tester.pumpAndSettle();
+      final chip = find.descendant(of: cats, matching: find.byType(ChoiceChip));
+      expect(chip, findsAtLeastNWidgets(2)); // "Sve" + barem jedna
+      await tester.tap(chip.at(1));
+      await tester.pumpAndSettle();
+      // Ocjene su na svojoj kartici.
+      await tester.scrollUntilVisible(
+        find.byKey(const ValueKey('shop-tabs')),
+        -200,
+        scrollable: find.byType(Scrollable).first,
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.byTooltip('Ocjene'));
+      await tester.pumpAndSettle();
       await tester.tap(find.byKey(const ValueKey('rate-shop')));
       await tester.pumpAndSettle();
       await tester.tap(find.byIcon(Icons.star_outline_rounded).at(3));
@@ -208,4 +229,71 @@ void main() {
       expect(find.text('Vodiš · automatska ponuda'), findsOneWidget);
     });
   }
+
+  testWidgets('pretraga objava i računa; kupljeno ide u portfolio', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(400, 860);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    final storage = StorageService();
+    await tester.runAsync(() => storage.init(inMemory: true));
+    addTearDown(() => tester.runAsync(Hive.close));
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          storageProvider.overrideWithValue(storage),
+          tickIntervalProvider.overrideWithValue(null),
+        ],
+        child: const LoopApp(),
+      ),
+    );
+    await tester.ensureVisible(find.text('Prijavi se'));
+    await tester.tap(find.text('Prijavi se'));
+    await tester.pumpAndSettle();
+
+    // Pretraga: objave i računi.
+    await tester.tap(find.byKey(const ValueKey('open-search')));
+    await tester.pumpAndSettle();
+    await tester.enterText(
+      find.byKey(const ValueKey('global-search')),
+      'airpods',
+    );
+    await tester.pumpAndSettle();
+    expect(find.text('Objave (1)'), findsOneWidget);
+    expect(find.text('AirPods Pro 2'), findsOneWidget);
+    await tester.enterText(find.byKey(const ValueKey('global-search')), 'ana');
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Računi (1)'));
+    await tester.pumpAndSettle();
+    expect(
+      find.byKey(const ValueKey('account-${SeedData.anaUserId}')),
+      findsOneWidget,
+    );
+    await tester.tap(find.byTooltip('Back'));
+    await tester.pumpAndSettle();
+
+    // Kupnja: predmet nestaje iz Marketa i pojavljuje se u portfoliju.
+    await tester.tap(find.text('Market').last);
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byType(TextField).first, 'AirPods');
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(find.text('Kupi odmah'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Kupi odmah'));
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(find.text('Potvrdi kupnju'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Potvrdi kupnju'));
+    await tester.pumpAndSettle();
+    expect(find.text('AirPods Pro 2'), findsNothing); // nije više u Marketu
+    await tester.tap(find.text('Portfolio').last);
+    await tester.pumpAndSettle();
+    await tester.scrollUntilVisible(
+      find.text('AirPods Pro 2'),
+      300,
+      scrollable: find.byType(Scrollable).first,
+    );
+    expect(find.text('AirPods Pro 2'), findsOneWidget);
+  });
 }

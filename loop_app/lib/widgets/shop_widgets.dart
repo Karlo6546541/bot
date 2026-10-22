@@ -545,15 +545,21 @@ String discountLabel(Device d) => d.discountUntil == null
 
 // --------------------------------------------------------------- cjenkanje
 
-/// Unos iznosa (ponuda ili protuponuda).
+/// Unos iznosa (ponuda ili protuponuda) u donjem listu: list se podigne
+/// iznad tipkovnice, a polje ostaje na mjestu i vidljivo.
 Future<double?> _amountDialog(
   BuildContext context, {
   required String title,
   required String message,
   required double suggestion,
   required double max,
-}) => showDialog<double>(
+}) => showModalBottomSheet<double>(
   context: context,
+  isScrollControlled: true,
+  useSafeArea: true,
+  showDragHandle: true,
+  backgroundColor: LoopColors.background,
+  constraints: const BoxConstraints(maxWidth: 520),
   builder: (_) => _AmountDialog(
     title: title,
     message: message,
@@ -579,10 +585,12 @@ class _AmountDialog extends StatefulWidget {
 }
 
 class _AmountDialogState extends State<_AmountDialog> {
-  late final _c = TextEditingController(
-    text: formatNumber(widget.suggestion).replaceAll('.', ''),
-  );
+  late final _c = TextEditingController(text: _fmt(widget.suggestion));
   String? _error;
+
+  static String _fmt(double v) => v == v.roundToDouble()
+      ? v.toStringAsFixed(0)
+      : v.toStringAsFixed(2).replaceAll('.', ',');
 
   @override
   void dispose() {
@@ -604,14 +612,19 @@ class _AmountDialogState extends State<_AmountDialog> {
 
   @override
   Widget build(BuildContext context) {
-    return AlertDialog(
-      title: Text(widget.title),
-      content: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 380),
+    return Padding(
+      padding: EdgeInsets.only(bottom: MediaQuery.viewInsetsOf(context).bottom),
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
+            Text(
+              widget.title,
+              style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w900),
+            ),
+            const SizedBox(height: 4),
             Text(
               widget.message,
               style: TextStyle(color: LoopColors.textSecondary),
@@ -619,20 +632,21 @@ class _AmountDialogState extends State<_AmountDialog> {
             const SizedBox(height: 12),
             Wrap(
               spacing: 6,
+              runSpacing: 6,
               children: [
                 for (final p in const [5, 10, 15, 20])
                   ActionChip(
                     label: Text('−$p%'),
                     onPressed: () => setState(() {
-                      _c.text = formatNumber(
+                      _c.text = _fmt(
                         roundCredits(widget.max * (100 - p) / 100),
-                      ).replaceAll('.', '');
+                      );
                       _error = null;
                     }),
                   ),
               ],
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: 12),
             TextField(
               key: const ValueKey('amount-field'),
               controller: _c,
@@ -640,6 +654,8 @@ class _AmountDialogState extends State<_AmountDialog> {
               keyboardType: const TextInputType.numberWithOptions(
                 decimal: true,
               ),
+              textInputAction: TextInputAction.send,
+              style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w800),
               onChanged: (_) => setState(() => _error = null),
               onSubmitted: (_) => _submit(),
               decoration: InputDecoration(
@@ -648,20 +664,16 @@ class _AmountDialogState extends State<_AmountDialog> {
                 errorText: _error,
               ),
             ),
+            const SizedBox(height: 14),
+            FilledButton.icon(
+              key: const ValueKey('amount-submit'),
+              onPressed: _submit,
+              icon: const Icon(Icons.send),
+              label: Text(t('Pošalji')),
+            ),
           ],
         ),
       ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.pop(context),
-          child: Text(t('Odustani')),
-        ),
-        FilledButton(
-          key: const ValueKey('amount-submit'),
-          onPressed: _submit,
-          child: Text(t('Pošalji')),
-        ),
-      ],
     );
   }
 }

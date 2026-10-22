@@ -801,12 +801,16 @@ void communityTests() {
     // Trgovina: pratitelji, prodaje i gumb "Prati".
     expect(find.text('pratitelja'), findsOneWidget);
     expect(find.byKey(const ValueKey('follow')), findsOneWidget);
+    // Ocjene su na svojoj kartici trgovine.
     await tester.scrollUntilVisible(
-      find.text('Ocjene (0)'),
+      find.byKey(const ValueKey('shop-tabs')),
       300,
       scrollable: find.byType(Scrollable).first,
     );
-    expect(find.text('Ocjene (0)'), findsOneWidget);
+    await tester.pumpAndSettle();
+    await tester.tap(find.byTooltip('Ocjene'));
+    await tester.pumpAndSettle();
+    expect(find.text('Još nema ocjena'), findsWidgets);
     await tester.tap(find.byKey(const ValueKey('profile-menu')));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Prijavi korisnika'));
@@ -993,6 +997,15 @@ void digitalTests() {
     expect(find.byKey(const ValueKey('download-file')), findsOneWidget);
     await tester.pageBack();
     await tester.pumpAndSettle();
+    // Kupljeni proizvod više nije u Marketu — nalazi se u portfoliju.
+    expect(find.text('Kocka za kalibraciju'), findsNothing);
+    await tester.tap(find.text('Portfolio').last);
+    await tester.pumpAndSettle();
+    await tester.scrollUntilVisible(
+      find.text('✓ Kupljeno'),
+      300,
+      scrollable: find.byType(Scrollable).first,
+    );
     expect(find.text('✓ Kupljeno'), findsOneWidget);
 
     // Profil → Moje digitalne kupnje.

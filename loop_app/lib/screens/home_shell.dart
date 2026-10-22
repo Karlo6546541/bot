@@ -20,6 +20,7 @@ import '../services/deep_link.dart';
 import 'device_detail_screen.dart';
 import 'messages_screen.dart';
 import 'public_profile_screen.dart';
+import 'search_screen.dart';
 import 'notifications_screen.dart';
 
 /// Glavni okvir za prijavljenog korisnika s 4 taba.
@@ -114,6 +115,12 @@ class _HomeShellState extends ConsumerState<HomeShell> {
                 child: LoopLogo(size: 22, onTap: _goHome),
               ),
         actions: [
+          IconButton(
+            key: const ValueKey('open-search'),
+            tooltip: t('Pretraži objave i račune'),
+            icon: const Icon(Icons.search),
+            onPressed: () => SearchScreen.open(context),
+          ),
           const MessagesButton(),
           const NotificationBell(),
           LanguageButton(compact: phone),

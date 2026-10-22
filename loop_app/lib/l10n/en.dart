@@ -1331,4 +1331,25 @@ const kEn = <String, String>{
       'The auction "{0}" ends in less than 10 minutes — currently {1}.',
   'Automatska ponuda drugog kupca je viša na aukciji "{0}" — sada {1}.':
       'Another buyer\'s automatic bid is higher on the auction "{0}" — now {1}.',
+  'Dodaj predmet u trgovinu': 'Add an item to the shop',
+  'Moja trgovina': 'My shop',
+  'Nedavno traženo': 'Recent searches',
+  'Nema objava za "{0}"': 'No posts for "{0}"',
+  'Nema predmeta za odabrani filtar.': 'No items for the selected filter.',
+  'Nema računa za "{0}"': 'No accounts for "{0}"',
+  'Novac i kupnje': 'Money and purchases',
+  'Objave ({0})': 'Posts ({0})',
+  'Ocjene': 'Reviews',
+  'Postavke': 'Settings',
+  'Pretraži objave i račune': 'Search posts and accounts',
+  'Račun': 'Account',
+  'Računi ({0})': 'Accounts ({0})',
+  'Stanje je u eurima. Status: Bronze < 2000 €, Silver 2000–5000 €, Gold > 5000 € (stanje + portfolio).':
+      'Your balance is in euros. Status: Bronze < €2000, Silver €2000–5000, Gold > €5000 (balance + portfolio).',
+  'Sve ({0})': 'All ({0})',
+  'Traži objave i račune…': 'Search posts and accounts…',
+  'Trgovina još nema oglasa.': 'The shop has no listings yet.',
+  'Upiši naziv predmeta, kategoriju, trgovinu ili @korisnika.':
+      'Type an item name, category, shop or @user.',
+  '{0} oglasa': '{0} listings',
 };

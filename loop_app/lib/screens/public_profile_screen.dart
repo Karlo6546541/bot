@@ -15,6 +15,9 @@ import '../widgets/empty_state.dart';
 import '../widgets/formatters.dart';
 import '../widgets/item_image.dart';
 import '../widgets/user_avatar.dart';
+import '../providers/app_state.dart';
+import '../widgets/category_style.dart';
+import 'add_device_screen.dart';
 import 'auctions_screen.dart';
 import 'device_detail_screen.dart';
 import 'messages_screen.dart';
@@ -52,9 +55,16 @@ enum _ShopSort {
   String get label => t(_label);
 }
 
+/// Dio trgovine koji se prikazuje.
+enum _ShopTab { items, auctions, reviews }
+
 class _PublicProfileScreenState extends ConsumerState<PublicProfileScreen> {
   String _query = '';
   _ShopSort _sort = _ShopSort.newest;
+  _ShopTab _tab = _ShopTab.items;
+
+  /// Kategorija iz filtra trgovine (`null` = sve).
+  DeviceCategory? _category;
 
   String get userId => widget.userId;
 
@@ -63,10 +73,11 @@ class _PublicProfileScreenState extends ConsumerState<PublicProfileScreen> {
     final list = all
         .where(
           (d) =>
-              q.isEmpty ||
-              normalizeSearch(
-                '${d.name} ${d.model} ${d.description} ${d.category.label}',
-              ).contains(q),
+              (_category == null || d.category == _category) &&
+              (q.isEmpty ||
+                  normalizeSearch(
+                    '${d.name} ${d.model} ${d.description} ${d.category.label}',
+                  ).contains(q)),
         )
         .toList();
     int discount(Device d) => d.hasDiscount ? d.discountPercent : 0;
@@ -106,13 +117,6 @@ class _PublicProfileScreenState extends ConsumerState<PublicProfileScreen> {
     final auctions = state.activeAuctions
         .where((a) => a.sellerId == user!.id)
         .toList();
-    Widget title(String text) => Padding(
-      padding: const EdgeInsets.fromLTRB(0, 20, 0, 8),
-      child: Text(
-        text,
-        style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 16),
-      ),
-    );
     Widget box(Widget child) => SliverToBoxAdapter(
       child: Align(
         alignment: Alignment.topCenter,
@@ -204,15 +208,6 @@ class _PublicProfileScreenState extends ConsumerState<PublicProfileScreen> {
                     listings: allListings.length,
                     promoted: user.isPromoted,
                   ),
-                  const SizedBox(height: 10),
-                  _ShopRatingCard(
-                    sellerId: user.id,
-                    sellerLabel: user.shopTitle,
-                    canRate:
-                        !isMe &&
-                        state.currentUser != null &&
-                        !state.currentUser!.isGuest,
-                  ),
                   if (!isMe && !blocked) ...[
                     const SizedBox(height: 10),
                     Row(
@@ -234,110 +229,228 @@ class _PublicProfileScreenState extends ConsumerState<PublicProfileScreen> {
               ),
             ),
           ),
-          box(title(t('Trgovina ({0})', [allListings.length]))),
-          if (allListings.length > 3)
-            box(
-              Row(
-                children: [
-                  Expanded(
-                    child: TextField(
-                      key: const ValueKey('shop-search'),
-                      onChanged: (v) => setState(() => _query = v),
-                      decoration: InputDecoration(
-                        isDense: true,
-                        hintText: t('Pretraži trgovinu…'),
-                        prefixIcon: const Icon(Icons.search),
+          // Odabir dijela trgovine.
+          box(
+            Padding(
+              padding: const EdgeInsets.only(top: 14, bottom: 10),
+              child: SegmentedButton<_ShopTab>(
+                key: const ValueKey('shop-tabs'),
+                showSelectedIcon: false,
+                segments: [
+                  ButtonSegment(
+                    value: _ShopTab.items,
+                    icon: const Icon(Icons.storefront_outlined, size: 18),
+                    label: Text(t('Trgovina ({0})', [allListings.length])),
+                  ),
+                  ButtonSegment(
+                    value: _ShopTab.auctions,
+                    icon: const Icon(Icons.gavel, size: 18),
+                    label: Text('${auctions.length}'),
+                    tooltip: t('Aukcije'),
+                  ),
+                  ButtonSegment(
+                    value: _ShopTab.reviews,
+                    icon: const Icon(Icons.star_outline, size: 18),
+                    label: Text('${reviews.length}'),
+                    tooltip: t('Ocjene'),
+                  ),
+                ],
+                selected: {_tab},
+                onSelectionChanged: (v) => setState(() => _tab = v.first),
+              ),
+            ),
+          ),
+          if (_tab == _ShopTab.items) ...[
+            if (allListings.isNotEmpty) ...[
+              box(
+                Row(
+                  children: [
+                    Expanded(
+                      child: TextField(
+                        key: const ValueKey('shop-search'),
+                        onChanged: (v) => setState(() => _query = v),
+                        decoration: InputDecoration(
+                          isDense: true,
+                          hintText: t('Pretraži trgovinu…'),
+                          prefixIcon: const Icon(Icons.search),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    PopupMenuButton<_ShopSort>(
+                      tooltip: t('Sortiraj'),
+                      initialValue: _sort,
+                      onSelected: (v) => setState(() => _sort = v),
+                      itemBuilder: (_) => [
+                        for (final v in _ShopSort.values)
+                          PopupMenuItem(value: v, child: Text(v.label)),
+                      ],
+                      child: const Padding(
+                        padding: EdgeInsets.all(8),
+                        child: Icon(Icons.sort),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              // Kategorije trgovine: nastaju same iz objavljenih predmeta.
+              SliverToBoxAdapter(
+                child: Align(
+                  alignment: Alignment.topCenter,
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 720),
+                    child: SizedBox(
+                      height: 52,
+                      child: ListView(
+                        key: const ValueKey('shop-categories'),
+                        scrollDirection: Axis.horizontal,
+                        padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
+                        children: [
+                          Padding(
+                            padding: const EdgeInsets.only(right: 6),
+                            child: ChoiceChip(
+                              label: Text(
+                                t('Sve ({0})', ['${allListings.length}']),
+                              ),
+                              selected: _category == null,
+                              onSelected: (_) =>
+                                  setState(() => _category = null),
+                            ),
+                          ),
+                          for (final e
+                              in (AppState.countByCategory(
+                                  allListings,
+                                ).entries.toList()
+                                ..sort((a, b) => b.value.compareTo(a.value))))
+                            Padding(
+                              padding: const EdgeInsets.only(right: 6),
+                              child: ChoiceChip(
+                                key: ValueKey('shop-cat-${e.key.name}'),
+                                avatar: Icon(e.key.icon, size: 16),
+                                label: Text('${e.key.label} (${e.value})'),
+                                selected: _category == e.key,
+                                onSelected: (_) => setState(
+                                  () => _category = _category == e.key
+                                      ? null
+                                      : e.key,
+                                ),
+                              ),
+                            ),
+                        ],
                       ),
                     ),
                   ),
-                  const SizedBox(width: 8),
-                  PopupMenuButton<_ShopSort>(
-                    tooltip: t('Sortiraj'),
-                    initialValue: _sort,
-                    onSelected: (v) => setState(() => _sort = v),
-                    itemBuilder: (_) => [
-                      for (final v in _ShopSort.values)
-                        PopupMenuItem(value: v, child: Text(v.label)),
-                    ],
-                    child: Chip(
-                      avatar: const Icon(Icons.sort, size: 18),
-                      label: Text(_sort.label),
-                    ),
-                  ),
-                ],
+                ),
               ),
-            ),
-          if (allListings.length > 3) box(const SizedBox(height: 10)),
-          if (listings.isEmpty)
-            box(
-              Text(
-                t('Nema predmeta.'),
-                style: TextStyle(color: LoopColors.textSecondary),
-              ),
-            )
-          else
-            DeviceGrid(
-              devices: listings,
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              itemBuilder: (context, d) => DeviceCard(
-                device: d,
-                actionLabel: isMe ? t('Detalji') : t('Kupi odmah'),
-                actionIcon: isMe
-                    ? Icons.info_outline
-                    : Icons.shopping_bag_outlined,
-                onAction: isMe
-                    ? () => DeviceDetailScreen.open(context, d)
-                    : () => confirmAndBuy(context, ref, d),
-                onTap: () => DeviceDetailScreen.open(context, d),
-                promoted: user!.isPromoted,
-                sellerView: isMe,
-                isFavorite: state.isFavorite(d.id),
-                onFavorite: isMe ? null : () => toggleFavorite(ref, d),
-              ),
-            ),
-          box(title(t('Aktivne aukcije ({0})', [auctions.length]))),
-          if (auctions.isEmpty)
-            box(
-              Text(
-                t('Nema aukcija'),
-                style: TextStyle(color: LoopColors.textSecondary),
-              ),
-            )
-          else
-            for (final a in auctions)
+              box(const SizedBox(height: 8)),
+            ],
+            if (isMe)
               box(
                 Padding(
                   padding: const EdgeInsets.only(bottom: 10),
-                  // Kartica je rađena za mrežu (popunjava visinu reda).
-                  child: IntrinsicHeight(
-                    child: AuctionCard(auction: a, viewerId: viewer),
+                  child: OutlinedButton.icon(
+                    key: const ValueKey('shop-add'),
+                    onPressed: () => AddDeviceScreen.open(context),
+                    icon: const Icon(Icons.add),
+                    label: Text(t('Dodaj predmet u trgovinu')),
                   ),
                 ),
               ),
-          box(title(t('Ocjene ({0})', [reviews.length]))),
-          if (reviews.isEmpty)
-            box(
-              Text(
-                t('Još nema ocjena'),
-                style: TextStyle(color: LoopColors.textSecondary),
-              ),
-            )
-          else
-            box(
-              Card(
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  child: Column(
-                    children: [
-                      for (final (i, r) in reviews.take(20).indexed) ...[
-                        if (i > 0) const Divider(height: 1),
-                        ReviewTile(review: r),
-                      ],
-                    ],
+            if (listings.isEmpty)
+              box(
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 24),
+                  child: Text(
+                    allListings.isEmpty
+                        ? t('Trgovina još nema oglasa.')
+                        : t('Nema predmeta za odabrani filtar.'),
+                    textAlign: TextAlign.center,
+                    style: TextStyle(color: LoopColors.textSecondary),
                   ),
                 ),
+              )
+            else
+              DeviceGrid(
+                devices: listings,
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                itemBuilder: (context, d) => DeviceCard(
+                  device: d,
+                  actionLabel: isMe ? t('Detalji') : t('Kupi odmah'),
+                  actionIcon: isMe
+                      ? Icons.info_outline
+                      : Icons.shopping_bag_outlined,
+                  onAction: isMe
+                      ? () => DeviceDetailScreen.open(context, d)
+                      : () => confirmAndBuy(context, ref, d),
+                  onTap: () => DeviceDetailScreen.open(context, d),
+                  promoted: user!.isPromoted,
+                  sellerView: isMe,
+                  isFavorite: state.isFavorite(d.id),
+                  onFavorite: isMe ? null : () => toggleFavorite(ref, d),
+                ),
+              ),
+          ],
+          if (_tab == _ShopTab.auctions) ...[
+            if (auctions.isEmpty)
+              box(
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 24),
+                  child: Text(
+                    t('Nema aukcija'),
+                    textAlign: TextAlign.center,
+                    style: TextStyle(color: LoopColors.textSecondary),
+                  ),
+                ),
+              )
+            else
+              for (final a in auctions)
+                box(
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 10),
+                    // Kartica je rađena za mrežu (popunjava visinu reda).
+                    child: IntrinsicHeight(
+                      child: AuctionCard(auction: a, viewerId: viewer),
+                    ),
+                  ),
+                ),
+          ],
+          if (_tab == _ShopTab.reviews) ...[
+            box(
+              _ShopRatingCard(
+                sellerId: user.id,
+                sellerLabel: user.shopTitle,
+                canRate:
+                    !isMe &&
+                    state.currentUser != null &&
+                    !state.currentUser!.isGuest,
               ),
             ),
+            box(const SizedBox(height: 10)),
+            if (reviews.isEmpty)
+              box(
+                Text(
+                  t('Još nema ocjena'),
+                  textAlign: TextAlign.center,
+                  style: TextStyle(color: LoopColors.textSecondary),
+                ),
+              )
+            else
+              box(
+                Card(
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    child: Column(
+                      children: [
+                        for (final (i, r) in reviews.take(30).indexed) ...[
+                          if (i > 0) const Divider(height: 1),
+                          ReviewTile(review: r),
+                        ],
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+          ],
           const SliverToBoxAdapter(child: SizedBox(height: 32)),
         ],
       ),
@@ -457,12 +570,14 @@ class ProfileHeader extends ConsumerWidget {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           SizedBox(
-            height: 150,
+            height: 184,
             child: Stack(
               clipBehavior: Clip.none,
               children: [
+                // Naslovna slika ima svoj prostor; profilna slika samo
+                // prelazi preko donjeg ruba.
                 Positioned.fill(
-                  bottom: 40,
+                  bottom: 44,
                   child: cover == null
                       ? gradient
                       : LocalPhoto(

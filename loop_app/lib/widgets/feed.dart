@@ -9,6 +9,7 @@ import '../providers/app_providers.dart';
 import '../providers/app_state.dart';
 import '../screens/add_device_screen.dart';
 import '../screens/public_profile_screen.dart';
+import '../screens/search_screen.dart';
 import '../screens/shop_screens.dart';
 import '../screens/swipe_feed_screen.dart';
 import '../theme/app_theme.dart';
@@ -108,6 +109,32 @@ class HomeFeed extends ConsumerWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
+        // Pretraga objava i računa.
+        Material(
+          color: LoopColors.surface,
+          borderRadius: BorderRadius.circular(kRadius),
+          child: InkWell(
+            key: const ValueKey('home-search'),
+            borderRadius: BorderRadius.circular(kRadius),
+            onTap: () => SearchScreen.open(context),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+              child: Row(
+                children: [
+                  Icon(Icons.search, color: LoopColors.textSecondary),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      t('Traži objave i račune…'),
+                      style: TextStyle(color: LoopColors.textSecondary),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+        const SizedBox(height: 12),
         if (posts.isNotEmpty) ...[
           _WatchButton(
             count: posts.length,
@@ -132,7 +159,7 @@ class HomeFeed extends ConsumerWidget {
           ),
           const SizedBox(height: 6),
           SizedBox(
-            height: 250,
+            height: 262,
             child: ListView.separated(
               key: const ValueKey('home-shops'),
               scrollDirection: Axis.horizontal,
@@ -261,45 +288,87 @@ class _OwnShopBanner extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final state = ref.watch(appProvider);
     final listings = state.listingsOf(user.id).length;
+    final cover = user.coverPath;
+    const white = TextStyle(
+      color: Colors.white,
+      shadows: [Shadow(blurRadius: 6, color: Colors.black54)],
+    );
+    final background = cover == null
+        ? const DecoratedBox(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [Color(0xFF7B2FF7), Color(0xFFFF2D55)],
+              ),
+            ),
+          )
+        : LocalPhoto(path: cover, cacheWidth: 1000, fallback: const SizedBox());
     return Card(
-      color: LoopColors.lilac,
-      child: Padding(
-        padding: const EdgeInsets.all(14),
-        child: Row(
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: () => PublicProfileScreen.open(context, user.id),
+        child: Stack(
           children: [
-            UserAvatar(user: user, size: 48),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+            // Naslovna slika trgovine je pozadina kartice (cijela vidljiva,
+            // samo s tamnim prijelazom ispod teksta).
+            Positioned.fill(child: background),
+            const Positioned.fill(
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.centerLeft,
+                    end: Alignment.centerRight,
+                    colors: [Colors.black54, Colors.transparent],
+                  ),
+                ),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.all(14),
+              child: Row(
                 children: [
-                  Text(
-                    listings == 0
-                        ? t('Svaki račun je webshop — otvori svoj!')
-                        : t('Tvoja trgovina {0}', [user.shopTitle]),
-                    style: const TextStyle(
-                      fontWeight: FontWeight.w900,
-                      color: Colors.black87,
+                  Container(
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      border: Border.all(color: Colors.white, width: 2),
+                    ),
+                    child: UserAvatar(user: user, size: 48),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          listings == 0
+                              ? t('Svaki račun je webshop — otvori svoj!')
+                              : t('Tvoja trgovina {0}', [user.shopTitle]),
+                          style: white.copyWith(fontWeight: FontWeight.w900),
+                        ),
+                        Text(
+                          t('{0} oglasa · {1} pratitelja · {2} prodaja', [
+                            '$listings',
+                            '${state.followersOf(user.id)}',
+                            '${state.salesCountOf(user.id)}',
+                          ]),
+                          style: white.copyWith(fontSize: 12),
+                        ),
+                      ],
                     ),
                   ),
-                  Text(
-                    t('{0} oglasa · {1} pratitelja · {2} prodaja', [
-                      '$listings',
-                      '${state.followersOf(user.id)}',
-                      '${state.salesCountOf(user.id)}',
-                    ]),
-                    style: const TextStyle(color: Colors.black54, fontSize: 12),
+                  const SizedBox(width: 8),
+                  FilledButton(
+                    key: const ValueKey('my-shop-banner'),
+                    style: FilledButton.styleFrom(
+                      backgroundColor: Colors.white,
+                      foregroundColor: Colors.black,
+                    ),
+                    onPressed: listings == 0
+                        ? () => AddDeviceScreen.open(context)
+                        : () => PublicProfileScreen.open(context, user.id),
+                    child: Text(listings == 0 ? t('Objavi') : t('Otvori')),
                   ),
                 ],
               ),
-            ),
-            const SizedBox(width: 8),
-            FilledButton(
-              key: const ValueKey('my-shop-banner'),
-              onPressed: listings == 0
-                  ? () => AddDeviceScreen.open(context)
-                  : () => PublicProfileScreen.open(context, user.id),
-              child: Text(listings == 0 ? t('Objavi') : t('Otvori')),
             ),
           ],
         ),
@@ -308,16 +377,32 @@ class _OwnShopBanner extends ConsumerWidget {
   }
 }
 
-/// Kartica trgovine: avatar, naziv, ocjena, pratitelji, 3 oglasa, Prati.
+/// Kartica trgovine: naslovna slika, profilna slika preko ruba, naziv,
+/// pratitelji i ocjena, tri oglasa i "Prati".
 class ShopCard extends ConsumerWidget {
-  const ShopCard({super.key, required this.user, this.width = 200});
+  const ShopCard({super.key, required this.user, this.width = 210});
   final AppUser user;
   final double width;
+
+  static const coverHeight = 78.0;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final state = ref.watch(appProvider);
     final items = state.listingsOf(user.id).take(3).toList();
+    final rating = state.ratingOf(user.id);
+    final gradient = DecoratedBox(
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            LoopColors.accent.withValues(alpha: 0.85),
+            const Color(0xFF7B2FF7),
+          ],
+        ),
+      ),
+    );
     return SizedBox(
       width: width,
       child: Card(
@@ -329,78 +414,74 @@ class ShopCard extends ConsumerWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              // Naslovna slika trgovine (ili boja).
+              // Naslovna slika + profilna slika preko donjeg ruba.
               SizedBox(
-                height: 44,
+                height: coverHeight + 24,
                 child: Stack(
-                  fit: StackFit.expand,
+                  clipBehavior: Clip.none,
                   children: [
-                    user.coverPath == null
-                        ? DecoratedBox(
-                            decoration: BoxDecoration(
-                              gradient: LinearGradient(
-                                colors: [
-                                  LoopColors.accent.withValues(alpha: 0.7),
-                                  const Color(0xFF7B2FF7),
-                                ],
-                              ),
+                    Positioned(
+                      left: 0,
+                      right: 0,
+                      top: 0,
+                      height: coverHeight,
+                      child: user.coverPath == null
+                          ? gradient
+                          : LocalPhoto(
+                              path: user.coverPath!,
+                              cacheWidth: 600,
+                              fallback: gradient,
                             ),
-                          )
-                        : LocalPhoto(
-                            path: user.coverPath!,
-                            cacheWidth: 500,
-                            fallback: const SizedBox.shrink(),
-                          ),
+                    ),
                     if (user.isPromoted)
                       const Positioned(
                         top: 6,
                         right: 6,
                         child: PromotedBadge(small: true),
                       ),
+                    Positioned(
+                      left: 10,
+                      bottom: 0,
+                      child: Container(
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          border: Border.all(
+                            color: LoopColors.surface,
+                            width: 3,
+                          ),
+                        ),
+                        child: UserAvatar(user: user, size: 46),
+                      ),
+                    ),
                   ],
                 ),
               ),
               Expanded(
                 child: Padding(
-                  padding: const EdgeInsets.all(10),
+                  padding: const EdgeInsets.fromLTRB(10, 4, 10, 10),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Row(
-                        children: [
-                          UserAvatar(user: user, size: 40),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  user.shopTitle,
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: const TextStyle(
-                                    fontWeight: FontWeight.w900,
-                                  ),
-                                ),
-                                Text(
-                                  [
-                                    t('{0} pratitelja', [
-                                      '${state.followersOf(user.id)}',
-                                    ]),
-                                    if (state.ratingOf(user.id).count > 0)
-                                      '★ ${state.ratingOf(user.id).average.toStringAsFixed(1)}',
-                                  ].join(' · '),
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: TextStyle(
-                                    color: LoopColors.textSecondary,
-                                    fontSize: 12,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
+                      Text(
+                        user.shopTitle,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(fontWeight: FontWeight.w900),
+                      ),
+                      Text(
+                        [
+                          t('{0} pratitelja', [
+                            '${state.followersOf(user.id)}',
+                          ]),
+                          if (rating.count > 0)
+                            '★ ${rating.average.toStringAsFixed(1)}',
+                        ].join(' · '),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          color: LoopColors.textSecondary,
+                          fontSize: 12,
+                        ),
                       ),
                       const SizedBox(height: 8),
                       Row(
@@ -410,13 +491,13 @@ class ShopCard extends ConsumerWidget {
                               child: Padding(
                                 padding: EdgeInsets.only(right: i < 2 ? 4 : 0),
                                 child: SizedBox(
-                                  height: 56,
+                                  height: 48,
                                   child: i < items.length
                                       ? LayoutBuilder(
                                           builder: (context, c) => Center(
                                             child: ItemThumb(
                                               device: items[i],
-                                              size: min(c.maxWidth, 56),
+                                              size: min(c.maxWidth, 48),
                                             ),
                                           ),
                                         )

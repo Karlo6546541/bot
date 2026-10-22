@@ -50,11 +50,13 @@ class ProfileScreen extends ConsumerWidget {
                 if (user.isGuest)
                   const _GuestCard()
                 else ...[
+                  _SectionTitle(t('Moja trgovina'), Icons.storefront_outlined),
                   _ShopCard(user: user),
-                  const SizedBox(height: 12),
-                  _AccountCard(user: user),
                 ],
-                const SizedBox(height: 12),
+                _SectionTitle(
+                  t('Novac i kupnje'),
+                  Icons.account_balance_wallet_outlined,
+                ),
                 Card(
                   child: Column(
                     children: [
@@ -87,7 +89,7 @@ class ProfileScreen extends ConsumerWidget {
                 const SizedBox(height: 12),
                 Text(
                   t(
-                    'Stanje je u eurima. Prodaja je bez naknade, kupac plaća 2%. Status: Bronze < 2000 €, Silver 2000–5000 €, Gold > 5000 € (stanje + portfolio).',
+                    'Stanje je u eurima. Status: Bronze < 2000 €, Silver 2000–5000 €, Gold > 5000 € (stanje + portfolio).',
                   ),
                   style: TextStyle(
                     color: LoopColors.textSecondary,
@@ -123,9 +125,13 @@ class ProfileScreen extends ConsumerWidget {
                     ]),
                   ),
                 ),
-                const SizedBox(height: 12),
+                if (!user.isGuest) ...[
+                  _SectionTitle(t('Račun'), Icons.manage_accounts_outlined),
+                  _AccountCard(user: user),
+                ],
+                _SectionTitle(t('Postavke'), Icons.tune),
                 const _SyncStatusTile(),
-                SizedBox(height: 20),
+                SizedBox(height: 12),
                 Text(
                   t('Izgled'),
                   style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16),
@@ -605,4 +611,26 @@ class _AccountCard extends ConsumerWidget {
       ),
     );
   }
+}
+
+/// Naslov odjeljka na profilu.
+class _SectionTitle extends StatelessWidget {
+  const _SectionTitle(this.text, this.icon);
+  final String text;
+  final IconData icon;
+
+  @override
+  Widget build(BuildContext context) => Padding(
+    padding: const EdgeInsets.fromLTRB(4, 20, 4, 8),
+    child: Row(
+      children: [
+        Icon(icon, size: 20, color: LoopColors.textSecondary),
+        const SizedBox(width: 8),
+        Text(
+          text,
+          style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 17),
+        ),
+      ],
+    ),
+  );
 }

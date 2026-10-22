@@ -117,7 +117,7 @@ class PortfolioScreen extends ConsumerWidget {
             ),
           ),
         ),
-        if (devices.isEmpty)
+        if (devices.isEmpty && state.myDigitalPurchases.isEmpty)
           SliverFillRemaining(
             hasScrollBody: false,
             child: EmptyState(
@@ -133,8 +133,20 @@ class PortfolioScreen extends ConsumerWidget {
           )
         else
           DeviceGrid(
-            devices: devices,
+            // Kupljeni digitalni proizvodi su također u portfoliju.
+            devices: [...devices, ...state.myDigitalPurchases],
             itemBuilder: (context, d) {
+              if (d.ownerId != user.id) {
+                return DeviceCard(
+                  device: d,
+                  actionLabel: t('Preuzmi'),
+                  actionIcon: Icons.download,
+                  onAction: () => downloadDigital(context, ref, d),
+                  onTap: () => DeviceDetailScreen.open(context, d),
+                  sellerView: true,
+                  badge: t('✓ Kupljeno'),
+                );
+              }
               final auction = state.activeAuctionFor(d.id);
               // Predmet na aukciji: umjesto prodaje vodi na aukciju.
               return DeviceCard(

@@ -437,12 +437,20 @@ class AppState {
       for (final u in users)
         if (u.pendingDeletion) u.id,
     };
+    // Kupljeni digitalni proizvod je u mom portfoliju, ne u Marketu.
+    final bought = <String>{
+      if (currentUserId != null)
+        for (final t in transactions)
+          if (t.type == TransactionType.buy && t.buyerId == currentUserId)
+            t.deviceId,
+    };
     return devices
         .where(
           (d) =>
               d.isForSale &&
               d.ownerId != currentUserId &&
-              !hidden.contains(d.ownerId),
+              !hidden.contains(d.ownerId) &&
+              !(d.isDigital && bought.contains(d.id)),
         )
         .toList();
   }

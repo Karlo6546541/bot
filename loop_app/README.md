@@ -162,6 +162,22 @@ ne sinkronizira; online prijavu vodi Supabase Auth i lozinke ne prolaze kroz na�
   Vlasnik prihvaća ili odbija; nakon prihvaćanja predmeti mijenjaju vlasnike, nadoplata
   ide vlasniku u cijelosti (ponuditelj plaća + 2%), a oboje biraju dostavu u *Moje dostave*.
 
+## Trgovina, pretraga i kupljene stvari
+
+- **Trgovina (javni profil)**: naslovna slika s profilnom slikom preko ruba, brojke
+  (pratitelji, prati, prodaje, oglasi), *Prati* i *Poruka*, te kartice **Trgovina /
+  Aukcije / Ocjene**.
+- **Kategorije trgovine** nastaju same: svaki objavljeni predmet ulazi u svoju kategoriju,
+  a iznad oglasa je filtar (Sve, Mobiteli (2), Kamere (1)…), uz pretragu i sortiranje.
+- **Pretraga** (ikona povećala gore ili polje na početnoj): kartice **Objave** (oglasi i
+  aukcije, otvaraju se u swipe feedu) i **Računi** (trgovine po korisničkom imenu, nazivu
+  trgovine, gradu ili opisu), uz povijest pretraga.
+- **Kupljeno ide u portfolio**: kupljeni predmet prelazi kupcu i nestaje iz Marketa;
+  kupljeni digitalni proizvodi više se ne prikazuju u tvom Marketu, nego u portfoliju
+  (oznaka „✓ Kupljeno”, gumb *Preuzmi*).
+- **Ponuda cijene** se upisuje u donjem listu koji se podigne iznad tipkovnice.
+- **Moj profil** je podijeljen u odjeljke: Moja trgovina, Novac i kupnje, Račun, Postavke.
+
 ## Aukcije: automatska ponuda, Kupi odmah, zvono
 
 - **Licitiranje u jednom listu** (gumb *Licitiraj* na aukciji ili u swipe feedu): brzi
