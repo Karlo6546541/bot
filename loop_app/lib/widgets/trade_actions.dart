@@ -450,7 +450,12 @@ Future<bool> showListDialog(
   if (blockGuest(context)) return false;
   final result = await showDialog<(double, int?)>(
     context: context,
-    builder: (_) => _ListDialog(device: device),
+    // Pri vrhu i bez pomaka za tipkovnicu (mobilni preglednik).
+    builder: (ctx) => MediaQuery.removeViewInsets(
+      context: ctx,
+      removeBottom: true,
+      child: _ListDialog(device: device),
+    ),
   );
   if (result == null || !context.mounted) return false;
   final (price, quantity) = result;
@@ -510,6 +515,9 @@ class _ListDialogState extends State<_ListDialog> {
   Widget build(BuildContext context) {
     final v = _value;
     return AlertDialog(
+      alignment: Alignment.topCenter,
+      insetPadding: const EdgeInsets.fromLTRB(16, 24, 16, 24),
+      scrollable: true,
       title: Text(
         widget.device.isListed ? t('Promijeni cijenu') : t('Objavi u Marketu'),
       ),

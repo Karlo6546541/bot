@@ -545,7 +545,9 @@ String discountLabel(Device d) => d.discountUntil == null
 
 // --------------------------------------------------------------- cjenkanje
 
-/// Unos iznosa (ponuda ili protuponuda) u malom skočnom prozoru.
+/// Unos iznosa (ponuda ili protuponuda) u malom skočnom prozoru pri vrhu
+/// ekrana. Prozor se ne pomiče kad se otvori tipkovnica (na mobilnom
+/// pregledniku bi se inače pomaknuo dvaput i ostao odrezan).
 Future<double?> _amountDialog(
   BuildContext context, {
   required String title,
@@ -554,11 +556,15 @@ Future<double?> _amountDialog(
   required double max,
 }) => showDialog<double>(
   context: context,
-  builder: (_) => _AmountDialog(
-    title: title,
-    message: message,
-    suggestion: suggestion,
-    max: max,
+  builder: (ctx) => MediaQuery.removeViewInsets(
+    context: ctx,
+    removeBottom: true,
+    child: _AmountDialog(
+      title: title,
+      message: message,
+      suggestion: suggestion,
+      max: max,
+    ),
   ),
 );
 
@@ -607,7 +613,8 @@ class _AmountDialogState extends State<_AmountDialog> {
   @override
   Widget build(BuildContext context) {
     return Dialog(
-      insetPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
+      alignment: Alignment.topCenter,
+      insetPadding: const EdgeInsets.fromLTRB(16, 24, 16, 24),
       child: ConstrainedBox(
         constraints: const BoxConstraints(maxWidth: 380),
         child: SingleChildScrollView(
