@@ -84,6 +84,10 @@ class StorageService {
   static const _howItWorksKey = 'howItWorksDismissed';
   static const _pendingAuthKey = 'pendingAuth';
   static const _searchHistoryKey = 'searchHistory';
+
+  /// Promjene koje još nisu poslane u online bazu ("tablica/id") — čuvaju
+  /// se i nakon osvježavanja stranice.
+  static const _pendingSyncKey = 'pendingSync';
   static const maxSearchHistory = 10;
 
   late Box<Map> _users;
@@ -564,6 +568,18 @@ class StorageService {
   // ---------------------------------------------------------- sinkronizacija
 
   /// Svi sinkronizirani zapisi: tablica → (id → podaci).
+  List<String> get pendingSync =>
+      (_session.get(_pendingSyncKey) as List?)?.cast<String>() ?? const [];
+
+  Future<void> setPendingSync(Iterable<String> keys) =>
+      _session.put(_pendingSyncKey, keys.toList());
+
+  /// Trenutni lokalni zapis (`null` ako ne postoji).
+  Map<String, dynamic>? rawRow(String table, String id) {
+    final v = _tables[table]?.get(id);
+    return v == null ? null : Map<String, dynamic>.from(v);
+  }
+
   Map<String, Map<String, Map<String, dynamic>>> exportAll() => {
     for (final t in syncedTables)
       t: {

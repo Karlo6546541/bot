@@ -486,7 +486,11 @@ class AppState {
 
   /// Market = predmeti platforme + predmeti koje su drugi korisnici
   /// objavili (bez blokiranih i računa koji se brišu).
-  List<Device> get marketDevices {
+  List<Device> get marketDevices => marketDevicesFor();
+
+  /// Predmeti u Marketu. [includeMine]: i moji oglasi (Market ih prikazuje
+  /// s oznakom "Tvoj oglas"; feed i preporuke ih ne prikazuju).
+  List<Device> marketDevicesFor({bool includeMine = false}) {
     final hidden = <String>{
       ...?currentUser?.blockedIds,
       for (final u in users)
@@ -503,7 +507,7 @@ class AppState {
         .where(
           (d) =>
               d.isForSale &&
-              d.ownerId != currentUserId &&
+              (includeMine || d.ownerId != currentUserId) &&
               !hidden.contains(d.ownerId) &&
               !(d.isDigital && bought.contains(d.id)),
         )

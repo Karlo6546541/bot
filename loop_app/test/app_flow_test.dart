@@ -467,6 +467,10 @@ void main() {
     for (final tab in ['Market', 'Auctions', 'Activity', 'Profile']) {
       await tester.tap(find.text(tab).last);
       await tester.pumpAndSettle();
+      // Moji oglasi su i u Marketu (s oznakom), da se vidi da su objavljeni.
+      if (tab == 'Market') {
+        expect(find.text('Your listing'), findsWidgets);
+      }
     }
     expect(find.text('Edit profile'), findsOneWidget);
     await tester.scrollUntilVisible(

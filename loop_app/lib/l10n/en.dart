@@ -1448,4 +1448,11 @@ const kEn = <String, String>{
   'Tvoje aukcije': 'Your auctions',
   'Vodiš ✓': 'Leading ✓',
   '{0} · još {1} slične': '{0} · {1} more like this',
+  'Online baza: {0} promjena čeka slanje':
+      'Online database: {0} changes waiting to send',
+  'Pošalji sada': 'Send now',
+  'Tvoj oglas': 'Your listing',
+  'Uredi oglas': 'Edit listing',
+  'Zadnja greška: {0}': 'Last error: {0}',
+  'Šalje se automatski…': 'Sending automatically…',
 };

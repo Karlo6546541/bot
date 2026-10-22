@@ -47,7 +47,7 @@ class _MarketScreenState extends ConsumerState<MarketScreen> {
   Widget build(BuildContext context) {
     final state = ref.watch(appProvider);
     final f = ref.watch(marketFilterProvider);
-    final all = state.marketDevices;
+    final all = state.marketDevicesFor(includeMine: true);
     final devices = f.apply(all, state);
     final credits = state.currentUser?.credits ?? 0;
     final sectionCounts = <ItemSection, int>{};
@@ -274,32 +274,43 @@ class _MarketScreenState extends ConsumerState<MarketScreen> {
           DeviceGrid(
             devices: devices,
             padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
-            itemBuilder: (context, d) => DeviceCard(
-              device: d,
-              // Kupljeni digitalni proizvod se samo preuzima.
-              actionLabel: d.isDigital && state.hasPurchased(d.id)
-                  ? t('Preuzmi')
-                  : t('Kupi odmah'),
-              actionIcon: d.isDigital
-                  ? Icons.download
-                  : Icons.shopping_bag_outlined,
-              onAction: () => confirmAndBuy(context, ref, d),
-              onTap: () {
-                // Pretraga koja je dovela do oglasa ide u povijest.
-                if (f.query.trim().isNotEmpty) {
-                  ref.read(appProvider.notifier).addSearch(f.query);
-                }
-                DeviceDetailScreen.open(context, d);
-              },
-              promoted: state.isPromotedItem(d),
-              isFavorite: state.isFavorite(d.id),
-              onFavorite: () => toggleFavorite(ref, d),
-              badge: d.isDigital && state.hasPurchased(d.id)
-                  ? t('✓ Kupljeno')
-                  : d.isListed
-                  ? state.userLabel(d.ownerId)
-                  : null,
-            ),
+            itemBuilder: (context, d) => d.ownerId == state.currentUserId
+                ? DeviceCard(
+                    device: d,
+                    actionLabel: t('Uredi oglas'),
+                    actionIcon: Icons.edit_outlined,
+                    onAction: () => DeviceDetailScreen.open(context, d),
+                    onTap: () => DeviceDetailScreen.open(context, d),
+                    sellerView: true,
+                    promoted: state.isPromotedItem(d),
+                    badge: t('Tvoj oglas'),
+                  )
+                : DeviceCard(
+                    device: d,
+                    // Kupljeni digitalni proizvod se samo preuzima.
+                    actionLabel: d.isDigital && state.hasPurchased(d.id)
+                        ? t('Preuzmi')
+                        : t('Kupi odmah'),
+                    actionIcon: d.isDigital
+                        ? Icons.download
+                        : Icons.shopping_bag_outlined,
+                    onAction: () => confirmAndBuy(context, ref, d),
+                    onTap: () {
+                      // Pretraga koja je dovela do oglasa ide u povijest.
+                      if (f.query.trim().isNotEmpty) {
+                        ref.read(appProvider.notifier).addSearch(f.query);
+                      }
+                      DeviceDetailScreen.open(context, d);
+                    },
+                    promoted: state.isPromotedItem(d),
+                    isFavorite: state.isFavorite(d.id),
+                    onFavorite: () => toggleFavorite(ref, d),
+                    badge: d.isDigital && state.hasPurchased(d.id)
+                        ? t('✓ Kupljeno')
+                        : d.isListed
+                        ? state.userLabel(d.ownerId)
+                        : null,
+                  ),
           ),
       ],
     );

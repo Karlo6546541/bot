@@ -37,6 +37,14 @@ class SyncService {
   /// Neposlane promjene (npr. dok je mreža pala) — šalju se ponovno.
   final _pending = <String, (String, String, Map<String, dynamic>?)>{};
   Timer? _retry;
+  bool _flushing = false;
+  bool _again = false;
+
+  /// Uzastopni neuspjesi slanja (za postupno dulje čekanje).
+  int _failedRounds = 0;
+
+  /// Broj neposlanih promjena (za prikaz u Profilu).
+  final pendingListenable = ValueNotifier<int>(0);
 
   /// Tablice koje postoje u online bazi (ostale rade samo lokalno).
   List<String> _tables = StorageService.syncedTables;
@@ -71,6 +79,7 @@ class SyncService {
     _timeout = timeout;
     // Lokalne promjene se bilježe od početka; šalju se kad veza proradi.
     _storage.onLocalChange = _queue;
+    _restorePending();
     await _connect();
   }
 
@@ -112,6 +121,7 @@ class SyncService {
         }
       }
       _pending.removeWhere((_, v) => !_tables.contains(v.$1));
+      _changed();
       await _sub?.cancel();
       _sub = _remote.changes(_tables).listen(_onRemote);
       _attempt = 0;
@@ -151,32 +161,93 @@ class SyncService {
     await _pushAll();
   }
 
+  /// Neposlane promjene iz prošlog pokretanja (npr. oglas objavljen pa
+  /// stranica osvježena prije slanja) — šalju se s trenutnim podacima.
+  void _restorePending() {
+    for (final key in _storage.pendingSync) {
+      final slash = key.indexOf('/');
+      if (slash <= 0) continue;
+      final table = key.substring(0, slash);
+      final id = key.substring(slash + 1);
+      _pending[key] = (table, id, _storage.rawRow(table, id));
+    }
+    _changed();
+  }
+
+  void _changed() {
+    pendingListenable.value = _pending.length;
+    unawaited(_storage.setPendingSync(_pending.keys).catchError((_) {}));
+  }
+
   void _queue(String table, String id, Map<String, dynamic>? data) {
     if (!_tables.contains(table)) return;
     _pending['$table/$id'] = (table, id, data);
+    _changed();
     _flush();
+  }
+
+  /// Ručno "Pošalji sada".
+  Future<void> flushNow() async {
+    _retry?.cancel();
+    _retry = null;
+    _failedRounds = 0;
+    await _flush();
+  }
+
+  void _scheduleRetry() {
+    if (_retry != null) return;
+    // 5 s, 10 s, 20 s… najviše 1 min.
+    final seconds = (5 * (1 << _failedRounds.clamp(0, 4))).clamp(5, 60);
+    _retry = Timer(Duration(seconds: seconds), () {
+      _retry = null;
+      _flush();
+    });
   }
 
   Future<void> _flush() async {
     if (status != SyncStatus.online) return; // čeka vezu
-    final batch = Map.of(_pending);
-    for (final e in batch.entries) {
-      final (table, id, data) = e.value;
-      try {
-        if (data == null) {
-          await _remote.delete(table, id);
-        } else {
-          await _remote.upsert(table, id, data);
+    if (_flushing) {
+      _again = true;
+      return;
+    }
+    if (_pending.isEmpty) return;
+    // Bez prijave baza ne prima izmjene — čekaj prijavu (ništa se ne gubi).
+    if (!_remote.canWrite) {
+      _scheduleRetry();
+      return;
+    }
+    _flushing = true;
+    var failed = false;
+    try {
+      do {
+        _again = false;
+        for (final e in Map.of(_pending).entries) {
+          final (table, id, data) = e.value;
+          try {
+            if (data == null) {
+              await _remote.delete(table, id);
+            } else {
+              await _remote.upsert(table, id, data);
+            }
+            // Ukloni samo ako u međuvremenu nije stigla novija verzija.
+            if (identical(_pending[e.key], e.value)) _pending.remove(e.key);
+          } catch (err) {
+            // Jedan zapis koji ne prolazi ne smije zaustaviti ostale
+            // (npr. novi oglas) — nastavi i pokušaj ga ponovno kasnije.
+            failed = true;
+            lastError = '$err';
+          }
         }
-        // Ukloni samo ako u međuvremenu nije stigla novija verzija.
-        if (identical(_pending[e.key], e.value)) _pending.remove(e.key);
-      } catch (_) {
-        _retry ??= Timer(const Duration(seconds: 5), () {
-          _retry = null;
-          _flush();
-        });
-        return;
-      }
+      } while (_again);
+    } finally {
+      _flushing = false;
+      _changed();
+    }
+    if (failed) {
+      _failedRounds++;
+      _scheduleRetry();
+    } else {
+      _failedRounds = 0;
     }
   }
 

@@ -21,6 +21,9 @@ abstract class RemoteStore {
   );
   Future<void> upsert(String table, String id, Map<String, dynamic> data);
   Future<void> delete(String table, String id);
+
+  /// Smije li pisati (online baza prima izmjene samo od prijavljenih).
+  bool get canWrite;
   Future<void> clearAll(List<String> tables);
 
   /// Promjene drugih korisnika u stvarnom vremenu.
@@ -70,6 +73,9 @@ class SupabaseRemoteStore implements RemoteStore {
         r['id'] as String: Map<String, dynamic>.from(r['data'] as Map),
     };
   }
+
+  @override
+  bool get canWrite => _client.auth.currentSession != null;
 
   @override
   Future<void> upsert(String table, String id, Map<String, dynamic> data) =>

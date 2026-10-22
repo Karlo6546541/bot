@@ -234,9 +234,12 @@ class _SyncStatusTile extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final sync = ref.watch(syncProvider);
     if (sync == null) return _tile(context, null, null);
-    return ValueListenableBuilder<SyncStatus>(
-      valueListenable: sync.statusListenable,
-      builder: (context, _, _) => _tile(context, sync, sync.status),
+    return ListenableBuilder(
+      listenable: Listenable.merge([
+        sync.statusListenable,
+        sync.pendingListenable,
+      ]),
+      builder: (context, _) => _tile(context, sync, sync.status),
     );
   }
 
@@ -249,6 +252,13 @@ class _SyncStatusTile extends ConsumerWidget {
           'Pokreni supabase/schema.sql u Supabase SQL Editoru pa osvježi stranicu. Do tada ostaju samo na ovom uređaju: {0}',
           [sync.missingTables.join(', ')],
         ),
+      ),
+      SyncStatus.online when sync!.pendingCount > 0 => (
+        '🟡',
+        t('Online baza: {0} promjena čeka slanje', [sync.pendingCount]),
+        sync.lastError == null
+            ? t('Šalje se automatski…')
+            : t('Zadnja greška: {0}', [sync.lastError!]),
       ),
       SyncStatus.online => (
         '🟢',
@@ -302,9 +312,14 @@ class _SyncStatusTile extends ConsumerWidget {
             ),
           ),
           if (status == SyncStatus.error && sync != null)
+            TextButton(onPressed: sync.retry, child: Text(t('Pokušaj ponovno')))
+          else if (status == SyncStatus.online &&
+              sync != null &&
+              sync.pendingCount > 0)
             TextButton(
-              onPressed: sync.retry,
-              child: Text(t('Pokušaj ponovno')),
+              key: const ValueKey('sync-flush'),
+              onPressed: sync.flushNow,
+              child: Text(t('Pošalji sada')),
             ),
         ],
       ),

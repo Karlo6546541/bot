@@ -16,6 +16,12 @@ class FakeRemote implements RemoteStore {
   int upserts = 0;
 
   @override
+  bool canWrite = true;
+
+  /// Zapisi koje baza odbija (npr. pogrešni podaci).
+  final rejected = <String>{};
+
+  @override
   Future<Map<String, Map<String, Map<String, dynamic>>>> pullAll(
     List<String> tables,
   ) async {
@@ -25,6 +31,7 @@ class FakeRemote implements RemoteStore {
 
   @override
   Future<void> upsert(String table, String id, Map<String, dynamic> d) async {
+    if (rejected.contains('$table/$id')) throw Exception('odbijeno');
     upserts++;
     (data[table] ??= {})[id] = d;
   }
@@ -168,5 +175,56 @@ void main() {
     await sync.resetRemote();
     expect(remote.data['users']!.containsKey('strani'), isFalse);
     expect(remote.data['users'], hasLength(4));
+  });
+
+  test(
+    'zapis koji baza odbija ne zaustavlja ostale (npr. novi oglas)',
+    () async {
+      final sync = SyncService(storage, remote);
+      await sync.start();
+      // Profil demo korisnika baza odbija…
+      remote.rejected.add('users/${SeedData.demoUserId}');
+      await TradeService(
+        storage,
+      ).sell(userId: SeedData.demoUserId, deviceId: 'seed-9');
+      await Future<void>.delayed(Duration.zero);
+      // …ali predmet i transakcija ipak stižu.
+      expect(remote.data['devices']!['seed-9']!['ownerId'], isNull);
+      expect(remote.data['transactions'], hasLength(1));
+      expect(sync.pendingCount, 1);
+      expect(sync.lastError, contains('odbijeno'));
+      // Kad baza opet prima, šalje se i ostatak.
+      remote.rejected.clear();
+      await sync.flushNow();
+      expect(sync.pendingCount, 0);
+      expect(remote.data['users']![SeedData.demoUserId]!['credits'], 1560);
+      await sync.dispose();
+    },
+  );
+
+  test('bez prijave promjene čekaju, nakon osvježavanja se ne gube', () async {
+    var sync = SyncService(storage, remote);
+    await sync.start();
+    remote.canWrite = false; // odjavljen / sesija istekla
+    final before = remote.upserts;
+    final demo = storage.userById(SeedData.demoUserId)!;
+    await storage.putUser(demo.copyWith(credits: 4321));
+    await Future<void>.delayed(Duration.zero);
+    expect(remote.upserts, before); // ništa nije poslano
+    expect(storage.pendingSync, ['users/${SeedData.demoUserId}']);
+    await sync.dispose();
+
+    // "Osvježavanje stranice": novo pokretanje povlači bazu, ali lokalna
+    // neposlana promjena ostaje i šalje se nakon prijave.
+    sync = SyncService(storage, remote);
+    await sync.start();
+    expect(storage.userById(SeedData.demoUserId)!.credits, 4321);
+    expect(sync.pendingCount, 1);
+    remote.canWrite = true;
+    await sync.flushNow();
+    expect(remote.data['users']![SeedData.demoUserId]!['credits'], 4321);
+    expect(sync.pendingCount, 0);
+    expect(storage.pendingSync, isEmpty);
+    await sync.dispose();
   });
 }

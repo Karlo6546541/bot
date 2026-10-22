@@ -226,6 +226,9 @@ class AppController extends Notifier<AppState> {
     if (result is SignedIn) {
       await _trade.ensureHistory(result.user.id);
       await _storage.saveSession(userId: result.user.id);
+      // Promjene koje su čekale prijavu odmah idu u online bazu.
+      final sync = ref.read(syncProvider);
+      if (sync != null) unawaited(sync.flushNow());
       if (result.restored) {
         showLoopSnackBar(t('Dobro došao natrag! Brisanje računa je otkazano.'));
       }
