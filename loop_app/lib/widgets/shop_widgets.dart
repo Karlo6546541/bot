@@ -21,12 +21,15 @@ import 'trade_actions.dart';
 /// Javna adresa aplikacije (kad se ne pokreće na webu).
 const kPublicUrl = 'https://karlo6546541.github.io/bot/';
 
-/// Poveznica na oglas (`?item=<id>`) ili trgovinu (`?shop=<korisnik>`).
-String publicLink({String? item, String? shop}) {
+/// Poveznica na oglas (`?item=<id>`), trgovinu (`?shop=<korisnik>`) ili
+/// listu želja (`?list=<korisnikId>.<listaId>`).
+String publicLink({String? item, String? shop, String? list}) {
   final base = kIsWeb ? Uri.base : Uri.parse(kPublicUrl);
   final root = '${base.scheme}://${base.authority}${base.path}';
   final query = item != null
       ? 'item=${Uri.encodeQueryComponent(item)}'
+      : list != null
+      ? 'list=${Uri.encodeQueryComponent(list)}'
       : 'shop=${Uri.encodeQueryComponent(shop ?? '')}';
   return '$root?$query';
 }

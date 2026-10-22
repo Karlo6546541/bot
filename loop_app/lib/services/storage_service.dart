@@ -8,6 +8,7 @@ import '../models/chat_message.dart';
 import '../models/report.dart';
 import '../models/review.dart';
 import '../models/price_offer.dart';
+import '../models/story.dart';
 import '../models/swap_offer.dart';
 import '../models/auction.dart';
 import '../models/delivery.dart';
@@ -35,6 +36,10 @@ class StorageService {
   static const _offersBox = 'offers';
   static const _bargainsBox = 'bargains';
 
+  /// Priče trgovina (24 h).
+  static const _storiesBox = 'stories';
+  static const _seenStoriesKey = 'seenStories';
+
   /// Broj prikaza objava (oglasa): id predmeta → {count}.
   static const _viewsBox = 'views';
 
@@ -60,6 +65,7 @@ class StorageService {
     _offersBox,
     _bargainsBox,
     _viewsBox,
+    _storiesBox,
   ];
 
   /// Povećaj kad se seed proširi — postojeće instalacije tada dobiju
@@ -96,6 +102,7 @@ class StorageService {
   late Box<Map> _offers;
   late Box<Map> _bargains;
   late Box<Map> _views;
+  late Box<Map> _stories;
 
   /// Poziva se nakon svake lokalne promjene (za sinkronizaciju s online
   /// bazom). `data == null` znači brisanje.
@@ -116,6 +123,7 @@ class StorageService {
     _offersBox: _offers,
     _bargainsBox: _bargains,
     _viewsBox: _views,
+    _storiesBox: _stories,
   };
 
   /// Svi zapisi prolaze ovuda kako bi ih sinkronizacija vidjela.
@@ -160,6 +168,7 @@ class StorageService {
     _offers = await Hive.openBox<Map>(_offersBox, bytes: bytes);
     _bargains = await Hive.openBox<Map>(_bargainsBox, bytes: bytes);
     _views = await Hive.openBox<Map>(_viewsBox, bytes: bytes);
+    _stories = await Hive.openBox<Map>(_storiesBox, bytes: bytes);
 
     if (_session.get(_seededKey) != true) {
       await _seed();
@@ -276,6 +285,7 @@ class StorageService {
       _offers,
       _bargains,
       _views,
+      _stories,
     ]) {
       await b.clear();
     }
@@ -503,6 +513,28 @@ class StorageService {
   );
 
   Future<void> clearSearchHistory() => _session.delete(_searchHistoryKey);
+
+  List<Story> get stories =>
+      _stories.values.map(Story.fromMap).toList(growable: false);
+
+  Future<void> putStory(Story s) => _write(_storiesBox, s.id, s.toMap());
+
+  Future<void> deleteStory(String id) => _remove(_storiesBox, id);
+
+  /// Priče koje je korisnik ovog uređaja već pogledao.
+  Set<String> get seenStories =>
+      ((_session.get(_seenStoriesKey) as List?)?.cast<String>() ?? const [])
+          .toSet();
+
+  Future<void> markStorySeen(String id) async {
+    final seen = (_session.get(_seenStoriesKey) as List?)?.cast<String>() ?? [];
+    if (seen.contains(id)) return;
+    final list = [...seen, id];
+    await _session.put(
+      _seenStoriesKey,
+      list.length > 300 ? list.sublist(list.length - 300) : list,
+    );
+  }
 
   /// Prikazi po predmetu.
   Map<String, int> get views => {

@@ -246,6 +246,24 @@ ne sinkronizira; online prijavu vodi Supabase Auth i lozinke ne prolaze kroz na�
   imenu, a „c/s/z/d/dj” pronalaze i „č/ć/š/ž/đ”.
 - Online: ponude cijena su u tablici `loop_bargains` — pokreni ponovno `supabase/schema.sql`.
 
+## Liste želja i priče (stories)
+
+- **Liste želja**: na oglasu (ikona oznake) ili u objavama ("Spremi") predmet
+  se sprema u jednu ili više imenovanih lista (naziv + simbol, npr. 🏠 Za stan).
+  "Sviđa mi se" je ugrađena lista lajkova. Profil → *Liste želja* prikazuje
+  kartice s mozaikom predmeta; lista se može preimenovati, obrisati i
+  **podijeliti** poveznicom `?list=<korisnik>.<lista>`. Prodani predmeti
+  ostaju na listi s oznakom *Prodano*. Liste se spremaju uz korisnika
+  (do 20 lista, 100 predmeta po listi).
+- **Priče** traju 24 sata: tekst na boji, fotografija i/ili vlastiti oglas
+  (s cijenom i gumbom *Pogledaj*). Red s pričama je na početnoj (praćene
+  trgovine prve, pogledane na kraju — siv prsten), a prsten se vidi i oko
+  profilne slike trgovine. Preglednik: dodir lijevo/desno, držanje pauzira,
+  povlačenje dolje zatvara; svoju priču možeš obrisati. Demo trgovine Ana i
+  Marko imaju dnevne priče koje se ne spremaju u bazu.
+- Online baza: priče su u tablici `loop_stories` — nakon nadogradnje ponovno
+  pokreni `supabase/schema.sql` (dok tablica ne postoji, priče su samo lokalne).
+
 ## Digitalni proizvodi (3D modeli, softver, e-knjige…)
 
 - Odjeljak **Digitalno**: 3D modeli, softver, e-knjige i tečajevi, predlošci i grafika,

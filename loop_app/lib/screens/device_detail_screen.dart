@@ -14,6 +14,7 @@ import '../widgets/item_image.dart';
 import '../widgets/photo_viewer.dart';
 import '../widgets/trade_actions.dart';
 import 'auction_detail_screen.dart';
+import 'wishlists_screen.dart';
 import 'create_auction_screen.dart';
 import 'messages_screen.dart';
 import 'public_profile_screen.dart';
@@ -84,6 +85,17 @@ class DeviceDetailScreen extends ConsumerWidget {
               icon: Icon(
                 isFav ? Icons.favorite : Icons.favorite_border,
                 color: isFav ? const Color(0xFFFF5C8A) : null,
+              ),
+            ),
+          if (!isMine && !user.isGuest)
+            IconButton(
+              key: const ValueKey('save-item'),
+              tooltip: t('Spremi u listu'),
+              onPressed: () => showSaveToListSheet(context, ref, device),
+              icon: Icon(
+                user.wishlists.any((w) => w.deviceIds.contains(device.id))
+                    ? Icons.bookmark
+                    : Icons.bookmark_border,
               ),
             ),
           if (!isMine && owner != null && !user.isGuest)

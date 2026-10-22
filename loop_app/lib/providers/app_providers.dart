@@ -12,6 +12,8 @@ import '../models/auction.dart';
 import '../services/account_service.dart';
 import '../services/auction_service.dart';
 import '../services/bargain_service.dart';
+import '../services/social_service.dart';
+import '../models/wishlist.dart';
 import '../services/auth_backend.dart';
 import '../services/chat_service.dart';
 import '../services/community_service.dart';
@@ -163,6 +165,7 @@ class AppController extends Notifier<AppState> {
     ref.onDispose(sub.cancel);
     // Računi kojima je istekao rok za predomišljanje brišu se trajno.
     Future.microtask(_purgeDeletedAccounts);
+    Future.microtask(_purgeMyStories);
     // Podsjetnici "aukcija završava uskoro" (u testovima bez timera).
     if (ref.watch(tickIntervalProvider) != null) {
       final timer = Timer.periodic(
@@ -431,6 +434,91 @@ class AppController extends Notifier<AppState> {
       return; // prikaz nije bitan
     }
     if (ref.mounted) _refresh();
+  }
+
+  // ------------------------------------------------------ liste želja
+
+  WishlistService get _wishlists => WishlistService(ref.read(storageProvider));
+
+  Future<Wishlist> createWishlist(String name, {String emoji = '🎁'}) async {
+    final w = await _wishlists.create(_requireUserId(), name, emoji: emoji);
+    _refresh();
+    return w;
+  }
+
+  Future<void> editWishlist(String id, {String? name, String? emoji}) async {
+    await _wishlists.edit(_requireUserId(), id, name: name, emoji: emoji);
+    _refresh();
+  }
+
+  Future<void> deleteWishlist(String id) async {
+    await _wishlists.delete(_requireUserId(), id);
+    _refresh();
+  }
+
+  /// Vraća `true` ako je predmet dodan na listu.
+  Future<bool> toggleWishlistItem(String listId, String deviceId) async {
+    final added = await _wishlists.toggleItem(
+      _requireUserId(),
+      listId,
+      deviceId,
+    );
+    _refresh();
+    return added;
+  }
+
+  // ----------------------------------------------------------- priče
+
+  StoryService get _stories => StoryService(ref.read(storageProvider));
+
+  /// Nova priča (24 h): tekst na boji, fotografija i/ili vlastiti oglas.
+  Future<void> createStory({
+    String text = '',
+    String? deviceId,
+    String? imagePath,
+    int color = 0,
+  }) async {
+    await _stories.create(
+      userId: _requireUserId(),
+      text: text,
+      deviceId: deviceId,
+      imagePath: imagePath,
+      color: color,
+    );
+    _refresh();
+  }
+
+  /// Fotografija za priču (galerija ili kamera); `null` ako se odustane.
+  Future<String?> pickStoryPhoto({bool camera = false}) async {
+    final paths = await ref
+        .read(imageStoreProvider)
+        .pick(camera: camera, limit: 1);
+    return paths.isEmpty ? null : paths.first;
+  }
+
+  Future<void> deleteStory(String id) async {
+    await _stories.delete(_requireUserId(), id);
+    _refresh();
+  }
+
+  Future<void> markStorySeen(String id) async {
+    await ref.read(storageProvider).markStorySeen(id);
+    _refresh();
+  }
+
+  /// Briše moje istekle priče (i njihove fotografije).
+  Future<void> _purgeMyStories() async {
+    final user = state.currentUser;
+    if (!ref.mounted || user == null || user.isGuest) return;
+    try {
+      final images = await _stories.purgeExpired(user.id);
+      if (images.isNotEmpty) {
+        await ref.read(imageStoreProvider).delete(images);
+        if (ref.mounted) _refresh();
+      }
+    } catch (_) {
+      // nije kritično
+    }
   }
 
   /// Naziv mini webshopa (prazno = korisničko ime).

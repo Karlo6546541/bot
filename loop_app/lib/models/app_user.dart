@@ -1,3 +1,5 @@
+import 'wishlist.dart';
+
 /// Korisnik aplikacije — svaki račun je i kupac i prodavatelj. Stanje
 /// ([credits]) je u eurima.
 ///
@@ -26,6 +28,7 @@ class AppUser {
     this.referredBy,
     this.deletionRequestedAt,
     this.following = const [],
+    this.wishlists = const [],
     this.promotedUntil,
     this.shopName = '',
     this.coverPath,
@@ -82,6 +85,16 @@ class AppUser {
   /// popustima, feed na početnoj).
   final List<String> following;
 
+  /// Liste želja (kolekcije).
+  final List<Wishlist> wishlists;
+
+  Wishlist? wishlistById(String id) {
+    for (final w in wishlists) {
+      if (w.id == id) return w;
+    }
+    return null;
+  }
+
   /// Plaćeno isticanje računa (oglasi se prikazuju više) do ovog trenutka.
   final DateTime? promotedUntil;
 
@@ -135,6 +148,7 @@ class AppUser {
     bool clearDeletion = false,
     String? email,
     List<String>? following,
+    List<Wishlist>? wishlists,
     DateTime? promotedUntil,
     String? shopName,
     String? coverPath,
@@ -162,6 +176,7 @@ class AppUser {
         ? null
         : deletionRequestedAt ?? this.deletionRequestedAt,
     following: following ?? this.following,
+    wishlists: wishlists ?? this.wishlists,
     promotedUntil: promotedUntil ?? this.promotedUntil,
     shopName: shopName ?? this.shopName,
     coverPath: clearCover ? null : coverPath ?? this.coverPath,
@@ -187,6 +202,7 @@ class AppUser {
     'referredBy': referredBy,
     'deletionRequestedAt': deletionRequestedAt?.toIso8601String(),
     'following': following,
+    'wishlists': [for (final w in wishlists) w.toMap()],
     'promotedUntil': promotedUntil?.toIso8601String(),
     'shopName': shopName,
     'coverPath': coverPath,
@@ -216,6 +232,10 @@ class AppUser {
     referredBy: map['referredBy'] as String?,
     deletionRequestedAt: _date(map['deletionRequestedAt']),
     following: (map['following'] as List?)?.cast<String>() ?? const [],
+    wishlists: [
+      for (final w in (map['wishlists'] as List? ?? const []))
+        Wishlist.fromMap(w as Map),
+    ],
     promotedUntil: _date(map['promotedUntil']),
     shopName: map['shopName'] as String? ?? '',
     coverPath: map['coverPath'] as String?,

@@ -9,7 +9,10 @@ class PendingLink {
   static String? item;
   static String? shop;
 
-  static bool get isPending => item != null || shop != null;
+  /// Lista želja: "korisnikId.listaId".
+  static String? list;
+
+  static bool get isPending => item != null || shop != null || list != null;
 
   /// Čita parametre iz adrese (samo web).
   static void readFromUrl([Uri? uri]) {
@@ -17,6 +20,8 @@ class PendingLink {
     final q = (uri ?? Uri.base).queryParameters;
     final i = q['item']?.trim();
     final s = q['shop']?.trim().replaceFirst('@', '');
+    final l = q['list']?.trim();
+    list = l == null || !l.contains('.') ? null : l;
     item = i == null || i.isEmpty ? null : i;
     shop = s == null || s.isEmpty ? null : s.toLowerCase();
   }
@@ -24,5 +29,6 @@ class PendingLink {
   static void clear() {
     item = null;
     shop = null;
+    list = null;
   }
 }

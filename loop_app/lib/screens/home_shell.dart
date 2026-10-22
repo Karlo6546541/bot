@@ -21,6 +21,7 @@ import 'device_detail_screen.dart';
 import 'messages_screen.dart';
 import 'public_profile_screen.dart';
 import 'search_screen.dart';
+import 'wishlists_screen.dart';
 import 'notifications_screen.dart';
 
 /// Glavni okvir za prijavljenog korisnika s 4 taba.
@@ -70,6 +71,15 @@ class _HomeShellState extends ConsumerState<HomeShell> {
     final state = ref.read(appProvider);
     final item = PendingLink.item;
     final shop = PendingLink.shop;
+    final list = PendingLink.list;
+    if (list != null) {
+      final dot = list.indexOf('.');
+      final owner = list.substring(0, dot);
+      if (state.userById(owner) == null) return;
+      PendingLink.clear();
+      WishlistDetailScreen.open(context, owner, list.substring(dot + 1));
+      return;
+    }
     if (item != null) {
       final d = state.deviceById(item);
       if (d == null) return; // možda se još sinkronizira

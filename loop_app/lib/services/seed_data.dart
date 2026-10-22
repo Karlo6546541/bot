@@ -2,10 +2,12 @@ import 'dart:convert';
 import 'dart:math';
 import 'dart:typed_data';
 
+import '../l10n/tr.dart';
 import '../models/app_user.dart';
 import '../models/auction.dart';
 import '../models/device.dart';
 import '../models/portfolio_point.dart';
+import '../models/story.dart';
 
 /// Demo podaci koji se kreiraju pri prvom pokretanju (i nakon resetiranja).
 class SeedData {
@@ -530,5 +532,32 @@ class SeedData {
         [bid(markoUserId, '@marko', 90, 30)],
       ),
     ];
+  }
+
+  /// Dnevne priče demo trgovina (Ana i Marko) da red s pričama nije prazan.
+  /// Ne spremaju se u bazu: svaki dan nastaju nove (vrijede do ponoći).
+  static List<Story> dailyStories(List<Device> devices, DateTime now) {
+    final day = DateTime(now.year, now.month, now.day);
+    final key = '${day.year}${day.month}${day.day}';
+    final texts = [t('Novo stiglo! 👀'), t('Danas posebna ponuda ✨')];
+    final out = <Story>[];
+    var i = 0;
+    for (final user in const [anaUserId, markoUserId]) {
+      final d = devices
+          .where((d) => d.ownerId == user && d.isForSale)
+          .firstOrNull;
+      out.add(
+        Story(
+          id: 'demo-$user-$key',
+          userId: user,
+          text: texts[i % texts.length],
+          deviceId: d?.id,
+          color: i * 2,
+          createdAt: day,
+        ),
+      );
+      i++;
+    }
+    return out;
   }
 }

@@ -14,6 +14,7 @@ import '../theme/app_theme.dart';
 import '../widgets/empty_state.dart';
 import '../widgets/formatters.dart';
 import '../widgets/item_image.dart';
+import '../widgets/stories.dart';
 import '../widgets/user_avatar.dart';
 import '../providers/app_state.dart';
 import '../widgets/category_style.dart';
@@ -539,6 +540,7 @@ class ProfileHeader extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final story = ref.watch(appProvider).storiesOf(user.id);
     final secondary = TextStyle(color: LoopColors.textSecondary, fontSize: 13);
     final cover = user.coverPath;
     final gradient = DecoratedBox(
@@ -610,7 +612,20 @@ class ProfileHeader extends ConsumerWidget {
                             width: 4,
                           ),
                         ),
-                        child: UserAvatar(user: user, size: 76),
+                        child: story == null
+                            ? UserAvatar(user: user, size: 76)
+                            : GestureDetector(
+                                key: const ValueKey('profile-story'),
+                                onTap: () =>
+                                    StoryViewer.open(context, [story], 0),
+                                child: StoryRing(
+                                  user: user,
+                                  size: 76,
+                                  state: story.seen
+                                      ? StoryRingState.seen
+                                      : StoryRingState.unseen,
+                                ),
+                              ),
                       ),
                       if (editable)
                         Positioned(

@@ -8,6 +8,7 @@ import '../models/user_status.dart';
 import '../providers/app_providers.dart';
 import '../providers/app_state.dart';
 import '../theme/app_theme.dart';
+import '../widgets/stories.dart';
 import '../widgets/category_style.dart';
 import '../widgets/device_card.dart';
 import '../widgets/empty_state.dart';
@@ -69,6 +70,13 @@ class PortfolioScreen extends ConsumerWidget {
           child: Padding(
             padding: EdgeInsets.fromLTRB(16, 0, 16, 16),
             child: _QuickActions(),
+          ),
+        ),
+        // Priče (24 h) kao na Instagramu.
+        const SliverToBoxAdapter(
+          child: Padding(
+            padding: EdgeInsets.fromLTRB(8, 0, 8, 12),
+            child: StoriesRow(),
           ),
         ),
         // Feed odmah ispod stanja i brzih akcija: objave (swipe kao TikTok)

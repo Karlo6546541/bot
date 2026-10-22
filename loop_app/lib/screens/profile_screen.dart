@@ -8,6 +8,7 @@ import '../widgets/formatters.dart';
 import '../widgets/status_badge.dart';
 import '../widgets/trade_actions.dart';
 import 'buy_credits_screen.dart';
+import 'wishlists_screen.dart';
 import 'deliveries_screen.dart';
 import 'digital_library_screen.dart';
 import '../l10n/tr.dart';
@@ -126,6 +127,15 @@ class ProfileScreen extends ConsumerWidget {
                   ),
                 ),
                 if (!user.isGuest) ...[
+                  const SizedBox(height: 10),
+                  OutlinedButton.icon(
+                    key: const ValueKey('my-wishlists'),
+                    onPressed: () => WishlistsScreen.open(context),
+                    icon: const Icon(Icons.bookmarks_outlined),
+                    label: Text(
+                      t('Liste želja ({0})', [user.wishlists.length + 1]),
+                    ),
+                  ),
                   _SectionTitle(t('Račun'), Icons.manage_accounts_outlined),
                   _AccountCard(user: user),
                 ],

@@ -8,6 +8,7 @@ import '../models/chat_message.dart';
 import '../models/report.dart';
 import '../models/review.dart';
 import '../models/price_offer.dart';
+import '../models/story.dart';
 import '../models/swap_offer.dart';
 import '../models/auction.dart';
 import '../models/delivery.dart';
@@ -15,6 +16,7 @@ import '../models/device.dart';
 import '../models/loop_transaction.dart';
 import '../models/portfolio_point.dart';
 import '../models/user_status.dart';
+import '../services/seed_data.dart';
 import '../services/storage_service.dart';
 
 /// Nepromjenjiva snimka svih podataka. Nakon svake akcije kreira se nova
@@ -41,6 +43,8 @@ class AppState {
     this.bargains = const [],
     this.searchHistory = const [],
     this.views = const {},
+    this.stories = const [],
+    this.seenStories = const {},
   });
 
   factory AppState.fromStorage(StorageService storage) {
@@ -87,6 +91,11 @@ class AppState {
         ),
       searchHistory: storage.searchHistory,
       views: storage.views,
+      stories: [
+        ...storage.stories,
+        ...SeedData.dailyStories(storage.devices, DateTime.now()),
+      ]..sort((a, b) => a.createdAt.compareTo(b.createdAt)),
+      seenStories: storage.seenStories,
       myHistory: storage.currentUserId == null
           ? const []
           : storage.historyOf(storage.currentUserId!),
@@ -137,6 +146,53 @@ class AppState {
 
   /// Broj prikaza po objavi (predmetu).
   final Map<String, int> views;
+
+  /// Sve priče (najstarije prvo) i one koje sam pogledao na ovom uređaju.
+  final List<Story> stories;
+  final Set<String> seenStories;
+
+  /// Aktivne priče grupirane po trgovini: prvo moje, zatim nepogledane
+  /// (praćene trgovine prve), na kraju pogledane.
+  List<StoryGroup> get storyGroups {
+    final now = DateTime.now();
+    final byUser = <String, List<Story>>{};
+    for (final s in stories) {
+      if (!s.activeAt(now)) continue;
+      final u = userById(s.userId);
+      if (u == null || u.pendingDeletion || isBlocked(u.id)) continue;
+      (byUser[s.userId] ??= []).add(s);
+    }
+    final groups = [
+      for (final e in byUser.entries)
+        StoryGroup(
+          userById(e.key)!,
+          e.value,
+          seen: e.value.every((s) => seenStories.contains(s.id)),
+        ),
+    ];
+    int rank(StoryGroup g) => g.user.id == currentUserId
+        ? 0
+        : !g.seen && isFollowing(g.user.id)
+        ? 1
+        : !g.seen
+        ? 2
+        : 3;
+    groups.sort((a, b) {
+      final r = rank(a).compareTo(rank(b));
+      return r != 0
+          ? r
+          : b.stories.last.createdAt.compareTo(a.stories.last.createdAt);
+    });
+    return groups;
+  }
+
+  /// Aktivne priče korisnika (za prsten oko profilne slike).
+  StoryGroup? storiesOf(String userId) {
+    for (final g in storyGroups) {
+      if (g.user.id == userId) return g;
+    }
+    return null;
+  }
 
   int viewsOf(String deviceId) => views[deviceId] ?? 0;
 
@@ -570,4 +626,14 @@ class SellerStats {
 
   SellerStats add(double price) =>
       SellerStats(user, sales: sales + 1, revenue: revenue + price);
+}
+
+/// Priče jedne trgovine.
+class StoryGroup {
+  const StoryGroup(this.user, this.stories, {this.seen = false});
+  final AppUser user;
+
+  /// Najstarije prvo (redoslijed gledanja).
+  final List<Story> stories;
+  final bool seen;
 }
