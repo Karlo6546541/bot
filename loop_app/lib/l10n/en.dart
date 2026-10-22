@@ -41,7 +41,6 @@ const kEn = <String, String>{
   'Admin e-mail': 'Admin e-mail',
   'Admin prijava': 'Admin login',
   'Adresa za dostavu': 'Delivery address',
-  'Aktivne aukcije ({0})': 'Active auctions ({0})',
   'Aktivnost': 'Activity',
   'Aukcija': 'Auction',
   'Aukcija ima ponude i ne može se otkazati. Po završetku dobivaš {0} (cijela najviša ponuda — bez naknade).':
@@ -58,8 +57,6 @@ const kEn = <String, String>{
   'Aukcija {0} je završila — nisi pobijedio':
       'Auction {0} has ended — you didn\'t win',
   'Aukcije': 'Auctions',
-  'Aukcije su za vrijedne predmete (od {0}). Viši status = više aukcija: Bronze 2, Silver 4, Gold 6.':
-      'Auctions are for valuable items (from {0}). Higher status = more auctions: Bronze 2, Silver 4, Gold 6.',
   'Aukciju možeš otkazati dok nema ponuda.':
       'You can cancel the auction until it gets a bid.',
   'Besplatno': 'Free',
@@ -131,8 +128,6 @@ const kEn = <String, String>{
   'Greška: {0}': 'Error: {0}',
   'Hvala! Primitak potvrđen.': 'Thanks! Receipt confirmed.',
   'Imaš samo {0}': 'You only have {0}',
-  'Imaš već {0} aktivne aukcije — najviše za status {1}. Pričekaj da neka završi ili prodaj na Marketu.':
-      'You already have {0} active auctions — the maximum for {1} status. Wait for one to end or sell in the Market.',
   'Instrumenti': 'Instruments',
   'Ishod nije siguran': 'Outcome not guaranteed',
   'Istraži Market': 'Explore the Market',
@@ -150,7 +145,6 @@ const kEn = <String, String>{
   'Još nema završenih aukcija': 'No finished auctions yet',
   'Još nemaš favorita': 'No favorites yet',
   'Još nisi dao nijednu ponudu': 'You haven\'t placed any bids yet',
-  'Još {0} do {1}': '{0} more to {1}',
   'Kad nešto kupiš ili osvojiš na aukciji, pošiljka će se pojaviti ovdje.':
       'When you buy something or win an auction, the shipment will show up here.',
   'Kako LOOP radi': 'How LOOP works',
@@ -1344,8 +1338,6 @@ const kEn = <String, String>{
   'Pretraži objave i račune': 'Search posts and accounts',
   'Račun': 'Account',
   'Računi ({0})': 'Accounts ({0})',
-  'Stanje je u eurima. Status: Bronze < 2000 €, Silver 2000–5000 €, Gold > 5000 € (stanje + portfolio).':
-      'Your balance is in euros. Status: Bronze < €2000, Silver €2000–5000, Gold > €5000 (balance + portfolio).',
   'Sve ({0})': 'All ({0})',
   'Traži objave i račune…': 'Search posts and accounts…',
   'Trgovina još nema oglasa.': 'The shop has no listings yet.',
@@ -1438,4 +1430,10 @@ const kEn = <String, String>{
   'Rukopis': 'Handwriting',
   'javi se u poruke': 'send me a message',
   'samo danas': 'today only',
+  'Aktivne aukcije': 'Active auctions',
+  'Aukcije su za vrijedne predmete (od {0}). Za sve ostalo je Market.':
+      'Auctions are for valuable items (from {0}). Use the Market for everything else.',
+  'Imaš već {0} aktivne aukcije — to je najviše. Pričekaj da neka završi ili prodaj na Marketu.':
+      'You already have {0} active auctions — that\'s the maximum. Wait for one to end or sell on the Market.',
+  'Uplati': 'Top up',
 };

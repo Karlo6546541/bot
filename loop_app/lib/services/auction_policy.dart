@@ -2,7 +2,6 @@ import 'dart:math';
 
 import '../models/auction.dart';
 import '../models/device.dart';
-import '../models/user_status.dart';
 import '../utils/formatters.dart';
 import 'fee.dart';
 import 'storage_service.dart';
@@ -12,7 +11,7 @@ import '../l10n/tr.dart';
 ///
 /// Aukcije su za vrijedne ili tražene predmete; za sve ostalo je Market
 /// (trenutna prodaja, bez naknade za objavu). Pravila:
-/// - limit aktivnih aukcija ovisi o statusu (Bronze 2, Silver 4, Gold 6);
+/// - najviše [maxActive] aktivnih aukcija po korisniku;
 /// - najviše [maxNewPerDay] novih aukcija u 24 sata;
 /// - predmet mora vrijediti barem [minItemValue] kredita;
 /// - naknada za objavu: [listingFeeRate] vrijednosti predmeta (najmanje
@@ -30,28 +29,12 @@ class AuctionPolicy {
   static const minListingFee = 2.0;
   static const relistCooldown = Duration(hours: 24);
 
-  static int maxActiveFor(UserStatus status) => switch (status) {
-    UserStatus.bronze => 2,
-    UserStatus.silver => 4,
-    UserStatus.gold => 6,
-  };
+  static const maxActive = 4;
 
   /// Naknada za objavu — računa se od vrijednosti predmeta, a ne od početne
   /// cijene, kako se ne bi mogla izbjeći niskom početnom cijenom.
   static double listingFee(Device d) =>
       max(minListingFee, roundCredits(d.price * listingFeeRate));
-
-  /// Status prema ukupnoj vrijednosti (krediti + blokirano + portfolio).
-  UserStatus statusOf(String userId) {
-    final user = _storage.userById(userId);
-    if (user == null) return UserStatus.bronze;
-    final portfolio = _storage.devices
-        .where((d) => d.ownerId == userId)
-        .fold(0.0, (sum, d) => sum + d.price);
-    return UserStatus.fromTotalValue(
-      user.credits + _storage.heldCredits(userId) + portfolio,
-    );
-  }
 
   int activeCount(String userId) =>
       _storage.auctions.where((a) => a.isActive && a.sellerId == userId).length;
@@ -81,12 +64,10 @@ class AuctionPolicy {
   /// ili `null` ako može. Redoslijed: najprije pravila o korisniku,
   /// zatim o predmetu.
   String? blockReason(String userId, Device device, {DateTime? now}) {
-    final status = statusOf(userId);
-    final limit = maxActiveFor(status);
-    if (activeCount(userId) >= limit) {
+    if (activeCount(userId) >= maxActive) {
       return t(
-        'Imaš već {0} aktivne aukcije — najviše za status {1}. Pričekaj da neka završi ili prodaj na Marketu.',
-        [limit, status.label],
+        'Imaš već {0} aktivne aukcije — to je najviše. Pričekaj da neka završi ili prodaj na Marketu.',
+        [maxActive],
       );
     }
     if (createdLast24h(userId, now: now) >= maxNewPerDay) {

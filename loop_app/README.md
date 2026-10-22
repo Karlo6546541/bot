@@ -82,7 +82,7 @@ flutter run            # odaberi uređaj s popisa
   - bez ponuda predmet ostaje prodavatelju, koji aukciju može otkazati samo dok nema ponuda.
 
   **Protiv masovnog stavljanja svega na aukcije** (`lib/services/auction_policy.dart`):
-  - limit aktivnih aukcija po statusu: Bronze 2, Silver 4, Gold 6;
+  - najviše 4 aktivne aukcije po korisniku;
   - najviše 3 nove aukcije u 24 sata;
   - na aukciju idu samo predmeti vrijedni barem 50 € (sitnice → Market);
   - naknada za objavu: 2% vrijednosti predmeta (najmanje 2 €), ne vraća se;
@@ -437,8 +437,8 @@ Lokalni način (bez online baze):
 
 | Uloga    | E-mail / ime                        | Lozinka    | Napomena                                          |
 |----------|-------------------------------------|------------|---------------------------------------------------|
-| Korisnik | `demo@loop.com` / `@demo`           | `demo`     | 1.250 € + iPhone 13 i Laptop Lenovo → **Silver** |
-| Korisnik | `test@loop.com` / `@test`           | `demo`     | 800 €, prazan portfolio → **Bronze**             |
+| Korisnik | `demo@loop.com` / `@demo`           | `demo`     | 1.250 € + iPhone 13 i Laptop Lenovo           |
+| Korisnik | `test@loop.com` / `@test`           | `demo`     | 800 €, prazan portfolio                        |
 | Admin    | `admin@loop.com`                    | `admin123` | preko gumba **"Admin prijava"**                   |
 | Gost     | —                                   | —          | **"Samo razgledaj (gost)"** — bez kupnje/prodaje  |
 | Korisnik | `ana@loop.com` / `@ana.kolekcija`   | `demo`     | prodaje 4 predmeta na aukcijama                   |
@@ -467,7 +467,6 @@ Apple Watch, Sony A7 III, PS5, Switch) i po 4–5 iz svakog novog odjeljka.
 - Popust i dogovorena cijena (cjenkanje) smanjuju cijenu oglasa.
 - **Aukcije**: pobjednik plaća svoju ponudu, prodavatelj dobiva cijeli iznos.
 - **Zamjena**: nadoplatu plaća ponuditelj (+ 2%), vlasnik dobiva cijelu nadoplatu.
-- **Status** = stanje + vrijednost portfolija: Bronze < 2000 € · Silver 2000–5000 € · Gold > 5000 €.
 - **Isticanje računa**: 4,99 € tjedno (1–4 tjedna), plaća se sa stanja.
 
 Fee je definiran na jednom mjestu: `lib/services/fee.dart` (`kFeeRate`).

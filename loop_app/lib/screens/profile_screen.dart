@@ -5,7 +5,6 @@ import '../providers/app_providers.dart';
 import '../services/sync_service.dart';
 import '../theme/app_theme.dart';
 import '../widgets/formatters.dart';
-import '../widgets/status_badge.dart';
 import '../widgets/trade_actions.dart';
 import 'buy_credits_screen.dart';
 import 'wishlists_screen.dart';
@@ -31,8 +30,6 @@ class ProfileScreen extends ConsumerWidget {
     final user = state.currentUser;
     if (user == null) return const SizedBox.shrink();
 
-    final status = state.statusOf(user);
-
     return ListView(
       padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
       children: [
@@ -42,11 +39,7 @@ class ProfileScreen extends ConsumerWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                ProfileHeader(
-                  user: user,
-                  editable: !user.isGuest,
-                  trailing: user.isGuest ? null : StatusBadge(status: status),
-                ),
+                ProfileHeader(user: user, editable: !user.isGuest),
                 const SizedBox(height: 12),
                 if (user.isGuest)
                   const _GuestCard()
@@ -68,12 +61,6 @@ class ProfileScreen extends ConsumerWidget {
                       ),
                       const Divider(height: 1),
                       _InfoTile(
-                        icon: Icons.workspace_premium,
-                        label: t('Status'),
-                        value: status.label,
-                      ),
-                      const Divider(height: 1),
-                      _InfoTile(
                         icon: Icons.devices,
                         label: t('Predmeti u portfoliju'),
                         value: '${state.myDevices.length}',
@@ -85,16 +72,6 @@ class ProfileScreen extends ConsumerWidget {
                         value: formatCredits(state.totalValueOf(user)),
                       ),
                     ],
-                  ),
-                ),
-                const SizedBox(height: 12),
-                Text(
-                  t(
-                    'Stanje je u eurima. Status: Bronze < 2000 €, Silver 2000–5000 €, Gold > 5000 € (stanje + portfolio).',
-                  ),
-                  style: TextStyle(
-                    color: LoopColors.textSecondary,
-                    fontSize: 12,
                   ),
                 ),
                 const SizedBox(height: 16),

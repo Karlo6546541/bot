@@ -7,7 +7,6 @@ import '../providers/app_providers.dart';
 import '../theme/app_theme.dart';
 import '../widgets/empty_state.dart';
 import '../widgets/formatters.dart';
-import '../widgets/status_badge.dart';
 import '../widgets/trade_actions.dart';
 import 'admin_shell.dart';
 import '../l10n/tr.dart';
@@ -46,8 +45,6 @@ class AdminUsersScreen extends ConsumerWidget {
                             u.email,
                             style: const TextStyle(fontWeight: FontWeight.w700),
                           ),
-                          const SizedBox(width: 8),
-                          StatusBadge(status: s.statusOf(u)),
                         ],
                       ),
                       const SizedBox(height: 4),

@@ -52,9 +52,10 @@ void main() {
       await tester.pumpAndSettle();
 
       // Portfolio demo korisnika
-      await reveal(tester, find.text('SILVER'));
+      await reveal(tester, find.byKey(const ValueKey('credits-balance')));
       expect(find.textContaining('1.250'), findsWidgets); // kartica + traka
-      expect(find.text('SILVER'), findsOneWidget);
+      // Nema više statusa (Bronze/Silver/Gold).
+      expect(find.text('SILVER'), findsNothing);
       // Popis predmeta je ispod grafikona — skrolaj do njega.
       await tester.scrollUntilVisible(
         find.text('iPhone 13'),
@@ -305,8 +306,8 @@ void main() {
     await tester.pumpAndSettle();
 
     // Gumb na glavnoj kartici otvara uplatu; zadani iznos je 500 €.
-    await reveal(tester, find.text('SILVER'));
-    await tester.tap(find.text('Uplati novac').first);
+    await reveal(tester, find.byKey(const ValueKey('credits-balance')));
+    await tester.tap(find.text('Uplati').first);
     await tester.pumpAndSettle();
     expect(find.text('Najpopularnije'), findsOneWidget);
     await tester.tap(find.text('PayPal'));
@@ -439,9 +440,8 @@ void main() {
     await tester.tap(find.text('Log in').last);
     await tester.pumpAndSettle();
     // Engleski zapis brojeva i eura.
-    await reveal(tester, find.text('Your balance'));
+    await reveal(tester, find.byKey(const ValueKey('credits-balance')));
     expect(find.textContaining('1,250'), findsWidgets);
-    expect(find.text('Your balance'), findsOneWidget);
     expect(find.text('Total €2,010 · 2 items'), findsOneWidget);
     await tester.scrollUntilVisible(
       find.text('iPhone 13'),

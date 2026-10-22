@@ -120,7 +120,6 @@ class _CreateAuctionScreenState extends ConsumerState<CreateAuctionScreen> {
     final selected = _deviceId == null ? null : s.deviceById(_deviceId!);
     final me = s.currentUserId ?? '';
     final policy = ref.read(auctionServiceProvider).policy;
-    final status = policy.statusOf(me);
     final reason = selected == null ? null : policy.blockReason(me, selected);
     final fee = selected == null ? 0.0 : AuctionPolicy.listingFee(selected);
 
@@ -141,8 +140,7 @@ class _CreateAuctionScreenState extends ConsumerState<CreateAuctionScreen> {
                   children: [
                     _LimitsCard(
                       active: policy.activeCount(me),
-                      maxActive: AuctionPolicy.maxActiveFor(status),
-                      statusLabel: status.label,
+                      maxActive: AuctionPolicy.maxActive,
                       today: policy.createdLast24h(me),
                     ),
                     const SizedBox(height: 16),
@@ -372,13 +370,11 @@ class _LimitsCard extends StatelessWidget {
   const _LimitsCard({
     required this.active,
     required this.maxActive,
-    required this.statusLabel,
     required this.today,
   });
 
   final int active;
   final int maxActive;
-  final String statusLabel;
   final int today;
 
   @override
@@ -417,11 +413,7 @@ class _LimitsCard extends StatelessWidget {
           children: [
             Row(
               children: [
-                meter(
-                  t('Aktivne aukcije ({0})', [statusLabel]),
-                  active,
-                  maxActive,
-                ),
+                meter(t('Aktivne aukcije'), active, maxActive),
                 const SizedBox(width: 16),
                 meter(
                   t('Objavljeno u 24 h'),
@@ -433,7 +425,7 @@ class _LimitsCard extends StatelessWidget {
             const SizedBox(height: 10),
             Text(
               t(
-                'Aukcije su za vrijedne predmete (od {0}). Viši status = više aukcija: Bronze 2, Silver 4, Gold 6.',
+                'Aukcije su za vrijedne predmete (od {0}). Za sve ostalo je Market.',
                 [formatCredits(AuctionPolicy.minItemValue)],
               ),
               style: TextStyle(color: LoopColors.textSecondary, fontSize: 12),

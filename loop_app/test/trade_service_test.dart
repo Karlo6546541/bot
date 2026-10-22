@@ -5,7 +5,6 @@ import 'package:hive/hive.dart';
 import 'package:loop_app/models/app_user.dart';
 import 'package:loop_app/models/device.dart';
 import 'package:loop_app/models/loop_transaction.dart';
-import 'package:loop_app/models/user_status.dart';
 import 'package:loop_app/providers/app_state.dart';
 import 'package:loop_app/services/fee.dart';
 import 'package:loop_app/services/seed_data.dart';
@@ -36,21 +35,13 @@ void main() {
     expect(buyTotal(185), 188.7);
   });
 
-  test('status po ukupnoj vrijednosti', () {
-    expect(UserStatus.fromTotalValue(1999), UserStatus.bronze);
-    expect(UserStatus.fromTotalValue(2000), UserStatus.silver);
-    expect(UserStatus.fromTotalValue(5000), UserStatus.silver);
-    expect(UserStatus.fromTotalValue(5001), UserStatus.gold);
-  });
-
   test(
-    'seed: demo korisnik je Silver, 33 predmeta u Marketu (2 digitalna)',
+    'seed: demo korisnik ima 2 predmeta, 33 predmeta u Marketu (2 digitalna)',
     () {
       final state = AppState.fromStorage(storage);
       final demo = storage.userById(SeedData.demoUserId)!;
       expect(demo.credits, 1250);
       expect(state.devicesOf(demo.id), hasLength(2));
-      expect(state.statusOf(demo), UserStatus.silver);
       expect(state.devices.where((d) => d.isOnMarket), hasLength(33));
     },
   );
@@ -135,12 +126,6 @@ void main() {
       'createdAt': DateTime(2026).toIso8601String(),
     });
     expect(u.favorites, isEmpty);
-  });
-
-  test('status: napredak do sljedećeg', () {
-    expect(UserStatus.bronze.next, UserStatus.silver);
-    expect(UserStatus.silver.nextThreshold, 5000);
-    expect(UserStatus.gold.next, isNull);
   });
 
   test('svaki odjeljak ima demo predmete u Marketu', () {

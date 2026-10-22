@@ -71,19 +71,22 @@ void main() {
     expect(storage.userById(demo)!.credits, 1250); // bez naknade
   });
 
-  test('limit aktivnih aukcija ovisi o statusu (Bronze = 2)', () async {
-    final items = [for (var i = 0; i < 3; i++) await add(tester, 60)];
-    expect(auctions.policy.statusOf(tester).label, 'Bronze');
-    await create(tester, items[0].id);
-    await create(tester, items[1].id);
+  test('najviše ${AuctionPolicy.maxActive} aktivne aukcije', () async {
+    final n = AuctionPolicy.maxActive;
+    final items = [for (var i = 0; i <= n; i++) await add(tester, 60)];
+    final now = DateTime.now();
+    for (var i = 0; i < n; i++) {
+      // Dnevni limit ne smije smetati: svaka aukcija drugog dana.
+      await create(tester, items[i].id, now: now.add(Duration(days: i)));
+    }
+    expect(auctions.policy.activeCount(tester), n);
     await expectLater(
-      create(tester, items[2].id),
+      create(tester, items[n].id, now: now.add(Duration(days: n))),
       throwsA(isA<TradeException>()),
     );
   });
 
   test('najviše 3 nove aukcije u 24 sata', () async {
-    await trade.addCredits(demo, 5000); // Gold → limit 6 aktivnih
     final items = [for (var i = 0; i < 4; i++) await add(demo, 100)];
     final now = DateTime.now();
     for (var i = 0; i < 3; i++) {

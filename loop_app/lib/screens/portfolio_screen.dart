@@ -4,7 +4,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/device.dart';
 import '../models/delivery.dart';
 import '../models/portfolio_point.dart';
-import '../models/user_status.dart';
 import '../providers/app_providers.dart';
 import '../providers/app_state.dart';
 import '../theme/app_theme.dart';
@@ -15,7 +14,6 @@ import '../widgets/empty_state.dart';
 import '../widgets/feed.dart';
 import '../widgets/formatters.dart';
 import '../widgets/portfolio_chart.dart';
-import '../widgets/status_badge.dart';
 import '../widgets/trade_actions.dart';
 import 'add_device_screen.dart';
 import 'auction_detail_screen.dart';
@@ -39,20 +37,17 @@ class PortfolioScreen extends ConsumerWidget {
     final devices = state.myDevices;
     final portfolioValue = state.portfolioValueOf(user.id);
     final total = state.totalValueOf(user);
-    final status = state.statusOf(user);
 
     return CustomScrollView(
       slivers: [
         SliverToBoxAdapter(
           child: Padding(
-            padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
             child: _CreditsHero(
               name: user.name.isNotEmpty
                   ? user.name.split(' ').first
                   : user.handle,
               credits: user.credits,
-              status: status,
-              portfolioValue: portfolioValue,
               totalValue: total,
               deviceCount: devices.length,
               held: state.heldCreditsOf(user.id),
@@ -189,8 +184,6 @@ class _CreditsHero extends StatelessWidget {
   const _CreditsHero({
     required this.name,
     required this.credits,
-    required this.status,
-    required this.portfolioValue,
     required this.totalValue,
     required this.deviceCount,
     required this.held,
@@ -199,18 +192,16 @@ class _CreditsHero extends StatelessWidget {
   final double held;
   final String name;
   final double credits;
-  final UserStatus status;
-  final double portfolioValue;
   final double totalValue;
   final int deviceCount;
 
+  /// Kompaktna kartica: stanje lijevo, gumb za uplatu desno.
   @override
   Widget build(BuildContext context) {
-    final compact = MediaQuery.sizeOf(context).width < 600;
     return Container(
       clipBehavior: Clip.antiAlias,
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(kRadius * 1.6),
+        borderRadius: BorderRadius.circular(kRadius * 1.3),
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
@@ -220,168 +211,80 @@ class _CreditsHero extends StatelessWidget {
       ),
       child: Stack(
         children: [
-          // Razigrani dekorativni oblici u pozadini.
           Positioned(
-            right: -40,
-            top: -50,
-            child: _Glow(color: LoopColors.lilac, size: 200),
-          ),
-          Positioned(
-            right: 120,
-            bottom: -70,
-            child: _Glow(color: LoopColors.mint, size: 160),
-          ),
-          Positioned(
-            right: compact ? 16 : 24,
-            top: compact ? 58 : 64,
-            child: Text('🛍️', style: TextStyle(fontSize: compact ? 34 : 44)),
+            right: -50,
+            top: -60,
+            child: _Glow(color: LoopColors.lilac, size: 160),
           ),
           Padding(
-            padding: EdgeInsets.all(compact ? 18 : 22),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+            padding: const EdgeInsets.fromLTRB(16, 12, 14, 14),
+            child: Row(
               children: [
-                Row(
-                  children: [
-                    Expanded(
-                      child: Text(
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
                         t('Bok, {0} 👋', [name]),
+                        maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.w800,
+                        style: TextStyle(
+                          color: LoopColors.textSecondary,
+                          fontWeight: FontWeight.w700,
+                          fontSize: 13,
                         ),
                       ),
-                    ),
-                    StatusBadge(status: status),
-                  ],
-                ),
-                const SizedBox(height: 14),
-                Text(
-                  t('Tvoje stanje'),
-                  style: TextStyle(
-                    color: LoopColors.textSecondary,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                // Stanje se animira pri svakoj promjeni.
-                TweenAnimationBuilder<double>(
-                  tween: Tween(end: credits),
-                  duration: const Duration(milliseconds: 900),
-                  curve: Curves.easeOutCubic,
-                  builder: (context, value, _) => FittedBox(
-                    fit: BoxFit.scaleDown,
-                    alignment: Alignment.centerLeft,
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.baseline,
-                      textBaseline: TextBaseline.alphabetic,
-                      children: [
-                        Text(
-                          formatCredits(value),
-                          style: TextStyle(
-                            fontSize: compact ? 40 : 48,
-                            fontWeight: FontWeight.w900,
-                            letterSpacing: -1,
+                      // Stanje se animira pri svakoj promjeni.
+                      TweenAnimationBuilder<double>(
+                        tween: Tween(end: credits),
+                        duration: const Duration(milliseconds: 900),
+                        curve: Curves.easeOutCubic,
+                        builder: (context, value, _) => FittedBox(
+                          fit: BoxFit.scaleDown,
+                          alignment: Alignment.centerLeft,
+                          child: Text(
+                            formatCredits(value),
+                            key: const ValueKey('credits-balance'),
+                            style: const TextStyle(
+                              fontSize: 30,
+                              fontWeight: FontWeight.w900,
+                              letterSpacing: -0.8,
+                              height: 1.15,
+                            ),
                           ),
                         ),
-                      ],
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 12),
-                if (compact) ...[
-                  // Mobitel: sažetak u jednom retku + gumb preko cijele širine.
-                  Text(
-                    t('Ukupno {0} · {1} {2}{3}', [
-                      formatCredits(totalValue),
-                      deviceCount,
-                      deviceCount == 1 ? t('predmet') : t('predmeta'),
-                      held > 0
-                          ? t(' · blokirano {0}', [formatCredits(held)])
-                          : '',
-                    ]),
-                    style: TextStyle(
-                      color: LoopColors.textSecondary,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  FilledButton.icon(
-                    onPressed: () => BuyCreditsScreen.open(context),
-                    style: FilledButton.styleFrom(
-                      minimumSize: const Size.fromHeight(46),
-                    ),
-                    icon: const Icon(Icons.add, size: 20),
-                    label: Text(t('Uplati novac')),
-                  ),
-                ] else
-                  Wrap(
-                    spacing: 8,
-                    runSpacing: 8,
-                    children: [
-                      FilledButton.icon(
-                        onPressed: () => BuyCreditsScreen.open(context),
-                        style: FilledButton.styleFrom(
-                          minimumSize: const Size(0, 44),
-                          padding: const EdgeInsets.symmetric(horizontal: 18),
+                      ),
+                      Text(
+                        t('Ukupno {0} · {1} {2}{3}', [
+                          formatCredits(totalValue),
+                          deviceCount,
+                          deviceCount == 1 ? t('predmet') : t('predmeta'),
+                          held > 0
+                              ? t(' · blokirano {0}', [formatCredits(held)])
+                              : '',
+                        ]),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          color: LoopColors.textSecondary,
+                          fontWeight: FontWeight.w700,
+                          fontSize: 12,
                         ),
-                        icon: const Icon(Icons.add, size: 20),
-                        label: Text(t('Uplati novac')),
                       ),
-                      _Pill(
-                        icon: Icons.stacked_line_chart,
-                        text: t('Ukupno {0}', [formatCredits(totalValue)]),
-                      ),
-                      _Pill(
-                        icon: Icons.inventory_2_outlined,
-                        text:
-                            '$deviceCount ${deviceCount == 1 ? t('predmet') : t('predmeta')}'
-                            ' · ${formatCredits(portfolioValue)}',
-                      ),
-                      if (held > 0)
-                        _Pill(
-                          icon: Icons.lock_outline,
-                          text: t('Blokirano {0}', [formatCredits(held)]),
-                        ),
                     ],
                   ),
-                const SizedBox(height: 16),
-                _StatusProgress(status: status, total: totalValue),
+                ),
+                const SizedBox(width: 10),
+                FilledButton.icon(
+                  onPressed: () => BuyCreditsScreen.open(context),
+                  style: FilledButton.styleFrom(
+                    minimumSize: const Size(0, 42),
+                    padding: const EdgeInsets.symmetric(horizontal: 14),
+                  ),
+                  icon: const Icon(Icons.add, size: 18),
+                  label: Text(t('Uplati')),
+                ),
               ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-/// Bijela "tableta" s ikonom i tekstom na pastelnoj pozadini.
-class _Pill extends StatelessWidget {
-  const _Pill({required this.icon, required this.text});
-  final IconData icon;
-  final String text;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      height: 44,
-      padding: const EdgeInsets.symmetric(horizontal: 14),
-      decoration: BoxDecoration(
-        color: LoopColors.surface.withValues(alpha: 0.75),
-        borderRadius: BorderRadius.circular(999),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, size: 18, color: LoopColors.textSecondary),
-          const SizedBox(width: 6),
-          Flexible(
-            child: Text(
-              text,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: const TextStyle(fontWeight: FontWeight.w700),
             ),
           ),
         ],
@@ -610,67 +513,6 @@ class _HowItWorks extends ConsumerWidget {
           ],
         ),
       ),
-    );
-  }
-}
-
-/// Traka napretka do sljedećeg statusa.
-class _StatusProgress extends StatelessWidget {
-  const _StatusProgress({required this.status, required this.total});
-  final UserStatus status;
-  final double total;
-
-  @override
-  Widget build(BuildContext context) {
-    final next = status.next;
-    final threshold = status.nextThreshold;
-    final progress = threshold == null
-        ? 1.0
-        : ((total - status.floor) / (threshold - status.floor)).clamp(0.0, 1.0);
-    final color = next?.color ?? status.color;
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            Expanded(
-              child: Text(
-                next == null
-                    ? t('Najviši status — Gold 🏆')
-                    : t('Još {0} do {1}', [
-                        formatCredits(threshold! - total),
-                        next.label,
-                      ]),
-                style: TextStyle(color: LoopColors.textSecondary, fontSize: 12),
-              ),
-            ),
-            Text(
-              '${(progress * 100).round()}%',
-              style: TextStyle(
-                color: LoopColors.textSecondary,
-                fontSize: 12,
-                fontWeight: FontWeight.w800,
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 6),
-        ClipRRect(
-          borderRadius: BorderRadius.circular(999),
-          child: TweenAnimationBuilder<double>(
-            tween: Tween(end: progress),
-            duration: const Duration(milliseconds: 900),
-            curve: Curves.easeOutCubic,
-            builder: (context, v, _) => LinearProgressIndicator(
-              value: v,
-              minHeight: 8,
-              color: color,
-              backgroundColor: LoopColors.background.withValues(alpha: 0.6),
-            ),
-          ),
-        ),
-      ],
     );
   }
 }

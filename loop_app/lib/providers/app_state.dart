@@ -15,7 +15,6 @@ import '../models/delivery.dart';
 import '../models/device.dart';
 import '../models/loop_transaction.dart';
 import '../models/portfolio_point.dart';
-import '../models/user_status.dart';
 import '../services/seed_data.dart';
 import '../services/storage_service.dart';
 
@@ -576,9 +575,6 @@ class AppState {
   /// + vrijednost portfolija.
   double totalValueOf(AppUser user) =>
       user.credits + heldCreditsOf(user.id) + portfolioValueOf(user.id);
-
-  UserStatus statusOf(AppUser user) =>
-      UserStatus.fromTotalValue(totalValueOf(user));
 
   String userLabel(String? userId) {
     if (userId == null) return 'LOOP Market';
