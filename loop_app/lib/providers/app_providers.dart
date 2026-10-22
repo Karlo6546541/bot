@@ -163,6 +163,14 @@ class AppController extends Notifier<AppState> {
     ref.onDispose(sub.cancel);
     // Računi kojima je istekao rok za predomišljanje brišu se trajno.
     Future.microtask(_purgeDeletedAccounts);
+    // Podsjetnici "aukcija završava uskoro" (u testovima bez timera).
+    if (ref.watch(tickIntervalProvider) != null) {
+      final timer = Timer.periodic(
+        const Duration(seconds: 30),
+        (_) => auctionTick(),
+      );
+      ref.onDispose(timer.cancel);
+    }
     Future.microtask(_autoListPortfolios);
     return AppState.fromStorage(ref.watch(storageProvider));
   }
@@ -335,6 +343,25 @@ class AppController extends Notifier<AppState> {
     if (old != null) await ref.read(imageStoreProvider).delete([old]);
     _refresh();
     return true;
+  }
+
+  /// Naslovna slika trgovine iz galerije (ili kamere).
+  Future<bool> pickCover({bool camera = false}) async {
+    final id = _requireUserId();
+    final paths = await ref
+        .read(imageStoreProvider)
+        .pick(camera: camera, limit: 1);
+    if (paths.isEmpty) return false;
+    final old = await _accounts.setCover(id, paths.first);
+    if (old != null) await ref.read(imageStoreProvider).delete([old]);
+    _refresh();
+    return true;
+  }
+
+  Future<void> removeCover() async {
+    final old = await _accounts.setCover(_requireUserId(), null);
+    if (old != null) await ref.read(imageStoreProvider).delete([old]);
+    _refresh();
   }
 
   Future<void> removeAvatar() async {
@@ -960,24 +987,61 @@ class AppController extends Notifier<AppState> {
     required String deviceId,
     required double startPrice,
     required Duration duration,
+    double? buyNowPrice,
   }) async {
     final a = await _auctions.create(
       userId: _requireUserId(),
       deviceId: deviceId,
       startPrice: startPrice,
       duration: duration,
+      buyNowPrice: buyNowPrice,
     );
     _refresh();
     return a;
   }
 
-  Future<void> placeBid(String auctionId, double amount) async {
-    await _auctions.placeBid(
-      userId: _requireUserId(),
+  /// Ponuda (uz [maxAmount] i automatska ponuda). Vraća `true` ako
+  /// korisnik nakon ponude vodi (tuđa automatska ponuda može biti viša).
+  Future<bool> placeBid(
+    String auctionId,
+    double amount, {
+    double? maxAmount,
+  }) async {
+    final me = _requireUserId();
+    final a = await _auctions.placeBid(
+      userId: me,
       auctionId: auctionId,
       amount: amount,
+      maxAmount: maxAmount,
     );
     _refresh();
+    return a.highestBid?.userId == me;
+  }
+
+  /// "Kupi odmah" na aukciji.
+  Future<void> buyNowAuction(String auctionId) async {
+    await _auctions.buyNow(userId: _requireUserId(), auctionId: auctionId);
+    _refresh();
+  }
+
+  /// Zvono: praćenje aukcije. Vraća `true` ako je sada prati.
+  Future<bool> toggleWatchAuction(String auctionId) async {
+    final on = await _auctions.toggleWatch(_requireUserId(), auctionId);
+    _refresh();
+    return on;
+  }
+
+  /// Periodički: podsjetnici pred kraj aukcija i zaključivanje isteklih.
+  Future<void> auctionTick() async {
+    if (!ref.mounted) return;
+    final user = state.currentUser;
+    if (user == null || user.isGuest) return;
+    try {
+      if (await _auctions.notifyEndingSoon() > 0 && ref.mounted) _refresh();
+    } catch (_) {
+      // nije kritično
+    }
+    await settleExpiredAuctions();
   }
 
   Future<void> cancelAuction(String auctionId) async {

@@ -31,6 +31,9 @@ class NotificationsScreen extends ConsumerWidget {
     final state = ref.read(appProvider);
     switch (n.kind) {
       case NotificationKind.outbid ||
+          NotificationKind.outbidAuto ||
+          NotificationKind.followedAuction ||
+          NotificationKind.auctionEndingSoon ||
           NotificationKind.newBid ||
           NotificationKind.auctionLost ||
           NotificationKind.auctionSold ||

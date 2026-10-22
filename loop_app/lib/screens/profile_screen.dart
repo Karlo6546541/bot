@@ -43,6 +43,7 @@ class ProfileScreen extends ConsumerWidget {
               children: [
                 ProfileHeader(
                   user: user,
+                  editable: !user.isGuest,
                   trailing: user.isGuest ? null : StatusBadge(status: status),
                 ),
                 const SizedBox(height: 12),

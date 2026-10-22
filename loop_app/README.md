@@ -162,7 +162,27 @@ ne sinkronizira; online prijavu vodi Supabase Auth i lozinke ne prolaze kroz na�
   Vlasnik prihvaća ili odbija; nakon prihvaćanja predmeti mijenjaju vlasnike, nadoplata
   ide vlasniku u cijelosti (ponuditelj plaća + 2%), a oboje biraju dostavu u *Moje dostave*.
 
+## Aukcije: automatska ponuda, Kupi odmah, zvono
+
+- **Licitiranje u jednom listu** (gumb *Licitiraj* na aukciji ili u swipe feedu): brzi
+  iznosi, vlastiti iznos i **automatska ponuda** — upišeš najviše koliko si spreman dati,
+  a aukcija licitira umjesto tebe najmanjim korakom (5%) do tog iznosa. Blokira se samo
+  trenutna vodeća ponuda. Vodeći može povisiti svoj maksimum.
+- **Kupi odmah**: prodavatelj pri objavi može upisati cijenu kojom kupac odmah osvaja
+  predmet (dok ponude ne dosegnu tu cijenu); vodeća ponuda se vraća.
+- **Zvono (prati aukciju)**: obavijest 10 minuta prije kraja (i onima koji su licitirali).
+- **Pratitelji trgovine** dobiju obavijest kad trgovina pokrene aukciju.
+- Aukcije su i u **swipe feedu** (oznaka 🔨 s odbrojavanjem, trenutna cijena, broj ponuda,
+  *Licitiraj*, zvono) i u mreži objava na početnoj.
+
 ## Objave kao TikTok, trgovine i pratitelji
+
+- Swipe feed: slika preko cijelog ekrana (zamućena pozadina za uske/široke fotografije),
+  dolje trgovina s gumbom *Prati*, naziv i opis, a desno stupac akcija — nikad se ne
+  preklapaju. Jedan glavni gumb: *Kupi · cijena* ili *Licitiraj*. Dvostruki dodir = lajk,
+  dodir na sliku = detalji. Na računalu objava ima oblik mobitela.
+- **Naslovna i profilna slika trgovine** mijenjaju se dodirom na ikonu kamere na vlastitom
+  profilu (galerija, kamera ili ukloni).
 
 - **Početna** odmah ispod stanja: gumb **Gledaj objave**, „Trgovine za tebe” i mreža
   **objava** (oglasi drugih prodavatelja, nasumičnim redom, s prednošću za trgovine koje

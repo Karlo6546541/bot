@@ -29,7 +29,16 @@ enum NotificationKind {
   newFollower('👤', '{0} te sada prati.'),
   followedNewItem('🆕', '{0} je objavio novi oglas: "{1}" za {2}.'),
   followedDiscount('🏷️', '{0}: popust −{1}% na "{2}" — sada {3}.'),
-  soldOut('📦', 'Rasprodano: "{0}" — prodan je zadnji komad.');
+  soldOut('📦', 'Rasprodano: "{0}" — prodan je zadnji komad.'),
+  followedAuction('🔨', '{0} je pokrenuo aukciju: "{1}" od {2}.'),
+  auctionEndingSoon(
+    '⏰',
+    'Aukcija "{0}" završava za manje od 10 minuta — trenutno {1}.',
+  ),
+  outbidAuto(
+    '🤖',
+    'Automatska ponuda drugog kupca je viša na aukciji "{0}" — sada {1}.',
+  );
 
   const NotificationKind(this.emoji, this._template);
   final String emoji;

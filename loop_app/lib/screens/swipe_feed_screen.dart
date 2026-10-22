@@ -1,41 +1,47 @@
+import 'dart:ui' show ImageFilter;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../l10n/tr.dart';
+import '../models/auction.dart';
 import '../models/device.dart';
 import '../providers/app_providers.dart';
 import '../providers/app_state.dart';
 import '../services/fee.dart';
+import '../utils/formatters.dart';
+import '../widgets/auction_widgets.dart';
+import '../widgets/category_style.dart';
+import '../widgets/countdown.dart';
+import '../widgets/feed.dart' show FeedEntry;
 import '../widgets/item_image.dart';
 import '../widgets/shop_widgets.dart';
 import '../widgets/trade_actions.dart';
 import '../widgets/user_avatar.dart';
-import '../utils/formatters.dart';
+import 'auction_detail_screen.dart';
 import 'device_detail_screen.dart';
 import 'public_profile_screen.dart';
 
-/// Objave preko cijelog ekrana koje se listaju gore/dolje (kao TikTok):
-/// prati, ponudi cijenu, lajk, prikazi, podijeli i kupnja.
+/// Objave preko cijelog ekrana koje se listaju gore/dolje (kao TikTok).
+/// Oglas: lajk, ponudi cijenu, podijeli, kupi. Aukcija: licitiraj,
+/// zvono, odbrojavanje.
 class SwipeFeedScreen extends ConsumerStatefulWidget {
   const SwipeFeedScreen({
     super.key,
-    required this.deviceIds,
+    required this.entries,
     this.initialIndex = 0,
   });
 
-  final List<String> deviceIds;
+  final List<FeedEntry> entries;
   final int initialIndex;
 
   static Future<void> open(
     BuildContext context,
-    List<Device> posts,
+    List<FeedEntry> entries,
     int index,
   ) => Navigator.of(context).push(
     MaterialPageRoute<void>(
-      builder: (_) => SwipeFeedScreen(
-        deviceIds: [for (final d in posts) d.id],
-        initialIndex: index,
-      ),
+      builder: (_) => SwipeFeedScreen(entries: entries, initialIndex: index),
     ),
   );
 
@@ -45,13 +51,12 @@ class SwipeFeedScreen extends ConsumerStatefulWidget {
 
 class _SwipeFeedScreenState extends ConsumerState<SwipeFeedScreen> {
   late final _pages = PageController(initialPage: widget.initialIndex);
+  late int _index = widget.initialIndex;
 
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback(
-      (_) => _seen(widget.initialIndex),
-    );
+    WidgetsBinding.instance.addPostFrameCallback((_) => _seen(_index));
   }
 
   @override
@@ -61,59 +66,90 @@ class _SwipeFeedScreenState extends ConsumerState<SwipeFeedScreen> {
   }
 
   void _seen(int i) {
-    if (i < widget.deviceIds.length) {
-      ref.read(appProvider.notifier).recordView(widget.deviceIds[i]);
-    }
+    if (i >= widget.entries.length) return;
+    final e = widget.entries[i];
+    final state = ref.read(appProvider);
+    final id = e.deviceId ?? state.auctionById(e.auctionId!)?.deviceId;
+    if (id != null) ref.read(appProvider.notifier).recordView(id);
   }
 
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(appProvider);
-    final ids = widget.deviceIds;
-    return Theme(
-      data: ThemeData.dark(useMaterial3: true).copyWith(
-        colorScheme: Theme.of(context).colorScheme.copyWith(
-          brightness: Brightness.dark,
-          surface: Colors.black,
-          onSurface: Colors.white,
-        ),
-      ),
-      child: Scaffold(
-        backgroundColor: Colors.black,
-        extendBodyBehindAppBar: true,
-        appBar: AppBar(
-          backgroundColor: Colors.transparent,
-          foregroundColor: Colors.white,
-          elevation: 0,
-          title: Text(t('Za tebe')),
-          centerTitle: true,
-        ),
-        body: PageView.builder(
-          key: const ValueKey('swipe-feed'),
-          controller: _pages,
-          scrollDirection: Axis.vertical,
-          itemCount: ids.length + 1,
-          onPageChanged: _seen,
-          itemBuilder: (context, i) {
-            if (i == ids.length) {
-              return _EndPage(onBack: () => Navigator.pop(context));
-            }
-            final d = state.deviceById(ids[i]);
-            if (d == null || !d.isForSale) {
-              return Center(
-                child: Text(
-                  t('Oglas više nije dostupan.'),
-                  style: const TextStyle(color: Colors.white70),
+    final entries = widget.entries;
+    return Scaffold(
+      backgroundColor: Colors.black,
+      body: Center(
+        // Na širokom ekranu objava ima oblik mobitela.
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 520),
+          child: Stack(
+            children: [
+              PageView.builder(
+                key: const ValueKey('swipe-feed'),
+                controller: _pages,
+                scrollDirection: Axis.vertical,
+                itemCount: entries.length + 1,
+                onPageChanged: (i) {
+                  setState(() => _index = i);
+                  _seen(i);
+                },
+                itemBuilder: (context, i) {
+                  if (i == entries.length) {
+                    return _EndPage(onBack: () => Navigator.pop(context));
+                  }
+                  return _PostPage(entry: entries[i], state: state);
+                },
+              ),
+              // Gornja traka: natrag, naslov, broj objave.
+              SafeArea(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 4),
+                  child: Row(
+                    children: [
+                      IconButton(
+                        tooltip: t('Natrag'),
+                        color: Colors.white,
+                        icon: const Icon(Icons.arrow_back),
+                        onPressed: () => Navigator.pop(context),
+                      ),
+                      Expanded(
+                        child: Text(
+                          t('Za tebe'),
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 18,
+                            fontWeight: FontWeight.w800,
+                            shadows: _shadow,
+                          ),
+                        ),
+                      ),
+                      SizedBox(
+                        width: 48,
+                        child: Text(
+                          '${(_index + 1).clamp(1, entries.length)}/${entries.length}',
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(
+                            color: Colors.white70,
+                            fontSize: 12,
+                            shadows: _shadow,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
-              );
-            }
-            return _Post(device: d, state: state);
-          },
+              ),
+            ],
+          ),
         ),
       ),
     );
   }
 }
+
+const _shadow = [Shadow(blurRadius: 8, color: Colors.black87)];
 
 class _EndPage extends StatelessWidget {
   const _EndPage({required this.onBack});
@@ -141,64 +177,62 @@ class _EndPage extends StatelessWidget {
   );
 }
 
-class _Post extends ConsumerWidget {
-  const _Post({required this.device, required this.state});
-  final Device device;
+/// Jedna objava: slika preko cijelog ekrana, a dolje opis (lijevo) i
+/// stupac akcija (desno) jedan pokraj drugoga — nikad se ne preklapaju.
+class _PostPage extends ConsumerStatefulWidget {
+  const _PostPage({required this.entry, required this.state});
+  final FeedEntry entry;
   final AppState state;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final d = device;
-    final owner = state.userById(d.ownerId);
+  ConsumerState<_PostPage> createState() => _PostPageState();
+}
+
+class _PostPageState extends ConsumerState<_PostPage> {
+  bool _heart = false;
+
+  Future<void> _doubleTapLike(Device d) async {
+    setState(() => _heart = true);
+    Future.delayed(const Duration(milliseconds: 700), () {
+      if (mounted) setState(() => _heart = false);
+    });
+    if (!widget.state.isFavorite(d.id)) await toggleFavorite(ref, d);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final state = widget.state;
+    final e = widget.entry;
+    final auction = e.isAuction ? state.auctionById(e.auctionId!) : null;
+    final d = state.deviceById(e.deviceId ?? auction?.deviceId ?? '');
+    final available =
+        d != null && (auction != null ? auction.isActive : d.isForSale);
+    if (!available) {
+      return Center(
+        child: Text(
+          auction != null
+              ? t('Aukcija je završila.')
+              : t('Oglas više nije dostupan.'),
+          style: const TextStyle(color: Colors.white70),
+        ),
+      );
+    }
+    final owner = state.userById(auction?.sellerId ?? d.ownerId);
     final me = state.currentUser;
     final isMine = owner != null && owner.id == me?.id;
-    final liked = state.isFavorite(d.id);
-    final price = state.priceForMe(d);
-    const shadow = [Shadow(blurRadius: 8, color: Colors.black87)];
-    final photo = d.imagePaths.isEmpty
-        ? ItemIllustration(category: d.category, iconSize: 120)
-        : LocalPhoto(
-            path: d.imagePaths.first,
-            fit: BoxFit.contain,
-            fallback: ItemIllustration(category: d.category, iconSize: 120),
-          );
-
-    Widget action(
-      IconData icon,
-      String label,
-      VoidCallback? onTap, {
-      Color color = Colors.white,
-      Key? key,
-    }) => Padding(
-      padding: const EdgeInsets.only(bottom: 16),
-      child: InkWell(
-        key: key,
-        onTap: onTap,
-        customBorder: const CircleBorder(),
-        child: Column(
-          children: [
-            Icon(icon, color: color, size: 34, shadows: shadow),
-            const SizedBox(height: 2),
-            Text(
-              label,
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 12,
-                fontWeight: FontWeight.w700,
-                shadows: shadow,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
+    void openDetails() => auction != null
+        ? AuctionDetailScreen.open(context, auction.id)
+        : DeviceDetailScreen.open(context, d);
 
     return Stack(
       fit: StackFit.expand,
       children: [
         GestureDetector(
-          onDoubleTap: liked || isMine ? null : () => toggleFavorite(ref, d),
-          child: ColoredBox(color: Colors.black, child: photo),
+          onTap: openDetails,
+          onDoubleTap: isMine || auction != null
+              ? null
+              : () => _doubleTapLike(d),
+          child: _Media(device: d),
         ),
         const IgnorePointer(
           child: DecoratedBox(
@@ -206,183 +240,569 @@ class _Post extends ConsumerWidget {
               gradient: LinearGradient(
                 begin: Alignment.topCenter,
                 end: Alignment.bottomCenter,
-                colors: [Colors.black38, Colors.transparent, Colors.black87],
-                stops: [0, 0.45, 1],
+                colors: [
+                  Colors.black45,
+                  Colors.transparent,
+                  Colors.transparent,
+                  Colors.black87,
+                ],
+                stops: [0, 0.18, 0.5, 1],
               ),
             ),
           ),
         ),
-        // Desni stupac akcija.
-        Positioned(
-          right: 10,
-          bottom: 120,
-          child: Column(
-            children: [
-              if (owner != null)
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 18),
-                  child: SizedBox(
-                    width: 52,
-                    height: 62,
-                    child: Stack(
-                      clipBehavior: Clip.none,
-                      children: [
-                        GestureDetector(
-                          onTap: () =>
-                              PublicProfileScreen.open(context, owner.id),
-                          child: Container(
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              border: Border.all(color: Colors.white, width: 2),
-                            ),
-                            child: UserAvatar(user: owner, size: 48),
-                          ),
-                        ),
-                        if (!isMine && !state.isFollowing(owner.id))
-                          Positioned(
-                            left: 14,
-                            bottom: 0,
-                            child: GestureDetector(
-                              key: const ValueKey('post-follow'),
-                              onTap: () async {
-                                if (blockGuest(context)) return;
-                                await ref
-                                    .read(appProvider.notifier)
-                                    .toggleFollow(owner.id);
-                                showLoopSnackBar(
-                                  t('Pratiš {0}', [owner.handle]),
-                                );
-                              },
-                              child: const CircleAvatar(
-                                radius: 12,
-                                backgroundColor: Color(0xFFFF2D55),
-                                child: Icon(
-                                  Icons.add,
-                                  size: 18,
-                                  color: Colors.white,
-                                ),
-                              ),
-                            ),
-                          ),
-                      ],
-                    ),
-                  ),
-                ),
-              action(
-                liked ? Icons.favorite : Icons.favorite_border,
-                '${state.likesOf(d.id)}',
-                isMine ? null : () => toggleFavorite(ref, d),
-                color: liked ? const Color(0xFFFF2D55) : Colors.white,
-                key: const ValueKey('post-like'),
+        IgnorePointer(
+          child: Center(
+            child: AnimatedScale(
+              scale: _heart ? 1 : 0,
+              duration: const Duration(milliseconds: 200),
+              child: const Icon(
+                Icons.favorite,
+                color: Color(0xFFFF2D55),
+                size: 110,
+                shadows: _shadow,
               ),
-              if (!isMine && d.isListed)
-                action(
-                  Icons.price_change_outlined,
-                  t('Ponudi'),
-                  () => showBargainDialog(context, ref, d),
-                  key: const ValueKey('post-offer'),
-                ),
-              action(
-                Icons.ios_share,
-                t('Podijeli'),
-                () => shareLink(
-                  context,
-                  publicLink(item: d.id),
-                  text: t('{0} za {1} na LOOP-u', [
-                    d.name,
-                    formatCredits(d.shownPrice),
-                  ]),
-                ),
-                key: const ValueKey('post-share'),
-              ),
-              action(Icons.play_arrow_outlined, '${state.viewsOf(d.id)}', null),
-            ],
+            ),
           ),
         ),
-        // Opis i kupnja.
+        // Oznaka u kutu: aukcija / popust / istaknuto.
         Positioned(
+          top: MediaQuery.paddingOf(context).top + 56,
           left: 14,
-          right: 80,
-          bottom: 24,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              if (owner != null)
-                GestureDetector(
-                  onTap: () => PublicProfileScreen.open(context, owner.id),
-                  child: Text(
-                    owner.shopName.isNotEmpty
-                        ? '${owner.handle} · ${owner.shopName}'
-                        : owner.handle,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.w900,
-                      fontSize: 16,
-                      shadows: shadow,
-                    ),
-                  ),
-                ),
-              const SizedBox(height: 4),
-              Text(
-                '${d.name} · ${d.model}',
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.w700,
-                  shadows: shadow,
-                ),
-              ),
-              if (d.description.isNotEmpty)
-                Text(
-                  d.description,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    color: Colors.white70,
-                    shadows: shadow,
-                  ),
-                ),
-              const SizedBox(height: 8),
-              Row(
+          child: _CornerBadge(device: d, auction: auction, state: state),
+        ),
+        Positioned(
+          left: 0,
+          right: 0,
+          bottom: 0,
+          child: SafeArea(
+            top: false,
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(14, 0, 8, 16),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
-                  Flexible(
-                    child: PriceTag(
+                  Expanded(
+                    child: _Info(
                       device: d,
-                      price: isMine ? d.askPrice : buyTotal(price),
-                      basePrice: isMine ? null : d.shownBasePrice,
-                      fontSize: 22,
+                      auction: auction,
+                      state: state,
+                      isMine: isMine,
+                      onDetails: openDetails,
                     ),
+                  ),
+                  const SizedBox(width: 8),
+                  _ActionRail(
+                    device: d,
+                    auction: auction,
+                    state: state,
+                    isMine: isMine,
                   ),
                 ],
               ),
-              const SizedBox(height: 10),
-              Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: [
-                  if (!isMine)
-                    FilledButton.icon(
-                      key: const ValueKey('post-buy'),
-                      onPressed: () => confirmAndBuy(context, ref, d),
-                      icon: const Icon(Icons.shopping_bag_outlined),
-                      label: Text(
-                        d.isDigital ? t('Kupi i preuzmi') : t('Kupi'),
-                      ),
-                    ),
-                  OutlinedButton(
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: Colors.white,
-                      side: const BorderSide(color: Colors.white70),
-                    ),
-                    onPressed: () => DeviceDetailScreen.open(context, d),
-                    child: Text(t('Detalji')),
-                  ),
-                ],
-              ),
-            ],
+            ),
           ),
         ),
       ],
+    );
+  }
+}
+
+/// Fotografija preko cijelog ekrana: zamućena pozadina + cijela slika, pa
+/// i uske ili široke fotografije izgledaju dobro. Bez fotografije —
+/// ilustracija kategorije.
+class _Media extends StatelessWidget {
+  const _Media({required this.device});
+  final Device device;
+
+  @override
+  Widget build(BuildContext context) {
+    final d = device;
+    final c = d.category.color;
+    final illustration = DecoratedBox(
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [c.withValues(alpha: 0.95), Colors.black],
+        ),
+      ),
+      child: Center(
+        child: Icon(d.category.icon, size: 140, color: Colors.white24),
+      ),
+    );
+    if (d.imagePaths.isEmpty) return illustration;
+    final path = d.imagePaths.first;
+    return Stack(
+      fit: StackFit.expand,
+      children: [
+        ImageFiltered(
+          imageFilter: ImageFilter.blur(sigmaX: 24, sigmaY: 24),
+          child: LocalPhoto(
+            path: path,
+            cacheWidth: 200,
+            fallback: illustration,
+          ),
+        ),
+        const ColoredBox(color: Colors.black26),
+        LocalPhoto(
+          path: path,
+          fit: BoxFit.contain,
+          cacheWidth: 1080,
+          fallback: illustration,
+        ),
+      ],
+    );
+  }
+}
+
+class _CornerBadge extends StatelessWidget {
+  const _CornerBadge({
+    required this.device,
+    required this.auction,
+    required this.state,
+  });
+  final Device device;
+  final Auction? auction;
+  final AppState state;
+
+  @override
+  Widget build(BuildContext context) {
+    final a = auction;
+    if (a != null) {
+      return _Pill(
+        color: const Color(0xFF7B2FF7),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(t('🔨 AUKCIJA'), style: _pillText),
+            const SizedBox(width: 8),
+            AuctionCountdown(
+              endsAt: a.endsAt,
+              showIcon: false,
+              style: _pillText,
+            ),
+          ],
+        ),
+      );
+    }
+    if (device.hasDiscount) {
+      return _Pill(
+        color: const Color(0xFFFF2D55),
+        child: Text(
+          t('−{0}% popust', ['${device.discountPercent}']),
+          style: _pillText,
+        ),
+      );
+    }
+    if (state.isPromotedItem(device)) {
+      return _Pill(
+        color: const Color(0xFFFFC233),
+        child: Text(
+          t('⭐ Istaknuto'),
+          style: _pillText.copyWith(color: Colors.black87),
+        ),
+      );
+    }
+    return const SizedBox.shrink();
+  }
+}
+
+const _pillText = TextStyle(
+  color: Colors.white,
+  fontWeight: FontWeight.w900,
+  fontSize: 13,
+);
+
+class _Pill extends StatelessWidget {
+  const _Pill({required this.color, required this.child});
+  final Color color;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) => Container(
+    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+    decoration: BoxDecoration(
+      color: color,
+      borderRadius: BorderRadius.circular(99),
+    ),
+    child: child,
+  );
+}
+
+/// Opis objave: trgovina (+ Prati), naziv, opis, cijena i glavni gumb.
+class _Info extends ConsumerWidget {
+  const _Info({
+    required this.device,
+    required this.auction,
+    required this.state,
+    required this.isMine,
+    required this.onDetails,
+  });
+  final Device device;
+  final Auction? auction;
+  final AppState state;
+  final bool isMine;
+  final VoidCallback onDetails;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final d = device;
+    final a = auction;
+    final owner = state.userById(a?.sellerId ?? d.ownerId);
+    final meId = state.currentUserId;
+    final leading = a != null && a.highestBid?.userId == meId;
+    final price = buyTotal(state.priceForMe(d));
+
+    Widget primary;
+    if (isMine) {
+      primary = _MainButton(
+        icon: Icons.info_outline,
+        label: a != null ? t('Moja aukcija') : t('Moj oglas'),
+        onTap: onDetails,
+        outlined: true,
+      );
+    } else if (a != null) {
+      primary = _MainButton(
+        key: const ValueKey('post-bid'),
+        icon: leading ? Icons.emoji_events_outlined : Icons.gavel,
+        label: leading
+            ? t('Vodiš · automatska ponuda')
+            : t('Licitiraj · od {0}', [formatCredits(a.minNextBid)]),
+        onTap: () => showBidSheet(context, ref, a.id),
+        color: const Color(0xFF7B2FF7),
+      );
+    } else {
+      primary = _MainButton(
+        key: const ValueKey('post-buy'),
+        icon: d.isDigital
+            ? Icons.download_for_offline_outlined
+            : Icons.shopping_bag_outlined,
+        label: d.isDigital && state.hasPurchased(d.id)
+            ? t('Preuzmi')
+            : t('Kupi · {0}', [formatCredits(price)]),
+        onTap: () => confirmAndBuy(context, ref, d),
+      );
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        if (owner != null)
+          Row(
+            children: [
+              GestureDetector(
+                onTap: () => PublicProfileScreen.open(context, owner.id),
+                child: UserAvatar(user: owner, size: 34),
+              ),
+              const SizedBox(width: 8),
+              Flexible(
+                child: GestureDetector(
+                  onTap: () => PublicProfileScreen.open(context, owner.id),
+                  child: Text(
+                    owner.shopTitle,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w900,
+                      fontSize: 15,
+                      shadows: _shadow,
+                    ),
+                  ),
+                ),
+              ),
+              if (!isMine && !state.isFollowing(owner.id)) ...[
+                const SizedBox(width: 8),
+                _FollowPill(userId: owner.id, handle: owner.handle),
+              ],
+            ],
+          ),
+        const SizedBox(height: 8),
+        Text(
+          d.model.isEmpty ? d.name : '${d.name} · ${d.model}',
+          maxLines: 2,
+          overflow: TextOverflow.ellipsis,
+          style: const TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.w800,
+            fontSize: 16,
+            shadows: _shadow,
+          ),
+        ),
+        if (d.description.isNotEmpty) ...[
+          const SizedBox(height: 2),
+          Text(
+            d.description,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(color: Colors.white70, shadows: _shadow),
+          ),
+        ],
+        const SizedBox(height: 8),
+        if (a != null)
+          Text(
+            a.bids.isEmpty
+                ? t('Početna cijena {0}', [formatCredits(a.currentPrice)])
+                : t('Trenutno {0} · {1} ponuda', [
+                    formatCredits(a.currentPrice),
+                    '${a.bids.length}',
+                  ]),
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 20,
+              fontWeight: FontWeight.w900,
+              shadows: _shadow,
+            ),
+          )
+        // Cijena je na gumbu "Kupi"; ovdje samo popust (prekrižena cijena).
+        else if (!isMine && price < d.shownBasePrice)
+          PriceTag(
+            device: d,
+            price: price,
+            basePrice: d.shownBasePrice,
+            fontSize: 22,
+            color: Colors.white,
+          )
+        else if (isMine)
+          PriceTag(
+            device: d,
+            price: d.askPrice,
+            fontSize: 22,
+            color: Colors.white,
+          ),
+        if (a?.canBuyNow ?? false) ...[
+          const SizedBox(height: 2),
+          Text(
+            t('⚡ Kupi odmah za {0}', [formatCredits(a!.buyNowPrice!)]),
+            style: const TextStyle(
+              color: Colors.white,
+              fontWeight: FontWeight.w700,
+              shadows: _shadow,
+            ),
+          ),
+        ],
+        const SizedBox(height: 10),
+        primary,
+      ],
+    );
+  }
+}
+
+class _MainButton extends StatelessWidget {
+  const _MainButton({
+    super.key,
+    required this.icon,
+    required this.label,
+    required this.onTap,
+    this.color,
+    this.outlined = false,
+  });
+  final IconData icon;
+  final String label;
+  final VoidCallback onTap;
+  final Color? color;
+  final bool outlined;
+
+  @override
+  Widget build(BuildContext context) {
+    final child = Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(icon, size: 20),
+        const SizedBox(width: 8),
+        Flexible(
+          child: Text(label, maxLines: 1, overflow: TextOverflow.ellipsis),
+        ),
+      ],
+    );
+    return SizedBox(
+      width: double.infinity,
+      height: 48,
+      child: outlined
+          ? OutlinedButton(
+              onPressed: onTap,
+              style: OutlinedButton.styleFrom(
+                foregroundColor: Colors.white,
+                side: const BorderSide(color: Colors.white70),
+              ),
+              child: child,
+            )
+          : FilledButton(
+              onPressed: onTap,
+              style: color == null
+                  ? null
+                  : FilledButton.styleFrom(
+                      backgroundColor: color,
+                      foregroundColor: Colors.white,
+                    ),
+              child: child,
+            ),
+    );
+  }
+}
+
+class _FollowPill extends ConsumerWidget {
+  const _FollowPill({required this.userId, required this.handle});
+  final String userId;
+  final String handle;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) => Material(
+    color: Colors.white,
+    borderRadius: BorderRadius.circular(99),
+    child: InkWell(
+      key: const ValueKey('post-follow'),
+      borderRadius: BorderRadius.circular(99),
+      onTap: () async {
+        if (blockGuest(context)) return;
+        await ref.read(appProvider.notifier).toggleFollow(userId);
+        showLoopSnackBar(t('Pratiš {0}', [handle]));
+      },
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
+        child: Text(
+          t('Prati'),
+          style: const TextStyle(
+            color: Colors.black,
+            fontWeight: FontWeight.w900,
+          ),
+        ),
+      ),
+    ),
+  );
+}
+
+/// Desni stupac akcija (fiksne širine).
+class _ActionRail extends ConsumerWidget {
+  const _ActionRail({
+    required this.device,
+    required this.auction,
+    required this.state,
+    required this.isMine,
+  });
+  final Device device;
+  final Auction? auction;
+  final AppState state;
+  final bool isMine;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final d = device;
+    final a = auction;
+    final liked = state.isFavorite(d.id);
+    final watching = a != null && a.watchers.contains(state.currentUserId);
+    void share() => shareLink(
+      context,
+      publicLink(item: d.id),
+      text: a != null
+          ? t('Aukcija: {0} — trenutno {1} na LOOP-u', [
+              d.name,
+              formatCredits(a.currentPrice),
+            ])
+          : t('{0} za {1} na LOOP-u', [d.name, formatCredits(d.shownPrice)]),
+    );
+    return SizedBox(
+      width: 64,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (a == null)
+            _RailButton(
+              key: const ValueKey('post-like'),
+              icon: liked ? Icons.favorite : Icons.favorite_border,
+              color: liked ? const Color(0xFFFF2D55) : Colors.white,
+              label: '${state.likesOf(d.id)}',
+              onTap: isMine ? null : () => toggleFavorite(ref, d),
+            )
+          else if (!isMine)
+            _RailButton(
+              key: const ValueKey('post-watch'),
+              icon: watching
+                  ? Icons.notifications_active
+                  : Icons.notifications_none,
+              color: watching ? const Color(0xFFFFC233) : Colors.white,
+              label: watching ? t('Pratiš') : t('Prati'),
+              onTap: () async {
+                if (blockGuest(context)) return;
+                final on = await ref
+                    .read(appProvider.notifier)
+                    .toggleWatchAuction(a.id);
+                showLoopSnackBar(
+                  on
+                      ? t('Pratiš aukciju — javit ćemo ti 10 minuta prije kraja.')
+                      : t('Više ne pratiš aukciju.'),
+                );
+              },
+            ),
+          if (a == null && !isMine && d.isListed)
+            _RailButton(
+              key: const ValueKey('post-offer'),
+              icon: Icons.price_change_outlined,
+              label: t('Ponudi'),
+              onTap: () => showBargainDialog(context, ref, d),
+            ),
+          _RailButton(
+            key: const ValueKey('post-share'),
+            icon: Icons.reply,
+            mirror: true,
+            label: t('Podijeli'),
+            onTap: share,
+          ),
+          _RailButton(
+            icon: Icons.play_arrow_rounded,
+            label: '${state.viewsOf(d.id)}',
+            onTap: null,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _RailButton extends StatelessWidget {
+  const _RailButton({
+    super.key,
+    required this.icon,
+    required this.label,
+    required this.onTap,
+    this.color = Colors.white,
+    this.mirror = false,
+  });
+  final IconData icon;
+  final String label;
+  final VoidCallback? onTap;
+  final Color color;
+  final bool mirror;
+
+  @override
+  Widget build(BuildContext context) {
+    Widget i = Icon(icon, color: color, size: 32, shadows: _shadow);
+    if (mirror) i = Transform.flip(flipX: true, child: i);
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 14),
+      child: InkResponse(
+        onTap: onTap,
+        radius: 30,
+        child: Column(
+          children: [
+            i,
+            const SizedBox(height: 2),
+            Text(
+              label,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 12,
+                fontWeight: FontWeight.w700,
+                shadows: _shadow,
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

@@ -53,6 +53,7 @@ class AuctionService {
     required String deviceId,
     required double startPrice,
     required Duration duration,
+    double? buyNowPrice,
     DateTime? now,
   }) async {
     final at = now ?? DateTime.now();
@@ -80,6 +81,11 @@ class AuctionService {
     if (duration <= Duration.zero) {
       throw TradeException(t('Odaberi trajanje aukcije.'));
     }
+    if (buyNowPrice != null && buyNowPrice <= startPrice) {
+      throw TradeException(
+        t('Cijena "Kupi odmah" mora biti veća od početne cijene.'),
+      );
+    }
     // Pravila protiv masovnog objavljivanja (limit, naknada, pauza…).
     final reason = policy.blockReason(userId, device, now: at);
     if (reason != null) throw TradeException(reason);
@@ -100,8 +106,17 @@ class AuctionService {
       createdAt: at,
       endsAt: at.add(duration),
       listingFee: fee,
+      buyNowPrice: buyNowPrice == null ? null : roundCredits(buyNowPrice),
     );
     await _storage.putAuction(auction);
+    // Pratitelji trgovine saznaju za novu aukciju.
+    await Inbox(_storage).toFollowers(
+      userId,
+      NotificationKind.followedAuction,
+      args: [user.handle, device.name, auction.startPrice],
+      targetId: auction.id,
+      now: at,
+    );
     await _storage.putTransaction(
       LoopTransaction(
         id: _uuid.v4(),
@@ -124,10 +139,16 @@ class AuctionService {
 
   // ------------------------------------------------------------ ponude
 
+  /// Ponuda [amount]. Uz [maxAmount] to je i **automatska ponuda**:
+  /// aukcija licitira umjesto korisnika najmanjim korakom do tog iznosa.
+  /// Blokira se samo trenutna vodeća ponuda, ne cijeli maksimum.
+  ///
+  /// Vodeći ponuđač ne licitira ponovno, ali smije povisiti svoj maksimum.
   Future<Auction> placeBid({
     required String userId,
     required String auctionId,
     required double amount,
+    double? maxAmount,
     DateTime? now,
   }) async {
     final at = now ?? DateTime.now();
@@ -145,12 +166,27 @@ class AuctionService {
     if (_storage.userById(a.sellerId)?.blockedIds.contains(userId) ?? false) {
       throw TradeException(t('Ne možeš licitirati na ovu aukciju.'));
     }
-    if (a.highestBid?.userId == userId) {
-      throw TradeException(
-        t(
-          'Već imaš najvišu ponudu. Ponuda je obvezujuća i ne može se povući ni promijeniti dok te netko ne nadmaši.',
-        ),
-      );
+    final leader = a.highestBid;
+    if (leader?.userId == userId) {
+      // Vodeći smije samo povisiti automatsku ponudu.
+      final max = maxAmount == null ? null : roundCredits(maxAmount);
+      if (max == null || max <= (a.autoMaxOf(userId) ?? leader!.amount)) {
+        throw TradeException(
+          t(
+            'Već imaš najvišu ponudu. Ponuda je obvezujuća i ne može se povući ni promijeniti dok te netko ne nadmaši.',
+          ),
+        );
+      }
+      if (max > user.credits + leader!.amount) {
+        throw TradeException(
+          t('Automatska ponuda ne može biti veća od tvog stanja ({0}).', [
+            formatCredits(user.credits + leader.amount),
+          ]),
+        );
+      }
+      final updated = a.copyWith(autoMax: {...a.autoMax, userId: max});
+      await _storage.putAuction(updated);
+      return updated;
     }
     final bid = roundCredits(amount);
     if (bid < a.minNextBid) {
@@ -165,29 +201,106 @@ class AuctionService {
         ]),
       );
     }
+    final max = maxAmount == null ? bid : roundCredits(maxAmount);
+    if (max < bid) {
+      throw TradeException(
+        t('Automatska ponuda mora biti barem koliko i ponuda.'),
+      );
+    }
+    // Koliko si korisnik zaista može priuštiti.
+    final myCap = max < user.credits ? max : user.credits;
 
-    // Blokiraj iznos novom vodećem ponuđaču, vrati ga prethodnom.
-    await _storage.putUser(
-      user.copyWith(credits: roundCredits(user.credits - bid)),
-    );
-    final previous = a.highestBid;
-    if (previous != null) await _refund(previous);
+    final bids = [...a.bids];
+    final auto = {...a.autoMax}..remove(userId);
+    String? outbidUser;
+    var outbidByAuto = false;
+    double price;
+    String newLeader;
+
+    if (leader == null) {
+      price = bid;
+      newLeader = userId;
+      bids.add(
+        Bid(userId: userId, userLabel: user.handle, amount: bid, time: at),
+      );
+    } else {
+      final lUser = _storage.userById(leader.userId);
+      final lMax = a.autoMaxOf(leader.userId) ?? leader.amount;
+      // Vodeći ne može ići iznad svog stanja + već blokiranog iznosa.
+      final lAfford = (lUser?.credits ?? 0) + leader.amount;
+      final lCap = lMax < lAfford ? lMax : lAfford;
+      if (myCap > lCap) {
+        // Novi ponuđač vodi: cijena = korak iznad tuđeg maksimuma.
+        final over = lCap + Auction.stepFor(lCap);
+        final target = over < myCap ? over : myCap;
+        price = roundCredits(bid > target ? bid : target);
+        if (lCap > leader.amount) {
+          bids.add(
+            Bid(
+              userId: leader.userId,
+              userLabel: leader.userLabel,
+              amount: lCap,
+              time: at,
+            ),
+          );
+        }
+        bids.add(
+          Bid(userId: userId, userLabel: user.handle, amount: price, time: at),
+        );
+        await _refund(leader);
+        auto.remove(leader.userId);
+        outbidUser = leader.userId;
+        newLeader = userId;
+      } else {
+        // Automatska ponuda vodećeg je viša: on ostaje vodeći.
+        bids.add(
+          Bid(userId: userId, userLabel: user.handle, amount: myCap, time: at),
+        );
+        final over = myCap + Auction.stepFor(myCap);
+        price = roundCredits(over < lCap ? over : lCap);
+        bids.add(
+          Bid(
+            userId: leader.userId,
+            userLabel: leader.userLabel,
+            amount: price,
+            time: at,
+          ),
+        );
+        if (lUser != null) {
+          await _storage.putUser(
+            lUser.copyWith(
+              credits: roundCredits(lUser.credits - (price - leader.amount)),
+            ),
+          );
+        }
+        if (lMax <= price) auto.remove(leader.userId);
+        outbidUser = userId;
+        outbidByAuto = true;
+        newLeader = leader.userId;
+      }
+    }
+
+    if (newLeader == userId) {
+      final me = _storage.userById(userId)!;
+      await _storage.putUser(
+        me.copyWith(credits: roundCredits(me.credits - price)),
+      );
+      if (max > price) auto[userId] = max;
+    }
 
     final remaining = a.endsAt.difference(at);
     final updated = a.copyWith(
-      bids: [
-        ...a.bids,
-        Bid(userId: userId, userLabel: user.handle, amount: bid, time: at),
-      ],
+      bids: bids,
+      autoMax: auto,
       endsAt: remaining < extendWindow ? at.add(extendWindow) : null,
     );
     await _storage.putAuction(updated);
     final inbox = Inbox(_storage);
-    if (previous != null && previous.userId != userId) {
+    if (outbidUser != null) {
       await inbox.send(
-        previous.userId,
-        NotificationKind.outbid,
-        args: [a.deviceName, bid],
+        outbidUser,
+        outbidByAuto ? NotificationKind.outbidAuto : NotificationKind.outbid,
+        args: [a.deviceName, price],
         targetId: a.id,
         now: at,
       );
@@ -195,12 +308,101 @@ class AuctionService {
     await inbox.send(
       a.sellerId,
       NotificationKind.newBid,
-      args: [a.deviceName, bid],
+      args: [a.deviceName, price],
       targetId: a.id,
       now: at,
     );
     return updated;
   }
+
+  /// "Kupi odmah": kupac plaća [Auction.buyNowPrice] i odmah osvaja
+  /// predmet; vodeća ponuda se vraća.
+  Future<AuctionResult> buyNow({
+    required String userId,
+    required String auctionId,
+    DateTime? now,
+  }) async {
+    final at = now ?? DateTime.now();
+    final a = _requireAuction(auctionId);
+    final user = _storage.userById(userId);
+    if (user == null) throw TradeException(t('Korisnik ne postoji.'));
+    if (!a.isActive || a.isExpired(at)) {
+      throw TradeException(t('Aukcija je završila.'));
+    }
+    if (a.sellerId == userId) {
+      throw TradeException(t('Ne možeš kupiti svoj predmet.'));
+    }
+    if (!a.canBuyNow) {
+      throw TradeException(t('"Kupi odmah" više nije dostupno.'));
+    }
+    final price = a.buyNowPrice!;
+    final leader = a.highestBid;
+    final mine = leader?.userId == userId ? leader!.amount : 0.0;
+    if (user.credits + mine < price) {
+      throw TradeException(
+        t('Nemaš dovoljno novca: treba {0}, imaš {1}.', [
+          formatCredits(price),
+          formatCredits(user.credits + mine),
+        ]),
+      );
+    }
+    if (leader != null) await _refund(leader);
+    final me = _storage.userById(userId)!;
+    await _storage.putUser(
+      me.copyWith(credits: roundCredits(me.credits - price)),
+    );
+    final updated = a.copyWith(
+      bids: [
+        ...a.bids,
+        Bid(userId: userId, userLabel: user.handle, amount: price, time: at),
+      ],
+      autoMax: const {},
+    );
+    await _storage.putAuction(updated);
+    return _settle(updated, at);
+  }
+
+  /// Uključuje/isključuje praćenje aukcije. Vraća `true` ako je prati.
+  Future<bool> toggleWatch(String userId, String auctionId) async {
+    final a = _requireAuction(auctionId);
+    final list = [...a.watchers];
+    final on = !list.remove(userId);
+    if (on) list.add(userId);
+    await _storage.putAuction(a.copyWith(watchers: list));
+    return on;
+  }
+
+  /// Obavijest "završava za manje od 10 minuta" onima koji prate aukciju
+  /// i onima koji su licitirali (jednom po aukciji).
+  Future<int> notifyEndingSoon({DateTime? now}) async {
+    final at = now ?? DateTime.now();
+    var sent = 0;
+    for (final a in _storage.auctions) {
+      if (!a.isActive || a.endingNotified || a.isExpired(at)) continue;
+      final left = a.endsAt.difference(at);
+      // Kratke (testne) aukcije ne šalju podsjetnik.
+      if (left > endingSoon || a.endsAt.difference(a.createdAt) <= endingSoon) {
+        continue;
+      }
+      final inbox = Inbox(_storage);
+      for (final id in {...a.watchers, for (final b in a.bids) b.userId}) {
+        if (id == a.sellerId) continue;
+        await inbox.send(
+          id,
+          NotificationKind.auctionEndingSoon,
+          args: [a.deviceName, a.currentPrice],
+          targetId: a.id,
+          now: at,
+        );
+        sent++;
+      }
+      await _storage.putAuction(a.copyWith(endingNotified: true));
+    }
+    return sent;
+  }
+
+  /// Kada se šalje podsjetnik pred kraj aukcije.
+  static const endingSoon = Duration(minutes: 10);
 
   // ---------------------------------------------------------- otkazivanje
 

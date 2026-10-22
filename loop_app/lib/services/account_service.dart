@@ -351,6 +351,15 @@ class AccountService {
     return user.avatarPath;
   }
 
+  /// Naslovna slika trgovine (`null` uklanja). Vraća staru putanju.
+  Future<String?> setCover(String userId, String? path) async {
+    final user = _require(userId);
+    await _storage.putUser(
+      user.copyWith(coverPath: path, clearCover: path == null),
+    );
+    return user.coverPath;
+  }
+
   /// Demo (lokalno): potvrda e-maila bez stvarnog e-maila.
   Future<void> verifyEmailDemo(String userId) async {
     final user = _require(userId);
@@ -453,7 +462,7 @@ class AccountService {
   /// Briše profil, predmete, povijest i lozinku; u transakcijama ime
   /// postaje "@obrisani" (drugima povijest ostaje).
   Future<List<String>> _erase(AppUser user) async {
-    final images = <String>[?user.avatarPath];
+    final images = <String>[?user.avatarPath, ?user.coverPath];
     for (final d in _storage.devices.where((d) => d.ownerId == user.id)) {
       if (_storage.activeAuctionFor(d.id) != null) continue;
       images.addAll(d.imagePaths);

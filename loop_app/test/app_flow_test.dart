@@ -258,24 +258,40 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.textContaining('Najmanja ponuda: 63 €'), findsOneWidget);
 
-    // Manje od minimuma → poruka uz polje.
-    await tester.enterText(find.byType(TextField), '61');
-    await tester.tap(find.text('Licitiraj'));
+    // Licitiranje u listu: premalo → poruka; zatim prava ponuda.
+    await tester.tap(find.byKey(const ValueKey('open-bid')));
     await tester.pumpAndSettle();
-    expect(find.text('Najmanje 63 €'), findsOneWidget);
+    await tester.enterText(find.byKey(const ValueKey('bid-amount')), '61');
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('bid-submit')));
+    await tester.pumpAndSettle();
+    expect(find.text('Najmanja ponuda je 63 €.'), findsOneWidget);
 
-    await tester.enterText(find.byType(TextField), '70');
-    await tester.tap(find.text('Licitiraj'));
+    await tester.enterText(find.byKey(const ValueKey('bid-amount')), '70');
     await tester.pumpAndSettle();
-    expect(find.textContaining('NE MOŽE se povući'), findsOneWidget);
-    await tester.tap(find.text('Licitiraj').last);
+    expect(find.text('Licitiraj 70 €'), findsOneWidget);
+    await tester.tap(find.byKey(const ValueKey('bid-submit')));
     await tester.pumpAndSettle();
 
     expect(find.text('Ponuda prihvaćena — vodiš!'), findsOneWidget);
     expect(find.text('Vodiš'), findsOneWidget);
-    // Vodeći ponuđač više nema obrazac za ponudu.
-    expect(find.byType(TextField), findsNothing);
+    // Vodeći više ne licitira, ali može postaviti automatsku ponudu.
+    expect(find.byKey(const ValueKey('open-bid')), findsNothing);
     expect(find.textContaining('ne može se povući'), findsOneWidget);
+    await tester.tap(find.byKey(const ValueKey('raise-auto')));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byKey(const ValueKey('bid-max')), '150');
+    await tester.tap(find.byKey(const ValueKey('bid-submit')));
+    await tester.pumpAndSettle();
+    expect(
+      find.textContaining('Automatski licitiramo za tebe do 150 €'),
+      findsOneWidget,
+    );
+
+    // Zvono: praćenje aukcije.
+    await tester.tap(find.byKey(const ValueKey('watch-auction')));
+    await tester.pumpAndSettle();
+    expect(find.byIcon(Icons.notifications_active), findsOneWidget);
   });
 
   testWidgets('uplata novca i promjena teme', (tester) async {
@@ -444,8 +460,8 @@ void main() {
     await tester.tap(find.byKey(const ValueKey('watch-posts')));
     await tester.pumpAndSettle();
     expect(find.text('For you'), findsOneWidget);
-    expect(find.text('Offer'), findsOneWidget);
-    await tester.pageBack();
+    expect(find.text('Share'), findsOneWidget);
+    await tester.tap(find.byTooltip('Back'));
     await tester.pumpAndSettle();
 
     for (final tab in ['Market', 'Auctions', 'Activity', 'Profile']) {
@@ -748,10 +764,10 @@ void communityTests() {
     await tester.pumpAndSettle();
     await tester.tap(find.text('Polaroid SX-70'));
     await tester.pumpAndSettle();
-    await tester.enterText(find.byType(TextField), '70');
-    await tester.tap(find.text('Licitiraj'));
+    await tester.tap(find.byKey(const ValueKey('open-bid')));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Licitiraj').last);
+    await tester.enterText(find.byKey(const ValueKey('bid-amount')), '70');
+    await tester.tap(find.byKey(const ValueKey('bid-submit')));
     await tester.pumpAndSettle();
     await tester.pageBack();
     await tester.pumpAndSettle();

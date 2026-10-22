@@ -13,6 +13,7 @@ import '../providers/app_providers.dart';
 import '../theme/app_theme.dart';
 import '../widgets/empty_state.dart';
 import '../widgets/formatters.dart';
+import '../widgets/item_image.dart';
 import '../widgets/user_avatar.dart';
 import 'auctions_screen.dart';
 import 'device_detail_screen.dart';
@@ -189,7 +190,11 @@ class _PublicProfileScreenState extends ConsumerState<PublicProfileScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  ProfileHeader(user: user, rating: state.ratingOf(user.id)),
+                  ProfileHeader(
+                    user: user,
+                    rating: state.ratingOf(user.id),
+                    editable: isMe,
+                  ),
                   const SizedBox(height: 10),
                   _ShopStats(
                     userId: user.id,
@@ -340,13 +345,16 @@ class _PublicProfileScreenState extends ConsumerState<PublicProfileScreen> {
   }
 }
 
-/// Zaglavlje profila (javni profil i "Profil" tab).
-class ProfileHeader extends StatelessWidget {
+/// Zaglavlje profila / trgovine: naslovna slika, profilna slika, ime,
+/// ocjena i opis. Na vlastitom profilu ([editable]) obje se slike mijenjaju
+/// dodirom na ikonu kamere.
+class ProfileHeader extends ConsumerWidget {
   const ProfileHeader({
     super.key,
     required this.user,
     this.trailing,
     this.rating,
+    this.editable = false,
   });
 
   final AppUser user;
@@ -355,70 +363,216 @@ class ProfileHeader extends StatelessWidget {
   /// Prosjek ocjena (prikazuje se na javnom profilu).
   final Rating? rating;
 
-  @override
-  Widget build(BuildContext context) {
-    final secondary = TextStyle(color: LoopColors.textSecondary, fontSize: 13);
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(20),
+  /// Vlastiti profil: gumbi za promjenu naslovne i profilne slike.
+  final bool editable;
+
+  Future<void> _photoMenu(
+    BuildContext context,
+    WidgetRef ref, {
+    required bool cover,
+  }) async {
+    final c = ref.read(appProvider.notifier);
+    final has = cover ? user.coverPath != null : user.avatarPath != null;
+    final choice = await showModalBottomSheet<String>(
+      context: context,
+      showDragHandle: true,
+      backgroundColor: LoopColors.background,
+      builder: (ctx) => SafeArea(
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
           children: [
-            Row(
+            ListTile(
+              leading: const Icon(Icons.photo_library_outlined),
+              title: Text(t('Odaberi iz galerije')),
+              onTap: () => Navigator.pop(ctx, 'gallery'),
+            ),
+            ListTile(
+              leading: const Icon(Icons.photo_camera_outlined),
+              title: Text(t('Uslikaj')),
+              onTap: () => Navigator.pop(ctx, 'camera'),
+            ),
+            if (has)
+              ListTile(
+                leading: Icon(Icons.delete_outline, color: LoopColors.error),
+                title: Text(t('Ukloni sliku')),
+                onTap: () => Navigator.pop(ctx, 'remove'),
+              ),
+          ],
+        ),
+      ),
+    );
+    if (choice == null || !context.mounted) return;
+    try {
+      if (choice == 'remove') {
+        await (cover ? c.removeCover() : c.removeAvatar());
+        showLoopSnackBar(t('Slika je uklonjena'));
+        return;
+      }
+      final camera = choice == 'camera';
+      final ok = await (cover
+          ? c.pickCover(camera: camera)
+          : c.pickAvatar(camera: camera));
+      if (ok) {
+        showLoopSnackBar(
+          cover
+              ? t('Naslovna slika je promijenjena')
+              : t('Profilna slika je promijenjena'),
+        );
+      }
+    } catch (e) {
+      showLoopSnackBar(t('Slika nije spremljena: {0}', [e]), error: true);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final secondary = TextStyle(color: LoopColors.textSecondary, fontSize: 13);
+    final cover = user.coverPath;
+    final gradient = DecoratedBox(
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            LoopColors.accent.withValues(alpha: 0.85),
+            const Color(0xFF7B2FF7),
+          ],
+        ),
+      ),
+    );
+    Widget camera(VoidCallback onTap, Key key, String tip) => Material(
+      color: Colors.black54,
+      shape: const CircleBorder(),
+      child: IconButton(
+        key: key,
+        tooltip: tip,
+        visualDensity: VisualDensity.compact,
+        icon: const Icon(Icons.photo_camera, color: Colors.white, size: 18),
+        onPressed: onTap,
+      ),
+    );
+    return Card(
+      clipBehavior: Clip.antiAlias,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          SizedBox(
+            height: 150,
+            child: Stack(
+              clipBehavior: Clip.none,
               children: [
-                UserAvatar(user: user, size: 64),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+                Positioned.fill(
+                  bottom: 40,
+                  child: cover == null
+                      ? gradient
+                      : LocalPhoto(
+                          path: cover,
+                          cacheWidth: 1200,
+                          fallback: gradient,
+                        ),
+                ),
+                if (editable)
+                  Positioned(
+                    top: 8,
+                    right: 8,
+                    child: camera(
+                      () => _photoMenu(context, ref, cover: true),
+                      const ValueKey('edit-cover'),
+                      t('Promijeni naslovnu sliku'),
+                    ),
+                  ),
+                Positioned(
+                  left: 18,
+                  bottom: 0,
+                  child: Stack(
+                    clipBehavior: Clip.none,
                     children: [
-                      if (user.name.isNotEmpty)
-                        Text(
-                          user.name,
-                          style: const TextStyle(
-                            fontSize: 20,
-                            fontWeight: FontWeight.w800,
+                      Container(
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          border: Border.all(
+                            color: LoopColors.surface,
+                            width: 4,
                           ),
                         ),
-                      UserHandle(
-                        user: user,
-                        style: TextStyle(
-                          fontWeight: FontWeight.w700,
-                          color: user.name.isEmpty
-                              ? LoopColors.textPrimary
-                              : LoopColors.textSecondary,
-                          fontSize: user.name.isEmpty ? 20 : 14,
-                        ),
+                        child: UserAvatar(user: user, size: 76),
                       ),
-                      if (rating != null) ...[
-                        const SizedBox(height: 4),
-                        RatingBadge(rating: rating!),
-                      ],
-                      const SizedBox(height: 4),
-                      Wrap(
-                        spacing: 12,
-                        runSpacing: 2,
-                        children: [
-                          if ((user.city ?? '').isNotEmpty)
-                            Text('📍 ${user.city}', style: secondary),
-                          Text(
-                            t('Član od {0}', [formatDate(user.createdAt)]),
-                            style: secondary,
+                      if (editable)
+                        Positioned(
+                          right: -6,
+                          bottom: -2,
+                          child: camera(
+                            () => _photoMenu(context, ref, cover: false),
+                            const ValueKey('edit-avatar'),
+                            t('Promijeni profilnu sliku'),
                           ),
-                        ],
-                      ),
+                        ),
                     ],
                   ),
                 ),
-                ?trailing,
+                if (trailing != null)
+                  Positioned(right: 16, bottom: 4, child: trailing!),
               ],
             ),
-            if (user.bio.isNotEmpty) ...[
-              const SizedBox(height: 14),
-              Text(user.bio, style: const TextStyle(height: 1.4)),
-            ],
-          ],
-        ),
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 10, 20, 20),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                if (user.shopName.isNotEmpty)
+                  Text(
+                    user.shopName,
+                    style: const TextStyle(
+                      fontSize: 22,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                if (user.name.isNotEmpty)
+                  Text(
+                    user.name,
+                    style: TextStyle(
+                      fontSize: user.shopName.isEmpty ? 20 : 15,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                UserHandle(
+                  user: user,
+                  style: TextStyle(
+                    fontWeight: FontWeight.w700,
+                    color: user.name.isEmpty && user.shopName.isEmpty
+                        ? LoopColors.textPrimary
+                        : LoopColors.textSecondary,
+                    fontSize: user.name.isEmpty && user.shopName.isEmpty
+                        ? 20
+                        : 14,
+                  ),
+                ),
+                if (rating != null) ...[
+                  const SizedBox(height: 4),
+                  RatingBadge(rating: rating!),
+                ],
+                const SizedBox(height: 4),
+                Wrap(
+                  spacing: 12,
+                  runSpacing: 2,
+                  children: [
+                    if ((user.city ?? '').isNotEmpty)
+                      Text('📍 ${user.city}', style: secondary),
+                    Text(
+                      t('Član od {0}', [formatDate(user.createdAt)]),
+                      style: secondary,
+                    ),
+                  ],
+                ),
+                if (user.bio.isNotEmpty) ...[
+                  const SizedBox(height: 12),
+                  Text(user.bio, style: const TextStyle(height: 1.4)),
+                ],
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }

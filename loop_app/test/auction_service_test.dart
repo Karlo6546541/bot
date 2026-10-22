@@ -212,4 +212,134 @@ void main() {
     expect(upgraded.userById(marko)!.credits, 1030);
     expect(upgraded.deviceById('seed-34')!.ownerId, ana);
   });
+
+  group('automatska ponuda, kupi odmah, praćenje', () {
+    test('automatska ponuda licitira umjesto kupca do maksimuma', () async {
+      // Marko vodi s 320 bez automatske ponude.
+      await auctions.placeBid(
+        userId: demo,
+        auctionId: 'seed-auction-1',
+        amount: 340,
+        maxAmount: 500,
+      );
+      expect(auction('1').highestBid!.amount, 340);
+      expect(credits(demo), 910); // blokira se samo 340, ne 500
+      expect(auction('1').autoMaxOf(demo), 500);
+
+      // Test nudi 360 — demo automatski odgovara korakom (360 + 18).
+      await auctions.placeBid(
+        userId: tester,
+        auctionId: 'seed-auction-1',
+        amount: 360,
+      );
+      expect(auction('1').highestBid!.userId, demo);
+      expect(auction('1').highestBid!.amount, 378);
+      expect(credits(demo), 872); // 910 − 38
+      expect(credits(tester), 800); // ništa blokirano
+      expect(
+        storage.notifications.any(
+          (n) => n.userId == tester && n.kind.name == 'outbidAuto',
+        ),
+        isTrue,
+      );
+
+      // Test s automatskom do 600 nadmašuje demo maksimum (500 + 25).
+      await auctions.placeBid(
+        userId: tester,
+        auctionId: 'seed-auction-1',
+        amount: 400,
+        maxAmount: 600,
+      );
+      final a = auction('1');
+      expect(a.highestBid!.userId, tester);
+      expect(a.highestBid!.amount, 525);
+      expect(a.bids[a.bids.length - 2].amount, 500); // demo do maksimuma
+      expect(credits(demo), 1250); // povrat
+      expect(credits(tester), 275);
+      expect(a.autoMaxOf(demo), isNull);
+
+      // Vodeći smije povisiti svoj maksimum (do stanja + blokiranog).
+      await auctions.placeBid(
+        userId: tester,
+        auctionId: 'seed-auction-1',
+        amount: 0,
+        maxAmount: 700,
+      );
+      expect(auction('1').autoMaxOf(tester), 700);
+      await expectLater(
+        auctions.placeBid(
+          userId: tester,
+          auctionId: 'seed-auction-1',
+          amount: 0,
+          maxAmount: 900,
+        ),
+        throwsA(isA<TradeException>()),
+      );
+    });
+
+    test('kupi odmah završava aukciju i vraća vodeću ponudu', () async {
+      final a = await auctions.create(
+        userId: demo,
+        deviceId: 'seed-9',
+        startPrice: 100,
+        duration: const Duration(hours: 1),
+        buyNowPrice: 300,
+      );
+      await auctions.placeBid(userId: marko, auctionId: a.id, amount: 150);
+      expect(storage.auctionById(a.id)!.canBuyNow, isTrue);
+      final r = await auctions.buyNow(userId: tester, auctionId: a.id);
+      expect(r.winnerId, tester);
+      expect(r.auction.status, AuctionStatus.sold);
+      expect(storage.deviceById('seed-9')!.ownerId, tester);
+      expect(credits(tester), 500);
+      expect(credits(marko), 1030); // 150 vraćeno
+      await expectLater(
+        auctions.buyNow(userId: marko, auctionId: a.id),
+        throwsA(isA<TradeException>()),
+      );
+      await expectLater(
+        auctions.create(
+          userId: demo,
+          deviceId: 'seed-10',
+          startPrice: 100,
+          duration: const Duration(hours: 1),
+          buyNowPrice: 90,
+        ),
+        throwsA(isA<TradeException>()),
+      );
+    });
+
+    test('pratitelji, zvono i podsjetnik pred kraj', () async {
+      final me = storage.userById(tester)!;
+      await storage.putUser(me.copyWith(following: [demo]));
+      final at = DateTime.now();
+      final a = await auctions.create(
+        userId: demo,
+        deviceId: 'seed-9',
+        startPrice: 100,
+        duration: const Duration(hours: 1),
+        now: at,
+      );
+      bool got(String user, String kind) => storage.notifications.any(
+        (n) => n.userId == user && n.kind.name == kind && n.targetId == a.id,
+      );
+      expect(got(tester, 'followedAuction'), isTrue);
+      expect(await auctions.toggleWatch(marko, a.id), isTrue);
+      int reminders() => storage.notifications
+          .where(
+            (n) => n.kind.name == 'auctionEndingSoon' && n.targetId == a.id,
+          )
+          .length;
+      // Još nije vrijeme.
+      await auctions.notifyEndingSoon(now: at.add(const Duration(minutes: 30)));
+      expect(reminders(), 0);
+      await auctions.notifyEndingSoon(now: at.add(const Duration(minutes: 55)));
+      expect(got(marko, 'auctionEndingSoon'), isTrue);
+      expect(reminders(), 1);
+      // Samo jednom.
+      await auctions.notifyEndingSoon(now: at.add(const Duration(minutes: 56)));
+      expect(reminders(), 1);
+      expect(await auctions.toggleWatch(marko, a.id), isFalse);
+    });
+  });
 }

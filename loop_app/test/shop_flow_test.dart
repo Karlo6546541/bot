@@ -122,7 +122,7 @@ void main() {
       expect(find.byKey(const ValueKey('share-SMS')), findsOneWidget);
       await tester.tap(find.byKey(const ValueKey('share-copy')));
       await tester.pumpAndSettle();
-      await tester.pageBack();
+      await tester.tap(find.byTooltip('Natrag'));
       await tester.pumpAndSettle();
 
       // Trgovina @test: pratitelji, ocjena trgovine.
@@ -147,6 +147,65 @@ void main() {
       await tester.tap(find.text('Pošalji ocjenu'));
       await tester.pumpAndSettle();
       expect(find.text('Tvoja ocjena: 4★'), findsOneWidget);
+    });
+  }
+
+  for (final size in const [Size(1400, 1000), Size(400, 860)]) {
+    testWidgets('aukcija u swipe feedu: licitiraj i zvono ($size)', (
+      tester,
+    ) async {
+      tester.view.physicalSize = size;
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
+      final storage = StorageService();
+      await tester.runAsync(() => storage.init(inMemory: true));
+      addTearDown(() => tester.runAsync(Hive.close));
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            storageProvider.overrideWithValue(storage),
+            tickIntervalProvider.overrideWithValue(null),
+          ],
+          child: const LoopApp(),
+        ),
+      );
+      await tester.ensureVisible(find.text('Prijavi se'));
+      await tester.tap(find.text('Prijavi se'));
+      await tester.pumpAndSettle();
+      await tester.scrollUntilVisible(
+        find.byKey(const ValueKey('watch-posts')),
+        200,
+        scrollable: find.byType(Scrollable).first,
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('watch-posts')));
+      await tester.pumpAndSettle();
+      final feed = find.byKey(const ValueKey('swipe-feed'));
+      for (
+        var i = 0;
+        i < 60 && find.byKey(const ValueKey('post-bid')).evaluate().isEmpty;
+        i++
+      ) {
+        await tester.fling(feed, const Offset(0, -600), 2000);
+        await tester.pumpAndSettle();
+      }
+      expect(find.text('🔨 AUKCIJA'), findsOneWidget);
+      await tester.tap(find.byKey(const ValueKey('post-watch')));
+      await tester.pumpAndSettle();
+      expect(
+        storage.auctions.any((a) => a.watchers.contains(SeedData.demoUserId)),
+        isTrue,
+      );
+      // Poruka na dnu nestane pa se dodiruje gumb ispod nje.
+      await tester.pump(const Duration(seconds: 5));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('post-bid')));
+      await tester.pumpAndSettle();
+      expect(find.byKey(const ValueKey('bid-amount')), findsOneWidget);
+      await tester.tap(find.byKey(const ValueKey('bid-submit')));
+      await tester.pumpAndSettle();
+      expect(find.text('Ponuda prihvaćena — vodiš!'), findsOneWidget);
+      expect(find.text('Vodiš · automatska ponuda'), findsOneWidget);
     });
   }
 }

@@ -1255,4 +1255,80 @@ const kEn = <String, String>{
   'Najbolje ocijenjene': 'Best rated',
   'Najviše prodaja': 'Most sales',
   'Najviše oglasa': 'Most listings',
+  '"Kupi odmah" cijena (neobavezno)': '"Buy now" price (optional)',
+  '"Kupi odmah" više nije dostupno.': '"Buy now" is no longer available.',
+  '"Kupi odmah" za {0} — vrijedi dok ponude ne dosegnu tu cijenu.':
+      '"Buy now" for {0} — valid until bids reach that price.',
+  'Aukcija: {0} — trenutno {1} na LOOP-u':
+      'Auction: {0} — currently {1} on LOOP',
+  'Automatska ponuda': 'Automatic bid',
+  'Automatska ponuda je povišena na {0}': 'Automatic bid raised to {0}',
+  'Automatska ponuda mora biti barem koliko i ponuda.':
+      'The automatic bid must be at least the bid.',
+  'Automatska ponuda ne može biti veća od tvog stanja ({0}).':
+      'The automatic bid can\'t exceed your balance ({0}).',
+  'Cijena "Kupi odmah" mora biti veća od početne cijene.':
+      'The "Buy now" price must be higher than the starting price.',
+  'Kupi odmah za {0}': 'Buy now for {0}',
+  'Kupi odmah?': 'Buy now?',
+  'Kupi · {0}': 'Buy · {0}',
+  'Licitiraj automatski najviše do': 'Bid automatically up to',
+  'Licitiraj {0}': 'Bid {0}',
+  'Licitiraj · od {0}': 'Bid · from {0}',
+  'Licitiramo umjesto tebe najmanjim korakom do iznosa koji odabereš.':
+      'We bid for you in the smallest step, up to the amount you choose.',
+  'Moj oglas': 'My listing',
+  'Moja aukcija': 'My auction',
+  'Mora biti veće od početne cijene': 'Must be higher than the starting price',
+  'Najmanja ponuda: {0}': 'Minimum bid: {0}',
+  'Najviše do': 'Up to',
+  'Naslovna slika je promijenjena': 'Cover photo changed',
+  'Ne možeš kupiti svoj predmet.': 'You can\'t buy your own item.',
+  'Ne prati aukciju': 'Stop watching',
+  'Nemaš dovoljno novca: treba {0}, imaš {1}.':
+      'Not enough money: you need {0}, you have {1}.',
+  'Netko ima višu automatsku ponudu — nadmašen si. Probaj više.':
+      'Someone has a higher automatic bid — you\'ve been outbid. Try more.',
+  'Odaberi iz galerije': 'Choose from gallery',
+  'Plaćaš {0} i odmah osvajaš "{1}". Aukcija time završava.':
+      'You pay {0} and win "{1}" right away. The auction ends.',
+  'Ponude su obvezujuće. Blokira se samo trenutna vodeća ponuda i vraća ti se čim te netko nadmaši.':
+      'Bids are binding. Only the current leading bid is held and it\'s returned as soon as someone outbids you.',
+  'Postavi automatsku ponudu': 'Set an automatic bid',
+  'Povisi automatsku ponudu': 'Raise automatic bid',
+  'Početna cijena {0}': 'Starting price {0}',
+  'Prati aukciju': 'Watch auction',
+  'Pratiš aukciju — javit ćemo ti 10 minuta prije kraja.':
+      'Watching — we\'ll remind you 10 minutes before the end.',
+  'Profilna slika je promijenjena': 'Profile photo changed',
+  'Promijeni naslovnu sliku': 'Change cover photo',
+  'Promijeni profilnu sliku': 'Change profile photo',
+  'Slika je uklonjena': 'Photo removed',
+  'Slika nije spremljena: {0}': 'The photo wasn\'t saved: {0}',
+  'Spremi automatsku ponudu': 'Save automatic bid',
+  'Tko plati ovu cijenu, odmah osvaja predmet.':
+      'Whoever pays this price wins the item right away.',
+  'Trenutno {0} · {1} ponuda': 'Currently {0} · {1} bids',
+  'Tvoja ponuda (najmanje {0})': 'Your bid (at least {0})',
+  'Ukloni sliku': 'Remove photo',
+  'Više ne pratiš aukciju.': 'You\'re no longer watching the auction.',
+  'Vodiš s {0}. Automatski licitiramo za tebe do {1}.':
+      'You\'re leading with {0}. We bid for you automatically up to {1}.',
+  'Vodiš s {0}. Možeš postaviti automatsku ponudu — licitirat ćemo umjesto tebe ako te netko pokuša nadmašiti.':
+      'You\'re leading with {0}. You can set an automatic bid — we\'ll bid for you if someone tries to outbid you.',
+  'Vodiš · automatska ponuda': 'Leading · automatic bid',
+  'Vodiš! Automatski licitiramo za tebe do {0} ako te netko pokuša nadmašiti. Ponuda je obvezujuća i ne može se povući.':
+      'You\'re leading! We bid for you automatically up to {0} if someone tries to outbid you. Bids are binding and can\'t be withdrawn.',
+  'Za ponudu treba barem {0}, a imaš {1}.':
+      'A bid needs at least {0} and you have {1}.',
+  '⚡ Kupi odmah za {0}': '⚡ Buy now for {0}',
+  '🏆 Kupljeno! Odaberi dostavu u "Moje dostave".':
+      '🏆 Bought! Choose delivery in "My deliveries".',
+  '🔨 AUKCIJA': '🔨 AUCTION',
+  '{0} je pokrenuo aukciju: "{1}" od {2}.':
+      '{0} started an auction: "{1}" from {2}.',
+  'Aukcija "{0}" završava za manje od 10 minuta — trenutno {1}.':
+      'The auction "{0}" ends in less than 10 minutes — currently {1}.',
+  'Automatska ponuda drugog kupca je viša na aukciji "{0}" — sada {1}.':
+      'Another buyer\'s automatic bid is higher on the auction "{0}" — now {1}.',
 };

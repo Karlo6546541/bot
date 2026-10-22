@@ -28,6 +28,7 @@ class AppUser {
     this.following = const [],
     this.promotedUntil,
     this.shopName = '',
+    this.coverPath,
   }) : username = username ?? '';
 
   final String id;
@@ -87,6 +88,9 @@ class AppUser {
   /// Naziv mini webshopa (prazno = korisničko ime).
   final String shopName;
 
+  /// Naslovna (pozadinska) slika trgovine.
+  final String? coverPath;
+
   static const maxBio = 160;
   static const maxShopName = 40;
 
@@ -133,6 +137,8 @@ class AppUser {
     List<String>? following,
     DateTime? promotedUntil,
     String? shopName,
+    String? coverPath,
+    bool clearCover = false,
   }) => AppUser(
     id: id,
     email: email ?? this.email,
@@ -158,6 +164,7 @@ class AppUser {
     following: following ?? this.following,
     promotedUntil: promotedUntil ?? this.promotedUntil,
     shopName: shopName ?? this.shopName,
+    coverPath: clearCover ? null : coverPath ?? this.coverPath,
   );
 
   Map<String, dynamic> toMap() => {
@@ -182,6 +189,7 @@ class AppUser {
     'following': following,
     'promotedUntil': promotedUntil?.toIso8601String(),
     'shopName': shopName,
+    'coverPath': coverPath,
     'createdAt': createdAt.toIso8601String(),
   };
 
@@ -210,6 +218,7 @@ class AppUser {
     following: (map['following'] as List?)?.cast<String>() ?? const [],
     promotedUntil: _date(map['promotedUntil']),
     shopName: map['shopName'] as String? ?? '',
+    coverPath: map['coverPath'] as String?,
     createdAt: DateTime.parse(map['createdAt'] as String),
   );
 }

@@ -5,7 +5,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../l10n/tr.dart';
 import '../models/app_user.dart';
-import '../models/device.dart';
 import '../providers/app_providers.dart';
 import '../providers/app_state.dart';
 import '../screens/add_device_screen.dart';
@@ -14,7 +13,6 @@ import '../screens/shop_screens.dart';
 import '../screens/swipe_feed_screen.dart';
 import '../theme/app_theme.dart';
 import '../utils/formatters.dart';
-import 'community_widgets.dart';
 import 'item_image.dart';
 import 'shop_widgets.dart';
 import 'user_avatar.dart';
@@ -23,25 +21,52 @@ import 'user_avatar.dart';
 /// objave ne premještaju pri svakom osvježavanju).
 final feedSeedProvider = Provider<int>((ref) => Random().nextInt(1 << 30));
 
-/// Objave za feed: svi oglasi drugih korisnika, nasumično, ali s prednošću
-/// za trgovine koje pratim, istaknute račune, popuste i popularne trgovine.
-List<Device> feedPosts(AppState state, int seed) {
+/// Objava u feedu: oglas (predmet) ili aukcija.
+class FeedEntry {
+  const FeedEntry.item(String id) : deviceId = id, auctionId = null;
+  const FeedEntry.auction(String id) : auctionId = id, deviceId = null;
+
+  final String? deviceId;
+  final String? auctionId;
+
+  bool get isAuction => auctionId != null;
+}
+
+/// Objave za feed: oglasi i aktivne aukcije drugih korisnika, nasumično,
+/// ali s prednošću za trgovine koje pratim, istaknute račune, popuste,
+/// popularne trgovine i aukcije koje uskoro završavaju.
+List<FeedEntry> feedPosts(AppState state, int seed) {
   final rnd = Random(seed);
   final me = state.currentUser;
   final following = me?.following ?? const [];
-  final scored = [
+  final now = DateTime.now();
+  double shopBonus(String? ownerId) =>
+      (following.contains(ownerId) ? 1.0 : 0) +
+      (ownerId != null && (state.userById(ownerId)?.isPromoted ?? false)
+          ? 0.8
+          : 0) +
+      (ownerId == null ? 0 : min(state.followersOf(ownerId) * 0.05, 0.4));
+  final scored = <(FeedEntry, double)>[
     for (final d in state.marketDevices)
       if (d.isListed)
         (
-          d,
+          FeedEntry.item(d.id),
+          rnd.nextDouble() + shopBonus(d.ownerId) + (d.hasDiscount ? 0.3 : 0),
+        ),
+    for (final a in state.activeAuctions)
+      if (a.sellerId != me?.id &&
+          !state.isBlocked(a.sellerId) &&
+          !a.isExpired(now) &&
+          state.deviceById(a.deviceId) != null)
+        (
+          FeedEntry.auction(a.id),
           rnd.nextDouble() +
-              (following.contains(d.ownerId) ? 1.0 : 0) +
-              (state.isPromotedItem(d) ? 0.8 : 0) +
-              (d.hasDiscount ? 0.3 : 0) +
-              min(state.followersOf(d.ownerId!) * 0.05, 0.4),
+              shopBonus(a.sellerId) +
+              0.4 +
+              (a.endsAt.difference(now) < const Duration(hours: 1) ? 0.8 : 0),
         ),
   ]..sort((a, b) => b.$2.compareTo(a.$2));
-  return [for (final (d, _) in scored) d];
+  return [for (final (e, _) in scored) e];
 }
 
 /// Trgovine za feed: istaknute i one s više pratitelja prve, uz malo
@@ -107,7 +132,7 @@ class HomeFeed extends ConsumerWidget {
           ),
           const SizedBox(height: 6),
           SizedBox(
-            height: 252,
+            height: 250,
             child: ListView.separated(
               key: const ValueKey('home-shops'),
               scrollDirection: Axis.horizontal,
@@ -151,7 +176,7 @@ class HomeFeed extends ConsumerWidget {
                 ),
                 itemCount: shown.length,
                 itemBuilder: (context, i) => PostTile(
-                  device: shown[i],
+                  entry: shown[i],
                   state: state,
                   onTap: () => SwipeFeedScreen.open(context, posts, i),
                 ),
@@ -301,83 +326,116 @@ class ShopCard extends ConsumerWidget {
         child: InkWell(
           key: ValueKey('shop-${user.id}'),
           onTap: () => PublicProfileScreen.open(context, user.id),
-          child: Padding(
-            padding: const EdgeInsets.all(10),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              // Naslovna slika trgovine (ili boja).
+              SizedBox(
+                height: 44,
+                child: Stack(
+                  fit: StackFit.expand,
                   children: [
-                    UserAvatar(user: user, size: 40),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            user.shopTitle,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(fontWeight: FontWeight.w900),
+                    user.coverPath == null
+                        ? DecoratedBox(
+                            decoration: BoxDecoration(
+                              gradient: LinearGradient(
+                                colors: [
+                                  LoopColors.accent.withValues(alpha: 0.7),
+                                  const Color(0xFF7B2FF7),
+                                ],
+                              ),
+                            ),
+                          )
+                        : LocalPhoto(
+                            path: user.coverPath!,
+                            cacheWidth: 500,
+                            fallback: const SizedBox.shrink(),
                           ),
-                          Text(
-                            t('{0} pratitelja', [
-                              '${state.followersOf(user.id)}',
-                            ]),
-                            style: TextStyle(
-                              color: LoopColors.textSecondary,
-                              fontSize: 12,
+                    if (user.isPromoted)
+                      const Positioned(
+                        top: 6,
+                        right: 6,
+                        child: PromotedBadge(small: true),
+                      ),
+                  ],
+                ),
+              ),
+              Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.all(10),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          UserAvatar(user: user, size: 40),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  user.shopTitle,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.w900,
+                                  ),
+                                ),
+                                Text(
+                                  [
+                                    t('{0} pratitelja', [
+                                      '${state.followersOf(user.id)}',
+                                    ]),
+                                    if (state.ratingOf(user.id).count > 0)
+                                      '★ ${state.ratingOf(user.id).average.toStringAsFixed(1)}',
+                                  ].join(' · '),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: TextStyle(
+                                    color: LoopColors.textSecondary,
+                                    fontSize: 12,
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
                         ],
                       ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 6),
-                Row(
-                  children: [
-                    Flexible(
-                      child: RatingBadge(
-                        rating: state.ratingOf(user.id),
-                        compact: true,
+                      const SizedBox(height: 8),
+                      Row(
+                        children: [
+                          for (var i = 0; i < 3; i++)
+                            Expanded(
+                              child: Padding(
+                                padding: EdgeInsets.only(right: i < 2 ? 4 : 0),
+                                child: SizedBox(
+                                  height: 56,
+                                  child: i < items.length
+                                      ? LayoutBuilder(
+                                          builder: (context, c) => Center(
+                                            child: ItemThumb(
+                                              device: items[i],
+                                              size: min(c.maxWidth, 56),
+                                            ),
+                                          ),
+                                        )
+                                      : null,
+                                ),
+                              ),
+                            ),
+                        ],
                       ),
-                    ),
-                    if (user.isPromoted) ...[
-                      const SizedBox(width: 4),
-                      const PromotedBadge(small: true),
+                      const Spacer(),
+                      SizedBox(
+                        width: double.infinity,
+                        child: FollowButton(userId: user.id, compact: true),
+                      ),
                     ],
-                  ],
+                  ),
                 ),
-                const SizedBox(height: 8),
-                Row(
-                  children: [
-                    for (var i = 0; i < 3; i++)
-                      Expanded(
-                        child: Padding(
-                          padding: EdgeInsets.only(right: i < 2 ? 4 : 0),
-                          child: AspectRatio(
-                            aspectRatio: 1,
-                            child: i < items.length
-                                ? LayoutBuilder(
-                                    builder: (context, c) => ItemThumb(
-                                      device: items[i],
-                                      size: c.maxWidth,
-                                    ),
-                                  )
-                                : const SizedBox.shrink(),
-                          ),
-                        ),
-                      ),
-                  ],
-                ),
-                const Spacer(),
-                SizedBox(
-                  width: double.infinity,
-                  child: FollowButton(userId: user.id, compact: true),
-                ),
-              ],
-            ),
+              ),
+            ],
           ),
         ),
       ),
@@ -385,21 +443,25 @@ class ShopCard extends ConsumerWidget {
   }
 }
 
-/// Pločica objave u mreži (slika, cijena, prikazi).
+/// Pločica objave u mreži (slika, cijena ili aukcija, prikazi).
 class PostTile extends StatelessWidget {
   const PostTile({
     super.key,
-    required this.device,
+    required this.entry,
     required this.state,
     required this.onTap,
   });
-  final Device device;
+  final FeedEntry entry;
   final AppState state;
   final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
-    final d = device;
+    final auction = entry.isAuction
+        ? state.auctionById(entry.auctionId!)
+        : null;
+    final d = state.deviceById(entry.deviceId ?? auction?.deviceId ?? '');
+    if (d == null) return const SizedBox.shrink();
     final photo = d.imagePaths.isEmpty
         ? ItemIllustration(category: d.category, iconSize: 36)
         : LocalPhoto(
@@ -408,8 +470,9 @@ class PostTile extends StatelessWidget {
             fallback: ItemIllustration(category: d.category, iconSize: 36),
           );
     const shadow = [Shadow(blurRadius: 6, color: Colors.black54)];
+    const white = TextStyle(color: Colors.white, shadows: shadow);
     return ClipRRect(
-      borderRadius: BorderRadius.circular(8),
+      borderRadius: BorderRadius.circular(10),
       child: Material(
         child: InkWell(
           onTap: onTap,
@@ -423,16 +486,19 @@ class PostTile extends StatelessWidget {
                     begin: Alignment.topCenter,
                     end: Alignment.bottomCenter,
                     colors: [Colors.transparent, Colors.black54],
-                    stops: [0.55, 1],
+                    stops: [0.5, 1],
                   ),
                 ),
               ),
-              if (d.hasDiscount)
-                Positioned(
-                  top: 6,
-                  left: 6,
-                  child: DiscountBadge(percent: d.discountPercent, small: true),
-                ),
+              Positioned(
+                top: 6,
+                left: 6,
+                child: auction != null
+                    ? const _TileBadge(text: '🔨', color: Color(0xFF7B2FF7))
+                    : d.hasDiscount
+                    ? DiscountBadge(percent: d.discountPercent, small: true)
+                    : const SizedBox.shrink(),
+              ),
               Positioned(
                 left: 6,
                 right: 6,
@@ -444,24 +510,21 @@ class PostTile extends StatelessWidget {
                       d.name,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        color: Colors.white,
+                      style: white.copyWith(
                         fontWeight: FontWeight.w800,
                         fontSize: 12,
-                        shadows: shadow,
                       ),
                     ),
                     Row(
                       children: [
                         Expanded(
                           child: Text(
-                            formatCredits(d.shownPrice),
-                            maxLines: 1,
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontWeight: FontWeight.w900,
-                              shadows: shadow,
+                            formatCredits(
+                              auction?.currentPrice ?? d.shownPrice,
                             ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: white.copyWith(fontWeight: FontWeight.w900),
                           ),
                         ),
                         const Icon(
@@ -471,11 +534,7 @@ class PostTile extends StatelessWidget {
                         ),
                         Text(
                           '${state.viewsOf(d.id)}',
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 11,
-                            shadows: shadow,
-                          ),
+                          style: white.copyWith(fontSize: 11),
                         ),
                       ],
                     ),
@@ -488,4 +547,23 @@ class PostTile extends StatelessWidget {
       ),
     );
   }
+}
+
+class _TileBadge extends StatelessWidget {
+  const _TileBadge({required this.text, required this.color});
+  final String text;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) => Container(
+    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+    decoration: BoxDecoration(
+      color: color,
+      borderRadius: BorderRadius.circular(99),
+    ),
+    child: Text(
+      text,
+      style: const TextStyle(color: Colors.white, fontSize: 11),
+    ),
+  );
 }

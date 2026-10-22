@@ -1,18 +1,17 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../models/auction.dart';
 import '../providers/app_providers.dart';
 import '../services/fee.dart';
 import '../theme/app_theme.dart';
+import '../widgets/auction_widgets.dart';
 import '../widgets/countdown.dart';
 import '../widgets/formatters.dart';
 import '../widgets/description_card.dart';
 import '../widgets/item_image.dart';
 import '../widgets/trade_actions.dart';
 import 'auctions_screen.dart';
-import 'buy_credits_screen.dart';
 import '../l10n/tr.dart';
 import 'public_profile_screen.dart';
 
@@ -36,52 +35,6 @@ class AuctionDetailScreen extends ConsumerStatefulWidget {
 }
 
 class _AuctionDetailScreenState extends ConsumerState<AuctionDetailScreen> {
-  final _amount = TextEditingController();
-  String? _error;
-
-  @override
-  void dispose() {
-    _amount.dispose();
-    super.dispose();
-  }
-
-  double? get _parsed =>
-      double.tryParse(_amount.text.trim().replaceAll(',', '.'));
-
-  Future<void> _bid(Auction a) async {
-    if (blockGuest(context)) return;
-    final amount = _parsed;
-    final credits = ref.read(appProvider).currentUser?.credits ?? 0;
-    // Iste provjere radi i servis; ovdje samo za brzu poruku uz polje.
-    String? error;
-    if (amount == null) {
-      error = t('Unesi iznos');
-    } else if (amount < a.minNextBid) {
-      error = t('Najmanje {0}', [formatCredits(a.minNextBid)]);
-    } else if (amount > credits) {
-      error = t('Imaš samo {0}', [formatCredits(credits)]);
-    }
-    setState(() => _error = error);
-    if (error != null) return;
-
-    final ok = await confirmDialog(
-      context,
-      title: t('Potvrdi ponudu'),
-      message: t(
-        'Nudiš {0} za "{1}".\n\n• Ponuda je obvezujuća i NE MOŽE se povući.\n• Iznos se blokira s tvog stanja dok te netko ne nadmaši.\n• Ako pobijediš, predmet automatski prelazi u tvoj portfolio.',
-        [formatCredits(amount!), a.deviceName],
-      ),
-      confirmLabel: t('Licitiraj'),
-    );
-    if (!ok || !mounted) return;
-    final done = await runWithLoading(
-      context,
-      () => ref.read(appProvider.notifier).placeBid(a.id, amount),
-      successMessage: t('Ponuda prihvaćena — vodiš!'),
-    );
-    if (done) _amount.clear();
-  }
-
   Future<void> _cancel(Auction a) async {
     final ok = await confirmDialog(
       context,
@@ -111,8 +64,8 @@ class _AuctionDetailScreenState extends ConsumerState<AuctionDetailScreen> {
     }
     final device = s.deviceById(a.deviceId);
     final role = AuctionRole.of(a, me);
-    final credits = s.currentUser?.credits ?? 0;
     final canBid = a.isActive && a.sellerId != me && a.highestBid?.userId != me;
+    final myMax = a.autoMaxOf(me);
 
     return Scaffold(
       appBar: AppBar(
@@ -120,6 +73,7 @@ class _AuctionDetailScreenState extends ConsumerState<AuctionDetailScreen> {
           device?.name ?? a.deviceName,
           overflow: TextOverflow.ellipsis,
         ),
+        actions: [WatchAuctionButton(auctionId: a.id)],
       ),
       body: Align(
         alignment: Alignment.topCenter,
@@ -256,12 +210,60 @@ class _AuctionDetailScreenState extends ConsumerState<AuctionDetailScreen> {
                 ),
               ),
               const SizedBox(height: 12),
-              if (canBid) _bidForm(a, credits),
-              if (a.isActive && role == AuctionRole.leading)
+              if (canBid) ...[
+                Text(
+                  t('Najmanja ponuda: {0}', [formatCredits(a.minNextBid)]),
+                  style: TextStyle(color: LoopColors.textSecondary),
+                ),
+                const SizedBox(height: 8),
+                FilledButton.icon(
+                  key: const ValueKey('open-bid'),
+                  onPressed: () => showBidSheet(context, ref, a.id),
+                  icon: const Icon(Icons.gavel),
+                  label: Text(t('Licitiraj')),
+                ),
+              ],
+              if (a.isActive && role == AuctionRole.leading) ...[
                 _InfoBox(
                   icon: Icons.lock_outline,
+                  text: myMax == null
+                      ? t(
+                          'Vodiš! Tvoja ponuda je obvezujuća i ne može se povući ni promijeniti dok te netko ne nadmaši. Iznos je blokiran na tvom računu.',
+                        )
+                      : t(
+                          'Vodiš! Automatski licitiramo za tebe do {0} ako te netko pokuša nadmašiti. Ponuda je obvezujuća i ne može se povući.',
+                          [formatCredits(myMax)],
+                        ),
+                ),
+                const SizedBox(height: 8),
+                OutlinedButton.icon(
+                  key: const ValueKey('raise-auto'),
+                  onPressed: () => showBidSheet(context, ref, a.id),
+                  icon: const Icon(Icons.smart_toy_outlined),
+                  label: Text(
+                    myMax == null
+                        ? t('Postavi automatsku ponudu')
+                        : t('Povisi automatsku ponudu'),
+                  ),
+                ),
+              ],
+              if (a.canBuyNow && a.sellerId != me) ...[
+                const SizedBox(height: 8),
+                OutlinedButton.icon(
+                  key: const ValueKey('detail-buy-now'),
+                  onPressed: () => showBidSheet(context, ref, a.id),
+                  icon: const Icon(Icons.bolt),
+                  label: Text(
+                    t('Kupi odmah za {0}', [formatCredits(a.buyNowPrice!)]),
+                  ),
+                ),
+              ],
+              if (a.buyNowPrice != null && a.sellerId == me && a.isActive)
+                _InfoBox(
+                  icon: Icons.bolt,
                   text: t(
-                    'Vodiš! Tvoja ponuda je obvezujuća i ne može se povući ni promijeniti dok te netko ne nadmaši. Iznos je blokiran na tvom računu.',
+                    '"Kupi odmah" za {0} — vrijedi dok ponude ne dosegnu tu cijenu.',
+                    [formatCredits(a.buyNowPrice!)],
                   ),
                 ),
               if (a.isActive && a.sellerId == me) ...[
@@ -295,87 +297,6 @@ class _AuctionDetailScreenState extends ConsumerState<AuctionDetailScreen> {
               _BidHistory(auction: a, me: me),
             ],
           ),
-        ),
-      ),
-    );
-  }
-
-  Widget _bidForm(Auction a, double credits) {
-    final min = a.minNextBid;
-    final canAfford = credits >= min;
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Text(
-              t('Najmanja ponuda: {0} · imaš {1}', [
-                formatCredits(min),
-                formatCredits(credits),
-              ]),
-              style: TextStyle(color: LoopColors.textSecondary),
-            ),
-            const SizedBox(height: 10),
-            if (!canAfford) ...[
-              _InfoBox(
-                icon: Icons.block,
-                text: t(
-                  'Nemaš dovoljno novca za najmanju sljedeću ponudu. Ponuda ne može biti veća od tvog stanja.',
-                ),
-              ),
-              const SizedBox(height: 10),
-              FilledButton.icon(
-                onPressed: () =>
-                    BuyCreditsScreen.open(context, needed: min - credits),
-                icon: const Icon(Icons.add_card),
-                label: Text(t('Uplati novac')),
-              ),
-            ] else ...[
-              Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: [
-                  for (final v in {
-                    min,
-                    roundCredits(min + a.minIncrement),
-                    roundCredits(min + a.minIncrement * 3),
-                  })
-                    if (v <= credits)
-                      ActionChip(
-                        label: Text(formatCredits(v)),
-                        onPressed: () => setState(() {
-                          _amount.text = v.toStringAsFixed(2);
-                          _error = null;
-                        }),
-                      ),
-                ],
-              ),
-              const SizedBox(height: 10),
-              TextField(
-                controller: _amount,
-                keyboardType: const TextInputType.numberWithOptions(
-                  decimal: true,
-                ),
-                inputFormatters: [
-                  FilteringTextInputFormatter.allow(RegExp(r'[0-9.,]')),
-                ],
-                decoration: InputDecoration(
-                  labelText: t('Tvoja ponuda'),
-                  suffixText: t('€'),
-                  errorText: _error,
-                ),
-                onChanged: (_) => setState(() => _error = null),
-                onSubmitted: (_) => _bid(a),
-              ),
-              const SizedBox(height: 12),
-              FilledButton.icon(
-                onPressed: () => _bid(a),
-                icon: const Icon(Icons.gavel),
-                label: Text(t('Licitiraj')),
-              ),
-            ],
-          ],
         ),
       ),
     );

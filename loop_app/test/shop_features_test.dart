@@ -1,6 +1,9 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hive/hive.dart';
 import 'package:loop_app/models/app_notification.dart';
+import 'package:loop_app/models/app_user.dart';
+import 'package:loop_app/services/account_service.dart';
+import 'package:loop_app/services/auth_backend.dart';
 import 'package:loop_app/models/device.dart';
 import 'package:loop_app/models/price_offer.dart';
 import 'package:loop_app/providers/app_state.dart';
@@ -346,5 +349,17 @@ void main() {
     expect(state.likesOf('seed-9'), 1);
     expect(state.followersListOf(demo).map((u) => u.id), {tester, marko});
     expect(state.followingListOf(demo).single.id, marko);
+  });
+
+  test('naslovna slika trgovine se postavlja i uklanja', () async {
+    final accounts = AccountService(storage, LocalAuthBackend(storage));
+    expect(await accounts.setCover(demo, 'local:img/cover.jpg'), isNull);
+    expect(storage.userById(demo)!.coverPath, 'local:img/cover.jpg');
+    expect(
+      AppUser.fromMap(storage.userById(demo)!.toMap()).coverPath,
+      'local:img/cover.jpg',
+    );
+    expect(await accounts.setCover(demo, null), 'local:img/cover.jpg');
+    expect(storage.userById(demo)!.coverPath, isNull);
   });
 }

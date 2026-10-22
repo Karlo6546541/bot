@@ -281,7 +281,11 @@ class PriceTag extends StatelessWidget {
     this.basePrice,
     this.fontSize = 16,
     this.center = false,
+    this.color,
   });
+
+  /// Boja cijene (npr. bijela na tamnoj pozadini).
+  final Color? color;
 
   final Device device;
   final double price;
@@ -306,7 +310,9 @@ class PriceTag extends StatelessWidget {
           style: TextStyle(
             fontSize: fontSize,
             fontWeight: FontWeight.w900,
-            color: cut ? LoopColors.error : null,
+            color: cut
+                ? (color != null ? const Color(0xFFFF5C7A) : LoopColors.error)
+                : color,
           ),
         ),
         if (cut)
@@ -314,7 +320,7 @@ class PriceTag extends StatelessWidget {
             formatCredits(base),
             style: TextStyle(
               fontSize: fontSize * 0.62,
-              color: LoopColors.textSecondary,
+              color: color?.withValues(alpha: 0.7) ?? LoopColors.textSecondary,
               decoration: TextDecoration.lineThrough,
             ),
           ),
