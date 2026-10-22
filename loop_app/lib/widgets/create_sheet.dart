@@ -14,6 +14,8 @@ Future<void> showCreateSheet(BuildContext context) async {
   final choice = await showModalBottomSheet<String>(
     context: context,
     showDragHandle: true,
+    // Visina prema sadržaju (zadana granica od pola ekrana rezala je dno).
+    isScrollControlled: true,
     backgroundColor: LoopColors.background,
     constraints: const BoxConstraints(maxWidth: 520),
     builder: (ctx) {
@@ -24,7 +26,7 @@ Future<void> showCreateSheet(BuildContext context) async {
         String title,
         String subtitle,
       ) => Padding(
-        padding: const EdgeInsets.only(bottom: 10),
+        padding: const EdgeInsets.only(bottom: 8),
         child: Material(
           color: color,
           borderRadius: BorderRadius.circular(kRadius),
@@ -33,11 +35,11 @@ Future<void> showCreateSheet(BuildContext context) async {
             borderRadius: BorderRadius.circular(kRadius),
             onTap: () => Navigator.pop(ctx, key),
             child: Padding(
-              padding: const EdgeInsets.all(14),
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
               child: Row(
                 children: [
-                  Text(emoji, style: const TextStyle(fontSize: 30)),
-                  const SizedBox(width: 14),
+                  Text(emoji, style: const TextStyle(fontSize: 26)),
+                  const SizedBox(width: 12),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -51,6 +53,8 @@ Future<void> showCreateSheet(BuildContext context) async {
                         ),
                         Text(
                           subtitle,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                           style: TextStyle(
                             color: LoopColors.textSecondary,
                             fontSize: 13,
@@ -67,8 +71,8 @@ Future<void> showCreateSheet(BuildContext context) async {
         ),
       );
       return SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -76,31 +80,31 @@ Future<void> showCreateSheet(BuildContext context) async {
               Text(
                 t('Što želiš objaviti?'),
                 style: const TextStyle(
-                  fontSize: 20,
+                  fontSize: 19,
                   fontWeight: FontWeight.w900,
                 ),
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: 10),
               option(
                 'item',
                 '📦',
                 LoopColors.mint,
                 t('Oglas'),
-                t('Prodaj predmet u Marketu po fiksnoj cijeni.'),
+                t('Fiksna cijena u Marketu'),
               ),
               option(
                 'auction',
                 '🔨',
                 LoopColors.lilac,
                 t('Aukcija'),
-                t('Kupci licitiraju — najviša ponuda pobjeđuje.'),
+                t('Najviša ponuda pobjeđuje'),
               ),
               option(
                 'story',
                 '✨',
                 LoopColors.peach,
                 t('Priča'),
-                t('Tekst, fotografija ili oglas — vidljivo 24 sata.'),
+                t('Vidljivo 24 sata'),
               ),
             ],
           ),

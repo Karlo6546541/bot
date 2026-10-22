@@ -1459,8 +1459,6 @@ const kEn = <String, String>{
   'Dodaj predmet ili kupi nešto u Marketu.':
       'Add an item or buy something in the Market.',
   'Još nemaš predmeta': 'No items yet',
-  'Kupci licitiraju — najviša ponuda pobjeđuje.':
-      'Buyers bid — the highest offer wins.',
   'Moji predmeti ({0})': 'My items ({0})',
   'Nemaš predmeta za zamjenu — dodaj ga u Moje predmete.':
       'You have no items to swap — add one in My items.',
@@ -1468,12 +1466,8 @@ const kEn = <String, String>{
   'Povijest transakcija': 'Transaction history',
   'Predmet dodan u Moje predmete': 'Item added to My items',
   'Priča': 'Story',
-  'Prodaj predmet u Marketu po fiksnoj cijeni.':
-      'Sell an item in the Market at a fixed price.',
   'Spremi u Moje predmete': 'Save to My items',
   'Sviđa ti se: {0}': 'You like: {0}',
-  'Tekst, fotografija ili oglas — vidljivo 24 sata.':
-      'Text, a photo or a listing — visible for 24 hours.',
   'Više': 'More',
   'Vrijednost, raspodjela i svi tvoji predmeti':
       'Value, breakdown and all your items',
@@ -1484,4 +1478,7 @@ const kEn = <String, String>{
   'Pokreni aukciju gumbom + u donjoj traci.':
       'Start an auction with the + button in the bottom bar.',
   'Predmet ostaje u tvojim predmetima.': 'The item stays among your items.',
+  'Fiksna cijena u Marketu': 'Fixed price in the Market',
+  'Najviša ponuda pobjeđuje': 'Highest bid wins',
+  'Vidljivo 24 sata': 'Visible for 24 hours',
 };
