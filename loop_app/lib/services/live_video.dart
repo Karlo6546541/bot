@@ -215,23 +215,99 @@ class LiveBroadcaster {
       )
       .length;
 
+  bool _switching = false;
+
   /// Prednja ↔ stražnja kamera, bez prekida veze s gledateljima.
+  /// Baca [LiveCameraException] ako uređaj ima samo jednu kameru.
   Future<void> switchCamera() async {
     final local = stream.value;
     final old = local?.getVideoTracks().firstOrNull;
-    if (local == null || old == null) return;
+    if (local == null || old == null || _switching) return;
     if (!kIsWeb) {
       await Helper.switchCamera(old);
       front.value = !front.value;
       return;
     }
-    // Preglednik: nova kamera kao novi video zapis, zamijenjen u svim
-    // vezama (gledateljima se slika samo promijeni).
-    final fresh = await navigator.mediaDevices.getUserMedia({
-      'audio': false,
-      'video': _video(!front.value),
+    _switching = true;
+    try {
+      await _switchWeb(local, old);
+    } finally {
+      _switching = false;
+    }
+  }
+
+  Future<void> _switchWeb(MediaStream local, MediaStreamTrack old) async {
+    final cams = [
+      for (final d in await navigator.mediaDevices.enumerateDevices())
+        if (d.kind == 'videoinput') d,
+    ];
+    if (cams.length < 2) throw const LiveCameraException();
+    final currentId = old.getSettings()['deviceId'] as String?;
+    final wantFront = !front.value;
+    // Mobiteli ne daju otvoriti drugu kameru dok je prva uključena.
+    await old.stop();
+
+    Future<MediaStreamTrack?> open(Map<String, dynamic> video) async {
+      try {
+        final s = await navigator.mediaDevices.getUserMedia({
+          'audio': false,
+          'video': video,
+        });
+        return s.getVideoTracks().firstOrNull;
+      } catch (_) {
+        return null;
+      }
+    }
+
+    String? idOf(MediaStreamTrack t) => t.getSettings()['deviceId'] as String?;
+
+    // 1) Točno prednja/stražnja kamera (mobiteli).
+    var track = await open({
+      ..._video(wantFront),
+      'facingMode': {'exact': wantFront ? 'user' : 'environment'},
     });
-    final track = fresh.getVideoTracks().first;
+    // 2) Inače sljedeća kamera s popisa (računala, neki mobiteli).
+    if (track == null || (currentId != null && idOf(track) == currentId)) {
+      await track?.stop();
+      final i = cams.indexWhere((c) => c.deviceId == currentId);
+      final next = cams[(i + 1) % cams.length];
+      track = await open({
+        ..._video(wantFront)..remove('facingMode'),
+        'deviceId': {'exact': next.deviceId},
+      });
+    }
+    if (track == null) {
+      // Vrati staru kameru da domaćin ne ostane bez slike.
+      track = await open({
+        ..._video(front.value)..remove('facingMode'),
+        if (currentId != null) 'deviceId': {'exact': currentId},
+      });
+      if (track != null) await _useTrack(local, old, track, front.value);
+      throw const LiveCameraException(failed: true);
+    }
+    final facing = track.getSettings()['facingMode'];
+    final label = cams
+        .where((c) => c.deviceId == idOf(track!))
+        .map((c) => c.label.toLowerCase())
+        .firstOrNull;
+    final isFront = facing is String
+        ? facing == 'user'
+        : label != null && (label.contains('front') || label.contains('user'))
+        ? true
+        : label != null && (label.contains('back') || label.contains('rear'))
+        ? false
+        : wantFront;
+    await _useTrack(local, old, track, isFront);
+  }
+
+  /// Nova kamera u svim vezama (gledateljima se slika samo promijeni) i u
+  /// pregledu kod domaćina.
+  Future<void> _useTrack(
+    MediaStream local,
+    MediaStreamTrack old,
+    MediaStreamTrack track,
+    bool isFront,
+  ) async {
     track.enabled = cameraOn.value;
     for (final pc in _peers.values) {
       for (final sender in await pc.getSenders()) {
@@ -239,10 +315,8 @@ class LiveBroadcaster {
       }
     }
     await local.removeTrack(old);
-    await old.stop();
     await local.addTrack(track);
-    front.value = !front.value;
-    // Pregled kod domaćina prikazuje novu kameru.
+    front.value = isFront;
     stream.value = null;
     stream.value = local;
   }
@@ -401,4 +475,11 @@ class LiveWatcher {
     await _close();
     await _signaling.leave();
   }
+}
+
+/// Kamera se ne može okrenuti: uređaj ima samo jednu kameru ([failed] =
+/// druga kamera se nije uspjela uključiti).
+class LiveCameraException implements Exception {
+  const LiveCameraException({this.failed = false});
+  final bool failed;
 }

@@ -1756,4 +1756,7 @@ const kEn = <String, String>{
   '📹 Video trenutno nije uključen': '📹 Video is not on right now',
   'Kamera se ne može okrenuti na ovom uređaju.':
       'The camera can\'t be switched on this device.',
+  'Druga kamera se nije uključila. Pokušaj ponovno.':
+      'The other camera didn\'t turn on. Try again.',
+  'Ovaj uređaj ima samo jednu kameru.': 'This device has only one camera.',
 };

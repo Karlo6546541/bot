@@ -1876,6 +1876,13 @@ class _HostControls extends StatelessWidget {
           () async {
             try {
               await b.switchCamera();
+            } on LiveCameraException catch (e) {
+              showLoopSnackBar(
+                e.failed
+                    ? t('Druga kamera se nije uključila. Pokušaj ponovno.')
+                    : t('Ovaj uređaj ima samo jednu kameru.'),
+                error: true,
+              );
             } catch (_) {
               showLoopSnackBar(
                 t('Kamera se ne može okrenuti na ovom uređaju.'),
