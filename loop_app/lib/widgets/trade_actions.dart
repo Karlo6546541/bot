@@ -109,12 +109,7 @@ Future<bool> confirmAndBuy(
     showDragHandle: true,
     backgroundColor: LoopColors.background,
     constraints: BoxConstraints(maxWidth: 560),
-    builder: (_) => _CheckoutSheet(
-      device: device,
-      price: price,
-      sellerIsTrader:
-          ref.read(appProvider).userById(device.ownerId)?.isTrader ?? false,
-    ),
+    builder: (_) => _CheckoutSheet(device: device, price: price),
   );
   if (choice == null || !context.mounted) return false;
   return runWithLoading(
@@ -128,14 +123,9 @@ Future<bool> confirmAndBuy(
 
 /// Blagajna: odabir dostave i ukupan iznos (predmet + fee + dostava).
 class _CheckoutSheet extends StatefulWidget {
-  const _CheckoutSheet({
-    required this.device,
-    required this.price,
-    required this.sellerIsTrader,
-  });
+  const _CheckoutSheet({required this.device, required this.price});
   final Device device;
   final double price;
-  final bool sellerIsTrader;
 
   @override
   State<_CheckoutSheet> createState() => _CheckoutSheetState();
@@ -268,13 +258,9 @@ class _CheckoutSheetState extends State<_CheckoutSheet> {
             SizedBox(height: 8),
             // Prava potrošača ovise o vrsti prodavatelja.
             Text(
-              widget.sellerIsTrader
-                  ? t(
-                      'Prodavatelj je trgovac: imaš pravo na povrat u 14 dana od primitka.',
-                    )
-                  : t(
-                      'Prodavatelj je privatna osoba: zakonsko pravo na povrat od 14 dana ne vrijedi.',
-                    ),
+              t(
+                'Prodavatelj je privatna osoba: zakonsko pravo na povrat od 14 dana ne vrijedi.',
+              ),
               key: ValueKey('checkout-rights'),
               style: TextStyle(color: LoopColors.textSecondary, fontSize: 12),
             ),

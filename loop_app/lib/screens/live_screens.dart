@@ -21,9 +21,9 @@ import '../widgets/trade_actions.dart';
 import '../widgets/user_avatar.dart';
 import 'deliveries_screen.dart';
 import 'public_profile_screen.dart';
-import 'seller_screens.dart';
 
-const _liveRed = Color(0xFFFF2D55);
+/// Crvena boja live aukcija (oznaka UŽIVO, gumb za licitiranje).
+const kLiveRed = Color(0xFFFF2D55);
 const _defaultStage = [Color(0xFF3A1C71), Color(0xFFD76D77)];
 
 /// Gradijent pozornice prema kategoriji predmeta.
@@ -71,7 +71,7 @@ class _LiveBadgeState extends ConsumerState<LiveBadge>
         vertical: widget.small ? 2 : 4,
       ),
       decoration: BoxDecoration(
-        color: _liveRed,
+        color: kLiveRed,
         borderRadius: BorderRadius.circular(6),
       ),
       child: Row(
@@ -135,219 +135,6 @@ class _ViewersChip extends StatelessWidget {
   );
 }
 
-// ------------------------------------------------------------ traka u Aukcijama
-
-/// "🔴 Live aukcije" na vrhu Aukcija: liveovi u tijeku i zakazani, ili
-/// poziv da korisnik pokrene svoj.
-class LiveShowsStrip extends ConsumerStatefulWidget {
-  const LiveShowsStrip({super.key});
-
-  @override
-  ConsumerState<LiveShowsStrip> createState() => _LiveShowsStripState();
-}
-
-class _LiveShowsStripState extends ConsumerState<LiveShowsStrip> {
-  Timer? _timer;
-
-  @override
-  void initState() {
-    super.initState();
-    // Zakazani live sam prelazi u "uživo" — osvježi svakih nekoliko sekundi.
-    if (ref.read(tickIntervalProvider) != null) {
-      _timer = Timer.periodic(const Duration(seconds: 5), (_) {
-        if (mounted) setState(() {});
-      });
-    }
-  }
-
-  @override
-  void dispose() {
-    _timer?.cancel();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final lives = ref.watch(appProvider.select((s) => s.activeLives));
-    final header = Row(
-      children: [
-        const LiveBadge(small: true),
-        const SizedBox(width: 8),
-        Expanded(
-          child: Text(
-            t('Live aukcije'),
-            style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 17),
-          ),
-        ),
-        TextButton.icon(
-          key: const ValueKey('start-live'),
-          onPressed: () => CreateLiveShowScreen.open(context),
-          icon: const Icon(Icons.videocam_outlined, size: 18),
-          label: Text(t('Pokreni live')),
-        ),
-      ],
-    );
-    if (lives.isEmpty) {
-      return Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          header,
-          Text(
-            t(
-              'Nitko trenutno nije uživo. Pokreni svoj live — predmeti se licitiraju jedan za drugim, brzo i uz chat.',
-            ),
-            style: TextStyle(color: LoopColors.textSecondary, height: 1.35),
-          ),
-        ],
-      );
-    }
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        header,
-        const SizedBox(height: 6),
-        SizedBox(
-          height: 196,
-          child: ListView.separated(
-            scrollDirection: Axis.horizontal,
-            itemCount: lives.length,
-            separatorBuilder: (_, _) => const SizedBox(width: 10),
-            itemBuilder: (_, i) =>
-                LiveShowCard(show: lives[i].$1, state: lives[i].$2),
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-/// Kartica livea: fotografija trenutnog predmeta, UŽIVO / termin,
-/// gledatelji, naslov, domaćin i trenutna cijena.
-class LiveShowCard extends ConsumerWidget {
-  const LiveShowCard({super.key, required this.show, required this.state});
-
-  final LiveShow show;
-  final LiveState state;
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final lot = state.current ?? state.next ?? state.lots.firstOrNull;
-    final device = lot == null
-        ? null
-        : ref.watch(appProvider.select((s) => s.deviceById(lot.lot.deviceId)));
-    const white = TextStyle(color: Colors.white);
-    return SizedBox(
-      width: 158,
-      child: Material(
-        color: Colors.black,
-        borderRadius: BorderRadius.circular(kRadius),
-        clipBehavior: Clip.antiAlias,
-        child: InkWell(
-          key: ValueKey('live-card-${show.id}'),
-          onTap: () => LiveRoomScreen.open(context, show.id),
-          child: Stack(
-            fit: StackFit.expand,
-            children: [
-              StoryBackdrop(gradient: _stageGradient(device), device: device),
-              const DecoratedBox(
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                    colors: [
-                      Colors.black38,
-                      Colors.transparent,
-                      Colors.black87,
-                    ],
-                    stops: [0, 0.4, 1],
-                  ),
-                ),
-              ),
-              Positioned(
-                left: 8,
-                top: 8,
-                right: 8,
-                child: Row(
-                  children: [
-                    if (state.isLive)
-                      const LiveBadge(small: true)
-                    else
-                      Flexible(
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 6,
-                            vertical: 2,
-                          ),
-                          decoration: BoxDecoration(
-                            color: Colors.black54,
-                            borderRadius: BorderRadius.circular(6),
-                          ),
-                          child: Text(
-                            '📅 ${formatDateTime(show.startsAt)}',
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: white.copyWith(
-                              fontSize: 10,
-                              fontWeight: FontWeight.w800,
-                            ),
-                          ),
-                        ),
-                      ),
-                    const Spacer(),
-                    if (state.isLive) _ViewersChip(state.viewers),
-                  ],
-                ),
-              ),
-              Positioned(
-                left: 10,
-                right: 10,
-                bottom: 10,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      show.title,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: white.copyWith(
-                        fontWeight: FontWeight.w900,
-                        fontSize: 15,
-                        height: 1.15,
-                      ),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      show.hostLabel,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: white.copyWith(
-                        color: Colors.white70,
-                        fontSize: 12,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      state.current != null
-                          ? t('Sada: {0}', [
-                              formatCredits(state.current!.price),
-                            ])
-                          : t('{0} predmeta', ['${show.lots.length}']),
-                      style: white.copyWith(
-                        fontWeight: FontWeight.w800,
-                        fontSize: 13,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
 // ---------------------------------------------------------- pokretanje livea
 
 /// Prodavatelj slaže live: naslov, predmeti s početnim cijenama, trajanje
@@ -355,9 +142,10 @@ class LiveShowCard extends ConsumerWidget {
 class CreateLiveShowScreen extends ConsumerStatefulWidget {
   const CreateLiveShowScreen({super.key});
 
+  /// Testno: live se može pokrenuti odmah, bez podataka prodavatelja
+  /// (traže se tek za isplatu zarade).
   static Future<void> open(BuildContext context) async {
     if (blockGuest(context)) return;
-    if (!await ensureSellerInfo(context) || !context.mounted) return;
     await Navigator.of(context).push(
       MaterialPageRoute<void>(builder: (_) => const CreateLiveShowScreen()),
     );
@@ -643,7 +431,7 @@ class _CreateLiveShowScreenState extends ConsumerState<CreateLiveShowScreen> {
                     FilledButton.icon(
                       key: const ValueKey('live-go'),
                       style: FilledButton.styleFrom(
-                        backgroundColor: _liveRed,
+                        backgroundColor: kLiveRed,
                         foregroundColor: Colors.white,
                         minimumSize: const Size.fromHeight(52),
                       ),
@@ -719,7 +507,7 @@ class _LotChoice extends StatelessWidget {
                                 top: -6,
                                 child: CircleAvatar(
                                   radius: 11,
-                                  backgroundColor: _liveRed,
+                                  backgroundColor: kLiveRed,
                                   child: Text(
                                     '$order',
                                     style: const TextStyle(
@@ -796,9 +584,8 @@ class _LotChoice extends StatelessWidget {
 
 // ---------------------------------------------------------------- soba uživo
 
-/// Soba livea (kao Whatnot): pozornica s predmetom, odbrojavanje, veliki
-/// gumb za licitiranje, chat i red predmeta. Domaćin vidi gumb za kraj.
-class LiveRoomScreen extends ConsumerStatefulWidget {
+/// Soba livea preko cijelog ekrana (otvorena iz obavijesti ili poveznice).
+class LiveRoomScreen extends StatelessWidget {
   const LiveRoomScreen({super.key, required this.showId});
   final String showId;
 
@@ -808,10 +595,26 @@ class LiveRoomScreen extends ConsumerStatefulWidget {
       );
 
   @override
-  ConsumerState<LiveRoomScreen> createState() => _LiveRoomScreenState();
+  Widget build(BuildContext context) => Scaffold(
+    backgroundColor: Colors.black,
+    body: LiveRoomView(showId: showId),
+  );
 }
 
-class _LiveRoomScreenState extends ConsumerState<LiveRoomScreen> {
+/// Soba livea (kao Whatnot): pozornica s predmetom, odbrojavanje, veliki
+/// gumb za licitiranje, chat i red predmeta. Domaćin vidi gumb za kraj.
+/// U swipe feedu je aktivna samo soba na ekranu ([active]): samo ona broji
+/// gledatelja i osvježava odbrojavanje.
+class LiveRoomView extends ConsumerStatefulWidget {
+  const LiveRoomView({super.key, required this.showId, this.active = true});
+  final String showId;
+  final bool active;
+
+  @override
+  ConsumerState<LiveRoomView> createState() => _LiveRoomViewState();
+}
+
+class _LiveRoomViewState extends ConsumerState<LiveRoomView> {
   Timer? _timer;
   DateTime _joinedAt = DateTime.now();
   final _chat = TextEditingController();
@@ -824,12 +627,25 @@ class _LiveRoomScreenState extends ConsumerState<LiveRoomScreen> {
   @override
   void initState() {
     super.initState();
+    if (widget.active) _start();
+  }
+
+  @override
+  void didUpdateWidget(LiveRoomView old) {
+    super.didUpdateWidget(old);
+    if (widget.active && !old.active) _start();
+    if (!widget.active && old.active) _timer?.cancel();
+  }
+
+  void _start() {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
+      _joinedAt = DateTime.now();
       _app.joinLive(widget.showId);
       _app.settleLive();
     });
     final every = ref.read(tickIntervalProvider);
+    _timer?.cancel();
     if (every != null) _timer = Timer.periodic(every, (_) => _tick());
   }
 
@@ -950,7 +766,7 @@ class _LiveRoomScreenState extends ConsumerState<LiveRoomScreen> {
           ),
           FilledButton(
             key: const ValueKey('live-end-confirm'),
-            style: FilledButton.styleFrom(backgroundColor: _liveRed),
+            style: FilledButton.styleFrom(backgroundColor: kLiveRed),
             onPressed: () => Navigator.pop(ctx, true),
             child: Text(scheduled ? t('Otkaži') : t('Završi')),
           ),
@@ -995,11 +811,32 @@ class _LiveRoomScreenState extends ConsumerState<LiveRoomScreen> {
     final s = ref.watch(appProvider);
     final show = s.liveShowById(widget.showId);
     if (show == null) {
-      return Scaffold(
-        appBar: AppBar(),
-        body: EmptyState(
-          icon: Icons.videocam_off_outlined,
-          title: t('Live ne postoji.'),
+      return SafeArea(
+        child: Stack(
+          children: [
+            const Center(
+              child: Icon(
+                Icons.videocam_off_outlined,
+                color: Colors.white54,
+                size: 56,
+              ),
+            ),
+            Align(
+              alignment: Alignment.bottomCenter,
+              child: Padding(
+                padding: const EdgeInsets.all(24),
+                child: Text(
+                  t('Live ne postoji.'),
+                  style: const TextStyle(color: Colors.white70),
+                ),
+              ),
+            ),
+            IconButton(
+              key: const ValueKey('live-close'),
+              onPressed: () => Navigator.maybePop(context),
+              icon: const Icon(Icons.close, color: Colors.white),
+            ),
+          ],
         ),
       );
     }
@@ -1147,9 +984,9 @@ class _LiveRoomScreenState extends ConsumerState<LiveRoomScreen> {
       center = const SizedBox.shrink();
     }
 
-    return Scaffold(
-      backgroundColor: Colors.black,
-      body: Stack(
+    return ColoredBox(
+      color: Colors.black,
+      child: Stack(
         fit: StackFit.expand,
         children: [
           StoryBackdrop(
@@ -1283,7 +1120,7 @@ class _LiveRoomScreenState extends ConsumerState<LiveRoomScreen> {
               child: FilledButton(
                 key: const ValueKey('live-bid'),
                 style: FilledButton.styleFrom(
-                  backgroundColor: _liveRed,
+                  backgroundColor: kLiveRed,
                   foregroundColor: Colors.white,
                   minimumSize: const Size.fromHeight(52),
                   textStyle: const TextStyle(
@@ -1466,7 +1303,7 @@ class _LotCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: Colors.black.withValues(alpha: 0.6),
         borderRadius: BorderRadius.circular(kRadius),
-        border: Border.all(color: hot ? _liveRed : Colors.white24),
+        border: Border.all(color: hot ? kLiveRed : Colors.white24),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1522,7 +1359,7 @@ class _LotCard extends StatelessWidget {
                   Text(
                     '0:${secs.toString().padLeft(2, '0')}',
                     style: TextStyle(
-                      color: hot ? _liveRed : Colors.white,
+                      color: hot ? kLiveRed : Colors.white,
                       fontWeight: FontWeight.w900,
                       fontSize: 16,
                     ),
@@ -1537,7 +1374,7 @@ class _LotCard extends StatelessWidget {
             child: LinearProgressIndicator(
               value: (left.inMilliseconds / (lotSeconds * 1000)).clamp(0, 1),
               minHeight: 4,
-              color: hot ? _liveRed : Colors.white,
+              color: hot ? kLiveRed : Colors.white,
               backgroundColor: Colors.white24,
             ),
           ),
@@ -1599,7 +1436,7 @@ class _FeedLine extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
       decoration: BoxDecoration(
-        color: bid ? _liveRed.withValues(alpha: 0.85) : Colors.black45,
+        color: bid ? kLiveRed.withValues(alpha: 0.85) : Colors.black45,
         borderRadius: BorderRadius.circular(14),
       ),
       child: Text.rich(
@@ -1700,7 +1537,7 @@ class _QueueRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final l = lot;
     final (String status, Color color) = switch (l.status) {
-      LotStatus.running => (t('🔴 Licitira se'), _liveRed),
+      LotStatus.running => (t('🔴 Licitira se'), kLiveRed),
       LotStatus.upcoming => (
         t('Od {0}', [formatCredits(l.lot.startPrice)]),
         LoopColors.textSecondary,
@@ -1717,7 +1554,7 @@ class _QueueRow extends StatelessWidget {
       leading: CircleAvatar(
         radius: 14,
         backgroundColor: l.status == LotStatus.running
-            ? _liveRed
+            ? kLiveRed
             : LoopColors.surface,
         child: Text(
           '${l.index + 1}',

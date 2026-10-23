@@ -21,15 +21,27 @@ import 'user_avatar.dart';
 /// objave ne premještaju pri svakom osvježavanju).
 final feedSeedProvider = Provider<int>((ref) => Random().nextInt(1 << 30));
 
-/// Objava u feedu: oglas (predmet) ili aukcija.
+/// Objava u feedu: oglas (predmet), aukcija ili live aukcija.
 class FeedEntry {
-  const FeedEntry.item(String id) : deviceId = id, auctionId = null;
-  const FeedEntry.auction(String id) : auctionId = id, deviceId = null;
+  const FeedEntry.item(String id)
+    : deviceId = id,
+      auctionId = null,
+      liveId = null;
+  const FeedEntry.auction(String id)
+    : auctionId = id,
+      deviceId = null,
+      liveId = null;
+  const FeedEntry.live(String id)
+    : liveId = id,
+      deviceId = null,
+      auctionId = null;
 
   final String? deviceId;
   final String? auctionId;
+  final String? liveId;
 
   bool get isAuction => auctionId != null;
+  bool get isLive => liveId != null;
 }
 
 /// Objave za feed: oglasi i aktivne aukcije drugih korisnika, nasumično,

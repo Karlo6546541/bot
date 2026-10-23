@@ -19,10 +19,10 @@ Ovi Uvjeti uređuju korištenje platforme LOOP (aplikacija i web stranica) koju 
 LOOP je online tržnica (marketplace) na kojoj korisnici međusobno kupuju i prodaju predmete po fiksnoj cijeni, na aukciji ili zamjenom. LOOP nije prodavatelj predmeta: ugovor o kupoprodaji sklapaju kupac i prodavatelj.
 
 ## 2. Računi
-Jedna osoba smije imati jedan račun. Podaci moraju biti točni. Odgovoran si za sigurnost lozinke. Račun možeš obrisati u Profilu (brisanje se izvršava nakon 7 dana).
+LOOP mogu koristiti samo punoljetne fizičke osobe, za osobne potrebe (ne kao obrt ni tvrtka) — i kao kupci i kao prodavatelji. Jedna osoba smije imati jedan račun. Podaci moraju biti točni. Odgovoran si za sigurnost lozinke. Račun možeš obrisati u Profilu (brisanje se izvršava nakon 7 dana).
 
 ## 3. Prodavatelji
-Prije prve objave prodavatelj unosi podatke prodavatelja (ime ili naziv, OIB, adresu, IBAN; za privatne osobe i datum rođenja). Prodavatelj je privatna osoba ili trgovac (obrt/tvrtka) i to se prikazuje kupcima. Trgovci moraju poštovati propise o zaštiti potrošača. Zabranjeni predmeti navedeni su u Pravilima za prodavatelje.
+Prodavatelji su fizičke osobe koje prodaju svoje stvari. Prije prve objave unose podatke prodavatelja (ime i prezime, OIB, datum rođenja, adresu, IBAN). Tko prodaje kao djelatnost (obrt, tvrtka), ne smije koristiti LOOP. Zabranjeni predmeti navedeni su u Pravilima za prodavatelje.
 
 ## 4. Cijene i naknade
 Kupac plaća cijenu predmeta uvećanu za naknadu platforme od 2 % (prikazana cijena je konačna) te dostavu ako je odabrana. Prodavatelj dobiva punu cijenu oglasa. Objava aukcije i isticanje računa naplaćuju se prema cijeni prikazanoj prije potvrde.
@@ -37,7 +37,7 @@ Ponuda na aukciji je obvezujuća i ne može se povući dok te netko ne nadmaši.
 Prihvaćena ponuda za cijenu vrijedi 48 sati. Zamjena se izvršava kad je obje strane prihvate.
 
 ## 8. Pravo na povrat
-Kod kupnje od trgovca kupac kao potrošač ima pravo odustati od ugovora u roku od 14 dana od primitka, osim u zakonom propisanim iznimkama (npr. digitalni sadržaj nakon početka preuzimanja uz izričit pristanak). Kod kupnje od privatne osobe zakonsko pravo na odustanak ne postoji.
+Svi prodavatelji su privatne osobe, pa zakonsko pravo na odustanak od 14 dana ne postoji. Kupac ima pravo na predmet kakav je opisan u oglasu; ako stigne bitno drukčiji ili ne stigne, prijavi problem prije potvrde primitka.
 
 ## 9. Zabranjeni sadržaj i moderacija
 Nezakonit sadržaj i oglasi protivni ovim Uvjetima mogu se prijaviti gumbom "Prijavi". Ako ograničimo tvoj sadržaj ili račun, dobit ćeš obrazloženje i mogućnost žalbe (Akt o digitalnim uslugama).
@@ -65,7 +65,7 @@ Voditelj obrade: $kCompany, OIB $kCompanyOib, $kCompanyAddress, $kCompanyEmail.
 
 ## Zašto i na kojoj osnovi
 - Izvršenje ugovora: račun, oglasi, kupnje, dostava, poruke.
-- Zakonska obveza: podaci prodavatelja za DAC7 (izvještaj Poreznoj upravi) i DSA (sljedivost trgovaca), računovodstvo.
+- Zakonska obveza: podaci prodavatelja za DAC7 (izvještaj Poreznoj upravi), računovodstvo.
 - Legitimni interes: sigurnost, sprječavanje prijevara, moderacija.
 
 ## Primatelji
@@ -102,16 +102,13 @@ Kontakt točka za korisnike i tijela (DSA): $kCompanyEmail
 ''',
   'sellerRules': '''
 ## Tko može prodavati
-Punoljetne osobe s ispunjenim podacima prodavatelja. Trgovci (obrt/tvrtka) moraju se označiti kao trgovac.
+Punoljetne fizičke osobe s ispunjenim podacima prodavatelja koje prodaju svoje stvari. Obrti i tvrtke ne mogu prodavati na LOOP-u.
 
 ## Zabranjeno je prodavati
 Oružje i streljivo, drogu i lijekove na recept, krivotvorine, ukradene predmete, žive životinje, opasne tvari, sadržaj za odrasle, osobne isprave, predmete koji krše tuđa autorska ili žigovna prava te sve što je zabranjeno zakonom.
 
 ## Oglas mora biti
 Točan (stanje, fotografije vlastitog predmeta), s pravom cijenom. Popust se smije prikazati samo uz stvarnu prethodnu cijenu (prikazujemo najnižu cijenu u zadnjih 30 dana).
-
-## Trgovci
-Moraju kupcima omogućiti pravo na povrat od 14 dana, jamstvo i izdati račun. Na profilu trgovca prikazuju se podaci o trgovcu.
 
 ## Porez (DAC7)
 Prodavatelje s 30 ili više prodaja ili više od 2.000 € godišnje platforma prijavljuje Poreznoj upravi.
@@ -147,10 +144,10 @@ These Terms govern the use of the LOOP platform (app and website) provided by $k
 LOOP is an online marketplace where users buy and sell items from each other at a fixed price, at auction or by swapping. LOOP is not the seller: the sales contract is between buyer and seller.
 
 ## 2. Accounts
-One person may have one account. Your details must be accurate. You are responsible for your password. You can delete your account in Profile (deletion happens after 7 days).
+LOOP may only be used by adult natural persons for personal purposes (not as a sole trader or company) — both as buyers and as sellers. One person may have one account. Your details must be accurate. You are responsible for your password. You can delete your account in Profile (deletion happens after 7 days).
 
 ## 3. Sellers
-Before the first listing, a seller provides seller details (name or company name, OIB/tax number, address, IBAN; date of birth for private persons). A seller is a private person or a trader (business), and buyers see which. Traders must comply with consumer protection law. Prohibited items are listed in the Seller rules.
+Sellers are natural persons selling their own things. Before the first listing they provide seller details (full name, OIB/tax number, date of birth, address, IBAN). Anyone selling as a business (sole trader, company) may not use LOOP. Prohibited items are listed in the Seller rules.
 
 ## 4. Prices and fees
 The buyer pays the item price plus a 2% platform fee (the displayed price is final) and delivery if chosen. The seller receives the full listing price. Auction listing and account promotion are charged at the price shown before confirmation.
@@ -165,7 +162,7 @@ A bid is binding and cannot be withdrawn until you are outbid. Automatic bidding
 An accepted price offer is valid for 48 hours. A swap is executed when both sides accept.
 
 ## 8. Right of withdrawal
-When buying from a trader, a consumer may withdraw within 14 days of receipt, except for legal exceptions (e.g. digital content after download has started with express consent). When buying from a private person there is no statutory right of withdrawal.
+All sellers are private persons, so there is no statutory 14-day right of withdrawal. The buyer is entitled to the item as described in the listing; if it arrives substantially different or does not arrive, report the problem before confirming receipt.
 
 ## 9. Prohibited content and moderation
 Illegal content and listings breaching these Terms can be reported with "Report". If we restrict your content or account, you will receive a statement of reasons and can appeal (Digital Services Act).
@@ -193,7 +190,7 @@ Controller: $kCompany, OIB $kCompanyOib, $kCompanyAddress, $kCompanyEmail.
 
 ## Why and on what basis
 - Contract: account, listings, purchases, delivery, messages.
-- Legal obligation: seller details for DAC7 (report to the Tax Administration) and DSA (trader traceability), accounting.
+- Legal obligation: seller details for DAC7 (report to the Tax Administration), accounting.
 - Legitimate interest: security, fraud prevention, moderation.
 
 ## Recipients
@@ -230,16 +227,13 @@ Point of contact for users and authorities (DSA): $kCompanyEmail
 ''',
   'sellerRules': '''
 ## Who can sell
-Adults with completed seller details. Traders (businesses) must mark themselves as traders.
+Adult natural persons with completed seller details selling their own things. Sole traders and companies cannot sell on LOOP.
 
 ## It is prohibited to sell
 Weapons and ammunition, drugs and prescription medicines, counterfeits, stolen goods, live animals, hazardous substances, adult content, identity documents, items infringing copyright or trademarks, and anything prohibited by law.
 
 ## A listing must be
 Accurate (condition, photos of your own item), with a real price. A discount may only be shown against a genuine previous price (we show the lowest price in the last 30 days).
-
-## Traders
-Must give buyers the 14-day right of withdrawal and warranty and issue an invoice. Trader details are shown on the trader's profile.
 
 ## Tax (DAC7)
 The platform reports sellers with 30 or more sales or more than €2,000 per year to the Tax Administration.

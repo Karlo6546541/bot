@@ -1724,4 +1724,18 @@ const kEn = <String, String>{
   '{0} ide uživo: "{1}" ({2}).': '{0} is going live: "{1}" ({2}).',
   'Predmet je u live aukciji — pričekaj da se licitira.':
       'This item is in a live auction — wait until it has been auctioned.',
+  'Fizička osoba': 'Private person',
+  'Imam 18 ili više godina, koristim LOOP kao fizička osoba (ne kao obrt ni tvrtka) i prihvaćam Uvjete korištenja i Pravila privatnosti.':
+      'I am 18 or older, I use LOOP as a private person (not as a sole trader or company) and I accept the Terms of Use and the Privacy Policy.',
+  'Istraži': 'Explore',
+  'LOOP je za fizičke osobe koje prodaju svoje stvari. Platforma mora prikupiti ove podatke prije prve objave (DAC7: izvještaj Poreznoj upravi za prodavatelje s 30+ prodaja ili više od 2.000 € godišnje). Kupci ih ne vide.':
+      'LOOP is for private persons selling their own things. The platform must collect these details before your first listing (DAC7: report to the Tax Administration for sellers with 30+ sales or more than €2,000 a year). Buyers don\'t see them.',
+  'Live': 'Live',
+  'Nitko trenutno nije uživo': 'Nobody is live right now',
+  'Pokreni live — predmeti se licitiraju jedan za drugim, brzo i uz chat.':
+      'Go live — items are auctioned one after another, fast and with chat.',
+  'Privatni prodavatelj (fizička osoba)': 'Private seller (individual)',
+  'Uživo': 'Live',
+  '🔴  Predmeti se licitiraju jedan za drugim, svaki 20–60 sekundi.\n\n⚡  Ponuda u zadnjih 10 s vraća sat na 10 s.\n\n👆  Povuci gore ili dolje za sljedeći live ili aukciju.':
+      '🔴  Items are auctioned one after another, 20–60 seconds each.\n\n⚡  A bid in the last 10 s resets the clock to 10 s.\n\n👆  Swipe up or down for the next live show or auction.',
 };

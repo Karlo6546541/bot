@@ -1,22 +1,29 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../models/auction.dart';
+import '../models/device.dart';
+import '../models/live_show.dart';
 import '../providers/app_providers.dart';
 import '../providers/app_state.dart';
+import '../services/live_service.dart';
 import '../theme/app_theme.dart';
 import '../widgets/category_style.dart';
 import '../widgets/countdown.dart';
 import '../widgets/empty_state.dart';
+import '../widgets/feed.dart' show FeedEntry;
 import '../widgets/formatters.dart';
 import '../widgets/item_image.dart';
+import '../widgets/user_avatar.dart';
 import 'auction_detail_screen.dart';
 import 'live_screens.dart';
+import 'swipe_feed_screen.dart';
 import '../l10n/tr.dart';
 
-/// Prikaz u odjeljku Aukcije.
+/// Moje aukcije: na kojima licitiram, koje prodajem i završene.
 enum AuctionView {
-  live('U tijeku', Icons.gavel),
   myBids('Moje ponude', Icons.back_hand_outlined),
   mine('Moje aukcije', Icons.storefront_outlined),
   ended('Završene', Icons.history);
@@ -59,6 +66,31 @@ enum AuctionRole {
   }
 }
 
+/// Jedna kartica u pregledu aukcija: live aukcija ili obična aukcija.
+class _BrowseItem {
+  _BrowseItem.live(this.show, this.live, this.categories)
+    : auction = null,
+      device = null;
+  _BrowseItem.auction(Auction a, this.device)
+    : auction = a,
+      show = null,
+      live = null,
+      categories = {?device?.category};
+
+  final LiveShow? show;
+  final LiveState? live;
+  final Auction? auction;
+  final Device? device;
+  final Set<DeviceCategory> categories;
+
+  FeedEntry get entry =>
+      show != null ? FeedEntry.live(show!.id) : FeedEntry.auction(auction!.id);
+}
+
+/// Aukcije u stilu Whatnota: kategorije kao kartice, mreža kartica (prvo
+/// live aukcije, zatim aukcije koje najprije završavaju), a dodir na
+/// karticu otvara swipe feed (kao TikTok) kroz sve kartice odabrane
+/// kategorije — live aukcije su u feedu cijela soba uživo.
 class AuctionsScreen extends ConsumerStatefulWidget {
   const AuctionsScreen({super.key});
 
@@ -67,11 +99,506 @@ class AuctionsScreen extends ConsumerStatefulWidget {
 }
 
 class _AuctionsScreenState extends ConsumerState<AuctionsScreen> {
-  AuctionView _view = AuctionView.live;
+  static const _all = 'all';
+  static const _live = 'live';
+
+  /// [_all], [_live] ili naziv kategorije.
+  String _filter = _all;
+  Timer? _timer;
+
+  @override
+  void initState() {
+    super.initState();
+    // Zakazani live sam prelazi u "uživo", a završeni nestaje.
+    if (ref.read(tickIntervalProvider) != null) {
+      _timer = Timer.periodic(const Duration(seconds: 5), (_) {
+        if (mounted) setState(() {});
+      });
+    }
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    super.dispose();
+  }
+
+  static List<_BrowseItem> _items(AppState s) {
+    final now = DateTime.now();
+    return [
+      for (final (show, live) in s.activeLives)
+        _BrowseItem.live(show, live, {
+          for (final l in show.lots) ?s.deviceById(l.deviceId)?.category,
+        }),
+      for (final a in [
+        ...s.activeAuctions,
+      ]..sort((a, b) => a.endsAt.compareTo(b.endsAt)))
+        if (!s.isBlocked(a.sellerId) && !a.isExpired(now))
+          _BrowseItem.auction(a, s.deviceById(a.deviceId)),
+    ];
+  }
+
+  bool _matches(_BrowseItem i) => switch (_filter) {
+    _all => true,
+    _live => i.show != null,
+    final name => i.categories.any((c) => c.name == name),
+  };
+
+  String _filterLabel() => switch (_filter) {
+    _all => t('Za tebe'),
+    _live => t('Uživo'),
+    final name => DeviceCategory.values.firstWhere((c) => c.name == name).label,
+  };
+
+  @override
+  Widget build(BuildContext context) {
+    final s = ref.watch(appProvider);
+    final me = s.currentUserId ?? '';
+    final all = _items(s);
+    final counts = <DeviceCategory, int>{};
+    for (final i in all) {
+      for (final c in i.categories) {
+        counts[c] = (counts[c] ?? 0) + 1;
+      }
+    }
+    final cats = counts.keys.toList()
+      ..sort((a, b) => counts[b]!.compareTo(counts[a]!));
+    if (_filter != _all &&
+        _filter != _live &&
+        !cats.any((c) => c.name == _filter)) {
+      _filter = _all;
+    }
+    final list = all.where(_matches).toList();
+    final liveCount = all.where((i) => i.live?.isLive ?? false).length;
+
+    return CustomScrollView(
+      slivers: [
+        SliverToBoxAdapter(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(16, 4, 8, 4),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    t('Istraži'),
+                    style: const TextStyle(
+                      fontSize: 24,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                ),
+                IconButton(
+                  key: const ValueKey('auction-rules'),
+                  tooltip: t('Pravila aukcija'),
+                  onPressed: () => showAuctionRules(context),
+                  icon: const Icon(Icons.info_outline),
+                ),
+                IconButton(
+                  key: const ValueKey('my-auctions'),
+                  tooltip: t('Moje aukcije'),
+                  onPressed: () => MyAuctionsScreen.open(context),
+                  icon: const Icon(Icons.person_outline),
+                ),
+                const SizedBox(width: 4),
+                FilledButton.icon(
+                  key: const ValueKey('start-live'),
+                  style: FilledButton.styleFrom(
+                    backgroundColor: kLiveRed,
+                    foregroundColor: Colors.white,
+                    visualDensity: VisualDensity.compact,
+                  ),
+                  onPressed: () => CreateLiveShowScreen.open(context),
+                  icon: const Icon(Icons.videocam, size: 18),
+                  label: Text(t('Live')),
+                ),
+              ],
+            ),
+          ),
+        ),
+        SliverToBoxAdapter(
+          child: SizedBox(
+            height: 104,
+            child: ListView(
+              key: const ValueKey('auction-categories'),
+              scrollDirection: Axis.horizontal,
+              padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
+              children: [
+                _CategoryCard(
+                  id: _all,
+                  label: t('Za tebe'),
+                  icon: Icons.local_fire_department,
+                  color: LoopColors.accent,
+                  count: all.length,
+                  selected: _filter == _all,
+                  onTap: () => setState(() => _filter = _all),
+                ),
+                _CategoryCard(
+                  id: _live,
+                  label: t('Uživo'),
+                  icon: Icons.videocam,
+                  color: kLiveRed,
+                  count: liveCount,
+                  selected: _filter == _live,
+                  onTap: () => setState(() => _filter = _live),
+                ),
+                for (final c in cats)
+                  _CategoryCard(
+                    id: c.name,
+                    label: c.label,
+                    icon: c.icon,
+                    color: c.color,
+                    count: counts[c]!,
+                    selected: _filter == c.name,
+                    onTap: () => setState(() => _filter = c.name),
+                  ),
+              ],
+            ),
+          ),
+        ),
+        if (list.isEmpty)
+          SliverFillRemaining(
+            hasScrollBody: false,
+            child: EmptyState(
+              icon: _filter == _live
+                  ? Icons.videocam_off_outlined
+                  : Icons.gavel,
+              title: _filter == _live
+                  ? t('Nitko trenutno nije uživo')
+                  : t('Trenutno nema aukcija'),
+              message: t(
+                'Pokreni live — predmeti se licitiraju jedan za drugim, brzo i uz chat.',
+              ),
+            ),
+          )
+        else
+          SliverPadding(
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 96),
+            sliver: SliverGrid(
+              gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+                maxCrossAxisExtent: 240,
+                childAspectRatio: 0.6,
+                mainAxisSpacing: 12,
+                crossAxisSpacing: 12,
+              ),
+              delegate: SliverChildBuilderDelegate(
+                (context, i) => _BrowseCard(
+                  item: list[i],
+                  viewerId: me,
+                  onTap: () => SwipeFeedScreen.open(
+                    context,
+                    [for (final x in list) x.entry],
+                    i,
+                    title: _filterLabel(),
+                  ),
+                ),
+                childCount: list.length,
+              ),
+            ),
+          ),
+      ],
+    );
+  }
+}
+
+/// Kategorija kao kartica (ikona, naziv, broj aukcija).
+class _CategoryCard extends StatelessWidget {
+  const _CategoryCard({
+    required this.id,
+    required this.label,
+    required this.icon,
+    required this.color,
+    required this.count,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final String id;
+  final String label;
+  final IconData icon;
+  final Color color;
+  final int count;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) => Padding(
+    padding: const EdgeInsets.only(right: 10),
+    child: Material(
+      color: selected ? color.withValues(alpha: 0.18) : LoopColors.surface,
+      borderRadius: BorderRadius.circular(kRadius),
+      child: InkWell(
+        key: ValueKey('auction-cat-$id'),
+        borderRadius: BorderRadius.circular(kRadius),
+        onTap: onTap,
+        child: Container(
+          width: 108,
+          padding: const EdgeInsets.all(10),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(kRadius),
+            border: Border.all(
+              color: selected ? color : LoopColors.surfaceHover,
+              width: selected ? 2 : 1,
+            ),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(6),
+                    decoration: BoxDecoration(
+                      color: color.withValues(alpha: 0.2),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Icon(icon, size: 20, color: color),
+                  ),
+                  const Spacer(),
+                  Text(
+                    '$count',
+                    style: TextStyle(
+                      color: LoopColors.textSecondary,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                ],
+              ),
+              const Spacer(),
+              Text(
+                label,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  fontWeight: FontWeight.w800,
+                  fontSize: 12.5,
+                  height: 1.15,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    ),
+  );
+}
+
+/// Kartica u mreži: fotografija s oznakom (UŽIVO / odbrojavanje), a ispod
+/// prodavatelj, naziv i cijena — kao na Whatnotu.
+class _BrowseCard extends ConsumerWidget {
+  const _BrowseCard({
+    required this.item,
+    required this.viewerId,
+    required this.onTap,
+  });
+
+  final _BrowseItem item;
+  final String viewerId;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final s = ref.watch(appProvider);
+    final show = item.show;
+    final live = item.live;
+    final a = item.auction;
+    final lot = live?.current ?? live?.next ?? live?.lots.firstOrNull;
+    final device = show != null
+        ? (lot == null ? null : s.deviceById(lot.lot.deviceId))
+        : item.device;
+    final sellerId = show?.hostId ?? a!.sellerId;
+    final seller = s.userById(sellerId);
+    final title = show?.title ?? device?.name ?? a!.deviceName;
+    final role = a == null ? AuctionRole.none : AuctionRole.of(a, viewerId);
+    const pillText = TextStyle(
+      color: Colors.white,
+      fontWeight: FontWeight.w900,
+      fontSize: 11,
+    );
+    Widget pill(Widget child, [Color color = Colors.black54]) => Container(
+      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+      decoration: BoxDecoration(
+        color: color,
+        borderRadius: BorderRadius.circular(6),
+      ),
+      child: child,
+    );
+
+    final Widget topLeft;
+    if (live != null && live.isLive) {
+      topLeft = const LiveBadge(small: true);
+    } else if (show != null) {
+      topLeft = pill(
+        Text('📅 ${formatDateTime(show.startsAt)}', style: pillText),
+      );
+    } else {
+      topLeft = pill(
+        AuctionCountdown(endsAt: a!.endsAt, showIcon: false, style: pillText),
+        const Color(0xFF7B2FF7),
+      );
+    }
+
+    final String price;
+    if (live != null) {
+      price = live.current != null
+          ? t('Sada: {0}', [formatCredits(live.current!.price)])
+          : t('{0} predmeta', ['${show!.lots.length}']);
+    } else {
+      price = formatCredits(a!.currentPrice);
+    }
+
+    return Material(
+      color: LoopColors.surface,
+      borderRadius: BorderRadius.circular(kRadius),
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        key: ValueKey(
+          show != null ? 'browse-live-${show.id}' : 'browse-auction-${a!.id}',
+        ),
+        onTap: onTap,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Expanded(
+              child: Stack(
+                fit: StackFit.expand,
+                children: [
+                  _CardMedia(device: device),
+                  Positioned(left: 8, top: 8, child: topLeft),
+                  if (live != null && live.isLive)
+                    Positioned(
+                      right: 8,
+                      top: 8,
+                      child: pill(
+                        Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Icon(
+                              Icons.visibility,
+                              size: 12,
+                              color: Colors.white,
+                            ),
+                            const SizedBox(width: 3),
+                            Text('${live.viewers}', style: pillText),
+                          ],
+                        ),
+                      ),
+                    )
+                  else if (a != null && a.bids.isNotEmpty)
+                    Positioned(
+                      right: 8,
+                      top: 8,
+                      child: pill(
+                        Text(
+                          a.bids.length == 1
+                              ? t('1 ponuda')
+                              : t('{0} ponuda', [a.bids.length]),
+                          style: pillText,
+                        ),
+                      ),
+                    ),
+                  if (role != AuctionRole.none)
+                    Positioned(
+                      left: 8,
+                      bottom: 8,
+                      child: RoleBadge(role: role),
+                    ),
+                ],
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(10, 8, 10, 10),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      UserAvatar(user: seller, size: 18),
+                      const SizedBox(width: 6),
+                      Expanded(
+                        child: Text(
+                          seller?.handle ?? show?.hostLabel ?? a!.sellerLabel,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            color: LoopColors.textSecondary,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    title,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.w800,
+                      fontSize: 14,
+                    ),
+                  ),
+                  Text(
+                    price,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.w900,
+                      fontSize: 15,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Fotografija predmeta preko cijele kartice (ili ilustracija kategorije).
+class _CardMedia extends StatelessWidget {
+  const _CardMedia({required this.device});
+  final Device? device;
+
+  @override
+  Widget build(BuildContext context) {
+    final d = device;
+    if (d == null) {
+      return const DecoratedBox(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(colors: [Color(0xFF3A1C71), kLiveRed]),
+        ),
+      );
+    }
+    final illustration = ItemIllustration(category: d.category, iconSize: 40);
+    if (d.imagePaths.isEmpty) return illustration;
+    return LocalPhoto(
+      path: d.imagePaths.first,
+      cacheWidth: 480,
+      fallback: illustration,
+    );
+  }
+}
+
+/// Moje aukcije: na kojima licitiram, koje prodajem i završene.
+class MyAuctionsScreen extends ConsumerStatefulWidget {
+  const MyAuctionsScreen({super.key});
+
+  static Future<void> open(BuildContext context) => Navigator.of(
+    context,
+  ).push(MaterialPageRoute<void>(builder: (_) => const MyAuctionsScreen()));
+
+  @override
+  ConsumerState<MyAuctionsScreen> createState() => _MyAuctionsScreenState();
+}
+
+class _MyAuctionsScreenState extends ConsumerState<MyAuctionsScreen> {
+  AuctionView _view = AuctionView.myBids;
 
   List<Auction> _filter(AppState s, String me) => switch (_view) {
-    AuctionView.live =>
-      s.activeAuctions.where((a) => !s.isBlocked(a.sellerId)).toList(),
     AuctionView.myBids =>
       s.auctions.where((a) => a.bids.any((b) => b.userId == me)).toList(),
     AuctionView.mine => s.auctions.where((a) => a.sellerId == me).toList(),
@@ -85,138 +612,109 @@ class _AuctionsScreenState extends ConsumerState<AuctionsScreen> {
     final me = s.currentUserId ?? '';
     final list = _filter(s, me);
 
-    return CustomScrollView(
-      slivers: [
-        SliverToBoxAdapter(
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
-            child: const _RulesBanner(),
-          ),
-        ),
-        const SliverToBoxAdapter(
-          child: Padding(
-            padding: EdgeInsets.fromLTRB(16, 0, 16, 12),
-            child: LiveShowsStrip(),
-          ),
-        ),
-        SliverToBoxAdapter(
-          child: SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: SegmentedButton<AuctionView>(
-              showSelectedIcon: false,
-              segments: [
-                for (final v in AuctionView.values)
-                  ButtonSegment(
-                    value: v,
-                    label: Text(v.label),
-                    icon: Icon(v.icon, size: 18),
-                  ),
-              ],
-              selected: {_view},
-              onSelectionChanged: (v) => setState(() => _view = v.first),
-            ),
-          ),
-        ),
-        const SliverToBoxAdapter(child: SizedBox(height: 16)),
-        if (list.isEmpty)
-          SliverFillRemaining(
-            hasScrollBody: false,
-            child: EmptyState(
-              icon: Icons.gavel,
-              title: switch (_view) {
-                AuctionView.live => t('Trenutno nema aukcija'),
-                AuctionView.myBids => t('Još nisi dao nijednu ponudu'),
-                AuctionView.mine => t('Nemaš svojih aukcija'),
-                AuctionView.ended => t('Još nema završenih aukcija'),
-              },
-              message: _view == AuctionView.mine || _view == AuctionView.live
-                  ? t('Pokreni aukciju gumbom + u donjoj traci.')
-                  : null,
-            ),
-          )
-        else
-          SliverPadding(
-            padding: const EdgeInsets.fromLTRB(16, 0, 16, 96),
-            sliver: SliverGrid(
-              gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(
-                maxCrossAxisExtent: 420,
-                mainAxisExtent: MediaQuery.sizeOf(context).width < 600
-                    ? 136
-                    : 156,
-                mainAxisSpacing: 12,
-                crossAxisSpacing: 12,
-              ),
-              delegate: SliverChildBuilderDelegate(
-                (context, i) => AuctionCard(auction: list[i], viewerId: me),
-                childCount: list.length,
+    return Scaffold(
+      appBar: AppBar(title: Text(t('Moje aukcije'))),
+      body: CustomScrollView(
+        slivers: [
+          SliverToBoxAdapter(
+            child: SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+              child: SegmentedButton<AuctionView>(
+                showSelectedIcon: false,
+                segments: [
+                  for (final v in AuctionView.values)
+                    ButtonSegment(
+                      value: v,
+                      label: Text(v.label),
+                      icon: Icon(v.icon, size: 18),
+                    ),
+                ],
+                selected: {_view},
+                onSelectionChanged: (v) => setState(() => _view = v.first),
               ),
             ),
           ),
-      ],
+          if (list.isEmpty)
+            SliverFillRemaining(
+              hasScrollBody: false,
+              child: EmptyState(
+                icon: Icons.gavel,
+                title: switch (_view) {
+                  AuctionView.myBids => t('Još nisi dao nijednu ponudu'),
+                  AuctionView.mine => t('Nemaš svojih aukcija'),
+                  AuctionView.ended => t('Još nema završenih aukcija'),
+                },
+                message: _view == AuctionView.mine
+                    ? t('Pokreni aukciju gumbom + u donjoj traci.')
+                    : null,
+              ),
+            )
+          else
+            SliverPadding(
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 32),
+              sliver: SliverGrid(
+                gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(
+                  maxCrossAxisExtent: 420,
+                  mainAxisExtent: MediaQuery.sizeOf(context).width < 600
+                      ? 136
+                      : 156,
+                  mainAxisSpacing: 12,
+                  crossAxisSpacing: 12,
+                ),
+                delegate: SliverChildBuilderDelegate(
+                  (context, i) => AuctionCard(auction: list[i], viewerId: me),
+                  childCount: list.length,
+                ),
+              ),
+            ),
+        ],
+      ),
     );
   }
 }
 
-/// Sažetak pravila aukcija (dodir otvara sva pravila).
-class _RulesBanner extends StatelessWidget {
-  const _RulesBanner();
-
-  void _showRules(BuildContext context) => showModalBottomSheet<void>(
-    context: context,
-    showDragHandle: true,
-    backgroundColor: LoopColors.surface,
-    builder: (_) => Padding(
-      padding: EdgeInsets.fromLTRB(24, 0, 24, 32),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            t('Pravila aukcija'),
-            style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900),
-          ),
-          SizedBox(height: 12),
-          Text(
-            t(
-              '🔒  Ponuda je obvezujuća — ne može se povući ni smanjiti.\n\n🥇  Dok vodiš, ne možeš licitirati ponovno (možeš povisiti automatsku ponudu).\n\n💳  Pobjednik plaća karticom kad aukcija završi — ništa se ne blokira unaprijed.\n\n⏱️  Ponuda u zadnjoj minuti produljuje aukciju za 1 minutu.\n\n🎁  Pobjednik dobiva predmet, prodavatelj cijelu ponudu (bez naknade).',
-            ),
-            style: TextStyle(height: 1.4, fontSize: 15),
-          ),
-        ],
-      ),
-    ),
-  );
-
-  @override
-  Widget build(BuildContext context) => Material(
-    color: LoopColors.surface,
-    borderRadius: BorderRadius.circular(kRadius),
-    child: InkWell(
-      key: const ValueKey('auction-rules'),
-      borderRadius: BorderRadius.circular(kRadius),
-      onTap: () => _showRules(context),
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(14, 12, 10, 12),
-        child: Row(
-          children: [
-            const Text('🔒', style: TextStyle(fontSize: 18)),
-            const SizedBox(width: 10),
-            Expanded(
-              child: Text(
-                t(
-                  'Ponude su obvezujuće · pobjednik plaća karticom na kraju aukcije',
-                ),
-                style: const TextStyle(fontWeight: FontWeight.w700),
-              ),
-            ),
-            Icon(Icons.info_outline, color: LoopColors.textSecondary),
-          ],
+/// Pravila aukcija (obvezujuće ponude, plaćanje karticom, produljenje).
+Future<void> showAuctionRules(
+  BuildContext context,
+) => showModalBottomSheet<void>(
+  context: context,
+  showDragHandle: true,
+  isScrollControlled: true,
+  backgroundColor: LoopColors.surface,
+  builder: (_) => SingleChildScrollView(
+    padding: const EdgeInsets.fromLTRB(24, 0, 24, 32),
+    child: Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          t('Pravila aukcija'),
+          style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w900),
         ),
-      ),
+        const SizedBox(height: 12),
+        Text(
+          t(
+            '🔒  Ponuda je obvezujuća — ne može se povući ni smanjiti.\n\n🥇  Dok vodiš, ne možeš licitirati ponovno (možeš povisiti automatsku ponudu).\n\n💳  Pobjednik plaća karticom kad aukcija završi — ništa se ne blokira unaprijed.\n\n⏱️  Ponuda u zadnjoj minuti produljuje aukciju za 1 minutu.\n\n🎁  Pobjednik dobiva predmet, prodavatelj cijelu ponudu (bez naknade).',
+          ),
+          style: const TextStyle(height: 1.4, fontSize: 15),
+        ),
+        const SizedBox(height: 16),
+        Text(
+          t('Live aukcije'),
+          style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w900),
+        ),
+        const SizedBox(height: 8),
+        Text(
+          t(
+            '🔴  Predmeti se licitiraju jedan za drugim, svaki 20–60 sekundi.\n\n⚡  Ponuda u zadnjih 10 s vraća sat na 10 s.\n\n👆  Povuci gore ili dolje za sljedeći live ili aukciju.',
+          ),
+          style: const TextStyle(height: 1.4, fontSize: 15),
+        ),
+      ],
     ),
-  );
-}
+  ),
+);
 
 /// Kartica aukcije: slika, naziv, trenutna cijena, broj ponuda,
 /// odbrojavanje i oznaka odnosa korisnika (vodiš / nadmašen si …).

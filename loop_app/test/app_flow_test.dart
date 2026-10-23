@@ -34,6 +34,14 @@ Future<void> openActivity(WidgetTester tester) async {
   await tester.pumpAndSettle();
 }
 
+/// Aukcije → kartica (otvara swipe feed) → detalji aukcije.
+Future<void> openAuction(WidgetTester tester, String name) async {
+  await tester.tap(find.text(name));
+  await tester.pumpAndSettle();
+  await tester.tap(find.byKey(const ValueKey('post-media')));
+  await tester.pumpAndSettle();
+}
+
 Future<Widget> buildApp(WidgetTester tester) async {
   final storage = StorageService();
   await tester.runAsync(() => storage.init(inMemory: true));
@@ -273,8 +281,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Polaroid SX-70'), findsOneWidget);
 
-    await tester.tap(find.text('Polaroid SX-70'));
-    await tester.pumpAndSettle();
+    await openAuction(tester, 'Polaroid SX-70');
     expect(find.textContaining('Najmanja ponuda: 63 €'), findsOneWidget);
 
     // Licitiranje u listu: premalo → poruka; zatim prava ponuda.
@@ -413,6 +420,16 @@ void main() {
     await tester.tap(find.byKey(const ValueKey('accept-terms')));
     await tester.ensureVisible(find.byKey(const ValueKey('register-submit')));
     await tester.tap(find.byKey(const ValueKey('register-submit')));
+    await tester.pumpAndSettle();
+
+    // Testno: live se pokreće bez podataka prodavatelja.
+    await tester.tap(find.byKey(const ValueKey('nav-create')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('create-live')));
+    await tester.pumpAndSettle();
+    expect(find.text('Novi live'), findsOneWidget);
+    expect(find.text('Podaci prodavatelja'), findsNothing);
+    await tester.pageBack();
     await tester.pumpAndSettle();
 
     // + Objavi → Oglas traži podatke prodavatelja.
@@ -880,14 +897,15 @@ void communityTests() {
     // Demo nadmaši Marka na Polaroidu.
     await tester.tap(find.text('Aukcije').last);
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Polaroid SX-70'));
-    await tester.pumpAndSettle();
+    await openAuction(tester, 'Polaroid SX-70');
     await tester.tap(find.byKey(const ValueKey('open-bid')));
     await tester.pumpAndSettle();
     await tester.enterText(find.byKey(const ValueKey('bid-amount')), '70');
     await tester.tap(find.byKey(const ValueKey('bid-submit')));
     await tester.pumpAndSettle();
     await tester.pageBack();
+    await tester.pumpAndSettle();
+    await tester.tap(find.byTooltip('Natrag'));
     await tester.pumpAndSettle();
     await logout();
 
@@ -933,8 +951,7 @@ void communityTests() {
     // Javni profil prodavateljice: ocjene i izbornik prijave/blokiranja.
     await tester.tap(find.text('Aukcije').last);
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Polaroid SX-70'));
-    await tester.pumpAndSettle();
+    await openAuction(tester, 'Polaroid SX-70');
     await tester.tap(find.textContaining('@ana.kolekcija'));
     await tester.pumpAndSettle();
     // Trgovina: pratitelji, prodaje i gumb "Prati".

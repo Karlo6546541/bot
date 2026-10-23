@@ -94,10 +94,8 @@ class AppUser {
   /// Isključene obavijesti (nazivi [NotificationPref]).
   final List<String> mutedNotifications;
 
-  /// Podaci prodavatelja (DAC7/DSA) — traže se prije prve objave.
+  /// Podaci prodavatelja (DAC7) — traže se prije prve objave.
   final SellerInfo? seller;
-
-  bool get isTrader => seller?.isTrader ?? false;
 
   Wishlist? wishlistById(String id) {
     for (final w in wishlists) {

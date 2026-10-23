@@ -192,7 +192,14 @@ ne sinkronizira; online prijavu vodi Supabase Auth i lozinke ne prolaze kroz na�
 
 ## Live aukcije (kao Whatnot)
 
-- **Pokretanje**: *+ Objavi → Live aukcija* ili *Aukcije → Pokreni live*. Prodavatelj
+- **Aukcije kao na Whatnotu**: na vrhu **kategorije kao kartice** (*Za tebe*, *Uživo* i
+  kategorije koje imaju aukcije, s brojem), ispod **mreža kartica** — prvo live aukcije
+  (oznaka UŽIVO, gledatelji, trenutna cijena), zatim aukcije koje najprije završavaju.
+  Dodir na karticu otvara **swipe feed kao TikTok** kroz sve kartice te kategorije: live je
+  cijela soba uživo, aukcija ima gumb *Licitiraj*. *Moje aukcije* (ikona osobe) i *Pravila*
+  (ikona ⓘ) su gore desno.
+- **Pokretanje** (testno odmah, bez podataka prodavatelja): *+ Objavi → Live aukcija* ili
+  crveni gumb **Live** u Aukcijama. Prodavatelj
   odabere do 20 svojih predmeta (redom kojim ih prodaje), početnu cijenu (zadano 1 €),
   trajanje licitacije po predmetu (20/30/45/60 s) i početak — **odmah** ili **zakazano**
   (do 7 dana unaprijed). Pratitelji dobiju obavijest 🔴. Predmeti se dok traje live
@@ -273,18 +280,20 @@ dati na pregled odvjetniku prije pokretanja s pravim novcem):
 
 - **Plaćanja (PSD2):** nema novčanika ni uplata; kupac plaća karticom, prodavatelj isplaćuje
   zaradu na IBAN, a novac obrađuje licencirani pružatelj plaćanja (u demo verziji simulirano).
-- **Podaci prodavatelja (DAC7, DSA):** prije prve objave (oglas, aukcija) ili isplate traže se
-  vrsta prodavatelja (privatna osoba / trgovac), ime ili naziv, OIB (provjera kontrolne
-  znamenke), datum rođenja (18+), adresa i IBAN (MOD 97). *Profil → Moja trgovina →
+- **Samo fizičke osobe:** LOOP koriste samo punoljetne fizičke osobe (kupci i prodavatelji);
+  obrti i tvrtke ne mogu prodavati. Registracija traži potvrdu „18+ i fizička osoba”.
+- **Podaci prodavatelja (DAC7):** prije prve objave (oglas, aukcija) ili isplate traže se
+  ime i prezime, OIB (provjera kontrolne znamenke), datum rođenja (18+), adresa i IBAN
+  (MOD 97). Live aukcija se **testno** može pokrenuti i bez njih (traže se tek za isplatu). *Profil → Moja trgovina →
   Podaci prodavatelja.*
   Online se spremaju u zasebnu tablicu **`loop_sellers`** koju vidi samo vlasnik (RLS), a ne u
   javni profil — nakon nadogradnje pokreni novu verziju `supabase/schema.sql`.
-- **Prava potrošača (Omnibus):** na oglasu i blagajni piše je li prodavatelj trgovac (povrat
-  14 dana) ili privatna osoba (bez prava na povrat); kod popusta se prikazuje **najniža
+- **Prava potrošača (Omnibus):** na oglasu i blagajni piše da je prodavatelj privatna osoba
+  (zakonsko pravo na povrat od 14 dana ne vrijedi); kod popusta se prikazuje **najniža
   cijena u zadnjih 30 dana**; ocjene su označene **„✓ Provjerena kupnja”** ili „Bez provjerene
   kupnje”; digitalni proizvod traži izričit pristanak na gubitak prava na povrat.
 - **DSA:** istaknuti oglasi označeni su **„Sponzorirano”**; objašnjenje rangiranja (ikona ⓘ
-  uz poredak u Marketu); **podaci o trgovcu** na oglasu i profilu trgovca; kad admin ukloni
+  uz poredak u Marketu); kad admin ukloni
   prijavljeni oglas, vlasnik dobiva **obrazloženje** i može podnijeti **žalbu** (admin je vidi
   među prijavama).
 - **DAC7 izvještaj:** admin → nadzorna ploča → *DAC7* (godina, broj prodavatelja za prijavu,

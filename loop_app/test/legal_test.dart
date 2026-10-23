@@ -27,9 +27,8 @@ void main() {
       expect(SellerInfo.validIban('HR251'), isFalse);
     });
 
-    test('privatna osoba mora biti punoljetna, trgovac nema datum', () {
-      String? check(SellerType type, DateTime? birth) => SellerInfo.validate(
-        type: type,
+    test('prodavatelj je fizička osoba i mora biti punoljetan', () {
+      String? check(DateTime? birth) => SellerInfo.validate(
         legalName: 'Ivo Ivić',
         oib: '12345678903',
         address: 'Ilica 1, Zagreb',
@@ -37,22 +36,26 @@ void main() {
         birthDate: birth,
         now: DateTime(2026, 10, 22),
       );
-      expect(check(SellerType.private, null), isNotNull);
-      expect(check(SellerType.private, DateTime(2010, 1, 1)), isNotNull);
-      expect(check(SellerType.private, DateTime(2000, 1, 1)), isNull);
-      expect(check(SellerType.trader, null), isNull);
+      expect(check(null), isNotNull);
+      expect(check(DateTime(2010, 1, 1)), isNotNull);
+      expect(check(DateTime(2000, 1, 1)), isNull);
       final info = SellerInfo(
-        type: SellerType.trader,
-        legalName: 'Obrt',
+        legalName: 'Ivo Ivić',
         oib: '12345678903',
         address: 'Ilica 1',
         iban: 'HR2523400091111111111',
-        registry: 'OR 1',
+        birthDate: DateTime(2000, 1, 1),
         updatedAt: DateTime(2026),
       );
-      final back = SellerInfo.fromMap(info.toMap());
-      expect(back.isTrader, isTrue);
-      expect(back.registry, 'OR 1');
+      // Stari zapis "trgovca" se čita kao fizička osoba (polja se ignoriraju).
+      final back = SellerInfo.fromMap({
+        ...info.toMap(),
+        'type': 'trader',
+        'registry': 'OR 1',
+      });
+      expect(back.legalName, 'Ivo Ivić');
+      expect(back.birthDate, DateTime(2000, 1, 1));
+      expect(back.toMap().containsKey('type'), isFalse);
       expect(back.maskedIban, 'HR25 •••• 1111');
     });
   });
@@ -94,7 +97,10 @@ void main() {
       expect(mine.amount, 300);
       expect(mine.reportable, isTrue);
       final csv = Dac7.csv(sellers, year);
-      expect(csv.split('\n').first, startsWith('godina;korisnik;vrsta'));
+      expect(
+        csv.split('\n').first,
+        startsWith('godina;korisnik;ime_prezime;oib'),
+      );
       expect(csv, contains('12345678903'));
       // Manje od 30 prodaja i ispod 2.000 € — ne prijavljuje se.
       expect(

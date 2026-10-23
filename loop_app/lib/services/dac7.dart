@@ -74,13 +74,11 @@ class Dac7 {
       [
         'godina',
         'korisnik',
-        'vrsta',
-        'ime_ili_naziv',
+        'ime_prezime',
         'oib',
         'datum_rodenja',
         'adresa',
         'iban',
-        'registar',
         'broj_prodaja',
         'iznos_eur',
         'naknade_platforme_eur',
@@ -90,13 +88,11 @@ class Dac7 {
         [
           year,
           s.user.handle,
-          s.user.seller?.type.name ?? '',
           s.user.seller?.legalName ?? '',
           s.user.seller?.oib ?? '',
           s.user.seller?.birthDate?.toIso8601String().substring(0, 10) ?? '',
           s.user.seller?.address ?? '',
           s.user.seller?.iban ?? '',
-          s.user.seller?.registry ?? '',
           s.sales,
           s.amount.toStringAsFixed(2),
           // Prodavatelj ne plaća naknadu (plaća je kupac).

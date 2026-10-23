@@ -14,7 +14,6 @@ import '../widgets/item_image.dart';
 import '../widgets/photo_viewer.dart';
 import '../widgets/trade_actions.dart';
 import 'auction_detail_screen.dart';
-import 'seller_screens.dart';
 import 'wishlists_screen.dart';
 import 'create_auction_screen.dart';
 import 'messages_screen.dart';
@@ -330,34 +329,21 @@ class DeviceDetailScreen extends ConsumerWidget {
                           ],
                         ),
                       ),
-                    // Vrsta prodavatelja: o njoj ovise prava kupca.
+                    // Svi prodavatelji su fizičke osobe — o tome ovise
+                    // prava kupca.
                     if (owner != null && device.isListed && !isMine)
                       ListTile(
                         key: const ValueKey('seller-type'),
                         leading: Icon(
-                          owner.isTrader
-                              ? Icons.storefront_outlined
-                              : Icons.person_outline,
+                          Icons.person_outline,
                           color: LoopColors.textSecondary,
                         ),
-                        title: Text(
-                          owner.isTrader
-                              ? t('Trgovac')
-                              : t('Privatni prodavatelj'),
-                        ),
+                        title: Text(t('Privatni prodavatelj (fizička osoba)')),
                         subtitle: Text(
-                          owner.isTrader
-                              ? t('Pravo na povrat u 14 dana i jamstvo.')
-                              : t(
-                                  'Kupnja od fizičke osobe: zakonsko pravo na povrat od 14 dana ne vrijedi.',
-                                ),
+                          t(
+                            'Kupnja od fizičke osobe: zakonsko pravo na povrat od 14 dana ne vrijedi.',
+                          ),
                         ),
-                        trailing: owner.isTrader
-                            ? const Icon(Icons.chevron_right)
-                            : null,
-                        onTap: owner.isTrader && owner.seller != null
-                            ? () => showTraderInfo(context, owner)
-                            : null,
                       ),
                     _Spec(
                       Icons.schedule,

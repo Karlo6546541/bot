@@ -1098,7 +1098,6 @@ class AppController extends Notifier<AppState> {
     final user = _storage.userById(_requireUserId());
     if (user == null) return;
     final error = SellerInfo.validate(
-      type: info.type,
       legalName: info.legalName,
       oib: info.oib,
       address: info.address,
@@ -1195,7 +1194,7 @@ class AppController extends Notifier<AppState> {
     int lotSeconds = 30,
     DateTime? startsAt,
   }) async {
-    _requireSellerInfo();
+    // Testno: bez podataka prodavatelja (traže se tek za isplatu).
     final show = await _live.create(
       hostId: _requireUserId(),
       title: title,

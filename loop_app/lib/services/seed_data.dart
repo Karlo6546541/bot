@@ -45,7 +45,6 @@ class SeedData {
       createdAt: now,
       // Izmišljeni podaci ispravnog oblika (ne pripadaju stvarnoj osobi).
       seller: SellerInfo(
-        type: SellerType.private,
         legalName: 'Demo Korisnik',
         oib: '12345678903',
         birthDate: DateTime(1990, 1, 1),
@@ -63,7 +62,6 @@ class SeedData {
       credits: 800,
       createdAt: now,
       seller: SellerInfo(
-        type: SellerType.private,
         legalName: 'Test Korisnik',
         oib: '23456789013',
         birthDate: DateTime(1992, 2, 2),
@@ -81,12 +79,11 @@ class SeedData {
       credits: 400,
       createdAt: now,
       seller: SellerInfo(
-        type: SellerType.trader,
-        legalName: 'Ana Kolekcija, obrt za trgovinu',
+        legalName: 'Ana Demo',
         oib: '34567890125',
+        birthDate: DateTime(1995, 4, 4),
         address: 'Korzo 1, 51000 Rijeka',
         iban: 'HR6724840083333333333',
-        registry: 'Obrtni registar 000000 (demo)',
         updatedAt: now,
       ),
     ),
@@ -99,7 +96,6 @@ class SeedData {
       credits: _markoTotal,
       createdAt: now,
       seller: SellerInfo(
-        type: SellerType.private,
         legalName: 'Marko Demo',
         oib: '45678901239',
         birthDate: DateTime(1988, 3, 3),

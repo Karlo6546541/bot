@@ -20,28 +20,35 @@ import '../widgets/trade_actions.dart';
 import '../widgets/user_avatar.dart';
 import 'auction_detail_screen.dart';
 import 'device_detail_screen.dart';
+import 'live_screens.dart';
 import 'public_profile_screen.dart';
 
 /// Objave preko cijelog ekrana koje se listaju gore/dolje (kao TikTok).
 /// Oglas: lajk, ponudi cijenu, podijeli, kupi. Aukcija: licitiraj,
-/// zvono, odbrojavanje.
+/// zvono, odbrojavanje. Live aukcija: cijela soba uživo.
 class SwipeFeedScreen extends ConsumerStatefulWidget {
   const SwipeFeedScreen({
     super.key,
     required this.entries,
     this.initialIndex = 0,
+    this.title,
   });
 
   final List<FeedEntry> entries;
   final int initialIndex;
 
+  /// Naslov na vrhu (zadano "Za tebe").
+  final String? title;
+
   static Future<void> open(
     BuildContext context,
     List<FeedEntry> entries,
-    int index,
-  ) => Navigator.of(context).push(
+    int index, {
+    String? title,
+  }) => Navigator.of(context).push(
     MaterialPageRoute<void>(
-      builder: (_) => SwipeFeedScreen(entries: entries, initialIndex: index),
+      builder: (_) =>
+          SwipeFeedScreen(entries: entries, initialIndex: index, title: title),
     ),
   );
 
@@ -68,6 +75,7 @@ class _SwipeFeedScreenState extends ConsumerState<SwipeFeedScreen> {
   void _seen(int i) {
     if (i >= widget.entries.length) return;
     final e = widget.entries[i];
+    if (e.isLive) return;
     final state = ref.read(appProvider);
     final id = e.deviceId ?? state.auctionById(e.auctionId!)?.deviceId;
     if (id != null) ref.read(appProvider.notifier).recordView(id);
@@ -98,49 +106,58 @@ class _SwipeFeedScreenState extends ConsumerState<SwipeFeedScreen> {
                   if (i == entries.length) {
                     return _EndPage(onBack: () => Navigator.pop(context));
                   }
-                  return _PostPage(entry: entries[i], state: state);
+                  final e = entries[i];
+                  if (e.isLive) {
+                    return LiveRoomView(
+                      key: ValueKey('feed-live-${e.liveId}'),
+                      showId: e.liveId!,
+                      active: i == _index,
+                    );
+                  }
+                  return _PostPage(entry: e, state: state);
                 },
               ),
-              // Gornja traka: natrag, naslov, broj objave.
-              SafeArea(
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 4),
-                  child: Row(
-                    children: [
-                      IconButton(
-                        tooltip: t('Natrag'),
-                        color: Colors.white,
-                        icon: const Icon(Icons.arrow_back),
-                        onPressed: () => Navigator.pop(context),
-                      ),
-                      Expanded(
-                        child: Text(
-                          t('Za tebe'),
-                          textAlign: TextAlign.center,
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 18,
-                            fontWeight: FontWeight.w800,
-                            shadows: _shadow,
+              // Gornja traka: natrag, naslov, broj objave (live ima svoju).
+              if (_index >= entries.length || !entries[_index].isLive)
+                SafeArea(
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 4),
+                    child: Row(
+                      children: [
+                        IconButton(
+                          tooltip: t('Natrag'),
+                          color: Colors.white,
+                          icon: const Icon(Icons.arrow_back),
+                          onPressed: () => Navigator.pop(context),
+                        ),
+                        Expanded(
+                          child: Text(
+                            widget.title ?? t('Za tebe'),
+                            textAlign: TextAlign.center,
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 18,
+                              fontWeight: FontWeight.w800,
+                              shadows: _shadow,
+                            ),
                           ),
                         ),
-                      ),
-                      SizedBox(
-                        width: 48,
-                        child: Text(
-                          '${(_index + 1).clamp(1, entries.length)}/${entries.length}',
-                          textAlign: TextAlign.center,
-                          style: const TextStyle(
-                            color: Colors.white70,
-                            fontSize: 12,
-                            shadows: _shadow,
+                        SizedBox(
+                          width: 48,
+                          child: Text(
+                            '${(_index + 1).clamp(1, entries.length)}/${entries.length}',
+                            textAlign: TextAlign.center,
+                            style: const TextStyle(
+                              color: Colors.white70,
+                              fontSize: 12,
+                              shadows: _shadow,
+                            ),
                           ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                 ),
-              ),
             ],
           ),
         ),
@@ -230,6 +247,7 @@ class _PostPageState extends ConsumerState<_PostPage> {
       fit: StackFit.expand,
       children: [
         GestureDetector(
+          key: const ValueKey('post-media'),
           onTap: openDetails,
           onDoubleTap: isMine || auction != null
               ? null

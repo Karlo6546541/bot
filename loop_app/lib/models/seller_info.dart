@@ -1,52 +1,28 @@
 import '../l10n/tr.dart';
 
-/// Vrsta prodavatelja — kupcu se prikazuje na oglasu (prava potrošača).
-enum SellerType {
-  /// Fizička osoba koja prodaje svoje stvari: kupac nema zakonsko pravo
-  /// na povrat od 14 dana.
-  private('Privatna osoba'),
-
-  /// Obrt ili tvrtka: vrijede pravila za potrošače (povrat 14 dana…).
-  trader('Trgovac (obrt ili tvrtka)');
-
-  const SellerType(this._label);
-  final String _label;
-  String get label => t(_label);
-}
-
-/// Podaci prodavatelja koje platforma mora prikupiti prije objave:
-/// DAC7 (izvještaj Poreznoj upravi) i DSA (sljedivost trgovaca).
+/// Podaci prodavatelja koje platforma mora prikupiti prije objave (DAC7,
+/// izvještaj Poreznoj upravi). Svi korisnici LOOP-a su fizičke osobe
+/// (nema obrta ni tvrtki), pa je prodavatelj uvijek privatna osoba.
 /// U demo verziji se ništa ne šalje — samo se spremaju uz račun.
 class SellerInfo {
   const SellerInfo({
-    required this.type,
     required this.legalName,
     required this.oib,
     required this.address,
     required this.iban,
     required this.updatedAt,
     this.birthDate,
-    this.registry = '',
   });
 
-  final SellerType type;
-
-  /// Ime i prezime (privatna osoba) ili naziv obrta/tvrtke (trgovac).
+  /// Ime i prezime.
   final String legalName;
   final String oib;
-
-  /// Samo za privatnu osobu (DAC7).
   final DateTime? birthDate;
 
-  /// Adresa prebivališta ili sjedišta.
+  /// Adresa prebivališta.
   final String address;
   final String iban;
-
-  /// Trgovac: registar i broj (npr. "Obrtni registar 12345" ili MBS).
-  final String registry;
   final DateTime updatedAt;
-
-  bool get isTrader => type == SellerType.trader;
 
   /// IBAN za prikaz: "HR12 •••• 0160".
   String get maskedIban {
@@ -56,21 +32,15 @@ class SellerInfo {
   }
 
   Map<String, dynamic> toMap() => {
-    'type': type.name,
     'legalName': legalName,
     'oib': oib,
     if (birthDate != null) 'birthDate': birthDate!.toIso8601String(),
     'address': address,
     'iban': iban,
-    if (registry.isNotEmpty) 'registry': registry,
     'updatedAt': updatedAt.toIso8601String(),
   };
 
   factory SellerInfo.fromMap(Map<dynamic, dynamic> m) => SellerInfo(
-    type: SellerType.values.firstWhere(
-      (v) => v.name == m['type'],
-      orElse: () => SellerType.private,
-    ),
     legalName: m['legalName'] as String? ?? '',
     oib: m['oib'] as String? ?? '',
     birthDate: m['birthDate'] == null
@@ -78,7 +48,6 @@ class SellerInfo {
         : DateTime.tryParse('${m['birthDate']}'),
     address: m['address'] as String? ?? '',
     iban: m['iban'] as String? ?? '',
-    registry: m['registry'] as String? ?? '',
     updatedAt:
         DateTime.tryParse('${m['updatedAt']}') ??
         DateTime.fromMillisecondsSinceEpoch(0),
@@ -118,7 +87,6 @@ class SellerInfo {
 
   /// Greška u podacima (null = ispravno).
   static String? validate({
-    required SellerType type,
     required String legalName,
     required String oib,
     required String address,
@@ -126,23 +94,13 @@ class SellerInfo {
     DateTime? birthDate,
     DateTime? now,
   }) {
-    if (legalName.trim().length < 3) {
-      return type == SellerType.trader
-          ? t('Upiši naziv obrta ili tvrtke.')
-          : t('Upiši ime i prezime.');
-    }
+    if (legalName.trim().length < 3) return t('Upiši ime i prezime.');
     if (!validOib(oib)) return t('OIB nije ispravan (11 znamenki).');
-    if (type == SellerType.private) {
-      if (birthDate == null) return t('Upiši datum rođenja.');
-      final at = now ?? DateTime.now();
-      final adult = DateTime(
-        birthDate.year + 18,
-        birthDate.month,
-        birthDate.day,
-      );
-      if (adult.isAfter(at)) {
-        return t('Prodavati mogu samo punoljetne osobe (18+).');
-      }
+    if (birthDate == null) return t('Upiši datum rođenja.');
+    final at = now ?? DateTime.now();
+    final adult = DateTime(birthDate.year + 18, birthDate.month, birthDate.day);
+    if (adult.isAfter(at)) {
+      return t('Prodavati mogu samo punoljetne osobe (18+).');
     }
     if (address.trim().length < 5) return t('Upiši adresu.');
     if (!validIban(iban)) return t('IBAN nije ispravan.');
