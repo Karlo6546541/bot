@@ -120,6 +120,24 @@ final auctionServiceProvider = Provider<AuctionService>(
   (ref) => AuctionService(ref.watch(storageProvider)),
 );
 
+/// Prvo pokretanje bez prijave: odmah uđi u aplikaciju kao gost (prijava
+/// se traži tek za kupnju, prodaju i ostale radnje). Uključeno u main.dart;
+/// u testovima isključeno (počinje se od ekrana za prijavu).
+final autoGuestProvider = Provider<bool>((ref) => false);
+
+/// Gost je već jednom automatski prijavljen u ovom pokretanju — nakon
+/// odjave ostaje ekran za prijavu.
+final autoGuestDoneProvider = NotifierProvider<AutoGuestDone, bool>(
+  AutoGuestDone.new,
+);
+
+class AutoGuestDone extends Notifier<bool> {
+  @override
+  bool build() => false;
+
+  void markDone() => state = true;
+}
+
 /// Koliko često se osvježavaju odbrojavanja i zaključuju istekle aukcije.
 /// U testovima je `null` (bez periodičkih timera).
 final tickIntervalProvider = Provider<Duration?>(

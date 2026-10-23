@@ -2099,4 +2099,6 @@ const kEn = <String, String>{
   '⚡ Brzo dodaj': '⚡ Quick add',
   'Dodaj karticu i adresu': 'Add card and address',
   'Kupujem': 'Buying',
+  'Prijava / registracija': 'Log in / sign up',
+  'Za kupnju, licitiranje i prodaju treba račun — traje 30 sekundi.': 'Buying, bidding and selling need an account — it takes 30 seconds.',
 };

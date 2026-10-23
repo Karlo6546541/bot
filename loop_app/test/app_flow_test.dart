@@ -521,10 +521,61 @@ void accountTests() {
     await tester.pumpAndSettle();
     await tester.tap(find.byKey(const ValueKey('post-bid')));
     await tester.pumpAndSettle();
+    // Prijava/registracija se otvori preko predmeta; "natrag" vraća na njega.
     expect(find.text('Napravi besplatan račun'), findsOneWidget);
-    await tester.tap(find.text('Nastavi razgledavati'));
+    await tester.tap(find.byKey(const ValueKey('login-close')));
     await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('post-bid')), findsOneWidget);
   });
+
+  testWidgets(
+    'prvo pokretanje: odmah u aplikaciju kao gost, prijava tek za kupnju',
+    (tester) async {
+      tester.view.physicalSize = const Size(400, 860);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
+      final storage = StorageService();
+      await tester.runAsync(() => storage.init(inMemory: true));
+      addTearDown(() => tester.runAsync(Hive.close));
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            storageProvider.overrideWithValue(storage),
+            tickIntervalProvider.overrideWithValue(null),
+            autoGuestProvider.overrideWithValue(true),
+          ],
+          child: const LoopApp(),
+        ),
+      );
+      await tester.pumpAndSettle();
+      // Bez ekrana za prijavu: početna, kao gost.
+      expect(find.text('Prijavi se'), findsNothing);
+      expect(find.byKey(const ValueKey('home-search')), findsOneWidget);
+      expect(storage.currentUserId, 'user-guest');
+
+      // Licitiranje otvara registraciju preko predmeta.
+      await tester.tap(find.text('Istraži').last);
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Polaroid SX-70'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('post-bid')));
+      await tester.pumpAndSettle();
+      expect(find.byKey(const ValueKey('login-close')), findsOneWidget);
+      expect(find.text('Novi račun'), findsOneWidget);
+
+      // Prijava → ekran se zatvori, korisnik je i dalje na predmetu.
+      await tester.tap(find.text('Prijava').first);
+      await tester.pumpAndSettle();
+      await tester.ensureVisible(find.text('Prijavi se'));
+      await tester.tap(find.text('Prijavi se'));
+      await tester.pumpAndSettle();
+      expect(find.byKey(const ValueKey('login-close')), findsNothing);
+      expect(find.byKey(const ValueKey('post-bid')), findsOneWidget);
+      expect(storage.currentUserId, isNot('user-guest'));
+
+      // Odjava vodi na ekran za prijavu (bez ponovnog automatskog gosta).
+    },
+  );
 }
 
 void listingTests() {

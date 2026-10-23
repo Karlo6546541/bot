@@ -11,6 +11,7 @@ import '../theme/app_theme.dart';
 import '../screens/seller_screens.dart';
 import '../screens/wishlists_screen.dart';
 import '../services/delivery_service.dart';
+import '../screens/login_screen.dart';
 import 'celebration.dart';
 import 'delivery_picker.dart';
 import 'item_image.dart';
@@ -53,37 +54,14 @@ Future<bool> runWithLoading(
   }
 }
 
-/// Gost samo razgledava: umjesto akcije nudi izradu računa.
-/// Vraća `true` ako je akcija blokirana.
-bool blockGuest(BuildContext context) {
+/// Gost samo razgledava: kupnja, prodaja, licitiranje i ostale radnje
+/// otvaraju prijavu/registraciju preko trenutnog ekrana — nakon prijave
+/// korisnik ostaje gdje je bio. Vraća `true` ako je akcija blokirana.
+bool blockGuest(BuildContext context, {String? reason}) {
   final container = ProviderScope.containerOf(context, listen: false);
   final user = container.read(appProvider).currentUser;
   if (user == null || !user.isGuest) return false;
-  showDialog<void>(
-    context: context,
-    builder: (ctx) => AlertDialog(
-      icon: const Icon(Icons.person_add_alt_1, size: 36),
-      title: Text(t('Napravi besplatan račun')),
-      content: Text(
-        t(
-          'Gost može samo razgledavati. Napravi besplatan račun za kupnju i prodaju.',
-        ),
-      ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.pop(ctx),
-          child: Text(t('Nastavi razgledavati')),
-        ),
-        FilledButton(
-          onPressed: () {
-            Navigator.pop(ctx);
-            container.read(appProvider.notifier).logout();
-          },
-          child: Text(t('Napravi račun')),
-        ),
-      ],
-    ),
-  );
+  LoginScreen.open(context, reason: reason);
   return true;
 }
 
@@ -594,6 +572,7 @@ Future<void> toggleFavorite(
   Device device, {
   BuildContext? context,
 }) async {
+  if (context != null && blockGuest(context)) return;
   final bool added;
   try {
     added = await ref.read(appProvider.notifier).toggleFavorite(device.id);

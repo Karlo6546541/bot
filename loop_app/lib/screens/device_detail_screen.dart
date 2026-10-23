@@ -80,7 +80,7 @@ class DeviceDetailScreen extends ConsumerWidget {
             ),
           // Jedno srce: dodir = sviđa mi se (obavijest nudi spremanje u
           // listu); ostale radnje su u izborniku ⋮.
-          if (!isMine && !user.isGuest)
+          if (!isMine)
             IconButton(
               key: const ValueKey('like-item'),
               tooltip: isFav ? t('Ukloni iz favorita') : t('Dodaj u favorite'),
@@ -308,7 +308,7 @@ class DeviceDetailScreen extends ConsumerWidget {
                         onTap: () =>
                             PublicProfileScreen.open(context, owner.id),
                       ),
-                    if (owner != null && !isMine && !user.isGuest)
+                    if (owner != null && !isMine)
                       Padding(
                         padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
                         child: Row(

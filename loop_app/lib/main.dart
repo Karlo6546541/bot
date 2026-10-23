@@ -14,7 +14,7 @@ import 'services/remote_store.dart';
 import 'services/storage_service.dart';
 import 'services/sync_service.dart';
 import 'theme/app_theme.dart';
-import 'widgets/adaptive_shell.dart';
+import 'widgets/splash.dart';
 import 'l10n/tr.dart';
 
 void main() {
@@ -66,13 +66,35 @@ class _BootstrapState extends State<_Bootstrap> {
     return (storage, sync);
   }
 
+  /// Uvodna animacija se odigra do kraja (kratko), čak i kad su podaci
+  /// spremni ranije — zatim se aplikacija pretopi preko nje.
+  bool _splashDone = false;
+
   @override
   Widget build(BuildContext context) {
     return FutureBuilder<(StorageService, SyncService?)>(
       future: _init,
       builder: (context, snapshot) {
-        if (snapshot.hasData) {
-          return ProviderScope(
+        final Widget child;
+        if (snapshot.hasError) {
+          child = MaterialApp(
+            debugShowCheckedModeBanner: false,
+            theme: buildLoopTheme(),
+            home: Scaffold(
+              body: Center(
+                child: Padding(
+                  padding: const EdgeInsets.all(24),
+                  child: Text(
+                    t('Greška pri učitavanju podataka:\n{0}', [snapshot.error]),
+                    textAlign: TextAlign.center,
+                  ),
+                ),
+              ),
+            ),
+          );
+        } else if (snapshot.hasData && _splashDone) {
+          child = ProviderScope(
+            key: const ValueKey('app'),
             overrides: [
               storageProvider.overrideWithValue(snapshot.data!.$1),
               syncProvider.overrideWithValue(snapshot.data!.$2),
@@ -80,35 +102,21 @@ class _BootstrapState extends State<_Bootstrap> {
                 authBackendProvider.overrideWithValue(
                   SupabaseAuthBackend(Supabase.instance.client),
                 ),
+              // Novi korisnik odmah ulazi u aplikaciju (kao gost).
+              autoGuestProvider.overrideWithValue(true),
             ],
             child: const LoopApp(),
           );
+        } else {
+          child = Directionality(
+            key: const ValueKey('splash'),
+            textDirection: TextDirection.ltr,
+            child: LoopSplash(onDone: () => setState(() => _splashDone = true)),
+          );
         }
-        return MaterialApp(
-          debugShowCheckedModeBanner: false,
-          theme: buildLoopTheme(),
-          home: Scaffold(
-            body: Center(
-              child: snapshot.hasError
-                  ? Padding(
-                      padding: const EdgeInsets.all(24),
-                      child: Text(
-                        t('Greška pri učitavanju podataka:\n{0}', [
-                          snapshot.error,
-                        ]),
-                        textAlign: TextAlign.center,
-                      ),
-                    )
-                  : const Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        LoopLogo(size: 36),
-                        SizedBox(height: 24),
-                        CircularProgressIndicator(),
-                      ],
-                    ),
-            ),
-          ),
+        return AnimatedSwitcher(
+          duration: const Duration(milliseconds: 350),
+          child: child,
         );
       },
     );

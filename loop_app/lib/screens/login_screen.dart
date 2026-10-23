@@ -16,7 +16,21 @@ import '../widgets/language_button.dart';
 /// Prijava i registracija (e-mail + lozinka, Google na webu s online
 /// bazom), gost i admin.
 class LoginScreen extends ConsumerStatefulWidget {
-  const LoginScreen({super.key});
+  const LoginScreen({super.key, this.reason});
+
+  /// Otvoreno preko aplikacije (gost je htio kupiti, prodati…): razlog
+  /// se prikaže gore, a "X" vraća na razgledavanje. Nakon prijave ekran
+  /// se sam zatvori i korisnik ostaje gdje je bio.
+  final String? reason;
+
+  /// Otvara prijavu/registraciju preko trenutnog ekrana.
+  static Future<void> open(BuildContext context, {String? reason}) =>
+      Navigator.of(context, rootNavigator: true).push(
+        MaterialPageRoute<void>(
+          fullscreenDialog: true,
+          builder: (_) => LoginScreen(reason: reason ?? ''),
+        ),
+      );
 
   @override
   ConsumerState<LoginScreen> createState() => _LoginScreenState();
@@ -25,22 +39,31 @@ class LoginScreen extends ConsumerStatefulWidget {
 class _LoginScreenState extends ConsumerState<LoginScreen> {
   final _loginKey = GlobalKey<FormState>();
   final _registerKey = GlobalKey<FormState>();
-  late final _identifier = TextEditingController(
-    text: _online ? '' : 'demo@loop.com',
-  );
-  late final _password = TextEditingController(
-    text: _online ? '' : SeedData.demoPassword,
-  );
+  late final TextEditingController _identifier;
+  late final TextEditingController _password;
   final _regEmail = TextEditingController();
   final _regUsername = TextEditingController();
   final _regPassword = TextEditingController();
   final _regReferral = TextEditingController();
-  bool _register = false;
+  // Gost koji je htio nešto napraviti najčešće još nema račun.
+  late bool _register = widget.reason != null;
+
+  bool get _overlay => widget.reason != null;
   bool _showReferral = false;
   bool _loading = false;
   bool _obscure = true;
 
   bool get _online => ref.read(authBackendProvider).isOnline;
+
+  @override
+  void initState() {
+    super.initState();
+    // Odmah (ne lijeno): inače bi ih dispose stvarao nakon odmontiranja.
+    _identifier = TextEditingController(text: _online ? '' : 'demo@loop.com');
+    _password = TextEditingController(
+      text: _online ? '' : SeedData.demoPassword,
+    );
+  }
 
   @override
   void dispose() {
@@ -313,6 +336,20 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
   @override
   Widget build(BuildContext context) {
+    if (_overlay) {
+      // Prijavljen (ili čeka korisničko ime) → natrag gdje je bio.
+      ref.listen(
+        appProvider.select(
+          (s) =>
+              (s.currentUser != null && !s.currentUser!.isGuest) ||
+              s.pendingSignup != null ||
+              s.isAdmin,
+        ),
+        (_, done) {
+          if (done && mounted) Navigator.of(context).maybePop();
+        },
+      );
+    }
     final wide = MediaQuery.sizeOf(context).width >= 900;
     final backend = ref.watch(authBackendProvider);
     final formCard = Container(
@@ -396,28 +433,37 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
               ),
             ],
             const SizedBox(height: 12),
-            OutlinedButton.icon(
-              onPressed: _loading
-                  ? null
-                  : () => _run(
-                      () => ref.read(appProvider.notifier).loginAsGuest(),
-                    ),
-              icon: const Icon(Icons.person_outline),
-              label: Text(t('Samo razgledaj (gost)')),
-            ),
+            if (_overlay)
+              OutlinedButton.icon(
+                key: const ValueKey('login-back'),
+                onPressed: () => Navigator.of(context).maybePop(),
+                icon: const Icon(Icons.arrow_back),
+                label: Text(t('Nastavi razgledavati')),
+              )
+            else
+              OutlinedButton.icon(
+                onPressed: _loading
+                    ? null
+                    : () => _run(
+                        () => ref.read(appProvider.notifier).loginAsGuest(),
+                      ),
+                icon: const Icon(Icons.person_outline),
+                label: Text(t('Samo razgledaj (gost)')),
+              ),
             const SizedBox(height: 8),
             // Admin je za tim — neupadljiva poveznica.
-            Center(
-              child: TextButton(
-                style: TextButton.styleFrom(
-                  visualDensity: VisualDensity.compact,
-                  foregroundColor: LoopColors.textSecondary,
-                  textStyle: const TextStyle(fontSize: 12),
+            if (!_overlay)
+              Center(
+                child: TextButton(
+                  style: TextButton.styleFrom(
+                    visualDensity: VisualDensity.compact,
+                    foregroundColor: LoopColors.textSecondary,
+                    textStyle: const TextStyle(fontSize: 12),
+                  ),
+                  onPressed: _loading ? null : _adminLogin,
+                  child: Text(t('Admin prijava')),
                 ),
-                onPressed: _loading ? null : _adminLogin,
-                child: Text(t('Admin prijava')),
               ),
-            ),
             const SizedBox(height: 8),
             const LegalLinks(),
             const SizedBox(height: 16),
@@ -462,7 +508,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                         )
                       : Column(
                           children: [
-                            const _WelcomeHero(compact: true),
+                            if (_overlay)
+                              _ReasonBanner(widget.reason!)
+                            else
+                              const _WelcomeHero(compact: true),
                             const SizedBox(height: 24),
                             formCard,
                           ],
@@ -471,6 +520,17 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
               ),
             ),
             const Positioned(top: 12, right: 12, child: LanguageButton()),
+            if (_overlay)
+              Positioned(
+                top: 8,
+                left: 8,
+                child: IconButton(
+                  key: const ValueKey('login-close'),
+                  tooltip: t('Nastavi razgledavati'),
+                  onPressed: () => Navigator.of(context).maybePop(),
+                  icon: const Icon(Icons.close),
+                ),
+              ),
           ],
         ),
       ),
@@ -800,6 +860,38 @@ class _ForgotPasswordDialogState extends ConsumerState<_ForgotPasswordDialog> {
               widget.online ? t('Pošalji link') : t('Postavi lozinku'),
             ),
           ),
+      ],
+    );
+  }
+}
+
+/// Zašto se traži prijava (gost je htio kupiti, licitirati, prodati…).
+class _ReasonBanner extends StatelessWidget {
+  const _ReasonBanner(this.reason);
+  final String reason;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        const SizedBox(height: 28),
+        const LoopLogo(size: 30),
+        const SizedBox(height: 14),
+        Text(
+          t('Napravi besplatan račun'),
+          textAlign: TextAlign.center,
+          style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w900),
+        ),
+        const SizedBox(height: 6),
+        Text(
+          reason.isEmpty
+              ? t(
+                  'Za kupnju, licitiranje i prodaju treba račun — traje 30 sekundi.',
+                )
+              : reason,
+          textAlign: TextAlign.center,
+          style: TextStyle(color: LoopColors.textSecondary),
+        ),
       ],
     );
   }

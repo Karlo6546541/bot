@@ -34,8 +34,30 @@
 
   <title>LOOP — live aukcije i Kupi odmah</title>
   <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#17120F">
+  <style>
+    /* Dok se Flutter učitava: ista tamna pozadina i ∞ kao na uvodnom
+       ekranu u aplikaciji (bez bijelog bljeska). */
+    html, body { margin: 0; height: 100%; background: #17120F; }
+    #pre-splash {
+      position: fixed; inset: 0; display: flex; align-items: center;
+      justify-content: center; font: 900 76px/1 system-ui, sans-serif;
+      color: #FF8A5C; animation: loop-pulse 0.9s ease-in-out infinite alternate;
+    }
+    @keyframes loop-pulse {
+      from { transform: scale(0.9); opacity: 0.55; }
+      to { transform: scale(1.05); opacity: 1; }
+    }
+  </style>
 </head>
 <body>
+  <div id="pre-splash" aria-label="LOOP">∞</div>
+  <script>
+    window.addEventListener('flutter-first-frame', function () {
+      var el = document.getElementById('pre-splash');
+      if (el) el.remove();
+    });
+  </script>
   <!--
     You can customize the "flutter_bootstrap.js" script.
     This is useful to provide a custom configuration to the Flutter loader

@@ -364,6 +364,7 @@ class _LiveHomeScreenState extends ConsumerState<LiveHomeScreen> {
           const SliverToBoxAdapter(child: _HowLoopWorks()),
         if (!_hideCheckout &&
             s.currentUser != null &&
+            !s.currentUser!.isGuest &&
             !s.currentUser!.checkoutReady)
           SliverToBoxAdapter(
             child: _CheckoutBanner(

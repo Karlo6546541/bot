@@ -384,6 +384,13 @@ dati na pregled odvjetniku prije pokretanja s pravim novcem):
 
 ## Raspored sučelja
 
+- **Pokretanje**: kratki animirani uvod (~1,5 s — znak ∞ se iscrta, „LOOP” uskoči slovo po
+  slovo, traka učitavanja; na webu je i prije učitavanja ista tamna pozadina). Novi korisnik
+  zatim **odmah ulazi u aplikaciju kao gost** i može sve razgledati. Kupnja, licitiranje,
+  prodaja, praćenje, poruke i ostale radnje otvaraju **Prijavu / Registraciju** preko
+  trenutnog ekrana; nakon prijave ekran se sam zatvori i korisnik ostaje gdje je bio
+  (✕ ili *Nastavi razgledavati* vraća na razgledavanje). Nakon odjave prikazuje se ekran
+  za prijavu.
 - Donja traka: **Početna · Istraži · [+ Objavi] · Moje · Profil**.
 - **Početna** (klon Whatnota): tražilica, **pilule** *Za tebe · 🔴 Uživo · 📅 Uskoro ·
   ⏱ Aukcije · 🏷️ Kupi odmah* i kategorije, zatim mreža kartica **Uživo sada**, **Uskoro**

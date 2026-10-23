@@ -8,6 +8,7 @@ import '../widgets/formatters.dart';
 import '../widgets/trade_actions.dart';
 import 'activity_screen.dart';
 import 'legal_screen.dart';
+import 'login_screen.dart';
 import 'seller_screens.dart';
 import 'portfolio_screen.dart';
 import 'deliveries_screen.dart';
@@ -356,9 +357,10 @@ class _GuestCard extends ConsumerWidget {
             ),
             const SizedBox(height: 12),
             FilledButton.icon(
-              onPressed: () => ref.read(appProvider.notifier).logout(),
+              key: const ValueKey('guest-signup'),
+              onPressed: () => LoginScreen.open(context),
               icon: const Icon(Icons.person_add_alt_1),
-              label: Text(t('Napravi račun')),
+              label: Text(t('Prijava / registracija')),
             ),
           ],
         ),

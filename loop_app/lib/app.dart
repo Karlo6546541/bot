@@ -42,15 +42,35 @@ class LoopApp extends ConsumerWidget {
     );
     final recovery = ref.watch(passwordRecoveryProvider);
 
+    final isGuest = ref.watch(
+      appProvider.select((s) => s.currentUser?.isGuest ?? false),
+    );
+    final autoGuest =
+        ref.watch(autoGuestProvider) &&
+        !ref.watch(autoGuestDoneProvider) &&
+        !loggedIn &&
+        !isAdmin &&
+        !pendingSignup &&
+        !recovery;
+    if (autoGuest) {
+      // Samo jednom po pokretanju: nakon odjave ostaje ekran za prijavu.
+      Future.microtask(() async {
+        ref.read(autoGuestDoneProvider.notifier).markDone();
+        await ref.read(appProvider.notifier).loginAsGuest();
+      });
+    }
+
     final Widget home;
     if (recovery) {
       home = const PasswordRecoveryScreen();
     } else if (isAdmin) {
       home = const AdminShell();
+    } else if (pendingSignup && (!loggedIn || isGuest)) {
+      home = const UsernameSetupScreen();
     } else if (loggedIn) {
       home = const HomeShell();
-    } else if (pendingSignup) {
-      home = const UsernameSetupScreen();
+    } else if (autoGuest) {
+      home = const Scaffold();
     } else {
       home = const LoginScreen();
     }
