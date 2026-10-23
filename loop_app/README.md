@@ -11,7 +11,7 @@ Demo Flutter aplikacija u stilu Whatnota — **jedan predmet, tri načina prodaj
 - **Kupi odmah**: fiksna cijena, cjenkanje („Ponudi cijenu”), popusti, zaliha.
 - Svi iznosi su u **eurima** (€). **Kupac ne plaća naknadu.** Provizija se odbija prodavatelju:
   **5 %** za Kupi odmah, **10 % samo od razlike iznad početne cijene** za aukcije i live.
-- Svi korisnici su **punoljetne fizičke osobe** (kupci i prodavatelji).
+- Svi korisnici su **fizičke osobe** (kupci i prodavatelji); registracija nema dobnu granicu.
 - Radi **lokalno i offline** (Hive), a uz Supabase i **online** s pravim računima.
 
 **Spremljene verzije** (grade se uz glavnu, isti podaci):
@@ -362,8 +362,8 @@ dati na pregled odvjetniku prije pokretanja s pravim novcem):
 
 - **Plaćanja (PSD2):** nema novčanika ni uplata; kupac plaća karticom, prodavatelj isplaćuje
   zaradu na IBAN, a novac obrađuje licencirani pružatelj plaćanja (u demo verziji simulirano).
-- **Samo fizičke osobe:** LOOP koriste samo punoljetne fizičke osobe (kupci i prodavatelji);
-  obrti i tvrtke ne mogu prodavati. Registracija traži potvrdu „18+ i fizička osoba”.
+- **Samo fizičke osobe:** LOOP koriste samo fizičke osobe (kupci i prodavatelji);
+  obrti i tvrtke ne mogu prodavati. Registracija traži potvrdu „fizička osoba” (bez dobne granice).
 - **Podaci prodavatelja (DAC7):** prije prve objave (oglas, aukcija) ili isplate traže se
   ime i prezime, OIB (provjera kontrolne znamenke), datum rođenja (18+), adresa i IBAN
   (MOD 97). Live aukcija se **testno** može pokrenuti i bez njih (traže se tek za isplatu). *Profil → Moja trgovina →
@@ -382,7 +382,7 @@ dati na pregled odvjetniku prije pokretanja s pravim novcem):
   **Preuzmi CSV**). Prijavljuju se prodavatelji s 30+ prodaja ili više od 2.000 € godišnje.
 - **Dokumenti:** Uvjeti korištenja, Pravila privatnosti, Kolačići i pohrana, Pravila za
   prodavatelje, Rangiranje i oglašavanje, Prijave/odluke/žalbe, Impresum — *Profil → Pravno*
-  i poveznice na ekranu prijave. Registracija traži pristanak na Uvjete i potvrdu 18+.
+  i poveznice na ekranu prijave. Registracija traži pristanak na Uvjete.
 - **Kolačići:** koristi se samo nužna pohrana (prijava, postavke) — bez praćenja, pa banner
   za pristanak nije potreban (piše na ekranu prijave i u dokumentu *Kolačići*).
 
@@ -641,7 +641,7 @@ Lokalni način (bez online baze):
 | Korisnik | `ana@loop.com` / `@ana.kolekcija`   | `demo`     | prodaje 4 predmeta na aukcijama                   |
 | Korisnik | `marko@loop.com` / `@marko`         | `demo`     | vodi na 3 aukcije                                 |
 
-Novi račun: *Registracija* (e-mail, korisničko ime, lozinka, pristanak na Uvjete i 18+) →
+Novi račun: *Registracija* (e-mail, korisničko ime, lozinka, pristanak na Uvjete) →
 zarada **0 €**. Demo računi imaju izmišljene podatke prodavatelja (ispravan oblik OIB-a i
 IBAN-a); Ana je trgovac (obrt), ostali su privatne osobe.
 Računi iz starijih verzije: prva lozinka kojom se prijaviš postaje lozinka računa.

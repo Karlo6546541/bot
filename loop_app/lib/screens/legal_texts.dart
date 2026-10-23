@@ -13,13 +13,13 @@ const kDocsDate = '[DATUM]';
 const legalHr = <String, String>{
   'terms':
       '''
-Ovi Uvjeti uređuju korištenje platforme LOOP (aplikacija i web stranica) koju pruža $kCompany, OIB $kCompanyOib, $kCompanyAddress ("LOOP", "mi"). Registracijom potvrđuješ da imaš najmanje 18 godina i da prihvaćaš ove Uvjete i Pravila privatnosti.
+Ovi Uvjeti uređuju korištenje platforme LOOP (aplikacija i web stranica) koju pruža $kCompany, OIB $kCompanyOib, $kCompanyAddress ("LOOP", "mi"). Registracijom potvrđuješ da prihvaćaš ove Uvjete i Pravila privatnosti.
 
 ## 1. Što je LOOP
 LOOP je platforma za prodaju među građanima na tri načina: live aukcije (prodavatelj uživo pokazuje predmete i pokreće kratke licitacije, live traje dok je prodavatelj uživo), aukcije na vrijeme i Kupi odmah (fiksna cijena). LOOP nije prodavatelj predmeta: ugovor o kupoprodaji sklapaju kupac (pobjednik aukcije) i prodavatelj.
 
 ## 2. Računi
-LOOP mogu koristiti samo punoljetne fizičke osobe, za osobne potrebe (ne kao obrt ni tvrtka) — i kao kupci i kao prodavatelji. Jedna osoba smije imati jedan račun. Podaci moraju biti točni. Odgovoran si za sigurnost lozinke. Račun možeš obrisati u Profilu (brisanje se izvršava nakon 7 dana).
+LOOP mogu koristiti fizičke osobe, za osobne potrebe (ne kao obrt ni tvrtka) — i kao kupci i kao prodavatelji. Jedna osoba smije imati jedan račun. Podaci moraju biti točni. Odgovoran si za sigurnost lozinke. Račun možeš obrisati u Profilu (brisanje se izvršava nakon 7 dana).
 
 ## 3. Prodavatelji
 Prodavatelji su fizičke osobe koje prodaju svoje stvari. Prije prve objave na Kupi odmah i prije prve isplate zarade unose podatke prodavatelja (ime i prezime, OIB, datum rođenja, adresu, IBAN). Tko prodaje kao djelatnost (obrt, tvrtka), ne smije koristiti LOOP. Zabranjeni predmeti navedeni su u Pravilima za prodavatelje.
@@ -140,13 +140,13 @@ Na odluku se možeš žaliti u roku od 6 mjeseci gumbom "Žalba" u obavijesti. �
 const legalEn = <String, String>{
   'terms':
       '''
-These Terms govern the use of the LOOP platform (app and website) provided by $kCompany, OIB $kCompanyOib, $kCompanyAddress ("LOOP", "we"). By registering you confirm that you are at least 18 years old and accept these Terms and the Privacy Policy.
+These Terms govern the use of the LOOP platform (app and website) provided by $kCompany, OIB $kCompanyOib, $kCompanyAddress ("LOOP", "we"). By registering you accept these Terms and the Privacy Policy.
 
 ## 1. What LOOP is
 LOOP is an auction platform: live auctions (the seller shows items live and starts short bidding rounds; a live show lasts as long as the seller is live) and timed auctions. LOOP is not the seller: the sales contract is between the winning bidder and the seller.
 
 ## 2. Accounts
-LOOP may only be used by adult natural persons for personal purposes (not as a sole trader or company) — both as buyers and as sellers. One person may have one account. Your details must be accurate. You are responsible for your password. You can delete your account in Profile (deletion happens after 7 days).
+LOOP may be used by natural persons for personal purposes (not as a sole trader or company) — both as buyers and as sellers. One person may have one account. Your details must be accurate. You are responsible for your password. You can delete your account in Profile (deletion happens after 7 days).
 
 ## 3. Sellers
 Sellers are natural persons selling their own things. Before their first Buy now listing and first payout they provide seller details (full name, OIB/tax number, date of birth, address, IBAN). Anyone selling as a business (sole trader, company) may not use LOOP. Prohibited items are listed in the Seller rules.

@@ -279,13 +279,12 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
           label: Text(t('Imaš kod za poziv?')),
         ),
       ),
-    // Obvezan pristanak: punoljetnost, Uvjeti i Pravila privatnosti.
+    // Obvezan pristanak: Uvjeti i Pravila privatnosti (bez dobne granice).
     FormField<bool>(
       key: const ValueKey('accept-terms-field'),
       initialValue: false,
-      validator: (v) => v == true
-          ? null
-          : t('Za registraciju prihvati Uvjete i potvrdi da imaš 18+.'),
+      validator: (v) =>
+          v == true ? null : t('Za registraciju prihvati Uvjete korištenja.'),
       builder: (field) => Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -300,7 +299,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
               onChanged: (v) => field.didChange(v),
               title: Text(
                 t(
-                  'Imam 18 ili više godina, koristim LOOP kao fizička osoba (ne kao obrt ni tvrtka) i prihvaćam Uvjete korištenja i Pravila privatnosti.',
+                  'Koristim LOOP kao fizička osoba (ne kao obrt ni tvrtka) i prihvaćam Uvjete korištenja i Pravila privatnosti.',
                 ),
                 style: const TextStyle(fontSize: 13),
               ),

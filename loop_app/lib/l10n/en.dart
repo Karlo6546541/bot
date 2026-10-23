@@ -1582,8 +1582,8 @@ const kEn = <String, String>{
   'Uvjeti, privatnost i impresum': 'Terms, privacy and imprint',
   'Za isplatu ispuni podatke prodavatelja (IBAN).':
       'Fill in seller details (IBAN) to get paid.',
-  'Za registraciju prihvati Uvjete i potvrdi da imaš 18+.':
-      'To register, accept the Terms and confirm you are 18+.',
+  'Za registraciju prihvati Uvjete korištenja.':
+      'To register, accept the Terms of use.',
   'Zarada za isplatu': 'Earnings to pay out',
   'Zašto se ne slažeš?': 'Why do you disagree?',
   'na bankovni račun': 'to bank account',
@@ -1725,8 +1725,8 @@ const kEn = <String, String>{
   'Predmet je u live aukciji — pričekaj da se licitira.':
       'This item is in a live auction — wait until it has been auctioned.',
   'Fizička osoba': 'Private person',
-  'Imam 18 ili više godina, koristim LOOP kao fizička osoba (ne kao obrt ni tvrtka) i prihvaćam Uvjete korištenja i Pravila privatnosti.':
-      'I am 18 or older, I use LOOP as a private person (not as a sole trader or company) and I accept the Terms of Use and the Privacy Policy.',
+  'Koristim LOOP kao fizička osoba (ne kao obrt ni tvrtka) i prihvaćam Uvjete korištenja i Pravila privatnosti.':
+      'I use LOOP as a private person (not as a sole trader or company) and I accept the Terms of Use and the Privacy Policy.',
   'Istraži': 'Explore',
   'LOOP je za fizičke osobe koje prodaju svoje stvari. Platforma mora prikupiti ove podatke prije prve objave (DAC7: izvještaj Poreznoj upravi za prodavatelje s 30+ prodaja ili više od 2.000 € godišnje). Kupci ih ne vide.':
       'LOOP is for private persons selling their own things. The platform must collect these details before your first listing (DAC7: report to the Tax Administration for sellers with 30+ sales or more than €2,000 a year). Buyers don\'t see them.',

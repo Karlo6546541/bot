@@ -143,18 +143,8 @@ class _SwipeFeedScreenState extends ConsumerState<SwipeFeedScreen> {
                             ),
                           ),
                         ),
-                        SizedBox(
-                          width: 48,
-                          child: Text(
-                            '${(_index + 1).clamp(1, entries.length)}/${entries.length}',
-                            textAlign: TextAlign.center,
-                            style: const TextStyle(
-                              color: Colors.white70,
-                              fontSize: 12,
-                              shadows: _shadow,
-                            ),
-                          ),
-                        ),
+                        // Isti razmak kao gumb Natrag (naslov ostaje u sredini).
+                        const SizedBox(width: 48),
                       ],
                     ),
                   ),

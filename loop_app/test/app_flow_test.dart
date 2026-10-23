@@ -493,7 +493,7 @@ void accountTests() {
     await tester.tap(find.byKey(const ValueKey('register-submit')));
     await tester.pumpAndSettle();
     expect(
-      find.text('Za registraciju prihvati Uvjete i potvrdi da imaš 18+.'),
+      find.text('Za registraciju prihvati Uvjete korištenja.'),
       findsOneWidget,
     );
     await tester.ensureVisible(find.byKey(const ValueKey('accept-terms')));
