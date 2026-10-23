@@ -3273,131 +3273,154 @@ class _AddLotSheetState extends ConsumerState<_AddLotSheet> {
               style: const TextStyle(fontSize: 19, fontWeight: FontWeight.w900),
             ),
             const SizedBox(height: 8),
-            ConstrainedBox(
-              constraints: BoxConstraints(
-                maxHeight: MediaQuery.sizeOf(context).height * 0.45,
-              ),
-              child: RadioGroup<String>(
-                groupValue: _deviceId,
-                onChanged: (v) => setState(() => _deviceId = v),
-                child: ListView(
-                  shrinkWrap: true,
+            // Popis i postavke se pomiču; gumb "Dodaj u live" je uvijek
+            // vidljiv na dnu (na mobitelu je inače bio ispod ruba ekrana).
+            Flexible(
+              child: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    for (final d in eligible)
-                      RadioListTile<String>(
-                        key: ValueKey('live-add-${d.id}'),
-                        value: d.id,
-                        secondary: ItemThumb(device: d, size: 40),
+                    RadioGroup<String>(
+                      groupValue: _deviceId,
+                      onChanged: (v) => setState(() => _deviceId = v),
+                      child: Column(
+                        children: [
+                          for (final d in eligible)
+                            RadioListTile<String>(
+                              key: ValueKey('live-add-${d.id}'),
+                              dense: true,
+                              contentPadding: EdgeInsets.zero,
+                              visualDensity: VisualDensity.compact,
+                              value: d.id,
+                              secondary: ItemThumb(device: d, size: 40),
+                              title: Text(
+                                d.name,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                              subtitle: Text(
+                                t('Vrijednost {0}', [formatCredits(d.price)]),
+                              ),
+                            ),
+                          if (eligible.isEmpty)
+                            Padding(
+                              padding: const EdgeInsets.all(12),
+                              child: Text(
+                                t('Nemaš slobodnih predmeta — dodaj novi.'),
+                                style: TextStyle(
+                                  color: LoopColors.textSecondary,
+                                ),
+                              ),
+                            ),
+                        ],
+                      ),
+                    ),
+                    TextButton.icon(
+                      key: const ValueKey('live-add-new'),
+                      onPressed: () => AddDeviceScreen.open(context),
+                      icon: const Icon(Icons.add_a_photo_outlined),
+                      label: Text(t('Novi predmet')),
+                    ),
+                    const SizedBox(height: 8),
+                    Wrap(
+                      spacing: 8,
+                      children: [
+                        for (final m in LotMode.values)
+                          ChoiceChip(
+                            key: ValueKey('lot-mode-${m.name}'),
+                            label: Text('${m.emoji} ${t(m.label)}'),
+                            selected: _mode == m,
+                            onSelected: (_) => setState(() => _mode = m),
+                          ),
+                      ],
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 6),
+                      child: Text(
+                        switch (_mode) {
+                          LotMode.auction => t(
+                            'Klasična licitacija — najviša ponuda pobjeđuje.',
+                          ),
+                          LotMode.dutch => t(
+                            'Cijena pada svake sekunde — prvi koji klikne "Uzmi" kupuje.',
+                          ),
+                          LotMode.giveaway => t(
+                            'Besplatno za sve koji se prijave — dobitnik se izvlači na kraju.',
+                          ),
+                        },
+                        style: TextStyle(
+                          color: LoopColors.textSecondary,
+                          fontSize: 12,
+                        ),
+                      ),
+                    ),
+                    if (_mode == LotMode.auction)
+                      SwitchListTile(
+                        key: const ValueKey('lot-sudden'),
+                        contentPadding: EdgeInsets.zero,
+                        value: _sudden,
+                        onChanged: (v) => setState(() => _sudden = v),
                         title: Text(
-                          d.name,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
+                          t('☠️ Sudden death'),
+                          style: const TextStyle(fontWeight: FontWeight.w800),
                         ),
                         subtitle: Text(
-                          t('Vrijednost {0}', [formatCredits(d.price)]),
+                          t(
+                            'Sat se ne produljuje — tko vodi kad dođe do nule, pobjeđuje.',
+                          ),
                         ),
                       ),
-                    if (eligible.isEmpty)
-                      Padding(
-                        padding: const EdgeInsets.all(12),
-                        child: Text(
-                          t('Nemaš slobodnih predmeta — dodaj novi.'),
-                          style: TextStyle(color: LoopColors.textSecondary),
-                        ),
-                      ),
-                  ],
-                ),
-              ),
-            ),
-            TextButton.icon(
-              key: const ValueKey('live-add-new'),
-              onPressed: () => AddDeviceScreen.open(context),
-              icon: const Icon(Icons.add_a_photo_outlined),
-              label: Text(t('Novi predmet')),
-            ),
-            const SizedBox(height: 8),
-            Wrap(
-              spacing: 8,
-              children: [
-                for (final m in LotMode.values)
-                  ChoiceChip(
-                    key: ValueKey('lot-mode-${m.name}'),
-                    label: Text('${m.emoji} ${t(m.label)}'),
-                    selected: _mode == m,
-                    onSelected: (_) => setState(() => _mode = m),
-                  ),
-              ],
-            ),
-            Padding(
-              padding: const EdgeInsets.symmetric(vertical: 6),
-              child: Text(switch (_mode) {
-                LotMode.auction => t(
-                  'Klasična licitacija — najviša ponuda pobjeđuje.',
-                ),
-                LotMode.dutch => t(
-                  'Cijena pada svake sekunde — prvi koji klikne "Uzmi" kupuje.',
-                ),
-                LotMode.giveaway => t(
-                  'Besplatno za sve koji se prijave — dobitnik se izvlači na kraju.',
-                ),
-              }, style: TextStyle(color: LoopColors.textSecondary, fontSize: 12)),
-            ),
-            if (_mode == LotMode.auction)
-              SwitchListTile(
-                key: const ValueKey('lot-sudden'),
-                contentPadding: EdgeInsets.zero,
-                value: _sudden,
-                onChanged: (v) => setState(() => _sudden = v),
-                title: Text(
-                  t('☠️ Sudden death'),
-                  style: const TextStyle(fontWeight: FontWeight.w800),
-                ),
-                subtitle: Text(
-                  t(
-                    'Sat se ne produljuje — tko vodi kad dođe do nule, pobjeđuje.',
-                  ),
-                ),
-              ),
-            if (_mode != LotMode.giveaway)
-              Row(
-                children: [
-                  Expanded(
-                    child: TextField(
-                      key: const ValueKey('live-add-price'),
-                      controller: _price,
-                      keyboardType: const TextInputType.numberWithOptions(
-                        decimal: true,
-                      ),
-                      inputFormatters: [
-                        FilteringTextInputFormatter.allow(RegExp(r'[0-9.,]')),
-                      ],
-                      decoration: InputDecoration(
-                        labelText: t('Početna cijena'),
-                        suffixText: t('€'),
-                      ),
-                    ),
-                  ),
-                  if (_mode == LotMode.dutch) ...[
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: TextField(
-                        key: const ValueKey('live-add-floor'),
-                        controller: _floor,
-                        keyboardType: const TextInputType.numberWithOptions(
-                          decimal: true,
-                        ),
-                        inputFormatters: [
-                          FilteringTextInputFormatter.allow(RegExp(r'[0-9.,]')),
+                    if (_mode != LotMode.giveaway)
+                      Row(
+                        children: [
+                          Expanded(
+                            child: TextField(
+                              key: const ValueKey('live-add-price'),
+                              controller: _price,
+                              keyboardType:
+                                  const TextInputType.numberWithOptions(
+                                    decimal: true,
+                                  ),
+                              inputFormatters: [
+                                FilteringTextInputFormatter.allow(
+                                  RegExp(r'[0-9.,]'),
+                                ),
+                              ],
+                              decoration: InputDecoration(
+                                labelText: t('Početna cijena'),
+                                suffixText: t('€'),
+                              ),
+                            ),
+                          ),
+                          if (_mode == LotMode.dutch) ...[
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: TextField(
+                                key: const ValueKey('live-add-floor'),
+                                controller: _floor,
+                                keyboardType:
+                                    const TextInputType.numberWithOptions(
+                                      decimal: true,
+                                    ),
+                                inputFormatters: [
+                                  FilteringTextInputFormatter.allow(
+                                    RegExp(r'[0-9.,]'),
+                                  ),
+                                ],
+                                decoration: InputDecoration(
+                                  labelText: t('Najniža cijena'),
+                                  suffixText: t('€'),
+                                ),
+                              ),
+                            ),
+                          ],
                         ],
-                        decoration: InputDecoration(
-                          labelText: t('Najniža cijena'),
-                          suffixText: t('€'),
-                        ),
                       ),
-                    ),
                   ],
-                ],
+                ),
               ),
+            ),
             const SizedBox(height: 12),
             FilledButton(
               key: const ValueKey('live-add-confirm'),
