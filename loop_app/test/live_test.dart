@@ -793,6 +793,19 @@ void main() {
       await tester.pump(const Duration(milliseconds: 300));
       expect(find.text('❤️'), findsWidgets);
       await tester.pumpAndSettle();
+      // Srce postaje crveno tek nakon lajka.
+      expect(
+        find.descendant(
+          of: find.byKey(const ValueKey('live-react-0')),
+          matching: find.byIcon(Icons.favorite),
+        ),
+        findsOneWidget,
+      );
+      // Dodir bilo gdje po pozadini pušta srca.
+      await tester.tap(find.byKey(const ValueKey('live-stage-tap')));
+      await tester.pump(const Duration(milliseconds: 300));
+      expect(find.text('❤️'), findsWidgets);
+      await tester.pumpAndSettle();
       expect(
         storage
             .liveEventsOf(bobShow)
@@ -815,9 +828,12 @@ void main() {
       await tester.tapAt(const Offset(10, 10));
       await tester.pumpAndSettle();
 
-      // Povuci gore → sljedeća kartica (aukcija) u istom feedu.
-      await tester.fling(
-        find.byKey(const ValueKey('swipe-feed')),
+      // Povuci gore (po videu, ne po chatu) → sljedeća kartica u feedu.
+      await tester.flingFrom(
+        Offset(
+          tester.getCenter(find.byKey(const ValueKey('swipe-feed'))).dx,
+          220,
+        ),
         const Offset(0, -500),
         1500,
       );

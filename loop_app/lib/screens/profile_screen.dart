@@ -436,7 +436,7 @@ class _ShopCard extends ConsumerWidget {
             icon: Icons.badge_outlined,
             title: t('Podaci prodavatelja'),
             subtitle: user.seller == null
-                ? t('Nije ispunjeno — potrebno za objavu i isplatu')
+                ? t('Nije ispunjeno — potrebno za Kupi odmah i isplatu')
                 : '${t('Fizička osoba')} · ${user.seller!.maskedIban}',
             onTap: () => SellerInfoScreen.open(context),
           ),

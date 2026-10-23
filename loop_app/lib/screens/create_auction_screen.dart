@@ -3,7 +3,6 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'add_device_screen.dart';
-import 'seller_screens.dart';
 
 import '../models/auction.dart';
 import '../models/device.dart';
@@ -28,8 +27,8 @@ class CreateAuctionScreen extends ConsumerStatefulWidget {
   final String? deviceId;
 
   static Future<void> open(BuildContext context, {String? deviceId}) async {
+    // Kao live: aukcija ne traži podatke prodavatelja (traže se za isplatu).
     if (blockGuest(context)) return;
-    if (!await ensureSellerInfo(context) || !context.mounted) return;
     await Navigator.of(context).push(
       MaterialPageRoute<void>(
         builder: (_) => CreateAuctionScreen(deviceId: deviceId),

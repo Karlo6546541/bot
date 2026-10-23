@@ -842,6 +842,43 @@ class _LiveRoomViewState extends ConsumerState<LiveRoomView> {
 
   AppController get _app => ref.read(appProvider.notifier);
 
+  /// Srce: prozirno dok ne lajkaš (dvostruki dodir bilo gdje ili dodir na
+  /// srce), zatim crveno. Svaki dodir po pozadini pušta srca.
+  bool _liked = false;
+  final _bursts = <_Burst>[];
+  int _burstId = 0;
+  DateTime? _lastTap;
+  DateTime _heartSentAt = DateTime(2000);
+
+  /// Srca lete od [at] (ili uz desni rub); ostalima se šalje najviše
+  /// jedno srce u 1,5 s (da chat ne zatrpa).
+  void _heart({Offset? at, bool like = false, int count = 1}) {
+    setState(() {
+      if (like) _liked = true;
+      for (var i = 0; i < count; i++) {
+        _bursts.add(_Burst(_burstId++, at));
+      }
+      if (_bursts.length > 40) _bursts.removeRange(0, _bursts.length - 40);
+    });
+    final me = ref.read(appProvider).currentUser;
+    final now = DateTime.now();
+    if (me != null &&
+        !me.isGuest &&
+        now.difference(_heartSentAt) > const Duration(milliseconds: 1500)) {
+      _heartSentAt = now;
+      _app.liveChat(widget.showId, '❤️').catchError((_) {});
+    }
+  }
+
+  void _tapStage(TapUpDetails d) {
+    final now = DateTime.now();
+    final isDouble =
+        _lastTap != null &&
+        now.difference(_lastTap!) < const Duration(milliseconds: 320);
+    _lastTap = isDouble ? null : now;
+    _heart(at: d.localPosition, like: isDouble, count: isDouble ? 3 : 1);
+  }
+
   @override
   void initState() {
     super.initState();
@@ -1577,6 +1614,14 @@ class _LiveRoomViewState extends ConsumerState<LiveRoomView> {
                     Expanded(
                       child: Stack(
                         children: [
+                          // Dodir bilo gdje po pozadini: srca; dvostruki = lajk.
+                          Positioned.fill(
+                            child: GestureDetector(
+                              key: const ValueKey('live-stage-tap'),
+                              behavior: HitTestBehavior.opaque,
+                              onTapUp: st.isOver ? null : _tapStage,
+                            ),
+                          ),
                           Center(
                             child: Padding(
                               padding: const EdgeInsets.fromLTRB(
@@ -1641,9 +1686,38 @@ class _LiveRoomViewState extends ConsumerState<LiveRoomView> {
                             height: 360,
                             child: IgnorePointer(
                               child: _FloatingReactions(
+                                // Svoja srca crtam odmah (lokalno).
                                 events: [
                                   for (final e in st.feed)
-                                    if (isReaction(e)) e,
+                                    if (isReaction(e) && e.userId != me?.id) e,
+                                ],
+                                local: [
+                                  for (final b in _bursts)
+                                    if (b.at == null) b,
+                                ],
+                                onLocalDone: (b) =>
+                                    setState(() => _bursts.remove(b)),
+                              ),
+                            ),
+                          ),
+                          Positioned.fill(
+                            child: IgnorePointer(
+                              child: Stack(
+                                clipBehavior: Clip.none,
+                                children: [
+                                  for (final b in _bursts)
+                                    if (b.at != null)
+                                      _FloatUp(
+                                        key: ValueKey('burst-${b.id}'),
+                                        emoji: '❤️',
+                                        seed: b.id * 7919,
+                                        origin: b.at,
+                                        onDone: () {
+                                          if (mounted) {
+                                            setState(() => _bursts.remove(b));
+                                          }
+                                        },
+                                      ),
                                 ],
                               ),
                             ),
@@ -1667,7 +1741,8 @@ class _LiveRoomViewState extends ConsumerState<LiveRoomView> {
                               isHost: isHost,
                               canAct: canAct,
                               onQueue: () => _showQueue(st, isHost),
-                              onHeart: () => _send('❤️'),
+                              liked: _liked,
+                              onHeart: () => _heart(like: true, count: 2),
                             ),
                           ),
                         ],
@@ -2379,8 +2454,10 @@ class _SideRail extends ConsumerWidget {
     required this.canAct,
     required this.onQueue,
     required this.onHeart,
+    this.liked = false,
   });
 
+  final bool liked;
   final LiveShow show;
   final LiveState state;
   final bool isHost;
@@ -2407,12 +2484,32 @@ class _SideRail extends ConsumerWidget {
             child: const Icon(Icons.format_list_bulleted, color: Colors.white),
           ),
         ),
-        if (canAct && !state.isOver)
+        if (!state.isOver)
           _RailButton(
             key: const ValueKey('live-react-0'),
             label: t('Srce'),
             onTap: onHeart,
-            icon: const Icon(Icons.favorite, color: Color(0xFFFF4D6D)),
+            icon: AnimatedSwitcher(
+              duration: const Duration(milliseconds: 250),
+              transitionBuilder: (c, a) => ScaleTransition(
+                scale: Tween(
+                  begin: 0.4,
+                  end: 1.0,
+                ).animate(CurvedAnimation(parent: a, curve: Curves.elasticOut)),
+                child: c,
+              ),
+              child: liked
+                  ? const Icon(
+                      Icons.favorite,
+                      key: ValueKey('liked'),
+                      color: Color(0xFFFF4D6D),
+                    )
+                  : const Icon(
+                      Icons.favorite_border,
+                      key: ValueKey('not-liked'),
+                      color: Colors.white,
+                    ),
+            ),
           ),
         _RailButton(
           key: const ValueKey('live-share'),
@@ -2498,9 +2595,22 @@ class _RailButton extends StatelessWidget {
 
 /// Reakcije (srca i emoji) lete prema gore uz desni rub — kao na Whatnotu.
 /// Animiraju se samo nove reakcije (ne i one od prije ulaska u sobu).
+/// Lokalno srce (moj dodir): [at] = mjesto dodira, null = uz desni rub.
+class _Burst {
+  _Burst(this.id, this.at);
+  final int id;
+  final Offset? at;
+}
+
 class _FloatingReactions extends StatefulWidget {
-  const _FloatingReactions({required this.events});
+  const _FloatingReactions({
+    required this.events,
+    this.local = const [],
+    this.onLocalDone,
+  });
   final List<LiveEvent> events;
+  final List<_Burst> local;
+  final void Function(_Burst)? onLocalDone;
 
   @override
   State<_FloatingReactions> createState() => _FloatingReactionsState();
@@ -2542,6 +2652,13 @@ class _FloatingReactionsState extends State<_FloatingReactions> {
             if (mounted) setState(() => _active.remove(e));
           },
         ),
+      for (final b in widget.local)
+        _FloatUp(
+          key: ValueKey('local-${b.id}'),
+          emoji: '❤️',
+          seed: b.id * 7919,
+          onDone: () => widget.onLocalDone?.call(b),
+        ),
     ],
   );
 }
@@ -2552,11 +2669,15 @@ class _FloatUp extends StatefulWidget {
     required this.emoji,
     required this.seed,
     required this.onDone,
+    this.origin,
   });
 
   final String emoji;
   final int seed;
   final VoidCallback onDone;
+
+  /// Mjesto dodira (srce leti gore odande); null = uz desni rub.
+  final Offset? origin;
 
   @override
   State<_FloatUp> createState() => _FloatUpState();
@@ -2582,6 +2703,24 @@ class _FloatUpState extends State<_FloatUp>
       animation: _c,
       builder: (_, child) {
         final v = _c.value;
+        final o = widget.origin;
+        if (o != null) {
+          return Positioned(
+            left:
+                o.dx -
+                16 +
+                (widget.seed % 30 - 15) +
+                math.sin(v * 6 + phase) * 12,
+            top: o.dy - 20 - v * 260,
+            child: Opacity(
+              opacity: v < 0.7 ? 1 : (1 - v) / 0.3,
+              child: Transform.scale(
+                scale: 0.6 + 0.7 * math.min(v * 5, 1),
+                child: child,
+              ),
+            ),
+          );
+        }
         return Positioned(
           right: 18 + (widget.seed % 24) + math.sin(v * 6 + phase) * 10,
           bottom: 20 + v * 300,
@@ -3157,27 +3296,38 @@ class _ChatFeed extends ConsumerWidget {
       for (final e in feed)
         if (!_LiveRoomViewState.isReaction(e)) e,
     ];
-    final last = lines.length > 5 ? lines.sublist(lines.length - 5) : lines;
     final s = ref.watch(appProvider);
-    return Column(
-      key: const ValueKey('live-feed'),
-      mainAxisSize: MainAxisSize.min,
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        for (var i = 0; i < last.length; i++)
-          Opacity(
-            opacity: 0.55 + 0.45 * (i + 1) / last.length,
-            child: Padding(
+    // Cijeli chat se može listati (najnovije dolje); gore blijedi.
+    return ConstrainedBox(
+      constraints: const BoxConstraints(maxHeight: 210),
+      child: ShaderMask(
+        shaderCallback: (r) => const LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [Colors.transparent, Colors.white],
+          stops: [0, 0.25],
+        ).createShader(r),
+        blendMode: BlendMode.dstIn,
+        child: ListView.builder(
+          key: const ValueKey('live-feed'),
+          reverse: true,
+          shrinkWrap: true,
+          padding: const EdgeInsets.only(top: 40),
+          itemCount: lines.length,
+          itemBuilder: (_, i) {
+            final e = lines[lines.length - 1 - i];
+            return Padding(
               padding: const EdgeInsets.only(bottom: 6),
               child: _FeedLine(
-                event: last[i],
-                user: s.userById(last[i].userId),
-                mine: last[i].userId == me,
-                host: last[i].userId == hostId,
+                event: e,
+                user: s.userById(e.userId),
+                mine: e.userId == me,
+                host: e.userId == hostId,
               ),
-            ),
-          ),
-      ],
+            );
+          },
+        ),
+      ),
     );
   }
 }

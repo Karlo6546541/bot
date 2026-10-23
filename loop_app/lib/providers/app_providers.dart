@@ -1110,7 +1110,7 @@ class AppController extends Notifier<AppState> {
 
   // ------------------------------------------- prodavatelj i isplata
 
-  /// Prije objave (Market ili aukcija) platforma mora imati podatke
+  /// Prije objave na Kupi odmah platforma mora imati podatke
   /// prodavatelja (DAC7, DSA). UI ih traži unaprijed ([ensureSellerInfo]).
   void _requireSellerInfo() {
     final user = state.currentUser;
@@ -1168,7 +1168,6 @@ class AppController extends Notifier<AppState> {
     required Duration duration,
     double? buyNowPrice,
   }) async {
-    _requireSellerInfo();
     final a = await _auctions.create(
       userId: _requireUserId(),
       deviceId: deviceId,

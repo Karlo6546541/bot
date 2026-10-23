@@ -1513,8 +1513,8 @@ const kEn = <String, String>{
   'Napiši ukratko zašto se ne slažeš.': 'Briefly explain why you disagree.',
   'Naziv obrta ili tvrtke': 'Business name',
   'Nemaš zarade za isplatu.': 'You have no earnings to pay out.',
-  'Nije ispunjeno — potrebno za objavu i isplatu':
-      'Not filled in — needed to list and get paid',
+  'Nije ispunjeno — potrebno za Kupi odmah i isplatu':
+      'Not filled in — needed for Buy now and payouts',
   'Novac obrađuje pružatelj plaćanja — LOOP ne drži novac kupaca.':
       'Money is handled by a payment provider — LOOP does not hold buyers\' money.',
   'OIB': 'OIB (tax number)',
@@ -2100,5 +2100,6 @@ const kEn = <String, String>{
   'Dodaj karticu i adresu': 'Add card and address',
   'Kupujem': 'Buying',
   'Prijava / registracija': 'Log in / sign up',
-  'Za kupnju, licitiranje i prodaju treba račun — traje 30 sekundi.': 'Buying, bidding and selling need an account — it takes 30 seconds.',
+  'Za kupnju, licitiranje i prodaju treba račun — traje 30 sekundi.':
+      'Buying, bidding and selling need an account — it takes 30 seconds.',
 };

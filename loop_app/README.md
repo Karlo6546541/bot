@@ -216,7 +216,8 @@ ne sinkronizira; online prijavu vodi Supabase Auth i lozinke ne prolaze kroz na�
   Dodir na karticu otvara **swipe feed kao TikTok** kroz sve kartice te kategorije: live je
   cijela soba uživo, aukcija ima gumb *Licitiraj*. *Moje aukcije* (ikona osobe) i *Pravila*
   (ikona ⓘ) su gore desno.
-- **Pokretanje** (testno odmah, bez podataka prodavatelja): *+ Objavi → Live aukcija*,
+- **Pokretanje** (odmah, bez podataka prodavatelja — isto vrijedi i za obične aukcije;
+  podaci se traže tek za Kupi odmah i isplatu zarade): *+ Objavi → Live aukcija*,
   *Kreni uživo* na početnoj ili crveni gumb **Live** u Istraži. Kao na Whatnotu:
   **naslovna slika** (thumbnail, vidi se na kartici i u sobi dok se ništa ne licitira),
   naslov, **kategorija**, početak **odmah** ili **zakazano** (datum i sat, do 7 dana),
@@ -261,7 +262,10 @@ ne sinkronizira; online prijavu vodi Supabase Auth i lozinke ne prolaze kroz na�
   ocjenom i brzinom slanja (★ · 🚚), *Prati*, broj gledatelja i strelica za izlaz; **desni
   stupac** *Predmeti* · *Srce* · *Podijeli* · *Novčanik* (kartica i adresa) · *Trgovina*
   (sličica prodavačevog Kupi odmah predmeta); chat preko videa (avatar, ime, oznaka
-  *Domaćin*, ponude istaknute), a **srca lete** uz desni rub; polje *Reci nešto…*; donji
+  *Domaćin*, ponude istaknute; **cijeli chat se može listati** prstom prema gore), a **srca
+  lete**: dodir bilo gdje po videu pušta srce s tog mjesta, **dvostruki dodir** ili dodir na
+  *Srce* je lajk — srce je prozirno dok ne lajkaš, zatim crveno (ostalima se šalje najviše
+  jedno srce u 1,5 s); polje *Reci nešto…*; donji
   panel predmeta (tko vodi ili „… je osvojio!”, slika, naziv, stanje · kategorija,
   „+ dostava”, cijena, 💎 procjena, odbrojavanje ili *Prodano*) i veliki gumb *Licitiraj X €*
   / *Maks* (između predmeta *Čeka se sljedeći predmet*). Obavijesti se u sobi prikazuju

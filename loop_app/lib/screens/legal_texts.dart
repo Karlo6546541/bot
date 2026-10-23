@@ -22,7 +22,7 @@ LOOP je platforma za prodaju među građanima na tri načina: live aukcije (prod
 LOOP mogu koristiti samo punoljetne fizičke osobe, za osobne potrebe (ne kao obrt ni tvrtka) — i kao kupci i kao prodavatelji. Jedna osoba smije imati jedan račun. Podaci moraju biti točni. Odgovoran si za sigurnost lozinke. Račun možeš obrisati u Profilu (brisanje se izvršava nakon 7 dana).
 
 ## 3. Prodavatelji
-Prodavatelji su fizičke osobe koje prodaju svoje stvari. Prije prve objave unose podatke prodavatelja (ime i prezime, OIB, datum rođenja, adresu, IBAN). Tko prodaje kao djelatnost (obrt, tvrtka), ne smije koristiti LOOP. Zabranjeni predmeti navedeni su u Pravilima za prodavatelje.
+Prodavatelji su fizičke osobe koje prodaju svoje stvari. Prije prve objave na Kupi odmah i prije prve isplate zarade unose podatke prodavatelja (ime i prezime, OIB, datum rođenja, adresu, IBAN). Tko prodaje kao djelatnost (obrt, tvrtka), ne smije koristiti LOOP. Zabranjeni predmeti navedeni su u Pravilima za prodavatelje.
 
 ## 4. Cijene i naknade
 Kupac plaća samo cijenu predmeta (bez naknade platforme) i dostavu. Objava je besplatna. Prodavatelju se od isplate odbija provizija: kod Kupi odmah 5 % od cijene, a kod aukcija i live aukcija 10 % samo od razlike između prodajne i početne cijene (kod padajuće cijene — od najniže cijene); ako se predmet proda po početnoj cijeni, provizije nema. Isticanje računa naplaćuje se prema cijeni prikazanoj prije potvrde.
@@ -149,7 +149,7 @@ LOOP is an auction platform: live auctions (the seller shows items live and star
 LOOP may only be used by adult natural persons for personal purposes (not as a sole trader or company) — both as buyers and as sellers. One person may have one account. Your details must be accurate. You are responsible for your password. You can delete your account in Profile (deletion happens after 7 days).
 
 ## 3. Sellers
-Sellers are natural persons selling their own things. Before the first listing they provide seller details (full name, OIB/tax number, date of birth, address, IBAN). Anyone selling as a business (sole trader, company) may not use LOOP. Prohibited items are listed in the Seller rules.
+Sellers are natural persons selling their own things. Before their first Buy now listing and first payout they provide seller details (full name, OIB/tax number, date of birth, address, IBAN). Anyone selling as a business (sole trader, company) may not use LOOP. Prohibited items are listed in the Seller rules.
 
 ## 4. Prices and fees
 The buyer pays only the item price (no platform fee) and delivery. Listing is free. A commission is deducted from the seller's payout: 5% of the price for Buy now, and for auctions and live auctions 10% only of the difference between the selling price and the starting price (for price-drop items, the lowest price); if an item sells at its starting price, there is no commission. Account promotion is charged at the price shown before confirmation.

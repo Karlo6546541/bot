@@ -326,13 +326,21 @@ void main() {
     await tester.pageBack();
     await tester.pumpAndSettle();
 
-    // + Objavi → Aukcija traži podatke prodavatelja.
+    // + Objavi → Aukcija također bez podataka prodavatelja.
     await tester.tap(find.byKey(const ValueKey('nav-create')));
     await tester.pumpAndSettle();
     await tester.tap(find.byKey(const ValueKey('create-auction')));
     await tester.pumpAndSettle();
-    expect(find.text('Podaci prodavatelja'), findsOneWidget);
-    await tester.tap(find.text('Ispuni podatke'));
+    expect(find.text('Podaci prodavatelja'), findsNothing);
+    expect(find.text('Nemaš predmeta za aukciju'), findsOneWidget);
+    await tester.pageBack();
+    await tester.pumpAndSettle();
+
+    // Podaci prodavatelja (za Kupi odmah i isplatu) — iz Profila.
+    await tester.tap(find.text('Profil').last);
+    await tester.pumpAndSettle();
+    await reveal(tester, find.byKey(const ValueKey('seller-info')));
+    await tester.tap(find.byKey(const ValueKey('seller-info')));
     await tester.pumpAndSettle();
     await tester.enterText(
       find.byKey(const ValueKey('seller-name')),
@@ -362,10 +370,8 @@ void main() {
     await tester.ensureVisible(find.byKey(const ValueKey('seller-save')));
     await tester.tap(find.byKey(const ValueKey('seller-save')));
     await tester.pumpAndSettle();
-    // Spremljeno → otvara se nova aukcija (novi račun još nema predmeta).
-    expect(find.text('Nemaš predmeta za aukciju'), findsOneWidget);
-    await tester.pageBack();
-    await tester.pumpAndSettle();
+    // Spremljeno → natrag na Profil.
+    expect(find.byKey(const ValueKey('seller-save')), findsNothing);
 
     // Profil → Pravno → svi dokumenti.
     await tester.tap(find.text('Profil').last);
