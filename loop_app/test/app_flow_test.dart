@@ -397,7 +397,7 @@ void main() {
     await tester.tap(find.text('Log in').last);
     await tester.pumpAndSettle();
     // Početna na engleskom.
-    expect(find.text('Bid live'), findsOneWidget);
+    expect(find.text('For you'), findsOneWidget);
 
     // Swipe feed aukcija na engleskom.
     await tester.tap(find.text('Auctions').last);
@@ -859,15 +859,15 @@ void logoTests() {
       await tester.ensureVisible(find.text('Prijavi se'));
       await tester.tap(find.text('Prijavi se'));
       await tester.pumpAndSettle();
-      expect(find.text('Licitiraj uživo'), findsOneWidget);
+      expect(find.byKey(const ValueKey('home-search')), findsOneWidget);
 
       // Aukcije → logo → natrag na početnu.
       await tester.tap(find.text('Aukcije').last);
       await tester.pumpAndSettle();
-      expect(find.text('Licitiraj uživo'), findsNothing);
+      expect(find.byKey(const ValueKey('home-search')), findsNothing);
       await tester.tap(find.byKey(const ValueKey('logo-home')));
       await tester.pumpAndSettle();
-      expect(find.text('Licitiraj uživo'), findsOneWidget);
+      expect(find.byKey(const ValueKey('home-search')), findsOneWidget);
     });
   }
 }

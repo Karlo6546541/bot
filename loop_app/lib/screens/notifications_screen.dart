@@ -49,7 +49,7 @@ class NotificationsScreen extends ConsumerStatefulWidget {
           NotificationKind.auctionSold ||
           NotificationKind.auctionUnsold:
         if (id != null) await AuctionDetailScreen.open(context, id);
-      case NotificationKind.auctionWon:
+      case NotificationKind.auctionWon || NotificationKind.giveawayWon:
         await DeliveriesScreen.open(context);
       case NotificationKind.liveStarted:
         if (id != null) await LiveRoomScreen.open(context, id);

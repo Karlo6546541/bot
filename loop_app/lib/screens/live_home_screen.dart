@@ -4,27 +4,53 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../l10n/tr.dart';
+import '../models/device.dart';
 import '../providers/app_providers.dart';
 import '../theme/app_theme.dart';
+import '../widgets/category_style.dart';
 import 'auctions_screen.dart';
-import 'create_auction_screen.dart';
 import 'live_screens.dart';
+import 'search_screen.dart';
 import 'swipe_feed_screen.dart';
 
-/// Početna (kao Whatnot): tko je uživo sada, zakazani liveovi i aukcije koje
-/// uskoro završavaju. Dodir na karticu otvara swipe feed te skupine.
+/// Početna kao Whatnot: pretraga, kategorije kao "pilule" i mreža emisija —
+/// tko je uživo sada, što uskoro kreće i aukcije koje završavaju. Dodir na
+/// karticu otvara swipe feed te skupine.
 class LiveHomeScreen extends ConsumerStatefulWidget {
   const LiveHomeScreen({super.key, required this.onBrowse});
 
-  /// Prijelaz na karticu "Aukcije" (sve aukcije i kategorije).
+  /// Prijelaz na karticu "Aukcije".
   final VoidCallback onBrowse;
 
   @override
   ConsumerState<LiveHomeScreen> createState() => _LiveHomeScreenState();
 }
 
+/// Filter na početnoj: za tebe, uživo, uskoro ili kategorija.
+sealed class _Filter {
+  const _Filter();
+}
+
+class _ForYou extends _Filter {
+  const _ForYou();
+}
+
+class _LiveOnly extends _Filter {
+  const _LiveOnly();
+}
+
+class _Soon extends _Filter {
+  const _Soon();
+}
+
+class _Category extends _Filter {
+  const _Category(this.category);
+  final DeviceCategory category;
+}
+
 class _LiveHomeScreenState extends ConsumerState<LiveHomeScreen> {
   Timer? _timer;
+  _Filter _filter = const _ForYou();
 
   @override
   void initState() {
@@ -50,8 +76,20 @@ class _LiveHomeScreenState extends ConsumerState<LiveHomeScreen> {
     final all = browseItems(s);
     final live = all.where((i) => i.live?.isLive ?? false).toList();
     final soon = all.where((i) => i.live?.isScheduled ?? false).toList();
-    final ending = all.where((i) => i.auction != null).take(6).toList();
-    final phone = MediaQuery.sizeOf(context).width < 600;
+    final auctions = all.where((i) => i.auction != null).toList();
+
+    // Kategorije koje trenutno imaju nešto (najviše prvo).
+    final counts = <DeviceCategory, int>{};
+    for (final i in all) {
+      for (final c in i.categories) {
+        counts[c] = (counts[c] ?? 0) + 1;
+      }
+    }
+    final cats = counts.keys.toList()
+      ..sort((a, b) => counts[b]!.compareTo(counts[a]!));
+    if (_filter case _Category(:final category) when !cats.contains(category)) {
+      _filter = const _ForYou();
+    }
 
     void open(List<BrowseItem> list, int i, String title) =>
         SwipeFeedScreen.open(
@@ -61,175 +99,261 @@ class _LiveHomeScreenState extends ConsumerState<LiveHomeScreen> {
           title: title,
         );
 
-    Widget strip(String key, List<BrowseItem> list, String title) => SizedBox(
-      key: ValueKey(key),
-      height: 290,
-      child: ListView.separated(
-        scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.symmetric(horizontal: 16),
-        itemCount: list.length,
-        separatorBuilder: (_, _) => const SizedBox(width: 12),
-        itemBuilder: (_, i) => SizedBox(
-          width: 175,
-          child: AuctionBrowseCard(
-            item: list[i],
-            viewerId: me,
-            onTap: () => open(list, i, title),
-          ),
-        ),
-      ),
-    );
-
-    return ListView(
-      padding: const EdgeInsets.only(bottom: 96),
-      children: [
-        Padding(
-          padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
-          child: _Hero(compact: phone),
-        ),
-        _Header(
-          title: t('🔴 Uživo sada'),
-          action: live.isEmpty ? null : t('Sve'),
-          onAction: widget.onBrowse,
-        ),
-        if (live.isEmpty)
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: _EmptyLive(
-              onGoLive: () => CreateLiveShowScreen.open(context),
-            ),
-          )
-        else
-          strip('home-live', live, t('Uživo sada')),
-        if (soon.isNotEmpty) ...[
-          _Header(title: t('📅 Uskoro')),
-          strip('home-soon', soon, t('Uskoro')),
-        ],
-        _Header(
-          title: t('⏱ Završavaju uskoro'),
-          action: t('Sve aukcije'),
-          onAction: widget.onBrowse,
-        ),
-        if (ending.isEmpty)
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: Text(
-              t('Trenutno nema aukcija.'),
-              style: TextStyle(color: LoopColors.textSecondary),
-            ),
-          )
-        else
-          GridView.builder(
-            key: const ValueKey('home-ending'),
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            padding: const EdgeInsets.symmetric(horizontal: 16),
+    Widget grid(String key, List<BrowseItem> list, String title) =>
+        SliverPadding(
+          key: ValueKey(key),
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          sliver: SliverGrid(
             gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
               maxCrossAxisExtent: 240,
-              childAspectRatio: 0.6,
-              mainAxisSpacing: 12,
+              childAspectRatio: 0.52,
+              mainAxisSpacing: 16,
               crossAxisSpacing: 12,
             ),
-            itemCount: ending.length,
-            itemBuilder: (_, i) => AuctionBrowseCard(
-              item: ending[i],
-              viewerId: me,
-              onTap: () => open(ending, i, t('Završavaju uskoro')),
+            delegate: SliverChildBuilderDelegate(
+              (_, i) => AuctionBrowseCard(
+                item: list[i],
+                viewerId: me,
+                onTap: () => open(list, i, title),
+              ),
+              childCount: list.length,
             ),
           ),
+        );
+
+    Widget header(String title, {String? action, VoidCallback? onAction}) =>
+        SliverToBoxAdapter(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(16, 18, 8, 10),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    title,
+                    style: const TextStyle(
+                      fontSize: 19,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                ),
+                if (action != null)
+                  TextButton(onPressed: onAction, child: Text(action)),
+              ],
+            ),
+          ),
+        );
+
+    final slivers = <Widget>[];
+    switch (_filter) {
+      case _ForYou():
+        slivers.add(header(t('🔴 Uživo sada')));
+        slivers.add(
+          live.isEmpty
+              ? SliverToBoxAdapter(
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    child: _EmptyLive(
+                      onGoLive: () => CreateLiveShowScreen.open(context),
+                    ),
+                  ),
+                )
+              : grid('home-live', live, t('Uživo sada')),
+        );
+        if (soon.isNotEmpty) {
+          slivers.add(header(t('📅 Uskoro')));
+          slivers.add(grid('home-soon', soon, t('Uskoro')));
+        }
+        slivers.add(
+          header(
+            t('⏱ Završavaju uskoro'),
+            action: t('Sve aukcije'),
+            onAction: widget.onBrowse,
+          ),
+        );
+        slivers.add(
+          auctions.isEmpty
+              ? SliverToBoxAdapter(
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    child: Text(
+                      t('Trenutno nema aukcija.'),
+                      style: TextStyle(color: LoopColors.textSecondary),
+                    ),
+                  ),
+                )
+              : grid('home-ending', auctions, t('Završavaju uskoro')),
+        );
+      case _LiveOnly():
+        slivers.add(const SliverToBoxAdapter(child: SizedBox(height: 12)));
+        slivers.add(
+          live.isEmpty
+              ? SliverToBoxAdapter(
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    child: _EmptyLive(
+                      onGoLive: () => CreateLiveShowScreen.open(context),
+                    ),
+                  ),
+                )
+              : grid('home-live', live, t('Uživo sada')),
+        );
+      case _Soon():
+        slivers.add(const SliverToBoxAdapter(child: SizedBox(height: 12)));
+        slivers.add(
+          soon.isEmpty
+              ? SliverToBoxAdapter(
+                  child: Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Text(
+                      t('Nema zakazanih liveova.'),
+                      style: TextStyle(color: LoopColors.textSecondary),
+                    ),
+                  ),
+                )
+              : grid('home-soon', soon, t('Uskoro')),
+        );
+      case _Category(:final category):
+        final list = all.where((i) => i.categories.contains(category)).toList();
+        slivers.add(const SliverToBoxAdapter(child: SizedBox(height: 12)));
+        slivers.add(grid('home-category', list, category.label));
+    }
+
+    return CustomScrollView(
+      slivers: [
+        SliverToBoxAdapter(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+            child: Material(
+              color: LoopColors.surface,
+              borderRadius: BorderRadius.circular(999),
+              child: InkWell(
+                key: const ValueKey('home-search'),
+                borderRadius: BorderRadius.circular(999),
+                onTap: () => SearchScreen.open(context),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 12,
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(Icons.search, color: LoopColors.textSecondary),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Text(
+                          t('Pretraži liveove, aukcije i prodavače'),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(color: LoopColors.textSecondary),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+        SliverToBoxAdapter(
+          child: SizedBox(
+            height: 44,
+            child: ListView(
+              key: const ValueKey('home-cats'),
+              scrollDirection: Axis.horizontal,
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              children: [
+                _Pill(
+                  id: 'for-you',
+                  label: t('Za tebe'),
+                  selected: _filter is _ForYou,
+                  onTap: () => setState(() => _filter = const _ForYou()),
+                ),
+                _Pill(
+                  id: 'live',
+                  label: t('🔴 Uživo'),
+                  selected: _filter is _LiveOnly,
+                  onTap: () => setState(() => _filter = const _LiveOnly()),
+                ),
+                _Pill(
+                  id: 'soon',
+                  label: t('📅 Uskoro'),
+                  selected: _filter is _Soon,
+                  onTap: () => setState(() => _filter = const _Soon()),
+                ),
+                for (final c in cats)
+                  _Pill(
+                    id: c.name,
+                    label: c.label,
+                    icon: c.icon,
+                    selected: switch (_filter) {
+                      _Category(:final category) => category == c,
+                      _ => false,
+                    },
+                    onTap: () => setState(() => _filter = _Category(c)),
+                  ),
+              ],
+            ),
+          ),
+        ),
+        ...slivers,
+        const SliverToBoxAdapter(child: SizedBox(height: 96)),
       ],
     );
   }
 }
 
-class _Header extends StatelessWidget {
-  const _Header({required this.title, this.action, this.onAction});
-  final String title;
-  final String? action;
-  final VoidCallback? onAction;
+/// Kategorija kao "pilula" (kao na Whatnotu); odabrana je ispunjena.
+class _Pill extends StatelessWidget {
+  const _Pill({
+    required this.id,
+    required this.label,
+    required this.selected,
+    required this.onTap,
+    this.icon,
+  });
+
+  final String id;
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+  final IconData? icon;
 
   @override
-  Widget build(BuildContext context) => Padding(
-    padding: const EdgeInsets.fromLTRB(16, 12, 8, 8),
-    child: Row(
-      children: [
-        Expanded(
-          child: Text(
-            title,
-            style: const TextStyle(fontSize: 19, fontWeight: FontWeight.w900),
+  Widget build(BuildContext context) {
+    final fg = selected ? LoopColors.background : LoopColors.textPrimary;
+    return Padding(
+      padding: const EdgeInsets.only(right: 8),
+      child: Material(
+        color: selected ? LoopColors.textPrimary : LoopColors.surface,
+        borderRadius: BorderRadius.circular(999),
+        child: InkWell(
+          key: ValueKey('home-cat-$id'),
+          borderRadius: BorderRadius.circular(999),
+          onTap: onTap,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (icon != null) ...[
+                  Icon(icon, size: 16, color: fg),
+                  const SizedBox(width: 6),
+                ],
+                Text(
+                  label,
+                  style: TextStyle(
+                    color: fg,
+                    fontWeight: FontWeight.w800,
+                    fontSize: 13,
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
-        if (action != null)
-          TextButton(onPressed: onAction, child: Text(action!)),
-      ],
-    ),
-  );
-}
-
-/// Poziv na početku: kreni uživo ili objavi aukciju.
-class _Hero extends StatelessWidget {
-  const _Hero({required this.compact});
-  final bool compact;
-
-  @override
-  Widget build(BuildContext context) => Container(
-    padding: const EdgeInsets.all(18),
-    decoration: BoxDecoration(
-      gradient: const LinearGradient(
-        begin: Alignment.topLeft,
-        end: Alignment.bottomRight,
-        colors: [Color(0xFF6A2BD6), kLiveRed],
       ),
-      borderRadius: BorderRadius.circular(kRadius + 4),
-    ),
-    child: Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          t('Licitiraj uživo'),
-          style: const TextStyle(
-            color: Colors.white,
-            fontSize: 24,
-            fontWeight: FontWeight.w900,
-          ),
-        ),
-        const SizedBox(height: 4),
-        Text(
-          t(
-            'Live aukcije s videom i obične aukcije — gledaj, licitiraj i prodaj u par sekundi.',
-          ),
-          style: const TextStyle(color: Colors.white, height: 1.35),
-        ),
-        const SizedBox(height: 14),
-        Wrap(
-          spacing: 10,
-          runSpacing: 8,
-          children: [
-            FilledButton.icon(
-              key: const ValueKey('home-go-live'),
-              style: FilledButton.styleFrom(
-                backgroundColor: Colors.white,
-                foregroundColor: kLiveRed,
-              ),
-              onPressed: () => CreateLiveShowScreen.open(context),
-              icon: const Icon(Icons.videocam),
-              label: Text(t('Kreni uživo')),
-            ),
-            OutlinedButton.icon(
-              key: const ValueKey('home-new-auction'),
-              style: OutlinedButton.styleFrom(
-                foregroundColor: Colors.white,
-                side: const BorderSide(color: Colors.white70),
-              ),
-              onPressed: () => CreateAuctionScreen.open(context),
-              icon: const Icon(Icons.gavel),
-              label: Text(t('Nova aukcija')),
-            ),
-          ],
-        ),
-      ],
-    ),
-  );
+    );
+  }
 }
 
 class _EmptyLive extends StatelessWidget {
@@ -240,20 +364,35 @@ class _EmptyLive extends StatelessWidget {
   Widget build(BuildContext context) => Container(
     padding: const EdgeInsets.all(16),
     decoration: BoxDecoration(
-      color: LoopColors.surface,
+      gradient: const LinearGradient(
+        begin: Alignment.topLeft,
+        end: Alignment.bottomRight,
+        colors: [Color(0xFF6A2BD6), kLiveRed],
+      ),
       borderRadius: BorderRadius.circular(kRadius),
     ),
     child: Row(
       children: [
-        const LiveBadge(small: true),
+        const Icon(Icons.videocam, color: Colors.white, size: 30),
         const SizedBox(width: 12),
         Expanded(
           child: Text(
             t('Nitko trenutno nije uživo — budi prvi!'),
-            style: const TextStyle(fontWeight: FontWeight.w700),
+            style: const TextStyle(
+              color: Colors.white,
+              fontWeight: FontWeight.w800,
+            ),
           ),
         ),
-        TextButton(onPressed: onGoLive, child: Text(t('Kreni'))),
+        FilledButton(
+          key: const ValueKey('home-go-live'),
+          style: FilledButton.styleFrom(
+            backgroundColor: Colors.white,
+            foregroundColor: kLiveRed,
+          ),
+          onPressed: onGoLive,
+          child: Text(t('Kreni uživo')),
+        ),
       ],
     ),
   );

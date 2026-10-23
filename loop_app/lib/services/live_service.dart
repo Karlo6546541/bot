@@ -24,10 +24,19 @@ class LotState {
     required this.end,
     required this.bids,
     required this.status,
+    this.entrants = 0,
+    this.guesses = const [],
   });
 
   final int index;
   final LiveLot lot;
+  LotMode get mode => lot.mode;
+
+  /// Nagradna igra: koliko se gledatelja prijavilo.
+  final int entrants;
+
+  /// "Pogodi cijenu": prva procjena svakog gledatelja (tijekom licitacije).
+  final List<LiveEvent> guesses;
 
   /// Početak i kraj licitacije (null dok je predmet na čekanju). Kraj
   /// uključuje produljenja zbog ponuda u zadnjim sekundama.
@@ -47,6 +56,39 @@ class LotState {
     final e = end;
     return e != null && e.isAfter(now) ? e.difference(now) : Duration.zero;
   }
+
+  /// Pada cijena: trenutna cijena (prije nego što netko uzme).
+  double dutchPriceAt(DateTime now, int seconds) {
+    final s = start;
+    return s == null
+        ? lot.startPrice
+        : lot.dutchPrice(now.difference(s), seconds);
+  }
+
+  /// Procjena s najbližom cijenom (nakon prodaje); kod jednake razlike
+  /// pobjeđuje ranija.
+  LiveEvent? get guessWinner {
+    if (status != LotStatus.sold || mode != LotMode.auction) return null;
+    LiveEvent? best;
+    for (final g in guesses) {
+      if (best == null ||
+          (g.amount - price).abs() < (best.amount - price).abs()) {
+        best = g;
+      }
+    }
+    return best;
+  }
+}
+
+/// Stabilan hash (FNV-1a) — isti na svakom uređaju i platformi, za
+/// izvlačenje dobitnika nagradne igre.
+int stableHash(String s) {
+  var h = 0x811c9dc5;
+  for (final c in s.codeUnits) {
+    h ^= c;
+    h = (h * 0x01000193) & 0xFFFFFFFF;
+  }
+  return h;
 }
 
 /// Izračunato stanje emisije u trenutku [LiveState.at].
@@ -57,11 +99,16 @@ class LiveState {
     required this.at,
     required this.viewers,
     required this.feed,
+    this.hype = 0,
   });
 
   final LiveShow show;
   final List<LotState> lots;
   final DateTime at;
+
+  /// Hype-metar 0…1: ponude, "uzimam", prijave, procjene i chat u zadnjih
+  /// 30 sekundi.
+  final double hype;
 
   /// Gledatelji u zadnjih 5 minuta (ulazak, poruka ili ponuda).
   final int viewers;
@@ -135,11 +182,12 @@ class LiveService {
     DateTime now, {
     Set<String> hiddenUsers = const {},
   }) {
-    final bidsByLot = <int, List<LiveEvent>>{};
+    // Događaji po (vrsta, predmet), redom kako su se dogodili.
+    final byLot = <(LiveEventType, int), List<LiveEvent>>{};
     for (final e in events) {
-      if (e.type == LiveEventType.bid) (bidsByLot[e.lot] ??= []).add(e);
+      (byLot[(e.type, e.lot)] ??= []).add(e);
     }
-    for (final list in bidsByLot.values) {
+    for (final list in byLot.values) {
       list.sort((a, b) => a.at.compareTo(b.at));
     }
 
@@ -169,35 +217,92 @@ class LiveService {
       }
       var end = start.add(Duration(seconds: show.lotSeconds));
       final valid = <LiveEvent>[];
-      var price = lot.startPrice;
-      for (final b in bidsByLot[i] ?? const <LiveEvent>[]) {
-        if (b.at.isBefore(start) || b.at.isAfter(end)) continue;
-        if (b.userId == show.hostId) continue;
-        if (valid.isNotEmpty && valid.last.userId == b.userId) continue;
-        final min = valid.isEmpty
-            ? lot.startPrice
-            : price + Auction.stepFor(price);
-        if (b.amount < min) continue;
-        valid.add(b);
-        price = b.amount;
-        // "Sudden death": ponuda u zadnjim sekundama vraća sat.
-        if (end.difference(b.at) < LiveShow.suddenDeath) {
-          end = b.at.add(LiveShow.suddenDeath);
-        }
+      var entrants = 0;
+      final guesses = <LiveEvent>[];
+      bool inWindow(LiveEvent e) =>
+          !e.at.isBefore(start) &&
+          !e.at.isAfter(end) &&
+          e.userId != show.hostId;
+      switch (lot.mode) {
+        case LotMode.auction:
+          var price = lot.startPrice;
+          for (final b
+              in byLot[(LiveEventType.bid, i)] ?? const <LiveEvent>[]) {
+            if (!inWindow(b)) continue;
+            if (valid.isNotEmpty && valid.last.userId == b.userId) continue;
+            final min = valid.isEmpty
+                ? lot.startPrice
+                : price + Auction.stepFor(price);
+            if (b.amount < min) continue;
+            valid.add(b);
+            price = b.amount;
+            // "Sudden death": ponuda u zadnjim sekundama vraća sat.
+            if (end.difference(b.at) < LiveShow.suddenDeath) {
+              end = b.at.add(LiveShow.suddenDeath);
+            }
+          }
+          final seen = <String>{};
+          for (final g
+              in byLot[(LiveEventType.guess, i)] ?? const <LiveEvent>[]) {
+            if (inWindow(g) && g.amount > 0 && seen.add(g.userId)) {
+              guesses.add(g);
+            }
+          }
+        case LotMode.dutch:
+          // Prvi koji uzme kupuje po cijeni u tom trenutku.
+          final take = (byLot[(LiveEventType.take, i)] ?? const <LiveEvent>[])
+              .where(inWindow)
+              .firstOrNull;
+          if (take != null) {
+            valid.add(
+              take.withAmount(
+                lot.dutchPrice(take.at.difference(start), show.lotSeconds),
+              ),
+            );
+            end = take.at;
+          }
+        case LotMode.giveaway:
+          // Dobitnik se "izvlači" stabilnim hashom — isti na svakom uređaju.
+          final first = <String, LiveEvent>{};
+          for (final e
+              in byLot[(LiveEventType.enter, i)] ?? const <LiveEvent>[]) {
+            if (inWindow(e)) first.putIfAbsent(e.userId, () => e);
+          }
+          entrants = first.length;
+          if (first.isNotEmpty) {
+            final ids = first.keys.toList()..sort();
+            final pick = ids[stableHash('${show.id}:$i') % ids.length];
+            valid.add(first[pick]!.withAmount(0));
+          }
       }
       if (ended != null && !ended.isBefore(start) && ended.isBefore(end)) {
         // Domaćin je završio live usred licitacije — predmet se ne prodaje.
         lots.add(_lot(i, lot, start, ended, valid, LotStatus.skipped));
         continue;
       }
+      final done = now.isAfter(end);
       final status = now.isBefore(start)
           ? LotStatus.upcoming
-          : !now.isAfter(end)
+          : !done
           ? LotStatus.running
           : valid.isNotEmpty
           ? LotStatus.sold
           : LotStatus.unsold;
-      lots.add(_lot(i, lot, start, end, valid, status));
+      lots.add(
+        LotState(
+          index: i,
+          lot: lot,
+          start: start,
+          end: end,
+          // Nagradna igra: dobitnik se ne otkriva dok traje prijava.
+          bids: lot.mode == LotMode.giveaway && status == LotStatus.running
+              ? const []
+              : valid,
+          status: status,
+          entrants: entrants,
+          guesses: guesses,
+        ),
+      );
     }
 
     final since = now.subtract(viewerWindow);
@@ -211,10 +316,22 @@ class LiveService {
             (e.type == LiveEventType.chat && !hiddenUsers.contains(e.userId)))
           e,
     ]..sort((a, b) => a.at.compareTo(b.at));
+    // Hype-metar: ponude i "uzimam" vrijede više od chata i prijava.
+    final hot = now.subtract(const Duration(seconds: 30));
+    var heat = 0.0;
+    for (final e in events) {
+      if (!e.at.isAfter(hot) || e.at.isAfter(now)) continue;
+      heat += switch (e.type) {
+        LiveEventType.bid || LiveEventType.take => 3,
+        LiveEventType.chat || LiveEventType.enter || LiveEventType.guess => 1,
+        LiveEventType.join || LiveEventType.remind => 0,
+      };
+    }
     return LiveState(
       show: show,
       lots: lots,
       at: now,
+      hype: (heat / 30).clamp(0.0, 1.0),
       viewers: viewers.length,
       feed: feed.length > 60 ? feed.sublist(feed.length - 60) : feed,
     );
@@ -398,6 +515,8 @@ class LiveService {
     String showId,
     String deviceId,
     double price, {
+    LotMode mode = LotMode.auction,
+    double floorPrice = 1,
     DateTime? now,
   }) async {
     final at = now ?? DateTime.now();
@@ -410,7 +529,24 @@ class LiveService {
         t('Live može imati najviše {0} predmeta.', ['${LiveShow.maxLots}']),
       );
     }
-    final lot = await _prepareLot(hostId, deviceId, price, at);
+    if (mode == LotMode.dutch && (floorPrice < 1 || floorPrice >= price)) {
+      throw TradeException(
+        t('Najniža cijena mora biti barem 1 € i manja od početne.'),
+      );
+    }
+    final base = await _prepareLot(
+      hostId,
+      deviceId,
+      mode == LotMode.giveaway ? 1 : price,
+      at,
+    );
+    final lot = LiveLot(
+      deviceId: base.deviceId,
+      deviceName: base.deviceName,
+      startPrice: mode == LotMode.giveaway ? 0 : base.startPrice,
+      mode: mode,
+      floorPrice: roundCredits(floorPrice),
+    );
     final updated = show.copyWith(lots: [...show.lots, lot]);
     await _storage.putLiveShow(updated);
     return updated;
@@ -448,17 +584,164 @@ class LiveService {
     lots[i] = lot.started(at);
     final updated = show.copyWith(lots: lots, hostSeenAt: at);
     await _storage.putLiveShow(updated);
+    if (show.hostSeenAt == null) await _remindViewers(updated, at);
     return updated;
   }
 
   /// "Još sam tu": domaćin je u sobi (live traje dok se javlja).
   Future<void> heartbeat(String hostId, String showId, {DateTime? now}) async {
+    final at = now ?? DateTime.now();
     final show = _requireHost(hostId, showId);
     if (show.endedAt != null) return;
-    await _storage.putLiveShow(
-      show.copyWith(hostSeenAt: now ?? DateTime.now()),
+    await _storage.putLiveShow(show.copyWith(hostSeenAt: at));
+    if (show.hostSeenAt == null) await _remindViewers(show, at);
+  }
+
+  /// Zakazani live je krenuo: obavijest svima koji su tražili podsjetnik.
+  Future<void> _remindViewers(LiveShow show, DateTime at) async {
+    final inbox = Inbox(_storage);
+    final sent = <String>{};
+    for (final e in _storage.liveEventsOf(show.id)) {
+      if (e.type != LiveEventType.remind || !sent.add(e.userId)) continue;
+      await inbox.send(
+        e.userId,
+        NotificationKind.liveStarted,
+        args: [show.hostLabel, show.title, t('sada')],
+        targetId: show.id,
+        now: at,
+      );
+    }
+  }
+
+  // ------------------------------------------- igre i posebni predmeti
+
+  LiveEvent _event(
+    LiveEventType type,
+    String userId,
+    String showId, {
+    required DateTime at,
+    int lot = 0,
+    double amount = 0,
+  }) => LiveEvent(
+    id: _uuid.v4(),
+    showId: showId,
+    type: type,
+    userId: userId,
+    userLabel: _storage.userById(userId)?.handle ?? '',
+    at: at,
+    lot: lot,
+    amount: amount,
+  );
+
+  /// Zajedničke provjere za gledatelja: prijavljen, nije domaćin, nije
+  /// blokiran, a trenutni predmet je zadane vrste.
+  (LiveShow, LotState) _viewerLot(
+    String userId,
+    String showId,
+    LotMode mode,
+    DateTime at,
+  ) {
+    final user = _storage.userById(userId);
+    if (user == null || user.isGuest) {
+      throw TradeException(t('Za licitiranje se prijavi.'));
+    }
+    final show = _require(showId);
+    if (show.hostId == userId) {
+      throw TradeException(t('Ne možeš licitirati na svom liveu.'));
+    }
+    if (_storage.userById(show.hostId)?.blockedIds.contains(userId) ?? false) {
+      throw TradeException(t('Ne možeš licitirati na ovom liveu.'));
+    }
+    final lot = stateOf(show, now: at).current;
+    if (lot == null || lot.mode != mode) {
+      throw TradeException(t('Trenutno se ništa ne licitira.'));
+    }
+    return (show, lot);
+  }
+
+  /// Pada cijena: "Uzimam!" — prvi kupuje po trenutnoj cijeni. Vraća je li
+  /// baš ovaj korisnik bio prvi.
+  Future<bool> take(String userId, String showId, {DateTime? now}) async {
+    final at = now ?? DateTime.now();
+    final (show, lot) = _viewerLot(userId, showId, LotMode.dutch, at);
+    await _storage.putLiveEvent(
+      _event(
+        LiveEventType.take,
+        userId,
+        showId,
+        at: at,
+        lot: lot.index,
+        amount: lot.dutchPriceAt(at, show.lotSeconds),
+      ),
+    );
+    return stateOf(show, now: at).lots[lot.index].leader?.userId == userId;
+  }
+
+  /// Nagradna igra: prijava (jednom po predmetu).
+  Future<void> enterGiveaway(
+    String userId,
+    String showId, {
+    DateTime? now,
+  }) async {
+    final at = now ?? DateTime.now();
+    final (_, lot) = _viewerLot(userId, showId, LotMode.giveaway, at);
+    if (hasEntered(userId, showId, lot.index)) return;
+    await _storage.putLiveEvent(
+      _event(LiveEventType.enter, userId, showId, at: at, lot: lot.index),
     );
   }
+
+  bool hasEntered(String userId, String showId, int lot) => _storage
+      .liveEventsOf(showId)
+      .any(
+        (e) =>
+            e.type == LiveEventType.enter && e.userId == userId && e.lot == lot,
+      );
+
+  /// "Pogodi cijenu": jedna procjena po predmetu dok traje licitacija.
+  /// Najbliža konačnoj cijeni dobiva 🎯.
+  Future<void> guess(
+    String userId,
+    String showId,
+    double amount, {
+    DateTime? now,
+  }) async {
+    final at = now ?? DateTime.now();
+    final (_, lot) = _viewerLot(userId, showId, LotMode.auction, at);
+    if (amount <= 0 || amount > TradeService.maxListPrice) {
+      throw TradeException(t('Upiši svoju procjenu u eurima.'));
+    }
+    if (lot.guesses.any((g) => g.userId == userId)) {
+      throw TradeException(t('Već si dao procjenu za ovaj predmet.'));
+    }
+    await _storage.putLiveEvent(
+      _event(
+        LiveEventType.guess,
+        userId,
+        showId,
+        at: at,
+        lot: lot.index,
+        amount: roundCredits(amount),
+      ),
+    );
+  }
+
+  /// Zakazani live: "Podsjeti me" — obavijest kad domaćin krene uživo.
+  Future<void> remind(String userId, String showId, {DateTime? now}) async {
+    final user = _storage.userById(userId);
+    if (user == null || user.isGuest) {
+      throw TradeException(t('Za podsjetnik se prijavi.'));
+    }
+    _require(showId);
+    if (wantsReminder(userId, showId)) return;
+    await _storage.putLiveEvent(
+      _event(LiveEventType.remind, userId, showId, at: now ?? DateTime.now()),
+    );
+  }
+
+  bool wantsReminder(String userId, String showId) => _storage
+      .liveEventsOf(showId)
+      .any((e) => e.type == LiveEventType.remind && e.userId == userId);
 
   /// Domaćin završava live (predmeti na čekanju ostaju njemu).
   Future<void> end(String hostId, String showId, {DateTime? now}) async {
@@ -544,7 +827,7 @@ class LiveService {
     }
     final state = stateOf(show, now: at);
     final lot = state.current;
-    if (lot == null) {
+    if (lot == null || lot.mode != LotMode.auction) {
       throw TradeException(t('Trenutno se ništa ne licitira.'));
     }
     if (lot.leader?.userId == userId) {
@@ -645,8 +928,12 @@ class LiveService {
     final inbox = Inbox(_storage);
     await inbox.send(
       winner.id,
-      NotificationKind.auctionWon,
-      args: [l.lot.deviceName, price],
+      l.mode == LotMode.giveaway
+          ? NotificationKind.giveawayWon
+          : NotificationKind.auctionWon,
+      args: l.mode == LotMode.giveaway
+          ? [l.lot.deviceName, show.hostLabel]
+          : [l.lot.deviceName, price],
       targetId: show.id,
       now: at,
     );

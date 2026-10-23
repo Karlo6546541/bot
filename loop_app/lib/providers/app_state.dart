@@ -175,6 +175,23 @@ class AppState {
     hiddenUsers: {...?currentUser?.blockedIds},
   );
 
+  /// Jesam li tražio podsjetnik za zakazani live.
+  bool wantsReminder(String showId) => liveEvents.any(
+    (e) =>
+        e.showId == showId &&
+        e.type == LiveEventType.remind &&
+        e.userId == currentUserId,
+  );
+
+  /// Jesam li prijavljen na nagradnu igru (predmet [lot]).
+  bool hasEnteredGiveaway(String showId, int lot) => liveEvents.any(
+    (e) =>
+        e.showId == showId &&
+        e.type == LiveEventType.enter &&
+        e.lot == lot &&
+        e.userId == currentUserId,
+  );
+
   /// Liveovi koji su u tijeku ili zakazani (u tijeku prvo).
   List<(LiveShow, LiveState)> get activeLives {
     final now = DateTime.now();

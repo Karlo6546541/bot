@@ -228,6 +228,18 @@ ne sinkronizira; online prijavu vodi Supabase Auth i lozinke ne prolaze kroz na�
 - **Soba uživo**: pozornica s videom ili fotografijom predmeta, oznaka UŽIVO, broj gledatelja,
   cijena, tko vodi, odbrojavanje, veliki gumb *Licitiraj X €* (ili vlastiti iznos),
   chat s brzim reakcijama 🔥👏😍💸 i popis predmeta (što je prodano, što slijedi).
+- **Vrste predmeta** (domaćin bira pri dodavanju):
+  - 🔨 **Licitacija** — klasično, najviša ponuda pobjeđuje;
+  - ⬇️ **Pada cijena** (nizozemska aukcija) — cijena svake sekunde pada od početne do
+    najniže; prvi koji klikne *Uzmi* kupuje po trenutnoj cijeni;
+  - 🎁 **Nagradna igra** — besplatno; gledatelji se prijave, a dobitnik se na kraju izvlači
+    (isti na svakom uređaju) i dobiva obavijest za dostavu.
+- **Čega Whatnot nema**: 🎯 **Pogodi cijenu** (jedna procjena po predmetu, najbliži pogodak
+  se objavljuje u sobi), 💎 **procjena vrijednosti** uz cijenu (*−X % ispod procjene*),
+  🔥 **hype-metar** (koliko je soba živa u zadnjih 30 s), **sažetak** na kraju livea
+  (prodano, ukupno, najtraženije, top kupac, najbolji pogađači) s dijeljenjem, te
+  *Prati* i *Podijeli* u gornjoj traci sobe. Za zakazani live **Podsjeti me** šalje
+  obavijest čim domaćin krene.
 - **Pravila**: licitira se jedan predmet u isto vrijeme; ponuda u zadnjih 10 s vraća sat
   na 10 s (*sudden death*); vodeći ne može licitirati sam sebe; domaćin ne licitira.
   Pobjednik plaća karticom i bira dostavu, prodavatelj dobiva cijelu ponudu.
@@ -333,8 +345,10 @@ dati na pregled odvjetniku prije pokretanja s pravim novcem):
 ## Raspored sučelja
 
 - Donja traka: **Početna · Aukcije · [+ Objavi] · Moje · Profil**.
-- **Početna** (kao Whatnot): *Licitiraj uživo* (Kreni uživo / Nova aukcija), **Uživo sada**,
-  **Uskoro** (zakazani liveovi) i **Završavaju uskoro**. Dodir na karticu otvara swipe feed.
+- **Početna** (klon Whatnota): tražilica, **pilule** *Za tebe · 🔴 Uživo · 📅 Uskoro* i
+  kategorije, zatim mreža kartica **Uživo sada**, **Uskoro** (zvono *Podsjeti me*) i
+  **Završavaju uskoro**. Kartica: prodavač iznad slike, oznaka UŽIVO/gledatelji, cijena na
+  slici. Dodir na karticu otvara swipe feed.
 - **Aukcije**: kategorije kao kartice i mreža svih liveova i aukcija; *Pravila* (ⓘ) i **Live**.
 - **+ Objavi**: *Kreni uživo*, *Aukcija* ili *Novi predmet* (predmet ide u Moje predmete, pa
   na aukciju ili u live — na detaljima predmeta: *Stavi na aukciju* / *Pokaži u liveu*).

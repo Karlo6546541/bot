@@ -6,6 +6,7 @@ enum NotificationKind {
   outbid('🔔', 'Netko te nadmašio na aukciji "{0}" — nova ponuda {1}.'),
   newBid('🔨', 'Nova ponuda na tvojoj aukciji "{0}": {1}.'),
   auctionWon('🏆', 'Osvojio si aukciju "{0}" za {1}. Odaberi dostavu.'),
+  giveawayWon('🎁', 'Osvojio si "{0}" u nagradnoj igri {1}. Odaberi dostavu.'),
   auctionLost('😕', 'Aukcija "{0}" je završila — nisi pobijedio.'),
   auctionSold('💰', 'Tvoja aukcija "{0}" je završila: prodano za {1}.'),
   auctionUnsold('⏱️', 'Tvoja aukcija "{0}" je završila bez ponuda.'),
@@ -58,6 +59,7 @@ enum NotificationKind {
     outbidAuto ||
     newBid ||
     auctionWon ||
+    giveawayWon ||
     auctionLost ||
     auctionSold ||
     auctionUnsold ||

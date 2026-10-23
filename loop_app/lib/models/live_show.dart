@@ -1,3 +1,5 @@
+import '../l10n/tr.dart';
+
 /// Live aukcija (kao Whatnot): prodavatelj ide uživo, pokazuje predmete i
 /// za svaki sam pokreće kratku licitaciju. Live traje dok je domaćin uživo —
 /// predmete može dodavati usput, a kraj je kad ga završi ili ode.
@@ -128,6 +130,24 @@ class LiveShow {
   );
 }
 
+/// Kako se predmet prodaje u liveu.
+enum LotMode {
+  /// Klasična licitacija: najviša ponuda pobjeđuje.
+  auction('🔨', 'Licitacija'),
+
+  /// Padajuća cijena (nizozemska aukcija): cijena pada svake sekunde, a
+  /// prvi koji uzme — kupuje. Toga na Whatnotu nema.
+  dutch('⬇️', 'Pada cijena'),
+
+  /// Nagradna igra: gledatelji se prijave, dobitnik se izvlači.
+  giveaway('🎁', 'Nagradna igra');
+
+  const LotMode(this.emoji, this._label);
+  final String emoji;
+  final String _label;
+  String get label => t(_label);
+}
+
 /// Jedan predmet u live aukciji.
 class LiveLot {
   const LiveLot({
@@ -135,20 +155,37 @@ class LiveLot {
     required this.deviceName,
     required this.startPrice,
     this.startedAt,
+    this.mode = LotMode.auction,
+    this.floorPrice = 1,
   });
 
   final String deviceId;
   final String deviceName;
+
+  /// Licitacija: početna cijena. Pada cijena: cijena na početku (najviša).
   final double startPrice;
 
   /// Kad je domaćin pokrenuo licitaciju (null = čeka na red).
   final DateTime? startedAt;
+  final LotMode mode;
+
+  /// Pada cijena: najniža cijena (na kraju vremena).
+  final double floorPrice;
+
+  /// Pada cijena: koliko predmet košta nakon [elapsed] od početka.
+  double dutchPrice(Duration elapsed, int seconds) {
+    final f = (elapsed.inMilliseconds / (seconds * 1000)).clamp(0.0, 1.0);
+    final p = startPrice - (startPrice - floorPrice) * f;
+    return p.ceilToDouble().clamp(floorPrice, startPrice);
+  }
 
   LiveLot started(DateTime at) => LiveLot(
     deviceId: deviceId,
     deviceName: deviceName,
     startPrice: startPrice,
     startedAt: at,
+    mode: mode,
+    floorPrice: floorPrice,
   );
 
   Map<String, dynamic> toMap() => {
@@ -156,6 +193,8 @@ class LiveLot {
     'deviceName': deviceName,
     'startPrice': startPrice,
     if (startedAt != null) 'startedAt': startedAt!.toIso8601String(),
+    if (mode != LotMode.auction) 'mode': mode.name,
+    if (mode == LotMode.dutch) 'floorPrice': floorPrice,
   };
 
   factory LiveLot.fromMap(Map<dynamic, dynamic> m) => LiveLot(
@@ -165,11 +204,18 @@ class LiveLot {
     startedAt: m['startedAt'] == null
         ? null
         : DateTime.tryParse('${m['startedAt']}'),
+    mode: LotMode.values.firstWhere(
+      (v) => v.name == m['mode'],
+      orElse: () => LotMode.auction,
+    ),
+    floorPrice: (m['floorPrice'] as num?)?.toDouble() ?? 1,
   );
 }
 
-/// Vrsta događaja u live aukciji.
-enum LiveEventType { bid, chat, join }
+/// Vrsta događaja u live aukciji: ponuda, poruka, ulazak, "uzimam"
+/// (pada cijena), prijava na nagradnu igru, procjena cijene (igra
+/// "Pogodi cijenu") i "podsjeti me" (zakazani live).
+enum LiveEventType { bid, chat, join, take, enter, guess, remind }
 
 /// Ponuda, poruka u chatu ili ulazak gledatelja. Svaki događaj je zaseban
 /// zapis (ne mijenja se emisija), pa se istovremene ponude s više uređaja
@@ -200,6 +246,19 @@ class LiveEvent {
   final String text;
 
   static const maxText = 140;
+
+  /// Kopija s drugim iznosom (npr. cijena "uzimam" izračunata iz vremena).
+  LiveEvent withAmount(double value) => LiveEvent(
+    id: id,
+    showId: showId,
+    type: type,
+    userId: userId,
+    userLabel: userLabel,
+    at: at,
+    lot: lot,
+    amount: value,
+    text: text,
+  );
 
   Map<String, dynamic> toMap() => {
     'id': id,

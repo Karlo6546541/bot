@@ -23,10 +23,12 @@ const kPublicUrl = 'https://karlo6546541.github.io/bot/';
 
 /// Poveznica na oglas (`?item=<id>`), trgovinu (`?shop=<korisnik>`) ili
 /// listu želja (`?list=<korisnikId>.<listaId>`).
-String publicLink({String? item, String? shop, String? list}) {
+String publicLink({String? item, String? shop, String? list, String? live}) {
   final base = kIsWeb ? Uri.base : Uri.parse(kPublicUrl);
   final root = '${base.scheme}://${base.authority}${base.path}';
-  final query = item != null
+  final query = live != null
+      ? 'live=${Uri.encodeQueryComponent(live)}'
+      : item != null
       ? 'item=${Uri.encodeQueryComponent(item)}'
       : list != null
       ? 'list=${Uri.encodeQueryComponent(list)}'

@@ -12,7 +12,11 @@ class PendingLink {
   /// Lista želja: "korisnikId.listaId".
   static String? list;
 
-  static bool get isPending => item != null || shop != null || list != null;
+  /// Live aukcija (ID emisije).
+  static String? live;
+
+  static bool get isPending =>
+      item != null || shop != null || list != null || live != null;
 
   /// Čita parametre iz adrese (samo web).
   static void readFromUrl([Uri? uri]) {
@@ -21,6 +25,8 @@ class PendingLink {
     final i = q['item']?.trim();
     final s = q['shop']?.trim().replaceFirst('@', '');
     final l = q['list']?.trim();
+    final v = q['live']?.trim();
+    live = v == null || v.isEmpty ? null : v;
     list = l == null || !l.contains('.') ? null : l;
     item = i == null || i.isEmpty ? null : i;
     shop = s == null || s.isEmpty ? null : s.toLowerCase();
@@ -30,5 +36,6 @@ class PendingLink {
     item = null;
     shop = null;
     list = null;
+    live = null;
   }
 }

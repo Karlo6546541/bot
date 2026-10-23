@@ -1224,8 +1224,46 @@ class AppController extends Notifier<AppState> {
   }
 
   /// Domaćin dodaje predmet tijekom livea.
-  Future<void> liveAddLot(String showId, String deviceId, double price) async {
-    await _live.addLot(_requireUserId(), showId, deviceId, price);
+  Future<void> liveAddLot(
+    String showId,
+    String deviceId,
+    double price, {
+    LotMode mode = LotMode.auction,
+    double floorPrice = 1,
+  }) async {
+    await _live.addLot(
+      _requireUserId(),
+      showId,
+      deviceId,
+      price,
+      mode: mode,
+      floorPrice: floorPrice,
+    );
+    _refresh();
+  }
+
+  /// Pada cijena: "Uzimam!".
+  Future<bool> liveTake(String showId) async {
+    final won = await _live.take(_requireUserId(), showId);
+    _refresh();
+    return won;
+  }
+
+  /// Nagradna igra: prijava.
+  Future<void> liveEnter(String showId) async {
+    await _live.enterGiveaway(_requireUserId(), showId);
+    _refresh();
+  }
+
+  /// "Pogodi cijenu".
+  Future<void> liveGuess(String showId, double amount) async {
+    await _live.guess(_requireUserId(), showId, amount);
+    _refresh();
+  }
+
+  /// "Podsjeti me" za zakazani live.
+  Future<void> liveRemind(String showId) async {
+    await _live.remind(_requireUserId(), showId);
     _refresh();
   }
 

@@ -19,6 +19,7 @@ import '../widgets/item_image.dart';
 import '../widgets/story_canvas.dart';
 import '../widgets/trade_actions.dart';
 import '../widgets/live_video_view.dart';
+import '../widgets/shop_widgets.dart';
 import '../widgets/user_avatar.dart';
 import 'add_device_screen.dart';
 import 'deliveries_screen.dart';
@@ -807,6 +808,78 @@ class _LiveRoomViewState extends ConsumerState<LiveRoomView> {
     }
   }
 
+  Future<void> _take() async {
+    if (blockGuest(context) || _busy) return;
+    setState(() => _busy = true);
+    try {
+      final won = await _app.liveTake(widget.showId);
+      if (!won) showLoopSnackBar(t('Netko je bio brži!'), error: true);
+    } on TradeException catch (e) {
+      showLoopSnackBar(e.message, error: true);
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  Future<void> _enter() async {
+    if (blockGuest(context) || _busy) return;
+    setState(() => _busy = true);
+    try {
+      await _app.liveEnter(widget.showId);
+    } on TradeException catch (e) {
+      showLoopSnackBar(e.message, error: true);
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  /// "Pogodi cijenu": tko je najbliže konačnoj cijeni, dobiva priznanje u
+  /// sobi (Whatnot to nema).
+  Future<void> _guess() async {
+    if (blockGuest(context)) return;
+    final controller = TextEditingController();
+    final amount = await showDialog<double>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(t('🎯 Pogodi konačnu cijenu')),
+        content: TextField(
+          key: const ValueKey('live-guess-amount'),
+          controller: controller,
+          autofocus: true,
+          keyboardType: const TextInputType.numberWithOptions(decimal: true),
+          inputFormatters: [
+            FilteringTextInputFormatter.allow(RegExp(r'[0-9.,]')),
+          ],
+          decoration: InputDecoration(
+            suffixText: t('€'),
+            helperText: t('Najbliži pogodak se objavljuje u sobi'),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: Text(t('Odustani')),
+          ),
+          FilledButton(
+            key: const ValueKey('live-guess-ok'),
+            onPressed: () => Navigator.pop(
+              ctx,
+              double.tryParse(controller.text.trim().replaceAll(',', '.')),
+            ),
+            child: Text(t('Pošalji')),
+          ),
+        ],
+      ),
+    );
+    controller.dispose();
+    if (amount == null || !mounted) return;
+    try {
+      await _app.liveGuess(widget.showId, amount);
+    } on TradeException catch (e) {
+      showLoopSnackBar(e.message, error: true);
+    }
+  }
+
   Future<void> _customBid(double min) async {
     if (blockGuest(context)) return;
     final controller = TextEditingController(
@@ -1012,7 +1085,28 @@ class _LiveRoomViewState extends ConsumerState<LiveRoomView> {
               icon: const Icon(Icons.videocam),
               label: Text(t('Kreni uživo sada')),
             )
-          else
+          else ...[
+            if (s.wantsReminder(show.id))
+              Text(
+                t('🔔 Javit ćemo ti kad krene'),
+                key: const ValueKey('live-reminded'),
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w800,
+                ),
+              )
+            else
+              FilledButton.icon(
+                key: const ValueKey('live-remind'),
+                style: FilledButton.styleFrom(
+                  backgroundColor: Colors.white,
+                  foregroundColor: Colors.black,
+                ),
+                onPressed: () => remindMe(context, ref, show.id),
+                icon: const Icon(Icons.notifications_none),
+                label: Text(t('Podsjeti me')),
+              ),
+            const SizedBox(height: 6),
             Text(
               show.lots.isEmpty
                   ? t('Predmeti se otkrivaju uživo')
@@ -1027,6 +1121,7 @@ class _LiveRoomViewState extends ConsumerState<LiveRoomView> {
               textAlign: TextAlign.center,
               style: const TextStyle(color: Colors.white70),
             ),
+          ],
         ],
       );
     } else if (st.isOver) {
@@ -1055,6 +1150,8 @@ class _LiveRoomViewState extends ConsumerState<LiveRoomView> {
             ]),
             style: const TextStyle(color: Colors.white70),
           ),
+          const SizedBox(height: 10),
+          _Recap(state: st, me: me?.id),
           if (won > 0) ...[
             const SizedBox(height: 12),
             FilledButton.icon(
@@ -1063,6 +1160,21 @@ class _LiveRoomViewState extends ConsumerState<LiveRoomView> {
               label: Text(t('Osvojio si {0} · odaberi dostavu', ['$won'])),
             ),
           ],
+          const SizedBox(height: 8),
+          TextButton.icon(
+            key: const ValueKey('live-share-recap'),
+            style: TextButton.styleFrom(foregroundColor: Colors.white),
+            onPressed: () => shareLink(
+              context,
+              publicLink(live: show.id),
+              text: t('Prodano {0} od {1} predmeta', [
+                '${st.soldCount}',
+                '${st.lots.length}',
+              ]),
+            ),
+            icon: const Icon(Icons.ios_share, size: 18),
+            label: Text(t('Podijeli sažetak')),
+          ),
         ],
       );
     } else if (cur == null && done != null) {
@@ -1073,11 +1185,14 @@ class _LiveRoomViewState extends ConsumerState<LiveRoomView> {
         key: const ValueKey('live-result'),
         children: [
           Text(
-            winner == null
-                ? t('Nije prodano')
-                : iWon
-                ? t('🏆 Osvojio si!')
-                : t('🎉 PRODANO!'),
+            switch ((done.mode, winner == null, iWon)) {
+              (LotMode.giveaway, true, _) => t('Nitko se nije prijavio'),
+              (_, true, _) => t('Nije prodano'),
+              (LotMode.giveaway, _, true) => t('🎁 Osvojio si nagradu!'),
+              (LotMode.giveaway, _, false) => t('🎁 Izvučen je dobitnik!'),
+              (_, _, true) => t('🏆 Osvojio si!'),
+              _ => t('🎉 PRODANO!'),
+            },
             style: const TextStyle(
               color: Colors.white,
               fontWeight: FontWeight.w900,
@@ -1086,10 +1201,29 @@ class _LiveRoomViewState extends ConsumerState<LiveRoomView> {
           ),
           if (winner != null)
             Text(
-              '${winner.userLabel} · ${formatCredits(done.price)}',
+              done.mode == LotMode.giveaway
+                  ? winner.userLabel
+                  : '${winner.userLabel} · ${formatCredits(done.price)}',
               style: const TextStyle(
                 color: Colors.white,
                 fontWeight: FontWeight.w700,
+              ),
+            ),
+          if (done.guessWinner case final g?)
+            Padding(
+              padding: const EdgeInsets.only(top: 6),
+              child: Text(
+                g.userId == me?.id
+                    ? t('🎯 Najbliže si pogodio cijenu ({0})', [
+                        formatCredits(g.amount),
+                      ])
+                    : t('🎯 {0} je najbliže pogodio cijenu ({1})', [
+                        g.userLabel,
+                        formatCredits(g.amount),
+                      ]),
+                key: const ValueKey('live-guess-winner'),
+                textAlign: TextAlign.center,
+                style: const TextStyle(color: Color(0xFFFFC233)),
               ),
             ),
           if (iWon)
@@ -1170,6 +1304,7 @@ class _LiveRoomViewState extends ConsumerState<LiveRoomView> {
                       hostAvatar: UserAvatar(user: host, size: 36),
                       onQueue: () => _showQueue(st, isHost),
                     ),
+                    if (st.isLive) _HypeMeter(st.hype),
                     Expanded(
                       child: Stack(
                         children: [
@@ -1316,25 +1451,108 @@ class _LiveRoomViewState extends ConsumerState<LiveRoomView> {
         child: Text(t('Prijavi se za licitiranje')),
       );
     }
-    if (cur.leader?.userId == me) {
-      return Container(
-        key: const ValueKey('live-leading'),
-        height: 52,
-        alignment: Alignment.center,
-        decoration: BoxDecoration(
-          color: LoopColors.success.withValues(alpha: 0.9),
-          borderRadius: BorderRadius.circular(kRadius),
-        ),
-        child: Text(
-          t('✓ Vodiš s {0}', [formatCredits(cur.price)]),
-          style: const TextStyle(
-            color: Colors.white,
+    if (cur.mode == LotMode.dutch) {
+      final price = cur.dutchPriceAt(DateTime.now(), st.show.lotSeconds);
+      return FilledButton(
+        key: const ValueKey('live-take'),
+        style: FilledButton.styleFrom(
+          backgroundColor: const Color(0xFF1FA463),
+          foregroundColor: Colors.white,
+          minimumSize: const Size.fromHeight(52),
+          textStyle: const TextStyle(
+            fontFamily: kFontFamily,
             fontWeight: FontWeight.w900,
-            fontSize: 17,
+            fontSize: 18,
           ),
         ),
+        onPressed: _busy ? null : _take,
+        child: Text(t('⬇️ Uzmi za {0}', [formatCredits(price)])),
       );
     }
+    if (cur.mode == LotMode.giveaway) {
+      final entered = ref.watch(
+        appProvider.select((s) => s.hasEnteredGiveaway(st.show.id, cur.index)),
+      );
+      return entered
+          ? Container(
+              key: const ValueKey('live-entered'),
+              height: 52,
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                color: LoopColors.success.withValues(alpha: 0.9),
+                borderRadius: BorderRadius.circular(kRadius),
+              ),
+              child: Text(
+                t('✓ Sudjeluješ · izvlačenje na kraju'),
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+            )
+          : FilledButton(
+              key: const ValueKey('live-enter'),
+              style: FilledButton.styleFrom(
+                backgroundColor: const Color(0xFFFFC233),
+                foregroundColor: Colors.black,
+                minimumSize: const Size.fromHeight(52),
+                textStyle: const TextStyle(
+                  fontFamily: kFontFamily,
+                  fontWeight: FontWeight.w900,
+                  fontSize: 18,
+                ),
+              ),
+              onPressed: _busy ? null : _enter,
+              child: Text(t('🎁 Sudjeluj besplatno')),
+            );
+    }
+    final guessed = cur.guesses.any((g) => g.userId == me);
+    final guessButton = guessed
+        ? Text(
+            t('🎯 Tvoja procjena: {0}', [
+              formatCredits(
+                cur.guesses.firstWhere((g) => g.userId == me).amount,
+              ),
+            ]),
+            style: const TextStyle(color: Color(0xFFFFC233), fontSize: 12),
+          )
+        : TextButton.icon(
+            key: const ValueKey('live-guess'),
+            style: TextButton.styleFrom(
+              foregroundColor: const Color(0xFFFFC233),
+              visualDensity: VisualDensity.compact,
+            ),
+            onPressed: _guess,
+            icon: const Text('🎯'),
+            label: Text(t('Pogodi konačnu cijenu')),
+          );
+    if (cur.leader?.userId == me) {
+      return Column(children: [_leading(cur), guessButton]);
+    }
+    return Column(children: [_bidRow(cur), guessButton]);
+  }
+
+  Widget _leading(LotState cur) {
+    return Container(
+      key: const ValueKey('live-leading'),
+      height: 52,
+      alignment: Alignment.center,
+      decoration: BoxDecoration(
+        color: LoopColors.success.withValues(alpha: 0.9),
+        borderRadius: BorderRadius.circular(kRadius),
+      ),
+      child: Text(
+        t('✓ Vodiš s {0}', [formatCredits(cur.price)]),
+        style: const TextStyle(
+          color: Colors.white,
+          fontWeight: FontWeight.w900,
+          fontSize: 17,
+        ),
+      ),
+    );
+  }
+
+  Widget _bidRow(LotState cur) {
     return Column(
       children: [
         Row(
@@ -1381,7 +1599,110 @@ class _LiveRoomViewState extends ConsumerState<LiveRoomView> {
   }
 }
 
-class _TopBar extends StatelessWidget {
+/// "Podsjeti me" za zakazani live (obavijest kad domaćin krene).
+Future<void> remindMe(
+  BuildContext context,
+  WidgetRef ref,
+  String showId,
+) async {
+  if (blockGuest(context)) return;
+  try {
+    await ref.read(appProvider.notifier).liveRemind(showId);
+    showLoopSnackBar(t('Javit ćemo ti kad krene uživo 🔔'));
+  } on TradeException catch (e) {
+    showLoopSnackBar(e.message, error: true);
+  }
+}
+
+/// Sažetak završenog livea: prodano, ukupno, najtraženiji predmet, top
+/// kupac i najbolji "pogađači" cijene.
+class _Recap extends StatelessWidget {
+  const _Recap({required this.state, required this.me});
+  final LiveState state;
+  final String? me;
+
+  @override
+  Widget build(BuildContext context) {
+    final sold = [
+      for (final l in state.lots)
+        if (l.status == LotStatus.sold && l.mode != LotMode.giveaway) l,
+    ];
+    final total = sold.fold<double>(0, (a, l) => a + l.price);
+    LotState? hot;
+    for (final l in state.lots) {
+      if (l.mode == LotMode.auction &&
+          l.bids.isNotEmpty &&
+          (hot == null || l.bids.length > hot.bids.length)) {
+        hot = l;
+      }
+    }
+    final spent = <String, double>{};
+    final names = <String, String>{};
+    for (final l in sold) {
+      final w = l.leader!;
+      spent[w.userId] = (spent[w.userId] ?? 0) + l.price;
+      names[w.userId] = w.userLabel;
+    }
+    final top = spent.entries.isEmpty
+        ? null
+        : spent.entries.reduce((a, b) => b.value > a.value ? b : a);
+    final guessers = [
+      for (final l in state.lots)
+        if (l.status == LotStatus.sold) ?l.guessWinner,
+    ];
+    Widget row(String emoji, String text) => Padding(
+      padding: const EdgeInsets.symmetric(vertical: 2),
+      child: Text(
+        '$emoji  $text',
+        textAlign: TextAlign.center,
+        style: const TextStyle(color: Colors.white, fontSize: 13),
+      ),
+    );
+    return Container(
+      key: const ValueKey('live-recap'),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.black45,
+        borderRadius: BorderRadius.circular(kRadius),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          row(
+            '📦',
+            t('Prodano {0} od {1} predmeta', [
+              '${state.soldCount}',
+              '${state.lots.length}',
+            ]),
+          ),
+          if (total > 0) row('💶', t('Ukupno {0}', [formatCredits(total)])),
+          if (hot != null)
+            row(
+              '🔥',
+              t('Najtraženije: {0} ({1} ponuda)', [
+                hot.lot.deviceName,
+                '${hot.bids.length}',
+              ]),
+            ),
+          if (top != null)
+            row(
+              '👑',
+              t('Top kupac: {0}', [top.key == me ? t('ti') : names[top.key]!]),
+            ),
+          if (guessers.isNotEmpty)
+            row(
+              '🎯',
+              t('Najbolji pogađači: {0}', [
+                {for (final g in guessers) g.userLabel}.join(', '),
+              ]),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+class _TopBar extends ConsumerWidget {
   const _TopBar({
     required this.show,
     required this.state,
@@ -1397,12 +1718,14 @@ class _TopBar extends StatelessWidget {
   final VoidCallback onQueue;
 
   @override
-  Widget build(BuildContext context) {
-    final upcoming = state.lots
-        .where((l) => l.status == LotStatus.upcoming)
-        .length;
+  Widget build(BuildContext context, WidgetRef ref) {
+    final upcoming = state.queue.length;
+    final me = ref.watch(appProvider.select((s) => s.currentUserId));
+    final following = ref.watch(
+      appProvider.select((s) => s.isFollowing(show.hostId)),
+    );
     return Padding(
-      padding: const EdgeInsets.fromLTRB(4, 4, 8, 0),
+      padding: const EdgeInsets.fromLTRB(4, 4, 4, 0),
       child: Row(
         children: [
           IconButton(
@@ -1420,14 +1743,57 @@ class _TopBar extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  hostName,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.w900,
-                  ),
+                Row(
+                  children: [
+                    Flexible(
+                      child: Text(
+                        hostName,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
+                    ),
+                    if (me != null && me != show.hostId && !following) ...[
+                      const SizedBox(width: 6),
+                      Flexible(
+                        child: FittedBox(
+                          fit: BoxFit.scaleDown,
+                          child: Material(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(99),
+                            child: InkWell(
+                              key: const ValueKey('live-follow'),
+                              borderRadius: BorderRadius.circular(99),
+                              onTap: () async {
+                                if (blockGuest(context)) return;
+                                await ref
+                                    .read(appProvider.notifier)
+                                    .toggleFollow(show.hostId);
+                                showLoopSnackBar(t('Pratiš {0}', [hostName]));
+                              },
+                              child: Padding(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 10,
+                                  vertical: 3,
+                                ),
+                                child: Text(
+                                  t('Prati'),
+                                  style: const TextStyle(
+                                    color: Colors.black,
+                                    fontWeight: FontWeight.w900,
+                                    fontSize: 12,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ],
                 ),
                 Text(
                   show.title,
@@ -1458,10 +1824,21 @@ class _TopBar extends StatelessWidget {
                 ),
               ),
             ),
-          const SizedBox(width: 4),
+          IconButton(
+            key: const ValueKey('live-share'),
+            tooltip: t('Podijeli live'),
+            visualDensity: VisualDensity.compact,
+            onPressed: () => shareLink(
+              context,
+              publicLink(live: show.id),
+              text: t('Gledaj "{0}" uživo na LICIT-u', [show.title]),
+            ),
+            icon: const Icon(Icons.ios_share, color: Colors.white, size: 20),
+          ),
           IconButton(
             key: const ValueKey('live-queue'),
             tooltip: t('Predmeti u liveu'),
+            visualDensity: VisualDensity.compact,
             onPressed: onQueue,
             icon: Badge(
               isLabelVisible: upcoming > 0,
@@ -1469,6 +1846,52 @@ class _TopBar extends StatelessWidget {
               child: const Icon(
                 Icons.format_list_numbered,
                 color: Colors.white,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Hype-metar 🔥: koliko je živo (ponude, "uzimam", prijave, chat u zadnjih
+/// 30 s). Toga na Whatnotu nema.
+class _HypeMeter extends StatelessWidget {
+  const _HypeMeter(this.hype);
+  final double hype;
+
+  @override
+  Widget build(BuildContext context) {
+    final label = hype >= 0.8
+        ? t('🔥🔥 VRUĆE!')
+        : hype >= 0.5
+        ? t('🔥 Zagrijava se')
+        : hype >= 0.2
+        ? t('🙂 Živo')
+        : t('😴 Mirno');
+    return Padding(
+      key: const ValueKey('live-hype'),
+      padding: const EdgeInsets.fromLTRB(16, 2, 16, 0),
+      child: Row(
+        children: [
+          Text(
+            label,
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 11,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(99),
+              child: LinearProgressIndicator(
+                value: hype,
+                minHeight: 5,
+                color: Color.lerp(const Color(0xFFFFC233), kLiveRed, hype),
+                backgroundColor: Colors.white24,
               ),
             ),
           ),
@@ -1516,9 +1939,19 @@ class _LotCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final left = lot.left(now);
     final secs = (left.inMilliseconds / 1000).ceil();
-    final hot = left <= LiveShow.suddenDeath;
+    final hot = left <= LiveShow.suddenDeath && lot.mode == LotMode.auction;
     final leader = lot.leader;
     final d = device;
+    final price = switch (lot.mode) {
+      LotMode.auction => lot.price,
+      LotMode.dutch => lot.dutchPriceAt(now, lotSeconds),
+      LotMode.giveaway => 0.0,
+    };
+    // Procjena vrijednosti (vrijednost predmeta) — toga na Whatnotu nema.
+    final value = d?.price ?? 0;
+    final below = value > 0 && price > 0 && price < value
+        ? ((1 - price / value) * 100).round()
+        : 0;
     return Container(
       key: const ValueKey('live-lot'),
       margin: const EdgeInsets.symmetric(horizontal: 12),
@@ -1549,14 +1982,24 @@ class _LotCard extends StatelessWidget {
                       ),
                     ),
                     Text(
-                      leader == null
-                          ? t('Predmet {0}/{1} · još nema ponuda', [
-                              '${lot.index + 1}',
-                              '$total',
-                            ])
-                          : leader.userId == me
-                          ? t('🥇 Ti vodiš')
-                          : t('🥇 {0} vodi', [leader.userLabel]),
+                      switch (lot.mode) {
+                        LotMode.dutch => t('⬇️ Pada cijena · do {0}', [
+                          formatCredits(lot.lot.floorPrice),
+                        ]),
+                        LotMode.giveaway => t(
+                          '🎁 Nagradna igra · {0} prijava',
+                          ['${lot.entrants}'],
+                        ),
+                        LotMode.auction =>
+                          leader == null
+                              ? t('Predmet {0}/{1} · još nema ponuda', [
+                                  '${lot.index + 1}',
+                                  '$total',
+                                ])
+                              : leader.userId == me
+                              ? t('🥇 Ti vodiš')
+                              : t('🥇 {0} vodi', [leader.userLabel]),
+                      },
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: const TextStyle(
@@ -1571,7 +2014,9 @@ class _LotCard extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
                   Text(
-                    formatCredits(lot.price),
+                    lot.mode == LotMode.giveaway
+                        ? t('Besplatno')
+                        : formatCredits(price),
                     key: const ValueKey('live-price'),
                     style: const TextStyle(
                       color: Colors.white,
@@ -1601,6 +2046,41 @@ class _LotCard extends StatelessWidget {
               backgroundColor: Colors.white24,
             ),
           ),
+          if (value > 0) ...[
+            const SizedBox(height: 6),
+            Wrap(
+              key: const ValueKey('live-value'),
+              spacing: 6,
+              runSpacing: 4,
+              crossAxisAlignment: WrapCrossAlignment.center,
+              children: [
+                Text(
+                  t('💎 Procjena {0}', [formatCredits(value)]),
+                  style: const TextStyle(color: Colors.white70, fontSize: 11),
+                ),
+                if (below >= 5) ...[
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 6,
+                      vertical: 1,
+                    ),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF1FA463),
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                    child: Text(
+                      t('−{0}% ispod procjene', ['$below']),
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 11,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ],
           if (hot) ...[
             const SizedBox(height: 4),
             Text(
@@ -1794,7 +2274,9 @@ class _QueueRow extends StatelessWidget {
         ),
       ),
       title: Text(
-        l.lot.deviceName,
+        l.mode == LotMode.auction
+            ? l.lot.deviceName
+            : '${l.mode.emoji} ${l.lot.deviceName}',
         maxLines: 1,
         overflow: TextOverflow.ellipsis,
         style: const TextStyle(fontWeight: FontWeight.w700),
@@ -1830,22 +2312,31 @@ class _AddLotSheet extends ConsumerStatefulWidget {
 
 class _AddLotSheetState extends ConsumerState<_AddLotSheet> {
   String? _deviceId;
+  LotMode _mode = LotMode.auction;
   final _price = TextEditingController(text: '1');
+  final _floor = TextEditingController(text: '1');
   bool _busy = false;
 
   @override
   void dispose() {
     _price.dispose();
+    _floor.dispose();
     super.dispose();
   }
 
+  static double? _parse(TextEditingController c) =>
+      double.tryParse(c.text.trim().replaceAll(',', '.'));
+
   Future<void> _add() async {
     final id = _deviceId;
-    final price = double.tryParse(_price.text.trim().replaceAll(',', '.'));
-    if (id == null || price == null) return;
+    final price = _mode == LotMode.giveaway ? 0.0 : _parse(_price);
+    final floor = _mode == LotMode.dutch ? _parse(_floor) : 1.0;
+    if (id == null || price == null || floor == null) return;
     setState(() => _busy = true);
     try {
-      await ref.read(appProvider.notifier).liveAddLot(widget.showId, id, price);
+      await ref
+          .read(appProvider.notifier)
+          .liveAddLot(widget.showId, id, price, mode: _mode, floorPrice: floor);
       if (mounted) Navigator.pop(context, true);
     } on TradeException catch (e) {
       showLoopSnackBar(e.message, error: true);
@@ -1927,20 +2418,72 @@ class _AddLotSheetState extends ConsumerState<_AddLotSheet> {
               label: Text(t('Novi predmet')),
             ),
             const SizedBox(height: 8),
-            TextField(
-              key: const ValueKey('live-add-price'),
-              controller: _price,
-              keyboardType: const TextInputType.numberWithOptions(
-                decimal: true,
-              ),
-              inputFormatters: [
-                FilteringTextInputFormatter.allow(RegExp(r'[0-9.,]')),
+            Wrap(
+              spacing: 8,
+              children: [
+                for (final m in LotMode.values)
+                  ChoiceChip(
+                    key: ValueKey('lot-mode-${m.name}'),
+                    label: Text('${m.emoji} ${t(m.label)}'),
+                    selected: _mode == m,
+                    onSelected: (_) => setState(() => _mode = m),
+                  ),
               ],
-              decoration: InputDecoration(
-                labelText: t('Početna cijena'),
-                suffixText: t('€'),
-              ),
             ),
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 6),
+              child: Text(switch (_mode) {
+                LotMode.auction => t(
+                  'Klasična licitacija — najviša ponuda pobjeđuje.',
+                ),
+                LotMode.dutch => t(
+                  'Cijena pada svake sekunde — prvi koji klikne "Uzmi" kupuje.',
+                ),
+                LotMode.giveaway => t(
+                  'Besplatno za sve koji se prijave — dobitnik se izvlači na kraju.',
+                ),
+              }, style: TextStyle(color: LoopColors.textSecondary, fontSize: 12)),
+            ),
+            if (_mode != LotMode.giveaway)
+              Row(
+                children: [
+                  Expanded(
+                    child: TextField(
+                      key: const ValueKey('live-add-price'),
+                      controller: _price,
+                      keyboardType: const TextInputType.numberWithOptions(
+                        decimal: true,
+                      ),
+                      inputFormatters: [
+                        FilteringTextInputFormatter.allow(RegExp(r'[0-9.,]')),
+                      ],
+                      decoration: InputDecoration(
+                        labelText: t('Početna cijena'),
+                        suffixText: t('€'),
+                      ),
+                    ),
+                  ),
+                  if (_mode == LotMode.dutch) ...[
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: TextField(
+                        key: const ValueKey('live-add-floor'),
+                        controller: _floor,
+                        keyboardType: const TextInputType.numberWithOptions(
+                          decimal: true,
+                        ),
+                        inputFormatters: [
+                          FilteringTextInputFormatter.allow(RegExp(r'[0-9.,]')),
+                        ],
+                        decoration: InputDecoration(
+                          labelText: t('Najniža cijena'),
+                          suffixText: t('€'),
+                        ),
+                      ),
+                    ),
+                  ],
+                ],
+              ),
             const SizedBox(height: 12),
             FilledButton(
               key: const ValueKey('live-add-confirm'),

@@ -258,7 +258,7 @@ class _AuctionsScreenState extends ConsumerState<AuctionsScreen> {
             sliver: SliverGrid(
               gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
                 maxCrossAxisExtent: 240,
-                childAspectRatio: 0.6,
+                childAspectRatio: 0.52,
                 mainAxisSpacing: 12,
                 crossAxisSpacing: 12,
               ),
@@ -430,109 +430,179 @@ class AuctionBrowseCard extends ConsumerWidget {
       price = formatCredits(a!.currentPrice);
     }
 
+    final category = item.categories.firstOrNull;
+    final hot = (live?.hype ?? 0) >= 0.5;
+    final reminded =
+        show != null &&
+        s.wantsReminder(show.id) &&
+        (live?.isScheduled ?? false);
+
+    // Kao Whatnot: prodavatelj iznad slike, slika s oznakama, ispod naslov
+    // i kategorija.
     return Material(
-      color: LoopColors.surface,
-      borderRadius: BorderRadius.circular(kRadius),
-      clipBehavior: Clip.antiAlias,
+      type: MaterialType.transparency,
       child: InkWell(
         key: ValueKey(
           show != null ? 'browse-live-${show.id}' : 'browse-auction-${a!.id}',
         ),
+        borderRadius: BorderRadius.circular(kRadius),
         onTap: onTap,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Expanded(
-              child: Stack(
-                fit: StackFit.expand,
+            Padding(
+              padding: const EdgeInsets.only(bottom: 6),
+              child: Row(
                 children: [
-                  _CardMedia(device: device),
-                  Positioned(left: 8, top: 8, child: topLeft),
-                  if (live != null && live.isLive)
-                    Positioned(
-                      right: 8,
-                      top: 8,
-                      child: pill(
-                        Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            const Icon(
-                              Icons.visibility,
-                              size: 12,
-                              color: Colors.white,
-                            ),
-                            const SizedBox(width: 3),
-                            Text('${live.viewers}', style: pillText),
-                          ],
-                        ),
-                      ),
-                    )
-                  else if (a != null && a.bids.isNotEmpty)
-                    Positioned(
-                      right: 8,
-                      top: 8,
-                      child: pill(
-                        Text(
-                          a.bids.length == 1
-                              ? t('1 ponuda')
-                              : t('{0} ponuda', [a.bids.length]),
-                          style: pillText,
-                        ),
+                  UserAvatar(user: seller, size: 22),
+                  const SizedBox(width: 6),
+                  Expanded(
+                    child: Text(
+                      seller?.handle ?? show?.hostLabel ?? a!.sellerLabel,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w800,
                       ),
                     ),
-                  if (role != AuctionRole.none)
-                    Positioned(
-                      left: 8,
-                      bottom: 8,
-                      child: RoleBadge(role: role),
+                  ),
+                  if (s.ratingOf(sellerId).count > 0)
+                    Text(
+                      '★ ${s.ratingOf(sellerId).average.toStringAsFixed(1)}',
+                      style: TextStyle(
+                        color: LoopColors.textSecondary,
+                        fontSize: 11,
+                        fontWeight: FontWeight.w700,
+                      ),
                     ),
                 ],
               ),
             ),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(10, 8, 10, 10),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      UserAvatar(user: seller, size: 18),
-                      const SizedBox(width: 6),
-                      Expanded(
-                        child: Text(
-                          seller?.handle ?? show?.hostLabel ?? a!.sellerLabel,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: TextStyle(
-                            color: LoopColors.textSecondary,
-                            fontSize: 12,
-                            fontWeight: FontWeight.w700,
+            Expanded(
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(kRadius - 4),
+                child: Stack(
+                  fit: StackFit.expand,
+                  children: [
+                    _CardMedia(device: device),
+                    const DecoratedBox(
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          begin: Alignment.topCenter,
+                          end: Alignment.bottomCenter,
+                          colors: [Colors.transparent, Colors.black54],
+                          stops: [0.6, 1],
+                        ),
+                      ),
+                    ),
+                    Positioned(
+                      left: 8,
+                      top: 8,
+                      right: 40,
+                      child: Wrap(
+                        spacing: 4,
+                        runSpacing: 4,
+                        children: [
+                          topLeft,
+                          if (live != null && live.isLive)
+                            pill(
+                              Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  const Icon(
+                                    Icons.visibility,
+                                    size: 12,
+                                    color: Colors.white,
+                                  ),
+                                  const SizedBox(width: 3),
+                                  Text('${live.viewers}', style: pillText),
+                                ],
+                              ),
+                            ),
+                        ],
+                      ),
+                    ),
+                    if (show != null && (live?.isScheduled ?? false))
+                      Positioned(
+                        right: 4,
+                        top: 4,
+                        child: IconButton(
+                          key: ValueKey('card-remind-${show.id}'),
+                          tooltip: t('Podsjeti me'),
+                          style: IconButton.styleFrom(
+                            backgroundColor: Colors.black45,
+                          ),
+                          onPressed: reminded
+                              ? null
+                              : () => remindMe(context, ref, show.id),
+                          icon: Icon(
+                            reminded
+                                ? Icons.notifications_active
+                                : Icons.notifications_none,
+                            color: Colors.white,
+                            size: 20,
+                          ),
+                        ),
+                      )
+                    else if (a != null && a.bids.isNotEmpty)
+                      Positioned(
+                        right: 8,
+                        top: 8,
+                        child: pill(
+                          Text(
+                            a.bids.length == 1
+                                ? t('1 ponuda')
+                                : t('{0} ponuda', [a.bids.length]),
+                            style: pillText,
                           ),
                         ),
                       ),
-                    ],
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    title,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      fontWeight: FontWeight.w800,
-                      fontSize: 14,
+                    Positioned(
+                      left: 8,
+                      right: 8,
+                      bottom: 8,
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              price,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.w900,
+                                fontSize: 15,
+                                shadows: [
+                                  Shadow(blurRadius: 6, color: Colors.black54),
+                                ],
+                              ),
+                            ),
+                          ),
+                          if (role != AuctionRole.none) RoleBadge(role: role),
+                        ],
+                      ),
                     ),
-                  ),
-                  Text(
-                    price,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      fontWeight: FontWeight.w900,
-                      fontSize: 15,
-                    ),
-                  ),
-                ],
+                  ],
+                ),
               ),
+            ),
+            const SizedBox(height: 6),
+            Text(
+              title,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                fontWeight: FontWeight.w800,
+                fontSize: 14,
+                height: 1.2,
+              ),
+            ),
+            Text(
+              [?category?.label, if (hot) t('🔥 vruće')].join(' · '),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(color: LoopColors.textSecondary, fontSize: 12),
             ),
           ],
         ),

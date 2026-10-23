@@ -7,6 +7,7 @@ import '../widgets/adaptive_shell.dart';
 import '../widgets/create_sheet.dart';
 import 'auctions_screen.dart';
 import 'live_home_screen.dart';
+import 'live_screens.dart';
 import 'profile_screen.dart';
 import '../l10n/tr.dart';
 import '../widgets/language_button.dart';
@@ -76,6 +77,13 @@ class _HomeShellState extends ConsumerState<HomeShell> {
     final item = PendingLink.item;
     final shop = PendingLink.shop;
     final list = PendingLink.list;
+    final live = PendingLink.live;
+    if (live != null) {
+      if (state.liveShowById(live) == null) return; // možda se sinkronizira
+      PendingLink.clear();
+      LiveRoomScreen.open(context, live);
+      return;
+    }
     if (list != null) {
       final dot = list.indexOf('.');
       final owner = list.substring(0, dot);

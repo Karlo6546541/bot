@@ -430,6 +430,164 @@ void main() {
       },
     );
 
+    /// Prazan live u kojem domaćin dodaje jedan predmet zadane vrste.
+    Future<String> special(LotMode mode, {double price = 20}) async {
+      final show = await live.create(
+        hostId: host,
+        title: 'Posebno',
+        startsAt: t0,
+        now: t0,
+      );
+      await live.addLot(
+        host,
+        show.id,
+        items[0].id,
+        price,
+        mode: mode,
+        floorPrice: 2,
+        now: at(1),
+      );
+      await live.startLot(host, show.id, now: at(2));
+      return show.id;
+    }
+
+    test('pada cijena: prvi koji uzme kupuje po trenutnoj cijeni', () async {
+      final id = await special(LotMode.dutch);
+      // Najniža cijena mora biti ispod početne.
+      await expectLater(
+        live.addLot(
+          host,
+          id,
+          items[1].id,
+          5,
+          mode: LotMode.dutch,
+          floorPrice: 5,
+          now: at(2),
+        ),
+        throwsA(isA<TradeException>()),
+      );
+      expect(state(id, 2).current!.dutchPriceAt(at(2), 30), 20);
+      // Na pola vremena: 20 − 18 · ½ = 11 €.
+      expect(state(id, 17).current!.dutchPriceAt(at(17), 30), 11);
+      await expectLater(
+        live.bid(bob, id, 12, now: at(16)),
+        throwsA(isA<TradeException>()),
+      );
+      expect(await live.take(bob, id, now: at(17)), isTrue);
+      // Netko je bio brži — predmet je već prodan.
+      await expectLater(
+        live.take(ana, id, now: at(18)),
+        throwsA(isA<TradeException>()),
+      );
+      final lot = state(id, 18).lots[0];
+      expect(lot.status, LotStatus.sold);
+      expect(lot.leader!.userId, bob);
+      expect(lot.price, 11);
+      expect(await live.settleDue(userId: bob, now: at(18)), 1);
+      expect(storage.deviceById(items[0].id)!.ownerId, bob);
+      // Na kraju vremena cijena staje na najnižoj.
+      expect(lot.lot.dutchPrice(const Duration(seconds: 99), 30), 2);
+    });
+
+    test('nagradna igra: prijave, izvlačenje i obavijest dobitniku', () async {
+      final id = await special(LotMode.giveaway);
+      expect(state(id, 3).current!.price, 0);
+      await live.enterGiveaway(bob, id, now: at(5));
+      await live.enterGiveaway(ana, id, now: at(6));
+      await live.enterGiveaway(bob, id, now: at(7));
+      await expectLater(
+        live.enterGiveaway(host, id, now: at(8)),
+        throwsA(isA<TradeException>()),
+      );
+      expect(live.hasEntered(bob, id, 0), isTrue);
+      final running = state(id, 10).current!;
+      expect(running.entrants, 2);
+      // Dobitnik se ne zna dok traje.
+      expect(running.leader, isNull);
+
+      final done = state(id, 40).lots[0];
+      expect(done.status, LotStatus.sold);
+      final winner = done.leader!.userId;
+      expect([bob, ana], contains(winner));
+      // Isti dobitnik na svakom uređaju.
+      expect(state(id, 50).lots[0].leader!.userId, winner);
+      expect(done.price, 0);
+
+      expect(await live.settleDue(userId: host, now: at(40)), 1);
+      expect(storage.deviceById(items[0].id)!.ownerId, winner);
+      expect(
+        storage.notifications.any(
+          (n) => n.userId == winner && n.kind == NotificationKind.giveawayWon,
+        ),
+        isTrue,
+      );
+    });
+
+    test('pogodi cijenu: najbliži pogodak, jednom po predmetu', () async {
+      final id = await start();
+      await live.guess(bob, id, 10, now: at(2));
+      await live.guess(ana, id, 4, now: at(3));
+      await live.guess(marko, id, 6, now: at(4));
+      await expectLater(
+        live.guess(bob, id, 5, now: at(5)),
+        throwsA(isA<TradeException>()),
+      );
+      await expectLater(
+        live.guess(ana, id, 0, now: at(5)),
+        throwsA(isA<TradeException>()),
+      );
+      await live.bid(bob, id, 5, now: at(6));
+      expect(state(id, 7).current!.guessWinner, isNull);
+      final lot = state(id, 40).lots[0];
+      expect(lot.price, 5);
+      // 4 i 6 su jednako blizu — pobjeđuje raniji.
+      expect(lot.guessWinner!.userId, ana);
+    });
+
+    test('podsjeti me: obavijest kad zakazani live krene', () async {
+      final show = await live.create(
+        hostId: host,
+        title: 'Večeras',
+        startsAt: t0.add(const Duration(hours: 1)),
+        now: t0,
+      );
+      await live.remind(bob, show.id, now: at(10));
+      await live.remind(bob, show.id, now: at(11));
+      expect(live.wantsReminder(bob, show.id), isTrue);
+      expect(live.wantsReminder(ana, show.id), isFalse);
+      bool reminded() => storage.notifications.any(
+        (n) =>
+            n.userId == bob &&
+            n.kind == NotificationKind.liveStarted &&
+            n.targetId == show.id,
+      );
+      expect(reminded(), isFalse);
+      await live.heartbeat(host, show.id, now: at(3000));
+      expect(
+        storage.notifications.where(
+          (n) => n.userId == bob && n.targetId == show.id,
+        ),
+        hasLength(1),
+      );
+      expect(reminded(), isTrue);
+    });
+
+    test('hype-metar raste s aktivnošću u sobi', () async {
+      final id = await start();
+      expect(state(id, 1).hype, 0);
+      for (var i = 0; i < 5; i++) {
+        await live.chat(i.isEven ? bob : ana, id, 'Super!', now: at(2 + i));
+      }
+      final calm = state(id, 8).hype;
+      expect(calm, greaterThan(0));
+      await live.bid(bob, id, 2, now: at(9));
+      await live.bid(ana, id, 3, now: at(10));
+      expect(state(id, 11).hype, greaterThan(calm));
+      // Pola minute kasnije je opet mirno.
+      await live.startLot(host, id, now: at(80));
+      expect(state(id, 81).hype, 0);
+    });
+
     test('gledatelji i chat', () async {
       final id = await start();
       await live.join(bob, id, now: at(1));
@@ -641,4 +799,98 @@ void main() {
       expect(storage.liveShowById(show.id)!.endedAt, isNotNull);
     });
   }
+
+  testWidgets('početna i posebni predmeti: pada cijena, nagradna igra', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(400, 860);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+
+    final storage = StorageService();
+    late String id;
+    late List<Device> theirs;
+    late LiveService live;
+    await tester.runAsync(() async {
+      await storage.init(inMemory: true);
+      final trade = TradeService(storage);
+      live = LiveService(storage);
+      theirs = [
+        await addItem(trade, bob, 'Gramofon'),
+        await addItem(trade, bob, 'Kazetofon'),
+      ];
+      id = (await live.create(hostId: bob, title: 'Petak navečer')).id;
+      await live.addLot(
+        bob,
+        id,
+        theirs[0].id,
+        40,
+        mode: LotMode.dutch,
+        floorPrice: 5,
+      );
+      await live.startLot(bob, id);
+    });
+    addTearDown(() => tester.runAsync(Hive.close));
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          storageProvider.overrideWithValue(storage),
+          tickIntervalProvider.overrideWithValue(null),
+        ],
+        child: const LoopApp(),
+      ),
+    );
+    await tester.ensureVisible(find.text('Prijavi se'));
+    await tester.tap(find.text('Prijavi se'));
+    await tester.pumpAndSettle();
+
+    // Početna kao Whatnot: pretraga, pilule kategorija, tko je uživo.
+    expect(find.byKey(const ValueKey('home-search')), findsOneWidget);
+    expect(find.byKey(const ValueKey('home-cat-for-you')), findsOneWidget);
+    expect(find.byKey(const ValueKey('home-live')), findsOneWidget);
+    expect(find.byKey(const ValueKey('home-go-live')), findsNothing);
+    await tester.tap(find.byKey(const ValueKey('home-cat-live')));
+    await tester.pumpAndSettle();
+    final card = find.byKey(ValueKey('browse-live-$id'));
+    expect(card, findsOneWidget);
+
+    // Pada cijena: "Uzmi" kupuje odmah.
+    await tester.tap(card);
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('live-hype')), findsOneWidget);
+    expect(find.byKey(const ValueKey('live-value')), findsOneWidget);
+    expect(find.byKey(const ValueKey('live-bid')), findsNothing);
+    await tester.runAsync(
+      () => tester.tap(find.byKey(const ValueKey('live-take'))),
+    );
+    await tester.runAsync(
+      () => Future<void>.delayed(const Duration(milliseconds: 50)),
+    );
+    await tester.pumpAndSettle();
+    expect(find.text('🏆 Osvojio si!'), findsOneWidget);
+
+    // Domaćin pokreće nagradnu igru — gledatelj se prijavljuje.
+    await tester.runAsync(() async {
+      await live.addLot(bob, id, theirs[1].id, 0, mode: LotMode.giveaway);
+      await live.startLot(bob, id);
+    });
+    await tester.enterText(find.byKey(const ValueKey('live-chat')), 'Ja!');
+    await tester.runAsync(
+      () => tester.tap(find.byKey(const ValueKey('live-send'))),
+    );
+    await tester.runAsync(
+      () => Future<void>.delayed(const Duration(milliseconds: 50)),
+    );
+    await tester.pumpAndSettle();
+    expect(find.text('Besplatno'), findsWidgets);
+    await tester.runAsync(
+      () => tester.tap(find.byKey(const ValueKey('live-enter'))),
+    );
+    await tester.runAsync(
+      () => Future<void>.delayed(const Duration(milliseconds: 50)),
+    );
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('live-entered')), findsOneWidget);
+  });
 }
