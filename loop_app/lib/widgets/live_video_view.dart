@@ -131,11 +131,10 @@ class _LiveVideoSurfaceState extends State<LiveVideoSurface> {
         );
 }
 
-/// Kako video ispuniti pozornicu: kad je omjer slike blizu omjera ekrana
-/// (npr. mobitel uspravno → uspravni ekran) slika ispuni cijeli ekran uz
-/// malo rezanja ruba; kad se jako razlikuje (položena kamera ili računalo
-/// na uspravnom mobitelu) prikazuje se cijela slika, inače bi bila jako
-/// zumirana.
+/// Kako video ispuniti pozornicu: ekran se ispuni samo kad je omjer slike
+/// gotovo isti kao omjer ekrana (reže se najviše ~10 % ruba). Inače se
+/// prikazuje cijela slika s tamnim rubovima — rezanje bi je zumiralo
+/// (npr. 3:4 slika s mobitela na izduženom ekranu mobitela 9:19,5).
 RTCVideoViewObjectFit videoFit({double? videoAspect, double? viewAspect}) {
   if (videoAspect == null || viewAspect == null) {
     return RTCVideoViewObjectFit.RTCVideoViewObjectFitContain;
@@ -143,7 +142,7 @@ RTCVideoViewObjectFit videoFit({double? videoAspect, double? viewAspect}) {
   final ratio = videoAspect > viewAspect
       ? videoAspect / viewAspect
       : viewAspect / videoAspect;
-  return ratio <= 1.35
+  return ratio <= 1.12
       ? RTCVideoViewObjectFit.RTCVideoViewObjectFitCover
       : RTCVideoViewObjectFit.RTCVideoViewObjectFitContain;
 }

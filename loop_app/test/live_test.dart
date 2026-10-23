@@ -1166,6 +1166,23 @@ void main() {
       expect(boostVideoSdp('v=0\r\n'), 'v=0\r\n');
     });
 
+    test('H264 je prvi video kodek u ponudi', () {
+      const sdp =
+          'v=0\r\n'
+          'm=audio 9 UDP/TLS/RTP/SAVPF 111\r\n'
+          'm=video 9 UDP/TLS/RTP/SAVPF 96 97 102 103\r\n'
+          'a=rtpmap:96 VP8/90000\r\n'
+          'a=rtpmap:102 H264/90000\r\n'
+          'a=rtpmap:103 H264/90000\r\n';
+      final out = preferH264(sdp);
+      expect(out, contains('m=video 9 UDP/TLS/RTP/SAVPF 102 103 96 97\r\n'));
+      expect(out, contains('m=audio 9 UDP/TLS/RTP/SAVPF 111\r\n'));
+      expect(
+        preferH264('m=video 9 X 96\r\na=rtpmap:96 VP8/90000'),
+        'm=video 9 X 96\r\na=rtpmap:96 VP8/90000',
+      );
+    });
+
     test('protok po gledatelju pada s brojem gledatelja', () {
       expect(videoBitrateFor(1), 2500000);
       expect(videoBitrateFor(4), 1800000);
@@ -1174,10 +1191,15 @@ void main() {
     });
 
     test('slika se ne zumira kad se omjer jako razlikuje', () {
-      // Mobitel uspravno (9:16) na uspravnom ekranu → ispuni ekran.
+      // Gotovo isti omjer → ispuni ekran.
       expect(
-        videoFit(videoAspect: 9 / 16, viewAspect: 400 / 800),
+        videoFit(videoAspect: 9 / 16, viewAspect: 0.55),
         RTCVideoViewObjectFit.RTCVideoViewObjectFitCover,
+      );
+      // Cijeli senzor mobitela (3:4) na izduženom ekranu → cijela slika.
+      expect(
+        videoFit(videoAspect: 3 / 4, viewAspect: 9 / 19.5),
+        RTCVideoViewObjectFit.RTCVideoViewObjectFitContain,
       );
       // Položena kamera (16:9) na uspravnom ekranu → cijela slika.
       expect(

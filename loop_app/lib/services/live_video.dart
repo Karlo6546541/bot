@@ -5,6 +5,8 @@ import 'package:flutter_webrtc/flutter_webrtc.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:uuid/uuid.dart';
 
+import 'track_hint.dart';
+
 /// Video uživo za live aukcije: kamera domaćina ide izravno gledateljima
 /// (WebRTC, peer-to-peer), a uređaji se "upoznaju" porukama preko
 /// Supabase Realtime kanala emisije (signalizacija) — bez dodatnog servera.
@@ -155,6 +157,37 @@ String boostVideoSdp(String sdp, {int startKbps = 1500, int maxKbps = 2500}) {
   return result.join(nl);
 }
 
+/// Ponuda veze u kojoj je H264 prvi video kodek: mobiteli ga kodiraju
+/// hardverski (VP8 ide procesorom, koji pod opterećenjem smanjuje
+/// rezoluciju — slika postaje mutna). Ako gledatelj nema H264, dogovori se
+/// sljedeći kodek s popisa.
+String preferH264(String sdp) {
+  final nl = sdp.contains('\r\n') ? '\r\n' : '\n';
+  final lines = sdp.split(nl);
+  final h264 = <String>{
+    for (final l in lines)
+      if (RegExp(r'^a=rtpmap:(\d+) H264/90000').firstMatch(l) case final m?)
+        m.group(1)!,
+  };
+  if (h264.isEmpty) return sdp;
+  return [
+    for (final l in lines)
+      if (l.startsWith('m=video '))
+        () {
+          final parts = l.split(' ');
+          final head = parts.take(3);
+          final pts = parts.skip(3).toList();
+          return [
+            ...head,
+            ...pts.where(h264.contains),
+            ...pts.where((p) => !h264.contains(p)),
+          ].join(' ');
+        }()
+      else
+        l,
+  ].join(nl);
+}
+
 /// Domaćin: kamera + mikrofon, po jedna veza za svakog gledatelja.
 class LiveBroadcaster {
   LiveBroadcaster(this._signaling);
@@ -184,14 +217,15 @@ class LiveBroadcaster {
   final revision = ValueNotifier<int>(0);
   bool _stopped = false;
 
-  /// Kamera u punoj kvaliteti (Full HD, 30 sl/s) i u omjeru kakav senzor
-  /// stvarno snima (16:9). Mobitel u uspravnom položaju sam okrene sliku.
-  /// Uspravni zahtjev (720×1280) tjerao je preglednik da izreže sredinu
-  /// senzora — slika je bila zumirana i mutna. `resizeMode: none` zabranjuje
-  /// pregledniku rezanje i umjetno smanjivanje slike.
+  /// Kamera u omjeru 4:3 — to je cijeli senzor mobitela (kao u aplikaciji
+  /// za kameru). 16:9 i uspravni zahtjevi koriste izrezani dio senzora, pa
+  /// je slika zumirana. Mobitel u uspravnom položaju sam okrene sliku
+  /// (1080×1440). Računala bez 4:3 dobiju najbližu oštru (16:9) sliku.
+  /// `resizeMode: none` zabranjuje pregledniku dodatno rezanje i
+  /// smanjivanje.
   static Map<String, dynamic> _video(bool front) => {
     'facingMode': front ? 'user' : 'environment',
-    'width': {'ideal': 1920},
+    'width': {'ideal': 1440},
     'height': {'ideal': 1080},
     'frameRate': {'ideal': 30, 'max': 30},
     'resizeMode': 'none',
@@ -210,6 +244,7 @@ class LiveBroadcaster {
       }
       return;
     }
+    local.getVideoTracks().forEach(preferDetail);
     stream.value = local;
     await _signaling.join(_onMessage);
     await _announce();
@@ -257,7 +292,10 @@ class LiveBroadcaster {
     for (final t in local.getTracks()) {
       await pc.addTrack(t, local);
     }
-    await pc.setLocalDescription(await pc.createOffer());
+    final offer = await pc.createOffer();
+    await pc.setLocalDescription(
+      RTCSessionDescription(preferH264(offer.sdp ?? ''), offer.type),
+    );
     final desc = await _gatheredDescription(pc);
     if (desc == null || _peers[viewer] != pc) return;
     await _signaling.send({
@@ -404,6 +442,7 @@ class LiveBroadcaster {
     bool isFront,
   ) async {
     track.enabled = cameraOn.value;
+    preferDetail(track);
     for (final pc in _peers.values) {
       for (final sender in await pc.getSenders()) {
         if (sender.track?.kind == 'video') await sender.replaceTrack(track);
