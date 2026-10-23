@@ -75,6 +75,7 @@ class DeliveryService {
 
   /// Pošiljka koja čeka odabir (osvojena aukcija).
   Future<Delivery> createPending({
+    String? id,
     required String userId,
     required String deviceId,
     required String deviceName,
@@ -83,7 +84,7 @@ class DeliveryService {
     DateTime? now,
   }) async {
     final d = Delivery(
-      id: _uuid.v4(),
+      id: id ?? _uuid.v4(),
       deviceId: deviceId,
       deviceName: deviceName,
       buyerId: userId,

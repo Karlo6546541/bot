@@ -190,6 +190,27 @@ ne sinkronizira; online prijavu vodi Supabase Auth i lozinke ne prolaze kroz na�
 - Aukcije su i u **swipe feedu** (oznaka 🔨 s odbrojavanjem, trenutna cijena, broj ponuda,
   *Licitiraj*, zvono) i u mreži objava na početnoj.
 
+## Live aukcije (kao Whatnot)
+
+- **Pokretanje**: *+ Objavi → Live aukcija* ili *Aukcije → Pokreni live*. Prodavatelj
+  odabere do 20 svojih predmeta (redom kojim ih prodaje), početnu cijenu (zadano 1 €),
+  trajanje licitacije po predmetu (20/30/45/60 s) i početak — **odmah** ili **zakazano**
+  (do 7 dana unaprijed). Pratitelji dobiju obavijest 🔴. Predmeti se dok traje live
+  sklanjaju iz Marketa.
+- **Soba uživo**: pozornica s fotografijom predmeta, oznaka UŽIVO, broj gledatelja,
+  cijena, tko vodi, odbrojavanje, veliki gumb *Licitiraj X €* (ili vlastiti iznos),
+  chat s brzim reakcijama 🔥👏😍💸 i popis predmeta (što je prodano, što slijedi).
+- **Pravila**: predmeti idu jedan za drugim (5 s pauze); ponuda u zadnjih 10 s vraća sat
+  na 10 s (*sudden death*); vodeći ne može licitirati sam sebe; domaćin ne licitira.
+  Pobjednik plaća karticom i bira dostavu, prodavatelj dobiva cijelu ponudu.
+  Domaćin može završiti live ranije — predmet koji se licitira i ostali ostaju njemu.
+- **Kako radi bez servera**: raspored je deterministički (start + trajanje + produljenja),
+  a svaka ponuda/poruka je zaseban zapis (`loop_live_events`), pa svaki uređaj izračuna
+  isto stanje. Prodaju provodi domaćin ili pobjednik s istim ID-jem transakcije (nema
+  dvostrukih prodaja).
+- **Ograničenja demoa**: nema pravog videa (za to treba servis za prijenos, npr. LiveKit,
+  Mux ili Agora); satovi uređaja trebaju biti točni.
+
 ## Objave kao TikTok, trgovine i pratitelji
 
 - Swipe feed: slika preko cijelog ekrana (zamućena pozadina za uske/široke fotografije),
@@ -557,6 +578,7 @@ lib/
 │   ├── inbox.dart            # stvaranje obavijesti
 │   ├── file_saver/           # spremanje datoteke (preuzimanje na webu)
 │   ├── auction_service.dart  # aukcije: objava, ponude, automatska ponuda, zaključivanje
+│   ├── live_service.dart     # live aukcije: raspored, ponude, chat, zaključivanje
 │   ├── dac7.dart             # DAC7 izvještaj prodavatelja (CSV za Poreznu upravu)
 │   ├── delivery_service.dart # dostava: načini, naplata, praćenje, potvrda primitka
 │   ├── auction_policy.dart   # limiti i naknada za objavu aukcija

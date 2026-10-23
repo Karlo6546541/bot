@@ -1617,4 +1617,111 @@ const kEn = <String, String>{
   'Impresum': 'Imprint',
   '• Prije brisanja isplati zaradu ({0}) na svoj IBAN — poslije to više nije moguće.':
       '• Pay out your earnings ({0}) to your IBAN before deleting — afterwards it is no longer possible.',
+  ' licitira {0}': ' bids {0}',
+  '"{0}" je već na aukciji.': '"{0}" is already in an auction.',
+  'Digitalni proizvodi ne idu na live.':
+      'Digital products can\'t go into a live show.',
+  'Dodaj predmete (ne digitalne) pa pokreni live.':
+      'Add (non-digital) items, then go live.',
+  'Dodiruj redom kojim ih želiš prodavati. Upiši početnu cijenu.':
+      'Tap them in the order you want to sell them. Set a starting price.',
+  'Kreni uživo': 'Go live',
+  'Licitacija po predmetu': 'Bidding time per item',
+  'Live aukcija': 'Live auction',
+  'Live aukcije': 'Live auctions',
+  'Live je zakazan': 'Live show scheduled',
+  'Live je završen': 'Live show ended',
+  'Live je završio': 'The live show has ended',
+  'Live kreće sam u zakazano vrijeme.':
+      'The show starts automatically at the scheduled time.',
+  'Live može imati najviše {0} predmeta.':
+      'A live show can have at most {0} items.',
+  'Live ne postoji.': 'This live show doesn\'t exist.',
+  'Live se može zakazati najviše 7 dana unaprijed.':
+      'A live show can be scheduled at most 7 days ahead.',
+  'Napiši nešto…': 'Say something…',
+  'Naslov livea': 'Show title',
+  'Naslov može imati najviše {0} znakova.':
+      'The title can have at most {0} characters.',
+  'Ne možeš licitirati na ovom liveu.': 'You can\'t bid in this live show.',
+  'Ne možeš licitirati na svom liveu.': 'You can\'t bid in your own live show.',
+  'Nemaš predmeta za live': 'No items for a live show',
+  'Nije prodano': 'Not sold',
+  'Nitko trenutno nije uživo. Pokreni svoj live — predmeti se licitiraju jedan za drugim, brzo i uz chat.':
+      'Nobody is live right now. Start your own show — items are auctioned one after another, fast and with chat.',
+  'Novi live': 'New live show',
+  'Od': 'From',
+  'Od {0}': 'From {0}',
+  'Odaberi barem jedan predmet.': 'Pick at least one item.',
+  'Odaberi dostavu u Obavijestima.': 'Choose delivery in Notifications.',
+  'Odaberi trajanje licitacije.': 'Choose the bidding time.',
+  'Odmah': 'Now',
+  'Osvojio si {0} · odaberi dostavu': 'You won {0} · choose delivery',
+  'Otkazati live?': 'Cancel the live show?',
+  'Otkaži live': 'Cancel live show',
+  'Pokreni live': 'Go live',
+  'Ponuda je obvezujuća · plaćaš karticom ako pobijediš':
+      'Bids are binding · you pay by card if you win',
+  'Ponuda je poslana.': 'Bid sent.',
+  'Početak': 'Start',
+  'Početna cijena mora biti barem 1 €.':
+      'The starting price must be at least €1.',
+  'Počinje {0}': 'Starts {0}',
+  'Pratitelji dobivaju obavijest odmah.':
+      'Your followers are notified right away.',
+  'Predmet koji se upravo licitira i svi sljedeći ostaju tebi. Već prodani ostaju prodani.':
+      'The item being auctioned now and all the following ones stay yours. Items already sold stay sold.',
+  'Predmet {0}/{1} · još nema ponuda': 'Item {0}/{1} · no bids yet',
+  'Predmeti ({0}/{1})': 'Items ({0}/{1})',
+  'Predmeti u liveu': 'Items in the show',
+  'Preskočeno': 'Skipped',
+  'Prijavi se za licitiranje': 'Sign in to bid',
+  'Prodaj više predmeta u jednom liveu: svaki se licitira kratko, gledatelji licitiraju i pišu u chatu.':
+      'Sell several items in one live show: each one is auctioned briefly while viewers bid and chat.',
+  'Prodano {0} od {1} predmeta': 'Sold {0} of {1} items',
+  'Sada: {0}': 'Now: {0}',
+  'Samo domaćin može završiti live.': 'Only the host can end the live show.',
+  'Sljedeće: {0}': 'Up next: {0}',
+  'Trajanje oko {0} min': 'About {0} min long',
+  'Trenutno se ništa ne licitira.': 'Nothing is being auctioned right now.',
+  'U live možeš staviti samo svoje predmete.':
+      'You can only put your own items in a live show.',
+  'Upiši naslov livea.': 'Enter a show title.',
+  'Upiši početnu cijenu za svaki predmet.':
+      'Enter a starting price for every item.',
+  'UŽIVO': 'LIVE',
+  'Uživo si! 🔴': 'You\'re live! 🔴',
+  'Već imaš live u tijeku ili zakazan.':
+      'You already have a live show running or scheduled.',
+  'Već vodiš — pričekaj da te netko nadmaši.':
+      'You\'re already winning — wait until someone outbids you.',
+  'Više predmeta uživo, uz chat': 'Several items live, with chat',
+  'Vodiš s {0}! 🔥': 'You\'re winning with {0}! 🔥',
+  'Vrijednost {0}': 'Value {0}',
+  'ZAKAZANO': 'SCHEDULED',
+  'ZAVRŠENO': 'ENDED',
+  'Za chat se prijavi.': 'Sign in to chat.',
+  'Za licitiranje se prijavi.': 'Sign in to bid.',
+  'Za live aukciju se prijavi.': 'Sign in to go live.',
+  'Zakaži': 'Schedule',
+  'Zakaži live': 'Schedule live show',
+  'Završi': 'End',
+  'Završi live': 'End live show',
+  'Završiti live?': 'End the live show?',
+  'npr. Retro igre od 1 €': 'e.g. Retro games from €1',
+  '{0} predmeta · licitacija od {1}': '{0} items · bidding from {1}',
+  '{0} s': '{0} s',
+  '• Predmeti idu redom, svaki se licitira {0} s.\n• Ponuda u zadnjih 10 s vraća sat na 10 s.\n• Pobjednik plaća karticom, ti dobivaš cijelu ponudu.\n• Dok traje live, predmeti nisu u Marketu.\n• Ako nitko ne ponudi, predmet ostaje tebi.':
+      '• Items go one by one, each is auctioned for {0} s.\n• A bid in the last 10 s resets the clock to 10 s.\n• The winner pays by card, you get the full bid.\n• While the show runs, the items are not in the Market.\n• If nobody bids, the item stays yours.',
+  '⚡ Ponuda sada vraća sat na 10 s': '⚡ A bid now resets the clock to 10 s',
+  '✅ {0} · {1}': '✅ {0} · {1}',
+  '✓ Vodiš s {0}': '✓ Winning with {0}',
+  '🎉 PRODANO!': '🎉 SOLD!',
+  '🏆 Osvojio si!': '🏆 You won!',
+  '🔴 Licitira se': '🔴 Bidding now',
+  '🥇 {0} vodi': '🥇 {0} is winning',
+  '🥇 Ti vodiš': '🥇 You\'re winning',
+  '{0} ide uživo: "{1}" ({2}).': '{0} is going live: "{1}" ({2}).',
+  'Predmet je u live aukciji — pričekaj da se licitira.':
+      'This item is in a live auction — wait until it has been auctioned.',
 };

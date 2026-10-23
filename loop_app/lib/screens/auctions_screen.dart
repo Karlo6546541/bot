@@ -11,6 +11,7 @@ import '../widgets/empty_state.dart';
 import '../widgets/formatters.dart';
 import '../widgets/item_image.dart';
 import 'auction_detail_screen.dart';
+import 'live_screens.dart';
 import '../l10n/tr.dart';
 
 /// Prikaz u odjeljku Aukcije.
@@ -90,6 +91,12 @@ class _AuctionsScreenState extends ConsumerState<AuctionsScreen> {
           child: Padding(
             padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
             child: const _RulesBanner(),
+          ),
+        ),
+        const SliverToBoxAdapter(
+          child: Padding(
+            padding: EdgeInsets.fromLTRB(16, 0, 16, 12),
+            child: LiveShowsStrip(),
           ),
         ),
         SliverToBoxAdapter(

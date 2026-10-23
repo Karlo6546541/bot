@@ -8,6 +8,7 @@ import '../utils/formatters.dart';
 import 'bargain_service.dart';
 import 'seed_data.dart';
 import 'fee.dart';
+import 'live_service.dart';
 import 'storage_service.dart';
 import '../l10n/tr.dart';
 import '../models/app_notification.dart';
@@ -129,6 +130,9 @@ class TradeService {
         t('Predmet je na aukciji i ne može se prodati dok aukcija traje.'),
       );
     }
+    if (LiveService.isLocked(_storage, deviceId)) {
+      throw TradeException(LiveService.lockedMessage);
+    }
 
     // Prodaja je bez naknade.
     const fee = 0.0;
@@ -185,6 +189,9 @@ class TradeService {
         (seller == null ||
             seller.pendingDeletion ||
             seller.blockedIds.contains(userId))) {
+      throw TradeException(t('Predmet više nije dostupan.'));
+    }
+    if (device.isListed && LiveService.isLocked(_storage, deviceId)) {
       throw TradeException(t('Predmet više nije dostupan.'));
     }
 
@@ -302,6 +309,9 @@ class TradeService {
         t('Predmet je na aukciji i ne može se prodati dok aukcija traje.'),
       );
     }
+    if (LiveService.isLocked(_storage, deviceId)) {
+      throw TradeException(LiveService.lockedMessage);
+    }
     if (price <= 0 || price > maxListPrice) {
       throw TradeException(
         t('Cijena mora biti između 1 i {0}.', [formatCredits(maxListPrice)]),
@@ -358,6 +368,9 @@ class TradeService {
         ),
       );
     }
+    if (LiveService.isLocked(_storage, deviceId)) {
+      throw TradeException(LiveService.lockedMessage);
+    }
     if (device.isDigital && buyersOf(deviceId).isNotEmpty) {
       throw TradeException(
         t(
@@ -384,7 +397,8 @@ class TradeService {
           owner == null ||
           owner.isGuest ||
           owner.pendingDeletion ||
-          _storage.activeAuctionFor(d.id) != null;
+          _storage.activeAuctionFor(d.id) != null ||
+          LiveService.isLocked(_storage, d.id, now: at);
       if (skip || d.isListed) {
         await _storage.putDevice(
           d.withListing(d.listPrice, at: d.listedAt ?? at),

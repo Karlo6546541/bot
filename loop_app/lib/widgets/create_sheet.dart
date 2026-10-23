@@ -3,12 +3,13 @@ import 'package:flutter/material.dart';
 import '../l10n/tr.dart';
 import '../screens/add_device_screen.dart';
 import '../screens/create_auction_screen.dart';
+import '../screens/live_screens.dart';
 import '../theme/app_theme.dart';
 import 'story_editor.dart';
 import 'trade_actions.dart';
 
 /// "+ Objavi": jedno mjesto za sve što korisnik objavljuje — oglas u
-/// Marketu, aukciju ili priču.
+/// Marketu, aukciju, live aukciju ili priču.
 Future<void> showCreateSheet(BuildContext context) async {
   if (blockGuest(context)) return;
   final choice = await showModalBottomSheet<String>(
@@ -100,6 +101,13 @@ Future<void> showCreateSheet(BuildContext context) async {
                 t('Najviša ponuda pobjeđuje'),
               ),
               option(
+                'live',
+                '🔴',
+                LoopColors.rose,
+                t('Live aukcija'),
+                t('Više predmeta uživo, uz chat'),
+              ),
+              option(
                 'story',
                 '✨',
                 LoopColors.peach,
@@ -118,6 +126,8 @@ Future<void> showCreateSheet(BuildContext context) async {
       await AddDeviceScreen.open(context);
     case 'auction':
       await CreateAuctionScreen.open(context);
+    case 'live':
+      await CreateLiveShowScreen.open(context);
     case 'story':
       await CreateStoryScreen.open(context);
   }

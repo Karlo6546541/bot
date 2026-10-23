@@ -15,6 +15,8 @@ import '../models/delivery.dart';
 import '../models/device.dart';
 import '../models/loop_transaction.dart';
 import '../models/portfolio_point.dart';
+import '../models/live_show.dart';
+import '../services/live_service.dart';
 import '../services/seed_data.dart';
 import '../services/storage_service.dart';
 
@@ -44,6 +46,8 @@ class AppState {
     this.views = const {},
     this.stories = const [],
     this.seenStories = const {},
+    this.liveShows = const [],
+    this.liveEvents = const [],
   });
 
   factory AppState.fromStorage(StorageService storage) {
@@ -95,6 +99,9 @@ class AppState {
         ...SeedData.dailyStories(storage.devices, DateTime.now()),
       ]..sort((a, b) => a.createdAt.compareTo(b.createdAt)),
       seenStories: storage.seenStories,
+      liveShows: [...storage.liveShows]
+        ..sort((a, b) => b.startsAt.compareTo(a.startsAt)),
+      liveEvents: storage.liveEvents,
       myHistory: storage.currentUserId == null
           ? const []
           : storage.historyOf(storage.currentUserId!),
@@ -149,6 +156,40 @@ class AppState {
   /// Sve priče (najstarije prvo) i one koje sam pogledao na ovom uređaju.
   final List<Story> stories;
   final Set<String> seenStories;
+
+  /// Live aukcije (najnovije prvo) i njihovi događaji.
+  final List<LiveShow> liveShows;
+  final List<LiveEvent> liveEvents;
+
+  LiveShow? liveShowById(String id) =>
+      liveShows.where((s) => s.id == id).firstOrNull;
+
+  /// Izračunato stanje livea (isto na svim uređajima).
+  LiveState liveStateOf(LiveShow show, [DateTime? now]) => LiveService.compute(
+    show,
+    [
+      for (final e in liveEvents)
+        if (e.showId == show.id) e,
+    ],
+    now ?? DateTime.now(),
+    hiddenUsers: {...?currentUser?.blockedIds},
+  );
+
+  /// Liveovi koji su u tijeku ili zakazani (u tijeku prvo).
+  List<(LiveShow, LiveState)> get activeLives {
+    final now = DateTime.now();
+    final out = [
+      for (final s in liveShows)
+        if (userById(s.hostId) case final host?
+            when !isBlocked(host.id) && !host.pendingDeletion)
+          (s, liveStateOf(s, now)),
+    ].where((e) => !e.$2.isOver).toList();
+    out.sort((a, b) {
+      if (a.$2.isLive != b.$2.isLive) return a.$2.isLive ? -1 : 1;
+      return a.$1.startsAt.compareTo(b.$1.startsAt);
+    });
+    return out;
+  }
 
   /// Aktivne priče grupirane po trgovini: prvo moje, zatim nepogledane
   /// (praćene trgovine prve), na kraju pogledane.

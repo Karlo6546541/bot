@@ -7,6 +7,7 @@ import '../models/swap_offer.dart';
 import 'delivery_service.dart';
 import 'fee.dart';
 import 'inbox.dart';
+import 'live_service.dart';
 import 'storage_service.dart';
 import 'trade_service.dart';
 
@@ -55,6 +56,10 @@ class SwapService {
     }
     if (_storage.activeAuctionFor(offeredDeviceId) != null) {
       throw TradeException(t('Predmet na aukciji ne možeš ponuditi.'));
+    }
+    if (LiveService.isLocked(_storage, offeredDeviceId) ||
+        LiveService.isLocked(_storage, wantedDeviceId)) {
+      throw TradeException(LiveService.lockedMessage);
     }
     final extra = roundCredits(extraCredits);
     if (extra < 0) throw TradeException(t('Nadoplata ne može biti negativna.'));
@@ -118,7 +123,9 @@ class SwapService {
         wanted?.ownerId == to.id &&
         offered?.ownerId == from.id &&
         _storage.activeAuctionFor(o.wantedDeviceId) == null &&
-        _storage.activeAuctionFor(o.offeredDeviceId) == null;
+        _storage.activeAuctionFor(o.offeredDeviceId) == null &&
+        !LiveService.isLocked(_storage, o.wantedDeviceId) &&
+        !LiveService.isLocked(_storage, o.offeredDeviceId);
     if (!stillValid) {
       await _storage.putOffer(o.withStatus(SwapStatus.failed, at));
       throw TradeException(

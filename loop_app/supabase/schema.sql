@@ -30,7 +30,7 @@ begin
     'loop_history', 'loop_auctions', 'loop_deliveries',
     'loop_reviews', 'loop_notifications', 'loop_reports',
     'loop_messages', 'loop_offers', 'loop_bargains', 'loop_views',
-    'loop_stories'
+    'loop_stories', 'loop_live_shows', 'loop_live_events'
   ]
   loop
     execute format(
@@ -182,6 +182,8 @@ create or replace view public.loop_stats
   union all select 'views', count(*) from public.loop_views
   union all select 'stories', count(*) from public.loop_stories
   union all select 'sellers', count(*) from public.loop_sellers
+  union all select 'live_shows', count(*) from public.loop_live_shows
+  union all select 'live_events', count(*) from public.loop_live_events
   union all select 'usernames', count(*) from public.loop_usernames;
 
 -- Brisanje svih testnih podataka (pokreni ručno kad treba):
@@ -189,7 +191,8 @@ create or replace view public.loop_stats
 --          public.loop_history, public.loop_auctions, public.loop_deliveries,
 --          public.loop_reviews, public.loop_notifications, public.loop_reports,
 --          public.loop_messages, public.loop_offers, public.loop_bargains,
---          public.loop_views, public.loop_stories, public.loop_sellers;
+--          public.loop_views, public.loop_stories, public.loop_sellers,
+--          public.loop_live_shows, public.loop_live_events;
 
 -- -----------------------------------------------------------------------------
 -- Fotografije (predmeti i profilne slike) — Supabase Storage.

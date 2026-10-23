@@ -17,6 +17,7 @@ import '../widgets/loop_snackbar.dart';
 import 'auction_detail_screen.dart';
 import 'deliveries_screen.dart';
 import 'device_detail_screen.dart';
+import 'live_screens.dart';
 import 'messages_screen.dart';
 import 'public_profile_screen.dart';
 
@@ -50,6 +51,8 @@ class NotificationsScreen extends ConsumerStatefulWidget {
         if (id != null) await AuctionDetailScreen.open(context, id);
       case NotificationKind.auctionWon:
         await DeliveriesScreen.open(context);
+      case NotificationKind.liveStarted:
+        if (id != null) await LiveRoomScreen.open(context, id);
       case NotificationKind.itemSold ||
           NotificationKind.priceDrop ||
           NotificationKind.bargainNew ||

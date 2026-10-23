@@ -60,6 +60,8 @@ class LoopColors {
       _dark ? const Color(0xFF2B2740) : const Color(0xFFE7E0FF);
   static Color get sky =>
       _dark ? const Color(0xFF1F2C3A) : const Color(0xFFD9ECFF);
+  static Color get rose =>
+      _dark ? const Color(0xFF3A2228) : const Color(0xFFFFD9E0);
 
   /// Meka sjena kartica (u tamnoj temi gotovo nevidljiva).
   static List<BoxShadow> get softShadow => [

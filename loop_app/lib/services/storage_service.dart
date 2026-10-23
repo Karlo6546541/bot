@@ -8,6 +8,7 @@ import '../models/chat_message.dart';
 import '../models/report.dart';
 import '../models/review.dart';
 import '../models/price_offer.dart';
+import '../models/live_show.dart';
 import '../models/story.dart';
 import '../models/swap_offer.dart';
 import '../models/auction.dart';
@@ -42,6 +43,10 @@ class StorageService {
   /// Podaci prodavatelja (OIB, IBAN…) — odvojeno od javnog profila; online
   /// ih vidi samo vlasnik (vidi supabase/schema.sql, loop_sellers).
   static const _sellersBox = 'sellers';
+
+  /// Live aukcije (emisije) i njihovi događaji (ponude, chat, ulasci).
+  static const _liveShowsBox = 'live_shows';
+  static const _liveEventsBox = 'live_events';
   static const _seenStoriesKey = 'seenStories';
 
   /// Broj prikaza objava (oglasa): id predmeta → {count}.
@@ -71,6 +76,8 @@ class StorageService {
     _viewsBox,
     _storiesBox,
     _sellersBox,
+    _liveShowsBox,
+    _liveEventsBox,
   ];
 
   /// Povećaj kad se seed proširi — postojeće instalacije tada dobiju
@@ -113,6 +120,8 @@ class StorageService {
   late Box<Map> _views;
   late Box<Map> _stories;
   late Box<Map> _sellers;
+  late Box<Map> _liveShows;
+  late Box<Map> _liveEvents;
 
   /// Poziva se nakon svake lokalne promjene (za sinkronizaciju s online
   /// bazom). `data == null` znači brisanje.
@@ -135,6 +144,8 @@ class StorageService {
     _viewsBox: _views,
     _storiesBox: _stories,
     _sellersBox: _sellers,
+    _liveShowsBox: _liveShows,
+    _liveEventsBox: _liveEvents,
   };
 
   /// Svi zapisi prolaze ovuda kako bi ih sinkronizacija vidjela.
@@ -181,6 +192,8 @@ class StorageService {
     _views = await Hive.openBox<Map>(_viewsBox, bytes: bytes);
     _stories = await Hive.openBox<Map>(_storiesBox, bytes: bytes);
     _sellers = await Hive.openBox<Map>(_sellersBox, bytes: bytes);
+    _liveShows = await Hive.openBox<Map>(_liveShowsBox, bytes: bytes);
+    _liveEvents = await Hive.openBox<Map>(_liveEventsBox, bytes: bytes);
 
     if (_session.get(_seededKey) != true) {
       await _seed();
@@ -543,6 +556,30 @@ class StorageService {
       _stories.values.map(Story.fromMap).toList(growable: false);
 
   Future<void> putStory(Story s) => _write(_storiesBox, s.id, s.toMap());
+
+  List<LiveShow> get liveShows =>
+      _liveShows.values.map(LiveShow.fromMap).toList(growable: false);
+
+  LiveShow? liveShowById(String id) {
+    final m = _liveShows.get(id);
+    return m == null ? null : LiveShow.fromMap(m);
+  }
+
+  List<LiveEvent> get liveEvents =>
+      _liveEvents.values.map(LiveEvent.fromMap).toList(growable: false);
+
+  List<LiveEvent> liveEventsOf(String showId) => [
+    for (final m in _liveEvents.values)
+      if (m['showId'] == showId) LiveEvent.fromMap(m),
+  ];
+
+  Future<void> putLiveShow(LiveShow s) =>
+      _write(_liveShowsBox, s.id, s.toMap());
+
+  Future<void> putLiveEvent(LiveEvent e) =>
+      _write(_liveEventsBox, e.id, e.toMap());
+
+  Future<void> deleteLiveEvent(String id) => _remove(_liveEventsBox, id);
 
   Future<void> deleteStory(String id) => _remove(_storiesBox, id);
 

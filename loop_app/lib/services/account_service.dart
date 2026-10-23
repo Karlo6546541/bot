@@ -4,6 +4,7 @@ import '../utils/formatters.dart';
 import '../models/app_notification.dart';
 import 'auth_backend.dart';
 import 'inbox.dart';
+import 'live_service.dart';
 import 'storage_service.dart';
 import 'trade_service.dart';
 import 'username_rules.dart';
@@ -464,7 +465,10 @@ class AccountService {
   Future<List<String>> _erase(AppUser user) async {
     final images = <String>[?user.avatarPath, ?user.coverPath];
     for (final d in _storage.devices.where((d) => d.ownerId == user.id)) {
-      if (_storage.activeAuctionFor(d.id) != null) continue;
+      if (_storage.activeAuctionFor(d.id) != null ||
+          LiveService.isLocked(_storage, d.id)) {
+        continue;
+      }
       images.addAll(d.imagePaths);
       await _storage.deleteDevice(d.id);
     }

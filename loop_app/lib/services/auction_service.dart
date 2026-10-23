@@ -6,6 +6,7 @@ import '../utils/formatters.dart';
 import 'auction_policy.dart';
 import 'delivery_service.dart';
 import 'fee.dart';
+import 'live_service.dart';
 import 'storage_service.dart';
 import 'trade_service.dart';
 import '../l10n/tr.dart';
@@ -67,6 +68,9 @@ class AuctionService {
     }
     if (_storage.activeAuctionFor(deviceId) != null) {
       throw TradeException(t('Predmet je već na aukciji.'));
+    }
+    if (LiveService.isLocked(_storage, deviceId)) {
+      throw TradeException(LiveService.lockedMessage);
     }
     if (device.isDigital) {
       throw TradeException(

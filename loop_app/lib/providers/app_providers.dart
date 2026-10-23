@@ -12,8 +12,10 @@ import '../models/auction.dart';
 import '../services/account_service.dart';
 import '../services/auction_service.dart';
 import '../services/bargain_service.dart';
+import '../services/live_service.dart';
 import '../services/social_service.dart';
 import '../models/app_notification.dart';
+import '../models/live_show.dart';
 import '../models/seller_info.dart';
 import '../models/story.dart';
 import '../models/wishlist.dart';
@@ -1183,6 +1185,71 @@ class AppController extends Notifier<AppState> {
     return on;
   }
 
+  // ---------------------------------------------------------- live aukcije
+
+  LiveService get _live => LiveService(ref.read(storageProvider));
+
+  Future<LiveShow> createLiveShow({
+    required String title,
+    required List<(String, double)> items,
+    int lotSeconds = 30,
+    DateTime? startsAt,
+  }) async {
+    _requireSellerInfo();
+    final show = await _live.create(
+      hostId: _requireUserId(),
+      title: title,
+      items: items,
+      lotSeconds: lotSeconds,
+      startsAt: startsAt,
+    );
+    _refresh();
+    return show;
+  }
+
+  Future<void> endLiveShow(String showId) async {
+    await _live.end(_requireUserId(), showId);
+    _refresh();
+  }
+
+  Future<void> joinLive(String showId) async {
+    final user = state.currentUser;
+    if (user == null || user.isGuest) return;
+    await _live.join(user.id, showId);
+    _refresh();
+  }
+
+  Future<void> liveChat(String showId, String text) async {
+    await _live.chat(_requireUserId(), showId, text);
+    _refresh();
+  }
+
+  /// Ponuda na trenutni predmet. Vraća `true` ako korisnik sad vodi.
+  Future<bool> liveBid(String showId, double amount) async {
+    final userId = _requireUserId();
+    final state = await _live.bid(userId, showId, amount);
+    _refresh();
+    return state.current?.leader?.userId == userId;
+  }
+
+  bool _liveSettling = false;
+
+  /// Provodi prodaje završenih predmeta (domaćin ili pobjednik).
+  Future<void> settleLive() async {
+    final user = state.currentUser;
+    if (_liveSettling || user == null || user.isGuest) return;
+    _liveSettling = true;
+    try {
+      if (await _live.settleDue(userId: user.id) > 0 && ref.mounted) {
+        _refresh();
+      }
+    } catch (_) {
+      // pokušat će ponovno pri sljedećem otkucaju
+    } finally {
+      _liveSettling = false;
+    }
+  }
+
   /// Periodički: podsjetnici pred kraj aukcija i zaključivanje isteklih.
   Future<void> auctionTick() async {
     if (!ref.mounted) return;
@@ -1194,6 +1261,7 @@ class AppController extends Notifier<AppState> {
       // nije kritično
     }
     await settleExpiredAuctions();
+    await settleLive();
   }
 
   Future<void> cancelAuction(String auctionId) async {
