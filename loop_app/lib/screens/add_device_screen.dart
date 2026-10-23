@@ -7,10 +7,8 @@ import '../providers/app_providers.dart';
 import '../services/file_store.dart';
 import '../services/image_store.dart';
 import '../services/trade_service.dart';
-import '../services/fee.dart';
 import '../theme/app_theme.dart';
 import '../widgets/category_style.dart';
-import '../widgets/formatters.dart';
 import '../widgets/item_image.dart';
 import '../widgets/photo_viewer.dart';
 import '../widgets/trade_actions.dart';
@@ -58,9 +56,25 @@ class _AddDeviceScreenState extends ConsumerState<AddDeviceScreen> {
   final _price = TextEditingController();
   final _quantity = TextEditingController(text: '1');
   final _description = TextEditingController();
-  DeviceCondition? _condition;
+  DeviceCondition? _condition = DeviceCondition.good;
   ItemSection _section = ItemSection.electronics;
   DeviceCategory? _category;
+
+  /// Kategorija je odabrana rukom (prijedlog iz naziva je više ne mijenja).
+  bool _categoryManual = false;
+
+  /// Prikazan je izbornik kategorija (inače samo predložena kategorija).
+  bool _pickCategory = false;
+
+  /// Kategorija iz naziva (npr. "iPhone" → Mobitel) dok je korisnik sam
+  /// ne odabere.
+  void _suggest(String name) {
+    if (_categoryManual) return;
+    final c = suggestCategory(name);
+    if (c == null) return;
+    _category = c;
+    _section = c.section;
+  }
 
   /// Kako se predmet prodaje nakon spremanja.
   SellMode _mode = SellMode.buyNow;
@@ -147,7 +161,7 @@ class _AddDeviceScreenState extends ConsumerState<AddDeviceScreen> {
           .read(appProvider.notifier)
           .addDevice(
             name: _name.text,
-            model: _model.text,
+            model: _model.text.trim(),
             condition: _digital ? DeviceCondition.brandNew : _condition!,
             price: _parsePrice(_price.text)!,
             category: _category!,
@@ -212,7 +226,7 @@ class _AddDeviceScreenState extends ConsumerState<AddDeviceScreen> {
                     ],
                     TextFormField(
                       controller: _name,
-                      onChanged: (_) => setState(() {}),
+                      onChanged: (v) => setState(() => _suggest(v)),
                       textCapitalization: TextCapitalization.words,
                       decoration: InputDecoration(
                         labelText: t('Naziv'),
@@ -220,151 +234,6 @@ class _AddDeviceScreenState extends ConsumerState<AddDeviceScreen> {
                       ),
                       validator: _required,
                     ),
-                    gap,
-                    TextFormField(
-                      controller: _model,
-                      onChanged: (_) => setState(() {}),
-                      decoration: InputDecoration(
-                        labelText: t('Model / detalji'),
-                        hintText: t(
-                          'npr. 256GB Titanium, godina, veličina, termin…',
-                        ),
-                      ),
-                      validator: _required,
-                    ),
-                    gap,
-                    // Opis: neobavezan, do 500 znakova (brojač ispod polja).
-                    TextFormField(
-                      controller: _description,
-                      minLines: 3,
-                      maxLines: 6,
-                      maxLength: Device.maxDescription,
-                      textCapitalization: TextCapitalization.sentences,
-                      decoration: InputDecoration(
-                        labelText: t('Opis (neobavezno)'),
-                        hintText: t(
-                          'Stanje, oštećenja, što dolazi u paketu, razlog prodaje…',
-                        ),
-                        alignLabelWithHint: true,
-                      ),
-                    ),
-                    if (!_digital) ...[
-                      gap,
-                      DropdownButtonFormField<DeviceCondition>(
-                        initialValue: _condition,
-                        decoration: InputDecoration(labelText: t('Stanje')),
-                        items: [
-                          for (final c in DeviceCondition.values)
-                            DropdownMenuItem(
-                              value: c,
-                              child: Row(
-                                children: [
-                                  Container(
-                                    width: 10,
-                                    height: 10,
-                                    decoration: BoxDecoration(
-                                      color: c.color,
-                                      shape: BoxShape.circle,
-                                    ),
-                                  ),
-                                  const SizedBox(width: 10),
-                                  Text(c.label),
-                                ],
-                              ),
-                            ),
-                        ],
-                        onChanged: (c) => setState(() => _condition = c),
-                        validator: (v) =>
-                            v == null ? t('Odaberi stanje') : null,
-                      ),
-                    ],
-                    gap,
-                    // Kategorija se bira dodirom na pločicu.
-                    FormField<DeviceCategory>(
-                      initialValue: _category,
-                      validator: (v) =>
-                          v == null ? t('Odaberi kategoriju') : null,
-                      builder: (field) => Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            t('Odjeljak'),
-                            style: TextStyle(color: LoopColors.textSecondary),
-                          ),
-                          const SizedBox(height: 8),
-                          Wrap(
-                            spacing: 8,
-                            runSpacing: 8,
-                            children: [
-                              for (final sec in ItemSection.values)
-                                if (sec != ItemSection.digital)
-                                  ChoiceChip(
-                                    avatar: Icon(sec.icon, size: 18),
-                                    label: Text(sec.label),
-                                    selected: _section == sec,
-                                    onSelected: (_) {
-                                      setState(() {
-                                        _section = sec;
-                                        _category = null;
-                                      });
-                                      field.didChange(null);
-                                    },
-                                  ),
-                            ],
-                          ),
-                          const SizedBox(height: 14),
-                          Text(
-                            t('Kategorija'),
-                            style: TextStyle(color: LoopColors.textSecondary),
-                          ),
-                          const SizedBox(height: 8),
-                          Wrap(
-                            spacing: 8,
-                            runSpacing: 8,
-                            children: [
-                              for (final c in _section.categories)
-                                _CategoryTile(
-                                  category: c,
-                                  selected: _category == c,
-                                  onTap: () {
-                                    setState(() => _category = c);
-                                    field.didChange(c);
-                                  },
-                                ),
-                            ],
-                          ),
-                          if (field.hasError)
-                            Padding(
-                              padding: const EdgeInsets.only(top: 6, left: 12),
-                              child: Text(
-                                field.errorText!,
-                                style: TextStyle(
-                                  color: LoopColors.error,
-                                  fontSize: 12,
-                                ),
-                              ),
-                            ),
-                        ],
-                      ),
-                    ),
-                    if (_digital) ...[
-                      gap,
-                      FormField<PickedFile>(
-                        key: const ValueKey('digital-file'),
-                        initialValue: _file,
-                        validator: (v) => v == null
-                            ? t('Dodaj datoteku koju kupac preuzima.')
-                            : null,
-                        builder: (field) => _FilePickerCard(
-                          file: _file,
-                          error: field.errorText,
-                          onPick: () => _pickFile(field),
-                          maxMb:
-                              ref.read(fileStoreProvider).maxBytes ~/
-                              (1024 * 1024),
-                        ),
-                      ),
-                    ],
                     gap,
                     TextFormField(
                       controller: _price,
@@ -386,39 +255,241 @@ class _AddDeviceScreenState extends ConsumerState<AddDeviceScreen> {
                         return null;
                       },
                     ),
-                    if (!_digital) ...[
-                      gap,
-                      TextFormField(
-                        key: const ValueKey('quantity-field'),
-                        controller: _quantity,
-                        keyboardType: TextInputType.number,
-                        inputFormatters: [
-                          FilteringTextInputFormatter.digitsOnly,
-                        ],
-                        decoration: InputDecoration(
-                          labelText: t('Količina na zalihi'),
-                          suffixText: t('kom'),
-                          helperText: t(
-                            'Imaš više istih komada? Svaka kupnja skida jedan s zalihe.',
+                    gap,
+                    // Kategorija se bira dodirom na pločicu.
+                    FormField<DeviceCategory>(
+                      key: ValueKey('cat-${_category?.name}'),
+                      initialValue: _category,
+                      validator: (v) =>
+                          v == null ? t('Odaberi kategoriju') : null,
+                      builder: (field) => !_pickCategory && _category != null
+                          ? ListTile(
+                              key: const ValueKey('add-category'),
+                              contentPadding: EdgeInsets.zero,
+                              leading: CategoryAvatar(
+                                category: _category!,
+                                size: 40,
+                              ),
+                              title: Text(
+                                _category!.singular,
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.w800,
+                                ),
+                              ),
+                              subtitle: Text(
+                                _categoryManual
+                                    ? t('Kategorija')
+                                    : t('Kategorija · predloženo iz naziva'),
+                              ),
+                              trailing: TextButton(
+                                key: const ValueKey('add-category-change'),
+                                onPressed: () =>
+                                    setState(() => _pickCategory = true),
+                                child: Text(t('Promijeni')),
+                              ),
+                            )
+                          : Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  t('Odjeljak'),
+                                  style: TextStyle(
+                                    color: LoopColors.textSecondary,
+                                  ),
+                                ),
+                                const SizedBox(height: 8),
+                                Wrap(
+                                  spacing: 8,
+                                  runSpacing: 8,
+                                  children: [
+                                    for (final sec in ItemSection.values)
+                                      if (sec != ItemSection.digital)
+                                        ChoiceChip(
+                                          avatar: Icon(sec.icon, size: 18),
+                                          label: Text(sec.label),
+                                          selected: _section == sec,
+                                          onSelected: (_) {
+                                            setState(() {
+                                              _section = sec;
+                                              _category = null;
+                                            });
+                                            field.didChange(null);
+                                          },
+                                        ),
+                                  ],
+                                ),
+                                const SizedBox(height: 14),
+                                Text(
+                                  t('Kategorija'),
+                                  style: TextStyle(
+                                    color: LoopColors.textSecondary,
+                                  ),
+                                ),
+                                const SizedBox(height: 8),
+                                Wrap(
+                                  spacing: 8,
+                                  runSpacing: 8,
+                                  children: [
+                                    for (final c in _section.categories)
+                                      _CategoryTile(
+                                        category: c,
+                                        selected: _category == c,
+                                        onTap: () {
+                                          setState(() {
+                                            _category = c;
+                                            _categoryManual = true;
+                                            _pickCategory = false;
+                                          });
+                                          field.didChange(c);
+                                        },
+                                      ),
+                                  ],
+                                ),
+                                if (field.hasError)
+                                  Padding(
+                                    padding: const EdgeInsets.only(
+                                      top: 6,
+                                      left: 12,
+                                    ),
+                                    child: Text(
+                                      field.errorText!,
+                                      style: TextStyle(
+                                        color: LoopColors.error,
+                                        fontSize: 12,
+                                      ),
+                                    ),
+                                  ),
+                              ],
+                            ),
+                    ),
+                    const SizedBox(height: 8),
+                    // Sve ostalo je neobavezno — skriveno dok se ne zatraži.
+                    Theme(
+                      data: Theme.of(
+                        context,
+                      ).copyWith(dividerColor: Colors.transparent),
+                      child: ExpansionTile(
+                        key: const ValueKey('add-more'),
+                        tilePadding: EdgeInsets.zero,
+                        childrenPadding: EdgeInsets.zero,
+                        title: Text(
+                          t('Više detalja (neobavezno)'),
+                          style: const TextStyle(fontWeight: FontWeight.w800),
+                        ),
+                        subtitle: Text(
+                          t('Model, opis, stanje, količina'),
+                          style: TextStyle(
+                            color: LoopColors.textSecondary,
+                            fontSize: 12,
                           ),
                         ),
-                        validator: (v) {
-                          final q = int.tryParse((v ?? '').trim());
-                          if (q == null || q < 1 || q > Device.maxQuantity) {
-                            return t('Od 1 do {0}', ['${Device.maxQuantity}']);
-                          }
-                          return null;
-                        },
+                        children: [
+                          TextFormField(
+                            controller: _model,
+                            onChanged: (_) => setState(() {}),
+                            decoration: InputDecoration(
+                              labelText: t('Model / detalji (neobavezno)'),
+                              hintText: t(
+                                'npr. 256GB Titanium, godina, veličina, termin…',
+                              ),
+                            ),
+                          ),
+                          gap,
+                          // Opis: neobavezan, do 500 znakova (brojač ispod polja).
+                          TextFormField(
+                            controller: _description,
+                            minLines: 3,
+                            maxLines: 6,
+                            maxLength: Device.maxDescription,
+                            textCapitalization: TextCapitalization.sentences,
+                            decoration: InputDecoration(
+                              labelText: t('Opis (neobavezno)'),
+                              hintText: t(
+                                'Stanje, oštećenja, što dolazi u paketu, razlog prodaje…',
+                              ),
+                              alignLabelWithHint: true,
+                            ),
+                          ),
+                          if (!_digital) ...[
+                            gap,
+                            DropdownButtonFormField<DeviceCondition>(
+                              initialValue: _condition,
+                              decoration: InputDecoration(
+                                labelText: t('Stanje'),
+                              ),
+                              items: [
+                                for (final c in DeviceCondition.values)
+                                  DropdownMenuItem(
+                                    value: c,
+                                    child: Row(
+                                      children: [
+                                        Container(
+                                          width: 10,
+                                          height: 10,
+                                          decoration: BoxDecoration(
+                                            color: c.color,
+                                            shape: BoxShape.circle,
+                                          ),
+                                        ),
+                                        const SizedBox(width: 10),
+                                        Text(c.label),
+                                      ],
+                                    ),
+                                  ),
+                              ],
+                              onChanged: (c) => setState(() => _condition = c),
+                              validator: (v) =>
+                                  v == null ? t('Odaberi stanje') : null,
+                            ),
+                            gap,
+                            TextFormField(
+                              key: const ValueKey('quantity-field'),
+                              controller: _quantity,
+                              keyboardType: TextInputType.number,
+                              inputFormatters: [
+                                FilteringTextInputFormatter.digitsOnly,
+                              ],
+                              decoration: InputDecoration(
+                                labelText: t('Količina na zalihi'),
+                                suffixText: t('kom'),
+                                helperText: t(
+                                  'Imaš više istih komada? Svaka kupnja skida jedan s zalihe.',
+                                ),
+                              ),
+                              validator: (v) {
+                                final q = int.tryParse((v ?? '').trim());
+                                if (q == null ||
+                                    q < 1 ||
+                                    q > Device.maxQuantity) {
+                                  return t('Od 1 do {0}', [
+                                    '${Device.maxQuantity}',
+                                  ]);
+                                }
+                                return null;
+                              },
+                            ),
+                          ],
+                        ],
+                      ),
+                    ),
+                    if (_digital) ...[
+                      gap,
+                      FormField<PickedFile>(
+                        key: const ValueKey('digital-file'),
+                        initialValue: _file,
+                        validator: (v) => v == null
+                            ? t('Dodaj datoteku koju kupac preuzima.')
+                            : null,
+                        builder: (field) => _FilePickerCard(
+                          file: _file,
+                          error: field.errorText,
+                          onPick: () => _pickFile(field),
+                          maxMb:
+                              ref.read(fileStoreProvider).maxBytes ~/
+                              (1024 * 1024),
+                        ),
                       ),
                     ],
-                    const SizedBox(height: 24),
-                    _Preview(
-                      photo: _photos.isEmpty ? null : _photos.first,
-                      name: _name.text,
-                      model: _model.text,
-                      category: _category,
-                      price: _parsePrice(_price.text),
-                    ),
                     const SizedBox(height: 12),
                     if (_digital)
                       Container(
@@ -607,105 +678,6 @@ class _CategoryTile extends StatelessWidget {
   }
 }
 
-/// Živi pregled kako će uređaj izgledati i koliko bi donio prodajom.
-class _Preview extends StatelessWidget {
-  const _Preview({
-    required this.photo,
-    required this.name,
-    required this.model,
-    required this.category,
-    required this.price,
-  });
-
-  final String? photo;
-  final String name;
-  final String model;
-  final DeviceCategory? category;
-  final double? price;
-
-  @override
-  Widget build(BuildContext context) {
-    final cat = category ?? DeviceCategory.other;
-    final validPrice = price != null && price! > 0;
-    return AnimatedContainer(
-      duration: const Duration(milliseconds: 250),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [cat.color.withValues(alpha: 0.2), LoopColors.surface],
-        ),
-        borderRadius: BorderRadius.circular(kRadius),
-        border: Border.all(color: cat.color.withValues(alpha: 0.3)),
-      ),
-      child: Row(
-        children: [
-          if (photo == null)
-            CategoryAvatar(category: cat)
-          else
-            ClipRRect(
-              borderRadius: BorderRadius.circular(13),
-              child: SizedBox(
-                width: 48,
-                height: 48,
-                child: LocalPhoto(
-                  path: photo!,
-                  cacheWidth: 144,
-                  fallback: CategoryAvatar(category: cat),
-                ),
-              ),
-            ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  t('PREGLED'),
-                  style: TextStyle(
-                    color: LoopColors.textSecondary,
-                    fontSize: 11,
-                    letterSpacing: 1.2,
-                  ),
-                ),
-                Text(
-                  name.trim().isEmpty ? t('Naziv predmeta') : name.trim(),
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(fontWeight: FontWeight.w700),
-                ),
-                Text(
-                  model.trim().isEmpty ? t('Model') : model.trim(),
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(color: LoopColors.textSecondary),
-                ),
-              ],
-            ),
-          ),
-          if (validPrice)
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: [
-                Text(
-                  formatCredits(price!),
-                  style: const TextStyle(fontWeight: FontWeight.w800),
-                ),
-                Text(
-                  t('prodaja: {0}', [formatCredits(sellPayout(price!))]),
-                  style: TextStyle(
-                    color: LoopColors.textSecondary,
-                    fontSize: 12,
-                  ),
-                ),
-              ],
-            ),
-        ],
-      ),
-    );
-  }
-}
-
-/// Red sličica odabranih fotografija + gumbi za galeriju/kameru.
 class _PhotoPicker extends StatelessWidget {
   const _PhotoPicker({
     required this.photos,

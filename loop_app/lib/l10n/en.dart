@@ -1945,8 +1945,6 @@ const kEn = <String, String>{
       '10% commission only on the amount above the starting price',
   'Provizija 5 %': '5% commission',
   'Radije prodaj na Kupi odmah': 'Sell on Buy now instead',
-  'Sat se ne produljuje — tko vodi kad dođe do nule, pobjeđuje.':
-      'The clock doesn\'t extend — whoever leads at zero wins.',
   'Spremi i nastavi': 'Save and continue',
   'Spremni za licitiranje?': 'Ready to bid?',
   'Testna kartica — u demo verziji ne unosiš prave podatke.':
@@ -1966,14 +1964,11 @@ const kEn = <String, String>{
       'Anything unsold goes on sale at its starting price after the show.',
   '• Dok aukcija traje, predmet je zaključan (ne može se prodati).\n• Aukciju možeš otkazati samo dok nema ponuda.\n• Objava je besplatna. Na kraju dobivaš najvišu ponudu umanjenu za 10 % od razlike iznad početne cijene{0}.\n• Ako nitko ne ponudi, predmet ostaje tebi.':
       '• While the auction runs, the item is locked (it can\'t be sold).\n• You can cancel the auction only while there are no bids.\n• Listing is free. At the end you get the highest bid minus 10% of the amount above the starting price{0}.\n• If nobody bids, the item stays yours.',
-  '• Live traje dok si uživo — završavaš ga ti (ili kad izađeš).\n• Ti biraš predmet i pokrećeš licitaciju od {0} s.\n• Ponuda u zadnjih 10 s vraća sat na 10 s (osim "sudden death").\n• Pobjednik plaća automatski karticom, a dostava kreće na njegovu adresu.\n• Provizija je 10 % samo od razlike iznad početne cijene.':
-      '• The show lasts while you\'re live — you end it (or it ends when you leave).\n• You pick an item and start {0} s of bidding.\n• A bid in the last 10 s resets the clock to 10 s (except "sudden death").\n• The winner is charged automatically and the parcel ships to their address.\n• Commission is 10% only on the amount above the starting price.',
+  '• Live traje dok si uživo — završavaš ga ti (ili kad izađeš).\n• Ti biraš predmet i pokrećeš licitaciju od {0} s.\n• Ponuda u zadnjih 10 s vraća sat na 10 s.\n• Pobjednik plaća automatski karticom, a dostava kreće na njegovu adresu.\n• Provizija je 10 % samo od razlike iznad početne cijene.':
+      '• The show lasts while you\'re live — you end it (or it ends when you leave).\n• You pick an item and start {0} s of bidding.\n• A bid in the last 10 s resets the clock to 10 s.\n• The winner is charged automatically and the parcel ships to their address.\n• Commission is 10% only on the amount above the starting price.',
   '🔒  Ponuda je obvezujuća — ne može se povući ni smanjiti.\n\n🥇  Dok vodiš, ne možeš licitirati ponovno (možeš povisiti automatsku ponudu).\n\n💳  Pobjednik plaća karticom kad aukcija završi — ništa se ne blokira unaprijed.\n\n⏱️  Ponuda u zadnjoj minuti produljuje aukciju za 1 minutu.\n\n🎁  Pobjednik dobiva predmet i ne plaća naknadu. Prodavatelju se odbija 10 % samo od razlike iznad početne cijene.':
       '🔒  A bid is binding — it can\'t be withdrawn or lowered.\n\n🥇  While you\'re leading you can\'t bid again (you can raise your automatic bid).\n\n💳  The winner pays by card when the auction ends — nothing is held in advance.\n\n⏱️  A bid in the last minute extends the auction by 1 minute.\n\n🎁  The winner gets the item and pays no fee. The seller pays 10% only on the amount above the starting price.',
   '⏱ Aukcije': '⏱ Auctions',
-  '☠️ Sudden death': '☠️ Sudden death',
-  '☠️ Sudden death — sat se ne produljuje!':
-      '☠️ Sudden death — the clock won\'t extend!',
   '🏷️ Kupi odmah': '🏷️ Buy now',
   '🏷️ Kupi odmah · fiksna cijena': '🏷️ Buy now · fixed price',
   '🛍️ Kupi odmah': '🛍️ Buy now',
@@ -2031,4 +2026,77 @@ const kEn = <String, String>{
       '📹 Video won\'t connect — retrying…',
   '📹 Video ne prolazi kroz ovu mrežu — probaj isti Wi-Fi':
       '📹 Video can\'t get through this network — try the same Wi-Fi',
+  'Digitalni proizvod se ne prodaje LOOP-u — kupci ga kupuju na Kupi odmah.':
+      'A digital product isn\'t sold to LOOP — buyers get it via Buy now.',
+  'Digitalni proizvodi se ne stavljaju na aukciju — prodaju se više puta na Kupi odmah.':
+      'Digital products can\'t be auctioned — they sell many times via Buy now.',
+  'Dodaj iz mojih predmeta': 'Add from my items',
+  'Dodaj karticu i adresu — licitiraj i kupuj jednim dodirom':
+      'Add a card and address — bid and buy in one tap',
+  'Dodaj predmet pa ga stavi na aukciju.':
+      'Add an item, then put it up for auction.',
+  'Dodirni za nastavak': 'Tap to continue',
+  'Fiksna cijena, kupnja jednim dodirom': 'Fixed price, one-tap checkout',
+  'Imaš već {0} aktivne aukcije — to je najviše. Pričekaj da neka završi ili prodaj na Kupi odmah.':
+      'You already have {0} active auctions — that\'s the maximum. Wait for one to end or sell via Buy now.',
+  'Kategorija · predloženo iz naziva': 'Category · suggested from the name',
+  'Kupi za {0}': 'Buy for {0}',
+  'Kupljeno! 🎉': 'Purchased! 🎉',
+  'Kurir {0} · {1}': 'Courier {0} · {1}',
+  'Licitiraj dok prodavač pokazuje predmet':
+      'Bid while the seller shows the item',
+  'Licitiraj u liveu ili na aukciji — tvoje ponude bit će ovdje.':
+      'Bid in a live show or an auction — your bids will show up here.',
+  'Licitiraj uživo.\nKupi odmah.': 'Bid live.\nBuy now.',
+  'Ponude': 'Bids',
+  ' i iz prodaje': ' and from sale',
+  'Prodajem': 'Selling',
+  'Liveovi': 'Live shows',
+  'Završeno': 'Ended',
+  'Live aukcije, aukcije i Kupi odmah na jednom mjestu — od kartica i tenisica do mobitela i vintage stvari.':
+      'Live auctions, auctions and Buy now in one place — from cards and sneakers to phones and vintage finds.',
+  'Model / detalji (neobavezno)': 'Model / details (optional)',
+  'Model, opis, stanje, količina': 'Model, description, condition, quantity',
+  'Na aukciju idu predmeti vrijedni barem {0}. Ovaj prodaj na Kupi odmah.':
+      'Only items worth at least {0} can be auctioned. Sell this one via Buy now.',
+  'Na predmetu na prodaji dodirni "Pošalji poruku" ili "Ponudi zamjenu".':
+      'On an item for sale, tap "Send message" or "Offer a swap".',
+  'Najviša ponuda kad istekne vrijeme': 'Highest bid when time runs out',
+  'Osvojio si! 🎉': 'You won! 🎉',
+  'Ovaj proizvod su već kupili ({0}) — ne može se obrisati jer ga kupci preuzimaju. Makni ga iz prodaje.':
+      'This product has already been bought ({0}) — it can\'t be deleted because buyers download it. Take it off sale instead.',
+  'PRODANO @{0} · {1}': 'SOLD @{0} · {1}',
+  'Plaćeno karticom · šaljemo na tvoju adresu':
+      'Paid by card · shipping to your address',
+  'Pokreni aukciju ili live i prodaj prvi predmet.':
+      'Start an auction or a live show and sell your first item.',
+  'Ponovi zadnji: {0}': 'Repeat last: {0}',
+  'Popust se može dati samo na predmet na Kupi odmah.':
+      'Discounts only apply to Buy now items.',
+  'Prati dostavu u "Moje dostave"': 'Track delivery in "My deliveries"',
+  'Predmet ostaje tvoj dok ga netko ne kupi. Možeš ga maknuti iz prodaje kad god želiš.':
+      'The item stays yours until someone buys it. You can take it off sale any time.',
+  'Predmet se sprema u Moje predmete i ide na kraj reda.':
+      'The item is saved to My items and goes to the end of the queue.',
+  'Predmeti ostaju na prodaji, briše se samo lista.':
+      'Items stay on sale; only the list is deleted.',
+  'Promijeni dostavu': 'Change delivery',
+  'Sljedeći: {0}': 'Next: {0}',
+  'Tvoji predmeti prikazuju se prvi u Istraži i na početnoj, s oznakom "Istaknuto". Cijena: {0} tjedno.':
+      'Your items show first in Explore and on the home screen, marked "Featured". Price: {0} per week.',
+  'U Istraži odaberi odjeljak "Digitalno" — 3D modeli, softver, e-knjige, predlošci i zvukovi.':
+      'In Explore, pick the "Digital" section — 3D models, software, e-books, templates and sounds.',
+  'Upiši naziv i cijenu (barem 1 €).': 'Enter a name and price (at least €1).',
+  'Upiši naziv predmeta.': 'Enter the item\'s name.',
+  'Više detalja (neobavezno)': 'More details (optional)',
+  'Više načina dostave': 'More delivery options',
+  'Zamjena je moguća samo za tuđe predmete na prodaji.':
+      'Swaps are only possible for other people\'s items on sale.',
+  '{0} bit će obrisan. Njegovi predmeti vraćaju se u prodaju, a transakcije ostaju u povijesti.':
+      '{0} will be deleted. Their items go back on sale and transactions stay in the history.',
+  '• Briše se {0} tvojih predmeta i njihove objave na prodaji.':
+      '• {0} of your items and their listings will be deleted.',
+  '⚡ Brzo dodaj': '⚡ Quick add',
+  'Dodaj karticu i adresu': 'Add card and address',
+  'Kupujem': 'Buying',
 };

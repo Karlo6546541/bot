@@ -587,7 +587,7 @@ class ProfileHeader extends ConsumerWidget {
           end: Alignment.bottomRight,
           colors: [
             LoopColors.accent.withValues(alpha: 0.85),
-            const Color(0xFF7B2FF7),
+            LoopColors.accent,
           ],
         ),
       ),

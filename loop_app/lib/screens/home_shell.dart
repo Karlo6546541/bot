@@ -156,7 +156,7 @@ class _HomeShellState extends ConsumerState<HomeShell> {
         children: [
           LiveHomeScreen(onBrowse: () => _go(1)),
           const AuctionsScreen(),
-          const MyAuctionsView(),
+          MyAuctionsView(onBrowse: () => _go(1)),
           const ProfileScreen(),
         ],
       ),

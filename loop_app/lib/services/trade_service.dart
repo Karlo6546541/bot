@@ -71,8 +71,8 @@ class TradeService {
         t('Digitalni proizvod treba datoteku koju kupac preuzima.'),
       );
     }
-    if (name.trim().isEmpty || model.trim().isEmpty) {
-      throw TradeException(t('Naziv i model su obavezni.'));
+    if (name.trim().isEmpty) {
+      throw TradeException(t('Upiši naziv predmeta.'));
     }
     if (price <= 0) {
       throw TradeException(t('Cijena mora biti veća od 0.'));
@@ -121,7 +121,7 @@ class TradeService {
     if (device.isDigital) {
       throw TradeException(
         t(
-          'Digitalni proizvod se ne prodaje LOOP-u — kupci ga kupuju u Marketu.',
+          'Digitalni proizvod se ne prodaje LOOP-u — kupci ga kupuju na Kupi odmah.',
         ),
       );
     }
@@ -374,7 +374,7 @@ class TradeService {
     if (device.isDigital && buyersOf(deviceId).isNotEmpty) {
       throw TradeException(
         t(
-          'Ovaj proizvod su već kupili ({0}) — ne može se obrisati jer ga kupci preuzimaju. Ukloni ga iz Marketa.',
+          'Ovaj proizvod su već kupili ({0}) — ne može se obrisati jer ga kupci preuzimaju. Makni ga iz prodaje.',
           [buyersOf(deviceId).length],
         ),
       );
@@ -435,7 +435,9 @@ class TradeService {
     final at = now ?? DateTime.now();
     final device = _requireOwn(userId, deviceId);
     if (!device.isListed) {
-      throw TradeException(t('Popust se može dati samo na oglas u Marketu.'));
+      throw TradeException(
+        t('Popust se može dati samo na predmet na Kupi odmah.'),
+      );
     }
     if (percent < 0 || percent > Device.maxDiscount) {
       throw TradeException(

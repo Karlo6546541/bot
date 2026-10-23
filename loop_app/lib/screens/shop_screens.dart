@@ -238,7 +238,7 @@ class _PromoteSheetState extends ConsumerState<_PromoteSheet> {
             const SizedBox(height: 6),
             Text(
               t(
-                'Tvoji oglasi prikazuju se prvi u Marketu (Preporučeno) i na početnoj, s oznakom "Istaknuto". Cijena: {0} tjedno.',
+                'Tvoji predmeti prikazuju se prvi u Istraži i na početnoj, s oznakom "Istaknuto". Cijena: {0} tjedno.',
                 [formatCredits(CommunityService.promotionWeekly)],
               ),
               style: TextStyle(color: LoopColors.textSecondary),

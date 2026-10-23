@@ -27,11 +27,12 @@ class DeliveryService {
   static List<DeliveryMethod> methodsFor(Device d) =>
       d.section == ItemSection.activities
       ? const [DeliveryMethod.digital]
+      // Kurir na spremljenu adresu je zadan (kao na Whatnotu).
       : const [
-          DeliveryMethod.pickup,
-          DeliveryMethod.parcelLocker,
           DeliveryMethod.courier,
+          DeliveryMethod.parcelLocker,
           DeliveryMethod.express,
+          DeliveryMethod.pickup,
         ];
 
   /// Provjera odredišta prije plaćanja.

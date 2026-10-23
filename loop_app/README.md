@@ -5,8 +5,8 @@ Demo Flutter aplikacija u stilu Whatnota — **jedan predmet, tri načina prodaj
 - **Live aukcije s videom**: prodavatelj ide uživo (odmah ili **zakazano**, s **naslovnom
   slikom** i kategorijom), pokazuje predmete kamerom i za svaki pokreće kratku licitaciju.
   **Live traje dok je prodavatelj uživo** — predmete dodaje usput, a live završava kad ga
-  završi ili izađe. Licitiranje radi kao na Whatnotu (maksimalna ponuda, koraci, sudden
-  death, predlicitacija, kartica i adresa unaprijed, dostava u jednom paketu).
+  završi ili izađe. Licitiranje radi kao na Whatnotu (maksimalna ponuda, koraci,
+  predlicitacija, kartica i adresa unaprijed, dostava u jednom paketu).
 - **Obične aukcije** koje traju satima ili danima (automatska ponuda, Kupi odmah, zvono).
 - **Kupi odmah**: fiksna cijena, cjenkanje („Ponudi cijenu”), popusti, zaliha.
 - Svi iznosi su u **eurima** (€). **Kupac ne plaća naknadu.** Provizija se odbija prodavatelju:
@@ -233,8 +233,7 @@ ne sinkronizira; online prijavu vodi Supabase Auth i lozinke ne prolaze kroz na�
     ne maksimumi;
   - **koraci**: 1 € do 10 €, 2 € do 50 €, 5 € do 100 €, 10 € do 250 €, 25 € do 500 €,
     50 € do 1.000 €, zatim 100 €;
-  - **standardno**: ponuda u zadnjih 10 s vraća sat na 10 s; **☠️ sudden death** (domaćin
-    bira po predmetu): sat se ne produljuje;
+  - **produljenje**: ponuda u zadnjih 10 s vraća sat na 10 s;
   - **predlicitacija**: u popisu predmeta gledatelj stisne *Predlicitiraj* za predmet koji tek
     dolazi (i u zakazanom liveu); ponuda vrijedi kad domaćin pokrene predmet;
   - **🛍️ Kupi odmah u liveu**: prodavačevi predmeti s fiksnom cijenom (gumb trgovine pokraj
@@ -280,7 +279,7 @@ ne sinkronizira; online prijavu vodi Supabase Auth i lozinke ne prolaze kroz na�
   *Prati* i *Podijeli* u gornjoj traci sobe. Za zakazani live **Podsjeti me** šalje
   obavijest čim domaćin krene.
 - **Pravila**: licitira se jedan predmet u isto vrijeme; ponuda u zadnjih 10 s vraća sat
-  na 10 s (*sudden death*); vodeći ne može licitirati sam sebe; domaćin ne licitira.
+  na 10 s; vodeći ne može licitirati sam sebe; domaćin ne licitira.
   Pobjednik plaća karticom i bira dostavu, prodavatelj dobiva cijelu ponudu.
   Domaćin može završiti live ranije — predmet koji se licitira i ostali ostaju njemu.
 - **Kako radi bez servera**: emisiju mijenja samo domaćin (početak licitacije, novi
@@ -399,9 +398,22 @@ dati na pregled odvjetniku prije pokretanja s pravim novcem):
   vlastitog predmeta: *Kupi odmah · fiksna cijena* / *Stavi na aukciju* / *Pokaži u liveu*;
   predmet na prodaji pokazuje koliko dobivaš nakon provizije.
 - **Moje**: *Moje ponude*, *Moje aukcije*, *Moji liveovi*, *Završene*.
-- **Profil**: *Moja trgovina* (podaci prodavatelja, moji predmeti, trgovina, top
-  prodavatelji) · *Novac i kupnje* (zarada i isplata, povijest, dostave) · *Račun* ·
-  *Pravno* · *Postavke*. Javna trgovina prikazuje live (ako je uživo), aukcije i ocjene.
+- **Profil** u tri skupine: *Prodajem* (trgovina, moji predmeti, zarada i isplata) ·
+  *Kupujem* (kartica i adresa, dostave, povijest) · *Račun* i *Postavke* (uvjeti, izgled,
+  jezik). Javna trgovina prikazuje live (ako je uživo), aukcije i ocjene.
+- Na početnoj: kartica **Kako LOOP radi** (tri načina kupnje, može se sakriti) i podsjetnik
+  **Dodaj karticu i adresu** dok ih korisnik nema.
+- **Kupnja jednim dodirom**: s karticom i adresom *Kupi odmah* otvara kratku potvrdu
+  (kurir na spremljenu adresu, ukupni iznos); *Promijeni dostavu* otvara cijelu blagajnu.
+- **Slavlje preko cijelog ekrana** (kao na Whatnotu): konfeti, „Kupljeno!” / „Osvojio si!”,
+  slika i cijena — nakon kupnje i kad osvojiš predmet u liveu. Ostali gledatelji vide traku
+  „🔨 PRODANO @kupac · cijena”.
+- **Domaćin livea**: jedan veliki gumb *▶ Sljedeći: predmet*, **⚡ Brzo dodaj** (samo naziv i
+  cijena — predmet se sam sprema u Moje predmete; *Ponovi zadnji*) i izbornik ⋮ (*Dodaj iz
+  mojih predmeta*, *Završi live*). Mjerač atmosfere i *Pogodi cijenu* pojavljuju se tek kad
+  se licitira.
+- **Dodavanje predmeta**: fotografije, naziv, cijena, kategorija (predložena iz naziva), a
+  model, opis, stanje i količina su u *Više detalja (neobavezno)*.
 - Pretraga traži live aukcije, aukcije, predmete i račune.
 
 ## Obavijesti

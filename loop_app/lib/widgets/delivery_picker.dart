@@ -45,6 +45,9 @@ class _DeliveryPickerState extends State<DeliveryPicker> {
   late final _address = TextEditingController(text: widget.savedAddress);
   String _locker = kDemoLockers.first;
 
+  /// Prikazani su i rjeđi načini (ekspres, osobno preuzimanje).
+  bool _all = false;
+
   @override
   void initState() {
     super.initState();
@@ -73,7 +76,11 @@ class _DeliveryPickerState extends State<DeliveryPicker> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        for (final m in widget.methods)
+        for (final m in widget.methods.take(
+          _all || widget.methods.indexOf(_method) >= 2
+              ? widget.methods.length
+              : 2,
+        ))
           Padding(
             padding: const EdgeInsets.only(bottom: 8),
             child: Material(
@@ -137,6 +144,17 @@ class _DeliveryPickerState extends State<DeliveryPicker> {
                   ),
                 ),
               ),
+            ),
+          ),
+        if (!_all &&
+            widget.methods.length > 2 &&
+            widget.methods.indexOf(_method) < 2)
+          Align(
+            alignment: Alignment.centerLeft,
+            child: TextButton(
+              key: const ValueKey('delivery-more'),
+              onPressed: () => setState(() => _all = true),
+              child: Text(t('Više načina dostave')),
             ),
           ),
         if (_method.needsAddress) ...[

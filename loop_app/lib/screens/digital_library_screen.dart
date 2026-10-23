@@ -28,7 +28,7 @@ class DigitalLibraryScreen extends ConsumerWidget {
               icon: Icons.download_for_offline_outlined,
               title: t('Još nemaš digitalnih kupnji'),
               message: t(
-                'U Marketu odaberi odjeljak "Digitalno" — 3D modeli, softver, e-knjige, predlošci i zvukovi.',
+                'U Istraži odaberi odjeljak "Digitalno" — 3D modeli, softver, e-knjige, predlošci i zvukovi.',
               ),
             )
           : Align(

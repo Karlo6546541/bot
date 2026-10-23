@@ -6,8 +6,7 @@ import '../l10n/tr.dart';
 ///
 /// Emisiju mijenja samo domaćin (početak licitacije, novi predmeti, "još sam
 /// tu"), a ponude i chat su zasebni zapisi. Ponuda u zadnjih
-/// [LiveShow.extendWindow] sekundi produljuje licitaciju (osim kod
-/// "sudden death" predmeta). Zato svaki uređaj iz
+/// [LiveShow.extendWindow] sekundi produljuje licitaciju. Zato svaki uređaj iz
 /// istih podataka izračuna isto stanje, bez središnjeg poslužitelja.
 class LiveShow {
   const LiveShow({
@@ -69,8 +68,7 @@ class LiveShow {
   static const maxLots = 50;
   static const lotDurations = [15, 20, 30, 45, 60];
 
-  /// Ponuda u zadnjih toliko sekundi vraća sat na toliko sekundi
-  /// (osim kod "sudden death" predmeta, koji završavaju točno na nuli).
+  /// Ponuda u zadnjih toliko sekundi vraća sat na toliko sekundi.
   static const extendWindow = Duration(seconds: 10);
 
   /// Live se ne može zakazati dalje od ovoga.
@@ -181,7 +179,6 @@ class LiveLot {
     this.startedAt,
     this.mode = LotMode.auction,
     this.floorPrice = 1,
-    this.suddenDeath = false,
   });
 
   final String deviceId;
@@ -196,10 +193,6 @@ class LiveLot {
 
   /// Pada cijena: najniža cijena (na kraju vremena).
   final double floorPrice;
-
-  /// "Sudden death" (kao na Whatnotu): sat se ne produljuje — tko vodi kad
-  /// sat dođe do nule, pobjeđuje.
-  final bool suddenDeath;
 
   /// Cijena od koje se računa provizija (10 % razlike): početna cijena,
   /// a kod padajuće cijene najniža (ispod nje prodavatelj ne prodaje).
@@ -231,7 +224,6 @@ class LiveLot {
     startedAt: at,
     mode: mode,
     floorPrice: floorPrice,
-    suddenDeath: suddenDeath,
   );
 
   Map<String, dynamic> toMap() => {
@@ -241,7 +233,6 @@ class LiveLot {
     if (startedAt != null) 'startedAt': startedAt!.toIso8601String(),
     if (mode != LotMode.auction) 'mode': mode.name,
     if (mode == LotMode.dutch) 'floorPrice': floorPrice,
-    if (suddenDeath) 'suddenDeath': true,
   };
 
   factory LiveLot.fromMap(Map<dynamic, dynamic> m) => LiveLot(
@@ -256,7 +247,6 @@ class LiveLot {
       orElse: () => LotMode.auction,
     ),
     floorPrice: (m['floorPrice'] as num?)?.toDouble() ?? 1,
-    suddenDeath: m['suddenDeath'] == true,
   );
 }
 

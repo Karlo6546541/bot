@@ -254,7 +254,7 @@ class LiveService {
       switch (lot.mode) {
         case LotMode.auction:
           // Predlicitacije (prije početka) i ponude dok sat teče; ponuda
-          // u zadnjih 10 s vraća sat na 10 s (osim "sudden death").
+          // u zadnjih 10 s vraća sat na 10 s.
           final r = _proxy(
             lot,
             allBids.where((b) => !b.at.isAfter(now)),
@@ -423,7 +423,6 @@ class LiveService {
       if (s != null &&
           close != null &&
           !b.at.isBefore(s) &&
-          !lot.suddenDeath &&
           close.difference(b.at) < LiveShow.extendWindow) {
         close = b.at.add(LiveShow.extendWindow);
       }
@@ -617,7 +616,6 @@ class LiveService {
     double price, {
     LotMode mode = LotMode.auction,
     double floorPrice = 1,
-    bool suddenDeath = false,
     DateTime? now,
   }) async {
     final at = now ?? DateTime.now();
@@ -647,7 +645,6 @@ class LiveService {
       startPrice: mode == LotMode.giveaway ? 0 : base.startPrice,
       mode: mode,
       floorPrice: roundCredits(floorPrice),
-      suddenDeath: suddenDeath && mode == LotMode.auction,
     );
     final updated = show.copyWith(lots: [...show.lots, lot]);
     await _storage.putLiveShow(updated);

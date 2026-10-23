@@ -18,16 +18,17 @@ import '../widgets/formatters.dart';
 import '../widgets/item_image.dart';
 import '../widgets/user_avatar.dart';
 import 'auction_detail_screen.dart';
+import 'create_auction_screen.dart';
 import 'live_screens.dart';
 import 'swipe_feed_screen.dart';
 import '../l10n/tr.dart';
 
 /// Moje: na kojima licitiram, koje prodajem, moji liveovi i završene.
 enum AuctionView {
-  myBids('Moje ponude', Icons.back_hand_outlined),
-  mine('Moje aukcije', Icons.storefront_outlined),
-  lives('Moji liveovi', Icons.videocam_outlined),
-  ended('Završene', Icons.history);
+  myBids('Ponude', Icons.back_hand_outlined),
+  mine('Prodajem', Icons.storefront_outlined),
+  lives('Liveovi', Icons.videocam_outlined),
+  ended('Završeno', Icons.history);
 
   const AuctionView(this._label, this.icon);
   final String _label;
@@ -458,7 +459,7 @@ class AuctionBrowseCard extends ConsumerWidget {
     } else {
       topLeft = pill(
         AuctionCountdown(endsAt: a.endsAt, showIcon: false, style: pillText),
-        const Color(0xFF7B2FF7),
+        LoopColors.accent,
       );
     }
 
@@ -713,7 +714,10 @@ class MyAuctionsScreen extends StatelessWidget {
 
 /// "Moje": ponude, aukcije koje prodajem, moji liveovi i završene.
 class MyAuctionsView extends ConsumerStatefulWidget {
-  const MyAuctionsView({super.key});
+  const MyAuctionsView({super.key, this.onBrowse});
+
+  /// Prijelaz na Istraži (gumb na praznom ekranu).
+  final VoidCallback? onBrowse;
 
   @override
   ConsumerState<MyAuctionsView> createState() => _MyAuctionsViewState();
@@ -773,9 +777,39 @@ class _MyAuctionsViewState extends ConsumerState<MyAuctionsView> {
                 AuctionView.lives => t('Još nisi bio uživo'),
                 AuctionView.ended => t('Još nema završenih aukcija'),
               },
-              message: _view == AuctionView.mine || _view == AuctionView.lives
-                  ? t('Pokreni aukciju ili live gumbom + u donjoj traci.')
-                  : null,
+              message: switch (_view) {
+                AuctionView.myBids || AuctionView.ended => t(
+                  'Licitiraj u liveu ili na aukciji — tvoje ponude bit će ovdje.',
+                ),
+                _ => t('Pokreni aukciju ili live i prodaj prvi predmet.'),
+              },
+              action: switch (_view) {
+                AuctionView.myBids || AuctionView.ended =>
+                  widget.onBrowse == null
+                      ? null
+                      : FilledButton.icon(
+                          key: const ValueKey('my-empty-browse'),
+                          onPressed: widget.onBrowse,
+                          icon: const Icon(Icons.explore_outlined),
+                          label: Text(t('Istraži')),
+                        ),
+                AuctionView.mine => FilledButton.icon(
+                  key: const ValueKey('my-empty-auction'),
+                  onPressed: () => CreateAuctionScreen.open(context),
+                  icon: const Icon(Icons.gavel),
+                  label: Text(t('Nova aukcija')),
+                ),
+                AuctionView.lives => FilledButton.icon(
+                  key: const ValueKey('my-empty-live'),
+                  style: FilledButton.styleFrom(
+                    backgroundColor: kLiveRed,
+                    foregroundColor: Colors.white,
+                  ),
+                  onPressed: () => CreateLiveShowScreen.open(context),
+                  icon: const Icon(Icons.videocam),
+                  label: Text(t('Kreni uživo')),
+                ),
+              },
             ),
           )
         else if (_view == AuctionView.lives)

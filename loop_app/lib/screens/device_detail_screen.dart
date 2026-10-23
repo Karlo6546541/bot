@@ -711,7 +711,7 @@ Future<void> _delete(BuildContext context, WidgetRef ref, Device d) async {
     title: t('Obrisati predmet?'),
     message: t(
       '"{0}" bit će trajno uklonjen iz tvog portfolija{1}. Ovo se ne može poništiti.',
-      [d.name, d.isListed ? t(' i iz Marketa') : ''],
+      [d.name, d.isListed ? t(' i iz prodaje') : ''],
     ),
     confirmLabel: t('Obriši'),
     destructive: true,

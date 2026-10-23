@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'add_device_screen.dart';
 import 'seller_screens.dart';
 
 import '../models/auction.dart';
@@ -132,7 +133,13 @@ class _CreateAuctionScreenState extends ConsumerState<CreateAuctionScreen> {
           ? EmptyState(
               icon: Icons.inventory_2_outlined,
               title: t('Nemaš predmeta za aukciju'),
-              message: t('Dodaj predmet ili kupi nešto.'),
+              message: t('Dodaj predmet pa ga stavi na aukciju.'),
+              action: FilledButton.icon(
+                key: const ValueKey('auction-new-item'),
+                onPressed: () => AddDeviceScreen.open(context),
+                icon: const Icon(Icons.add_a_photo_outlined),
+                label: Text(t('Novi predmet')),
+              ),
             )
           : Align(
               alignment: Alignment.topCenter,
@@ -141,12 +148,17 @@ class _CreateAuctionScreenState extends ConsumerState<CreateAuctionScreen> {
                 child: ListView(
                   padding: const EdgeInsets.all(16),
                   children: [
-                    _LimitsCard(
-                      active: policy.activeCount(me),
-                      maxActive: AuctionPolicy.maxActive,
-                      today: policy.createdLast24h(me),
-                    ),
-                    const SizedBox(height: 16),
+                    // Granice se prikazuju tek kad su blizu.
+                    if (policy.activeCount(me) >= AuctionPolicy.maxActive - 1 ||
+                        policy.createdLast24h(me) >=
+                            AuctionPolicy.maxNewPerDay - 1) ...[
+                      _LimitsCard(
+                        active: policy.activeCount(me),
+                        maxActive: AuctionPolicy.maxActive,
+                        today: policy.createdLast24h(me),
+                      ),
+                      const SizedBox(height: 16),
+                    ],
                     Text(
                       t('1. Odaberi predmet'),
                       style: TextStyle(fontWeight: FontWeight.w700),
@@ -163,6 +175,25 @@ class _CreateAuctionScreenState extends ConsumerState<CreateAuctionScreen> {
                               selected: d.id == _deviceId,
                               onTap: () => _select(d.id),
                             ),
+                          // Novi predmet ravno iz aukcije.
+                          SizedBox(
+                            width: 120,
+                            child: OutlinedButton(
+                              key: const ValueKey('auction-new-item'),
+                              onPressed: () => AddDeviceScreen.open(context),
+                              child: Column(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  const Icon(Icons.add_a_photo_outlined),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    t('Novi predmet'),
+                                    textAlign: TextAlign.center,
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
                         ],
                       ),
                     ),
@@ -426,14 +457,6 @@ class _LimitsCard extends StatelessWidget {
                   AuctionPolicy.maxNewPerDay,
                 ),
               ],
-            ),
-            const SizedBox(height: 10),
-            Text(
-              t(
-                'Aukcije su za vrijedne predmete (od {0}). Za sve ostalo je Market.',
-                [formatCredits(AuctionPolicy.minItemValue)],
-              ),
-              style: TextStyle(color: LoopColors.textSecondary, fontSize: 12),
             ),
           ],
         ),

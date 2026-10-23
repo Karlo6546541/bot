@@ -8,6 +8,7 @@ import '../models/device.dart';
 import '../providers/app_providers.dart';
 import '../theme/app_theme.dart';
 import '../widgets/category_style.dart';
+import '../widgets/trade_actions.dart';
 import 'auctions_screen.dart';
 import 'live_screens.dart';
 import 'search_screen.dart';
@@ -59,6 +60,7 @@ class _Category extends _Filter {
 class _LiveHomeScreenState extends ConsumerState<LiveHomeScreen> {
   Timer? _timer;
   _Filter _filter = const _ForYou();
+  bool _hideCheckout = false;
 
   @override
   void initState() {
@@ -358,9 +360,142 @@ class _LiveHomeScreenState extends ConsumerState<LiveHomeScreen> {
             ),
           ),
         ),
+        if (s.showHowItWorks && _filter is _ForYou)
+          const SliverToBoxAdapter(child: _HowLoopWorks()),
+        if (!_hideCheckout &&
+            s.currentUser != null &&
+            !s.currentUser!.checkoutReady)
+          SliverToBoxAdapter(
+            child: _CheckoutBanner(
+              onClose: () => setState(() => _hideCheckout = true),
+            ),
+          ),
         ...slivers,
         const SliverToBoxAdapter(child: SizedBox(height: 96)),
       ],
+    );
+  }
+}
+
+/// Kratko objašnjenje tri načina kupnje (može se sakriti zauvijek).
+class _HowLoopWorks extends ConsumerWidget {
+  const _HowLoopWorks();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final ways = [
+      ('🔴', t('Uživo'), t('Licitiraj dok prodavač pokazuje predmet')),
+      ('⏱', t('Aukcije'), t('Najviša ponuda kad istekne vrijeme')),
+      ('🛒', t('Kupi odmah'), t('Fiksna cijena, kupnja jednim dodirom')),
+    ];
+    return Padding(
+      key: const ValueKey('home-how'),
+      padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+      child: Card(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(14, 6, 4, 12),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      t('Kako LOOP radi'),
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                  ),
+                  IconButton(
+                    key: const ValueKey('home-how-close'),
+                    tooltip: t('Sakrij'),
+                    onPressed: () =>
+                        ref.read(appProvider.notifier).dismissHowItWorks(),
+                    icon: const Icon(Icons.close, size: 20),
+                  ),
+                ],
+              ),
+              for (final (emoji, title, text) in ways)
+                Padding(
+                  padding: const EdgeInsets.only(top: 6, right: 10),
+                  child: Row(
+                    children: [
+                      Text(emoji, style: const TextStyle(fontSize: 20)),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Text.rich(
+                          TextSpan(
+                            children: [
+                              TextSpan(
+                                text: '$title  ',
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.w800,
+                                ),
+                              ),
+                              TextSpan(
+                                text: text,
+                                style: TextStyle(
+                                  color: LoopColors.textSecondary,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Podsjetnik: s karticom i adresom kupuješ i licitiraš jednim dodirom.
+class _CheckoutBanner extends ConsumerWidget {
+  const _CheckoutBanner({required this.onClose});
+
+  final VoidCallback onClose;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+      child: Material(
+        color: LoopColors.peach,
+        borderRadius: BorderRadius.circular(16),
+        child: InkWell(
+          key: const ValueKey('home-checkout'),
+          borderRadius: BorderRadius.circular(16),
+          onTap: () => ensureCheckout(context, ref, force: true),
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(14, 6, 4, 6),
+            child: Row(
+              children: [
+                const Icon(Icons.credit_card),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    t(
+                      'Dodaj karticu i adresu — licitiraj i kupuj jednim dodirom',
+                    ),
+                    style: const TextStyle(fontWeight: FontWeight.w700),
+                  ),
+                ),
+                IconButton(
+                  tooltip: t('Sakrij'),
+                  onPressed: onClose,
+                  icon: const Icon(Icons.close, size: 20),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
     );
   }
 }

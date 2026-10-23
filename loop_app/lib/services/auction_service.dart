@@ -76,7 +76,7 @@ class AuctionService {
     if (device.isDigital) {
       throw TradeException(
         t(
-          'Digitalni proizvodi se ne stavljaju na aukciju — prodaju se više puta u Marketu.',
+          'Digitalni proizvodi se ne stavljaju na aukciju — prodaju se više puta na Kupi odmah.',
         ),
       );
     }

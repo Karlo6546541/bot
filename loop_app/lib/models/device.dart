@@ -449,3 +449,83 @@ class PriceLogEntry {
     (m['price'] as num).toDouble(),
   );
 }
+
+/// Prijedlog kategorije iz naziva predmeta (npr. "iPhone 13" → Mobitel,
+/// "Nike Air Jordan" → Tenisice). `null` kad nema pogotka.
+DeviceCategory? suggestCategory(String name) {
+  final n = name.toLowerCase();
+  if (n.trim().length < 2) return null;
+  for (final (pattern, category) in _categoryHints) {
+    if (RegExp(pattern).hasMatch(n)) return category;
+  }
+  return null;
+}
+
+/// Redoslijed je važan: specifičnije prije općenitijeg.
+const _categoryHints = <(String, DeviceCategory)>[
+  (
+    r'apple watch|smartwatch|galaxy watch|pametni sat|fitbit|garmin',
+    DeviceCategory.watch,
+  ),
+  (
+    r'pok[eé]mon|charizard|pikachu|yu-?gi-?oh|magic the gathering|\bmtg\b|booster|tcg',
+    DeviceCategory.tcg,
+  ),
+  (r'panini|topps|sportsk\w* kartic|rookie card', DeviceCategory.cards),
+  (
+    r'iphone|samsung galaxy|mobitel|xiaomi|redmi|pixel|huawei|nokia|oneplus|smartphone',
+    DeviceCategory.phone,
+  ),
+  (r'macbook|laptop|thinkpad|notebook|chromebook', DeviceCategory.laptop),
+  (r'ipad|tablet|kindle', DeviceCategory.tablet),
+  (
+    r'airpods|slušalic|headphone|zvučnik|soundbar|jbl|bose',
+    DeviceCategory.audio,
+  ),
+  (
+    r'ps5|ps4|playstation|xbox|nintendo|switch|konzol|game ?boy',
+    DeviceCategory.console,
+  ),
+  (
+    r'fifa|\bgta\b|zelda|mario|call of duty|videoigr|igra za',
+    DeviceCategory.videoGames,
+  ),
+  (
+    r'polaroid|kamer|fotoaparat|canon|nikon|gopro|objektiv|fujifilm',
+    DeviceCategory.camera,
+  ),
+  (
+    r'strip|manga|comic|alan ford|marvel|zagor|tex willer',
+    DeviceCategory.comics,
+  ),
+  (r'kovanic|novčanic|\bkun[ae]\b|zlatnik|numizmat', DeviceCategory.coins),
+  (r'poštansk|\bmarke?\b|filatel', DeviceCategory.stamps),
+  (r'funko|figur|akcijsk|barbie|igračk|plišan', DeviceCategory.figures),
+  (r'gramofonsk|vinil|vinyl|\blp\b|\bcd\b|kazet|ploča', DeviceCategory.vinyl),
+  (r'lego|maket|model auta|modelarstvo', DeviceCategory.models),
+  (
+    r'gitar|klavir|bubanj|violin|ukulele|sintisajzer|pojačalo',
+    DeviceCategory.instruments,
+  ),
+  (r'monopoly|catan|društven|šah|puzzle', DeviceCategory.boardGames),
+  (r'knjig|roman|enciklopedij', DeviceCategory.books),
+  (r'bicikl|lopt|reket|skije|rolere|teg|fitness', DeviceCategory.sport),
+  (
+    r'tenisic|sneaker|jordan|yeezy|air max|air force|new balance|adidas|nike|converse|vans',
+    DeviceCategory.sneakers,
+  ),
+  (r'torb|ruksak|novčanik|louis vuitton|gucci|prada', DeviceCategory.bags),
+  (r'\bsat\b|rolex|omega|casio|seiko|tissot|swatch', DeviceCategory.watches),
+  (
+    r'jakn|majic|haljin|hlač|traperic|hoodie|duksercl|dukserica|kaput|košulj|džemper',
+    DeviceCategory.clothes,
+  ),
+  (r'naočal|remen|kapa|šal|rukavic', DeviceCategory.accessories),
+  (r'prsten|ogrlic|narukvic|naušnic|nakit|privjesak', DeviceCategory.jewelry),
+  (r'parfem|šmink|krema|kozmetik', DeviceCategory.beauty),
+  (r'dječj|kolica|beb|autosjedalic', DeviceCategory.kids),
+  (r'vintage|antik|retro|gramofon|starin', DeviceCategory.vintage),
+  (r'lamp|vaz|stolic|stol\b|ormar|tepih|dekor', DeviceCategory.homeDecor),
+  (r'akvarel|ulje na platnu|slika|crtež|grafika', DeviceCategory.paintings),
+  (r'ulaznic|karta za|koncert', DeviceCategory.tickets),
+];

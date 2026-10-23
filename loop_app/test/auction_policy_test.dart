@@ -63,8 +63,8 @@ void main() {
     );
   });
 
-  test('predmeti ispod 50 kredita ne idu na aukciju', () async {
-    final cheap = await add(demo, 30);
+  test('predmeti ispod 1 € ne idu na aukciju', () async {
+    final cheap = await add(demo, 0.5);
     await expectLater(create(demo, cheap.id), throwsA(isA<TradeException>()));
     expect(storage.userById(demo)!.credits, 1250); // bez naknade
   });
@@ -84,19 +84,28 @@ void main() {
     );
   });
 
-  test('najviše 3 nove aukcije u 24 sata', () async {
-    final items = [for (var i = 0; i < 4; i++) await add(demo, 100)];
-    final now = DateTime.now();
-    for (var i = 0; i < 3; i++) {
-      await create(demo, items[i].id, now: now);
-    }
-    await expectLater(
-      create(demo, items[3].id, now: now),
-      throwsA(isA<TradeException>()),
-    );
-    // Dan kasnije ponovno može.
-    await create(demo, items[3].id, now: now.add(const Duration(hours: 25)));
-  });
+  test(
+    'najviše ${AuctionPolicy.maxNewPerDay} novih aukcija u 24 sata',
+    () async {
+      const n = AuctionPolicy.maxNewPerDay;
+      final items = [for (var i = 0; i <= n; i++) await add(tester, 100)];
+      final now = DateTime.now();
+      for (var i = 0; i < n; i++) {
+        await create(tester, items[i].id, now: now);
+      }
+      await expectLater(
+        create(tester, items[n].id, now: now),
+        throwsA(isA<TradeException>()),
+      );
+      // Dan kasnije ponovno može (prve su završile).
+      await auctions.settleExpired(now: now.add(const Duration(hours: 25)));
+      await create(
+        tester,
+        items[n].id,
+        now: now.add(const Duration(hours: 25)),
+      );
+    },
+  );
 
   test('neprodani predmet čeka 24 h prije ponovne objave', () async {
     final now = DateTime.now();

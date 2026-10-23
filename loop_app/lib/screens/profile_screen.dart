@@ -44,58 +44,50 @@ class ProfileScreen extends ConsumerWidget {
                 if (user.isGuest)
                   const _GuestCard()
                 else ...[
-                  _SectionTitle(t('Moja trgovina'), Icons.storefront_outlined),
+                  // Tri skupine: što prodajem, što kupujem, postavke.
+                  _SectionTitle(t('Prodajem'), Icons.storefront_outlined),
                   _ShopCard(user: user),
+                  const SizedBox(height: 8),
+                  Card(
+                    child: ListTile(
+                      leading: Icon(
+                        Icons.account_balance_wallet_outlined,
+                        color: LoopColors.textSecondary,
+                      ),
+                      title: Text(t('Zarada za isplatu')),
+                      subtitle: Text(
+                        formatCredits(user.credits),
+                        style: const TextStyle(
+                          fontWeight: FontWeight.w900,
+                          fontSize: 18,
+                        ),
+                      ),
+                      trailing: FilledButton(
+                        key: const ValueKey('profile-payout'),
+                        onPressed: user.credits > 0
+                            ? () => showPayoutDialog(context, ref)
+                            : null,
+                        child: Text(t('Isplati')),
+                      ),
+                    ),
+                  ),
                 ],
-                _SectionTitle(
-                  t('Novac i kupnje'),
-                  Icons.account_balance_wallet_outlined,
-                ),
+                _SectionTitle(t('Kupujem'), Icons.shopping_bag_outlined),
                 Card(
                   child: Column(
                     children: [
-                      ListTile(
-                        leading: Icon(
-                          Icons.account_balance_wallet_outlined,
-                          color: LoopColors.textSecondary,
+                      if (!user.isGuest) ...[
+                        _NavTile(
+                          key: const ValueKey('profile-checkout'),
+                          icon: Icons.credit_card,
+                          title: user.checkoutReady
+                              ? '${user.paymentCard} · ${user.address}'
+                              : t('Dodaj karticu i adresu'),
+                          onTap: () =>
+                              ensureCheckout(context, ref, force: true),
                         ),
-                        title: Text(t('Zarada za isplatu')),
-                        subtitle: Text(
-                          formatCredits(user.credits),
-                          style: const TextStyle(
-                            fontWeight: FontWeight.w900,
-                            fontSize: 18,
-                          ),
-                        ),
-                        trailing: FilledButton(
-                          key: const ValueKey('profile-payout'),
-                          onPressed: user.credits > 0 && !user.isGuest
-                              ? () => showPayoutDialog(context, ref)
-                              : null,
-                          child: Text(t('Isplati')),
-                        ),
-                      ),
-                      const Divider(height: 1),
-                      ListTile(
-                        leading: Icon(
-                          Icons.credit_card,
-                          color: LoopColors.textSecondary,
-                        ),
-                        title: Text(t('Plaćanje karticom pri kupnji')),
-                        subtitle: Text(
-                          t(
-                            'Novac obrađuje pružatelj plaćanja — LOOP ne drži novac kupaca.',
-                          ),
-                        ),
-                      ),
-                      const Divider(height: 1),
-                      _NavTile(
-                        key: const ValueKey('open-activity'),
-                        icon: Icons.receipt_long_outlined,
-                        title: t('Povijest transakcija'),
-                        onTap: () => ActivityPage.open(context),
-                      ),
-                      const Divider(height: 1),
+                        const Divider(height: 1),
+                      ],
                       _NavTile(
                         icon: Icons.local_shipping_outlined,
                         title: state.myOpenDeliveries.isEmpty
@@ -105,6 +97,13 @@ class ProfileScreen extends ConsumerWidget {
                               ]),
                         onTap: () => DeliveriesScreen.open(context),
                       ),
+                      const Divider(height: 1),
+                      _NavTile(
+                        key: const ValueKey('open-activity'),
+                        icon: Icons.receipt_long_outlined,
+                        title: t('Povijest transakcija'),
+                        onTap: () => ActivityPage.open(context),
+                      ),
                     ],
                   ),
                 ),
@@ -112,7 +111,7 @@ class ProfileScreen extends ConsumerWidget {
                   _SectionTitle(t('Račun'), Icons.manage_accounts_outlined),
                   _AccountCard(user: user),
                 ],
-                _SectionTitle(t('Pravno'), Icons.policy_outlined),
+                _SectionTitle(t('Postavke'), Icons.tune),
                 Card(
                   child: _NavTile(
                     key: const ValueKey('open-legal'),
@@ -121,7 +120,6 @@ class ProfileScreen extends ConsumerWidget {
                     onTap: () => LegalListScreen.open(context),
                   ),
                 ),
-                _SectionTitle(t('Postavke'), Icons.tune),
                 const _SyncStatusTile(),
                 SizedBox(height: 12),
                 Text(

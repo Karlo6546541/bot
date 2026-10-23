@@ -438,7 +438,7 @@ class WishlistDetailScreen extends ConsumerWidget {
                     context,
                     title: t('Obrisati listu?'),
                     message: t(
-                      'Predmeti ostaju u Marketu, briše se samo lista.',
+                      'Predmeti ostaju na prodaji, briše se samo lista.',
                     ),
                     confirmLabel: t('Obriši'),
                     destructive: true,

@@ -316,7 +316,7 @@ class ShopCard extends ConsumerWidget {
           end: Alignment.bottomRight,
           colors: [
             LoopColors.accent.withValues(alpha: 0.85),
-            const Color(0xFF7B2FF7),
+            LoopColors.accent,
           ],
         ),
       ),
@@ -512,7 +512,7 @@ class PostTile extends StatelessWidget {
                         color: const Color(0xFFFF2D55),
                       )
                     : auction != null
-                    ? const _TileBadge(text: '🔨', color: Color(0xFF7B2FF7))
+                    ? _TileBadge(text: '🔨', color: LoopColors.accent)
                     : d!.hasDiscount
                     ? DiscountBadge(percent: d.discountPercent, small: true)
                     : const SizedBox.shrink(),

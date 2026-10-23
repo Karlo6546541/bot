@@ -37,7 +37,7 @@ class SwapService {
     if (from == null) throw TradeException(t('Korisnik ne postoji.'));
     if (wanted == null || !wanted.isListed || wanted.ownerId == fromId) {
       throw TradeException(
-        t('Zamjena je moguća samo za tuđe predmete u Marketu.'),
+        t('Zamjena je moguća samo za tuđe predmete na prodaji.'),
       );
     }
     final owner = _storage.userById(wanted.ownerId!);

@@ -624,7 +624,7 @@ class _DeleteAccountScreenState extends ConsumerState<DeleteAccountScreen> {
                       ),
                       Text(
                         t(
-                          '• Briše se {0} tvojih predmeta i njihove objave u Marketu.',
+                          '• Briše se {0} tvojih predmeta i njihove objave na prodaji.',
                           [items],
                         ),
                         style: bullet,

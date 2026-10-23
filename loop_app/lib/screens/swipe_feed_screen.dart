@@ -9,6 +9,7 @@ import '../models/device.dart';
 import '../providers/app_providers.dart';
 import '../providers/app_state.dart';
 import '../services/fee.dart';
+import '../theme/app_theme.dart';
 import '../utils/formatters.dart';
 import '../widgets/auction_widgets.dart';
 import '../widgets/category_style.dart';
@@ -391,7 +392,7 @@ class _CornerBadge extends StatelessWidget {
     final a = auction;
     if (a != null) {
       return _Pill(
-        color: const Color(0xFF7B2FF7),
+        color: LoopColors.accent,
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -490,7 +491,7 @@ class _Info extends ConsumerWidget {
             ? t('Vodiš · automatska ponuda')
             : t('Licitiraj · od {0}', [formatCredits(a.minNextBid)]),
         onTap: () => showBidSheet(context, ref, a.id),
-        color: const Color(0xFF7B2FF7),
+        color: LoopColors.accent,
       );
     } else {
       primary = _MainButton(

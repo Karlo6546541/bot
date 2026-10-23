@@ -1236,7 +1236,6 @@ class AppController extends Notifier<AppState> {
     double price, {
     LotMode mode = LotMode.auction,
     double floorPrice = 1,
-    bool suddenDeath = false,
   }) async {
     await _live.addLot(
       _requireUserId(),
@@ -1245,7 +1244,6 @@ class AppController extends Notifier<AppState> {
       price,
       mode: mode,
       floorPrice: floorPrice,
-      suddenDeath: suddenDeath,
     );
     _refresh();
   }

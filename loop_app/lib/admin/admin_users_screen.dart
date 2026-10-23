@@ -116,7 +116,7 @@ class AdminUsersScreen extends ConsumerWidget {
       context,
       title: t('Obrisati korisnika?'),
       message: t(
-        '{0} bit će obrisan. Njegovi predmeti vraćaju se u Market, a transakcije ostaju u povijesti.',
+        '{0} bit će obrisan. Njegovi predmeti vraćaju se u prodaju, a transakcije ostaju u povijesti.',
         [user.email],
       ),
       confirmLabel: t('Obriši'),

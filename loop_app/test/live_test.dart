@@ -333,32 +333,6 @@ void main() {
       expect(LiveLot.increment(1500), 100);
     });
 
-    test('sudden death: ponuda u zadnjim sekundama ne produljuje', () async {
-      final show = await live.create(
-        hostId: host,
-        title: 'Sudden death',
-        startsAt: t0,
-        now: t0,
-      );
-      await live.addLot(
-        host,
-        show.id,
-        items[0].id,
-        1,
-        suddenDeath: true,
-        now: at(1),
-      );
-      await live.startLot(host, show.id, now: at(1));
-      await live.bid(bob, show.id, 5, now: at(29));
-      // Kraj ostaje točno na 30 s od početka.
-      expect(state(show.id, 30).current!.end, at(31));
-      expect(state(show.id, 32).lots[0].status, LotStatus.sold);
-      await expectLater(
-        live.bid(ana, show.id, 10, now: at(32)),
-        throwsA(isA<TradeException>()),
-      );
-    });
-
     test('predlicitacija na predmet koji tek dolazi', () async {
       final id = await start();
       // Predmet 2 (Walkman) još čeka — Ana predlicitira do 15 €.
@@ -918,6 +892,8 @@ void main() {
       expect(find.byKey(const ValueKey('live-bid')), findsNothing);
       expect(storage.liveShowById(show.id)!.lots.first.startedAt, isNotNull);
       // Novi predmet usred livea.
+      await tester.tap(find.byKey(const ValueKey('live-host-menu')));
+      await tester.pumpAndSettle();
       await tester.tap(find.byKey(const ValueKey('live-add-item')));
       await tester.pumpAndSettle();
       await tester.tap(find.byType(RadioListTile<String>).first);
@@ -925,6 +901,24 @@ void main() {
       await tester.tap(find.byKey(const ValueKey('live-add-confirm')));
       await tester.pumpAndSettle();
       expect(storage.liveShowById(show.id)!.lots, hasLength(3));
+      // ⚡ Brzo dodaj: samo naziv i cijena, predmet ide u Moje predmete.
+      await tester.tap(find.byKey(const ValueKey('live-quick-add')));
+      await tester.pumpAndSettle();
+      await tester.enterText(
+        find.byKey(const ValueKey('quick-name')),
+        'Pokemon Charizard',
+      );
+      await tester.enterText(find.byKey(const ValueKey('quick-price')), '7');
+      await tester.tap(find.byKey(const ValueKey('quick-add-confirm')));
+      await tester.pumpAndSettle();
+      final lots = storage.liveShowById(show.id)!.lots;
+      expect(lots, hasLength(4));
+      expect(lots.last.deviceName, 'Pokemon Charizard');
+      expect(lots.last.startPrice, 7);
+      expect(
+        storage.deviceById(lots.last.deviceId)!.category,
+        DeviceCategory.tcg,
+      );
       // Domaćin šalje video: oznaka gledatelja videa i gumbi za kameru.
       expect(find.text('📡 Video gleda 0'), findsOneWidget);
       expect(find.byKey(const ValueKey('live-cam-flip')), findsOneWidget);
@@ -932,7 +926,9 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.byIcon(Icons.mic_off), findsOneWidget);
 
-      // Domaćin završava live.
+      // Domaćin završava live (u izborniku ⋮).
+      await tester.tap(find.byKey(const ValueKey('live-host-menu')));
+      await tester.pumpAndSettle();
       await tester.tap(find.byKey(const ValueKey('live-end')));
       await tester.pumpAndSettle();
       await tester.tap(find.byKey(const ValueKey('live-end-confirm')));
@@ -1000,7 +996,8 @@ void main() {
     // Pada cijena: "Uzmi" kupuje odmah.
     await tester.tap(card);
     await tester.pumpAndSettle();
-    expect(find.byKey(const ValueKey('live-hype')), findsOneWidget);
+    // Mirna soba: bez mjerača atmosfere (pojavi se tek kad se licitira).
+    expect(find.byKey(const ValueKey('live-hype')), findsNothing);
     expect(find.byKey(const ValueKey('live-value')), findsOneWidget);
     expect(find.byKey(const ValueKey('live-bid')), findsNothing);
     await tester.runAsync(

@@ -382,7 +382,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
             ],
             if (!backend.isOnline && !_register) ...[
               const SizedBox(height: 12),
-              OutlinedButton.icon(
+              FilledButton.tonalIcon(
+                key: const ValueKey('try-demo'),
                 onPressed: _loading
                     ? null
                     : () {
@@ -405,15 +406,16 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
               label: Text(t('Samo razgledaj (gost)')),
             ),
             const SizedBox(height: 8),
-            TextButton.icon(
-              onPressed: _loading ? null : _adminLogin,
-              icon: Icon(
-                Icons.admin_panel_settings_outlined,
-                color: LoopColors.admin,
-              ),
-              label: Text(
-                t('Admin prijava'),
-                style: TextStyle(color: LoopColors.admin),
+            // Admin je za tim — neupadljiva poveznica.
+            Center(
+              child: TextButton(
+                style: TextButton.styleFrom(
+                  visualDensity: VisualDensity.compact,
+                  foregroundColor: LoopColors.textSecondary,
+                  textStyle: const TextStyle(fontSize: 12),
+                ),
+                onPressed: _loading ? null : _adminLogin,
+                child: Text(t('Admin prijava')),
               ),
             ),
             const SizedBox(height: 8),
@@ -553,10 +555,10 @@ class _WelcomeHero extends StatelessWidget {
   final bool compact;
 
   static List<(String, String)> get _bubbles => [
-    ('📱', t('Mobiteli')),
-    ('🎸', t('Instrumenti')),
-    ('🧶', t('Rukotvorine')),
+    ('🔴', t('Uživo')),
     ('🃏', t('Kartice')),
+    ('👟', t('Tenisice')),
+    ('📱', t('Mobiteli')),
     ('📚', t('Knjige')),
     ('🎮', t('Konzole')),
     ('🏺', t('Keramika')),
@@ -580,7 +582,7 @@ class _WelcomeHero extends StatelessWidget {
         LoopLogo(size: compact ? 34 : 40),
         const SizedBox(height: 18),
         Text(
-          t('Mijenjaj stvari,\nne novac.'),
+          t('Licitiraj uživo.\nKupi odmah.'),
           textAlign: compact ? TextAlign.center : TextAlign.start,
           style: TextStyle(
             fontSize: compact ? 30 : 48,
@@ -591,7 +593,7 @@ class _WelcomeHero extends StatelessWidget {
         const SizedBox(height: 12),
         Text(
           t(
-            'Trade. Don\'t sell. Prodaj ono što ne koristiš, zaradi i uzmi nešto novo — od mobitela do ručno rađene keramike.',
+            'Live aukcije, aukcije i Kupi odmah na jednom mjestu — od kartica i tenisica do mobitela i vintage stvari.',
           ),
           textAlign: compact ? TextAlign.center : TextAlign.start,
           style: TextStyle(

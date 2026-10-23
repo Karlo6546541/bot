@@ -9,8 +9,8 @@ import '../l10n/tr.dart';
 
 /// Pravila koja sprječavaju masovno stavljanje svega na aukcije.
 ///
-/// Aukcije su za vrijedne ili tražene predmete; za sve ostalo je Market
-/// (trenutna prodaja, bez naknade za objavu). Pravila:
+/// Aukcije kreću od 1 € (kao na Whatnotu); pravila samo sprječavaju
+/// masovno objavljivanje. Pravila:
 /// - najviše [maxActive] aktivnih aukcija po korisniku;
 /// - najviše [maxNewPerDay] novih aukcija u 24 sata;
 /// - predmet mora vrijediti barem [minItemValue] kredita;
@@ -23,15 +23,15 @@ class AuctionPolicy {
 
   final StorageService _storage;
 
-  static const maxNewPerDay = 3;
-  static const minItemValue = 50.0;
+  static const maxNewPerDay = 10;
+  static const minItemValue = 1.0;
 
   /// Objava aukcije je besplatna (provizija se plaća tek od razlike).
   static const listingFeeRate = 0.0;
   static const minListingFee = 0.0;
   static const relistCooldown = Duration(hours: 24);
 
-  static const maxActive = 4;
+  static const maxActive = 10;
 
   /// Naknada za objavu — računa se od vrijednosti predmeta, a ne od početne
   /// cijene, kako se ne bi mogla izbjeći niskom početnom cijenom.
@@ -68,7 +68,7 @@ class AuctionPolicy {
   String? blockReason(String userId, Device device, {DateTime? now}) {
     if (activeCount(userId) >= maxActive) {
       return t(
-        'Imaš već {0} aktivne aukcije — to je najviše. Pričekaj da neka završi ili prodaj na Marketu.',
+        'Imaš već {0} aktivne aukcije — to je najviše. Pričekaj da neka završi ili prodaj na Kupi odmah.',
         [maxActive],
       );
     }
@@ -79,7 +79,7 @@ class AuctionPolicy {
     }
     if (device.price < minItemValue) {
       return t(
-        'Na aukciju idu predmeti vrijedni barem {0}. Ovaj prodaj na Marketu.',
+        'Na aukciju idu predmeti vrijedni barem {0}. Ovaj prodaj na Kupi odmah.',
         [formatCredits(minItemValue)],
       );
     }
