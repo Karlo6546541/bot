@@ -812,14 +812,24 @@ void main() {
         ),
         findsOneWidget,
       );
+      // Srce: šalje se kao reakcija i leti uz desni rub (ne ide u chat).
       await tester.tap(find.byKey(const ValueKey('live-react-0')));
+      await tester.pump(const Duration(milliseconds: 300));
+      expect(find.text('❤️'), findsWidgets);
       await tester.pumpAndSettle();
       expect(
         storage
             .liveEventsOf(bobShow)
             .where((e) => e.userId == host)
             .map((e) => e.text),
-        containsAll(['Koliko je star?', '🔥']),
+        containsAll(['Koliko je star?', '❤️']),
+      );
+      expect(
+        find.descendant(
+          of: find.byKey(const ValueKey('live-feed')),
+          matching: find.text('❤️'),
+        ),
+        findsNothing,
       );
 
       // Red predmeta.

@@ -1,10 +1,13 @@
 import 'dart:async';
+import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../l10n/tr.dart';
+import '../models/app_user.dart';
+import '../models/delivery.dart';
 import '../models/device.dart';
 import '../models/live_show.dart';
 import '../providers/app_providers.dart';
@@ -109,28 +112,38 @@ class _LiveBadgeState extends ConsumerState<LiveBadge>
   }
 }
 
+/// Broj gledatelja kao na Whatnotu: crveni krug (uživo) i broj.
 class _ViewersChip extends StatelessWidget {
   const _ViewersChip(this.count);
   final int count;
 
   @override
   Widget build(BuildContext context) => Container(
-    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+    key: const ValueKey('live-viewers'),
+    padding: const EdgeInsets.fromLTRB(3, 3, 10, 3),
     decoration: BoxDecoration(
       color: Colors.black45,
-      borderRadius: BorderRadius.circular(6),
+      borderRadius: BorderRadius.circular(99),
     ),
     child: Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        const Icon(Icons.visibility, size: 14, color: Colors.white),
-        const SizedBox(width: 4),
+        Container(
+          width: 24,
+          height: 24,
+          decoration: const BoxDecoration(
+            color: kLiveRed,
+            shape: BoxShape.circle,
+          ),
+          child: const Icon(Icons.graphic_eq, size: 15, color: Colors.white),
+        ),
+        const SizedBox(width: 6),
         Text(
           '$count',
           style: const TextStyle(
             color: Colors.white,
-            fontWeight: FontWeight.w800,
-            fontSize: 12,
+            fontWeight: FontWeight.w900,
+            fontSize: 15,
           ),
         ),
       ],
@@ -273,7 +286,6 @@ class _CreateLiveShowScreenState extends ConsumerState<CreateLiveShowScreen> {
       items.add((id, price));
     }
     LiveShow? created;
-    final later = _startsAt != null;
     final ok = await runWithLoading(
       context,
       () async => created = await ref
@@ -288,7 +300,9 @@ class _CreateLiveShowScreenState extends ConsumerState<CreateLiveShowScreen> {
             category: _category,
             relistUnsold: _relist,
           ),
-      successMessage: later ? t('Live je zakazan') : t('Uživo si! 🔴'),
+      // Bez obavijesti: soba se odmah otvara (obavijest bi prekrila gumbe
+      // na dnu sobe).
+      successMessage: null,
     );
     if (!ok || !mounted || created == null) return;
     Navigator.of(context).pushReplacement(
@@ -819,13 +833,18 @@ class _LiveRoomViewState extends ConsumerState<LiveRoomView> {
   LiveBroadcaster? _broadcaster;
   LiveWatcher? _watcher;
 
-  static const _reactions = ['🔥', '👏', '😍', '💸'];
+  /// Reakcije: šalju se kao kratka poruka, a u sobi lete uz desni rub.
+  static const _reactions = ['❤️', '🔥', '👏', '😍', '💸'];
+
+  static bool isReaction(LiveEvent e) =>
+      e.type == LiveEventType.chat && _reactions.contains(e.text);
 
   AppController get _app => ref.read(appProvider.notifier);
 
   @override
   void initState() {
     super.initState();
+    pushSnackBarLift();
     if (widget.active) _start();
   }
 
@@ -941,6 +960,7 @@ class _LiveRoomViewState extends ConsumerState<LiveRoomView> {
 
   @override
   void dispose() {
+    popSnackBarLift();
     _timer?.cancel();
     _broadcaster?.stop();
     _watcher?.stop();
@@ -1370,62 +1390,6 @@ class _LiveRoomViewState extends ConsumerState<LiveRoomView> {
           ),
         ],
       );
-    } else if (cur == null && done != null) {
-      // Pauza između predmeta: rezultat prethodnog i što slijedi.
-      final winner = done.leader;
-      final iWon = winner != null && winner.userId == me?.id;
-      center = _Panel(
-        key: const ValueKey('live-result'),
-        children: [
-          Text(
-            switch ((done.mode, winner == null, iWon)) {
-              (LotMode.giveaway, true, _) => t('Nitko se nije prijavio'),
-              (_, true, _) => t('Nije prodano'),
-              (LotMode.giveaway, _, true) => t('🎁 Osvojio si nagradu!'),
-              (LotMode.giveaway, _, false) => t('🎁 Izvučen je dobitnik!'),
-              (_, _, true) => t('🏆 Osvojio si!'),
-              _ => t('🎉 PRODANO!'),
-            },
-            style: const TextStyle(
-              color: Colors.white,
-              fontWeight: FontWeight.w900,
-              fontSize: 24,
-            ),
-          ),
-          if (winner != null)
-            Text(
-              done.mode == LotMode.giveaway
-                  ? winner.userLabel
-                  : '${winner.userLabel} · ${formatCredits(done.price)}',
-              style: const TextStyle(
-                color: Colors.white,
-                fontWeight: FontWeight.w700,
-              ),
-            ),
-          if (done.guessWinner case final g?)
-            Padding(
-              padding: const EdgeInsets.only(top: 6),
-              child: Text(
-                g.userId == me?.id
-                    ? t('🎯 Najbliže si pogodio cijenu ({0})', [
-                        formatCredits(g.amount),
-                      ])
-                    : t('🎯 {0} je najbliže pogodio cijenu ({1})', [
-                        g.userLabel,
-                        formatCredits(g.amount),
-                      ]),
-                key: const ValueKey('live-guess-winner'),
-                textAlign: TextAlign.center,
-                style: const TextStyle(color: Color(0xFFFFC233)),
-              ),
-            ),
-          if (iWon)
-            Text(
-              t('Odaberi dostavu u Obavijestima.'),
-              style: const TextStyle(color: Colors.white70),
-            ),
-        ],
-      );
     } else if (cur == null && isHost) {
       center = _Panel(
         key: const ValueKey('live-host-idle'),
@@ -1442,7 +1406,7 @@ class _LiveRoomViewState extends ConsumerState<LiveRoomView> {
           ),
         ],
       );
-    } else if (cur == null) {
+    } else if (cur == null && done == null) {
       center = _Panel(
         children: [
           Text(
@@ -1504,9 +1468,8 @@ class _LiveRoomViewState extends ConsumerState<LiveRoomView> {
                     _TopBar(
                       show: show,
                       state: st,
+                      host: host,
                       hostName: host?.handle ?? show.hostLabel,
-                      hostAvatar: UserAvatar(user: host, size: 36),
-                      onQueue: () => _showQueue(st, isHost),
                     ),
                     if (st.isLive) _HypeMeter(st.hype),
                     Expanded(
@@ -1514,7 +1477,12 @@ class _LiveRoomViewState extends ConsumerState<LiveRoomView> {
                         children: [
                           Center(
                             child: Padding(
-                              padding: const EdgeInsets.all(16),
+                              padding: const EdgeInsets.fromLTRB(
+                                16,
+                                16,
+                                72,
+                                16,
+                              ),
                               child: center,
                             ),
                           ),
@@ -1534,13 +1502,47 @@ class _LiveRoomViewState extends ConsumerState<LiveRoomView> {
                               top: 4,
                               child: _HostControls(broadcaster: b),
                             ),
+                          Positioned(
+                            right: 0,
+                            bottom: 0,
+                            width: 90,
+                            height: 360,
+                            child: IgnorePointer(
+                              child: _FloatingReactions(
+                                events: [
+                                  for (final e in st.feed)
+                                    if (isReaction(e)) e,
+                                ],
+                              ),
+                            ),
+                          ),
+                          Positioned(
+                            left: 12,
+                            right: 78,
+                            bottom: 4,
+                            child: _ChatFeed(
+                              feed: st.feed,
+                              me: me?.id,
+                              hostId: show.hostId,
+                            ),
+                          ),
+                          Positioned(
+                            right: 6,
+                            bottom: 4,
+                            child: _SideRail(
+                              show: show,
+                              state: st,
+                              isHost: isHost,
+                              canAct: canAct,
+                              onQueue: () => _showQueue(st, isHost),
+                              onHeart: () => _send('❤️'),
+                            ),
+                          ),
                         ],
                       ),
                     ),
-                    Padding(
-                      padding: const EdgeInsets.fromLTRB(12, 0, 12, 8),
-                      child: _ChatFeed(feed: st.feed, me: me?.id),
-                    ),
+                    if (canAct && !st.isOver)
+                      _ChatInput(controller: _chat, onSend: _send),
                     if (cur != null)
                       _LotCard(
                         lot: cur,
@@ -1549,20 +1551,23 @@ class _LiveRoomViewState extends ConsumerState<LiveRoomView> {
                         lotSeconds: show.lotSeconds,
                         now: now,
                         me: me?.id,
+                        leaderUser: s.userById(cur.leader?.userId),
+                      )
+                    else if (done != null && !st.isOver)
+                      _LotCard(
+                        lot: done,
+                        device: s.deviceById(done.lot.deviceId),
+                        total: show.lots.length,
+                        lotSeconds: show.lotSeconds,
+                        now: now,
+                        me: me?.id,
+                        leaderUser: s.userById(done.leader?.userId),
+                        result: true,
                       ),
                     Padding(
-                      padding: const EdgeInsets.fromLTRB(12, 8, 12, 0),
+                      padding: const EdgeInsets.fromLTRB(12, 10, 12, 0),
                       child: _actions(show, st, cur, isHost, canAct, me?.id),
                     ),
-                    if (canAct && !st.isOver)
-                      _ChatInput(
-                        controller: _chat,
-                        reactions: _reactions,
-                        onSend: _send,
-                        onShop: s.listingsOf(show.hostId).isEmpty
-                            ? null
-                            : () => _showQueue(st, isHost),
-                      ),
                     const SizedBox(height: 8),
                   ],
                 ),
@@ -1649,7 +1654,24 @@ class _LiveRoomViewState extends ConsumerState<LiveRoomView> {
         ],
       );
     }
-    if (cur == null) return const SizedBox.shrink();
+    if (cur == null) {
+      if (!st.isLive) return const SizedBox.shrink();
+      return FilledButton(
+        key: const ValueKey('live-awaiting'),
+        style: FilledButton.styleFrom(
+          disabledBackgroundColor: Colors.white24,
+          disabledForegroundColor: Colors.white70,
+          minimumSize: const Size.fromHeight(52),
+          textStyle: const TextStyle(
+            fontFamily: kFontFamily,
+            fontWeight: FontWeight.w900,
+            fontSize: 17,
+          ),
+        ),
+        onPressed: null,
+        child: Text(t('Čeka se sljedeći predmet')),
+      );
+    }
     if (!canAct) {
       return FilledButton(
         key: const ValueKey('live-login'),
@@ -2039,113 +2061,116 @@ class _Recap extends StatelessWidget {
   }
 }
 
+/// Gornja traka kao na Whatnotu: domaćin s ocjenom i brzinom slanja,
+/// "Prati", broj gledatelja i zatvaranje.
 class _TopBar extends ConsumerWidget {
   const _TopBar({
     required this.show,
     required this.state,
+    required this.host,
     required this.hostName,
-    required this.hostAvatar,
-    required this.onQueue,
   });
 
   final LiveShow show;
   final LiveState state;
+  final AppUser? host;
   final String hostName;
-  final Widget hostAvatar;
-  final VoidCallback onQueue;
+
+  static const _shadow = [Shadow(blurRadius: 6, color: Colors.black54)];
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final upcoming = state.queue.length;
-    final me = ref.watch(appProvider.select((s) => s.currentUserId));
-    final following = ref.watch(
-      appProvider.select((s) => s.isFollowing(show.hostId)),
-    );
+    final s = ref.watch(appProvider);
+    final me = s.currentUserId;
+    final following = s.isFollowing(show.hostId);
+    final rating = s.ratingOf(show.hostId);
+    final meta = [
+      rating.count > 0 ? '★ ${rating.average.toStringAsFixed(1)}' : t('★ Novo'),
+      t('🚚 {0} d.', ['${DeliveryMethod.courier.realDays}']),
+    ].join(' · ');
     return Padding(
-      padding: const EdgeInsets.fromLTRB(4, 4, 4, 0),
+      padding: const EdgeInsets.fromLTRB(12, 6, 4, 0),
       child: Row(
         children: [
-          IconButton(
-            key: const ValueKey('live-close'),
-            tooltip: t('Zatvori'),
-            onPressed: () => Navigator.maybePop(context),
-            icon: const Icon(Icons.close, color: Colors.white),
-          ),
           GestureDetector(
             onTap: () => PublicProfileScreen.open(context, show.hostId),
-            child: hostAvatar,
+            child: UserAvatar(user: host, size: 44),
           ),
-          const SizedBox(width: 8),
+          const SizedBox(width: 10),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                Text(
+                  hostName,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w900,
+                    fontSize: 16,
+                    shadows: _shadow,
+                  ),
+                ),
                 Row(
                   children: [
                     Flexible(
                       child: Text(
-                        hostName,
+                        '$meta · ',
+                        key: const ValueKey('live-host-meta'),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: const TextStyle(
                           color: Colors.white,
-                          fontWeight: FontWeight.w900,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w700,
+                          shadows: _shadow,
                         ),
                       ),
                     ),
-                    if (me != null && me != show.hostId && !following) ...[
-                      const SizedBox(width: 6),
-                      Flexible(
-                        child: FittedBox(
-                          fit: BoxFit.scaleDown,
-                          child: Material(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(99),
-                            child: InkWell(
-                              key: const ValueKey('live-follow'),
-                              borderRadius: BorderRadius.circular(99),
-                              onTap: () async {
-                                if (blockGuest(context)) return;
-                                await ref
-                                    .read(appProvider.notifier)
-                                    .toggleFollow(show.hostId);
-                                showLoopSnackBar(t('Pratiš {0}', [hostName]));
-                              },
-                              child: Padding(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 10,
-                                  vertical: 3,
-                                ),
-                                child: Text(
-                                  t('Prati'),
-                                  style: const TextStyle(
-                                    color: Colors.black,
-                                    fontWeight: FontWeight.w900,
-                                    fontSize: 12,
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ),
+                    Flexible(
+                      child: Text(
+                        show.title,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          color: Colors.white70,
+                          fontSize: 12,
+                          shadows: _shadow,
                         ),
                       ),
-                    ],
+                    ),
                   ],
-                ),
-                Text(
-                  show.title,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(color: Colors.white70, fontSize: 12),
                 ),
               ],
             ),
           ),
-          if (state.isLive) ...[
-            const LiveBadge(),
+          if (me != null && me != show.hostId && !following) ...[
             const SizedBox(width: 6),
-            _ViewersChip(state.viewers),
-          ] else
+            FilledButton(
+              key: const ValueKey('live-follow'),
+              style: FilledButton.styleFrom(
+                backgroundColor: LoopColors.accent,
+                foregroundColor: Colors.white,
+                visualDensity: VisualDensity.compact,
+                padding: const EdgeInsets.symmetric(horizontal: 14),
+                textStyle: const TextStyle(
+                  fontFamily: kFontFamily,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+              onPressed: () async {
+                if (blockGuest(context)) return;
+                await ref.read(appProvider.notifier).toggleFollow(show.hostId);
+                showLoopSnackBar(t('Pratiš {0}', [hostName]));
+              },
+              child: Text(t('Prati')),
+            ),
+          ],
+          const SizedBox(width: 8),
+          if (state.isLive)
+            _ViewersChip(state.viewers)
+          else
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
               decoration: BoxDecoration(
@@ -2162,31 +2187,252 @@ class _TopBar extends ConsumerWidget {
               ),
             ),
           IconButton(
-            key: const ValueKey('live-share'),
-            tooltip: t('Podijeli live'),
-            visualDensity: VisualDensity.compact,
-            onPressed: () => shareLink(
-              context,
-              publicLink(live: show.id),
-              text: t('Gledaj "{0}" uživo na LICIT-u', [show.title]),
-            ),
-            icon: const Icon(Icons.ios_share, color: Colors.white, size: 20),
-          ),
-          IconButton(
-            key: const ValueKey('live-queue'),
-            tooltip: t('Predmeti u liveu'),
-            visualDensity: VisualDensity.compact,
-            onPressed: onQueue,
-            icon: Badge(
-              isLabelVisible: upcoming > 0,
-              label: Text('$upcoming'),
-              child: const Icon(
-                Icons.format_list_numbered,
-                color: Colors.white,
-              ),
+            key: const ValueKey('live-close'),
+            tooltip: t('Zatvori'),
+            onPressed: () => Navigator.maybePop(context),
+            icon: const Icon(
+              Icons.keyboard_arrow_down,
+              color: Colors.white,
+              size: 30,
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+/// Desni stupac gumba (kao na Whatnotu): predmeti, srce, dijeljenje,
+/// novčanik (kartica i adresa) i trgovina prodavača.
+class _SideRail extends ConsumerWidget {
+  const _SideRail({
+    required this.show,
+    required this.state,
+    required this.isHost,
+    required this.canAct,
+    required this.onQueue,
+    required this.onHeart,
+  });
+
+  final LiveShow show;
+  final LiveState state;
+  final bool isHost;
+  final bool canAct;
+  final VoidCallback onQueue;
+  final VoidCallback onHeart;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final listings = ref.watch(
+      appProvider.select((s) => s.listingsOf(show.hostId)),
+    );
+    final upcoming = state.queue.length;
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        _RailButton(
+          key: const ValueKey('live-queue'),
+          label: t('Predmeti'),
+          onTap: onQueue,
+          icon: Badge(
+            isLabelVisible: upcoming > 0,
+            label: Text('$upcoming'),
+            child: const Icon(Icons.format_list_bulleted, color: Colors.white),
+          ),
+        ),
+        if (canAct && !state.isOver)
+          _RailButton(
+            key: const ValueKey('live-react-0'),
+            label: t('Srce'),
+            onTap: onHeart,
+            icon: const Icon(Icons.favorite, color: Color(0xFFFF4D6D)),
+          ),
+        _RailButton(
+          key: const ValueKey('live-share'),
+          label: t('Podijeli'),
+          onTap: () => shareLink(
+            context,
+            publicLink(live: show.id),
+            text: t('Gledaj "{0}" uživo na LICIT-u', [show.title]),
+          ),
+          icon: const Icon(Icons.ios_share, color: Colors.white),
+        ),
+        if (canAct && !isHost)
+          _RailButton(
+            key: const ValueKey('live-wallet'),
+            label: t('Novčanik'),
+            onTap: () => ensureCheckout(context, ref, force: true),
+            icon: const Icon(
+              Icons.account_balance_wallet_outlined,
+              color: Colors.white,
+            ),
+          ),
+        if (listings.isNotEmpty)
+          _RailButton(
+            key: const ValueKey('live-shop-open'),
+            label: t('Trgovina'),
+            onTap: onQueue,
+            icon: Container(
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: Colors.white, width: 2),
+              ),
+              child: ItemThumb(device: listings.first, size: 46),
+            ),
+          ),
+      ],
+    );
+  }
+}
+
+class _RailButton extends StatelessWidget {
+  const _RailButton({
+    super.key,
+    required this.icon,
+    required this.label,
+    required this.onTap,
+  });
+
+  final Widget icon;
+  final String label;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) => InkWell(
+    onTap: onTap,
+    borderRadius: BorderRadius.circular(12),
+    child: Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 6),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          IconTheme(
+            data: const IconThemeData(
+              size: 30,
+              shadows: [Shadow(blurRadius: 8, color: Colors.black54)],
+            ),
+            child: icon,
+          ),
+          const SizedBox(height: 2),
+          Text(
+            label,
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 11,
+              fontWeight: FontWeight.w800,
+              shadows: [Shadow(blurRadius: 6, color: Colors.black87)],
+            ),
+          ),
+        ],
+      ),
+    ),
+  );
+}
+
+/// Reakcije (srca i emoji) lete prema gore uz desni rub — kao na Whatnotu.
+/// Animiraju se samo nove reakcije (ne i one od prije ulaska u sobu).
+class _FloatingReactions extends StatefulWidget {
+  const _FloatingReactions({required this.events});
+  final List<LiveEvent> events;
+
+  @override
+  State<_FloatingReactions> createState() => _FloatingReactionsState();
+}
+
+class _FloatingReactionsState extends State<_FloatingReactions> {
+  final _seen = <String>{};
+  final _active = <LiveEvent>[];
+
+  @override
+  void initState() {
+    super.initState();
+    _seen.addAll(widget.events.map((e) => e.id));
+  }
+
+  @override
+  void didUpdateWidget(_FloatingReactions old) {
+    super.didUpdateWidget(old);
+    final now = DateTime.now();
+    for (final e in widget.events) {
+      if (_seen.add(e.id) &&
+          now.difference(e.at) < const Duration(seconds: 8)) {
+        _active.add(e);
+      }
+    }
+    if (_active.length > 24) _active.removeRange(0, _active.length - 24);
+  }
+
+  @override
+  Widget build(BuildContext context) => Stack(
+    clipBehavior: Clip.none,
+    children: [
+      for (final e in _active)
+        _FloatUp(
+          key: ValueKey(e.id),
+          emoji: e.text,
+          seed: stableHash(e.id),
+          onDone: () {
+            if (mounted) setState(() => _active.remove(e));
+          },
+        ),
+    ],
+  );
+}
+
+class _FloatUp extends StatefulWidget {
+  const _FloatUp({
+    super.key,
+    required this.emoji,
+    required this.seed,
+    required this.onDone,
+  });
+
+  final String emoji;
+  final int seed;
+  final VoidCallback onDone;
+
+  @override
+  State<_FloatUp> createState() => _FloatUpState();
+}
+
+class _FloatUpState extends State<_FloatUp>
+    with SingleTickerProviderStateMixin {
+  late final _c = AnimationController(
+    vsync: this,
+    duration: Duration(milliseconds: 2200 + widget.seed % 800),
+  )..forward().whenComplete(widget.onDone);
+
+  @override
+  void dispose() {
+    _c.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final phase = (widget.seed % 628) / 100;
+    return AnimatedBuilder(
+      animation: _c,
+      builder: (_, child) {
+        final v = _c.value;
+        return Positioned(
+          right: 18 + (widget.seed % 24) + math.sin(v * 6 + phase) * 10,
+          bottom: 20 + v * 300,
+          child: Opacity(
+            opacity: v < 0.75 ? 1 : (1 - v) / 0.25,
+            child: Transform.scale(
+              scale: 0.6 + 0.6 * math.min(v * 5, 1),
+              child: child,
+            ),
+          ),
+        );
+      },
+      child: Text(
+        widget.emoji,
+        style: const TextStyle(
+          fontSize: 30,
+          shadows: [Shadow(blurRadius: 6, color: Colors.black38)],
+        ),
       ),
     );
   }
@@ -2254,7 +2500,9 @@ class _Panel extends StatelessWidget {
   );
 }
 
-/// Predmet koji se licitira: cijena, tko vodi i odbrojavanje.
+/// Donji panel kao na Whatnotu: tko vodi (ili tko je osvojio), slika i
+/// naziv predmeta, stanje i kategorija, "+ dostava", cijena, procjena
+/// vrijednosti i odbrojavanje (ili "Prodano").
 class _LotCard extends StatelessWidget {
   const _LotCard({
     required this.lot,
@@ -2263,6 +2511,8 @@ class _LotCard extends StatelessWidget {
     required this.lotSeconds,
     required this.now,
     required this.me,
+    required this.leaderUser,
+    this.result = false,
   });
 
   final LotState lot;
@@ -2272,15 +2522,26 @@ class _LotCard extends StatelessWidget {
   final DateTime now;
   final String? me;
 
+  /// Vodeći (ili dobitnik) — za avatar u statusnom retku.
+  final AppUser? leaderUser;
+
+  /// Predmet je završen: prikazuje se dobitnik i "Prodano".
+  final bool result;
+
+  static const _shadow = [Shadow(blurRadius: 6, color: Colors.black87)];
+  static const _yellow = Color(0xFFFFD166);
+
   @override
   Widget build(BuildContext context) {
     final left = lot.left(now);
     final secs = (left.inMilliseconds / 1000).ceil();
-    final hot = left <= LiveShow.extendWindow && lot.mode == LotMode.auction;
+    final hot =
+        !result && left <= LiveShow.extendWindow && lot.mode == LotMode.auction;
     final myMax = lot.maxOf(me);
     final leader = lot.leader;
     final d = device;
     final price = switch (lot.mode) {
+      _ when result => lot.price,
       LotMode.auction => lot.price,
       LotMode.dutch => lot.dutchPriceAt(now, lotSeconds),
       LotMode.giveaway => 0.0,
@@ -2290,69 +2551,164 @@ class _LotCard extends StatelessWidget {
     final below = value > 0 && price > 0 && price < value
         ? ((1 - price / value) * 100).round()
         : 0;
-    return Container(
-      key: const ValueKey('live-lot'),
-      margin: const EdgeInsets.symmetric(horizontal: 12),
-      padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
+
+    // Statusni redak (avatar + tekst).
+    final String status;
+    var highlight = '';
+    if (result) {
+      if (leader == null) {
+        status = lot.mode == LotMode.giveaway
+            ? t('Nitko se nije prijavio')
+            : t('Nije prodano');
+      } else if (leader.userId == me) {
+        status = lot.mode == LotMode.giveaway
+            ? t('🎁 Osvojio si nagradu!')
+            : t('🏆 Osvojio si!');
+      } else {
+        status = leader.userLabel;
+        highlight = lot.mode == LotMode.giveaway
+            ? t(' je izvučen! 🎁')
+            : t(' je osvojio!');
+      }
+    } else {
+      status = switch (lot.mode) {
+        LotMode.dutch => t('⬇️ Pada cijena · do {0}', [
+          formatCredits(lot.lot.floorPrice),
+        ]),
+        LotMode.giveaway => t('🎁 Nagradna igra · {0} prijava', [
+          '${lot.entrants}',
+        ]),
+        LotMode.auction =>
+          leader == null
+              ? t('Predmet {0}/{1} · još nema ponuda', [
+                  '${lot.index + 1}',
+                  '$total',
+                ])
+              : leader.userId == me
+              ? t('🥇 Ti vodiš · tvoj maks {0}', [
+                  formatCredits(myMax ?? lot.price),
+                ])
+              : t('🥇 {0} vodi', [leader.userLabel]),
+      };
+    }
+
+    Widget chip(String text, {Color color = Colors.white24}) => Container(
+      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
       decoration: BoxDecoration(
-        color: Colors.black.withValues(alpha: 0.6),
-        borderRadius: BorderRadius.circular(kRadius),
-        border: Border.all(color: hot ? kLiveRed : Colors.white24),
+        color: color,
+        borderRadius: BorderRadius.circular(6),
       ),
+      child: Text(
+        text,
+        style: const TextStyle(
+          color: Colors.white,
+          fontSize: 11.5,
+          fontWeight: FontWeight.w800,
+        ),
+      ),
+    );
+
+    return Padding(
+      key: ValueKey(result ? 'live-result' : 'live-lot'),
+      padding: const EdgeInsets.fromLTRB(14, 4, 14, 0),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              if (d != null) ItemThumb(device: d, size: 40),
-              if (d != null) const SizedBox(width: 10),
+              if (leader != null) ...[
+                UserAvatar(user: leaderUser, size: 22),
+                const SizedBox(width: 6),
+              ],
+              Flexible(
+                child: Text.rich(
+                  TextSpan(
+                    children: [
+                      TextSpan(text: status),
+                      if (highlight.isNotEmpty)
+                        TextSpan(
+                          text: highlight,
+                          style: const TextStyle(color: _yellow),
+                        ),
+                    ],
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w900,
+                    fontSize: 15,
+                    shadows: _shadow,
+                  ),
+                ),
+              ),
+              if (lot.lot.suddenDeath && !result) ...[
+                const SizedBox(width: 6),
+                chip(t('☠️ Sudden death'), color: kLiveRed),
+              ],
+            ],
+          ),
+          const SizedBox(height: 8),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              ClipRRect(
+                borderRadius: BorderRadius.circular(10),
+                child: d != null
+                    ? ItemThumb(device: d, size: 64)
+                    : Container(
+                        width: 64,
+                        height: 64,
+                        color: Colors.white12,
+                        child: const Icon(Icons.inventory_2_outlined),
+                      ),
+              ),
+              const SizedBox(width: 12),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
                       lot.lot.deviceName,
-                      maxLines: 1,
+                      maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                       style: const TextStyle(
                         color: Colors.white,
-                        fontWeight: FontWeight.w800,
+                        fontWeight: FontWeight.w900,
+                        fontSize: 17,
+                        height: 1.15,
+                        shadows: _shadow,
                       ),
                     ),
-                    Text(
-                      switch (lot.mode) {
-                        LotMode.dutch => t('⬇️ Pada cijena · do {0}', [
-                          formatCredits(lot.lot.floorPrice),
-                        ]),
-                        LotMode.giveaway => t(
-                          '🎁 Nagradna igra · {0} prijava',
-                          ['${lot.entrants}'],
+                    if (d != null)
+                      Text(
+                        '${d.condition.label} · ${d.category.singular}',
+                        style: const TextStyle(
+                          color: Colors.white70,
+                          fontSize: 12.5,
+                          shadows: _shadow,
                         ),
-                        LotMode.auction => [
-                          if (lot.lot.suddenDeath) t('☠️ Sudden death'),
-                          leader == null
-                              ? t('Predmet {0}/{1} · još nema ponuda', [
-                                  '${lot.index + 1}',
-                                  '$total',
-                                ])
-                              : leader.userId == me
-                              ? t('🥇 Ti vodiš · tvoj maks {0}', [
-                                  formatCredits(myMax ?? lot.price),
-                                ])
-                              : t('🥇 {0} vodi', [leader.userLabel]),
-                        ].join(' · '),
-                      },
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        color: Colors.white70,
-                        fontSize: 12,
                       ),
+                    const SizedBox(height: 4),
+                    Wrap(
+                      spacing: 4,
+                      runSpacing: 4,
+                      children: [
+                        chip(
+                          lot.mode == LotMode.giveaway
+                              ? t('besplatno + dostava')
+                              : t('+ dostava'),
+                        ),
+                        if (lot.mode != LotMode.auction)
+                          chip('${lot.mode.emoji} ${lot.mode.label}'),
+                      ],
                     ),
                   ],
                 ),
               ),
+              const SizedBox(width: 8),
               Column(
+                key: const ValueKey('live-value'),
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
                   Text(
@@ -2364,226 +2720,281 @@ class _LotCard extends StatelessWidget {
                       color: Colors.white,
                       fontWeight: FontWeight.w900,
                       fontSize: 22,
+                      shadows: _shadow,
                     ),
                   ),
-                  Text(
-                    '0:${secs.toString().padLeft(2, '0')}',
-                    style: TextStyle(
-                      color: hot ? kLiveRed : Colors.white,
-                      fontWeight: FontWeight.w900,
-                      fontSize: 16,
+                  if (value > 0)
+                    Text(
+                      t('💎 procjena {0}', [formatCredits(value)]),
+                      style: const TextStyle(
+                        color: Colors.white70,
+                        fontSize: 12,
+                        shadows: _shadow,
+                      ),
                     ),
-                  ),
+                  if (result)
+                    Text(
+                      leader == null ? t('Nije prodano') : t('Prodano'),
+                      style: TextStyle(
+                        color: leader == null ? Colors.white70 : kLiveRed,
+                        fontWeight: FontWeight.w900,
+                        fontSize: 17,
+                        shadows: _shadow,
+                      ),
+                    )
+                  else ...[
+                    if (below >= 5)
+                      Text(
+                        t('−{0}% ispod procjene', ['$below']),
+                        style: const TextStyle(
+                          color: Color(0xFF4ADE80),
+                          fontSize: 11.5,
+                          fontWeight: FontWeight.w900,
+                          shadows: _shadow,
+                        ),
+                      ),
+                    Text(
+                      '0:${secs.toString().padLeft(2, '0')}',
+                      style: TextStyle(
+                        color: hot ? kLiveRed : Colors.white,
+                        fontWeight: FontWeight.w900,
+                        fontSize: 17,
+                        shadows: _shadow,
+                      ),
+                    ),
+                  ],
                 ],
               ),
             ],
           ),
-          const SizedBox(height: 8),
-          ClipRRect(
-            borderRadius: BorderRadius.circular(99),
-            child: LinearProgressIndicator(
-              value: (left.inMilliseconds / (lotSeconds * 1000)).clamp(0, 1),
-              minHeight: 4,
-              color: hot ? kLiveRed : Colors.white,
-              backgroundColor: Colors.white24,
-            ),
-          ),
-          if (value > 0) ...[
-            const SizedBox(height: 6),
-            Wrap(
-              key: const ValueKey('live-value'),
-              spacing: 6,
-              runSpacing: 4,
-              crossAxisAlignment: WrapCrossAlignment.center,
-              children: [
-                Text(
-                  t('💎 Procjena {0}', [formatCredits(value)]),
-                  style: const TextStyle(color: Colors.white70, fontSize: 11),
-                ),
-                if (below >= 5) ...[
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 6,
-                      vertical: 1,
-                    ),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFF1FA463),
-                      borderRadius: BorderRadius.circular(6),
-                    ),
-                    child: Text(
-                      t('−{0}% ispod procjene', ['$below']),
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 11,
-                        fontWeight: FontWeight.w900,
-                      ),
-                    ),
-                  ),
-                ],
-              ],
-            ),
-          ],
-          if (hot) ...[
-            const SizedBox(height: 4),
-            Text(
-              lot.lot.suddenDeath
-                  ? t('☠️ Sudden death — sat se ne produljuje!')
-                  : t('⚡ Ponuda sada vraća sat na 10 s'),
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 11,
-                fontWeight: FontWeight.w700,
+          if (!result) ...[
+            const SizedBox(height: 8),
+            ClipRRect(
+              borderRadius: BorderRadius.circular(99),
+              child: LinearProgressIndicator(
+                value: (left.inMilliseconds / (lotSeconds * 1000)).clamp(0, 1),
+                minHeight: 3,
+                color: hot ? kLiveRed : Colors.white,
+                backgroundColor: Colors.white24,
               ),
             ),
+            if (hot)
+              Padding(
+                padding: const EdgeInsets.only(top: 4),
+                child: Text(
+                  lot.lot.suddenDeath
+                      ? t('☠️ Sudden death — sat se ne produljuje!')
+                      : t('⚡ Ponuda sada vraća sat na 10 s'),
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w700,
+                    shadows: _shadow,
+                  ),
+                ),
+              ),
           ],
+          if (result)
+            if (lot.guessWinner case final g?)
+              Padding(
+                padding: const EdgeInsets.only(top: 6),
+                child: Text(
+                  g.userId == me
+                      ? t('🎯 Najbliže si pogodio cijenu ({0})', [
+                          formatCredits(g.amount),
+                        ])
+                      : t('🎯 {0} je najbliže pogodio cijenu ({1})', [
+                          g.userLabel,
+                          formatCredits(g.amount),
+                        ]),
+                  key: const ValueKey('live-guess-winner'),
+                  style: const TextStyle(
+                    color: _yellow,
+                    fontWeight: FontWeight.w700,
+                    shadows: _shadow,
+                  ),
+                ),
+              ),
         ],
       ),
     );
   }
 }
 
-/// Zadnje poruke i ponude (starije blijede).
-class _ChatFeed extends StatelessWidget {
-  const _ChatFeed({required this.feed, required this.me});
+/// Chat preko videa kao na Whatnotu: avatar, ime (domaćin s oznakom) i
+/// poruka, bez oblačića. Ponude su istaknute, a reakcije (srca) lete uz
+/// desni rub umjesto da zatrpaju chat.
+class _ChatFeed extends ConsumerWidget {
+  const _ChatFeed({required this.feed, required this.me, required this.hostId});
 
   final List<LiveEvent> feed;
   final String? me;
+  final String hostId;
 
   @override
-  Widget build(BuildContext context) {
-    final last = feed.length > 6 ? feed.sublist(feed.length - 6) : feed;
-    return Align(
-      alignment: Alignment.centerLeft,
-      child: Column(
-        key: const ValueKey('live-feed'),
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          for (var i = 0; i < last.length; i++)
-            Opacity(
-              opacity: 0.45 + 0.55 * (i + 1) / last.length,
-              child: Padding(
-                padding: const EdgeInsets.only(bottom: 4),
-                child: _FeedLine(event: last[i], mine: last[i].userId == me),
+  Widget build(BuildContext context, WidgetRef ref) {
+    final lines = [
+      for (final e in feed)
+        if (!_LiveRoomViewState.isReaction(e)) e,
+    ];
+    final last = lines.length > 5 ? lines.sublist(lines.length - 5) : lines;
+    final s = ref.watch(appProvider);
+    return Column(
+      key: const ValueKey('live-feed'),
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        for (var i = 0; i < last.length; i++)
+          Opacity(
+            opacity: 0.55 + 0.45 * (i + 1) / last.length,
+            child: Padding(
+              padding: const EdgeInsets.only(bottom: 6),
+              child: _FeedLine(
+                event: last[i],
+                user: s.userById(last[i].userId),
+                mine: last[i].userId == me,
+                host: last[i].userId == hostId,
               ),
             ),
-        ],
-      ),
+          ),
+      ],
     );
   }
 }
 
 class _FeedLine extends StatelessWidget {
-  const _FeedLine({required this.event, required this.mine});
+  const _FeedLine({
+    required this.event,
+    required this.user,
+    required this.mine,
+    required this.host,
+  });
+
   final LiveEvent event;
+  final AppUser? user;
   final bool mine;
+  final bool host;
+
+  static const _shadow = [Shadow(blurRadius: 6, color: Colors.black87)];
 
   @override
   Widget build(BuildContext context) {
     final bid = event.type == LiveEventType.bid;
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-      decoration: BoxDecoration(
-        color: bid ? kLiveRed.withValues(alpha: 0.85) : Colors.black45,
-        borderRadius: BorderRadius.circular(14),
-      ),
-      child: Text.rich(
-        TextSpan(
-          children: [
-            TextSpan(
-              text: mine ? t('Ti') : event.userLabel,
-              style: const TextStyle(fontWeight: FontWeight.w900),
-            ),
-            TextSpan(
-              text: bid
-                  ? t(' licitira {0}', [formatCredits(event.amount)])
-                  : '  ${event.text}',
-            ),
-          ],
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        UserAvatar(user: user, size: 30),
+        const SizedBox(width: 8),
+        Flexible(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Flexible(
+                    child: Text(
+                      mine ? t('Ti') : event.userLabel,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        color: Colors.white70,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w700,
+                        shadows: _shadow,
+                      ),
+                    ),
+                  ),
+                  if (host) ...[
+                    const SizedBox(width: 5),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 5,
+                        vertical: 1,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.white24,
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                      child: Text(
+                        t('Domaćin'),
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 10,
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+              Text(
+                bid
+                    ? t('licitira {0} 🔨', [formatCredits(event.amount)])
+                    : event.text,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  color: bid ? const Color(0xFFFFD166) : Colors.white,
+                  fontSize: 14.5,
+                  fontWeight: FontWeight.w800,
+                  shadows: _shadow,
+                ),
+              ),
+            ],
+          ),
         ),
-        maxLines: 2,
-        overflow: TextOverflow.ellipsis,
-        style: const TextStyle(color: Colors.white, fontSize: 13),
-      ),
+      ],
     );
   }
 }
 
 class _ChatInput extends StatelessWidget {
-  const _ChatInput({
-    required this.controller,
-    required this.reactions,
-    required this.onSend,
-    this.onShop,
-  });
+  const _ChatInput({required this.controller, required this.onSend});
 
   final TextEditingController controller;
-  final List<String> reactions;
   final Future<void> Function(String) onSend;
-
-  /// Otvara trgovinu prodavača (Kupi odmah) — samo ako ima predmeta.
-  final VoidCallback? onShop;
 
   @override
   Widget build(BuildContext context) => Padding(
-    padding: const EdgeInsets.fromLTRB(12, 8, 4, 0),
-    child: Row(
-      children: [
-        Expanded(
-          child: TextField(
-            key: const ValueKey('live-chat'),
-            controller: controller,
-            maxLength: LiveEvent.maxText,
-            style: const TextStyle(color: Colors.white),
-            textInputAction: TextInputAction.send,
-            onSubmitted: onSend,
-            decoration: InputDecoration(
-              isDense: true,
-              counterText: '',
-              hintText: t('Napiši nešto…'),
-              hintStyle: const TextStyle(color: Colors.white60),
-              filled: true,
-              fillColor: Colors.white12,
-              contentPadding: const EdgeInsets.symmetric(
-                horizontal: 14,
-                vertical: 10,
-              ),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(99),
-                borderSide: BorderSide.none,
-              ),
-              enabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(99),
-                borderSide: BorderSide.none,
-              ),
-              focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(99),
-                borderSide: const BorderSide(color: Colors.white54),
-              ),
-              suffixIcon: IconButton(
-                key: const ValueKey('live-send'),
-                tooltip: t('Pošalji'),
-                onPressed: () => onSend(controller.text),
-                icon: const Icon(Icons.send, color: Colors.white, size: 20),
-              ),
-            ),
-          ),
+    padding: const EdgeInsets.fromLTRB(12, 4, 12, 6),
+    child: TextField(
+      key: const ValueKey('live-chat'),
+      controller: controller,
+      maxLength: LiveEvent.maxText,
+      style: const TextStyle(color: Colors.white),
+      textInputAction: TextInputAction.send,
+      onSubmitted: onSend,
+      decoration: InputDecoration(
+        isDense: true,
+        counterText: '',
+        hintText: t('Reci nešto…'),
+        hintStyle: const TextStyle(color: Colors.white70),
+        filled: true,
+        fillColor: Colors.black26,
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 18,
+          vertical: 12,
         ),
-        if (onShop != null)
-          IconButton(
-            key: const ValueKey('live-shop-open'),
-            tooltip: t('Kupi odmah'),
-            visualDensity: VisualDensity.compact,
-            onPressed: onShop,
-            icon: const Icon(Icons.storefront, color: Colors.white),
-          ),
-        for (var i = 0; i < reactions.length; i++)
-          IconButton(
-            key: ValueKey('live-react-$i'),
-            visualDensity: VisualDensity.compact,
-            onPressed: () => onSend(reactions[i]),
-            icon: Text(reactions[i], style: const TextStyle(fontSize: 20)),
-          ),
-      ],
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(99),
+          borderSide: const BorderSide(color: Colors.white70),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(99),
+          borderSide: const BorderSide(color: Colors.white70),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(99),
+          borderSide: const BorderSide(color: Colors.white, width: 1.5),
+        ),
+        suffixIcon: IconButton(
+          key: const ValueKey('live-send'),
+          tooltip: t('Pošalji'),
+          onPressed: () => onSend(controller.text),
+          icon: const Icon(Icons.send, color: Colors.white, size: 20),
+        ),
+      ),
     ),
   );
 }

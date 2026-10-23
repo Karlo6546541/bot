@@ -256,9 +256,15 @@ ne sinkronizira; online prijavu vodi Supabase Auth i lozinke ne prolaze kroz na�
   spajaju porukama preko Supabase Realtime kanala (bez nove tablice i bez dodatnog servera).
   Preglednik traži dopuštenje za kameru i mikrofon (radi samo preko https — GitHub Pages je
   https). Dok video ne stigne, prikazuje se fotografija predmeta.
-- **Soba uživo**: pozornica s videom ili fotografijom predmeta, oznaka UŽIVO, broj gledatelja,
-  cijena, tko vodi, odbrojavanje, veliki gumb *Licitiraj X €* (ili vlastiti iznos),
-  chat s brzim reakcijama 🔥👏😍💸 i popis predmeta (što je prodano, što slijedi).
+- **Soba uživo (raspored kao na Whatnotu)**: video preko cijelog ekrana; gore domaćin s
+  ocjenom i brzinom slanja (★ · 🚚), *Prati*, broj gledatelja i strelica za izlaz; **desni
+  stupac** *Predmeti* · *Srce* · *Podijeli* · *Novčanik* (kartica i adresa) · *Trgovina*
+  (sličica prodavačevog Kupi odmah predmeta); chat preko videa (avatar, ime, oznaka
+  *Domaćin*, ponude istaknute), a **srca lete** uz desni rub; polje *Reci nešto…*; donji
+  panel predmeta (tko vodi ili „… je osvojio!”, slika, naziv, stanje · kategorija,
+  „+ dostava”, cijena, 💎 procjena, odbrojavanje ili *Prodano*) i veliki gumb *Licitiraj X €*
+  / *Maks* (između predmeta *Čeka se sljedeći predmet*). Obavijesti se u sobi prikazuju
+  iznad donjeg panela da ne prekriju gumb.
 - **Vrste predmeta** (domaćin bira pri dodavanju):
   - 🔨 **Licitacija** — klasično, najviša ponuda pobjeđuje;
   - ⬇️ **Pada cijena** (nizozemska aukcija) — cijena svake sekunde pada od početne do

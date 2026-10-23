@@ -25,7 +25,7 @@ const _fakeLatency = Duration(milliseconds: 450);
 Future<bool> runWithLoading(
   BuildContext context,
   Future<void> Function() action, {
-  required String successMessage,
+  required String? successMessage,
 }) async {
   final navigator = Navigator.of(context, rootNavigator: true);
   showDialog<void>(
@@ -40,7 +40,7 @@ Future<bool> runWithLoading(
   try {
     await Future.wait([action(), Future<void>.delayed(_fakeLatency)]);
     navigator.pop();
-    showLoopSnackBar(successMessage);
+    if (successMessage != null) showLoopSnackBar(successMessage);
     return true;
   } catch (e) {
     navigator.pop();
@@ -88,24 +88,34 @@ bool blockGuest(BuildContext context) {
 /// dostavu — pobjedniku se naplaćuje automatski, a paket kreće sam. U demo
 /// verziji kartica je testna (ne unose se pravi podaci). Vraća `true` kad
 /// je sve spremno.
-Future<bool> ensureCheckout(BuildContext context, WidgetRef ref) async {
+///
+/// [force]: prikaži i kad je sve spremno (Novčanik — promjena adrese).
+Future<bool> ensureCheckout(
+  BuildContext context,
+  WidgetRef ref, {
+  bool force = false,
+}) async {
   final user = ref.read(appProvider).currentUser;
   if (user == null || user.isGuest) return false;
-  if (user.checkoutReady) return true;
+  if (user.checkoutReady && !force) return true;
   final ok = await showModalBottomSheet<bool>(
     context: context,
     isScrollControlled: true,
     showDragHandle: true,
     backgroundColor: LoopColors.background,
     constraints: const BoxConstraints(maxWidth: 560),
-    builder: (_) => _CheckoutSetupSheet(address: user.address ?? ''),
+    builder: (_) => _CheckoutSetupSheet(
+      address: user.address ?? '',
+      hasCard: user.paymentCard != null,
+    ),
   );
   return ok == true;
 }
 
 class _CheckoutSetupSheet extends ConsumerStatefulWidget {
-  const _CheckoutSetupSheet({required this.address});
+  const _CheckoutSetupSheet({required this.address, this.hasCard = false});
   final String address;
+  final bool hasCard;
 
   @override
   ConsumerState<_CheckoutSetupSheet> createState() =>
@@ -114,7 +124,7 @@ class _CheckoutSetupSheet extends ConsumerStatefulWidget {
 
 class _CheckoutSetupSheetState extends ConsumerState<_CheckoutSetupSheet> {
   late final _address = TextEditingController(text: widget.address);
-  bool _card = false;
+  late bool _card = widget.hasCard;
   bool _busy = false;
 
   @override
