@@ -915,6 +915,9 @@ class _LiveRoomViewState extends ConsumerState<LiveRoomView> {
     if (added == true) showLoopSnackBar(t('Predmet je dodan u live.'));
   }
 
+  /// Zašto se kamera domaćina nije uključila (null = sve u redu).
+  String? _cameraError;
+
   Future<void> _startVideo() async {
     final signaling = ref.read(liveSignalingProvider);
     final s = ref.read(appProvider);
@@ -926,16 +929,27 @@ class _LiveRoomViewState extends ConsumerState<LiveRoomView> {
       // Kamera se pali kad domaćin stvarno krene uživo.
       if (show.hostSeenAt == null) return;
       final b = LiveBroadcaster(signaling(show.id));
-      setState(() => _broadcaster = b);
+      setState(() {
+        _broadcaster = b;
+        _cameraError = null;
+      });
       try {
         await b.start();
-      } catch (_) {
-        if (mounted) setState(() => _broadcaster = null);
+      } catch (e) {
+        if (mounted) {
+          setState(() {
+            _broadcaster = null;
+            _cameraError = e is LiveCameraException && e.denied
+                ? t(
+                    'Preglednik nije dopustio kameru. Dopusti kameru i mikrofon (ikona lokota pokraj adrese) pa stisni "Uključi kameru".',
+                  )
+                : t(
+                    'Kamera se nije uključila ({0}). Stisni "Uključi kameru".',
+                    [e is LiveCameraException ? e.detail : '$e'],
+                  );
+          });
+        }
         await b.stop();
-        showLoopSnackBar(
-          t('Dopusti pristup kameri i mikrofonu da gledatelji vide video.'),
-          error: true,
-        );
       }
     } else {
       final w = LiveWatcher(signaling(show.id));
@@ -1486,16 +1500,30 @@ class _LiveRoomViewState extends ConsumerState<LiveRoomView> {
                               child: center,
                             ),
                           ),
-                          Positioned(
-                            left: 12,
-                            top: 4,
-                            child: _VideoStatus(
-                              show: show,
-                              broadcaster: _broadcaster,
-                              watcher: _watcher,
-                              online: ref.watch(liveSignalingProvider) != null,
+                          if (_cameraError != null &&
+                              isHost &&
+                              _broadcaster == null)
+                            Positioned(
+                              left: 12,
+                              right: 12,
+                              top: 4,
+                              child: _CameraRetry(
+                                message: _cameraError!,
+                                onRetry: _startVideo,
+                              ),
+                            )
+                          else
+                            Positioned(
+                              left: 12,
+                              top: 4,
+                              child: _VideoStatus(
+                                show: show,
+                                broadcaster: _broadcaster,
+                                watcher: _watcher,
+                                online:
+                                    ref.watch(liveSignalingProvider) != null,
+                              ),
                             ),
-                          ),
                           if (_broadcaster case final b?)
                             Positioned(
                               right: 8,
@@ -3389,6 +3417,46 @@ class _AddLotSheetState extends ConsumerState<_AddLotSheet> {
 }
 
 // ------------------------------------------------------------------- video
+
+/// Kamera domaćina se nije uključila: razlog i gumb za ponovni pokušaj.
+class _CameraRetry extends StatelessWidget {
+  const _CameraRetry({required this.message, required this.onRetry});
+  final String message;
+  final VoidCallback onRetry;
+
+  @override
+  Widget build(BuildContext context) => Container(
+    key: const ValueKey('live-camera-error'),
+    padding: const EdgeInsets.all(12),
+    decoration: BoxDecoration(
+      color: Colors.black87,
+      borderRadius: BorderRadius.circular(kRadius),
+    ),
+    child: Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Text(
+          message,
+          maxLines: 4,
+          overflow: TextOverflow.ellipsis,
+          style: const TextStyle(color: Colors.white, fontSize: 13),
+        ),
+        const SizedBox(height: 8),
+        FilledButton.icon(
+          key: const ValueKey('live-camera-retry'),
+          style: FilledButton.styleFrom(
+            backgroundColor: kLiveRed,
+            foregroundColor: Colors.white,
+          ),
+          onPressed: onRetry,
+          icon: const Icon(Icons.videocam),
+          label: Text(t('Uključi kameru')),
+        ),
+      ],
+    ),
+  );
+}
 
 /// Oznaka stanja videa (spajanje, pauza, broj gledatelja videa).
 class _VideoStatus extends StatelessWidget {

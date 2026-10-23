@@ -234,21 +234,59 @@ class LiveBroadcaster {
   /// Uključuje kameru i počinje slati. Baca grešku ako korisnik ne
   /// dopusti kameru.
   Future<void> start() async {
-    final local = await navigator.mediaDevices.getUserMedia({
-      'audio': true,
-      'video': _video(true),
-    });
+    final local = await _openCamera();
     if (_stopped) {
       for (final t in local.getTracks()) {
         await t.stop();
       }
       return;
     }
-    local.getVideoTracks().forEach(preferDetail);
+    for (final t in local.getVideoTracks()) {
+      try {
+        preferDetail(t);
+      } catch (_) {}
+    }
+    micOn.value = local.getAudioTracks().isNotEmpty;
     stream.value = local;
     await _signaling.join(_onMessage);
     await _announce();
     _ready = Timer.periodic(const Duration(seconds: 8), (_) => _announce());
+  }
+
+  /// Otvara kameru (i mikrofon) s postavkama od najboljih prema
+  /// najjednostavnijim — neki mobiteli i preglednici odbiju zahtjevnije
+  /// postavke. Bez mikrofona se pali samo video. Ako korisnik nije
+  /// dopustio pristup, baca [LiveCameraException] s razlogom.
+  Future<MediaStream> _openCamera() async {
+    final videos = <Object>[
+      _video(true),
+      {
+        'facingMode': 'user',
+        'width': {'ideal': 1280},
+        'height': {'ideal': 720},
+      },
+      {'facingMode': 'user'},
+      true,
+    ];
+    Object? last;
+    for (final audio in [true, false]) {
+      for (final video in videos) {
+        try {
+          return await navigator.mediaDevices.getUserMedia({
+            'audio': audio,
+            'video': video,
+          });
+        } catch (e) {
+          last = e;
+          final msg = '$e';
+          // Korisnik je odbio — nema smisla pokušavati s drugim postavkama.
+          if (msg.contains('NotAllowed') || msg.contains('Permission')) {
+            throw LiveCameraException(denied: true, detail: msg);
+          }
+        }
+      }
+    }
+    throw LiveCameraException(failed: true, detail: '$last');
   }
 
   Future<void> _announce() =>
@@ -293,9 +331,14 @@ class LiveBroadcaster {
       await pc.addTrack(t, local);
     }
     final offer = await pc.createOffer();
-    await pc.setLocalDescription(
-      RTCSessionDescription(preferH264(offer.sdp ?? ''), offer.type),
-    );
+    try {
+      await pc.setLocalDescription(
+        RTCSessionDescription(preferH264(offer.sdp ?? ''), offer.type),
+      );
+    } catch (_) {
+      // Preglednik ne prihvaća promijenjeni redoslijed — izvorna ponuda.
+      await pc.setLocalDescription(offer);
+    }
     final desc = await _gatheredDescription(pc);
     if (desc == null || _peers[viewer] != pc) return;
     await _signaling.send({
@@ -442,7 +485,9 @@ class LiveBroadcaster {
     bool isFront,
   ) async {
     track.enabled = cameraOn.value;
-    preferDetail(track);
+    try {
+      preferDetail(track);
+    } catch (_) {}
     for (final pc in _peers.values) {
       for (final sender in await pc.getSenders()) {
         if (sender.track?.kind == 'video') await sender.replaceTrack(track);
@@ -617,6 +662,19 @@ class LiveWatcher {
 /// Kamera se ne može okrenuti: uređaj ima samo jednu kameru ([failed] =
 /// druga kamera se nije uspjela uključiti).
 class LiveCameraException implements Exception {
-  const LiveCameraException({this.failed = false});
+  const LiveCameraException({
+    this.failed = false,
+    this.denied = false,
+    this.detail = '',
+  });
   final bool failed;
+
+  /// Korisnik (ili preglednik) nije dopustio kameru i mikrofon.
+  final bool denied;
+
+  /// Izvorna poruka preglednika (za prikaz razloga).
+  final String detail;
+
+  @override
+  String toString() => 'LiveCameraException($detail)';
 }
