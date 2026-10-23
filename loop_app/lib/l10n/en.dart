@@ -2027,6 +2027,8 @@ const kEn = <String, String>{
       'The browser didn\'t allow the camera. Allow camera and microphone (lock icon next to the address) and tap "Turn on camera".',
   'Kamera se nije uključila ({0}). Stisni "Uključi kameru".':
       'The camera didn\'t start ({0}). Tap "Turn on camera".',
-  '📹 Video se ne spaja — pokušavam ponovno…': '📹 Video won\'t connect — retrying…',
-  '📹 Video ne prolazi kroz ovu mrežu — probaj isti Wi-Fi': '📹 Video can\'t get through this network — try the same Wi-Fi',
+  '📹 Video se ne spaja — pokušavam ponovno…':
+      '📹 Video won\'t connect — retrying…',
+  '📹 Video ne prolazi kroz ovu mrežu — probaj isti Wi-Fi':
+      '📹 Video can\'t get through this network — try the same Wi-Fi',
 };

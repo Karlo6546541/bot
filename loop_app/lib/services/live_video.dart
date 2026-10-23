@@ -73,7 +73,13 @@ class SupabaseLiveSignaling implements LiveSignaling {
           'live-video-$showId',
           opts: const RealtimeChannelConfig(self: false),
         )
-        .onBroadcast(event: 'signal', callback: onMessage)
+        .onBroadcast(
+          event: 'signal',
+          callback: (m) {
+            final inner = unwrapSignal(m);
+            if (inner != null) onMessage(inner);
+          },
+        )
         .subscribe((status, error) {
           if (status == RealtimeSubscribeStatus.subscribed &&
               !ready.isCompleted) {
@@ -85,7 +91,12 @@ class SupabaseLiveSignaling implements LiveSignaling {
 
   @override
   Future<void> send(Map<String, dynamic> message) async {
-    await _channel?.sendBroadcastMessage(event: 'signal', payload: message);
+    // Supabase u poslani paket upisuje svoja polja `type` i `event` — naša
+    // poruka (koja ima svoj `type`: hello/ready/offer…) zato ide u `payload`.
+    await _channel?.sendBroadcastMessage(
+      event: 'signal',
+      payload: {'payload': Map<String, dynamic>.of(message)},
+    );
   }
 
   @override
@@ -94,6 +105,22 @@ class SupabaseLiveSignaling implements LiveSignaling {
     _channel = null;
     if (c != null) await _client.removeChannel(c);
   }
+}
+
+/// Izvlači našu poruku iz Supabase broadcast paketa
+/// (`{type: broadcast, event: signal, payload: {payload: poruka}}` ili
+/// pliće, ovisno o putu dostave). Poruka se prepoznaje po polju `from`.
+Map<String, dynamic>? unwrapSignal(Map<String, dynamic> raw) {
+  Object? m = raw;
+  for (var i = 0; i < 4 && m is Map; i++) {
+    if (m['from'] is String &&
+        m['type'] is String &&
+        m['type'] != 'broadcast') {
+      return Map<String, dynamic>.from(m);
+    }
+    m = m['payload'];
+  }
+  return null;
 }
 
 /// Stvara signalizaciju za live (null = video nije dostupan, npr. bez

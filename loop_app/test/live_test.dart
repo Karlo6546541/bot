@@ -1183,6 +1183,26 @@ void main() {
       );
     });
 
+    test('poruka se izvlači iz Supabase broadcast paketa', () {
+      const msg = {'type': 'offer', 'from': 'a', 'to': 'b', 'sdp': 'x'};
+      // Kako stiže preko WebSocketa: Supabase je dodao svoj type/event.
+      expect(
+        unwrapSignal({
+          'type': 'broadcast',
+          'event': 'signal',
+          'payload': {'payload': msg, 'type': 'broadcast', 'event': 'signal'},
+        }),
+        msg,
+      );
+      expect(unwrapSignal({'payload': msg}), msg);
+      expect(unwrapSignal(msg), msg);
+      // Stari (pokvareni) oblik: type je prepisan — nije naša poruka.
+      expect(
+        unwrapSignal({'type': 'broadcast', 'event': 'signal', 'from': 'a'}),
+        isNull,
+      );
+    });
+
     test('protok po gledatelju pada s brojem gledatelja', () {
       expect(videoBitrateFor(1), 2500000);
       expect(videoBitrateFor(4), 1800000);
