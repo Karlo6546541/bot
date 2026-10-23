@@ -103,7 +103,7 @@ void main() {
       expect(Device.fromMap(cut.toMap()).discountPercent, 20);
 
       final tx = await trade.buy(userId: tester, deviceId: d.id);
-      expect(tx.amount, 40.8); // 40 + 2 %, karticom
+      expect(tx.amount, 40); // kupac plaća samo cijenu, karticom
     });
 
     test('trajni popust; samo na oglas; granice', () async {
@@ -146,7 +146,7 @@ void main() {
       final n = inbox(
         tester,
       ).firstWhere((n) => n.kind == NotificationKind.followedDiscount);
-      expect(n.text, '@demo: popust −10% na "Šalica" — sada 27,54 €.');
+      expect(n.text, '@demo: popust −10% na "Šalica" — sada 27 €.');
       // Marko ne prati demo — ništa ne dobiva.
       expect(
         inbox(marko).where((n) => n.kind == NotificationKind.followedDiscount),
@@ -180,8 +180,8 @@ void main() {
       final sellerBefore = storage.userById(demo)!.credits;
       final tx = await trade.buy(userId: tester, deviceId: d.id);
       expect(tx.price, 80);
-      expect(tx.amount, 81.6); // kupac plaća karticom
-      expect(storage.userById(demo)!.credits, sellerBefore + 80);
+      expect(tx.amount, 80); // kupac plaća karticom
+      expect(storage.userById(demo)!.credits, sellerBefore + 76);
       expect(storage.bargainById(o.id)!.status, BargainStatus.used);
     });
 
@@ -316,14 +316,14 @@ void main() {
     expect(heirs, containsAll(TradeService.platformHeirs));
     // Drugi prolaz ništa ne mijenja (svi uređaji dođu do istog rezultata).
     expect(await trade.assignPlatformItems(), 0);
-    // Kupnja ide od prodavatelja: on dobiva punu cijenu.
+    // Kupnja ide od prodavatelja: on dobiva cijenu − 5 %.
     final d = storage.deviceById('seed-5')!;
     final sellerBefore = storage.userById(d.ownerId!)!.credits;
     await trade.buy(userId: demo, deviceId: d.id);
     expect(storage.userById(d.ownerId!), isNotNull);
     expect(
       storage.userById(storage.transactions.first.sellerId!)!.credits,
-      sellerBefore + 185,
+      sellerBefore + 175.75,
     );
   });
 

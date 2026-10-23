@@ -29,20 +29,27 @@ void main() {
     await dir.delete(recursive: true);
   });
 
-  test('naknada 2% plaća samo kupac', () {
-    expect(feeFor(780), 15.6);
-    expect(sellPayout(310), 310);
-    expect(buyTotal(185), 188.7);
+  test('kupac ne plaća naknadu; provizija 5 % / 10 % od razlike', () {
+    expect(feeFor(780), 0);
+    expect(buyTotal(185), 185);
+    // Kupi odmah: 5 % od cijene.
+    expect(sellPayout(310), 294.5);
+    expect(buyNowCommission(310), 15.5);
+    // Aukcija i live: 10 % samo od razlike iznad početne cijene.
+    expect(auctionCommission(45, 5), 4);
+    expect(auctionPayout(45, 5), 41);
+    expect(auctionCommission(5, 5), 0);
+    expect(auctionCommission(3, 5), 0);
   });
 
   test(
-    'seed: demo korisnik ima 2 predmeta, 33 predmeta u Marketu (2 digitalna)',
+    'seed: demo korisnik ima 2 predmeta, 35 predmeta u Marketu (2 digitalna)',
     () {
       final state = AppState.fromStorage(storage);
       final demo = storage.userById(SeedData.demoUserId)!;
       expect(demo.credits, 1250);
       expect(state.devicesOf(demo.id), hasLength(2));
-      expect(state.devices.where((d) => d.isOnMarket), hasLength(33));
+      expect(state.devices.where((d) => d.isOnMarket), hasLength(35));
     },
   );
 
@@ -67,14 +74,14 @@ void main() {
   });
 
   test(
-    'kupnja: kupac plaća karticom (cijena + 2 %), predmet je njegov',
+    'kupnja: kupac plaća karticom (samo cijenu), predmet je njegov',
     () async {
-      // AirPods Pro 2 = 185 → 188.70
+      // AirPods Pro 2 = 185 (bez naknade za kupca)
       final tx = await trade.buy(
         userId: SeedData.testUserId,
         deviceId: 'seed-5',
       );
-      expect(tx.amount, 188.7);
+      expect(tx.amount, 185);
       expect(storage.userById(SeedData.testUserId)!.credits, 800);
       expect(storage.deviceById('seed-5')!.ownerId, SeedData.testUserId);
     },
@@ -83,7 +90,7 @@ void main() {
   test('skupa kupnja ne ovisi o stanju (kartica)', () async {
     // MacBook Pro 1890 > 800 zarade — plaća se karticom.
     final tx = await trade.buy(userId: SeedData.testUserId, deviceId: 'seed-7');
-    expect(tx.amount, 1927.8);
+    expect(tx.amount, 1890);
     expect(storage.userById(SeedData.testUserId)!.credits, 800);
     expect(storage.deviceById('seed-7')!.ownerId, SeedData.testUserId);
   });
@@ -110,7 +117,7 @@ void main() {
 
     await storage.resetAll();
     expect(storage.users, hasLength(4));
-    expect(storage.devices, hasLength(39));
+    expect(storage.devices, hasLength(41));
   });
 
   test('favoriti: dodavanje i uklanjanje', () async {

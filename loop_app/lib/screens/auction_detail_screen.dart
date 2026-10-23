@@ -272,8 +272,12 @@ class _AuctionDetailScreenState extends ConsumerState<AuctionDetailScreen> {
                   text: a.bids.isEmpty
                       ? t('Aukciju možeš otkazati dok nema ponuda.')
                       : t(
-                          'Aukcija ima ponude i ne može se otkazati. Po završetku dobivaš {0} (cijela najviša ponuda — bez naknade).',
-                          [formatCredits(sellPayout(a.currentPrice))],
+                          'Aukcija ima ponude i ne može se otkazati. Po završetku dobivaš {0} (provizija je 10 % samo od razlike iznad početne cijene).',
+                          [
+                            formatCredits(
+                              auctionPayout(a.currentPrice, a.startPrice),
+                            ),
+                          ],
                         ),
                 ),
                 if (a.bids.isEmpty) ...[

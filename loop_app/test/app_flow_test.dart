@@ -102,7 +102,7 @@ void main() {
       await tester.pumpAndSettle();
 
       // Aukcije → kartica → swipe feed → licitiraj.
-      await tester.tap(find.text('Aukcije').last);
+      await tester.tap(find.text('Istraži').last);
       await tester.pumpAndSettle();
       await tester.tap(find.text('Polaroid SX-70'));
       await tester.pumpAndSettle();
@@ -191,7 +191,7 @@ void main() {
     await tester.tap(find.text('Prijavi se'));
     await tester.pumpAndSettle();
 
-    await tester.tap(find.text('Aukcije').last);
+    await tester.tap(find.text('Istraži').last);
     await tester.pumpAndSettle();
     expect(find.text('Polaroid SX-70'), findsOneWidget);
 
@@ -400,7 +400,7 @@ void main() {
     expect(find.text('For you'), findsOneWidget);
 
     // Swipe feed aukcija na engleskom.
-    await tester.tap(find.text('Auctions').last);
+    await tester.tap(find.text('Explore').last);
     await tester.pumpAndSettle();
     await tester.tap(find.text('Polaroid SX-70'));
     await tester.pumpAndSettle();
@@ -515,7 +515,7 @@ void accountTests() {
     await tester.ensureVisible(find.text('Samo razgledaj (gost)'));
     await tester.tap(find.text('Samo razgledaj (gost)'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Aukcije').last);
+    await tester.tap(find.text('Istraži').last);
     await tester.pumpAndSettle();
     await tester.tap(find.text('Polaroid SX-70'));
     await tester.pumpAndSettle();
@@ -547,15 +547,32 @@ void listingTests() {
     await tester.tap(find.text('iPhone 13'));
     await tester.pumpAndSettle();
 
-    // Vlasnik: aukcija ili live (nema više Marketa).
+    // Vlasnik bira način prodaje: Kupi odmah, aukcija ili live.
+    final page = find
+        .descendant(
+          of: find.byType(Scaffold).last,
+          matching: find.byType(Scrollable),
+        )
+        .first;
+    // Demo iPhone je već na Kupi odmah: vidi se zarada nakon provizije.
+    await tester.scrollUntilVisible(
+      find.byKey(const ValueKey('unlist')),
+      200,
+      scrollable: page,
+    );
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('listing-info')), findsOneWidget);
+    expect(find.textContaining('provizija 5 %'), findsOneWidget);
+    await tester.tap(find.byKey(const ValueKey('unlist')));
+    await tester.pumpAndSettle();
     await tester.scrollUntilVisible(
       find.byKey(const ValueKey('item-auction')),
       200,
-      scrollable: find.byType(Scrollable).first,
+      scrollable: page,
     );
     await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('item-buy-now')), findsOneWidget);
     expect(find.byKey(const ValueKey('item-live')), findsOneWidget);
-    expect(find.text('Objavi u Marketu'), findsNothing);
     await tester.tap(find.byKey(const ValueKey('item-auction')));
     await tester.pumpAndSettle();
     expect(find.text('Nova aukcija'), findsOneWidget);
@@ -566,8 +583,10 @@ void listingTests() {
     await tester.scrollUntilVisible(
       find.byKey(const ValueKey('delete-item')),
       200,
-      scrollable: find.byType(Scrollable).first,
+      scrollable: page,
     );
+    // Pričekaj da nestane obavijest (SnackBar) koja prekriva dno.
+    await tester.pump(const Duration(seconds: 6));
     await tester.pumpAndSettle();
     await tester.tap(find.byKey(const ValueKey('delete-item')));
     await tester.pumpAndSettle();
@@ -669,7 +688,7 @@ void communityTests() {
     await login('demo@loop.com');
 
     // Demo nadmaši Marka na Polaroidu.
-    await tester.tap(find.text('Aukcije').last);
+    await tester.tap(find.text('Istraži').last);
     await tester.pumpAndSettle();
     await openAuction(tester, 'Polaroid SX-70');
     await tester.tap(find.byKey(const ValueKey('open-bid')));
@@ -723,7 +742,7 @@ void communityTests() {
     expect(find.descendant(of: bell, matching: find.text('1')), findsNothing);
 
     // Javni profil prodavateljice: ocjene i izbornik prijave/blokiranja.
-    await tester.tap(find.text('Aukcije').last);
+    await tester.tap(find.text('Istraži').last);
     await tester.pumpAndSettle();
     await openAuction(tester, 'Polaroid SX-70');
     await tester.tap(find.textContaining('@ana.kolekcija'));
@@ -862,7 +881,7 @@ void logoTests() {
       expect(find.byKey(const ValueKey('home-search')), findsOneWidget);
 
       // Aukcije → logo → natrag na početnu.
-      await tester.tap(find.text('Aukcije').last);
+      await tester.tap(find.text('Istraži').last);
       await tester.pumpAndSettle();
       expect(find.byKey(const ValueKey('home-search')), findsNothing);
       await tester.tap(find.byKey(const ValueKey('logo-home')));

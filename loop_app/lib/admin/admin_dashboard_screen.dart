@@ -26,7 +26,7 @@ class AdminDashboardScreen extends ConsumerWidget {
         Icons.devices,
         t('Predmeti'),
         '${s.devices.length}',
-        sub: t('{0} u Marketu', [onMarket]),
+        sub: t('{0} na Kupi odmah', [onMarket]),
       ),
       _Tile(
         Icons.gavel,
@@ -48,7 +48,7 @@ class AdminDashboardScreen extends ConsumerWidget {
       ),
       _Tile(
         Icons.percent,
-        t('Prihod od naknade (2%)'),
+        t('Prihod od provizija'),
         formatCredits(s.totalFees),
       ),
       _Tile(

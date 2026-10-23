@@ -16,7 +16,7 @@ const legalHr = <String, String>{
 Ovi Uvjeti uređuju korištenje platforme LICIT (aplikacija i web stranica) koju pruža $kCompany, OIB $kCompanyOib, $kCompanyAddress ("LICIT", "mi"). Registracijom potvrđuješ da imaš najmanje 18 godina i da prihvaćaš ove Uvjete i Pravila privatnosti.
 
 ## 1. Što je LICIT
-LICIT je platforma za aukcije: live aukcije (prodavatelj uživo pokazuje predmete i pokreće kratke licitacije, live traje dok je prodavatelj uživo) i aukcije na vrijeme. LICIT nije prodavatelj predmeta: ugovor o kupoprodaji sklapaju pobjednik aukcije i prodavatelj.
+LICIT je platforma za prodaju među građanima na tri načina: live aukcije (prodavatelj uživo pokazuje predmete i pokreće kratke licitacije, live traje dok je prodavatelj uživo), aukcije na vrijeme i Kupi odmah (fiksna cijena). LICIT nije prodavatelj predmeta: ugovor o kupoprodaji sklapaju kupac (pobjednik aukcije) i prodavatelj.
 
 ## 2. Računi
 LICIT mogu koristiti samo punoljetne fizičke osobe, za osobne potrebe (ne kao obrt ni tvrtka) — i kao kupci i kao prodavatelji. Jedna osoba smije imati jedan račun. Podaci moraju biti točni. Odgovoran si za sigurnost lozinke. Račun možeš obrisati u Profilu (brisanje se izvršava nakon 7 dana).
@@ -25,13 +25,15 @@ LICIT mogu koristiti samo punoljetne fizičke osobe, za osobne potrebe (ne kao o
 Prodavatelji su fizičke osobe koje prodaju svoje stvari. Prije prve objave unose podatke prodavatelja (ime i prezime, OIB, datum rođenja, adresu, IBAN). Tko prodaje kao djelatnost (obrt, tvrtka), ne smije koristiti LICIT. Zabranjeni predmeti navedeni su u Pravilima za prodavatelje.
 
 ## 4. Cijene i naknade
-Kupac plaća cijenu predmeta uvećanu za naknadu platforme od 2 % (prikazana cijena je konačna) te dostavu ako je odabrana. Prodavatelj dobiva punu cijenu oglasa. Objava aukcije i isticanje računa naplaćuju se prema cijeni prikazanoj prije potvrde.
+Kupac plaća samo cijenu predmeta (bez naknade platforme) i dostavu. Objava je besplatna. Prodavatelju se od isplate odbija provizija: kod Kupi odmah 5 % od cijene, a kod aukcija i live aukcija 10 % samo od razlike između prodajne i početne cijene (kod padajuće cijene — od najniže cijene); ako se predmet proda po početnoj cijeni, provizije nema. Isticanje računa naplaćuje se prema cijeni prikazanoj prije potvrde.
 
 ## 5. Plaćanje i isplata
 Plaćanje karticom i isplate prodavateljima obrađuje licencirani pružatelj platnih usluga ([NAZIV PRUŽATELJA, npr. Mangopay ili Stripe]). LICIT ne drži novac korisnika. Zarada prodavatelja isplaćuje se na IBAN iz podataka prodavatelja.
 
-## 6. Aukcije
-Ponuda na aukciji je obvezujuća i ne može se povući dok te netko ne nadmaši. Automatska ponuda licitira umjesto tebe do iznosa koji odrediš. Ponuda u zadnjoj minuti produljuje aukciju za minutu. Pobjednik plaća najvišu ponudu karticom nakon završetka aukcije.
+## 6. Aukcije i live aukcije
+Ponuda je obvezujuća i ne može se povući ni smanjiti. Prije prve ponude kupac sprema karticu i adresu za dostavu; pobjedniku se naplaćuje automatski, a pošiljka kreće na spremljenu adresu.
+Aukcije na vrijeme: automatska ponuda licitira umjesto tebe do iznosa koji odrediš, a ponuda u zadnjoj minuti produljuje aukciju za minutu.
+Live aukcije: domaćin pokreće licitaciju za jedan predmet u isto vrijeme. Ponuda je maksimalna ponuda — sustav licitira umjesto tebe za jedan korak iznad drugog najvišeg ponuđača, a kod jednakih ponuda vodi ranija. Koraci rastu s cijenom (1 € do 10 €, 2 € do 50 €, 5 € do 100 € i dalje). Ponuda u zadnjih 10 sekundi vraća sat na 10 sekundi, osim kod predmeta označenih "sudden death", koji završavaju točno na nuli. Na predmete koji tek dolaze može se predlicitirati. Kod padajuće cijene kupuje prvi koji potvrdi kupnju. Domaćin ne smije licitirati na svom liveu. Sve što kupac osvoji u istom liveu šalje se u jednom paketu, a dostava se plaća jednom. Neprodani predmeti mogu nakon livea automatski prijeći u Kupi odmah po početnoj cijeni.
 
 ## 7. Ponude za cijenu i zamjene
 Prihvaćena ponuda za cijenu vrijedi 48 sati. Zamjena se izvršava kad je obje strane prihvate.
@@ -150,13 +152,15 @@ LICIT may only be used by adult natural persons for personal purposes (not as a 
 Sellers are natural persons selling their own things. Before the first listing they provide seller details (full name, OIB/tax number, date of birth, address, IBAN). Anyone selling as a business (sole trader, company) may not use LICIT. Prohibited items are listed in the Seller rules.
 
 ## 4. Prices and fees
-The buyer pays the item price plus a 2% platform fee (the displayed price is final) and delivery if chosen. The seller receives the full listing price. Auction listing and account promotion are charged at the price shown before confirmation.
+The buyer pays only the item price (no platform fee) and delivery. Listing is free. A commission is deducted from the seller's payout: 5% of the price for Buy now, and for auctions and live auctions 10% only of the difference between the selling price and the starting price (for price-drop items, the lowest price); if an item sells at its starting price, there is no commission. Account promotion is charged at the price shown before confirmation.
 
 ## 5. Payment and payouts
 Card payments and seller payouts are processed by a licensed payment service provider ([PROVIDER NAME, e.g. Mangopay or Stripe]). LICIT does not hold users' money. Seller earnings are paid out to the IBAN in the seller details.
 
-## 6. Auctions
-A bid is binding and cannot be withdrawn until you are outbid. Automatic bidding bids for you up to the amount you set. A bid in the last minute extends the auction by a minute. The winner pays the highest bid by card after the auction ends.
+## 6. Auctions and live auctions
+A bid is binding and cannot be withdrawn or lowered. Before the first bid the buyer saves a card and a delivery address; the winner is charged automatically and the parcel ships to the saved address.
+Timed auctions: automatic bidding bids for you up to the amount you set, and a bid in the last minute extends the auction by a minute.
+Live auctions: the host starts bidding on one item at a time. A bid is a maximum bid — the system bids for you one increment above the second-highest bidder, and on equal bids the earlier one leads. Increments grow with the price (€1 up to €10, €2 up to €50, €5 up to €100 and so on). A bid in the last 10 seconds resets the clock to 10 seconds, except for items marked "sudden death", which end exactly at zero. Upcoming items can be pre-bid. On price-drop items, the first to confirm buys. The host may not bid in their own show. Everything a buyer wins in one show ships in one parcel, and delivery is paid once. Unsold items can automatically move to Buy now at their starting price after the show.
 
 ## 7. Price offers and swaps
 An accepted price offer is valid for 48 hours. A swap is executed when both sides accept.

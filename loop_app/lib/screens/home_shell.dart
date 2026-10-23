@@ -19,8 +19,7 @@ import 'search_screen.dart';
 import 'wishlists_screen.dart';
 import 'notifications_screen.dart';
 
-/// Glavni okvir (samo aukcije): Početna · Aukcije · [+ Objavi] · Moje ·
-/// Profil.
+/// Glavni okvir: Početna · Istraži · [+ Objavi] · Moje · Profil.
 class HomeShell extends ConsumerStatefulWidget {
   const HomeShell({super.key});
 
@@ -41,7 +40,7 @@ class _HomeShellState extends ConsumerState<HomeShell> {
 
   static List<ShellDestination> get _destinations => [
     ShellDestination(t('Početna'), Icons.home_outlined, Icons.home),
-    ShellDestination(t('Aukcije'), Icons.gavel_outlined, Icons.gavel),
+    ShellDestination(t('Istraži'), Icons.explore_outlined, Icons.explore),
     ShellDestination(t('Objavi'), Icons.add, Icons.add, action: true),
     ShellDestination(
       t('Moje'),
@@ -51,7 +50,7 @@ class _HomeShellState extends ConsumerState<HomeShell> {
     ShellDestination(t('Profil'), Icons.person_outline, Icons.person),
   ];
 
-  /// Kartice: 0 Početna, 1 Aukcije, 2 Moje, 3 Profil. U traci je "+" na
+  /// Kartice: 0 Početna, 1 Istraži, 2 Moje, 3 Profil. U traci je "+" na
   /// mjestu 2 pa su Moje i Profil pomaknuti za jedan.
   static const _createSlot = 2;
   static int _navIndex(int tab) => tab < _createSlot ? tab : tab + 1;

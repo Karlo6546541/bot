@@ -132,7 +132,7 @@ class _CreateAuctionScreenState extends ConsumerState<CreateAuctionScreen> {
           ? EmptyState(
               icon: Icons.inventory_2_outlined,
               title: t('Nemaš predmeta za aukciju'),
-              message: t('Dodaj predmet ili kupi nešto u Marketu.'),
+              message: t('Dodaj predmet ili kupi nešto.'),
             )
           : Align(
               alignment: Alignment.topCenter,
@@ -238,11 +238,11 @@ class _CreateAuctionScreenState extends ConsumerState<CreateAuctionScreen> {
                         ),
                         child: Text(
                           t(
-                            '• Dok aukcija traje, predmet je zaključan (ne može se prodati).\n• Aukciju možeš otkazati samo dok nema ponuda.\n• Na kraju dobivaš cijelu najvišu ponudu{0}.\n• Ako nitko ne ponudi, predmet ostaje tebi.',
+                            '• Dok aukcija traje, predmet je zaključan (ne može se prodati).\n• Aukciju možeš otkazati samo dok nema ponuda.\n• Objava je besplatna. Na kraju dobivaš najvišu ponudu umanjenu za 10 % od razlike iznad početne cijene{0}.\n• Ako nitko ne ponudi, predmet ostaje tebi.',
                             [
                               _price != null && _price! > 0
                                   ? t(' (najmanje {0})', [
-                                      formatCredits(sellPayout(_price!)),
+                                      formatCredits(_price!),
                                     ])
                                   : '',
                             ],
@@ -287,9 +287,11 @@ class _CreateAuctionScreenState extends ConsumerState<CreateAuctionScreen> {
                         onPressed: reason == null ? _submit : null,
                         icon: const Icon(Icons.gavel),
                         label: Text(
-                          t('Objavi aukciju · naknada {0}', [
-                            formatCredits(fee),
-                          ]),
+                          fee > 0
+                              ? t('Objavi aukciju · naknada {0}', [
+                                  formatCredits(fee),
+                                ])
+                              : t('Objavi aukciju'),
                         ),
                       ),
                       const SizedBox(height: 10),
@@ -303,7 +305,7 @@ class _CreateAuctionScreenState extends ConsumerState<CreateAuctionScreen> {
                           if (ok && context.mounted) Navigator.pop(context);
                         },
                         icon: const Icon(Icons.storefront_outlined),
-                        label: Text(t('Radije objavi u Marketu')),
+                        label: Text(t('Radije prodaj na Kupi odmah')),
                       ),
                     ],
                   ],
@@ -482,17 +484,17 @@ class _CompareCard extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          col('🏷️', t('Market'), [
-            t('Prodaješ po svojoj cijeni ({0})', [
+          col('🏷️', t('Kupi odmah'), [
+            t('Prodaješ po svojoj cijeni (dobivaš {0})', [
               formatCredits(sellPayout(device.price)),
             ]),
-            t('Bez naknade za objavu'),
+            t('Provizija 5 %'),
             t('Kupci mogu ponuditi cijenu'),
           ], LoopColors.mint),
           const SizedBox(width: 10),
           col('🔨', t('Aukcija'), [
-            t('Naknada {0} (ne vraća se)', [formatCredits(fee)]),
-            t('Najviša ponuda (bez naknade)'),
+            t('Objava je besplatna'),
+            t('Provizija 10 % samo od razlike iznad početne cijene'),
             t('Ishod nije siguran'),
           ], LoopColors.lilac),
         ],

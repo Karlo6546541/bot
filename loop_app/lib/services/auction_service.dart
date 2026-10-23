@@ -27,7 +27,8 @@ class AuctionResult {
 /// - iznos vodeće ponude je blokiran (oduzet s kredita) i vraća se kad
 ///   ponuđača netko nadmaši ili se aukcija otkaže;
 /// - ponuda u zadnjoj minuti produljuje aukciju na 1 minutu od ponude;
-/// - na kraju pobjednik dobiva predmet, prodavatelj cijeli iznos (bez naknade).
+/// - na kraju pobjednik dobiva predmet, prodavatelj iznos umanjen za 10 %
+///   razlike iznad početne cijene.
 class AuctionService {
   AuctionService(this._storage) : policy = AuctionPolicy(_storage);
 
@@ -120,22 +121,25 @@ class AuctionService {
       targetId: auction.id,
       now: at,
     );
-    await _storage.putTransaction(
-      LoopTransaction(
-        id: _uuid.v4(),
-        type: TransactionType.auctionFee,
-        userId: userId,
-        deviceId: device.id,
-        deviceName: auction.deviceName,
-        price: 0,
-        fee: fee,
-        amount: fee,
-        buyerLabel: 'LICIT',
-        sellerId: userId,
-        sellerLabel: user.handle,
-        createdAt: at,
-      ),
-    );
+    // Objava je besplatna; zapis o naknadi samo ako je naknada postoji.
+    if (fee > 0) {
+      await _storage.putTransaction(
+        LoopTransaction(
+          id: _uuid.v4(),
+          type: TransactionType.auctionFee,
+          userId: userId,
+          deviceId: device.id,
+          deviceName: auction.deviceName,
+          price: 0,
+          fee: fee,
+          amount: fee,
+          buyerLabel: 'LICIT',
+          sellerId: userId,
+          sellerLabel: user.handle,
+          createdAt: at,
+        ),
+      );
+    }
     await _storage.recordSnapshot(userId, now: at);
     return auction;
   }
@@ -442,10 +446,10 @@ class AuctionService {
       return AuctionResult(done);
     }
 
-    // Aukcije su bez naknade: pobjednik plaća svoju ponudu, prodavatelj
-    // dobiva cijeli iznos.
-    const fee = 0.0;
-    final payout = sellPayout(top.amount);
+    // Pobjednik plaća svoju ponudu; prodavatelju se odbija 10 % samo od
+    // razlike iznad početne cijene.
+    final fee = auctionCommission(top.amount, a.startPrice);
+    final payout = auctionPayout(top.amount, a.startPrice);
     // Pobjednik plaća karticom (pružatelj plaćanja), prodavatelj dobiva
     // zaradu za isplatu.
     await _storage.putDevice(device.withOwner(winner.id));

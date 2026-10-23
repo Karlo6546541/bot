@@ -67,7 +67,8 @@ enum AuctionRole {
   }
 }
 
-/// Jedna kartica u pregledu aukcija: live aukcija ili obična aukcija.
+/// Jedna kartica u pregledu: live aukcija, obična aukcija ili predmet za
+/// Kupi odmah.
 class BrowseItem {
   BrowseItem.live(this.show, this.live, this.categories)
     : auction = null,
@@ -77,6 +78,15 @@ class BrowseItem {
       show = null,
       live = null,
       categories = {?device?.category};
+  BrowseItem.item(Device d)
+    : device = d,
+      auction = null,
+      show = null,
+      live = null,
+      categories = {d.category};
+
+  /// Predmet za Kupi odmah (fiksna cijena).
+  bool get isBuyNow => show == null && auction == null;
 
   final LiveShow? show;
   final LiveState? live;
@@ -84,8 +94,11 @@ class BrowseItem {
   final Device? device;
   final Set<DeviceCategory> categories;
 
-  FeedEntry get entry =>
-      show != null ? FeedEntry.live(show!.id) : FeedEntry.auction(auction!.id);
+  FeedEntry get entry => show != null
+      ? FeedEntry.live(show!.id)
+      : auction != null
+      ? FeedEntry.auction(auction!.id)
+      : FeedEntry.item(device!.id);
 }
 
 /// Aukcije u stilu Whatnota: kategorije kao kartice, mreža kartica (prvo
@@ -102,8 +115,10 @@ class AuctionsScreen extends ConsumerStatefulWidget {
 class _AuctionsScreenState extends ConsumerState<AuctionsScreen> {
   static const _all = 'all';
   static const _live = 'live';
+  static const _timed = 'timed';
+  static const _buy = 'buy';
 
-  /// [_all], [_live] ili naziv kategorije.
+  /// [_all], [_live], [_timed], [_buy] ili naziv kategorije.
   String _filter = _all;
   Timer? _timer;
 
@@ -129,12 +144,16 @@ class _AuctionsScreenState extends ConsumerState<AuctionsScreen> {
   bool _matches(BrowseItem i) => switch (_filter) {
     _all => true,
     _live => i.show != null,
+    _timed => i.auction != null,
+    _buy => i.isBuyNow,
     final name => i.categories.any((c) => c.name == name),
   };
 
   String _filterLabel() => switch (_filter) {
     _all => t('Za tebe'),
     _live => t('Uživo'),
+    _timed => t('Aukcije'),
+    _buy => t('Kupi odmah'),
     final name => DeviceCategory.values.firstWhere((c) => c.name == name).label,
   };
 
@@ -151,8 +170,7 @@ class _AuctionsScreenState extends ConsumerState<AuctionsScreen> {
     }
     final cats = counts.keys.toList()
       ..sort((a, b) => counts[b]!.compareTo(counts[a]!));
-    if (_filter != _all &&
-        _filter != _live &&
+    if (!{_all, _live, _timed, _buy}.contains(_filter) &&
         !cats.any((c) => c.name == _filter)) {
       _filter = _all;
     }
@@ -223,6 +241,24 @@ class _AuctionsScreenState extends ConsumerState<AuctionsScreen> {
                   selected: _filter == _live,
                   onTap: () => setState(() => _filter = _live),
                 ),
+                _CategoryCard(
+                  id: _timed,
+                  label: t('Aukcije'),
+                  icon: Icons.gavel,
+                  color: const Color(0xFF7B2FF7),
+                  count: all.where((i) => i.auction != null).length,
+                  selected: _filter == _timed,
+                  onTap: () => setState(() => _filter = _timed),
+                ),
+                _CategoryCard(
+                  id: _buy,
+                  label: t('Kupi odmah'),
+                  icon: Icons.sell_outlined,
+                  color: const Color(0xFF1FA463),
+                  count: all.where((i) => i.isBuyNow).length,
+                  selected: _filter == _buy,
+                  onTap: () => setState(() => _filter = _buy),
+                ),
                 for (final c in cats)
                   _CategoryCard(
                     id: c.name,
@@ -246,7 +282,7 @@ class _AuctionsScreenState extends ConsumerState<AuctionsScreen> {
                   : Icons.gavel,
               title: _filter == _live
                   ? t('Nitko trenutno nije uživo')
-                  : t('Trenutno nema aukcija'),
+                  : t('Ovdje još nema ničega'),
               message: t(
                 'Pokreni live — predmeti se licitiraju jedan za drugim, brzo i uz chat.',
               ),
@@ -389,7 +425,7 @@ class AuctionBrowseCard extends ConsumerWidget {
     final device = show != null
         ? (lot == null ? null : s.deviceById(lot.lot.deviceId))
         : item.device;
-    final sellerId = show?.hostId ?? a!.sellerId;
+    final sellerId = show?.hostId ?? a?.sellerId ?? device!.ownerId ?? '';
     final seller = s.userById(sellerId);
     final title = show?.title ?? device?.name ?? a!.deviceName;
     final role = a == null ? AuctionRole.none : AuctionRole.of(a, viewerId);
@@ -414,9 +450,14 @@ class AuctionBrowseCard extends ConsumerWidget {
       topLeft = pill(
         Text('📅 ${formatDateTime(show.startsAt)}', style: pillText),
       );
+    } else if (a == null) {
+      topLeft = pill(
+        Text(t('🏷️ Kupi odmah'), style: pillText),
+        const Color(0xFF1FA463),
+      );
     } else {
       topLeft = pill(
-        AuctionCountdown(endsAt: a!.endsAt, showIcon: false, style: pillText),
+        AuctionCountdown(endsAt: a.endsAt, showIcon: false, style: pillText),
         const Color(0xFF7B2FF7),
       );
     }
@@ -426,8 +467,10 @@ class AuctionBrowseCard extends ConsumerWidget {
       price = live.current != null
           ? t('Sada: {0}', [formatCredits(live.current!.price)])
           : t('{0} predmeta', ['${show!.lots.length}']);
+    } else if (a != null) {
+      price = formatCredits(a.currentPrice);
     } else {
-      price = formatCredits(a!.currentPrice);
+      price = formatCredits(s.priceForMe(device!));
     }
 
     final category = item.categories.firstOrNull;
@@ -443,7 +486,11 @@ class AuctionBrowseCard extends ConsumerWidget {
       type: MaterialType.transparency,
       child: InkWell(
         key: ValueKey(
-          show != null ? 'browse-live-${show.id}' : 'browse-auction-${a!.id}',
+          show != null
+              ? 'browse-live-${show.id}'
+              : a != null
+              ? 'browse-auction-${a.id}'
+              : 'browse-item-${device!.id}',
         ),
         borderRadius: BorderRadius.circular(kRadius),
         onTap: onTap,
@@ -458,7 +505,7 @@ class AuctionBrowseCard extends ConsumerWidget {
                   const SizedBox(width: 6),
                   Expanded(
                     child: Text(
-                      seller?.handle ?? show?.hostLabel ?? a!.sellerLabel,
+                      seller?.handle ?? show?.hostLabel ?? a?.sellerLabel ?? '',
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: const TextStyle(
@@ -485,7 +532,7 @@ class AuctionBrowseCard extends ConsumerWidget {
                 child: Stack(
                   fit: StackFit.expand,
                   children: [
-                    _CardMedia(device: device),
+                    _CardMedia(device: device, cover: show?.coverPath),
                     const DecoratedBox(
                       decoration: BoxDecoration(
                         gradient: LinearGradient(
@@ -613,12 +660,25 @@ class AuctionBrowseCard extends ConsumerWidget {
 
 /// Fotografija predmeta preko cijele kartice (ili ilustracija kategorije).
 class _CardMedia extends StatelessWidget {
-  const _CardMedia({required this.device});
+  const _CardMedia({required this.device, this.cover});
   final Device? device;
+
+  /// Naslovna slika livea (ima prednost pred fotografijom predmeta).
+  final String? cover;
 
   @override
   Widget build(BuildContext context) {
     final d = device;
+    final c = cover;
+    if (c != null) {
+      return LocalPhoto(
+        path: c,
+        cacheWidth: 480,
+        fallback: d == null
+            ? const ColoredBox(color: Color(0xFF3A1C71))
+            : ItemIllustration(category: d.category, iconSize: 40),
+      );
+    }
     if (d == null) {
       return const DecoratedBox(
         decoration: BoxDecoration(
@@ -802,7 +862,7 @@ Future<void> showAuctionRules(
         const SizedBox(height: 12),
         Text(
           t(
-            '🔒  Ponuda je obvezujuća — ne može se povući ni smanjiti.\n\n🥇  Dok vodiš, ne možeš licitirati ponovno (možeš povisiti automatsku ponudu).\n\n💳  Pobjednik plaća karticom kad aukcija završi — ništa se ne blokira unaprijed.\n\n⏱️  Ponuda u zadnjoj minuti produljuje aukciju za 1 minutu.\n\n🎁  Pobjednik dobiva predmet, prodavatelj cijelu ponudu (bez naknade).',
+            '🔒  Ponuda je obvezujuća — ne može se povući ni smanjiti.\n\n🥇  Dok vodiš, ne možeš licitirati ponovno (možeš povisiti automatsku ponudu).\n\n💳  Pobjednik plaća karticom kad aukcija završi — ništa se ne blokira unaprijed.\n\n⏱️  Ponuda u zadnjoj minuti produljuje aukciju za 1 minutu.\n\n🎁  Pobjednik dobiva predmet i ne plaća naknadu. Prodavatelju se odbija 10 % samo od razlike iznad početne cijene.',
           ),
           style: const TextStyle(height: 1.4, fontSize: 15),
         ),
@@ -1004,11 +1064,14 @@ String maskEmail(String email) {
 
 /// Sve kartice za pregled: live aukcije (prvo uživo, pa zakazane), zatim
 /// aukcije koje najprije završavaju.
-List<BrowseItem> browseItems(AppState s) {
+/// Sve kartice za pregled: liveovi (u tijeku pa zakazani), aukcije koje
+/// najprije završavaju i — uz [buyNow] — predmeti za Kupi odmah.
+List<BrowseItem> browseItems(AppState s, {bool buyNow = true}) {
   final now = DateTime.now();
   return [
     for (final (show, live) in s.activeLives)
       BrowseItem.live(show, live, {
+        if (show.category != null) DeviceCategory.fromName(show.category),
         for (final l in show.lots) ?s.deviceById(l.deviceId)?.category,
       }),
     for (final a in [
@@ -1016,5 +1079,8 @@ List<BrowseItem> browseItems(AppState s) {
     ]..sort((a, b) => a.endsAt.compareTo(b.endsAt)))
       if (!s.isBlocked(a.sellerId) && !a.isExpired(now))
         BrowseItem.auction(a, s.deviceById(a.deviceId)),
+    if (buyNow)
+      for (final d in s.marketDevices)
+        if (d.isListed) BrowseItem.item(d),
   ];
 }

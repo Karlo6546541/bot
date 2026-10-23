@@ -32,7 +32,7 @@ void main() {
       await tester.tap(find.text('Prijavi se'));
       await tester.pumpAndSettle();
       // Aukcije → kartica otvara swipe feed (kao TikTok).
-      await tester.tap(find.text('Aukcije').last);
+      await tester.tap(find.text('Istraži').last);
       await tester.pumpAndSettle();
       await tester.tap(find.text('Polaroid SX-70'));
       await tester.pumpAndSettle();

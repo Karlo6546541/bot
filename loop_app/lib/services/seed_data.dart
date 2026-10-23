@@ -44,6 +44,8 @@ class SeedData {
       credits: 1250,
       createdAt: now,
       // Izmišljeni podaci ispravnog oblika (ne pripadaju stvarnoj osobi).
+      address: 'Ilica 1, 10000 Zagreb',
+      paymentCard: kDemoCard,
       seller: SellerInfo(
         legalName: 'Demo Korisnik',
         oib: '12345678903',
@@ -61,6 +63,8 @@ class SeedData {
       name: 'Test Korisnik',
       credits: 800,
       createdAt: now,
+      address: 'Ilica 1, 10000 Zagreb',
+      paymentCard: kDemoCard,
       seller: SellerInfo(
         legalName: 'Test Korisnik',
         oib: '23456789013',
@@ -78,6 +82,8 @@ class SeedData {
       name: 'Ana Kolekcionarka',
       credits: 400,
       createdAt: now,
+      address: 'Korzo 1, 51000 Rijeka',
+      paymentCard: kDemoCard,
       seller: SellerInfo(
         legalName: 'Ana Demo',
         oib: '34567890125',
@@ -95,6 +101,8 @@ class SeedData {
       name: 'Marko',
       credits: _markoTotal,
       createdAt: now,
+      address: 'Riva 1, 21000 Split',
+      paymentCard: kDemoCard,
       seller: SellerInfo(
         legalName: 'Marko Demo',
         oib: '45678901239',
@@ -352,6 +360,15 @@ class SeedData {
         20,
         DeviceCategory.templates,
       ),
+      // Moda i Dom (novi odjeljci, dodani na kraj da ID-evi ostanu isti).
+      d(
+        'Nike Air Jordan 1',
+        'Retro High OG, EU 43',
+        ex,
+        220,
+        DeviceCategory.sneakers,
+      ),
+      d('Gramofon Lenco', 'Vintage, 1975.', vg, 140, DeviceCategory.vintage),
     ];
     // Opisi i datoteke za nekoliko demo predmeta.
     return [

@@ -6,7 +6,8 @@ import '../l10n/tr.dart';
 ///
 /// Emisiju mijenja samo domaćin (početak licitacije, novi predmeti, "još sam
 /// tu"), a ponude i chat su zasebni zapisi. Ponuda u zadnjih
-/// [LiveShow.suddenDeath] sekundi produljuje licitaciju. Zato svaki uređaj iz
+/// [LiveShow.extendWindow] sekundi produljuje licitaciju (osim kod
+/// "sudden death" predmeta). Zato svaki uređaj iz
 /// istih podataka izračuna isto stanje, bez središnjeg poslužitelja.
 class LiveShow {
   const LiveShow({
@@ -22,6 +23,9 @@ class LiveShow {
     this.settled = const [],
     this.video = false,
     this.hostSeenAt,
+    this.coverPath,
+    this.category,
+    this.relistUnsold = true,
   });
 
   final String id;
@@ -51,12 +55,23 @@ class LiveShow {
   /// Zadnji znak da je domaćin u sobi (osvježava se dok je uživo).
   final DateTime? hostSeenAt;
 
+  /// Naslovna slika (thumbnail) emisije — prikazuje se na kartici i dok
+  /// live ne krene.
+  final String? coverPath;
+
+  /// Glavna kategorija emisije (naziv iz [DeviceCategory]).
+  final String? category;
+
+  /// Neprodani predmeti nakon livea idu na Kupi odmah po početnoj cijeni.
+  final bool relistUnsold;
+
   static const maxTitle = 60;
   static const maxLots = 50;
   static const lotDurations = [15, 20, 30, 45, 60];
 
-  /// Ponuda u zadnjih toliko sekundi vraća sat na toliko sekundi.
-  static const suddenDeath = Duration(seconds: 10);
+  /// Ponuda u zadnjih toliko sekundi vraća sat na toliko sekundi
+  /// (osim kod "sudden death" predmeta, koji završavaju točno na nuli).
+  static const extendWindow = Duration(seconds: 10);
 
   /// Live se ne može zakazati dalje od ovoga.
   static const maxScheduleAhead = Duration(days: 7);
@@ -88,6 +103,9 @@ class LiveShow {
     settled: settled ?? this.settled,
     video: video,
     hostSeenAt: hostSeenAt ?? this.hostSeenAt,
+    coverPath: coverPath,
+    category: category,
+    relistUnsold: relistUnsold,
   );
 
   Map<String, dynamic> toMap() => {
@@ -103,6 +121,9 @@ class LiveShow {
     'settled': settled,
     'video': video,
     'hostSeenAt': hostSeenAt?.toIso8601String(),
+    'coverPath': coverPath,
+    'category': category,
+    'relistUnsold': relistUnsold,
   };
 
   factory LiveShow.fromMap(Map<dynamic, dynamic> m) => LiveShow(
@@ -127,6 +148,9 @@ class LiveShow {
     hostSeenAt: m['hostSeenAt'] == null
         ? null
         : DateTime.tryParse('${m['hostSeenAt']}'),
+    coverPath: m['coverPath'] as String?,
+    category: m['category'] as String?,
+    relistUnsold: m['relistUnsold'] != false,
   );
 }
 
@@ -157,6 +181,7 @@ class LiveLot {
     this.startedAt,
     this.mode = LotMode.auction,
     this.floorPrice = 1,
+    this.suddenDeath = false,
   });
 
   final String deviceId;
@@ -172,6 +197,26 @@ class LiveLot {
   /// Pada cijena: najniža cijena (na kraju vremena).
   final double floorPrice;
 
+  /// "Sudden death" (kao na Whatnotu): sat se ne produljuje — tko vodi kad
+  /// sat dođe do nule, pobjeđuje.
+  final bool suddenDeath;
+
+  /// Cijena od koje se računa provizija (10 % razlike): početna cijena,
+  /// a kod padajuće cijene najniža (ispod nje prodavatelj ne prodaje).
+  double get basePrice => mode == LotMode.dutch ? floorPrice : startPrice;
+
+  /// Korak licitiranja za zadanu cijenu (kao na Whatnotu — veći korak
+  /// kod veće cijene).
+  static double increment(double price) => switch (price) {
+    < 10 => 1,
+    < 50 => 2,
+    < 100 => 5,
+    < 250 => 10,
+    < 500 => 25,
+    < 1000 => 50,
+    _ => 100,
+  };
+
   /// Pada cijena: koliko predmet košta nakon [elapsed] od početka.
   double dutchPrice(Duration elapsed, int seconds) {
     final f = (elapsed.inMilliseconds / (seconds * 1000)).clamp(0.0, 1.0);
@@ -186,6 +231,7 @@ class LiveLot {
     startedAt: at,
     mode: mode,
     floorPrice: floorPrice,
+    suddenDeath: suddenDeath,
   );
 
   Map<String, dynamic> toMap() => {
@@ -195,6 +241,7 @@ class LiveLot {
     if (startedAt != null) 'startedAt': startedAt!.toIso8601String(),
     if (mode != LotMode.auction) 'mode': mode.name,
     if (mode == LotMode.dutch) 'floorPrice': floorPrice,
+    if (suddenDeath) 'suddenDeath': true,
   };
 
   factory LiveLot.fromMap(Map<dynamic, dynamic> m) => LiveLot(
@@ -209,6 +256,7 @@ class LiveLot {
       orElse: () => LotMode.auction,
     ),
     floorPrice: (m['floorPrice'] as num?)?.toDouble() ?? 1,
+    suddenDeath: m['suddenDeath'] == true,
   );
 }
 

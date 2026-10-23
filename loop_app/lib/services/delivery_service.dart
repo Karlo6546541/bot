@@ -96,6 +96,32 @@ class DeliveryService {
     return d;
   }
 
+  /// Pošiljka koja odmah kreće na spremljenu adresu (osvojeno u liveu,
+  /// kao na Whatnotu). [free] — spojeno u paket s ranijim predmetom iz
+  /// istog livea, pa se dostava ne plaća ponovno.
+  Future<Delivery> createStarted({
+    required String id,
+    required String userId,
+    required String deviceId,
+    required String deviceName,
+    required DeliveryMethod method,
+    required String destination,
+    String? sellerId,
+    bool free = false,
+    DateTime? now,
+  }) async {
+    final d = Delivery(
+      id: id,
+      deviceId: deviceId,
+      deviceName: deviceName,
+      buyerId: userId,
+      createdAt: now ?? DateTime.now(),
+      fromAuction: true,
+      sellerId: sellerId,
+    );
+    return _start(d, userId, method, destination, now: now, free: free);
+  }
+
   /// Pobjednik aukcije bira način dostave.
   Future<Delivery> choose({
     required String userId,
@@ -120,6 +146,7 @@ class DeliveryService {
     DeliveryMethod method,
     String? destination, {
     DateTime? now,
+    bool free = false,
   }) async {
     final at = now ?? DateTime.now();
     final error = validate(method, destination);
@@ -131,15 +158,16 @@ class DeliveryService {
     await _storage.putUser(
       user.copyWith(address: method.needsAddress ? dest : null),
     );
+    final cost = free ? 0.0 : method.cost;
     final started = d.copyWith(
       method: method,
       destination: dest,
-      cost: method.cost,
+      cost: cost,
       trackingNumber: _trackingNumber(),
       startedAt: at,
     );
     await _storage.putDelivery(started);
-    if (method.cost > 0) {
+    if (cost > 0) {
       await _storage.putTransaction(
         LoopTransaction(
           id: _uuid.v4(),
@@ -149,7 +177,7 @@ class DeliveryService {
           deviceName: '${d.deviceName} · ${method.label}',
           price: 0,
           fee: 0,
-          amount: method.cost,
+          amount: cost,
           buyerId: userId,
           buyerLabel: user.handle,
           sellerLabel: 'LICIT dostava',

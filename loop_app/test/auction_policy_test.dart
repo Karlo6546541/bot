@@ -51,22 +51,17 @@ void main() {
     await dir.delete(recursive: true);
   });
 
-  test('naknada za objavu: 2% vrijednosti, najmanje 2 kredita', () async {
-    expect(AuctionPolicy.listingFee(storage.deviceById('seed-9')!), 6.2);
+  test('objava aukcije je besplatna', () async {
+    expect(AuctionPolicy.listingFee(storage.deviceById('seed-9')!), 0);
     final cheap = await add(demo, 60);
-    expect(AuctionPolicy.listingFee(cheap), 2);
+    expect(AuctionPolicy.listingFee(cheap), 0);
+    await create(demo, 'seed-9');
+    expect(storage.userById(demo)!.credits, 1250);
+    expect(
+      storage.transactions.where((t) => t.type == TransactionType.auctionFee),
+      isEmpty,
+    );
   });
-
-  test(
-    'objava naplaćuje naknadu (karticom) i bilježi je u aktivnosti',
-    () async {
-      await create(demo, 'seed-9'); // iPhone 13, 310 → 6,20
-      expect(storage.userById(demo)!.credits, 1250); // zarada ostaje
-      final tx = storage.transactions.single;
-      expect(tx.type, TransactionType.auctionFee);
-      expect(tx.fee, 6.2);
-    },
-  );
 
   test('predmeti ispod 50 kredita ne idu na aukciju', () async {
     final cheap = await add(demo, 30);

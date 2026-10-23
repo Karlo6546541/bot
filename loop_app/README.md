@@ -1,12 +1,16 @@
-# LICIT — aukcije uživo
+# LICIT — live aukcije, aukcije i Kupi odmah
 
-Demo Flutter aplikacija **samo za aukcije** (u stilu Whatnota):
+Demo Flutter aplikacija u stilu Whatnota — **jedan predmet, tri načina prodaje**:
 
-- **Live aukcije s videom**: prodavatelj ide uživo, pokazuje predmete kamerom i za svaki
-  pokreće kratku licitaciju. **Live traje dok je prodavatelj uživo** — predmete dodaje usput,
-  a live završava kad ga završi ili izađe.
+- **Live aukcije s videom**: prodavatelj ide uživo (odmah ili **zakazano**, s **naslovnom
+  slikom** i kategorijom), pokazuje predmete kamerom i za svaki pokreće kratku licitaciju.
+  **Live traje dok je prodavatelj uživo** — predmete dodaje usput, a live završava kad ga
+  završi ili izađe. Licitiranje radi kao na Whatnotu (maksimalna ponuda, koraci, sudden
+  death, predlicitacija, kartica i adresa unaprijed, dostava u jednom paketu).
 - **Obične aukcije** koje traju satima ili danima (automatska ponuda, Kupi odmah, zvono).
-- Svi iznosi su u **eurima** (€); pobjednik plaća karticom, prodavatelj dobiva cijelu ponudu.
+- **Kupi odmah**: fiksna cijena, cjenkanje („Ponudi cijenu”), popusti, zaliha.
+- Svi iznosi su u **eurima** (€). **Kupac ne plaća naknadu.** Provizija se odbija prodavatelju:
+  **5 %** za Kupi odmah, **10 % samo od razlike iznad početne cijene** za aukcije i live.
 - Svi korisnici su **punoljetne fizičke osobe** (kupci i prodavatelji).
 - Radi **lokalno i offline** (Hive), a uz Supabase i **online** s pravim računima.
 
@@ -15,9 +19,10 @@ Demo Flutter aplikacija **samo za aukcije** (u stilu Whatnota):
   digitalni proizvodi, priče, liste želja + aukcije i live), commit `c7f297e`;
 - `/bot/stara/` — još starija verzija prije pojednostavljenja sučelja, commit `fc5bf8d`.
 
-Dijelovi ovog dokumenta o Marketu, oglasima, cjenkanju, zamjenama, digitalnim proizvodima,
-pričama i listama želja opisuju spremljenu verziju — u LICIT-u tih ekrana više nema (kod je
-ostao, pa se mogu vratiti).
+Kupi odmah (oglasi, cjenkanje, popusti) vraćen je u LICIT. Dijelovi ovog dokumenta o
+zamjenama, pričama i listama želja opisuju spremljenu verziju — u LICIT-u tih ekrana nema
+(kod je ostao). Gdje se u starijim odjeljcima spominje „Market” ili naknada od 2 %, vrijedi
+odjeljak **Poslovna pravila** niže.
 
 Platforme: **Windows, Android, iOS**.
 
@@ -73,7 +78,7 @@ flutter run            # odaberi uređaj s popisa
   kartice, terakota akcent, pastelni detalji) i topla tamna tema, izbor u *Profil → Izgled*.
   Font je Nunito (ugrađen, radi offline; licenca u `assets/fonts/OFL.txt`). Iznosi se pišu
   hrvatski: „1.250 €”, „294,50 €”; engleski „€1,250”.
-- **Plaćanje (bez novčanika):** kupac plaća **karticom pri kupnji** (predmet + 2 % + dostava),
+- **Plaćanje (bez novčanika):** kupac plaća **karticom pri kupnji** (predmet + dostava),
   a prodavatelj dobiva **zaradu za isplatu** koju šalje na svoj IBAN (*Isplati*). Aplikacija ne
   drži novac kupaca (to bi tražilo licencu HNB-a) — u pravoj verziji plaćanja i isplate radi
   licencirani pružatelj (npr. Mangopay ili Stripe Connect). **U demo verziji plaćanje karticom
@@ -87,14 +92,15 @@ flutter run            # odaberi uređaj s popisa
   - ništa se ne blokira: **pobjednik plaća karticom kad aukcija završi**;
   - najmanji korak je 5% trenutne cijene;
   - ponuda u zadnjoj minuti produljuje aukciju za 1 minutu;
-  - na kraju pobjednik dobiva predmet, a prodavatelj cijelu najvišu ponudu (aukcije su bez naknade);
+  - na kraju pobjednik dobiva predmet, a prodavatelj najvišu ponudu umanjenu za 10 % od razlike
+    iznad početne cijene;
   - bez ponuda predmet ostaje prodavatelju, koji aukciju može otkazati samo dok nema ponuda.
 
   **Protiv masovnog stavljanja svega na aukcije** (`lib/services/auction_policy.dart`):
   - najviše 4 aktivne aukcije po korisniku;
   - najviše 3 nove aukcije u 24 sata;
   - na aukciju idu samo predmeti vrijedni barem 50 € (sitnice → Market);
-  - naknada za objavu: 2% vrijednosti predmeta (najmanje 2 €), ne vraća se;
+  - objava je besplatna;
   - predmet koji se nije prodao može ponovno na aukciju tek nakon 24 h;
   - pri objavi se prikazuje usporedba „Prodaj odmah” (sigurno, bez naknade) i aukcije,
     uz gumb „Radije prodaj odmah”.
@@ -208,11 +214,36 @@ ne sinkronizira; online prijavu vodi Supabase Auth i lozinke ne prolaze kroz na�
   Dodir na karticu otvara **swipe feed kao TikTok** kroz sve kartice te kategorije: live je
   cijela soba uživo, aukcija ima gumb *Licitiraj*. *Moje aukcije* (ikona osobe) i *Pravila*
   (ikona ⓘ) su gore desno.
-- **Pokretanje** (testno odmah, bez podataka prodavatelja): *+ Objavi → Kreni uživo*,
-  *Kreni uživo* na početnoj ili crveni gumb **Live** u Aukcijama. Naslov, trajanje
-  licitacije po predmetu (15/20/30/45/60 s), početak **odmah** ili **zakazano** (do 7 dana)
-  i — neobavezno — predmeti unaprijed (s početnom cijenom, zadano 1 €). Pratitelji dobiju
-  obavijest 🔴.
+- **Pokretanje** (testno odmah, bez podataka prodavatelja): *+ Objavi → Live aukcija*,
+  *Kreni uživo* na početnoj ili crveni gumb **Live** u Istraži. Kao na Whatnotu:
+  **naslovna slika** (thumbnail, vidi se na kartici i u sobi dok se ništa ne licitira),
+  naslov, **kategorija**, početak **odmah** ili **zakazano** (datum i sat, do 7 dana),
+  neobavezno predmeti unaprijed (početna cijena, zadano 1 €) i postavke: video, trajanje
+  licitacije po predmetu (15/20/30/45/60 s) i „Neprodano stavi na Kupi odmah”. Pratitelji
+  dobiju obavijest 🔴.
+- **Licitiranje kao na Whatnotu**:
+  - **kartica i adresa prije prve ponude** (u demo verziji testna kartica „Visa •••• 4242” —
+    pravi podaci kartice se ne unose); pobjedniku se naplaćuje automatski, a pošiljka sama
+    kreće na spremljenu adresu;
+  - **brza ponuda** (*Licitiraj X €* = sljedeći korak) i **maksimalna ponuda** (*Maks*):
+    sustav licitira umjesto tebe jedan korak iznad drugog najvišeg, kod jednakih ponuda vodi
+    raniji; vodeći može *Povisiti maks* (cijena se ne mijenja). U chatu se vide samo cijene,
+    ne maksimumi;
+  - **koraci**: 1 € do 10 €, 2 € do 50 €, 5 € do 100 €, 10 € do 250 €, 25 € do 500 €,
+    50 € do 1.000 €, zatim 100 €;
+  - **standardno**: ponuda u zadnjih 10 s vraća sat na 10 s; **☠️ sudden death** (domaćin
+    bira po predmetu): sat se ne produljuje;
+  - **predlicitacija**: u popisu predmeta gledatelj stisne *Predlicitiraj* za predmet koji tek
+    dolazi (i u zakazanom liveu); ponuda vrijedi kad domaćin pokrene predmet;
+  - **🛍️ Kupi odmah u liveu**: prodavačevi predmeti s fiksnom cijenom (gumb trgovine pokraj
+    chata i u popisu predmeta);
+  - **jedan paket po liveu**: sve što kupac osvoji u istom liveu putuje zajedno — dostava se
+    plaća samo za prvi predmet;
+  - **neprodano** nakon livea automatski ide na Kupi odmah po početnoj cijeni (ako domaćin
+    ima podatke prodavatelja).
+  Ograničenje demo verzije: bez poslužitelja su maksimalne ponude zapisane u zajedničkoj
+  tablici `loop_live_events` (sučelje ih ne prikazuje, ali tehnički su čitljive); u pravoj
+  verziji ponude obrađuje poslužitelj.
 - **Live traje dok si uživo**: domaćin sam bira predmet i pokreće licitaciju (*Licitiraj:
   …* ili *Pokreni* u popisu predmeta), predmete dodaje usput (**+**, iz svojih predmeta ili
   novi), a live završava gumbom *Završi* — ili sam, ako domaćin 2 minute nije u sobi
@@ -344,19 +375,24 @@ dati na pregled odvjetniku prije pokretanja s pravim novcem):
 
 ## Raspored sučelja
 
-- Donja traka: **Početna · Aukcije · [+ Objavi] · Moje · Profil**.
-- **Početna** (klon Whatnota): tražilica, **pilule** *Za tebe · 🔴 Uživo · 📅 Uskoro* i
-  kategorije, zatim mreža kartica **Uživo sada**, **Uskoro** (zvono *Podsjeti me*) i
-  **Završavaju uskoro**. Kartica: prodavač iznad slike, oznaka UŽIVO/gledatelji, cijena na
+- Donja traka: **Početna · Istraži · [+ Objavi] · Moje · Profil**.
+- **Početna** (klon Whatnota): tražilica, **pilule** *Za tebe · 🔴 Uživo · 📅 Uskoro ·
+  ⏱ Aukcije · 🏷️ Kupi odmah* i kategorije, zatim mreža kartica **Uživo sada**, **Uskoro**
+  (zvono *Podsjeti me*), **Završavaju uskoro** i **Kupi odmah**. Kartica: prodavač iznad
+  slike, naslovna slika livea (ili fotografija predmeta), oznaka UŽIVO/gledatelji, cijena na
   slici. Dodir na karticu otvara swipe feed.
-- **Aukcije**: kategorije kao kartice i mreža svih liveova i aukcija; *Pravila* (ⓘ) i **Live**.
-- **+ Objavi**: *Kreni uživo*, *Aukcija* ili *Novi predmet* (predmet ide u Moje predmete, pa
-  na aukciju ili u live — na detaljima predmeta: *Stavi na aukciju* / *Pokaži u liveu*).
+- **Istraži**: kategorije kao kartice (*Za tebe*, *Uživo*, *Aukcije*, *Kupi odmah* i sve
+  kategorije — i nove: moda, tenisice, satovi, Pokémon/TCG, stripovi, videoigre, dom i vintage…)
+  i mreža svih liveova, aukcija i predmeta; *Pravila* (ⓘ) i **Live**.
+- **+ Objavi**: *Live aukcija* (odmah ili zakazano), *Aukcija* ili *Prodaj predmet* — na
+  predmetu se bira **Kupi odmah**, **Aukcija**, **Live** ili *Samo spremi*. Na detaljima
+  vlastitog predmeta: *Kupi odmah · fiksna cijena* / *Stavi na aukciju* / *Pokaži u liveu*;
+  predmet na prodaji pokazuje koliko dobivaš nakon provizije.
 - **Moje**: *Moje ponude*, *Moje aukcije*, *Moji liveovi*, *Završene*.
 - **Profil**: *Moja trgovina* (podaci prodavatelja, moji predmeti, trgovina, top
   prodavatelji) · *Novac i kupnje* (zarada i isplata, povijest, dostave) · *Račun* ·
   *Pravno* · *Postavke*. Javna trgovina prikazuje live (ako je uživo), aukcije i ocjene.
-- Pretraga traži live aukcije, aukcije i račune.
+- Pretraga traži live aukcije, aukcije, predmete i račune.
 
 ## Obavijesti
 
@@ -590,16 +626,20 @@ Apple Watch, Sony A7 III, PS5, Switch) i po 4–5 iz svakog novog odjeljka.
 - Postoje samo **kupci i prodavatelji** — nema više „LICIT Marketa” ni prodaje platformi.
   Stari predmeti platforme automatski dobiju demo prodavatelje (@ana.kolekcija, @marko,
   @test) i objave se po svojoj cijeni.
-- **Prodavatelj ne plaća naknadu** i dobiva punu cijenu oglasa.
-- **Kupac vidi jednu cijenu** u koju je uračunata naknada platforme od 2% (oglas 100 € →
-  kupac vidi i plaća 102 €). Naknada se kupcu ne prikazuje kao zasebna stavka; prodavatelj
-  pri objavi vidi „Kupci vide cijenu …” i „Ti dobivaš …”.
+- **Kupac ne plaća naknadu** — plaća cijenu predmeta i dostavu (kao na Whatnotu).
+- **Kupi odmah**: prodavatelju se odbija **5 %** (oglas 100 € → kupac plaća 100 €, prodavatelj
+  dobiva 95 €). Prodavatelj na predmetu vidi „Kad netko kupi, dobivaš …”.
+- **Aukcije i live**: **10 % samo od razlike** između prodajne i početne cijene („plaćaš samo
+  ono što je licitacija dodala”). Primjer: početna 5 €, prodano za 45 € → provizija 4 €.
+  Prodano po početnoj cijeni → bez provizije. Kod padajuće cijene razlika se računa od
+  najniže cijene; nagradna igra je bez provizije.
+- **Objava** (Kupi odmah, aukcija, live) je besplatna.
 - Popust i dogovorena cijena (cjenkanje) smanjuju cijenu oglasa.
-- **Aukcije**: pobjednik plaća svoju ponudu, prodavatelj dobiva cijeli iznos.
-- **Zamjena**: nadoplatu plaća ponuditelj (+ 2%), vlasnik dobiva cijelu nadoplatu.
+- **Zamjena**: nadoplatu plaća ponuditelj, vlasnik dobiva cijelu nadoplatu.
 - **Isticanje računa**: 4,99 € tjedno (1–4 tjedna), plaća se sa stanja.
 
-Fee je definiran na jednom mjestu: `lib/services/fee.dart` (`kFeeRate`).
+Provizije su definirane na jednom mjestu: `lib/services/fee.dart` (`kBuyNowRate`,
+`kAuctionUpliftRate`).
 
 ---
 

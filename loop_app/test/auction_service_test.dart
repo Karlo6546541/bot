@@ -286,7 +286,8 @@ void main() {
       // Plaća se karticom: stanja kupaca se ne mijenjaju.
       expect(credits(tester), 800);
       expect(credits(marko), 1500);
-      expect(credits(demo), 1250 + 300); // prodavatelj dobiva zaradu
+      // Prodavatelj: 300 − 10 % od razlike iznad početnih 100 €.
+      expect(credits(demo), 1250 + 280);
       await expectLater(
         auctions.buyNow(userId: marko, auctionId: a.id),
         throwsA(isA<TradeException>()),

@@ -50,7 +50,7 @@ void main() {
   });
 
   test(
-    'kupnja od korisnika: kupac +2%, prodavatelj puna cijena, dva zapisa',
+    'kupnja od korisnika: kupac plaća cijenu, prodavatelj −5 %, dva zapisa',
     () async {
       await trade.list(
         userId: SeedData.demoUserId,
@@ -66,11 +66,11 @@ void main() {
       expect(tx.sellerId, SeedData.demoUserId);
       expect(tx.sellerLabel, '@demo');
 
-      expect(tx.amount, 204); // kupac plaća karticom
+      expect(tx.amount, 200); // kupac plaća karticom, bez naknade
       expect(storage.userById(SeedData.testUserId)!.credits, buyerBefore);
       expect(
         storage.userById(SeedData.demoUserId)!.credits,
-        sellerBefore + 200,
+        sellerBefore + 190,
       );
       final d = storage.deviceById(iphone)!;
       expect(d.ownerId, SeedData.testUserId);
@@ -80,7 +80,8 @@ void main() {
         (t) => t.involves(SeedData.demoUserId),
       );
       expect(sellerTx.single.type, TransactionType.sell);
-      expect(sellerTx.single.amount, 200);
+      expect(sellerTx.single.amount, 190);
+      expect(sellerTx.single.fee, 10);
       expect(sellerTx.single.buyerLabel, '@test');
     },
   );
@@ -107,7 +108,7 @@ void main() {
     );
     await trade.buy(userId: SeedData.testUserId, deviceId: iphone);
     expect(storage.deviceById(iphone)!.ownerId, SeedData.testUserId);
-    expect(storage.userById(SeedData.demoUserId)!.credits, 1250 + 5000);
+    expect(storage.userById(SeedData.demoUserId)!.credits, 1250 + 4750);
   });
 
   test('isplata zarade na IBAN prodavatelja', () async {

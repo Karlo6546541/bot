@@ -7,8 +7,8 @@ import '../screens/live_screens.dart';
 import '../theme/app_theme.dart';
 import 'trade_actions.dart';
 
-/// "+ Objavi": live aukcija, obična aukcija ili novi predmet (koji poslije
-/// ide na aukciju ili u live).
+/// "+ Objavi": live (odmah ili zakazan), aukcija ili predmet za prodaju —
+/// Kupi odmah, aukcija ili live biraju se na samom predmetu.
 Future<void> showCreateSheet(BuildContext context) async {
   if (blockGuest(context)) return;
   final choice = await showModalBottomSheet<String>(
@@ -89,8 +89,8 @@ Future<void> showCreateSheet(BuildContext context) async {
                 'live',
                 '🔴',
                 LoopColors.rose,
-                t('Kreni uživo'),
-                t('Video, chat i licitacije od par sekundi'),
+                t('Live aukcija'),
+                t('Kreni odmah ili zakaži · video, chat, brze licitacije'),
               ),
               option(
                 'auction',
@@ -101,10 +101,10 @@ Future<void> showCreateSheet(BuildContext context) async {
               ),
               option(
                 'item',
-                '📦',
+                '🏷️',
                 LoopColors.mint,
-                t('Novi predmet'),
-                t('Dodaj predmet pa ga stavi na aukciju ili u live'),
+                t('Prodaj predmet'),
+                t('Kupi odmah po fiksnoj cijeni, aukcija ili live'),
               ),
             ],
           ),

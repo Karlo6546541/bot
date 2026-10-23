@@ -1203,6 +1203,9 @@ class AppController extends Notifier<AppState> {
     int lotSeconds = 30,
     DateTime? startsAt,
     bool video = false,
+    String? coverPath,
+    DeviceCategory? category,
+    bool relistUnsold = true,
   }) async {
     // Testno: bez podataka prodavatelja (traže se tek za isplatu).
     final show = await _live.create(
@@ -1212,6 +1215,9 @@ class AppController extends Notifier<AppState> {
       lotSeconds: lotSeconds,
       startsAt: startsAt,
       video: video,
+      coverPath: coverPath,
+      category: category?.name,
+      relistUnsold: relistUnsold,
     );
     _refresh();
     return show;
@@ -1230,6 +1236,7 @@ class AppController extends Notifier<AppState> {
     double price, {
     LotMode mode = LotMode.auction,
     double floorPrice = 1,
+    bool suddenDeath = false,
   }) async {
     await _live.addLot(
       _requireUserId(),
@@ -1238,6 +1245,7 @@ class AppController extends Notifier<AppState> {
       price,
       mode: mode,
       floorPrice: floorPrice,
+      suddenDeath: suddenDeath,
     );
     _refresh();
   }
@@ -1297,11 +1305,27 @@ class AppController extends Notifier<AppState> {
   }
 
   /// Ponuda na trenutni predmet. Vraća `true` ako korisnik sad vodi.
-  Future<bool> liveBid(String showId, double amount) async {
+  /// Ponuda (maksimalna) na predmet koji se licitira, ili predlicitacija
+  /// na predmet [lot] na čekanju. Vraća vodi li korisnik nakon ponude.
+  Future<bool> liveBid(String showId, double amount, {int? lot}) async {
     final userId = _requireUserId();
-    final state = await _live.bid(userId, showId, amount);
+    final state = await _live.bid(userId, showId, amount, lot: lot);
     _refresh();
-    return state.current?.leader?.userId == userId;
+    final target = lot == null ? state.current : state.lots[lot];
+    return target?.leader?.userId == userId;
+  }
+
+  /// Kartica i adresa za automatsku naplatu i dostavu (kao na Whatnotu).
+  /// U demo verziji kartica je samo testna oznaka.
+  Future<void> saveCheckout({required String address}) async {
+    final user = _storage.userById(_requireUserId());
+    if (user == null) return;
+    final error = DeliveryService.validate(DeliveryMethod.courier, address);
+    if (error != null) throw TradeException(error);
+    await _storage.putUser(
+      user.copyWith(address: address.trim(), paymentCard: kDemoCard),
+    );
+    _refresh();
   }
 
   bool _liveSettling = false;

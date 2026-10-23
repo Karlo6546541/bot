@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../models/app_user.dart';
 import '../models/device.dart';
 import '../providers/app_providers.dart';
 import '../services/fee.dart';
@@ -81,6 +82,138 @@ bool blockGuest(BuildContext context) {
     ),
   );
   return true;
+}
+
+/// Kao na Whatnotu: prije prve ponude traže se kartica i adresa za
+/// dostavu — pobjedniku se naplaćuje automatski, a paket kreće sam. U demo
+/// verziji kartica je testna (ne unose se pravi podaci). Vraća `true` kad
+/// je sve spremno.
+Future<bool> ensureCheckout(BuildContext context, WidgetRef ref) async {
+  final user = ref.read(appProvider).currentUser;
+  if (user == null || user.isGuest) return false;
+  if (user.checkoutReady) return true;
+  final ok = await showModalBottomSheet<bool>(
+    context: context,
+    isScrollControlled: true,
+    showDragHandle: true,
+    backgroundColor: LoopColors.background,
+    constraints: const BoxConstraints(maxWidth: 560),
+    builder: (_) => _CheckoutSetupSheet(address: user.address ?? ''),
+  );
+  return ok == true;
+}
+
+class _CheckoutSetupSheet extends ConsumerStatefulWidget {
+  const _CheckoutSetupSheet({required this.address});
+  final String address;
+
+  @override
+  ConsumerState<_CheckoutSetupSheet> createState() =>
+      _CheckoutSetupSheetState();
+}
+
+class _CheckoutSetupSheetState extends ConsumerState<_CheckoutSetupSheet> {
+  late final _address = TextEditingController(text: widget.address);
+  bool _card = false;
+  bool _busy = false;
+
+  @override
+  void dispose() {
+    _address.dispose();
+    super.dispose();
+  }
+
+  Future<void> _save() async {
+    setState(() => _busy = true);
+    try {
+      await ref.read(appProvider.notifier).saveCheckout(address: _address.text);
+      if (mounted) Navigator.pop(context, true);
+    } on TradeException catch (e) {
+      showLoopSnackBar(e.message, error: true);
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) => SafeArea(
+    child: Padding(
+      padding: EdgeInsets.fromLTRB(
+        16,
+        0,
+        16,
+        16 + MediaQuery.viewInsetsOf(context).bottom,
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text(
+            t('Spremni za licitiranje?'),
+            style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w900),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            t(
+              'Kad pobijediš, naplata ide automatski s kartice, a paket kreće na tvoju adresu. Sve što osvojiš u istom liveu stiže u jednom paketu.',
+            ),
+            style: TextStyle(color: LoopColors.textSecondary),
+          ),
+          const SizedBox(height: 14),
+          Material(
+            color: _card ? LoopColors.mint : LoopColors.surface,
+            borderRadius: BorderRadius.circular(kRadius),
+            child: ListTile(
+              key: const ValueKey('checkout-card'),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(kRadius),
+              ),
+              leading: const Icon(Icons.credit_card),
+              title: Text(
+                _card ? kDemoCard : t('Dodaj karticu'),
+                style: const TextStyle(fontWeight: FontWeight.w800),
+              ),
+              subtitle: Text(
+                t('Testna kartica — u demo verziji ne unosiš prave podatke.'),
+              ),
+              trailing: Icon(
+                _card ? Icons.check_circle : Icons.add_circle_outline,
+                color: _card ? LoopColors.success : null,
+              ),
+              onTap: () => setState(() => _card = true),
+            ),
+          ),
+          const SizedBox(height: 12),
+          TextField(
+            key: const ValueKey('checkout-address'),
+            controller: _address,
+            textCapitalization: TextCapitalization.words,
+            decoration: InputDecoration(
+              labelText: t('Adresa za dostavu'),
+              hintText: t('Ulica i broj, poštanski broj i mjesto'),
+              prefixIcon: const Icon(Icons.home_outlined),
+            ),
+          ),
+          const SizedBox(height: 10),
+          Text(
+            t(
+              'Ponude su obvezujuće. Za demo upiši izmišljenu adresu — testna baza je otvorena.',
+            ),
+            style: TextStyle(color: LoopColors.textSecondary, fontSize: 12),
+          ),
+          const SizedBox(height: 14),
+          FilledButton(
+            key: const ValueKey('checkout-save'),
+            style: FilledButton.styleFrom(
+              minimumSize: const Size.fromHeight(50),
+            ),
+            onPressed: !_card || _busy ? null : _save,
+            child: Text(t('Spremi i nastavi')),
+          ),
+        ],
+      ),
+    ),
+  );
 }
 
 /// Kupnja: blagajna (dostava, iznos, plaćanje karticom), pa kupnja.
@@ -492,7 +625,7 @@ Future<bool> showListDialog(
     () => ref
         .read(appProvider.notifier)
         .listOnMarket(device.id, price, quantity: quantity),
-    successMessage: t('Objavljeno u Marketu 🏷️'),
+    successMessage: t('Na prodaji je 🏷️'),
   );
 }
 
@@ -547,7 +680,9 @@ class _ListDialogState extends State<_ListDialog> {
       insetPadding: const EdgeInsets.fromLTRB(16, 24, 16, 24),
       scrollable: true,
       title: Text(
-        widget.device.isListed ? t('Promijeni cijenu') : t('Objavi u Marketu'),
+        widget.device.isListed
+            ? t('Promijeni cijenu')
+            : t('Objavi za Kupi odmah'),
       ),
       content: ConstrainedBox(
         constraints: const BoxConstraints(maxWidth: 380),

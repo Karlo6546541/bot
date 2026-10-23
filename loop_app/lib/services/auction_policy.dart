@@ -25,8 +25,10 @@ class AuctionPolicy {
 
   static const maxNewPerDay = 3;
   static const minItemValue = 50.0;
-  static const listingFeeRate = 0.02;
-  static const minListingFee = 2.0;
+
+  /// Objava aukcije je besplatna (provizija se plaća tek od razlike).
+  static const listingFeeRate = 0.0;
+  static const minListingFee = 0.0;
   static const relistCooldown = Duration(hours: 24);
 
   static const maxActive = 4;

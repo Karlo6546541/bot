@@ -149,11 +149,11 @@ class MyItemsScreen extends ConsumerWidget {
               child: EmptyState(
                 icon: Icons.inventory_2_outlined,
                 title: t('Još nemaš predmeta'),
-                message: t('Dodaj svoj predmet ili kupi nešto u Marketu.'),
+                message: t('Dodaj svoj predmet ili kupi nešto.'),
                 action: OutlinedButton.icon(
                   onPressed: onGoToMarket,
                   icon: const Icon(Icons.storefront),
-                  label: Text(t('Otvori Market')),
+                  label: Text(t('Istraži')),
                 ),
               ),
             )
@@ -181,7 +181,7 @@ class MyItemsScreen extends ConsumerWidget {
                       ? t('Na aukciji')
                       : d.isListed
                       ? t('Detalji')
-                      : t('Objavi u Marketu'),
+                      : t('Objavi za Kupi odmah'),
                   actionIcon: auction != null
                       ? Icons.gavel
                       : d.isListed
@@ -194,7 +194,7 @@ class MyItemsScreen extends ConsumerWidget {
                       : () => showListDialog(context, ref, d),
                   onTap: () => DeviceDetailScreen.open(context, d),
                   sellerView: true,
-                  badge: d.isListed ? t('🏷️ U Marketu') : null,
+                  badge: d.isListed ? t('🏷️ Kupi odmah') : null,
                 );
               },
             ),

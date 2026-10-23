@@ -13,9 +13,9 @@ import 'live_screens.dart';
 import 'search_screen.dart';
 import 'swipe_feed_screen.dart';
 
-/// Početna kao Whatnot: pretraga, kategorije kao "pilule" i mreža emisija —
-/// tko je uživo sada, što uskoro kreće i aukcije koje završavaju. Dodir na
-/// karticu otvara swipe feed te skupine.
+/// Početna kao Whatnot: pretraga, kategorije kao "pilule" i mreža kartica —
+/// tko je uživo sada, što uskoro kreće, aukcije koje završavaju i predmeti
+/// za Kupi odmah. Dodir na karticu otvara swipe feed te skupine.
 class LiveHomeScreen extends ConsumerStatefulWidget {
   const LiveHomeScreen({super.key, required this.onBrowse});
 
@@ -41,6 +41,14 @@ class _LiveOnly extends _Filter {
 
 class _Soon extends _Filter {
   const _Soon();
+}
+
+class _Timed extends _Filter {
+  const _Timed();
+}
+
+class _BuyNow extends _Filter {
+  const _BuyNow();
 }
 
 class _Category extends _Filter {
@@ -77,6 +85,7 @@ class _LiveHomeScreenState extends ConsumerState<LiveHomeScreen> {
     final live = all.where((i) => i.live?.isLive ?? false).toList();
     final soon = all.where((i) => i.live?.isScheduled ?? false).toList();
     final auctions = all.where((i) => i.auction != null).toList();
+    final buyNow = all.where((i) => i.isBuyNow).toList();
 
     // Kategorije koje trenutno imaju nešto (najviše prvo).
     final counts = <DeviceCategory, int>{};
@@ -183,6 +192,48 @@ class _LiveHomeScreenState extends ConsumerState<LiveHomeScreen> {
                 )
               : grid('home-ending', auctions, t('Završavaju uskoro')),
         );
+        if (buyNow.isNotEmpty) {
+          slivers.add(
+            header(
+              t('🏷️ Kupi odmah'),
+              action: buyNow.length > 6 ? t('Sve') : null,
+              onAction: () => setState(() => _filter = const _BuyNow()),
+            ),
+          );
+          slivers.add(
+            grid('home-buy', buyNow.take(6).toList(), t('Kupi odmah')),
+          );
+        }
+      case _Timed():
+        slivers.add(const SliverToBoxAdapter(child: SizedBox(height: 12)));
+        slivers.add(
+          auctions.isEmpty
+              ? SliverToBoxAdapter(
+                  child: Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Text(
+                      t('Trenutno nema aukcija.'),
+                      style: TextStyle(color: LoopColors.textSecondary),
+                    ),
+                  ),
+                )
+              : grid('home-ending', auctions, t('Aukcije')),
+        );
+      case _BuyNow():
+        slivers.add(const SliverToBoxAdapter(child: SizedBox(height: 12)));
+        slivers.add(
+          buyNow.isEmpty
+              ? SliverToBoxAdapter(
+                  child: Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Text(
+                      t('Još nema predmeta za Kupi odmah.'),
+                      style: TextStyle(color: LoopColors.textSecondary),
+                    ),
+                  ),
+                )
+              : grid('home-buy', buyNow, t('Kupi odmah')),
+        );
       case _LiveOnly():
         slivers.add(const SliverToBoxAdapter(child: SizedBox(height: 12)));
         slivers.add(
@@ -279,6 +330,18 @@ class _LiveHomeScreenState extends ConsumerState<LiveHomeScreen> {
                   label: t('📅 Uskoro'),
                   selected: _filter is _Soon,
                   onTap: () => setState(() => _filter = const _Soon()),
+                ),
+                _Pill(
+                  id: 'timed',
+                  label: t('⏱ Aukcije'),
+                  selected: _filter is _Timed,
+                  onTap: () => setState(() => _filter = const _Timed()),
+                ),
+                _Pill(
+                  id: 'buy',
+                  label: t('🏷️ Kupi odmah'),
+                  selected: _filter is _BuyNow,
+                  onTap: () => setState(() => _filter = const _BuyNow()),
                 ),
                 for (final c in cats)
                   _Pill(

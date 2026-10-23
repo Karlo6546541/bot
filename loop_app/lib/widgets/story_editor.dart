@@ -217,7 +217,7 @@ class _CreateStoryScreenState extends ConsumerState<CreateStoryScreen> {
   Future<void> _pickListing() async {
     final listings = ref.read(appProvider).myListings;
     if (listings.isEmpty) {
-      showLoopSnackBar(t('Nemaš oglasa u Marketu.'), error: true);
+      showLoopSnackBar(t('Nemaš predmeta na Kupi odmah.'), error: true);
       return;
     }
     final picked = await showModalBottomSheet<String>(

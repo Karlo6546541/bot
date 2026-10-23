@@ -267,7 +267,12 @@ class TransactionTile extends StatelessWidget {
                     TransactionType.auctionFee => t('naknada za objavu'),
                     TransactionType.delivery => t('trošak dostave'),
                     TransactionType.promotion => t('isticanje'),
-                    TransactionType.sell => t('bez naknade'),
+                    TransactionType.sell =>
+                      tx.feeFor(viewerId) > 0
+                          ? t('provizija {0}', [
+                              formatCredits(tx.feeFor(viewerId)),
+                            ])
+                          : t('bez provizije'),
                     TransactionType.payout => t('na bankovni račun'),
                     TransactionType.buy ||
                     TransactionType.swap => t('plaćeno karticom'),

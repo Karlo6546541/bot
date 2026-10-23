@@ -15,6 +15,24 @@ import '../widgets/item_image.dart';
 import '../widgets/photo_viewer.dart';
 import '../widgets/trade_actions.dart';
 import '../l10n/tr.dart';
+import 'create_auction_screen.dart';
+import 'live_screens.dart';
+import 'seller_screens.dart';
+
+/// Kako se novi predmet prodaje (jedan predmet, tri načina).
+enum SellMode {
+  buyNow('🏷️', 'Kupi odmah', 'Fiksna cijena · provizija 5 %'),
+  auction('⏱️', 'Aukcija', '1–7 dana · 10 % od razlike'),
+  live('🔴', 'Live', 'Licitacija uživo · 10 % od razlike'),
+  keep('📦', 'Samo spremi', 'Odlučit ću kasnije');
+
+  const SellMode(this.emoji, this._label, this._hint);
+  final String emoji;
+  final String _label;
+  final String _hint;
+  String get label => t(_label);
+  String get hint => t(_hint);
+}
 
 /// Forma za dodavanje uređaja u portfolio. Sva polja su obavezna.
 class AddDeviceScreen extends ConsumerStatefulWidget {
@@ -44,9 +62,9 @@ class _AddDeviceScreenState extends ConsumerState<AddDeviceScreen> {
   ItemSection _section = ItemSection.electronics;
   DeviceCategory? _category;
 
-  /// Novi predmet odmah ide u Market (može se isključiti).
-  /// LICIT je samo za aukcije: predmet se ne objavljuje u Marketu.
-  final bool _listOnMarket = false;
+  /// Kako se predmet prodaje nakon spremanja.
+  SellMode _mode = SellMode.buyNow;
+  bool get _listOnMarket => _mode == SellMode.buyNow;
 
   /// Datoteka digitalnog proizvoda (3D model, softver…).
   PickedFile? _file;
@@ -117,9 +135,15 @@ class _AddDeviceScreenState extends ConsumerState<AddDeviceScreen> {
 
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
+    // Kupi odmah traži podatke prodavatelja (DAC7/DSA).
+    if ((_digital || _listOnMarket) &&
+        (!await ensureSellerInfo(context) || !mounted)) {
+      return;
+    }
+    Device? saved;
     final ok = await runWithLoading(
       context,
-      () => ref
+      () async => saved = await ref
           .read(appProvider.notifier)
           .addDevice(
             name: _name.text,
@@ -134,11 +158,24 @@ class _AddDeviceScreenState extends ConsumerState<AddDeviceScreen> {
             file: _digital ? _file : null,
           ),
       successMessage: _digital || _listOnMarket
-          ? t('Predmet je objavljen u Marketu 🏷️')
+          ? t('Predmet je na prodaji 🏷️')
           : t('Predmet dodan u Moje predmete'),
     );
     if (ok) _saved = true;
-    if (ok && mounted) Navigator.of(context).pop();
+    if (!ok || !mounted) return;
+    final nav = Navigator.of(context);
+    nav.pop();
+    final d = saved;
+    if (d == null || _digital) return;
+    // Nastavak prema odabranom načinu prodaje.
+    switch (_mode) {
+      case SellMode.auction:
+        await CreateAuctionScreen.open(nav.context, deviceId: d.id);
+      case SellMode.live:
+        await addToLive(nav.context, ref, d);
+      case SellMode.buyNow || SellMode.keep:
+        break;
+    }
   }
 
   String? _required(String? v) =>
@@ -392,37 +429,52 @@ class _AddDeviceScreenState extends ConsumerState<AddDeviceScreen> {
                         ),
                         child: Text(
                           t(
-                            'Digitalni proizvod odmah ide u Market i možeš ga prodati više puta. Kupac plaća cijenu + 2%, ti dobivaš punu cijenu, a kupac odmah preuzima datoteku.',
+                            'Digitalni proizvod odmah ide u Kupi odmah i možeš ga prodati više puta. Dobivaš cijenu umanjenu za 5 % provizije, a kupac odmah preuzima datoteku.',
                           ),
                         ),
                       )
-                    else
-                      Container(
-                        padding: const EdgeInsets.all(14),
-                        decoration: BoxDecoration(
-                          color: LoopColors.lilac,
-                          borderRadius: BorderRadius.circular(kRadius),
-                        ),
-                        child: Text(
-                          t(
-                            'Predmet ide u Moje predmete. Poslije ga stavi na aukciju ili ga pokaži u liveu.',
-                          ),
+                    else ...[
+                      Text(
+                        t('Kako prodaješ?'),
+                        style: const TextStyle(
+                          fontWeight: FontWeight.w900,
+                          fontSize: 16,
                         ),
                       ),
+                      const SizedBox(height: 8),
+                      GridView.count(
+                        crossAxisCount: 2,
+                        shrinkWrap: true,
+                        physics: const NeverScrollableScrollPhysics(),
+                        mainAxisSpacing: 8,
+                        crossAxisSpacing: 8,
+                        childAspectRatio: 2.3,
+                        children: [
+                          for (final m in SellMode.values)
+                            _SellModeTile(
+                              mode: m,
+                              selected: _mode == m,
+                              onTap: () => setState(() => _mode = m),
+                            ),
+                        ],
+                      ),
+                    ],
                     const SizedBox(height: 16),
                     FilledButton.icon(
                       key: const ValueKey('add-submit'),
                       onPressed: _submit,
                       icon: Icon(
                         _digital || _listOnMarket
-                            ? Icons.storefront
-                            : Icons.add,
+                            ? Icons.sell_outlined
+                            : Icons.arrow_forward,
                       ),
-                      label: Text(
-                        _digital || _listOnMarket
-                            ? t('Objavi u Marketu')
-                            : t('Spremi u Moje predmete'),
-                      ),
+                      label: Text(switch (_mode) {
+                        _ when _digital => t('Objavi za Kupi odmah'),
+                        SellMode.buyNow => t('Objavi za Kupi odmah'),
+                        SellMode.auction => t('Dalje: aukcija'),
+                        SellMode.live => t('Dalje: live'),
+                        SellMode.keep => t('Spremi u Moje predmete'),
+                      }),
                     ),
                   ],
                 ),
@@ -433,6 +485,69 @@ class _AddDeviceScreenState extends ConsumerState<AddDeviceScreen> {
       ),
     );
   }
+}
+
+class _SellModeTile extends StatelessWidget {
+  const _SellModeTile({
+    required this.mode,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final SellMode mode;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) => Material(
+    color: selected ? LoopColors.lilac : LoopColors.surface,
+    borderRadius: BorderRadius.circular(kRadius),
+    child: InkWell(
+      key: ValueKey('sell-${mode.name}'),
+      borderRadius: BorderRadius.circular(kRadius),
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(kRadius),
+          border: Border.all(
+            color: selected ? LoopColors.accent : Colors.transparent,
+            width: 2,
+          ),
+        ),
+        child: Row(
+          children: [
+            Text(mode.emoji, style: const TextStyle(fontSize: 22)),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    mode.label,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(fontWeight: FontWeight.w900),
+                  ),
+                  Text(
+                    mode.hint,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      color: LoopColors.textSecondary,
+                      fontSize: 11,
+                      height: 1.2,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    ),
+  );
 }
 
 class _CategoryTile extends StatelessWidget {

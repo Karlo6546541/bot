@@ -108,7 +108,7 @@ class TradeService {
     return device;
   }
 
-  /// INSTANT SELL: uređaj ide u Market, korisnik dobiva punu cijenu.
+  /// INSTANT SELL: LICIT otkupljuje predmet po punoj vrijednosti.
   Future<LoopTransaction> sell({
     required String userId,
     required String deviceId,
@@ -134,9 +134,9 @@ class TradeService {
       throw TradeException(LiveService.lockedMessage);
     }
 
-    // Prodaja je bez naknade.
+    // Otkup je bez provizije.
     const fee = 0.0;
-    final payout = sellPayout(device.price);
+    final payout = roundCredits(device.price);
 
     await _storage.putDevice(device.withOwner(null));
     await _storage.putUser(
@@ -163,9 +163,9 @@ class TradeService {
     return tx;
   }
 
-  /// INSTANT BUY: provjera stanja, kupac plaća cijena + 2%,
+  /// INSTANT BUY (Kupi odmah): kupac plaća cijenu (bez naknade),
   /// uređaj prelazi u njegov portfolio. Predmet je od platforme ili ga je
-  /// drugi korisnik objavio u Marketu (tada prodavatelj dobiva punu cijenu).
+  /// drugi korisnik objavio (prodavatelj dobiva cijenu − 5 % provizije).
   Future<LoopTransaction> buy({
     required String userId,
     required String deviceId,
@@ -236,7 +236,7 @@ class TradeService {
     await _storage.putTransaction(tx);
 
     if (seller != null) {
-      // Prodavatelj dobiva punu cijenu (bez naknade) i vlastiti zapis.
+      // Prodavatelj dobiva cijenu umanjenu za proviziju (5 %).
       final payout = sellPayout(price);
       await _storage.putUser(
         seller.copyWith(credits: roundCredits(seller.credits + payout)),
@@ -249,7 +249,7 @@ class TradeService {
           deviceId: device.id,
           deviceName: '${device.name} ${device.model}',
           price: price,
-          fee: 0,
+          fee: buyNowCommission(price),
           amount: payout,
           sellerId: seller.id,
           sellerLabel: seller.handle,

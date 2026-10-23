@@ -72,15 +72,16 @@ void main() {
 
     expect(storage.deviceById(d.id)!.ownerId, SeedData.demoUserId);
     expect(storage.deviceById(d.id)!.isListed, isTrue);
-    // Kupac plaća karticom (40 + 2 %), stanje mu se ne mijenja.
+    // Kupac plaća karticom (40 €, bez naknade), stanje mu se ne mijenja.
     expect(storage.userById(SeedData.testUserId)!.credits, testBefore);
     expect(
       storage.transactions.where(
-        (t) => t.buyerId == SeedData.testUserId && t.amount == 40.8,
+        (t) => t.buyerId == SeedData.testUserId && t.amount == 40,
       ),
       isNotEmpty,
     );
-    expect(storage.userById(SeedData.demoUserId)!.credits, demoBefore + 2 * 40);
+    // Prodavatelj dobiva 2 × (40 − 5 %).
+    expect(storage.userById(SeedData.demoUserId)!.credits, demoBefore + 2 * 38);
     expect(trade.buyersOf(d.id), {SeedData.testUserId, SeedData.markoUserId});
 
     // Isti kupac ne plaća dvaput; vlasnik ne kupuje svoje.

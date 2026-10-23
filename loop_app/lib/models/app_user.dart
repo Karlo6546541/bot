@@ -1,6 +1,9 @@
 import 'seller_info.dart';
 import 'wishlist.dart';
 
+/// Testna kartica u demo verziji (pravi podaci kartice se ne unose).
+const kDemoCard = 'Visa •••• 4242';
+
 /// Korisnik aplikacije — svaki račun je i kupac i prodavatelj. Stanje
 /// ([credits]) je u eurima.
 ///
@@ -35,6 +38,7 @@ class AppUser {
     this.promotedUntil,
     this.shopName = '',
     this.coverPath,
+    this.paymentCard,
   }) : username = username ?? '';
 
   final String id;
@@ -113,6 +117,15 @@ class AppUser {
   /// Naslovna (pozadinska) slika trgovine.
   final String? coverPath;
 
+  /// Spremljena kartica za automatsku naplatu (kao na Whatnotu: kartica i
+  /// adresa traže se prije prve ponude). U demo verziji samo oznaka testne
+  /// kartice — pravi podaci kartice nikad se ne spremaju u aplikaciju.
+  final String? paymentCard;
+
+  /// Može licitirati i kupovati: ima karticu i adresu za dostavu.
+  bool get checkoutReady =>
+      paymentCard != null && (address?.trim().isNotEmpty ?? false);
+
   static const maxBio = 160;
   static const maxShopName = 40;
 
@@ -164,6 +177,7 @@ class AppUser {
     String? shopName,
     String? coverPath,
     bool clearCover = false,
+    String? paymentCard,
   }) => AppUser(
     id: id,
     email: email ?? this.email,
@@ -193,6 +207,7 @@ class AppUser {
     promotedUntil: promotedUntil ?? this.promotedUntil,
     shopName: shopName ?? this.shopName,
     coverPath: clearCover ? null : coverPath ?? this.coverPath,
+    paymentCard: paymentCard ?? this.paymentCard,
   );
 
   Map<String, dynamic> toMap() => {
@@ -204,6 +219,7 @@ class AppUser {
     'isGuest': isGuest,
     'favorites': favorites,
     'address': address,
+    'paymentCard': paymentCard,
     'bio': bio,
     'city': city,
     'avatarPath': avatarPath,
@@ -236,6 +252,7 @@ class AppUser {
     isGuest: map['isGuest'] as bool? ?? false,
     favorites: (map['favorites'] as List?)?.cast<String>() ?? const [],
     address: map['address'] as String?,
+    paymentCard: map['paymentCard'] as String?,
     bio: map['bio'] as String? ?? '',
     city: map['city'] as String?,
     avatarPath: map['avatarPath'] as String?,

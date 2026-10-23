@@ -6,6 +6,8 @@ enum ItemSection {
   electronics('Elektronika'),
   collectibles('Kolekcionarstvo'),
   hobbies('Hobiji'),
+  fashion('Moda'),
+  home('Dom i vintage'),
   crafts('Rukotvorine'),
   activities('Aktivnosti'),
   digital('Digitalno');
@@ -32,10 +34,12 @@ enum DeviceCategory {
   other('Ostala elektronika', 'Elektronika', ItemSection.electronics),
 
   // Kolekcionarstvo
-  cards('Kartice', 'Kartica', ItemSection.collectibles),
+  cards('Sportske kartice', 'Kartica', ItemSection.collectibles),
+  tcg('Pokémon i TCG', 'TCG kartica', ItemSection.collectibles),
+  comics('Stripovi i manga', 'Strip', ItemSection.collectibles),
   coins('Kovanice i novčanice', 'Kovanica', ItemSection.collectibles),
   stamps('Marke', 'Marke', ItemSection.collectibles),
-  figures('Figure i igračke', 'Figura', ItemSection.collectibles),
+  figures('Figure, Funko i igračke', 'Figura', ItemSection.collectibles),
   vinyl('Ploče i mediji', 'Ploča', ItemSection.collectibles),
 
   // Hobiji
@@ -44,6 +48,20 @@ enum DeviceCategory {
   books('Knjige', 'Knjiga', ItemSection.hobbies),
   boardGames('Društvene igre', 'Društvena igra', ItemSection.hobbies),
   models('Modeli i LEGO', 'Model', ItemSection.hobbies),
+  videoGames('Videoigre', 'Videoigra', ItemSection.hobbies),
+
+  // Moda
+  clothes('Odjeća', 'Odjeća', ItemSection.fashion),
+  sneakers('Tenisice', 'Tenisice', ItemSection.fashion),
+  bags('Torbe', 'Torba', ItemSection.fashion),
+  watches('Satovi', 'Sat', ItemSection.fashion),
+  accessories('Modni dodaci', 'Modni dodatak', ItemSection.fashion),
+
+  // Dom i vintage
+  homeDecor('Dom i dekor', 'Za dom', ItemSection.home),
+  vintage('Vintage i antikviteti', 'Vintage', ItemSection.home),
+  beauty('Ljepota i njega', 'Ljepota', ItemSection.home),
+  kids('Dječje stvari', 'Za djecu', ItemSection.home),
 
   // Rukotvorine
   jewelry('Nakit', 'Nakit', ItemSection.crafts),

@@ -4,6 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:hive/hive.dart';
 import 'package:loop_app/app.dart';
 import 'package:loop_app/models/app_notification.dart';
+import 'package:loop_app/models/app_user.dart';
 import 'package:loop_app/models/device.dart';
 import 'package:loop_app/models/loop_transaction.dart';
 import 'package:loop_app/providers/app_providers.dart';
@@ -258,12 +259,13 @@ void main() {
     });
 
     test(
-      'ponude: minimum, vodeći ne licitira sam sebe, domaćin ne licitira',
+      'ponude: minimum, vodeći samo povisuje maksimum, domaćin ne licitira',
       () async {
         final id = await start();
         await live.bid(bob, id, 1, now: at(5));
+        // Vodeći ne može ponuditi isto ili manje od svog maksimuma …
         await expectLater(
-          live.bid(bob, id, 5, now: at(6)),
+          live.bid(bob, id, 1, now: at(6)),
           throwsA(isA<TradeException>()),
         );
         await expectLater(
@@ -272,7 +274,7 @@ void main() {
         );
         final lot = state(id, 6).current!;
         expect(lot.leader!.userId, bob);
-        expect(lot.minNext, greaterThan(1));
+        expect(lot.minNext, 2);
         await expectLater(
           live.bid(ana, id, 1, now: at(7)),
           throwsA(isA<TradeException>()),
@@ -280,8 +282,116 @@ void main() {
         final next = await live.bid(ana, id, lot.minNext, now: at(7));
         expect(next.current!.leader!.userId, ana);
         expect(next.current!.bids, hasLength(2));
+        // … ali može povisiti maksimum — cijena se ne mijenja.
+        await live.bid(ana, id, 20, now: at(8));
+        expect(state(id, 8).current!.price, 2);
+        expect(state(id, 8).current!.maxOf(ana), 20);
       },
     );
+
+    test('maksimalna ponuda (proxy): cijena raste samo koliko treba', () async {
+      final id = await start();
+      // Bob je spreman platiti do 30 €, cijena ostaje na početnoj.
+      await live.bid(bob, id, 30, now: at(2));
+      expect(state(id, 2).current!.price, 1);
+      // Ana nudi 12 → Bobov automatski odgovor: 12 + korak (2) = 14.
+      await live.bid(ana, id, 12, now: at(3));
+      var lot = state(id, 3).current!;
+      expect(lot.leader!.userId, bob);
+      expect(lot.price, 14);
+      // Marko nudi 50 → vodi s 30 + korak (2) = 32.
+      await live.bid(marko, id, 50, now: at(4));
+      lot = state(id, 4).current!;
+      expect(lot.leader!.userId, marko);
+      expect(lot.price, 32);
+      // Jednaki maksimum: vodi raniji (Marko), cijena = 50.
+      await live.bid(bob, id, 50, now: at(5));
+      lot = state(id, 5).current!;
+      expect(lot.leader!.userId, marko);
+      expect(lot.price, 50);
+      // Chat ne otkriva maksimume — samo vidljive cijene.
+      expect(
+        state(id, 5).feed.where((e) => e.type == LiveEventType.bid).last.amount,
+        50,
+      );
+      expect(
+        state(id, 5).feed.where((e) => e.amount == 30 && e.userId == bob),
+        isEmpty,
+      );
+    });
+
+    test('koraci licitiranja kao na Whatnotu', () {
+      expect(LiveLot.increment(1), 1);
+      expect(LiveLot.increment(9), 1);
+      expect(LiveLot.increment(10), 2);
+      expect(LiveLot.increment(60), 5);
+      expect(LiveLot.increment(120), 10);
+      expect(LiveLot.increment(300), 25);
+      expect(LiveLot.increment(700), 50);
+      expect(LiveLot.increment(1500), 100);
+    });
+
+    test('sudden death: ponuda u zadnjim sekundama ne produljuje', () async {
+      final show = await live.create(
+        hostId: host,
+        title: 'Sudden death',
+        startsAt: t0,
+        now: t0,
+      );
+      await live.addLot(
+        host,
+        show.id,
+        items[0].id,
+        1,
+        suddenDeath: true,
+        now: at(1),
+      );
+      await live.startLot(host, show.id, now: at(1));
+      await live.bid(bob, show.id, 5, now: at(29));
+      // Kraj ostaje točno na 30 s od početka.
+      expect(state(show.id, 30).current!.end, at(31));
+      expect(state(show.id, 32).lots[0].status, LotStatus.sold);
+      await expectLater(
+        live.bid(ana, show.id, 10, now: at(32)),
+        throwsA(isA<TradeException>()),
+      );
+    });
+
+    test('predlicitacija na predmet koji tek dolazi', () async {
+      final id = await start();
+      // Predmet 2 (Walkman) još čeka — Ana predlicitira do 15 €.
+      await live.bid(ana, id, 15, lot: 1, now: at(3));
+      await live.bid(bob, id, 6, lot: 1, now: at(4));
+      final queued = state(id, 5).lots[1];
+      expect(queued.status, LotStatus.upcoming);
+      expect(queued.leader!.userId, ana);
+      expect(queued.price, 7); // 6 + korak 1
+      // Domaćin pokreće predmet: predlicitacije vrijede, sat ne produljuju.
+      await live.startLot(host, id, index: 1, now: at(40));
+      final running = state(id, 41).lots[1];
+      expect(running.leader!.userId, ana);
+      expect(running.price, 7);
+      expect(running.end, at(70));
+      // Za završen predmet se više ne može predlicitirati.
+      await expectLater(
+        live.bid(bob, id, 30, lot: 0, now: at(41)),
+        throwsA(isA<TradeException>()),
+      );
+    });
+
+    test('kartica i adresa su obavezne prije prve ponude', () async {
+      final id = await start();
+      final fan = storage.userById(bob)!;
+      await storage.putUser(
+        AppUser.fromMap({...fan.toMap(), 'paymentCard': null}),
+      );
+      await expectLater(
+        live.bid(bob, id, 1, now: at(2)),
+        throwsA(isA<TradeException>()),
+      );
+      await storage.putUser(fan);
+      await live.bid(bob, id, 1, now: at(3));
+    });
 
     test('ponuda u zadnjih 10 s vraća sat na 10 s', () async {
       final id = await start();
@@ -299,6 +409,7 @@ void main() {
     test('prodaju provodi pobjednik ili domaćin — samo jednom', () async {
       final id = await start();
       await live.bid(bob, id, 3, now: at(5));
+      await live.bid(ana, id, 2, now: at(6)); // Bob vodi s 3 €
       final hostCredits = storage.userById(host)!.credits;
       final bobCredits = storage.userById(bob)!.credits;
 
@@ -306,7 +417,8 @@ void main() {
       expect(await live.settleDue(userId: marko, now: at(40)), 0);
       expect(await live.settleDue(userId: bob, now: at(40)), 1);
       expect(storage.deviceById(items[0].id)!.ownerId, bob);
-      expect(storage.userById(host)!.credits, hostCredits + 3);
+      // Provizija: 10 % od razlike iznad početnog 1 € → 0,20 €.
+      expect(storage.userById(host)!.credits, hostCredits + 2.8);
       // Kupac plaća karticom — stanje mu se ne dira.
       expect(storage.userById(bob)!.credits, bobCredits);
       final tx = storage.transactions.firstWhere((t) => t.id == 'live-$id-0');
@@ -537,6 +649,7 @@ void main() {
         throwsA(isA<TradeException>()),
       );
       await live.bid(bob, id, 5, now: at(6));
+      await live.bid(ana, id, 5, now: at(7)); // jednako — Bob vodi s 5 €
       expect(state(id, 7).current!.guessWinner, isNull);
       final lot = state(id, 40).lots[0];
       expect(lot.price, 5);
@@ -650,7 +763,7 @@ void main() {
       await tester.pumpAndSettle();
 
       // Aukcije: kategorije kao kartice i mreža kartica (live prvi).
-      await tester.tap(find.text('Aukcije').last);
+      await tester.tap(find.text('Istraži').last);
       await tester.pumpAndSettle();
       final card = find.byKey(ValueKey('browse-live-$bobShow'));
       expect(card, findsOneWidget);
@@ -683,7 +796,7 @@ void main() {
       await tester.tap(find.byKey(const ValueKey('live-bid')));
       await tester.pumpAndSettle();
       expect(find.byKey(const ValueKey('live-leading')), findsOneWidget);
-      expect(find.text('🥇 Ti vodiš'), findsOneWidget);
+      expect(find.textContaining('🥇 Ti vodiš'), findsOneWidget);
 
       // Chat i brza reakcija.
       await tester.enterText(
@@ -751,13 +864,30 @@ void main() {
         find.byKey(ValueKey('live-price-${mine.last.id}')),
         '5',
       );
+      // Zatvori tipkovnicu (fokusirano polje inače vraća pomak na sebe).
+      FocusManager.instance.primaryFocus?.unfocus();
+      await tester.pumpAndSettle();
+      // Popis na ekranu "Novi live" (ispod je još swipe feed).
+      final form = find
+          .descendant(
+            of: find.byType(Scaffold).last,
+            matching: find.byType(Scrollable),
+          )
+          .first;
+      await tester.scrollUntilVisible(
+        find.byKey(const ValueKey('live-secs-45')),
+        200,
+        scrollable: form,
+      );
+      await tester.pumpAndSettle();
       await tester.tap(find.byKey(const ValueKey('live-secs-45')));
       await tester.pumpAndSettle();
       await tester.scrollUntilVisible(
         find.byKey(const ValueKey('live-go')),
         200,
-        scrollable: find.byType(Scrollable).first,
+        scrollable: form,
       );
+      await tester.pumpAndSettle();
       await tester.tap(find.byKey(const ValueKey('live-go')));
       await tester.pumpAndSettle();
 
@@ -892,5 +1022,103 @@ void main() {
     );
     await tester.pumpAndSettle();
     expect(find.byKey(const ValueKey('live-entered')), findsOneWidget);
+  });
+
+  testWidgets('kartica i adresa prije ponude, maksimalna ponuda, Kupi odmah', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(400, 860);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+
+    final storage = StorageService();
+    late String id;
+    await tester.runAsync(() async {
+      await storage.init(inMemory: true);
+      final trade = TradeService(storage);
+      final live = LiveService(storage);
+      final g = await addItem(trade, bob, 'Gramofon');
+      id = (await live.create(hostId: bob, title: 'Vinili')).id;
+      await live.addLot(bob, id, g.id, 5);
+      await live.startLot(bob, id);
+      // Demo korisnik (gledatelj) još nema karticu.
+      final me = storage.userById(host)!;
+      await storage.putUser(
+        AppUser.fromMap({...me.toMap(), 'paymentCard': null}),
+      );
+    });
+    addTearDown(() => tester.runAsync(Hive.close));
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          storageProvider.overrideWithValue(storage),
+          tickIntervalProvider.overrideWithValue(null),
+        ],
+        child: const LoopApp(),
+      ),
+    );
+    await tester.ensureVisible(find.text('Prijavi se'));
+    await tester.tap(find.text('Prijavi se'));
+    await tester.pumpAndSettle();
+
+    // Početna: i predmeti za Kupi odmah (pilule se vrte vodoravno).
+    final pills = find
+        .descendant(
+          of: find.byKey(const ValueKey('home-cats')),
+          matching: find.byType(Scrollable),
+        )
+        .first;
+    await tester.scrollUntilVisible(
+      find.byKey(const ValueKey('home-cat-buy')),
+      100,
+      scrollable: pills,
+    );
+    await tester.ensureVisible(find.byKey(const ValueKey('home-cat-buy')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('home-cat-buy')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('home-buy')), findsOneWidget);
+    await tester.scrollUntilVisible(
+      find.byKey(const ValueKey('home-cat-live')),
+      -100,
+      scrollable: pills,
+    );
+    await tester.ensureVisible(find.byKey(const ValueKey('home-cat-live')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('home-cat-live')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(ValueKey('browse-live-$id')));
+    await tester.pumpAndSettle();
+
+    // Maksimalna ponuda → prvo kartica i adresa.
+    await tester.tap(find.byKey(const ValueKey('live-bid-custom')));
+    await tester.pumpAndSettle();
+    expect(find.text('Maksimalna ponuda'), findsOneWidget);
+    await tester.enterText(find.byKey(const ValueKey('live-amount')), '20');
+    await tester.tap(find.byKey(const ValueKey('live-amount-ok')));
+    await tester.pumpAndSettle();
+    expect(find.text('Spremni za licitiranje?'), findsOneWidget);
+    await tester.tap(find.byKey(const ValueKey('checkout-card')));
+    await tester.pump();
+    await tester.enterText(
+      find.byKey(const ValueKey('checkout-address')),
+      'Testna ulica 1, 10000 Zagreb',
+    );
+    await tester.runAsync(
+      () => tester.tap(find.byKey(const ValueKey('checkout-save'))),
+    );
+    await tester.runAsync(
+      () => Future<void>.delayed(const Duration(milliseconds: 100)),
+    );
+    await tester.pumpAndSettle();
+    expect(storage.userById(host)!.checkoutReady, isTrue);
+    // Ponuda je prošla: vodim s početnom cijenom, maksimum je 20 €.
+    expect(find.byKey(const ValueKey('live-leading')), findsOneWidget);
+    expect(find.textContaining('tvoj maks 20'), findsOneWidget);
+    final st = LiveService(storage).stateOf(storage.liveShowById(id)!);
+    expect(st.current!.price, 5);
+    expect(st.current!.maxOf(host), 20);
+    expect(find.byKey(const ValueKey('live-raise')), findsOneWidget);
   });
 }

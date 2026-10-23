@@ -1875,4 +1875,139 @@ const kEn = <String, String>{
   '🔴 Uživo': '🔴 Live',
   '😴 Mirno': '😴 Quiet',
   '🙂 Živo': '🙂 Lively',
+  'Aukcija ima ponude i ne može se otkazati. Po završetku dobivaš {0} (provizija je 10 % samo od razlike iznad početne cijene).':
+      'The auction has bids and can\'t be cancelled. When it ends you get {0} (commission is 10% only on the amount above the starting price).',
+  'Dalje: aukcija': 'Next: auction',
+  'Dalje: live': 'Next: live show',
+  'Digitalni proizvod odmah ide u Kupi odmah i možeš ga prodati više puta. Dobivaš cijenu umanjenu za 5 % provizije, a kupac odmah preuzima datoteku.':
+      'A digital product goes straight to Buy now and can be sold many times. You get the price minus a 5% commission, and the buyer downloads the file right away.',
+  'Dodaj karticu': 'Add card',
+  'Dodaj predmet ili kupi nešto.': 'Add an item or buy something.',
+  'Dodaj svoj predmet ili kupi nešto.': 'Add your item or buy something.',
+  'Još nema predmeta za Kupi odmah.': 'No Buy now items yet.',
+  'Kad pobijediš, naplata ide automatski s kartice, a paket kreće na tvoju adresu. Sve što osvojiš u istom liveu stiže u jednom paketu.':
+      'When you win, your card is charged automatically and the parcel ships to your address. Everything you win in the same show arrives in one parcel.',
+  'Kada?': 'When?',
+  'Kako prodaješ?': 'How are you selling?',
+  'Kako želiš prodati?': 'How do you want to sell?',
+  'Kreni odmah ili zakaži · video, chat, brze licitacije':
+      'Go live now or schedule · video, chat, fast bidding',
+  'Kupaca: {0}. Za svaku prodaju dobivaš cijenu umanjenu za 5 % provizije.':
+      'Buyers: {0}. For each sale you get the price minus a 5% commission.',
+  'Kupi bez licitiranja, dok live traje.':
+      'Buy without bidding while the show is on.',
+  'Kupi odmah po fiksnoj cijeni, aukcija ili live':
+      'Buy now at a fixed price, auction or live',
+  'Licitiramo umjesto tebe do ovog iznosa — plaćaš samo koliko treba da pobijediš. Drugi ne vide tvoj maksimum.':
+      'We bid for you up to this amount — you only pay what it takes to win. Others can\'t see your maximum.',
+  'Makni iz prodaje': 'Remove from sale',
+  'Maknuto iz prodaje': 'Removed from sale',
+  'Maks': 'Max',
+  'Maksimalna ponuda': 'Max bid',
+  'Na Kupi odmah za {0}. Kad netko kupi, dobivaš {1} (provizija 5 %).':
+      'On Buy now for {0}. When someone buys it, you get {1} (5% commission).',
+  'Na prodaji je 🏷️': 'It\'s for sale 🏷️',
+  'Najveća ponuda je {0}.': 'The highest allowed bid is {0}.',
+  'Naslovna slika': 'Cover image',
+  'Nemaš predmeta na Kupi odmah.': 'You have no Buy now items.',
+  'Neobavezno: odaberi predmete i početnu cijenu. Predmete možeš dodavati i tijekom livea.':
+      'Optional: pick items and a starting price. You can also add items during the show.',
+  'Neprodano stavi na Kupi odmah': 'Put unsold items on Buy now',
+  'Netko ima višu maksimalnu ponudu — povisi!':
+      'Someone has a higher max bid — raise yours!',
+  'Objava je besplatna': 'Listing is free',
+  'Objavi aukciju': 'Publish auction',
+  'Objavi za Kupi odmah': 'List for Buy now',
+  'Ovdje još nema ničega': 'Nothing here yet',
+  'Ponuda je obvezujuća · pobjednik plaća automatski karticom':
+      'Bids are binding · the winner is charged automatically',
+  'Ponude su obvezujuće. Za demo upiši izmišljenu adresu — testna baza je otvorena.':
+      'Bids are binding. For the demo, enter a made-up address — the test database is open.',
+  'Povisi': 'Raise',
+  'Povisi maks': 'Raise max',
+  'Povisi maksimalnu ponudu': 'Raise your max bid',
+  'Pratitelji odmah dobivaju obavijest, a gledatelji mogu stisnuti "Podsjeti me" i predlicitirati.':
+      'Followers are notified right away, and viewers can tap "Remind me" and pre-bid.',
+  'Predlicitacija': 'Pre-bid',
+  'Predlicitacija je spremljena 🔨': 'Pre-bid saved 🔨',
+  'Predlicitiraj': 'Pre-bid',
+  'Predlicitiraj predmet koji tek dolazi — tvoja maksimalna ponuda vrijedi kad krene.':
+      'Pre-bid on an upcoming item — your max bid counts when it starts.',
+  'Predmet je na prodaji 🏷️': 'Your item is for sale 🏷️',
+  'Predponuda {0}': 'Pre-bid {0}',
+  'Prihod od provizija': 'Commission revenue',
+  'Prije licitiranja dodaj karticu i adresu za dostavu.':
+      'Add a card and a delivery address before bidding.',
+  'Prodaj predmet': 'Sell an item',
+  'Prodaješ po svojoj cijeni (dobivaš {0})':
+      'You sell at your price (you get {0})',
+  'Provizija 10 % samo od razlike iznad početne cijene':
+      '10% commission only on the amount above the starting price',
+  'Provizija 5 %': '5% commission',
+  'Radije prodaj na Kupi odmah': 'Sell on Buy now instead',
+  'Sat se ne produljuje — tko vodi kad dođe do nule, pobjeđuje.':
+      'The clock doesn\'t extend — whoever leads at zero wins.',
+  'Spremi i nastavi': 'Save and continue',
+  'Spremni za licitiranje?': 'Ready to bid?',
+  'Testna kartica — u demo verziji ne unosiš prave podatke.':
+      'Test card — in the demo you don\'t enter real card details.',
+  'Tvoji predmeti za Kupi odmah — gledatelji ih kupuju tijekom livea.':
+      'Your Buy now items — viewers can buy them during the show.',
+  'Ulica i broj, poštanski broj i mjesto':
+      'Street and number, postcode and town',
+  'Već vodiš — tvoja najviša ponuda je {0}.':
+      'You\'re already leading — your max bid is {0}.',
+  'Za ovaj predmet se više ne može licitirati.':
+      'This item can no longer be bid on.',
+  'bez provizije': 'no commission',
+  'provizija {0}': 'commission {0}',
+  '{0} na Kupi odmah': '{0} on Buy now',
+  'Što se ne proda, nakon livea ide u prodaju po početnoj cijeni.':
+      'Anything unsold goes on sale at its starting price after the show.',
+  '• Dok aukcija traje, predmet je zaključan (ne može se prodati).\n• Aukciju možeš otkazati samo dok nema ponuda.\n• Objava je besplatna. Na kraju dobivaš najvišu ponudu umanjenu za 10 % od razlike iznad početne cijene{0}.\n• Ako nitko ne ponudi, predmet ostaje tebi.':
+      '• While the auction runs, the item is locked (it can\'t be sold).\n• You can cancel the auction only while there are no bids.\n• Listing is free. At the end you get the highest bid minus 10% of the amount above the starting price{0}.\n• If nobody bids, the item stays yours.',
+  '• Live traje dok si uživo — završavaš ga ti (ili kad izađeš).\n• Ti biraš predmet i pokrećeš licitaciju od {0} s.\n• Ponuda u zadnjih 10 s vraća sat na 10 s (osim "sudden death").\n• Pobjednik plaća automatski karticom, a dostava kreće na njegovu adresu.\n• Provizija je 10 % samo od razlike iznad početne cijene.':
+      '• The show lasts while you\'re live — you end it (or it ends when you leave).\n• You pick an item and start {0} s of bidding.\n• A bid in the last 10 s resets the clock to 10 s (except "sudden death").\n• The winner is charged automatically and the parcel ships to their address.\n• Commission is 10% only on the amount above the starting price.',
+  '🔒  Ponuda je obvezujuća — ne može se povući ni smanjiti.\n\n🥇  Dok vodiš, ne možeš licitirati ponovno (možeš povisiti automatsku ponudu).\n\n💳  Pobjednik plaća karticom kad aukcija završi — ništa se ne blokira unaprijed.\n\n⏱️  Ponuda u zadnjoj minuti produljuje aukciju za 1 minutu.\n\n🎁  Pobjednik dobiva predmet i ne plaća naknadu. Prodavatelju se odbija 10 % samo od razlike iznad početne cijene.':
+      '🔒  A bid is binding — it can\'t be withdrawn or lowered.\n\n🥇  While you\'re leading you can\'t bid again (you can raise your automatic bid).\n\n💳  The winner pays by card when the auction ends — nothing is held in advance.\n\n⏱️  A bid in the last minute extends the auction by 1 minute.\n\n🎁  The winner gets the item and pays no fee. The seller pays 10% only on the amount above the starting price.',
+  '⏱ Aukcije': '⏱ Auctions',
+  '☠️ Sudden death': '☠️ Sudden death',
+  '☠️ Sudden death — sat se ne produljuje!':
+      '☠️ Sudden death — the clock won\'t extend!',
+  '🏷️ Kupi odmah': '🏷️ Buy now',
+  '🏷️ Kupi odmah · fiksna cijena': '🏷️ Buy now · fixed price',
+  '🛍️ Kupi odmah': '🛍️ Buy now',
+  '🥇 Ti vodiš · tvoj maks {0}': '🥇 You\'re leading · your max {0}',
+  '🥇 Ti · {0}': '🥇 You · {0}',
+  'Moda': 'Fashion',
+  'Dom i vintage': 'Home & vintage',
+  'Sportske kartice': 'Sports cards',
+  'Pokémon i TCG': 'Pokémon & TCG',
+  'TCG kartica': 'TCG card',
+  'Stripovi i manga': 'Comics & manga',
+  'Strip': 'Comic',
+  'Figure, Funko i igračke': 'Figures, Funko & toys',
+  'Videoigre': 'Video games',
+  'Videoigra': 'Video game',
+  'Odjeća': 'Clothing',
+  'Tenisice': 'Sneakers',
+  'Torbe': 'Bags',
+  'Torba': 'Bag',
+  'Satovi': 'Watches',
+  'Sat': 'Watch',
+  'Modni dodaci': 'Accessories',
+  'Modni dodatak': 'Accessory',
+  'Dom i dekor': 'Home & decor',
+  'Za dom': 'Home item',
+  'Vintage i antikviteti': 'Vintage & antiques',
+  'Vintage': 'Vintage',
+  'Ljepota i njega': 'Beauty & care',
+  'Ljepota': 'Beauty',
+  'Dječje stvari': 'Kids\' stuff',
+  'Za djecu': 'For kids',
+  'Samo spremi': 'Just save',
+  'Odlučit ću kasnije': 'I\'ll decide later',
+  'Fiksna cijena · provizija 5 %': 'Fixed price · 5% commission',
+  '1–7 dana · 10 % od razlike': '1–7 days · 10% of the uplift',
+  'Licitacija uživo · 10 % od razlike': 'Live bidding · 10% of the uplift',
 };
