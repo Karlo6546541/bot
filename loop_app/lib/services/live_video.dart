@@ -22,6 +22,10 @@ class LiveVideoConfig {
   static const _turnUser = String.fromEnvironment('LIVE_TURN_USER');
   static const _turnPass = String.fromEnvironment('LIVE_TURN_PASS');
 
+  /// Je li postavljen TURN poslužitelj (bez njega video ne prolazi između
+  /// nekih mreža, npr. mobilni podaci ↔ Wi-Fi).
+  static bool get hasTurn => _turnUrl.isNotEmpty;
+
   static Map<String, dynamic> get rtc => {
     'iceServers': [
       {
@@ -30,8 +34,16 @@ class LiveVideoConfig {
           'stun:stun1.l.google.com:19302',
         ],
       },
+      // Može ih biti više, odvojenih zarezom (npr. turn:…:80,turns:…:443).
       if (_turnUrl.isNotEmpty)
-        {'urls': _turnUrl, 'username': _turnUser, 'credential': _turnPass},
+        {
+          'urls': [
+            for (final u in _turnUrl.split(','))
+              if (u.trim().isNotEmpty) u.trim(),
+          ],
+          'username': _turnUser,
+          'credential': _turnPass,
+        },
     ],
     'sdpSemantics': 'unified-plan',
   };
@@ -302,12 +314,27 @@ class LiveBroadcaster {
         final pc = _peers[from];
         final sdp = m['sdp'] as String?;
         if (pc == null || sdp == null) return;
-        await pc.setRemoteDescription(
-          RTCSessionDescription(
-            boostVideoSdp(sdp, maxKbps: videoBitrateFor(_peers.length) ~/ 1000),
-            m['sdpType'] as String?,
-          ),
-        );
+        try {
+          await pc.setRemoteDescription(
+            RTCSessionDescription(
+              boostVideoSdp(
+                sdp,
+                maxKbps: videoBitrateFor(_peers.length) ~/ 1000,
+              ),
+              m['sdpType'] as String?,
+            ),
+          );
+        } catch (_) {
+          // Preglednik ne prihvaća dodane parametre — izvorni odgovor.
+          try {
+            await pc.setRemoteDescription(
+              RTCSessionDescription(sdp, m['sdpType'] as String?),
+            );
+          } catch (_) {
+            await _drop(from);
+            return;
+          }
+        }
         await _tuneSenders();
       case 'bye':
         await _drop(from);
@@ -536,7 +563,8 @@ class LiveBroadcaster {
 }
 
 /// Stanje videa kod gledatelja.
-enum LiveVideoStatus { connecting, playing, offline }
+/// [blocked]: domaćin je tu, ali veza ne prolazi (mreža bez TURN-a).
+enum LiveVideoStatus { connecting, playing, offline, blocked }
 
 /// Gledatelj: traži video od domaćina i prikazuje ga.
 class LiveWatcher {
@@ -618,16 +646,31 @@ class LiveWatcher {
       status.value = LiveVideoStatus.playing;
     };
     pc.onConnectionState = (s) {
-      if (s == RTCPeerConnectionState.RTCPeerConnectionStateFailed ||
-          s == RTCPeerConnectionState.RTCPeerConnectionStateDisconnected) {
+      if (s == RTCPeerConnectionState.RTCPeerConnectionStateFailed) {
+        // Mreže se ne mogu spojiti izravno — ponovni pokušaj za par sekundi.
+        _negotiating = null;
+        status.value = LiveVideoStatus.blocked;
+      } else if (s ==
+          RTCPeerConnectionState.RTCPeerConnectionStateDisconnected) {
         _negotiating = null;
         status.value = LiveVideoStatus.connecting;
       }
     };
-    await pc.setRemoteDescription(
-      RTCSessionDescription(m['sdp'] as String?, m['sdpType'] as String?),
-    );
-    await pc.setLocalDescription(await pc.createAnswer());
+    // Ako se veza ne uspostavi ni nakon 20 s, vjerojatno je blokira mreža.
+    Timer(const Duration(seconds: 20), () {
+      if (_pc == pc && status.value == LiveVideoStatus.connecting) {
+        status.value = LiveVideoStatus.blocked;
+      }
+    });
+    try {
+      await pc.setRemoteDescription(
+        RTCSessionDescription(m['sdp'] as String?, m['sdpType'] as String?),
+      );
+      await pc.setLocalDescription(await pc.createAnswer());
+    } catch (_) {
+      _negotiating = null;
+      return;
+    }
     final desc = await _gatheredDescription(pc);
     if (desc == null || _pc != pc) return;
     await _signaling.send({

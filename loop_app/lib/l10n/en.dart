@@ -2023,6 +2023,10 @@ const kEn = <String, String>{
   '★ Novo': '★ New',
   '💎 procjena {0}': '💎 est. {0}',
   '🚚 {0} d.': '🚚 {0} d.',
-  'Preglednik nije dopustio kameru. Dopusti kameru i mikrofon (ikona lokota pokraj adrese) pa stisni "Uključi kameru".': 'The browser didn\'t allow the camera. Allow camera and microphone (lock icon next to the address) and tap "Turn on camera".',
-  'Kamera se nije uključila ({0}). Stisni "Uključi kameru".': 'The camera didn\'t start ({0}). Tap "Turn on camera".',
+  'Preglednik nije dopustio kameru. Dopusti kameru i mikrofon (ikona lokota pokraj adrese) pa stisni "Uključi kameru".':
+      'The browser didn\'t allow the camera. Allow camera and microphone (lock icon next to the address) and tap "Turn on camera".',
+  'Kamera se nije uključila ({0}). Stisni "Uključi kameru".':
+      'The camera didn\'t start ({0}). Tap "Turn on camera".',
+  '📹 Video se ne spaja — pokušavam ponovno…': '📹 Video won\'t connect — retrying…',
+  '📹 Video ne prolazi kroz ovu mrežu — probaj isti Wi-Fi': '📹 Video can\'t get through this network — try the same Wi-Fi',
 };

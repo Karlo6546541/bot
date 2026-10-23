@@ -3516,6 +3516,12 @@ class _VideoStatus extends StatelessWidget {
         LiveVideoStatus.playing => const SizedBox.shrink(),
         LiveVideoStatus.connecting => _pill(t('📹 Spajam video…')),
         LiveVideoStatus.offline => _pill(t('📹 Video trenutno nije uključen')),
+        LiveVideoStatus.blocked => _pill(
+          LiveVideoConfig.hasTurn
+              ? t('📹 Video se ne spaja — pokušavam ponovno…')
+              : t('📹 Video ne prolazi kroz ovu mrežu — probaj isti Wi-Fi'),
+          key: const ValueKey('live-video-blocked'),
+        ),
       },
     );
   }

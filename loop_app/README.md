@@ -289,8 +289,10 @@ ne sinkronizira; online prijavu vodi Supabase Auth i lozinke ne prolaze kroz na�
 - **Ograničenja videa**: domaćin šalje zasebnu vezu svakom gledatelju, pa je ovo za
   manji broj gledatelja (otprilike do 10, ovisno o uploadu domaćina); za stotine
   gledatelja treba media server (npr. LiveKit, Mux ili Agora). Na nekim mobilnim mrežama
-  izravna veza ne uspije — tada pomaže TURN poslužitelj: GitHub secrets `LIVE_TURN_URL`,
-  `LIVE_TURN_USER`, `LIVE_TURN_PASS` (neobavezno). Domaćin mora držati sobu otvorenom.
+  izravna veza ne uspije (gledatelj vidi „Video ne prolazi kroz ovu mrežu”) — tada treba TURN
+  poslužitelj: GitHub secrets `LIVE_TURN_URL` (jedna ili više adresa odvojenih zarezom),
+  `LIVE_TURN_USER`, `LIVE_TURN_PASS`. Besplatno npr. Metered (metered.ca → TURN Server →
+  Credentials). Domaćin mora držati sobu otvorenom.
 - **Ostala ograničenja**: satovi uređaja trebaju biti točni.
 
 ## Objave kao TikTok, trgovine i pratitelji
