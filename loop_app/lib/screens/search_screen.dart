@@ -60,15 +60,13 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
     final terms = _terms;
     if (terms.isEmpty) return const [];
     return [
-      for (final d in s.marketDevices)
-        if (d.isListed &&
-            _matches(
-              '${d.name} ${d.model} ${d.description} ${d.category.label} '
-              '${s.userById(d.ownerId)?.shopTitle ?? ''} '
-              '${s.userById(d.ownerId)?.username ?? ''}',
-              terms,
-            ))
-          FeedEntry.item(d.id),
+      for (final (show, _) in s.activeLives)
+        if (_matches(
+          '${show.title} ${show.hostLabel} '
+          '${show.lots.map((l) => l.deviceName).join(' ')}',
+          terms,
+        ))
+          FeedEntry.live(show.id),
       for (final a in s.activeAuctions)
         if (a.sellerId != s.currentUserId &&
             !s.isBlocked(a.sellerId) &&
@@ -130,7 +128,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
           ),
           bottom: TabBar(
             tabs: [
-              Tab(text: t('Objave ({0})', ['${posts.length}'])),
+              Tab(text: t('Aukcije ({0})', ['${posts.length}'])),
               Tab(text: t('Računi ({0})', ['${accounts.length}'])),
             ],
           ),

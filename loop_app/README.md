@@ -1,13 +1,23 @@
-# LOOP — Trade. Don't sell.
+# LICIT — aukcije uživo
 
-Demo Flutter aplikacija: zatvorena trading platforma za rabljene uređaje
-(mobiteli, laptopi, tableti, slušalice, konzole).
+Demo Flutter aplikacija **samo za aukcije** (u stilu Whatnota):
 
-- Svi iznosi i stanje računa su u **eurima** (€).
-- **Prodaja je besplatna** — prodavatelj dobiva punu cijenu. **Kupac plaća 2% naknade.**
-- Svaki račun je istovremeno i kupac i prodavatelj.
-- Novi računi počinju s **0 €** (nema poklona pri registraciji); novac se uplaćuje (u demo verziji simulirano).
+- **Live aukcije s videom**: prodavatelj ide uživo, pokazuje predmete kamerom i za svaki
+  pokreće kratku licitaciju. **Live traje dok je prodavatelj uživo** — predmete dodaje usput,
+  a live završava kad ga završi ili izađe.
+- **Obične aukcije** koje traju satima ili danima (automatska ponuda, Kupi odmah, zvono).
+- Svi iznosi su u **eurima** (€); pobjednik plaća karticom, prodavatelj dobiva cijelu ponudu.
+- Svi korisnici su **punoljetne fizičke osobe** (kupci i prodavatelji).
 - Radi **lokalno i offline** (Hive), a uz Supabase i **online** s pravim računima.
+
+**Spremljene verzije** (grade se uz glavnu, isti podaci):
+- `/bot/marketplace/` — tržnica prije prelaska na aukcije (Market, oglasi, cjenkanje, zamjene,
+  digitalni proizvodi, priče, liste želja + aukcije i live), commit `c7f297e`;
+- `/bot/stara/` — još starija verzija prije pojednostavljenja sučelja, commit `fc5bf8d`.
+
+Dijelovi ovog dokumenta o Marketu, oglasima, cjenkanju, zamjenama, digitalnim proizvodima,
+pričama i listama želja opisuju spremljenu verziju — u LICIT-u tih ekrana više nema (kod je
+ostao, pa se mogu vratiti).
 
 Platforme: **Windows, Android, iOS**.
 
@@ -68,7 +78,7 @@ flutter run            # odaberi uređaj s popisa
   drži novac kupaca (to bi tražilo licencu HNB-a) — u pravoj verziji plaćanja i isplate radi
   licencirani pružatelj (npr. Mangopay ili Stripe Connect). **U demo verziji plaćanje karticom
   i isplata se samo simuliraju.**
-- **Početna:** zarada za isplatu, priče, objave i trgovine; kartica „Kako LOOP radi” se može
+- **Početna:** zarada za isplatu, priče, objave i trgovine; kartica „Kako LICIT radi” se može
   zatvoriti.
 - **Aukcije:** objavi predmet iz svog portfolija (početna cijena i trajanje od 2 min do 7 dana),
   ostali licitiraju. Pravila:
@@ -102,7 +112,7 @@ flutter run            # odaberi uređaj s popisa
 - **Portfolio:** animirano stanje, traka napretka do sljedećeg statusa i raspodjela po
   odjeljcima/kategorijama.
 - **Market:** traka s pretragom i gumbom **Filteri** ostaje na vrhu pri skrolanju; brzi
-  odabir odjeljka/kategorije, a u listu filtera stanje, raspon cijene, prodavatelj (LOOP /
+  odabir odjeljka/kategorije, a u listu filtera stanje, raspon cijene, prodavatelj (LICIT /
   korisnici), samo favoriti i samo s fotografijom uz broj rezultata uživo. Aktivni filteri
   su čipovi koji se brišu jednim dodirom (*Očisti sve*); sortiranje pokazuje trenutni izbor.
   Filteri ostaju i nakon promjene taba, teme ili jezika.
@@ -154,7 +164,7 @@ ne sinkronizira; online prijavu vodi Supabase Auth i lozinke ne prolaze kroz na�
 - **Objavi u Marketu**: vlastiti predmet po svojoj cijeni — ostaje tvoj dok ga netko ne
   kupi. Kupac plaća cijenu + 2%, ti dobivaš punu cijenu. **Ukloni iz Marketa** ili
   **Promijeni cijenu** u svakom trenutku; **Obriši predmet** ga trajno briše.
-  Objava i aukcija se isključuju. *Prodaj odmah LOOP-u* i dalje radi kao prije.
+  Objava i aukcija se isključuju. *Prodaj odmah LICIT-u* i dalje radi kao prije.
 - **Poruke**: na tuđem oglasu *Pošalji poruku* (poruka nosi karticu predmeta) ili s javnog
   profila; ikona 💬 u gornjoj traci pokazuje nepročitane.
 - **Ponudi zamjenu**: tvoj predmet (+ nadoplata u eurima) za tuđi objavljeni predmet.
@@ -198,12 +208,16 @@ ne sinkronizira; online prijavu vodi Supabase Auth i lozinke ne prolaze kroz na�
   Dodir na karticu otvara **swipe feed kao TikTok** kroz sve kartice te kategorije: live je
   cijela soba uživo, aukcija ima gumb *Licitiraj*. *Moje aukcije* (ikona osobe) i *Pravila*
   (ikona ⓘ) su gore desno.
-- **Pokretanje** (testno odmah, bez podataka prodavatelja): *+ Objavi → Live aukcija* ili
-  crveni gumb **Live** u Aukcijama. Prodavatelj
-  odabere do 20 svojih predmeta (redom kojim ih prodaje), početnu cijenu (zadano 1 €),
-  trajanje licitacije po predmetu (20/30/45/60 s) i početak — **odmah** ili **zakazano**
-  (do 7 dana unaprijed). Pratitelji dobiju obavijest 🔴. Predmeti se dok traje live
-  sklanjaju iz Marketa.
+- **Pokretanje** (testno odmah, bez podataka prodavatelja): *+ Objavi → Kreni uživo*,
+  *Kreni uživo* na početnoj ili crveni gumb **Live** u Aukcijama. Naslov, trajanje
+  licitacije po predmetu (15/20/30/45/60 s), početak **odmah** ili **zakazano** (do 7 dana)
+  i — neobavezno — predmeti unaprijed (s početnom cijenom, zadano 1 €). Pratitelji dobiju
+  obavijest 🔴.
+- **Live traje dok si uživo**: domaćin sam bira predmet i pokreće licitaciju (*Licitiraj:
+  …* ili *Pokreni* u popisu predmeta), predmete dodaje usput (**+**, iz svojih predmeta ili
+  novi), a live završava gumbom *Završi* — ili sam, ako domaćin 2 minute nije u sobi
+  (soba se javlja svakih 30 s). Zakazani live kreće gumbom *Kreni uživo sada*; ako domaćin
+  ne dođe, nestaje sat vremena nakon termina.
 - **Video uživo s kamere** (uključeno pri pokretanju): domaćin snima kamerom i
   mikrofonom, gledatelji ga vide i čuju u stvarnom vremenu. Domaćin ima gumbe *okreni
   kameru*, *mikrofon* i *kamera uključena/isključena* te vidi koliko ljudi gleda video.
@@ -214,13 +228,14 @@ ne sinkronizira; online prijavu vodi Supabase Auth i lozinke ne prolaze kroz na�
 - **Soba uživo**: pozornica s videom ili fotografijom predmeta, oznaka UŽIVO, broj gledatelja,
   cijena, tko vodi, odbrojavanje, veliki gumb *Licitiraj X €* (ili vlastiti iznos),
   chat s brzim reakcijama 🔥👏😍💸 i popis predmeta (što je prodano, što slijedi).
-- **Pravila**: predmeti idu jedan za drugim (5 s pauze); ponuda u zadnjih 10 s vraća sat
+- **Pravila**: licitira se jedan predmet u isto vrijeme; ponuda u zadnjih 10 s vraća sat
   na 10 s (*sudden death*); vodeći ne može licitirati sam sebe; domaćin ne licitira.
   Pobjednik plaća karticom i bira dostavu, prodavatelj dobiva cijelu ponudu.
   Domaćin može završiti live ranije — predmet koji se licitira i ostali ostaju njemu.
-- **Kako radi bez servera**: raspored je deterministički (start + trajanje + produljenja),
-  a svaka ponuda/poruka je zaseban zapis (`loop_live_events`), pa svaki uređaj izračuna
-  isto stanje. Prodaju provodi domaćin ili pobjednik s istim ID-jem transakcije (nema
+- **Kako radi bez servera**: emisiju mijenja samo domaćin (početak licitacije, novi
+  predmeti, "još sam tu"), a svaka ponuda/poruka je zaseban zapis (`loop_live_events`);
+  kraj licitacije je deterministički (početak + trajanje + produljenja), pa svaki uređaj
+  izračuna isto stanje. Prodaju provodi domaćin ili pobjednik s istim ID-jem transakcije (nema
   dvostrukih prodaja).
 - **Ograničenja videa**: domaćin šalje zasebnu vezu svakom gledatelju, pa je ovo za
   manji broj gledatelja (otprilike do 10, ovisno o uploadu domaćina); za stotine
@@ -291,7 +306,7 @@ dati na pregled odvjetniku prije pokretanja s pravim novcem):
 
 - **Plaćanja (PSD2):** nema novčanika ni uplata; kupac plaća karticom, prodavatelj isplaćuje
   zaradu na IBAN, a novac obrađuje licencirani pružatelj plaćanja (u demo verziji simulirano).
-- **Samo fizičke osobe:** LOOP koriste samo punoljetne fizičke osobe (kupci i prodavatelji);
+- **Samo fizičke osobe:** LICIT koriste samo punoljetne fizičke osobe (kupci i prodavatelji);
   obrti i tvrtke ne mogu prodavati. Registracija traži potvrdu „18+ i fizička osoba”.
 - **Podaci prodavatelja (DAC7):** prije prve objave (oglas, aukcija) ili isplate traže se
   ime i prezime, OIB (provjera kontrolne znamenke), datum rođenja (18+), adresa i IBAN
@@ -317,20 +332,17 @@ dati na pregled odvjetniku prije pokretanja s pravim novcem):
 
 ## Raspored sučelja
 
-- Donja traka: **Početna · Market · [+ Objavi] · Aukcije · Profil**.
-  **+ Objavi** nudi *Oglas*, *Aukciju* ili *Priču* (jedno mjesto za sve).
-- **Početna**: stanje (dodir na "Ukupno…" otvara *Moje predmete*), priče,
-  objave i trgovine. Grafikon vrijednosti, raspodjela i popis predmeta su
-  na ekranu **Moji predmeti** (i Profil → Moja trgovina).
-- **Profil**: *Moja trgovina* (statistika, moji predmeti, trgovina,
-  ponude cijena, isticanje) · *Novac i kupnje* (stanje i uplata, povijest
-  transakcija, dostave, digitalne kupnje, liste želja) · *Račun* · *Postavke*.
-- Srce na oglasu = "Sviđa mi se"; obavijest nudi *Spremi u listu*.
-  Spremanje i prijava oglasa su u izborniku ⋮.
-- Market: pretraga, gumb **Filteri** i odjeljci; moji oglasi su na kraju
-  s oznakom *Tvoj oglas*.
-- Spremljena kopija verzije prije ovog rasporeda: `/bot/stara/`
-  (gradi se iz commita `fc5bf8d` uz glavnu verziju).
+- Donja traka: **Početna · Aukcije · [+ Objavi] · Moje · Profil**.
+- **Početna** (kao Whatnot): *Licitiraj uživo* (Kreni uživo / Nova aukcija), **Uživo sada**,
+  **Uskoro** (zakazani liveovi) i **Završavaju uskoro**. Dodir na karticu otvara swipe feed.
+- **Aukcije**: kategorije kao kartice i mreža svih liveova i aukcija; *Pravila* (ⓘ) i **Live**.
+- **+ Objavi**: *Kreni uživo*, *Aukcija* ili *Novi predmet* (predmet ide u Moje predmete, pa
+  na aukciju ili u live — na detaljima predmeta: *Stavi na aukciju* / *Pokaži u liveu*).
+- **Moje**: *Moje ponude*, *Moje aukcije*, *Moji liveovi*, *Završene*.
+- **Profil**: *Moja trgovina* (podaci prodavatelja, moji predmeti, trgovina, top
+  prodavatelji) · *Novac i kupnje* (zarada i isplata, povijest, dostave) · *Račun* ·
+  *Pravno* · *Postavke*. Javna trgovina prikazuje live (ako je uživo), aukcije i ocjene.
+- Pretraga traži live aukcije, aukcije i račune.
 
 ## Obavijesti
 
@@ -384,14 +396,14 @@ dati na pregled odvjetniku prije pokretanja s pravim novcem):
   najviše 25 MB online). Stanje se ne bira, a proizvod odmah ide u Market.
 - Digitalni proizvod se **prodaje više puta**: prodavatelj ga zadržava, svaki kupac plaća
   cijenu + 2%, prodavatelj dobiva punu cijenu. Nema dostave, aukcije, zamjene ni prodaje
-  LOOP-u.
+  LICIT-u.
 - Kupac **preuzima datoteku odmah** nakon plaćanja, a kasnije u *Profil → Moje digitalne
   kupnje* ili na stranici proizvoda. Isti kupac ne plaća dvaput.
 - Vlasnik vidi broj kupaca, može preuzeti i **zamijeniti datoteku** (nova verzija vrijedi i
   za postojeće kupce). Proizvod s kupcima ne može se obrisati — samo ukloniti iz Marketa.
 - Online su datoteke u **privatnom** Supabase bucketu `loop-files`; pravila u bazi dopuštaju
   preuzimanje samo vlasniku i kupcima (`supabase/schema.sql`). Lokalno su na uređaju.
-- Demo: *Kocka za kalibraciju* (STL) i *Predložak plakata* (SVG) od LOOP-a.
+- Demo: *Kocka za kalibraciju* (STL) i *Predložak plakata* (SVG) od LICIT-a.
 
 ## Ocjene, obavijesti, prijave i blokiranje
 
@@ -431,7 +443,7 @@ prikazuje na detaljima predmeta i aukcije.
 
 | Način | Cijena | Demo trajanje | Napomena |
 |---|---|---|---|
-| Osobno preuzimanje | besplatno | 2 min | LOOP točka |
+| Osobno preuzimanje | besplatno | 2 min | LICIT točka |
 | Paketomat | 3 € | 3 min | odabir paketomata |
 | Kurir na adresu | 6 € | 4 min | adresa se pamti |
 | Ekspresna dostava | 12 € | 2 min | |
@@ -439,7 +451,7 @@ prikazuje na detaljima predmeta i aukcije.
 
 Statusi (Naručeno → Zapakirano → Poslano → U dostavi → Dostavljeno) računaju se iz vremena,
 pa su isti na svim uređajima. Trajanje je ubrzano s dana na minute kako bi se moglo pratiti
-uživo. Svaka pošiljka ima broj za praćenje (`LOOP-XXXXXXXX`), a kupac nakon isporuke
+uživo. Svaka pošiljka ima broj za praćenje (`LICIT-XXXXXXXX`), a kupac nakon isporuke
 potvrđuje primitak.
 
 ### Ideje za pravu dostavu (sljedeći koraci)
@@ -448,8 +460,8 @@ potvrđuje primitak.
   onda idu prodavatelju. To štiti od neisporuke i vrijedi posebno za aukcije među korisnicima.
 - **Prava dostavna služba:** API dostavljača (npr. paketomati i kurirske službe u RH) za
   naljepnice, praćenje u stvarnom vremenu (webhook → status pošiljke) i odabir paketomata na karti.
-- **Slanje prodanog predmeta LOOP-u:** besplatna naljepnica za "Prodaj odmah"; krediti stižu
-  nakon provjere stanja predmeta na LOOP točki (sprječava prodaju neispravnih uređaja).
+- **Slanje prodanog predmeta LICIT-u:** besplatna naljepnica za "Prodaj odmah"; krediti stižu
+  nakon provjere stanja predmeta na LICIT točki (sprječava prodaju neispravnih uređaja).
 - **Provjera stanja + reklamacija:** 48 h nakon primitka za prijavu problema s fotografijama;
   povrat kredita ako se predmet ne slaže s opisom.
 - **Osiguranje pošiljke** za skuplje predmete (npr. iznad 500 kredita) kao dodatna opcija.
@@ -510,7 +522,7 @@ i objavljuje je na **https://karlo6546541.github.io/bot/**.
    GitHub Actions**.
 2. **Settings → Secrets and variables → Actions → New repository secret**:
    `SUPABASE_URL` i `SUPABASE_KEY` (iste vrijednosti kao gore).
-3. **Actions → LOOP web (GitHub Pages) → Run workflow**.
+3. **Actions → LICIT web (GitHub Pages) → Run workflow**.
 4. Ako deploy javi da grana nije dopuštena: **Settings → Environments → github-pages →
    Deployment branches** i dodaj `claude/beautiful-newton-sftcyd` (ili spoji granu u `main`).
 
@@ -561,7 +573,7 @@ Apple Watch, Sony A7 III, PS5, Switch) i po 4–5 iz svakog novog odjeljka.
 
 ## Poslovna pravila
 
-- Postoje samo **kupci i prodavatelji** — nema više „LOOP Marketa” ni prodaje platformi.
+- Postoje samo **kupci i prodavatelji** — nema više „LICIT Marketa” ni prodaje platformi.
   Stari predmeti platforme automatski dobiju demo prodavatelje (@ana.kolekcija, @marko,
   @test) i objave se po svojoj cijeni.
 - **Prodavatelj ne plaća naknadu** i dobiva punu cijenu oglasa.

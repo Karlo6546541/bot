@@ -45,13 +45,15 @@ void main() {
     await tester.tap(find.text('Prijavi se'));
     await tester.pumpAndSettle();
 
-    // Detalji predmeta.
+    // Profil → Moji predmeti → detalji predmeta.
+    await tester.tap(find.text('Profil').last);
+    await tester.pumpAndSettle();
     await tester.scrollUntilVisible(
-      find.byKey(const ValueKey('open-my-items')),
+      find.byKey(const ValueKey('my-items')),
       300,
       scrollable: find.byType(Scrollable).first,
     );
-    await tester.tap(find.byKey(const ValueKey('open-my-items')));
+    await tester.tap(find.byKey(const ValueKey('my-items')));
     await tester.pumpAndSettle();
     await tester.scrollUntilVisible(
       find.text('iPhone 13'),

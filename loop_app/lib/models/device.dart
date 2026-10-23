@@ -194,7 +194,7 @@ class Device {
   /// kupac preuzima datoteku odmah nakon plaćanja.
   bool get isDigital => category.section == ItemSection.digital;
 
-  /// Predmet platforme (LOOP Market) — svatko ga može kupiti.
+  /// Predmet platforme (LICIT Market) — svatko ga može kupiti.
   bool get isOnMarket => ownerId == null;
 
   /// Korisnik je objavio svoj predmet u Marketu.

@@ -6,8 +6,7 @@ import '../providers/app_providers.dart';
 import '../widgets/adaptive_shell.dart';
 import '../widgets/create_sheet.dart';
 import 'auctions_screen.dart';
-import 'market_screen.dart';
-import 'portfolio_screen.dart';
+import 'live_home_screen.dart';
 import 'profile_screen.dart';
 import '../l10n/tr.dart';
 import '../widgets/language_button.dart';
@@ -19,7 +18,8 @@ import 'search_screen.dart';
 import 'wishlists_screen.dart';
 import 'notifications_screen.dart';
 
-/// Glavni okvir: Početna · Market · [+ Objavi] · Aukcije · Profil.
+/// Glavni okvir (samo aukcije): Početna · Aukcije · [+ Objavi] · Moje ·
+/// Profil.
 class HomeShell extends ConsumerStatefulWidget {
   const HomeShell({super.key});
 
@@ -40,14 +40,18 @@ class _HomeShellState extends ConsumerState<HomeShell> {
 
   static List<ShellDestination> get _destinations => [
     ShellDestination(t('Početna'), Icons.home_outlined, Icons.home),
-    ShellDestination('Market', Icons.storefront_outlined, Icons.storefront),
-    ShellDestination(t('Objavi'), Icons.add, Icons.add, action: true),
     ShellDestination(t('Aukcije'), Icons.gavel_outlined, Icons.gavel),
+    ShellDestination(t('Objavi'), Icons.add, Icons.add, action: true),
+    ShellDestination(
+      t('Moje'),
+      Icons.local_activity_outlined,
+      Icons.local_activity,
+    ),
     ShellDestination(t('Profil'), Icons.person_outline, Icons.person),
   ];
 
-  /// Kartice: 0 Početna, 1 Market, 2 Aukcije, 3 Profil. U traci je "+" na
-  /// mjestu 2 pa su Aukcije i Profil pomaknuti za jedan.
+  /// Kartice: 0 Početna, 1 Aukcije, 2 Moje, 3 Profil. U traci je "+" na
+  /// mjestu 2 pa su Moje i Profil pomaknuti za jedan.
   static const _createSlot = 2;
   static int _navIndex(int tab) => tab < _createSlot ? tab : tab + 1;
 
@@ -139,13 +143,13 @@ class _HomeShellState extends ConsumerState<HomeShell> {
           SizedBox(width: phone ? 8 : 12),
         ],
       ),
-      // IndexedStack čuva stanje (npr. search u Marketu) pri promjeni taba.
+      // IndexedStack čuva stanje (npr. odabranu kategoriju) pri promjeni taba.
       body: IndexedStack(
         index: _index,
         children: [
-          PortfolioScreen(onGoToMarket: () => _go(1)),
-          const MarketScreen(),
+          LiveHomeScreen(onBrowse: () => _go(1)),
           const AuctionsScreen(),
+          const MyAuctionsView(),
           const ProfileScreen(),
         ],
       ),

@@ -459,9 +459,23 @@ class PostTile extends StatelessWidget {
     final auction = entry.isAuction
         ? state.auctionById(entry.auctionId!)
         : null;
-    final d = state.deviceById(entry.deviceId ?? auction?.deviceId ?? '');
-    if (d == null) return const SizedBox.shrink();
-    final photo = d.imagePaths.isEmpty
+    final live = entry.isLive ? state.liveShowById(entry.liveId!) : null;
+    final d = state.deviceById(
+      entry.deviceId ??
+          auction?.deviceId ??
+          live?.lots.firstOrNull?.deviceId ??
+          '',
+    );
+    if (d == null && live == null) return const SizedBox.shrink();
+    final photo = d == null
+        ? const DecoratedBox(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [Color(0xFF6A2BD6), Color(0xFFFF2D55)],
+              ),
+            ),
+          )
+        : d.imagePaths.isEmpty
         ? ItemIllustration(category: d.category, iconSize: 36)
         : LocalPhoto(
             path: d.imagePaths.first,
@@ -492,9 +506,14 @@ class PostTile extends StatelessWidget {
               Positioned(
                 top: 6,
                 left: 6,
-                child: auction != null
+                child: live != null
+                    ? _TileBadge(
+                        text: t('UŽIVO'),
+                        color: const Color(0xFFFF2D55),
+                      )
+                    : auction != null
                     ? const _TileBadge(text: '🔨', color: Color(0xFF7B2FF7))
-                    : d.hasDiscount
+                    : d!.hasDiscount
                     ? DiscountBadge(percent: d.discountPercent, small: true)
                     : const SizedBox.shrink(),
               ),
@@ -506,7 +525,7 @@ class PostTile extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      d.name,
+                      live?.title ?? d!.name,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: white.copyWith(
@@ -518,23 +537,27 @@ class PostTile extends StatelessWidget {
                       children: [
                         Expanded(
                           child: Text(
-                            formatCredits(
-                              auction?.currentPrice ?? d.shownPrice,
-                            ),
+                            live != null
+                                ? t('{0} predmeta', ['${live.lots.length}'])
+                                : formatCredits(
+                                    auction?.currentPrice ?? d!.shownPrice,
+                                  ),
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                             style: white.copyWith(fontWeight: FontWeight.w900),
                           ),
                         ),
-                        const Icon(
-                          Icons.play_arrow_outlined,
-                          color: Colors.white,
-                          size: 14,
-                        ),
-                        Text(
-                          '${state.viewsOf(d.id)}',
-                          style: white.copyWith(fontSize: 11),
-                        ),
+                        if (d != null && live == null) ...[
+                          const Icon(
+                            Icons.play_arrow_outlined,
+                            color: Colors.white,
+                            size: 14,
+                          ),
+                          Text(
+                            '${state.viewsOf(d.id)}',
+                            style: white.copyWith(fontSize: 11),
+                          ),
+                        ],
                       ],
                     ),
                   ],

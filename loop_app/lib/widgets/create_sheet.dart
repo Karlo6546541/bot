@@ -5,11 +5,10 @@ import '../screens/add_device_screen.dart';
 import '../screens/create_auction_screen.dart';
 import '../screens/live_screens.dart';
 import '../theme/app_theme.dart';
-import 'story_editor.dart';
 import 'trade_actions.dart';
 
-/// "+ Objavi": jedno mjesto za sve što korisnik objavljuje — oglas u
-/// Marketu, aukciju, live aukciju ili priču.
+/// "+ Objavi": live aukcija, obična aukcija ili novi predmet (koji poslije
+/// ide na aukciju ili u live).
 Future<void> showCreateSheet(BuildContext context) async {
   if (blockGuest(context)) return;
   final choice = await showModalBottomSheet<String>(
@@ -79,7 +78,7 @@ Future<void> showCreateSheet(BuildContext context) async {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               Text(
-                t('Što želiš objaviti?'),
+                t('Što želiš pokrenuti?'),
                 style: const TextStyle(
                   fontSize: 19,
                   fontWeight: FontWeight.w900,
@@ -87,32 +86,25 @@ Future<void> showCreateSheet(BuildContext context) async {
               ),
               const SizedBox(height: 10),
               option(
-                'item',
-                '📦',
-                LoopColors.mint,
-                t('Oglas'),
-                t('Fiksna cijena u Marketu'),
+                'live',
+                '🔴',
+                LoopColors.rose,
+                t('Kreni uživo'),
+                t('Video, chat i licitacije od par sekundi'),
               ),
               option(
                 'auction',
                 '🔨',
                 LoopColors.lilac,
                 t('Aukcija'),
-                t('Najviša ponuda pobjeđuje'),
+                t('Traje satima ili danima, najviša ponuda pobjeđuje'),
               ),
               option(
-                'live',
-                '🔴',
-                LoopColors.rose,
-                t('Live aukcija'),
-                t('Više predmeta uživo, uz chat'),
-              ),
-              option(
-                'story',
-                '✨',
-                LoopColors.peach,
-                t('Priča'),
-                t('Vidljivo 24 sata'),
+                'item',
+                '📦',
+                LoopColors.mint,
+                t('Novi predmet'),
+                t('Dodaj predmet pa ga stavi na aukciju ili u live'),
               ),
             ],
           ),
@@ -122,13 +114,11 @@ Future<void> showCreateSheet(BuildContext context) async {
   );
   if (choice == null || !context.mounted) return;
   switch (choice) {
-    case 'item':
-      await AddDeviceScreen.open(context);
-    case 'auction':
-      await CreateAuctionScreen.open(context);
     case 'live':
       await CreateLiveShowScreen.open(context);
-    case 'story':
-      await CreateStoryScreen.open(context);
+    case 'auction':
+      await CreateAuctionScreen.open(context);
+    case 'item':
+      await AddDeviceScreen.open(context);
   }
 }

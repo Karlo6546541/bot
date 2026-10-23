@@ -1,11 +1,11 @@
 {
-    "name": "LOOP",
-    "short_name": "LOOP",
+    "name": "LICIT",
+    "short_name": "LICIT",
     "start_url": ".",
     "display": "standalone",
-    "background_color": "#FFF7EF",
-    "theme_color": "#C8441E",
-    "description": "LOOP — tržnica rabljenih stvari (demo).",
+    "background_color": "#F6F4FB",
+    "theme_color": "#6A2BD6",
+    "description": "LICIT — aukcije uživo i aukcije na vrijeme (demo).",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [

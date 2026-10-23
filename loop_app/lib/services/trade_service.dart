@@ -23,7 +23,7 @@ class TradeException implements Exception {
   String toString() => message;
 }
 
-/// Poslovna pravila LOOP-a: dodavanje, prodaja, kupnja
+/// Poslovna pravila LICIT-a: dodavanje, prodaja, kupnja
 /// i admin akcije. Radi direktno nad [StorageService].
 class TradeService {
   TradeService(this._storage);
@@ -39,7 +39,7 @@ class TradeService {
   static const welcomeCredits = 0;
 
   /// Oznaka platforme kao druge strane u transakciji.
-  static const marketLabel = 'LOOP Market';
+  static const marketLabel = 'LICIT Market';
 
   bool isAdminLogin(String email, String password) =>
       email.trim().toLowerCase() == adminEmail && password == adminPassword;
@@ -121,7 +121,7 @@ class TradeService {
     if (device.isDigital) {
       throw TradeException(
         t(
-          'Digitalni proizvod se ne prodaje LOOP-u — kupci ga kupuju u Marketu.',
+          'Digitalni proizvod se ne prodaje LICIT-u — kupci ga kupuju u Marketu.',
         ),
       );
     }
@@ -513,7 +513,7 @@ class TradeService {
         d.priceAt(at);
   }
 
-  /// Demo prodavatelji koji preuzimaju predmete bivšeg "LOOP Marketa".
+  /// Demo prodavatelji koji preuzimaju predmete bivšeg "LICIT Marketa".
   static const platformHeirs = [
     SeedData.anaUserId,
     SeedData.markoUserId,
@@ -521,7 +521,7 @@ class TradeService {
   ];
 
   /// U aplikaciji postoje samo kupci i prodavatelji: predmeti bez vlasnika
-  /// (stari LOOP Market) dodijele se demo prodavateljima i objave po svojoj
+  /// (stari LICIT Market) dodijele se demo prodavateljima i objave po svojoj
   /// cijeni. Raspodjela ovisi samo o ID-u predmeta, pa svi uređaji dođu do
   /// istog rezultata. Vraća broj dodijeljenih predmeta.
   Future<int> assignPlatformItems({DateTime? now}) async {

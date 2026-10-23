@@ -336,7 +336,7 @@ class _CreditsHero extends StatelessWidget {
   }
 }
 
-/// Kratko objašnjenje kako LOOP radi (može se zatvoriti).
+/// Kratko objašnjenje kako LICIT radi (može se zatvoriti).
 class _HowItWorks extends ConsumerWidget {
   const _HowItWorks();
 
@@ -374,7 +374,7 @@ class _HowItWorks extends ConsumerWidget {
               children: [
                 Expanded(
                   child: Text(
-                    t('Kako LOOP radi'),
+                    t('Kako LICIT radi'),
                     style: TextStyle(fontSize: 17, fontWeight: FontWeight.w900),
                   ),
                 ),

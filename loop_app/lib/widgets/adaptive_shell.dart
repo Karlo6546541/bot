@@ -115,7 +115,7 @@ class AdaptiveShell extends StatelessWidget {
   }
 }
 
-/// LOOP logotip.
+/// LICIT logotip.
 class LoopLogo extends StatelessWidget {
   const LoopLogo({super.key, this.size = 28, this.color, this.onTap});
   final double size;
@@ -126,19 +126,31 @@ class LoopLogo extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final c = color ?? Theme.of(context).colorScheme.primary;
+    // LICIT: čekić u gradijentu (ljubičasta → crvena "uživo") i natpis.
     final logo = Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Icon(Icons.all_inclusive, color: c, size: size * 1.1),
-        SizedBox(width: size * 0.3),
+        Container(
+          width: size * 1.35,
+          height: size * 1.35,
+          decoration: BoxDecoration(
+            gradient: const LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [Color(0xFF6A2BD6), Color(0xFFFF2D55)],
+            ),
+            borderRadius: BorderRadius.circular(size * 0.4),
+          ),
+          child: Icon(Icons.gavel, color: Colors.white, size: size * 0.85),
+        ),
+        SizedBox(width: size * 0.35),
         Text(
-          'LOOP',
+          'LICIT',
           style: TextStyle(
             fontSize: size,
             fontWeight: FontWeight.w900,
             letterSpacing: size * 0.12,
-            color: LoopColors.textPrimary,
+            color: color ?? LoopColors.textPrimary,
           ),
         ),
       ],

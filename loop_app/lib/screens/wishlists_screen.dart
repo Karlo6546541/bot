@@ -424,7 +424,7 @@ class WishlistDetailScreen extends ConsumerWidget {
           if (list != null)
             ShareButton(
               url: publicLink(list: '${owner.id}.${list.id}'),
-              text: t('Moja lista "{0}" na LOOP-u', [list.name]),
+              text: t('Moja lista "{0}" na LICIT-u', [list.name]),
               tooltip: t('Podijeli listu'),
             ),
           if (isMine && list != null)

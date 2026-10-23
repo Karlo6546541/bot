@@ -90,7 +90,7 @@ class CommunityService {
       throw TradeException(t('Pošiljka ne postoji.'));
     }
     if (d.sellerId == null) {
-      throw TradeException(t('LOOP Market se ne ocjenjuje.'));
+      throw TradeException(t('LICIT Market se ne ocjenjuje.'));
     }
     if (d.confirmedAt == null) {
       throw TradeException(t('Ocijeniti možeš nakon potvrde primitka.'));
@@ -342,7 +342,7 @@ class CommunityService {
         amount: cost,
         buyerId: userId,
         buyerLabel: user.handle,
-        sellerLabel: 'LOOP',
+        sellerLabel: 'LICIT',
         createdAt: at,
       ),
     );

@@ -81,6 +81,7 @@ void main() {
 
     DateTime at(int s) => t0.add(Duration(seconds: s));
 
+    /// Live s tri predmeta; domaćin odmah pokreće prvi (t0 … t0+30 s).
     Future<String> start({int secs = 30}) async {
       final show = await live.create(
         hostId: host,
@@ -90,6 +91,7 @@ void main() {
         startsAt: t0,
         now: t0,
       );
+      await live.startLot(host, show.id, index: 0, now: t0);
       return show.id;
     }
 
@@ -140,10 +142,6 @@ void main() {
         throwsA(isA<TradeException>()),
       );
       await expectLater(
-        live.create(hostId: host, title: 'Prazno', items: [], now: t0),
-        throwsA(isA<TradeException>()),
-      );
-      await expectLater(
         live.create(
           hostId: host,
           title: 'Predaleko',
@@ -162,27 +160,101 @@ void main() {
         ),
         throwsA(isA<TradeException>()),
       );
+      // Predmeti su neobavezni — dodaju se tijekom livea.
+      final empty = await live.create(hostId: host, title: 'Prazno', now: t0);
+      expect(empty.lots, isEmpty);
     });
 
-    test('predmeti idu redom s pauzom; bez ponuda ostaju domaćinu', () async {
-      final id = await start();
-      expect(
-        live.stateOf(storage.liveShowById(id)!, now: at(-60)).isScheduled,
-        isTrue,
+    test(
+      'domaćin pokreće predmete; live traje dok se domaćin javlja',
+      () async {
+        final show = await live.create(
+          hostId: host,
+          title: 'Uživo',
+          items: [for (final d in items) (d.id, 1.0)],
+          startsAt: t0,
+          now: t0,
+        );
+        final id = show.id;
+        var st = state(id, 1);
+        expect(st.isLive, isTrue);
+        expect(st.current, isNull);
+        expect(st.queue, hasLength(3));
+        expect(st.canStart, isTrue);
+        // Ništa se ne licitira dok domaćin ne pokrene predmet.
+        await expectLater(
+          live.bid(bob, id, 1, now: at(2)),
+          throwsA(isA<TradeException>()),
+        );
+        await expectLater(
+          live.startLot(bob, id, now: at(3)),
+          throwsA(isA<TradeException>()),
+        );
+        // Domaćin bira bilo koji predmet.
+        await live.startLot(host, id, index: 1, now: at(3));
+        expect(state(id, 4).current!.index, 1);
+        await expectLater(
+          live.startLot(host, id, now: at(4)),
+          throwsA(isA<TradeException>()),
+        );
+        await live.bid(bob, id, 1, now: at(5));
+        expect(state(id, 40).lots[1].status, LotStatus.sold);
+        // Bez indeksa: prvi na čekanju.
+        await live.startLot(host, id, now: at(41));
+        expect(state(id, 42).current!.index, 0);
+        expect(state(id, 80).lots[0].status, LotStatus.unsold);
+        // Novi predmet usred livea ide na kraj reda.
+        final extra = await addItem(trade, host, 'Diskman');
+        await live.addLot(host, id, extra.id, 2, now: at(90));
+        expect(state(id, 91).queue.map((l) => l.lot.deviceId), [
+          items[2].id,
+          extra.id,
+        ]);
+        // Domaćin se javlja → live traje; bez javljanja 2 min → gotov.
+        await live.heartbeat(host, id, now: at(150));
+        expect(state(id, 260).isLive, isTrue);
+        final over = state(id, 280);
+        expect(over.isOver, isTrue);
+        expect(over.queue, isEmpty);
+        expect(over.lots[2].status, LotStatus.skipped);
+        expect(
+          LiveService.isLocked(storage, items[2].id, now: at(280)),
+          isFalse,
+        );
+        await expectLater(
+          live.addLot(host, id, items[2].id, 1, now: at(280)),
+          throwsA(isA<TradeException>()),
+        );
+        expect(await live.settleDue(userId: bob, now: at(280)), 1);
+        expect(storage.deviceById(items[1].id)!.ownerId, bob);
+      },
+    );
+
+    test('zakazani live čeka domaćina, a bez njega nestaje', () async {
+      final show = await live.create(
+        hostId: host,
+        title: 'Večeras',
+        items: [(items.first.id, 1.0)],
+        startsAt: t0.add(const Duration(hours: 1)),
+        now: t0,
       );
-      expect(state(id, 10).current!.index, 0);
-      // Kraj prvog (30 s) → pauza 5 s → drugi.
-      final gap = state(id, 32);
-      expect(gap.current, isNull);
-      expect(gap.lots[0].status, LotStatus.unsold);
-      expect(gap.isLive, isTrue);
-      expect(state(id, 36).current!.index, 1);
-      expect(state(id, 71).current!.index, 2);
-      final over = state(id, 200);
-      expect(over.isOver, isTrue);
-      expect(over.soldCount, 0);
-      expect(await live.settleDue(now: at(200)), 0);
-      expect(storage.deviceById(items[0].id)!.ownerId, host);
+      expect(state(show.id, 60).isScheduled, isTrue);
+      expect(state(show.id, 60).canStart, isFalse);
+      // Domaćin dođe ranije i krene uživo.
+      await live.heartbeat(host, show.id, now: at(1800));
+      expect(state(show.id, 1801).isLive, isTrue);
+      await live.end(host, show.id, now: at(1900));
+      expect(state(show.id, 1901).isOver, isTrue);
+
+      // Drugi zakazani live na koji domaćin ne dođe.
+      final noShow = await live.create(
+        hostId: host,
+        title: 'Sutra',
+        startsAt: t0.add(const Duration(hours: 3)),
+        now: at(2000),
+      );
+      expect(state(noShow.id, 3 * 3600).isScheduled, isTrue);
+      expect(state(noShow.id, 4 * 3600 + 1).isOver, isTrue);
     });
 
     test(
@@ -217,9 +289,11 @@ void main() {
       final lot = state(id, 26).current!;
       expect(lot.end, at(35));
       expect(state(id, 33).current!.index, 0);
-      // Sljedeći kreće 5 s nakon produljenog kraja.
-      expect(state(id, 37).lots[1].start, at(40));
       expect(state(id, 37).lots[0].status, LotStatus.sold);
+      // Sljedeći kreće kad ga domaćin pokrene.
+      expect(state(id, 37).lots[1].status, LotStatus.upcoming);
+      await live.startLot(host, id, now: at(37));
+      expect(state(id, 38).lots[1].start, at(37));
     });
 
     test('prodaju provodi pobjednik ili domaćin — samo jednom', () async {
@@ -289,13 +363,15 @@ void main() {
         trade.deleteOwn(userId: host, deviceId: items[1].id),
         throwsA(isA<TradeException>()),
       );
-      // Raspored se ne mijenja ni kad se predmet kasnije makne.
-      final before = live.stateOf(show, now: DateTime.now());
+      expect(
+        live.stateOf(show, now: DateTime.now()).lots.first.status,
+        LotStatus.upcoming,
+      );
+      // Kraj livea oslobađa predmete na čekanju.
       await live.end(host, show.id);
       expect(LiveService.isLocked(storage, items[0].id), isFalse);
       await trade.list(userId: host, deviceId: items[0].id, price: 50);
       expect(storage.deviceById(items[0].id)!.isListed, isTrue);
-      expect(before.lots.first.start, show.startsAt);
     });
 
     test(
@@ -397,6 +473,7 @@ void main() {
           lotSeconds: 60,
           video: true,
         )).id;
+        await LiveService(storage).startLot(bob, bobShow);
       });
       addTearDown(() => tester.runAsync(Hive.close));
 
@@ -532,8 +609,22 @@ void main() {
       expect(show.lots.map((l) => l.deviceId), [for (final d in mine) d.id]);
       expect(show.lots.last.startPrice, 5);
       expect(show.video, isTrue);
+      // Domaćin sam pokreće licitaciju.
+      expect(find.byKey(const ValueKey('live-lot')), findsNothing);
+      expect(find.byKey(const ValueKey('live-host-idle')), findsOneWidget);
+      await tester.tap(find.byKey(const ValueKey('live-start-next')));
+      await tester.pumpAndSettle();
       expect(find.byKey(const ValueKey('live-lot')), findsOneWidget);
       expect(find.byKey(const ValueKey('live-bid')), findsNothing);
+      expect(storage.liveShowById(show.id)!.lots.first.startedAt, isNotNull);
+      // Novi predmet usred livea.
+      await tester.tap(find.byKey(const ValueKey('live-add-item')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byType(RadioListTile<String>).first);
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('live-add-confirm')));
+      await tester.pumpAndSettle();
+      expect(storage.liveShowById(show.id)!.lots, hasLength(3));
       // Domaćin šalje video: oznaka gledatelja videa i gumbi za kameru.
       expect(find.text('📡 Video gleda 0'), findsOneWidget);
       expect(find.byKey(const ValueKey('live-cam-flip')), findsOneWidget);

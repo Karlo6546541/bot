@@ -751,7 +751,7 @@ class AppController extends Notifier<AppState> {
     }
     _autoListing = true;
     try {
-      // Nema više "LOOP Marketa": predmeti platforme dobiju prodavatelja.
+      // Nema više "LICIT Marketa": predmeti platforme dobiju prodavatelja.
       await _trade.assignPlatformItems();
       await _trade.autoListPortfolios();
       if (ref.mounted) _refresh();
@@ -1215,6 +1215,30 @@ class AppController extends Notifier<AppState> {
     );
     _refresh();
     return show;
+  }
+
+  /// Domaćin pokreće licitaciju za predmet (ili prvi na čekanju).
+  Future<void> liveStartLot(String showId, {int? index}) async {
+    await _live.startLot(_requireUserId(), showId, index: index);
+    _refresh();
+  }
+
+  /// Domaćin dodaje predmet tijekom livea.
+  Future<void> liveAddLot(String showId, String deviceId, double price) async {
+    await _live.addLot(_requireUserId(), showId, deviceId, price);
+    _refresh();
+  }
+
+  /// Domaćin je u sobi — live traje dok se javlja.
+  Future<void> liveHeartbeat(String showId) async {
+    final user = state.currentUser;
+    if (user == null) return;
+    try {
+      await _live.heartbeat(user.id, showId);
+      if (ref.mounted) _refresh();
+    } catch (_) {
+      // pokušat će ponovno za 30 s
+    }
   }
 
   Future<void> endLiveShow(String showId) async {

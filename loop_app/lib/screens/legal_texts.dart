@@ -13,22 +13,22 @@ const kDocsDate = '[DATUM]';
 const legalHr = <String, String>{
   'terms':
       '''
-Ovi Uvjeti uređuju korištenje platforme LOOP (aplikacija i web stranica) koju pruža $kCompany, OIB $kCompanyOib, $kCompanyAddress ("LOOP", "mi"). Registracijom potvrđuješ da imaš najmanje 18 godina i da prihvaćaš ove Uvjete i Pravila privatnosti.
+Ovi Uvjeti uređuju korištenje platforme LICIT (aplikacija i web stranica) koju pruža $kCompany, OIB $kCompanyOib, $kCompanyAddress ("LICIT", "mi"). Registracijom potvrđuješ da imaš najmanje 18 godina i da prihvaćaš ove Uvjete i Pravila privatnosti.
 
-## 1. Što je LOOP
-LOOP je online tržnica (marketplace) na kojoj korisnici međusobno kupuju i prodaju predmete po fiksnoj cijeni, na aukciji ili zamjenom. LOOP nije prodavatelj predmeta: ugovor o kupoprodaji sklapaju kupac i prodavatelj.
+## 1. Što je LICIT
+LICIT je platforma za aukcije: live aukcije (prodavatelj uživo pokazuje predmete i pokreće kratke licitacije, live traje dok je prodavatelj uživo) i aukcije na vrijeme. LICIT nije prodavatelj predmeta: ugovor o kupoprodaji sklapaju pobjednik aukcije i prodavatelj.
 
 ## 2. Računi
-LOOP mogu koristiti samo punoljetne fizičke osobe, za osobne potrebe (ne kao obrt ni tvrtka) — i kao kupci i kao prodavatelji. Jedna osoba smije imati jedan račun. Podaci moraju biti točni. Odgovoran si za sigurnost lozinke. Račun možeš obrisati u Profilu (brisanje se izvršava nakon 7 dana).
+LICIT mogu koristiti samo punoljetne fizičke osobe, za osobne potrebe (ne kao obrt ni tvrtka) — i kao kupci i kao prodavatelji. Jedna osoba smije imati jedan račun. Podaci moraju biti točni. Odgovoran si za sigurnost lozinke. Račun možeš obrisati u Profilu (brisanje se izvršava nakon 7 dana).
 
 ## 3. Prodavatelji
-Prodavatelji su fizičke osobe koje prodaju svoje stvari. Prije prve objave unose podatke prodavatelja (ime i prezime, OIB, datum rođenja, adresu, IBAN). Tko prodaje kao djelatnost (obrt, tvrtka), ne smije koristiti LOOP. Zabranjeni predmeti navedeni su u Pravilima za prodavatelje.
+Prodavatelji su fizičke osobe koje prodaju svoje stvari. Prije prve objave unose podatke prodavatelja (ime i prezime, OIB, datum rođenja, adresu, IBAN). Tko prodaje kao djelatnost (obrt, tvrtka), ne smije koristiti LICIT. Zabranjeni predmeti navedeni su u Pravilima za prodavatelje.
 
 ## 4. Cijene i naknade
 Kupac plaća cijenu predmeta uvećanu za naknadu platforme od 2 % (prikazana cijena je konačna) te dostavu ako je odabrana. Prodavatelj dobiva punu cijenu oglasa. Objava aukcije i isticanje računa naplaćuju se prema cijeni prikazanoj prije potvrde.
 
 ## 5. Plaćanje i isplata
-Plaćanje karticom i isplate prodavateljima obrađuje licencirani pružatelj platnih usluga ([NAZIV PRUŽATELJA, npr. Mangopay ili Stripe]). LOOP ne drži novac korisnika. Zarada prodavatelja isplaćuje se na IBAN iz podataka prodavatelja.
+Plaćanje karticom i isplate prodavateljima obrađuje licencirani pružatelj platnih usluga ([NAZIV PRUŽATELJA, npr. Mangopay ili Stripe]). LICIT ne drži novac korisnika. Zarada prodavatelja isplaćuje se na IBAN iz podataka prodavatelja.
 
 ## 6. Aukcije
 Ponuda na aukciji je obvezujuća i ne može se povući dok te netko ne nadmaši. Automatska ponuda licitira umjesto tebe do iznosa koji odrediš. Ponuda u zadnjoj minuti produljuje aukciju za minutu. Pobjednik plaća najvišu ponudu karticom nakon završetka aukcije.
@@ -46,7 +46,7 @@ Nezakonit sadržaj i oglasi protivni ovim Uvjetima mogu se prijaviti gumbom "Pri
 Kako određujemo redoslijed oglasa i što znači oznaka "Sponzorirano" objašnjeno je u dokumentu Rangiranje i oglašavanje.
 
 ## 11. Odgovornost
-LOOP odgovara za rad platforme, ali ne za stanje, opis ili isporuku predmeta koje prodaju korisnici. Sporove između kupca i prodavatelja pokušavamo riješiti kroz prijave i komunikaciju.
+LICIT odgovara za rad platforme, ali ne za stanje, opis ili isporuku predmeta koje prodaju korisnici. Sporove između kupca i prodavatelja pokušavamo riješiti kroz prijave i komunikaciju.
 
 ## 12. Izmjene i pravo
 O izmjenama Uvjeta obavještavamo najmanje 15 dana unaprijed. Primjenjuje se pravo Republike Hrvatske; potrošači zadržavaju zaštitu prava države prebivališta. Platforma za online rješavanje sporova: https://ec.europa.eu/consumers/odr.
@@ -80,7 +80,7 @@ Pristup, ispravak, brisanje, ograničenje, prenosivost (izvoz podataka u Profilu
 Vrijedi od: $kDocsDate
 ''',
   'cookies': '''
-LOOP koristi samo nužnu lokalnu pohranu preglednika i aplikacije:
+LICIT koristi samo nužnu lokalnu pohranu preglednika i aplikacije:
 - prijava (sesija) i sigurnost,
 - postavke (jezik, tema),
 - podaci aplikacije za rad bez mreže.
@@ -102,7 +102,7 @@ Kontakt točka za korisnike i tijela (DSA): $kCompanyEmail
 ''',
   'sellerRules': '''
 ## Tko može prodavati
-Punoljetne fizičke osobe s ispunjenim podacima prodavatelja koje prodaju svoje stvari. Obrti i tvrtke ne mogu prodavati na LOOP-u.
+Punoljetne fizičke osobe s ispunjenim podacima prodavatelja koje prodaju svoje stvari. Obrti i tvrtke ne mogu prodavati na LICIT-u.
 
 ## Zabranjeno je prodavati
 Oružje i streljivo, drogu i lijekove na recept, krivotvorine, ukradene predmete, žive životinje, opasne tvari, sadržaj za odrasle, osobne isprave, predmete koji krše tuđa autorska ili žigovna prava te sve što je zabranjeno zakonom.
@@ -138,22 +138,22 @@ Na odluku se možeš žaliti u roku od 6 mjeseci gumbom "Žalba" u obavijesti. �
 const legalEn = <String, String>{
   'terms':
       '''
-These Terms govern the use of the LOOP platform (app and website) provided by $kCompany, OIB $kCompanyOib, $kCompanyAddress ("LOOP", "we"). By registering you confirm that you are at least 18 years old and accept these Terms and the Privacy Policy.
+These Terms govern the use of the LICIT platform (app and website) provided by $kCompany, OIB $kCompanyOib, $kCompanyAddress ("LICIT", "we"). By registering you confirm that you are at least 18 years old and accept these Terms and the Privacy Policy.
 
-## 1. What LOOP is
-LOOP is an online marketplace where users buy and sell items from each other at a fixed price, at auction or by swapping. LOOP is not the seller: the sales contract is between buyer and seller.
+## 1. What LICIT is
+LICIT is an auction platform: live auctions (the seller shows items live and starts short bidding rounds; a live show lasts as long as the seller is live) and timed auctions. LICIT is not the seller: the sales contract is between the winning bidder and the seller.
 
 ## 2. Accounts
-LOOP may only be used by adult natural persons for personal purposes (not as a sole trader or company) — both as buyers and as sellers. One person may have one account. Your details must be accurate. You are responsible for your password. You can delete your account in Profile (deletion happens after 7 days).
+LICIT may only be used by adult natural persons for personal purposes (not as a sole trader or company) — both as buyers and as sellers. One person may have one account. Your details must be accurate. You are responsible for your password. You can delete your account in Profile (deletion happens after 7 days).
 
 ## 3. Sellers
-Sellers are natural persons selling their own things. Before the first listing they provide seller details (full name, OIB/tax number, date of birth, address, IBAN). Anyone selling as a business (sole trader, company) may not use LOOP. Prohibited items are listed in the Seller rules.
+Sellers are natural persons selling their own things. Before the first listing they provide seller details (full name, OIB/tax number, date of birth, address, IBAN). Anyone selling as a business (sole trader, company) may not use LICIT. Prohibited items are listed in the Seller rules.
 
 ## 4. Prices and fees
 The buyer pays the item price plus a 2% platform fee (the displayed price is final) and delivery if chosen. The seller receives the full listing price. Auction listing and account promotion are charged at the price shown before confirmation.
 
 ## 5. Payment and payouts
-Card payments and seller payouts are processed by a licensed payment service provider ([PROVIDER NAME, e.g. Mangopay or Stripe]). LOOP does not hold users' money. Seller earnings are paid out to the IBAN in the seller details.
+Card payments and seller payouts are processed by a licensed payment service provider ([PROVIDER NAME, e.g. Mangopay or Stripe]). LICIT does not hold users' money. Seller earnings are paid out to the IBAN in the seller details.
 
 ## 6. Auctions
 A bid is binding and cannot be withdrawn until you are outbid. Automatic bidding bids for you up to the amount you set. A bid in the last minute extends the auction by a minute. The winner pays the highest bid by card after the auction ends.
@@ -171,7 +171,7 @@ Illegal content and listings breaching these Terms can be reported with "Report"
 How we order listings and what "Sponsored" means is explained in Ranking and advertising.
 
 ## 11. Liability
-LOOP is responsible for operating the platform, not for the condition, description or delivery of items sold by users. We try to resolve disputes between buyers and sellers through reports and communication.
+LICIT is responsible for operating the platform, not for the condition, description or delivery of items sold by users. We try to resolve disputes between buyers and sellers through reports and communication.
 
 ## 12. Changes and law
 We announce changes to these Terms at least 15 days in advance. Croatian law applies; consumers keep the protection of their country of residence. EU online dispute resolution: https://ec.europa.eu/consumers/odr.
@@ -205,7 +205,7 @@ Access, rectification, erasure, restriction, portability (data export in Profile
 Effective from: $kDocsDate
 ''',
   'cookies': '''
-LOOP only uses strictly necessary local storage in the browser and app:
+LICIT only uses strictly necessary local storage in the browser and app:
 - login (session) and security,
 - settings (language, theme),
 - app data for offline use.
@@ -227,7 +227,7 @@ Point of contact for users and authorities (DSA): $kCompanyEmail
 ''',
   'sellerRules': '''
 ## Who can sell
-Adult natural persons with completed seller details selling their own things. Sole traders and companies cannot sell on LOOP.
+Adult natural persons with completed seller details selling their own things. Sole traders and companies cannot sell on LICIT.
 
 ## It is prohibited to sell
 Weapons and ammunition, drugs and prescription medicines, counterfeits, stolen goods, live animals, hazardous substances, adult content, identity documents, items infringing copyright or trademarks, and anything prohibited by law.

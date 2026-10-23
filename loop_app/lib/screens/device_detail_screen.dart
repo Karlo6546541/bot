@@ -16,6 +16,7 @@ import '../widgets/trade_actions.dart';
 import 'auction_detail_screen.dart';
 import 'wishlists_screen.dart';
 import 'create_auction_screen.dart';
+import 'live_screens.dart';
 import 'messages_screen.dart';
 import 'public_profile_screen.dart';
 import '../widgets/shop_widgets.dart';
@@ -57,7 +58,6 @@ class DeviceDetailScreen extends ConsumerWidget {
     }
 
     final isMine = device.ownerId == user.id;
-    final canBuy = device.isForSale && !isMine;
     final auction = state.activeAuctionFor(device.id);
     final cat = device.category;
     // Kupac vidi cijenu iz Marketa; vlasnik vrijednost i isplatu.
@@ -72,7 +72,7 @@ class DeviceDetailScreen extends ConsumerWidget {
           if (device.isForSale)
             ShareButton(
               url: publicLink(item: device.id),
-              text: t('{0} za {1} na LOOP-u', [
+              text: t('{0} za {1} na LICIT-u', [
                 device.name,
                 formatCredits(device.shownPrice),
               ]),
@@ -416,74 +416,20 @@ class DeviceDetailScreen extends ConsumerWidget {
                   label: Text(t('Pogledaj aukciju')),
                 ),
               ] else if (isMine) ...[
-                if (device.isListed) ...[
-                  _ListingInfo(device: device),
-                  const SizedBox(height: 10),
-                  SellerBargainsCard(device: device),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: OutlinedButton.icon(
-                          onPressed: () => showListDialog(context, ref, device),
-                          icon: const Icon(Icons.edit_outlined),
-                          label: Text(
-                            device.isDigital
-                                ? t('Promijeni cijenu')
-                                : t('Cijena i zaliha'),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 10),
-                      Expanded(
-                        child: OutlinedButton.icon(
-                          key: const ValueKey('discount'),
-                          onPressed: () =>
-                              showDiscountSheet(context, ref, device),
-                          icon: const Icon(Icons.local_offer_outlined),
-                          label: Text(
-                            device.hasDiscount
-                                ? t('Popust {0}', [discountLabel(device)])
-                                : t('Popust'),
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 10),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: OutlinedButton.icon(
-                          key: const ValueKey('unlist'),
-                          onPressed: () => runWithLoading(
-                            context,
-                            () => ref
-                                .read(appProvider.notifier)
-                                .unlist(device.id),
-                            successMessage: t('Uklonjeno iz Marketa'),
-                          ),
-                          icon: const Icon(Icons.remove_shopping_cart_outlined),
-                          label: Text(t('Ukloni iz Marketa')),
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 10),
-                ] else ...[
+                if (!device.isDigital) ...[
                   FilledButton.icon(
-                    onPressed: () => showListDialog(context, ref, device),
-                    icon: const Icon(Icons.storefront_outlined),
-                    label: Text(t('Objavi u Marketu')),
-                  ),
-                  const SizedBox(height: 10),
-                ],
-                if (!device.isListed && !device.isDigital) ...[
-                  OutlinedButton.icon(
+                    key: const ValueKey('item-auction'),
                     onPressed: () =>
                         CreateAuctionScreen.open(context, deviceId: device.id),
                     icon: const Icon(Icons.gavel),
                     label: Text(t('Stavi na aukciju')),
+                  ),
+                  const SizedBox(height: 10),
+                  OutlinedButton.icon(
+                    key: const ValueKey('item-live'),
+                    onPressed: () => _addToLive(context, ref, device),
+                    icon: const Icon(Icons.videocam_outlined),
+                    label: Text(t('Pokaži u liveu')),
                   ),
                 ],
                 const SizedBox(height: 10),
@@ -503,58 +449,22 @@ class DeviceDetailScreen extends ConsumerWidget {
                   icon: const Icon(Icons.download),
                   label: Text(t('Preuzmi datoteku')),
                 ),
-              ] else if (canBuy) ...[
+              ] else if (auction != null) ...[
                 FilledButton.icon(
-                  key: const ValueKey('buy-now'),
-                  onPressed: () async {
-                    final ok = await confirmAndBuy(context, ref, device);
-                    // Digitalni proizvod: ostani na ekranu (preuzimanje).
-                    if (ok && !device.isDigital && context.mounted) {
-                      Navigator.pop(context);
-                    }
-                  },
-                  icon: Icon(
-                    device.isDigital
-                        ? Icons.download_for_offline_outlined
-                        : Icons.shopping_bag_outlined,
-                  ),
-                  label: Text(
-                    device.isDigital ? t('Kupi i preuzmi') : t('Kupi odmah'),
-                  ),
+                  key: const ValueKey('item-bid'),
+                  onPressed: () =>
+                      AuctionDetailScreen.open(context, auction.id),
+                  icon: const Icon(Icons.gavel),
+                  label: Text(t('Licitiraj')),
                 ),
-                if (device.isListed && owner != null) ...[
-                  const SizedBox(height: 10),
-                  BuyerBargainCard(device: device),
-                  const SizedBox(height: 10),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: OutlinedButton.icon(
-                          key: const ValueKey('message-seller'),
-                          onPressed: () => ChatScreen.open(
-                            context,
-                            owner.id,
-                            deviceId: device.id,
-                          ),
-                          icon: const Icon(Icons.chat_bubble_outline),
-                          label: Text(t('Pošalji poruku')),
-                        ),
-                      ),
-                      if (!device.isDigital) ...[
-                        const SizedBox(width: 10),
-                        Expanded(
-                          child: OutlinedButton.icon(
-                            key: const ValueKey('offer-swap'),
-                            onPressed: () =>
-                                showSwapSheet(context, ref, device),
-                            icon: const Icon(Icons.swap_horiz),
-                            label: Text(t('Ponudi zamjenu')),
-                          ),
-                        ),
-                      ],
-                    ],
-                  ),
-                ],
+              ] else if (owner != null) ...[
+                OutlinedButton.icon(
+                  key: const ValueKey('message-seller'),
+                  onPressed: () =>
+                      ChatScreen.open(context, owner.id, deviceId: device.id),
+                  icon: const Icon(Icons.chat_bubble_outline),
+                  label: Text(t('Pošalji poruku')),
+                ),
               ],
             ],
           ),
@@ -708,50 +618,6 @@ Future<void> _delete(BuildContext context, WidgetRef ref, Device d) async {
     successMessage: t('Predmet obrisan'),
   );
   if (done && context.mounted) Navigator.pop(context);
-}
-
-/// "U Marketu za X — ti dobivaš punu cijenu".
-class _ListingInfo extends StatelessWidget {
-  const _ListingInfo({required this.device});
-  final Device device;
-
-  @override
-  Widget build(BuildContext context) {
-    final p = device.askPrice;
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: LoopColors.mint,
-        borderRadius: BorderRadius.circular(kRadius),
-      ),
-      child: Row(
-        children: [
-          const Text('🏷️', style: TextStyle(fontSize: 22)),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  t(
-                    'U Marketu: kupci vide cijenu {0}. Kad netko kupi, dobivaš {1}, a predmet prelazi kupcu.',
-                    [formatCredits(buyTotal(p)), formatCredits(sellPayout(p))],
-                  ),
-                ),
-                if (device.hasStock)
-                  Text(
-                    t('Na zalihi: {0} kom — svaka kupnja skida jedan.', [
-                      '${device.quantity}',
-                    ]),
-                    style: const TextStyle(fontWeight: FontWeight.w700),
-                  ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
 }
 
 class _Spec extends StatelessWidget {
@@ -993,4 +859,23 @@ class _AddTile extends StatelessWidget {
       ),
     );
   }
+}
+
+/// Predmet u moj live: dodaje ga u live koji traje (ili otvara novi live).
+Future<void> _addToLive(BuildContext context, WidgetRef ref, Device d) async {
+  final s = ref.read(appProvider);
+  final mine = s.activeLives
+      .where((e) => e.$1.hostId == s.currentUserId)
+      .map((e) => e.$1)
+      .firstOrNull;
+  if (mine == null) {
+    await CreateLiveShowScreen.open(context);
+    return;
+  }
+  final ok = await runWithLoading(
+    context,
+    () => ref.read(appProvider.notifier).liveAddLot(mine.id, d.id, 1),
+    successMessage: t('Predmet je dodan u live.'),
+  );
+  if (ok && context.mounted) await LiveRoomScreen.open(context, mine.id);
 }

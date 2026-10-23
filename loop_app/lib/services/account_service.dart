@@ -492,7 +492,7 @@ class AccountService {
     if (email != null && email.isNotEmpty) profile['email'] = email;
     return {
       'exportedAt': DateTime.now().toIso8601String(),
-      'app': 'LOOP',
+      'app': 'LICIT',
       'profile': profile,
       'items': [
         for (final d in _storage.devices.where((d) => d.ownerId == userId))

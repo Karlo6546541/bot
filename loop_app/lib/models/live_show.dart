@@ -1,10 +1,11 @@
-/// Live aukcija (kao Whatnot): prodavatelj "ide uživo" s popisom predmeta
-/// koji se licitiraju jedan za drugim, kratko i brzo, uz chat.
+/// Live aukcija (kao Whatnot): prodavatelj ide uživo, pokazuje predmete i
+/// za svaki sam pokreće kratku licitaciju. Live traje dok je domaćin uživo —
+/// predmete može dodavati usput, a kraj je kad ga završi ili ode.
 ///
-/// Raspored je deterministički: predmet i počinje [LiveShow.gap] nakon što
-/// završi prethodni, a ponuda u zadnjih [LiveShow.suddenDeath] sekundi
-/// produljuje licitaciju. Zato svaki uređaj iz istih podataka (emisija +
-/// događaji) izračuna isto stanje, bez središnjeg poslužitelja.
+/// Emisiju mijenja samo domaćin (početak licitacije, novi predmeti, "još sam
+/// tu"), a ponude i chat su zasebni zapisi. Ponuda u zadnjih
+/// [LiveShow.suddenDeath] sekundi produljuje licitaciju. Zato svaki uređaj iz
+/// istih podataka izračuna isto stanje, bez središnjeg poslužitelja.
 class LiveShow {
   const LiveShow({
     required this.id,
@@ -18,6 +19,7 @@ class LiveShow {
     this.endedAt,
     this.settled = const [],
     this.video = false,
+    this.hostSeenAt,
   });
 
   final String id;
@@ -25,17 +27,17 @@ class LiveShow {
   final String hostLabel;
   final String title;
 
-  /// Početak prvog predmeta (odmah ili zakazano).
+  /// Najavljeni početak (odmah ili zakazano).
   final DateTime startsAt;
   final DateTime createdAt;
 
-  /// Predmeti redom kojim se licitiraju.
+  /// Predmeti u liveu (domaćin ih može dodavati i tijekom livea).
   final List<LiveLot> lots;
 
-  /// Osnovno trajanje licitacije jednog predmeta.
+  /// Trajanje licitacije jednog predmeta.
   final int lotSeconds;
 
-  /// Domaćin je ranije završio live (preostali predmeti se ne licitiraju).
+  /// Domaćin je završio live.
   final DateTime? endedAt;
 
   /// Indeksi predmeta čija je prodaja već provedena.
@@ -44,12 +46,12 @@ class LiveShow {
   /// Domaćin prenosi video s kamere (inače se prikazuju fotografije).
   final bool video;
 
-  static const maxTitle = 60;
-  static const maxLots = 20;
-  static const lotDurations = [20, 30, 45, 60];
+  /// Zadnji znak da je domaćin u sobi (osvježava se dok je uživo).
+  final DateTime? hostSeenAt;
 
-  /// Pauza između predmeta.
-  static const gap = Duration(seconds: 5);
+  static const maxTitle = 60;
+  static const maxLots = 50;
+  static const lotDurations = [15, 20, 30, 45, 60];
 
   /// Ponuda u zadnjih toliko sekundi vraća sat na toliko sekundi.
   static const suddenDeath = Duration(seconds: 10);
@@ -57,18 +59,33 @@ class LiveShow {
   /// Live se ne može zakazati dalje od ovoga.
   static const maxScheduleAhead = Duration(days: 7);
 
-  LiveShow copyWith({DateTime? endedAt, List<int>? settled}) => LiveShow(
+  /// Domaćin se javlja svakih toliko dok je u sobi.
+  static const heartbeat = Duration(seconds: 30);
+
+  /// Bez znaka domaćina ovoliko dugo — live je gotov (otišao je).
+  static const hostTimeout = Duration(minutes: 2);
+
+  /// Zakazani live na koji domaćin ne dođe nestaje nakon ovoga.
+  static const noShow = Duration(hours: 1);
+
+  LiveShow copyWith({
+    DateTime? endedAt,
+    List<int>? settled,
+    List<LiveLot>? lots,
+    DateTime? hostSeenAt,
+  }) => LiveShow(
     id: id,
     hostId: hostId,
     hostLabel: hostLabel,
     title: title,
     startsAt: startsAt,
     createdAt: createdAt,
-    lots: lots,
+    lots: lots ?? this.lots,
     lotSeconds: lotSeconds,
     endedAt: endedAt ?? this.endedAt,
     settled: settled ?? this.settled,
     video: video,
+    hostSeenAt: hostSeenAt ?? this.hostSeenAt,
   );
 
   Map<String, dynamic> toMap() => {
@@ -83,6 +100,7 @@ class LiveShow {
     'endedAt': endedAt?.toIso8601String(),
     'settled': settled,
     'video': video,
+    'hostSeenAt': hostSeenAt?.toIso8601String(),
   };
 
   factory LiveShow.fromMap(Map<dynamic, dynamic> m) => LiveShow(
@@ -104,6 +122,9 @@ class LiveShow {
       for (final i in (m['settled'] as List? ?? const [])) (i as num).toInt(),
     ],
     video: m['video'] == true,
+    hostSeenAt: m['hostSeenAt'] == null
+        ? null
+        : DateTime.tryParse('${m['hostSeenAt']}'),
   );
 }
 
@@ -113,22 +134,37 @@ class LiveLot {
     required this.deviceId,
     required this.deviceName,
     required this.startPrice,
+    this.startedAt,
   });
 
   final String deviceId;
   final String deviceName;
   final double startPrice;
 
+  /// Kad je domaćin pokrenuo licitaciju (null = čeka na red).
+  final DateTime? startedAt;
+
+  LiveLot started(DateTime at) => LiveLot(
+    deviceId: deviceId,
+    deviceName: deviceName,
+    startPrice: startPrice,
+    startedAt: at,
+  );
+
   Map<String, dynamic> toMap() => {
     'deviceId': deviceId,
     'deviceName': deviceName,
     'startPrice': startPrice,
+    if (startedAt != null) 'startedAt': startedAt!.toIso8601String(),
   };
 
   factory LiveLot.fromMap(Map<dynamic, dynamic> m) => LiveLot(
     deviceId: m['deviceId'] as String,
     deviceName: m['deviceName'] as String? ?? '',
     startPrice: (m['startPrice'] as num).toDouble(),
+    startedAt: m['startedAt'] == null
+        ? null
+        : DateTime.tryParse('${m['startedAt']}'),
   );
 }
 

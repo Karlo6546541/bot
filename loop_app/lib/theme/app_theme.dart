@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-/// Paleta boja LOOP-a. Vrijednosti ovise o aktivnoj temi (svijetla/tamna),
+/// Paleta boja LICIT-a. Vrijednosti ovise o aktivnoj temi (svijetla/tamna),
 /// koju postavlja [LoopColors.use] prije izgradnje [MaterialApp].
 ///
 /// Smjer dizajna: topla, prijateljska tržnica rabljenih stvari — krem
@@ -16,25 +16,25 @@ class LoopColors {
       _dark = brightness == Brightness.dark;
 
   static Color get background =>
-      _dark ? const Color(0xFF17120F) : const Color(0xFFFFF7EF);
+      _dark ? const Color(0xFF110E1A) : const Color(0xFFF6F4FB);
   static Color get surface =>
-      _dark ? const Color(0xFF221B17) : const Color(0xFFFFFFFF);
+      _dark ? const Color(0xFF1C1828) : const Color(0xFFFFFFFF);
   static Color get surfaceHover =>
-      _dark ? const Color(0xFF2E2520) : const Color(0xFFFFEFE2);
+      _dark ? const Color(0xFF272238) : const Color(0xFFECE8F7);
 
   /// Glavni akcent (gumbi, odabrano). Svijetla: bijeli tekst 4.9:1;
   /// tamna: tamni tekst 7.8:1.
   static Color get accent =>
-      _dark ? const Color(0xFFFF8A5C) : const Color(0xFFC8441E);
+      _dark ? const Color(0xFFB79BFF) : const Color(0xFF6A2BD6);
 
   /// Tekst/ikone na akcentu.
   static Color get onAccent =>
-      _dark ? const Color(0xFF1B1410) : const Color(0xFFFFFFFF);
+      _dark ? const Color(0xFF16102A) : const Color(0xFFFFFFFF);
 
   static Color get textPrimary =>
-      _dark ? const Color(0xFFF5EDE6) : const Color(0xFF2A1F17);
+      _dark ? const Color(0xFFF2EEFF) : const Color(0xFF1B1530);
   static Color get textSecondary =>
-      _dark ? const Color(0xFFB3A69B) : const Color(0xFF76685D);
+      _dark ? const Color(0xFFA79FC0) : const Color(0xFF6B6385);
   static Color get error =>
       _dark ? const Color(0xFFFF7B7B) : const Color(0xFFC92A3A);
   static Color get success =>
@@ -68,7 +68,7 @@ class LoopColors {
     BoxShadow(
       color: _dark
           ? Colors.black.withValues(alpha: 0.25)
-          : const Color(0xFF8A5A3C).withValues(alpha: 0.10),
+          : const Color(0xFF3B2A6B).withValues(alpha: 0.10),
       blurRadius: 18,
       offset: const Offset(0, 6),
     ),
@@ -128,7 +128,7 @@ ThemeData buildLoopTheme({Color? accent}) {
     cardTheme: CardThemeData(
       color: LoopColors.surface,
       elevation: dark ? 0 : 1.5,
-      shadowColor: const Color(0xFF8A5A3C).withValues(alpha: 0.25),
+      shadowColor: const Color(0xFF3B2A6B).withValues(alpha: 0.25),
       surfaceTintColor: Colors.transparent,
       margin: EdgeInsets.zero,
       shape: rounded,

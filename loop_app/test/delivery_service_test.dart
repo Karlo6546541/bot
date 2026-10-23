@@ -51,7 +51,7 @@ void main() {
       );
       expect(storage.userById(demo)!.credits, 1250); // dostava karticom
       expect(storage.userById(demo)!.address, 'Ilica 1, Zagreb');
-      expect(d.trackingNumber, startsWith('LOOP-'));
+      expect(d.trackingNumber, startsWith('LICIT-'));
       expect(storage.transactions.single.type, TransactionType.delivery);
 
       // Statusi prate (ubrzano) vrijeme: 4 min za kurira.

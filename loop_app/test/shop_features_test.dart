@@ -276,7 +276,7 @@ void main() {
       final d = await addMugs(quantity: 3);
       await trade.buy(userId: tester, deviceId: d.id);
       await trade.buy(userId: marko, deviceId: d.id);
-      // Prodaja LOOP-u se ne broji.
+      // Prodaja LICIT-u se ne broji.
       await trade.sell(userId: demo, deviceId: 'seed-9');
       await storage.saveSession(userId: demo);
       final state = AppState.fromStorage(storage);
@@ -304,7 +304,7 @@ void main() {
     },
   );
 
-  test('nema LOOP Marketa: predmeti platforme dobiju prodavatelje', () async {
+  test('nema LICIT Marketa: predmeti platforme dobiju prodavatelje', () async {
     final before = storage.devices.where((d) => d.ownerId == null).length;
     expect(before, greaterThan(0));
     expect(await trade.assignPlatformItems(), before);

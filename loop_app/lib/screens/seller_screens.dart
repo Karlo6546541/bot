@@ -138,7 +138,7 @@ class _SellerInfoScreenState extends ConsumerState<SellerInfoScreen> {
             children: [
               Text(
                 t(
-                  'LOOP je za fizičke osobe koje prodaju svoje stvari. Platforma mora prikupiti ove podatke prije prve objave (DAC7: izvještaj Poreznoj upravi za prodavatelje s 30+ prodaja ili više od 2.000 € godišnje). Kupci ih ne vide.',
+                  'LICIT je za fizičke osobe koje prodaju svoje stvari. Platforma mora prikupiti ove podatke prije prve objave (DAC7: izvještaj Poreznoj upravi za prodavatelje s 30+ prodaja ili više od 2.000 € godišnje). Kupci ih ne vide.',
                 ),
                 style: TextStyle(color: LoopColors.textSecondary, fontSize: 13),
               ),

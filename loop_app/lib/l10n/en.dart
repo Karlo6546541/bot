@@ -83,8 +83,8 @@ const kEn = <String, String>{
   'Dnevni limit je {0} kredita. Danas možeš kupiti još {1}.':
       'The daily limit is {0} credits. You can buy {1} more today.',
   'Dobivaš': 'You get',
-  'Iznos ide na tvoje LOOP stanje (u eurima).':
-      'The amount goes to your LOOP balance (in euros).',
+  'Iznos ide na tvoje LICIT stanje (u eurima).':
+      'The amount goes to your LICIT balance (in euros).',
   'Dobivaš prodajom': 'You get from the sale',
   'Dobivaš {0} odmah': 'You get {0} right away',
   'Dobro došao natrag! Demo: bilo koja lozinka radi.':
@@ -147,7 +147,7 @@ const kEn = <String, String>{
   'Još nisi dao nijednu ponudu': 'You haven\'t placed any bids yet',
   'Kad nešto kupiš ili osvojiš na aukciji, pošiljka će se pojaviti ovdje.':
       'When you buy something or win an auction, the shipment will show up here.',
-  'Kako LOOP radi': 'How LOOP works',
+  'Kako LICIT radi': 'How LICIT works',
   'Kako želiš preuzeti predmet?': 'How do you want to receive the item?',
   'Kartice': 'Cards',
   'Kategorija': 'Category',
@@ -158,8 +158,8 @@ const kEn = <String, String>{
   'Korisnik ne postoji.': 'User doesn\'t exist.',
   'Korisnik obrisan': 'User deleted',
   'Kraj: {0}{1}': 'Ends: {0}{1}',
-  'Zarađeno potroši na druge stvari u LOOP-u.':
-      'Spend what you earn on other things in LOOP.',
+  'Zarađeno potroši na druge stvari u LICIT-u.':
+      'Spend what you earn on other things in LICIT.',
   'Stanje računa': 'Balance',
   'Stanje nakon kupnje': 'Balance after purchase',
   'Stanje {0}\nPredmeti {1}': 'Balance {0}\nItems {1}',
@@ -168,7 +168,7 @@ const kEn = <String, String>{
   'Kupnje': 'Purchases',
   'Kupnje i prodaje pojavit će se ovdje.':
       'Purchases and sales will show up here.',
-  'LOOP Admin · {0}': 'LOOP Admin · {0}',
+  'LICIT Admin · {0}': 'LICIT Admin · {0}',
   'Stanje je u eurima. Prodaja je bez naknade, kupac plaća 2%. Status: Bronze < 2000 €, Silver 2000–5000 €, Gold > 5000 € (stanje + portfolio).':
       'Your balance is in euros. Selling is free, buyers pay 2%. Status: Bronze < €2000, Silver €2000–5000, Gold > €5000 (balance + portfolio).',
   'Licitiraj': 'Place bid',
@@ -323,8 +323,8 @@ const kEn = <String, String>{
   'Primitak potvrđen ✅': 'Receipt confirmed ✅',
   'Prodaj ili licitiraj': 'Sell or bid',
   'Prodaj odmah': 'Sell now',
-  'Prodaj odmah ili na aukciji — novac ide na tvoje LOOP stanje.':
-      'Sell right away or at auction — the money goes to your LOOP balance.',
+  'Prodaj odmah ili na aukciji — novac ide na tvoje LICIT stanje.':
+      'Sell right away or at auction — the money goes to your LICIT balance.',
   'Prodaje': 'Sales',
   'Prodaje {0}': 'Sold by {0}',
   'Prodaje {0}{1}': 'Sold by {0}{1}',
@@ -512,7 +512,7 @@ const kEn = <String, String>{
   'Bez ponuda': 'No bids',
   'Otkazano': 'Cancelled',
   'Osobno preuzimanje': 'Personal pickup',
-  'LOOP točka, Zagreb · odmah spremno': 'LOOP point, Zagreb · ready now',
+  'LICIT točka, Zagreb · odmah spremno': 'LICIT point, Zagreb · ready now',
   'Isporuka u paketomat · 1–2 dana': 'Delivery to a parcel locker · 1–2 days',
   'Kurir na adresu': 'Courier to address',
   'Dostava na kućnu adresu · 2–3 dana':
@@ -692,7 +692,7 @@ const kEn = <String, String>{
       'The item is for sale in the Market — remove it from the Market first.',
   'Predmet ostaje tvoj dok ga netko ne kupi. Možeš ga ukloniti iz Marketa kad god želiš.':
       'The item stays yours until someone buys it. You can remove it from the Market any time.',
-  'Prodaj odmah LOOP-u': 'Sell to LOOP now',
+  'Prodaj odmah LICIT-u': 'Sell to LICIT now',
   'Prodavatelj': 'Seller',
   'Promijeni cijenu': 'Change price',
   'Ti dobivaš {0} (bez naknade)': 'You get {0} (no fee)',
@@ -741,7 +741,7 @@ const kEn = <String, String>{
   'Komentar (neobavezno)': 'Comment (optional)',
   'Komentar može imati najviše {0} znakova.':
       'The comment can be at most {0} characters.',
-  'LOOP Market se ne ocjenjuje.': 'LOOP Market can\'t be rated.',
+  'LICIT Market se ne ocjenjuje.': 'LICIT Market can\'t be rated.',
   'Ne možeš blokirati sam sebe.': 'You can\'t block yourself.',
   'Ne možeš licitirati na ovu aukciju.': 'You can\'t bid on this auction.',
   'Ne možeš prijaviti sam sebe.': 'You can\'t report yourself.',
@@ -932,8 +932,8 @@ const kEn = <String, String>{
   'Datoteku nije moguće pročitati.': 'The file can\'t be read.',
   'Digitalni proizvod odmah ide u Market i možeš ga prodati više puta. Kupac plaća cijenu + 2%, ti dobivaš punu cijenu, a kupac odmah preuzima datoteku.':
       'A digital product goes straight to the Market and can be sold many times. The buyer pays the price + 2%, you get the full price, and the buyer downloads the file right away.',
-  'Digitalni proizvod se ne prodaje LOOP-u — kupci ga kupuju u Marketu.':
-      'A digital product isn\'t sold to LOOP — buyers buy it in the Market.',
+  'Digitalni proizvod se ne prodaje LICIT-u — kupci ga kupuju u Marketu.':
+      'A digital product isn\'t sold to LICIT — buyers buy it in the Market.',
   'Digitalni proizvod treba datoteku koju kupac preuzima.':
       'A digital product needs a file for buyers to download.',
   'Digitalni proizvod: datoteka {0} ({1}) preuzima se odmah nakon plaćanja i ostaje ti u "Moje digitalne kupnje".':
@@ -1050,8 +1050,8 @@ const kEn = <String, String>{
   'Ovu protuponudu ne možeš prihvatiti.':
       'You can\'t accept this counteroffer.',
   'Očisti povijest': 'Clear history',
-  'Plaća se s LOOP stanja. Stanje: {0}':
-      'Paid from your LOOP balance. Balance: {0}',
+  'Plaća se s LICIT stanja. Stanje: {0}':
+      'Paid from your LICIT balance. Balance: {0}',
   'Podijeli': 'Share',
   'Podijeli oglas': 'Share listing',
   'Podijeli trgovinu': 'Share shop',
@@ -1198,7 +1198,7 @@ const kEn = <String, String>{
   'Oglas više nije dostupan.': 'The listing is no longer available.',
   'Otvori': 'Open',
   'Otvori svoj webshop': 'Open your webshop',
-  'Pogledaj moju trgovinu {0} na LOOP-u': 'Check out my shop {0} on LOOP',
+  'Pogledaj moju trgovinu {0} na LICIT-u': 'Check out my shop {0} on LICIT',
   'Pogledao si sve objave': 'You\'ve seen all posts',
   'Ponudi': 'Offer',
   'Poveznica je kopirana — zalijepi je u Instagram poruku ili priču.':
@@ -1215,12 +1215,12 @@ const kEn = <String, String>{
       'Every account is a shop: list at your own price or at auction, and buyers can follow you.',
   'Svaki račun je webshop — otvori svoj!':
       'Every account is a webshop — open yours!',
-  'Svaki račun na LOOP-u je webshop: objavi predmet i tvoja trgovina se pojavljuje ovdje.':
-      'Every LOOP account is a webshop: list an item and your shop appears here.',
+  'Svaki račun na LICIT-u je webshop: objavi predmet i tvoja trgovina se pojavljuje ovdje.':
+      'Every LICIT account is a webshop: list an item and your shop appears here.',
   'Sve trgovine': 'All shops',
   'Ti dobivaš {0}': 'You get {0}',
   'Traži trgovinu ili korisnika…': 'Search shops or users…',
-  'Trgovina {0} na LOOP-u': 'The shop {0} on LOOP',
+  'Trgovina {0} na LICIT-u': 'The shop {0} on LICIT',
   'Trgovine': 'Shops',
   'Trgovine koje pratim': 'Shops I follow',
   'Trgovine za tebe': 'Shops for you',
@@ -1239,7 +1239,7 @@ const kEn = <String, String>{
   '{0} oglasa · {1} pratitelja · {2} prodaja':
       '{0} listings · {1} followers · {2} sales',
   '{0} pratitelja': '{0} followers',
-  '{0} za {1} na LOOP-u': '{0} for {1} on LOOP',
+  '{0} za {1} na LICIT-u': '{0} for {1} on LICIT',
   '{0} · kupac {1}': '{0} · buyer {1}',
   '{0} · {1} pratitelja': '{0} · {1} followers',
   '▶ {0} prikaza · ♥ {1}': '▶ {0} views · ♥ {1}',
@@ -1251,8 +1251,8 @@ const kEn = <String, String>{
   '"Kupi odmah" više nije dostupno.': '"Buy now" is no longer available.',
   '"Kupi odmah" za {0} — vrijedi dok ponude ne dosegnu tu cijenu.':
       '"Buy now" for {0} — valid until bids reach that price.',
-  'Aukcija: {0} — trenutno {1} na LOOP-u':
-      'Auction: {0} — currently {1} on LOOP',
+  'Aukcija: {0} — trenutno {1} na LICIT-u':
+      'Auction: {0} — currently {1} on LICIT',
   'Automatska ponuda': 'Automatic bid',
   'Automatska ponuda je povišena na {0}': 'Automatic bid raised to {0}',
   'Automatska ponuda mora biti barem koliko i ponuda.':
@@ -1361,7 +1361,7 @@ const kEn = <String, String>{
   'Lista s tim nazivom već postoji.': 'A list with that name already exists.',
   'Liste želja': 'Wishlists',
   'Liste želja ({0})': 'Wishlists ({0})',
-  'Moja lista "{0}" na LOOP-u': 'My list "{0}" on LOOP',
+  'Moja lista "{0}" na LICIT-u': 'My list "{0}" on LICIT',
   'Možeš imati najviše {0} aktivnih priča.':
       'You can have at most {0} active stories.',
   'Možeš imati najviše {0} lista.': 'You can have at most {0} lists.',
@@ -1515,8 +1515,8 @@ const kEn = <String, String>{
   'Nemaš zarade za isplatu.': 'You have no earnings to pay out.',
   'Nije ispunjeno — potrebno za objavu i isplatu':
       'Not filled in — needed to list and get paid',
-  'Novac obrađuje pružatelj plaćanja — LOOP ne drži novac kupaca.':
-      'Money is handled by a payment provider — LOOP does not hold buyers\' money.',
+  'Novac obrađuje pružatelj plaćanja — LICIT ne drži novac kupaca.':
+      'Money is handled by a payment provider — LICIT does not hold buyers\' money.',
   'OIB': 'OIB (tax number)',
   'OIB nije ispravan (11 znamenki).': 'The OIB is not valid (11 digits).',
   'Obrt ili tvrtka: kupci imaju pravo na povrat u 14 dana i jamstvo.':
@@ -1531,8 +1531,8 @@ const kEn = <String, String>{
   'Plaća se karticom. Istaknuti oglasi označeni su kao "Sponzorirano".':
       'Paid by card. Promoted listings are labelled "Sponsored".',
   'Plaćanje karticom pri kupnji': 'Card payment at checkout',
-  'Plaćanje obrađuje pružatelj plaćanja; LOOP ne drži tvoj novac.':
-      'The payment is processed by a payment provider; LOOP does not hold your money.',
+  'Plaćanje obrađuje pružatelj plaćanja; LICIT ne drži tvoj novac.':
+      'The payment is processed by a payment provider; LICIT does not hold your money.',
   'Podaci o trgovcu': 'Trader details',
   'Podaci prodavatelja': 'Seller details',
   'Podaci prodavatelja su spremljeni.': 'Seller details saved.',
@@ -1725,11 +1725,11 @@ const kEn = <String, String>{
   'Predmet je u live aukciji — pričekaj da se licitira.':
       'This item is in a live auction — wait until it has been auctioned.',
   'Fizička osoba': 'Private person',
-  'Imam 18 ili više godina, koristim LOOP kao fizička osoba (ne kao obrt ni tvrtka) i prihvaćam Uvjete korištenja i Pravila privatnosti.':
-      'I am 18 or older, I use LOOP as a private person (not as a sole trader or company) and I accept the Terms of Use and the Privacy Policy.',
+  'Imam 18 ili više godina, koristim LICIT kao fizička osoba (ne kao obrt ni tvrtka) i prihvaćam Uvjete korištenja i Pravila privatnosti.':
+      'I am 18 or older, I use LICIT as a private person (not as a sole trader or company) and I accept the Terms of Use and the Privacy Policy.',
   'Istraži': 'Explore',
-  'LOOP je za fizičke osobe koje prodaju svoje stvari. Platforma mora prikupiti ove podatke prije prve objave (DAC7: izvještaj Poreznoj upravi za prodavatelje s 30+ prodaja ili više od 2.000 € godišnje). Kupci ih ne vide.':
-      'LOOP is for private persons selling their own things. The platform must collect these details before your first listing (DAC7: report to the Tax Administration for sellers with 30+ sales or more than €2,000 a year). Buyers don\'t see them.',
+  'LICIT je za fizičke osobe koje prodaju svoje stvari. Platforma mora prikupiti ove podatke prije prve objave (DAC7: izvještaj Poreznoj upravi za prodavatelje s 30+ prodaja ili više od 2.000 € godišnje). Kupci ih ne vide.':
+      'LICIT is for private persons selling their own things. The platform must collect these details before your first listing (DAC7: report to the Tax Administration for sellers with 30+ sales or more than €2,000 a year). Buyers don\'t see them.',
   'Live': 'Live',
   'Nitko trenutno nije uživo': 'Nobody is live right now',
   'Pokreni live — predmeti se licitiraju jedan za drugim, brzo i uz chat.':
@@ -1761,4 +1761,64 @@ const kEn = <String, String>{
   'Ovaj uređaj ima samo jednu kameru.': 'This device has only one camera.',
   'Prednja kamera': 'Front camera',
   'Stražnja kamera': 'Back camera',
+  'Aukcije ({0})': 'Auctions ({0})',
+  'Dodaj predmet i pokreni licitaciju': 'Add an item and start bidding',
+  'Dodaj predmet pa ga stavi na aukciju ili u live':
+      'Add an item, then auction it or show it live',
+  'Dodaj predmet u live': 'Add an item to the show',
+  'Dodaj predmet za licitaciju.': 'Add an item to auction.',
+  'Dodaj u live': 'Add to show',
+  'Domaćin priprema sljedeći predmet…':
+      'The host is getting the next item ready…',
+  'Idi uživo, pokazuj predmete i pokreći licitacije. Live traje dok si uživo.':
+      'Go live, show your items and start bidding. The show lasts as long as you\'re live.',
+  'Još nisi bio uživo': 'You haven\'t been live yet',
+  'Kreni': 'Go',
+  'Kreni uživo sada': 'Go live now',
+  'Licitacija traje…': 'Bidding in progress…',
+  'Licitiraj uživo': 'Bid live',
+  'Licitiraj: {0}': 'Auction: {0}',
+  'Live aukcije s videom i obične aukcije — gledaj, licitiraj i prodaj u par sekundi.':
+      'Live video auctions and timed auctions — watch, bid and sell in seconds.',
+  'Live je završio.': 'The live show has ended.',
+  'Moje': 'Mine',
+  'Moji liveovi': 'My shows',
+  'Nema predmeta na čekanju': 'No items waiting',
+  'Nemaš slobodnih predmeta — dodaj novi.':
+      'You have no free items — add a new one.',
+  'Neobavezno: odaberi predmete unaprijed i upiši početnu cijenu. Predmete možeš dodavati i tijekom livea.':
+      'Optional: pick items in advance and set a starting price. You can also add items during the show.',
+  'Nitko trenutno nije uživo — budi prvi!':
+      'Nobody is live right now — be the first!',
+  'Novi predmet': 'New item',
+  'Ovaj predmet je već licitiran.': 'This item has already been auctioned.',
+  'Pokaži predmet pa pokreni licitaciju': 'Show the item, then start bidding',
+  'Pokaži u liveu': 'Show in a live show',
+  'Pokreni': 'Start',
+  'Pokreni aukciju ili live gumbom + u donjoj traci.':
+      'Start an auction or a live show with the + button below.',
+  'Predmet ide u Moje predmete. Poslije ga stavi na aukciju ili ga pokaži u liveu.':
+      'The item goes to My items. Then put it up for auction or show it live.',
+  'Predmet je dodan u live.': 'Item added to the show.',
+  'Predmet više nije tvoj.': 'This item is no longer yours.',
+  'Predmeti se otkrivaju uživo': 'Items are revealed live',
+  'Pričekaj da završi licitacija u tijeku.':
+      'Wait for the current bidding to end.',
+  'Sve aukcije': 'All auctions',
+  'To može samo domaćin livea.': 'Only the host can do that.',
+  'Traje satima ili danima, najviša ponuda pobjeđuje':
+      'Runs for hours or days, highest bid wins',
+  'Trenutno nema aukcija.': 'There are no auctions right now.',
+  'Uskoro': 'Coming up',
+  'Uživo sada': 'Live now',
+  'Video, chat i licitacije od par sekundi':
+      'Video, chat and bidding rounds of a few seconds',
+  'Završavaju uskoro': 'Ending soon',
+  '{0} aukcija · ocjena {1}': '{0} auctions · rating {1}',
+  'Što želiš pokrenuti?': 'What do you want to start?',
+  '• Live traje dok si uživo — završavaš ga ti (ili kad izađeš).\n• Ti biraš predmet i pokrećeš licitaciju od {0} s.\n• Ponuda u zadnjih 10 s vraća sat na 10 s.\n• Pobjednik plaća karticom, ti dobivaš cijelu ponudu.\n• Ako nitko ne ponudi, predmet ostaje tebi.':
+      '• The show lasts as long as you\'re live — you end it (or it ends when you leave).\n• You pick the item and start bidding for {0} s.\n• A bid in the last 10 s resets the clock to 10 s.\n• The winner pays by card, you get the full bid.\n• If nobody bids, the item stays yours.',
+  '⏱ Završavaju uskoro': '⏱ Ending soon',
+  '📅 Uskoro': '📅 Coming up',
+  '🔴 Uživo sada': '🔴 Live now',
 };

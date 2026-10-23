@@ -21,6 +21,7 @@ import '../widgets/category_style.dart';
 import 'add_device_screen.dart';
 import 'auctions_screen.dart';
 import 'device_detail_screen.dart';
+import 'live_screens.dart';
 import 'messages_screen.dart';
 import '../widgets/device_card.dart';
 import '../widgets/trade_actions.dart';
@@ -62,7 +63,7 @@ enum _ShopTab { items, auctions, reviews }
 class _PublicProfileScreenState extends ConsumerState<PublicProfileScreen> {
   String _query = '';
   _ShopSort _sort = _ShopSort.newest;
-  _ShopTab _tab = _ShopTab.items;
+  _ShopTab _tab = _ShopTab.auctions;
 
   /// Kategorija iz filtra trgovine (`null` = sve).
   DeviceCategory? _category;
@@ -140,7 +141,7 @@ class _PublicProfileScreenState extends ConsumerState<PublicProfileScreen> {
           if (user.username.isNotEmpty)
             ShareButton(
               url: publicLink(shop: user.username),
-              text: t('Trgovina {0} na LOOP-u', [user.shopTitle]),
+              text: t('Trgovina {0} na LICIT-u', [user.shopTitle]),
               tooltip: t('Podijeli trgovinu'),
             ),
           if (!isMe && state.currentUser != null && !state.currentUser!.isGuest)
@@ -239,15 +240,9 @@ class _PublicProfileScreenState extends ConsumerState<PublicProfileScreen> {
                 showSelectedIcon: false,
                 segments: [
                   ButtonSegment(
-                    value: _ShopTab.items,
-                    icon: const Icon(Icons.storefront_outlined, size: 18),
-                    label: Text(t('Trgovina ({0})', [allListings.length])),
-                  ),
-                  ButtonSegment(
                     value: _ShopTab.auctions,
                     icon: const Icon(Icons.gavel, size: 18),
-                    label: Text('${auctions.length}'),
-                    tooltip: t('Aukcije'),
+                    label: Text(t('Aukcije ({0})', [auctions.length])),
                   ),
                   ButtonSegment(
                     value: _ShopTab.reviews,
@@ -394,6 +389,46 @@ class _PublicProfileScreenState extends ConsumerState<PublicProfileScreen> {
               ),
           ],
           if (_tab == _ShopTab.auctions) ...[
+            // Live koji traje (ili je zakazan) je prvi.
+            for (final (show, live)
+                in ref
+                    .watch(appProvider)
+                    .activeLives
+                    .where((e) => e.$1.hostId == widget.userId))
+              box(
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 10),
+                  child: Material(
+                    color: kLiveRed,
+                    borderRadius: BorderRadius.circular(kRadius),
+                    child: ListTile(
+                      key: ValueKey('profile-live-${show.id}'),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(kRadius),
+                      ),
+                      leading: const Icon(Icons.videocam, color: Colors.white),
+                      title: Text(
+                        show.title,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
+                      subtitle: Text(
+                        live.isLive
+                            ? t('Uživo sada')
+                            : formatDateTime(show.startsAt),
+                        style: const TextStyle(color: Colors.white),
+                      ),
+                      trailing: const Icon(
+                        Icons.chevron_right,
+                        color: Colors.white,
+                      ),
+                      onTap: () => LiveRoomScreen.open(context, show.id),
+                    ),
+                  ),
+                ),
+              ),
             if (auctions.isEmpty)
               box(
                 Padding(

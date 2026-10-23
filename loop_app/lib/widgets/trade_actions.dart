@@ -242,7 +242,7 @@ class _CheckoutSheetState extends State<_CheckoutSheet> {
                         ),
                         Text(
                           t(
-                            'Plaćanje obrađuje pružatelj plaćanja; LOOP ne drži tvoj novac.',
+                            'Plaćanje obrađuje pružatelj plaćanja; LICIT ne drži tvoj novac.',
                           ),
                           style: TextStyle(
                             color: LoopColors.textSecondary,

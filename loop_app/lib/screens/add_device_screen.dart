@@ -2,8 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import 'seller_screens.dart';
-
 import '../models/device.dart';
 import '../providers/app_providers.dart';
 import '../services/file_store.dart';
@@ -24,8 +22,8 @@ class AddDeviceScreen extends ConsumerStatefulWidget {
 
   static Future<void> open(BuildContext context) async {
     if (blockGuest(context)) return;
-    // Objava traži podatke prodavatelja (DAC7/DSA).
-    if (!await ensureSellerInfo(context) || !context.mounted) return;
+    // Predmet ide u "Moje predmete"; podaci prodavatelja traže se tek za
+    // aukciju ili isplatu.
     await Navigator.of(
       context,
     ).push(MaterialPageRoute<void>(builder: (_) => const AddDeviceScreen()));
@@ -47,7 +45,8 @@ class _AddDeviceScreenState extends ConsumerState<AddDeviceScreen> {
   DeviceCategory? _category;
 
   /// Novi predmet odmah ide u Market (može se isključiti).
-  bool _listOnMarket = true;
+  /// LICIT je samo za aukcije: predmet se ne objavljuje u Marketu.
+  final bool _listOnMarket = false;
 
   /// Datoteka digitalnog proizvoda (3D model, softver…).
   PickedFile? _file;
@@ -261,18 +260,19 @@ class _AddDeviceScreenState extends ConsumerState<AddDeviceScreen> {
                             runSpacing: 8,
                             children: [
                               for (final sec in ItemSection.values)
-                                ChoiceChip(
-                                  avatar: Icon(sec.icon, size: 18),
-                                  label: Text(sec.label),
-                                  selected: _section == sec,
-                                  onSelected: (_) {
-                                    setState(() {
-                                      _section = sec;
-                                      _category = null;
-                                    });
-                                    field.didChange(null);
-                                  },
-                                ),
+                                if (sec != ItemSection.digital)
+                                  ChoiceChip(
+                                    avatar: Icon(sec.icon, size: 18),
+                                    label: Text(sec.label),
+                                    selected: _section == sec,
+                                    onSelected: (_) {
+                                      setState(() {
+                                        _section = sec;
+                                        _category = null;
+                                      });
+                                      field.didChange(null);
+                                    },
+                                  ),
                             ],
                           ),
                           const SizedBox(height: 14),
@@ -397,30 +397,15 @@ class _AddDeviceScreenState extends ConsumerState<AddDeviceScreen> {
                         ),
                       )
                     else
-                      Material(
-                        color: _listOnMarket
-                            ? LoopColors.mint
-                            : LoopColors.surface,
-                        borderRadius: BorderRadius.circular(kRadius),
-                        child: SwitchListTile(
-                          key: const ValueKey('list-on-market'),
-                          value: _listOnMarket,
-                          onChanged: (v) => setState(() => _listOnMarket = v),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(kRadius),
-                          ),
-                          title: Text(
-                            t('Odmah objavi u Marketu'),
-                            style: const TextStyle(fontWeight: FontWeight.w800),
-                          ),
-                          subtitle: Text(
-                            _listOnMarket
-                                ? t(
-                                    'Predmet ostaje tvoj dok ga netko ne kupi. Dobivaš punu cijenu — prodaja je bez naknade.',
-                                  )
-                                : t(
-                                    'Ostaje samo u portfoliju — objaviti ga možeš kasnije.',
-                                  ),
+                      Container(
+                        padding: const EdgeInsets.all(14),
+                        decoration: BoxDecoration(
+                          color: LoopColors.lilac,
+                          borderRadius: BorderRadius.circular(kRadius),
+                        ),
+                        child: Text(
+                          t(
+                            'Predmet ide u Moje predmete. Poslije ga stavi na aukciju ili ga pokaži u liveu.',
                           ),
                         ),
                       ),

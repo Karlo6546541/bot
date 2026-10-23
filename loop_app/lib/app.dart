@@ -59,7 +59,7 @@ class LoopApp extends ConsumerWidget {
       // Ključ po temi i jeziku: promjena ponovno gradi cijelo sučelje, pa
       // svaki widget preuzme nove boje i tekstove.
       key: ValueKey((brightness, lang)),
-      title: 'LOOP',
+      title: 'LICIT',
       debugShowCheckedModeBanner: false,
       scaffoldMessengerKey: rootMessengerKey,
       theme: buildLoopTheme(accent: isAdmin ? LoopColors.admin : null),

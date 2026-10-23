@@ -10,16 +10,13 @@ import 'activity_screen.dart';
 import 'legal_screen.dart';
 import 'seller_screens.dart';
 import 'portfolio_screen.dart';
-import 'wishlists_screen.dart';
 import 'deliveries_screen.dart';
-import 'digital_library_screen.dart';
 import '../l10n/tr.dart';
 import '../widgets/language_button.dart';
 import '../models/app_user.dart';
 import 'account_screens.dart';
 import 'public_profile_screen.dart';
 import 'shop_screens.dart';
-import '../services/community_service.dart';
 import '../widgets/shop_widgets.dart';
 import 'package:flutter/services.dart';
 import '../widgets/user_avatar.dart';
@@ -87,7 +84,7 @@ class ProfileScreen extends ConsumerWidget {
                         title: Text(t('Plaćanje karticom pri kupnji')),
                         subtitle: Text(
                           t(
-                            'Novac obrađuje pružatelj plaćanja — LOOP ne drži novac kupaca.',
+                            'Novac obrađuje pružatelj plaćanja — LICIT ne drži novac kupaca.',
                           ),
                         ),
                       ),
@@ -108,26 +105,6 @@ class ProfileScreen extends ConsumerWidget {
                               ]),
                         onTap: () => DeliveriesScreen.open(context),
                       ),
-                      const Divider(height: 1),
-                      _NavTile(
-                        key: const ValueKey('my-downloads'),
-                        icon: Icons.download_for_offline_outlined,
-                        title: t('Moje digitalne kupnje ({0})', [
-                          state.myDigitalPurchases.length,
-                        ]),
-                        onTap: () => DigitalLibraryScreen.open(context),
-                      ),
-                      if (!user.isGuest) ...[
-                        const Divider(height: 1),
-                        _NavTile(
-                          key: const ValueKey('my-wishlists'),
-                          icon: Icons.bookmarks_outlined,
-                          title: t('Liste želja ({0})', [
-                            user.wishlists.length + 1,
-                          ]),
-                          onTap: () => WishlistsScreen.open(context),
-                        ),
-                      ],
                     ],
                   ),
                 ),
@@ -400,7 +377,6 @@ class _ShopCard extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final state = ref.watch(appProvider);
-    final toAnswer = state.bargainsToAnswer.length;
     Widget stat(String value, String label, VoidCallback onTap, String key) =>
         Expanded(
           child: InkWell(
@@ -480,8 +456,8 @@ class _ShopCard extends ConsumerWidget {
             leading: const Icon(Icons.storefront_outlined),
             title: Text(t('Moja trgovina: {0}', [user.shopTitle])),
             subtitle: Text(
-              t('{0} oglasa · ocjena {1}', [
-                '${state.listingsOf(user.id).length}',
+              t('{0} aukcija · ocjena {1}', [
+                '${state.auctions.where((a) => a.sellerId == user.id && a.isActive).length}',
                 state.ratingOf(user.id).count == 0
                     ? '–'
                     : state.ratingOf(user.id).average.toStringAsFixed(1),
@@ -501,42 +477,12 @@ class _ShopCard extends ConsumerWidget {
               onPressed: () => shareLink(
                 context,
                 publicLink(shop: user.username),
-                text: t('Pogledaj moju trgovinu {0} na LOOP-u', [
+                text: t('Pogledaj moju trgovinu {0} na LICIT-u', [
                   user.shopTitle,
                 ]),
               ),
             ),
             onTap: () => showShopNameDialog(context, ref),
-          ),
-          const Divider(height: 1),
-          ListTile(
-            key: const ValueKey('open-bargains'),
-            leading: const Icon(Icons.price_change_outlined),
-            title: Text(t('Ponude cijena')),
-            subtitle: Text(
-              toAnswer > 0
-                  ? t('{0} čeka tvoj odgovor', ['$toAnswer'])
-                  : t('Cjenkanje s kupcima i prodavateljima'),
-            ),
-            trailing: toAnswer > 0
-                ? Badge(label: Text('$toAnswer'))
-                : const Icon(Icons.chevron_right),
-            onTap: () => BargainsScreen.open(context),
-          ),
-          const Divider(height: 1),
-          ListTile(
-            key: const ValueKey('promote'),
-            leading: const Icon(Icons.campaign_outlined),
-            title: Text(t('Istakni račun')),
-            subtitle: Text(
-              user.isPromoted
-                  ? t('Istaknut do {0}', [formatDateTime(user.promotedUntil!)])
-                  : t('{0} tjedno — oglasi se prikazuju više ljudi', [
-                      formatCredits(CommunityService.promotionWeekly),
-                    ]),
-            ),
-            trailing: const Icon(Icons.chevron_right),
-            onTap: () => showPromoteSheet(context, ref),
           ),
           const Divider(height: 1),
           ListTile(
