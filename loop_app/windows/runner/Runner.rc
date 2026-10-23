@@ -90,12 +90,12 @@ BEGIN
         BLOCK "040904e4"
         BEGIN
             VALUE "CompanyName", "com.loop" "\0"
-            VALUE "FileDescription", "LICIT" "\0"
+            VALUE "FileDescription", "LOOP" "\0"
             VALUE "FileVersion", VERSION_AS_STRING "\0"
             VALUE "InternalName", "loop_app" "\0"
             VALUE "LegalCopyright", "Copyright (C) 2026 com.loop. All rights reserved." "\0"
             VALUE "OriginalFilename", "loop_app.exe" "\0"
-            VALUE "ProductName", "LICIT" "\0"
+            VALUE "ProductName", "LOOP" "\0"
             VALUE "ProductVersion", VERSION_AS_STRING "\0"
         END
     END

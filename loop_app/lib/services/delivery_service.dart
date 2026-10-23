@@ -46,10 +46,10 @@ class DeliveryService {
     return null;
   }
 
-  /// "LICIT-7KQ2M9XA"
+  /// "LOOP-7KQ2M9XA"
   String _trackingNumber() {
     const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-    return 'LICIT-${List.generate(8, (_) => chars[_random.nextInt(chars.length)]).join()}';
+    return 'LOOP-${List.generate(8, (_) => chars[_random.nextInt(chars.length)]).join()}';
   }
 
   /// Pošiljka za kupnju u Marketu. Poziva se NAKON uspješne kupnje
@@ -180,7 +180,7 @@ class DeliveryService {
           amount: cost,
           buyerId: userId,
           buyerLabel: user.handle,
-          sellerLabel: 'LICIT dostava',
+          sellerLabel: 'LOOP dostava',
           createdAt: at,
         ),
       );

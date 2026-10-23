@@ -471,7 +471,7 @@ class PostTile extends StatelessWidget {
         ? const DecoratedBox(
             decoration: BoxDecoration(
               gradient: LinearGradient(
-                colors: [Color(0xFF6A2BD6), Color(0xFFFF2D55)],
+                colors: [Color(0xFFC8441E), Color(0xFFFF2D55)],
               ),
             ),
           )

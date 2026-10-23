@@ -84,7 +84,7 @@ class ProfileScreen extends ConsumerWidget {
                         title: Text(t('Plaćanje karticom pri kupnji')),
                         subtitle: Text(
                           t(
-                            'Novac obrađuje pružatelj plaćanja — LICIT ne drži novac kupaca.',
+                            'Novac obrađuje pružatelj plaćanja — LOOP ne drži novac kupaca.',
                           ),
                         ),
                       ),
@@ -477,7 +477,7 @@ class _ShopCard extends ConsumerWidget {
               onPressed: () => shareLink(
                 context,
                 publicLink(shop: user.username),
-                text: t('Pogledaj moju trgovinu {0} na LICIT-u', [
+                text: t('Pogledaj moju trgovinu {0} na LOOP-u', [
                   user.shopTitle,
                 ]),
               ),

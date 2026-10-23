@@ -2281,7 +2281,7 @@ class _SideRail extends ConsumerWidget {
           onTap: () => shareLink(
             context,
             publicLink(live: show.id),
-            text: t('Gledaj "{0}" uživo na LICIT-u', [show.title]),
+            text: t('Gledaj "{0}" uživo na LOOP-u', [show.title]),
           ),
           icon: const Icon(Icons.ios_share, color: Colors.white),
         ),

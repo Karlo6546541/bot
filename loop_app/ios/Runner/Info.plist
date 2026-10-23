@@ -3,17 +3,17 @@
 <plist version="1.0">
 <dict>
 	<key>NSCameraUsageDescription</key>
-	<string>LICIT koristi kameru za fotografiranje predmeta i video u live aukcijama.</string>
+	<string>LOOP koristi kameru za fotografiranje predmeta i video u live aukcijama.</string>
 	<key>NSMicrophoneUsageDescription</key>
-	<string>LICIT koristi mikrofon da te gledatelji live aukcije čuju.</string>
+	<string>LOOP koristi mikrofon da te gledatelji live aukcije čuju.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
-	<string>LICIT treba pristup galeriji kako bi dodao fotografije predmeta.</string>
+	<string>LOOP treba pristup galeriji kako bi dodao fotografije predmeta.</string>
 	<key>CADisableMinimumFrameDurationOnPhone</key>
 	<true/>
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
 	<key>CFBundleDisplayName</key>
-	<string>LICIT</string>
+	<string>LOOP</string>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIdentifier</key>

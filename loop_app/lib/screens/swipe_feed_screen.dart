@@ -741,11 +741,11 @@ class _ActionRail extends ConsumerWidget {
       context,
       publicLink(item: d.id),
       text: a != null
-          ? t('Aukcija: {0} — trenutno {1} na LICIT-u', [
+          ? t('Aukcija: {0} — trenutno {1} na LOOP-u', [
               d.name,
               formatCredits(a.currentPrice),
             ])
-          : t('{0} za {1} na LICIT-u', [d.name, formatCredits(d.shownPrice)]),
+          : t('{0} za {1} na LOOP-u', [d.name, formatCredits(d.shownPrice)]),
     );
     return SizedBox(
       width: 64,

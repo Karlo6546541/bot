@@ -1,6 +1,6 @@
 import 'dart:math';
 
-/// Naknade LICIT-a (kao Whatnot: kupac ne plaća naknadu, provizija se
+/// Naknade LOOP-a (kao Whatnot: kupac ne plaća naknadu, provizija se
 /// odbija prodavatelju od isplate):
 /// - **Kupi odmah**: [kBuyNowRate] od cijene;
 /// - **aukcija i live**: [kAuctionUpliftRate] samo od razlike između

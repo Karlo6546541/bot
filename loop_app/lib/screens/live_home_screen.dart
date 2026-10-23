@@ -430,7 +430,7 @@ class _EmptyLive extends StatelessWidget {
       gradient: const LinearGradient(
         begin: Alignment.topLeft,
         end: Alignment.bottomRight,
-        colors: [Color(0xFF6A2BD6), kLiveRed],
+        colors: [Color(0xFFC8441E), kLiveRed],
       ),
       borderRadius: BorderRadius.circular(kRadius),
     ),

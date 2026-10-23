@@ -110,7 +110,7 @@ void main() {
     expect(state.buyersCount(d.id), 1);
   });
 
-  test('nema prodaje LICIT-u, aukcije ni zamjene', () async {
+  test('nema prodaje LOOP-u, aukcije ni zamjene', () async {
     final d = await addModel(price: 200);
     await expectLater(
       trade.sell(userId: SeedData.demoUserId, deviceId: d.id),
@@ -164,7 +164,7 @@ void main() {
     expect(storage.deviceById(other.id), isNull);
   });
 
-  test('demo: LICIT Originals se kupuje i datoteka postoji', () async {
+  test('demo: LOOP Originals se kupuje i datoteka postoji', () async {
     final cube = storage.devices.firstWhere(
       (d) => d.name == 'Kocka za kalibraciju',
     );

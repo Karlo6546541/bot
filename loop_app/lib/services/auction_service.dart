@@ -133,7 +133,7 @@ class AuctionService {
           price: 0,
           fee: fee,
           amount: fee,
-          buyerLabel: 'LICIT',
+          buyerLabel: 'LOOP',
           sellerId: userId,
           sellerLabel: user.handle,
           createdAt: at,

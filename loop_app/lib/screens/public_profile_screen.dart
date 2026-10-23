@@ -141,7 +141,7 @@ class _PublicProfileScreenState extends ConsumerState<PublicProfileScreen> {
           if (user.username.isNotEmpty)
             ShareButton(
               url: publicLink(shop: user.username),
-              text: t('Trgovina {0} na LICIT-u', [user.shopTitle]),
+              text: t('Trgovina {0} na LOOP-u', [user.shopTitle]),
               tooltip: t('Podijeli trgovinu'),
             ),
           if (!isMe && state.currentUser != null && !state.currentUser!.isGuest)

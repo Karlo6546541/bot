@@ -61,7 +61,7 @@ class _AdminShellState extends ConsumerState<AdminShell> {
             const SizedBox(width: 10),
             Flexible(
               child: Text(
-                t('LICIT Admin · {0}', [_destinations[_index].label]),
+                t('LOOP Admin · {0}', [_destinations[_index].label]),
                 overflow: TextOverflow.ellipsis,
               ),
             ),

@@ -3,7 +3,7 @@ import '../l10n/tr.dart';
 /// Način dostave. Cijena je u kreditima; trajanje je u demo verziji
 /// ubrzano (minute umjesto dana) kako bi se statusi mogli vidjeti uživo.
 enum DeliveryMethod {
-  pickup('Osobno preuzimanje', 'LICIT točka, Zagreb · odmah spremno', 0, 2, 0),
+  pickup('Osobno preuzimanje', 'LOOP točka, Zagreb · odmah spremno', 0, 2, 0),
   parcelLocker('Paketomat', 'Isporuka u paketomat · 1–2 dana', 3, 3, 1),
   courier('Kurir na adresu', 'Dostava na kućnu adresu · 2–3 dana', 6, 4, 2),
   express('Ekspresna dostava', 'Kurir isti ili sljedeći dan', 12, 2, 1),
@@ -109,7 +109,7 @@ class Delivery {
   final DateTime? confirmedAt;
   final bool fromAuction;
 
-  /// Prodavatelj (korisnik) — `null` kad je prodavatelj LICIT Market.
+  /// Prodavatelj (korisnik) — `null` kad je prodavatelj LOOP Market.
   final String? sellerId;
 
   /// Kupac je ocijenio prodavatelja.

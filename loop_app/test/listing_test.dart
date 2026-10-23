@@ -229,7 +229,7 @@ void main() {
   });
 
   test(
-    'prodaja LICIT-u poništava objavu; brisanje vlastitog predmeta',
+    'prodaja LOOP-u poništava objavu; brisanje vlastitog predmeta',
     () async {
       await trade.list(
         userId: SeedData.demoUserId,

@@ -1,7 +1,7 @@
 import '../l10n/tr.dart';
 
 /// Podaci prodavatelja koje platforma mora prikupiti prije objave (DAC7,
-/// izvještaj Poreznoj upravi). Svi korisnici LICIT-a su fizičke osobe
+/// izvještaj Poreznoj upravi). Svi korisnici LOOP-a su fizičke osobe
 /// (nema obrta ni tvrtki), pa je prodavatelj uvijek privatna osoba.
 /// U demo verziji se ništa ne šalje — samo se spremaju uz račun.
 class SellerInfo {

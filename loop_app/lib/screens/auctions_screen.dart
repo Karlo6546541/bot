@@ -245,7 +245,7 @@ class _AuctionsScreenState extends ConsumerState<AuctionsScreen> {
                   id: _timed,
                   label: t('Aukcije'),
                   icon: Icons.gavel,
-                  color: const Color(0xFF7B2FF7),
+                  color: LoopColors.accent,
                   count: all.where((i) => i.auction != null).length,
                   selected: _filter == _timed,
                   onTap: () => setState(() => _filter = _timed),
@@ -675,7 +675,7 @@ class _CardMedia extends StatelessWidget {
         path: c,
         cacheWidth: 480,
         fallback: d == null
-            ? const ColoredBox(color: Color(0xFF3A1C71))
+            ? const ColoredBox(color: Color(0xFF7A3418))
             : ItemIllustration(category: d.category, iconSize: 40),
       );
     }

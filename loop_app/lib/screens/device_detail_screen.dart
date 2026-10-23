@@ -72,7 +72,7 @@ class DeviceDetailScreen extends ConsumerWidget {
           if (device.isForSale)
             ShareButton(
               url: publicLink(item: device.id),
-              text: t('{0} za {1} na LICIT-u', [
+              text: t('{0} za {1} na LOOP-u', [
                 device.name,
                 formatCredits(device.shownPrice),
               ]),
