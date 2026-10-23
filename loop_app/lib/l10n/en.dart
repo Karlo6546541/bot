@@ -1759,4 +1759,6 @@ const kEn = <String, String>{
   'Druga kamera se nije uključila. Pokušaj ponovno.':
       'The other camera didn\'t turn on. Try again.',
   'Ovaj uređaj ima samo jednu kameru.': 'This device has only one camera.',
+  'Prednja kamera': 'Front camera',
+  'Stražnja kamera': 'Back camera',
 };

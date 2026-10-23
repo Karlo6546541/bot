@@ -125,6 +125,10 @@ class LiveBroadcaster {
 
   /// Prednja kamera (pregled je tada zrcaljen, kao u ogledalu).
   final front = ValueNotifier<bool>(true);
+
+  /// Raste kad se video zapis zamijeni (okretanje kamere) — pregled kod
+  /// domaćina tada dobiva novi prikaz.
+  final revision = ValueNotifier<int>(0);
   bool _stopped = false;
 
   static Map<String, dynamic> _video(bool front) => {
@@ -317,8 +321,7 @@ class LiveBroadcaster {
     await local.removeTrack(old);
     await local.addTrack(track);
     front.value = isFront;
-    stream.value = null;
-    stream.value = local;
+    revision.value++;
   }
 
   void toggleMic() {

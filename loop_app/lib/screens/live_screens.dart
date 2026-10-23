@@ -3,7 +3,6 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_webrtc/flutter_webrtc.dart';
 
 import '../l10n/tr.dart';
 import '../models/device.dart';
@@ -20,6 +19,7 @@ import '../widgets/formatters.dart';
 import '../widgets/item_image.dart';
 import '../widgets/story_canvas.dart';
 import '../widgets/trade_actions.dart';
+import '../widgets/live_video_view.dart';
 import '../widgets/user_avatar.dart';
 import 'deliveries_screen.dart';
 import 'public_profile_screen.dart';
@@ -1073,7 +1073,7 @@ class _LiveRoomViewState extends ConsumerState<LiveRoomView> {
       child: Stack(
         fit: StackFit.expand,
         children: [
-          _Stage(
+          LiveVideoStage(
             broadcaster: _broadcaster,
             watcher: _watcher,
             fallback: StoryBackdrop(
@@ -1691,92 +1691,6 @@ class _QueueRow extends StatelessWidget {
 
 // ------------------------------------------------------------------- video
 
-/// Pozornica: video uživo (kamera domaćina) ili, dok videa nema,
-/// fotografija predmeta.
-class _Stage extends StatelessWidget {
-  const _Stage({
-    required this.broadcaster,
-    required this.watcher,
-    required this.fallback,
-  });
-
-  final LiveBroadcaster? broadcaster;
-  final LiveWatcher? watcher;
-  final Widget fallback;
-
-  @override
-  Widget build(BuildContext context) {
-    final b = broadcaster;
-    final w = watcher;
-    if (b == null && w == null) return fallback;
-    return ValueListenableBuilder<MediaStream?>(
-      valueListenable: b?.stream ?? w!.stream,
-      builder: (_, stream, _) => stream == null
-          ? fallback
-          : b == null
-          ? _VideoSurface(stream: stream, mirror: false)
-          : ListenableBuilder(
-              listenable: Listenable.merge([b.cameraOn, b.front]),
-              builder: (_, _) => b.cameraOn.value
-                  ? _VideoSurface(stream: stream, mirror: b.front.value)
-                  : fallback,
-            ),
-    );
-  }
-}
-
-/// Prikaz jednog video toka (vlastiti renderer koji se gasi s widgetom).
-class _VideoSurface extends StatefulWidget {
-  const _VideoSurface({required this.stream, required this.mirror});
-  final MediaStream stream;
-  final bool mirror;
-
-  @override
-  State<_VideoSurface> createState() => _VideoSurfaceState();
-}
-
-class _VideoSurfaceState extends State<_VideoSurface> {
-  final _renderer = RTCVideoRenderer();
-  bool _ready = false;
-
-  @override
-  void initState() {
-    super.initState();
-    _init();
-  }
-
-  Future<void> _init() async {
-    await _renderer.initialize();
-    _renderer.srcObject = widget.stream;
-    if (mounted) setState(() => _ready = true);
-  }
-
-  @override
-  void didUpdateWidget(_VideoSurface old) {
-    super.didUpdateWidget(old);
-    if (_ready && old.stream != widget.stream) {
-      _renderer.srcObject = widget.stream;
-    }
-  }
-
-  @override
-  void dispose() {
-    _renderer.srcObject = null;
-    _renderer.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) => !_ready
-      ? const ColoredBox(color: Colors.black)
-      : RTCVideoView(
-          _renderer,
-          key: const ValueKey('live-video'),
-          mirror: widget.mirror,
-          objectFit: RTCVideoViewObjectFit.RTCVideoViewObjectFitCover,
-        );
-}
-
 /// Oznaka stanja videa (spajanje, pauza, broj gledatelja videa).
 class _VideoStatus extends StatelessWidget {
   const _VideoStatus({
@@ -1876,6 +1790,9 @@ class _HostControls extends StatelessWidget {
           () async {
             try {
               await b.switchCamera();
+              showLoopSnackBar(
+                b.front.value ? t('Prednja kamera') : t('Stražnja kamera'),
+              );
             } on LiveCameraException catch (e) {
               showLoopSnackBar(
                 e.failed
