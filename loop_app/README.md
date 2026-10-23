@@ -204,7 +204,14 @@ ne sinkronizira; online prijavu vodi Supabase Auth i lozinke ne prolaze kroz na�
   trajanje licitacije po predmetu (20/30/45/60 s) i početak — **odmah** ili **zakazano**
   (do 7 dana unaprijed). Pratitelji dobiju obavijest 🔴. Predmeti se dok traje live
   sklanjaju iz Marketa.
-- **Soba uživo**: pozornica s fotografijom predmeta, oznaka UŽIVO, broj gledatelja,
+- **Video uživo s kamere** (uključeno pri pokretanju): domaćin snima kamerom i
+  mikrofonom, gledatelji ga vide i čuju u stvarnom vremenu. Domaćin ima gumbe *okreni
+  kameru*, *mikrofon* i *kamera uključena/isključena* te vidi koliko ljudi gleda video.
+  Video ide izravno s uređaja domaćina gledateljima (**WebRTC**, peer-to-peer); uređaji se
+  spajaju porukama preko Supabase Realtime kanala (bez nove tablice i bez dodatnog servera).
+  Preglednik traži dopuštenje za kameru i mikrofon (radi samo preko https — GitHub Pages je
+  https). Dok video ne stigne, prikazuje se fotografija predmeta.
+- **Soba uživo**: pozornica s videom ili fotografijom predmeta, oznaka UŽIVO, broj gledatelja,
   cijena, tko vodi, odbrojavanje, veliki gumb *Licitiraj X €* (ili vlastiti iznos),
   chat s brzim reakcijama 🔥👏😍💸 i popis predmeta (što je prodano, što slijedi).
 - **Pravila**: predmeti idu jedan za drugim (5 s pauze); ponuda u zadnjih 10 s vraća sat
@@ -215,8 +222,12 @@ ne sinkronizira; online prijavu vodi Supabase Auth i lozinke ne prolaze kroz na�
   a svaka ponuda/poruka je zaseban zapis (`loop_live_events`), pa svaki uređaj izračuna
   isto stanje. Prodaju provodi domaćin ili pobjednik s istim ID-jem transakcije (nema
   dvostrukih prodaja).
-- **Ograničenja demoa**: nema pravog videa (za to treba servis za prijenos, npr. LiveKit,
-  Mux ili Agora); satovi uređaja trebaju biti točni.
+- **Ograničenja videa**: domaćin šalje zasebnu vezu svakom gledatelju, pa je ovo za
+  manji broj gledatelja (otprilike do 10, ovisno o uploadu domaćina); za stotine
+  gledatelja treba media server (npr. LiveKit, Mux ili Agora). Na nekim mobilnim mrežama
+  izravna veza ne uspije — tada pomaže TURN poslužitelj: GitHub secrets `LIVE_TURN_URL`,
+  `LIVE_TURN_USER`, `LIVE_TURN_PASS` (neobavezno). Domaćin mora držati sobu otvorenom.
+- **Ostala ograničenja**: satovi uređaja trebaju biti točni.
 
 ## Objave kao TikTok, trgovine i pratitelji
 

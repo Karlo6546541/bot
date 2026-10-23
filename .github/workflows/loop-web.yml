@@ -46,10 +46,17 @@ jobs:
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
+          # Neobavezno: TURN poslužitelj za video u live aukcijama.
+          LIVE_TURN_URL: ${{ secrets.LIVE_TURN_URL }}
+          LIVE_TURN_USER: ${{ secrets.LIVE_TURN_USER }}
+          LIVE_TURN_PASS: ${{ secrets.LIVE_TURN_PASS }}
         run: >
           flutter build web --release --base-href /bot/ --no-web-resources-cdn
           --dart-define=SUPABASE_URL="$SUPABASE_URL"
           --dart-define=SUPABASE_KEY="$SUPABASE_KEY"
+          --dart-define=LIVE_TURN_URL="$LIVE_TURN_URL"
+          --dart-define=LIVE_TURN_USER="$LIVE_TURN_USER"
+          --dart-define=LIVE_TURN_PASS="$LIVE_TURN_PASS"
 
       # Spremljena kopija verzije prije pojednostavljenja sučelja:
       # https://<korisnik>.github.io/bot/stara/

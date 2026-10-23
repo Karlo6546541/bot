@@ -7,10 +7,51 @@ import 'package:loop_app/models/app_notification.dart';
 import 'package:loop_app/models/device.dart';
 import 'package:loop_app/models/loop_transaction.dart';
 import 'package:loop_app/providers/app_providers.dart';
+import 'package:loop_app/models/live_show.dart';
 import 'package:loop_app/services/live_service.dart';
+import 'package:loop_app/services/live_video.dart';
 import 'package:loop_app/services/seed_data.dart';
 import 'package:loop_app/services/storage_service.dart';
 import 'package:loop_app/services/trade_service.dart';
+
+/// Signalizacija za video u memoriji: poruke idu svim ostalim
+/// sudionicima (kao Supabase broadcast bez "self").
+class FakeHub {
+  final sent = <Map<String, dynamic>>[];
+  final _listeners = <void Function(Map<String, dynamic>)>[];
+
+  LiveSignaling channel(String showId) => _FakeSignaling(this);
+
+  /// Poruka "izvana" (npr. od domaćina na drugom uređaju).
+  void deliver(Map<String, dynamic> m) {
+    for (final l in [..._listeners]) {
+      l(m);
+    }
+  }
+}
+
+class _FakeSignaling implements LiveSignaling {
+  _FakeSignaling(this.hub);
+  final FakeHub hub;
+  void Function(Map<String, dynamic>)? _on;
+
+  @override
+  Future<void> join(void Function(Map<String, dynamic>) onMessage) async {
+    _on = onMessage;
+    hub._listeners.add(onMessage);
+  }
+
+  @override
+  Future<void> send(Map<String, dynamic> message) async {
+    hub.sent.add(message);
+    for (final l in [...hub._listeners]) {
+      if (l != _on) l(message);
+    }
+  }
+
+  @override
+  Future<void> leave() async => hub._listeners.remove(_on);
+}
 
 /// Live aukcije (kao Whatnot).
 void main() {
@@ -276,6 +317,43 @@ void main() {
       },
     );
 
+    test(
+      'video: oznaka se sprema, gledatelj traži video od domaćina',
+      () async {
+        final show = await live.create(
+          hostId: host,
+          title: 'Video live',
+          items: [(items.first.id, 1.0)],
+          video: true,
+          now: t0,
+          startsAt: t0,
+        );
+        expect(LiveShow.fromMap(show.toMap()).video, isTrue);
+        expect(
+          LiveShow.fromMap({...show.toMap()}..remove('video')).video,
+          isFalse,
+        );
+
+        final hub = FakeHub();
+        final viewer = LiveWatcher(hub.channel(show.id));
+        await viewer.start();
+        expect(hub.sent.single['type'], 'hello');
+        expect(viewer.status.value, LiveVideoStatus.connecting);
+        // Domaćin je (ponovno) spreman → gledatelj se javlja.
+        hub.deliver({'type': 'ready', 'from': 'h', 'role': 'host'});
+        await pumpEventQueue();
+        expect(hub.sent.where((m) => m['type'] == 'hello'), hasLength(2));
+        // Domaćin je ugasio kameru / izašao.
+        hub.deliver({'type': 'bye', 'from': 'h', 'role': 'host'});
+        await pumpEventQueue();
+        expect(viewer.status.value, LiveVideoStatus.offline);
+        // Odlazak gledatelja javlja domaćinu.
+        await viewer.stop();
+        expect(hub.sent.last['type'], 'bye');
+        expect(hub.sent.last['role'], 'viewer');
+      },
+    );
+
     test('gledatelji i chat', () async {
       final id = await start();
       await live.join(bob, id, now: at(1));
@@ -301,6 +379,7 @@ void main() {
       addTearDown(tester.view.reset);
 
       final storage = StorageService();
+      final hub = FakeHub();
       late String bobShow;
       late List<Device> mine;
       await tester.runAsync(() async {
@@ -316,6 +395,7 @@ void main() {
           title: 'Vinili i gramofoni',
           items: [(theirs.id, 1)],
           lotSeconds: 60,
+          video: true,
         )).id;
       });
       addTearDown(() => tester.runAsync(Hive.close));
@@ -325,6 +405,7 @@ void main() {
           overrides: [
             storageProvider.overrideWithValue(storage),
             tickIntervalProvider.overrideWithValue(null),
+            liveSignalingProvider.overrideWithValue(hub.channel),
           ],
           child: const LoopApp(),
         ),
@@ -359,6 +440,9 @@ void main() {
       expect(find.byKey(const ValueKey('live-lot')), findsOneWidget);
       expect(find.text('Vinili i gramofoni'), findsOneWidget);
       expect(find.byKey(const ValueKey('live-end')), findsNothing);
+      // Video: gledatelj se javlja domaćinu i čeka sliku s kamere.
+      expect(hub.sent.first['type'], 'hello');
+      expect(find.text('📹 Spajam video…'), findsOneWidget);
 
       // Licitiraj 1 € → vodiš.
       await tester.tap(find.byKey(const ValueKey('live-bid')));
@@ -447,8 +531,15 @@ void main() {
       expect(show.lotSeconds, 45);
       expect(show.lots.map((l) => l.deviceId), [for (final d in mine) d.id]);
       expect(show.lots.last.startPrice, 5);
+      expect(show.video, isTrue);
       expect(find.byKey(const ValueKey('live-lot')), findsOneWidget);
       expect(find.byKey(const ValueKey('live-bid')), findsNothing);
+      // Domaćin šalje video: oznaka gledatelja videa i gumbi za kameru.
+      expect(find.text('📡 Video gleda 0'), findsOneWidget);
+      expect(find.byKey(const ValueKey('live-cam-flip')), findsOneWidget);
+      await tester.tap(find.byKey(const ValueKey('live-mic')));
+      await tester.pumpAndSettle();
+      expect(find.byIcon(Icons.mic_off), findsOneWidget);
 
       // Domaćin završava live.
       await tester.tap(find.byKey(const ValueKey('live-end')));

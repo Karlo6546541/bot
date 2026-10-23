@@ -1738,4 +1738,22 @@ const kEn = <String, String>{
   'Uživo': 'Live',
   '🔴  Predmeti se licitiraju jedan za drugim, svaki 20–60 sekundi.\n\n⚡  Ponuda u zadnjih 10 s vraća sat na 10 s.\n\n👆  Povuci gore ili dolje za sljedeći live ili aukciju.':
       '🔴  Items are auctioned one after another, 20–60 seconds each.\n\n⚡  A bid in the last 10 s resets the clock to 10 s.\n\n👆  Swipe up or down for the next live show or auction.',
+  'Dopusti pristup kameri i mikrofonu da gledatelji vide video.':
+      'Allow camera and microphone access so viewers can see your video.',
+  'Gledatelji te vide i čuju dok pokazuješ predmete. Preglednik će tražiti dopuštenje za kameru i mikrofon.':
+      'Viewers see and hear you while you show the items. Your browser will ask for camera and microphone access.',
+  'Gledatelji vide samo fotografije predmeta.':
+      'Viewers only see the item photos.',
+  'Isključi kameru': 'Turn camera off',
+  'Isključi mikrofon': 'Mute microphone',
+  'Okreni kameru': 'Switch camera',
+  'Uključi kameru': 'Turn camera on',
+  'Uključi mikrofon': 'Unmute microphone',
+  'Video uživo s kamere': 'Live camera video',
+  '📡 Video gleda {0}': '📡 {0} watching video',
+  '📹 Spajam video…': '📹 Connecting video…',
+  '📹 Video radi u online verziji': '📹 Video works in the online version',
+  '📹 Video trenutno nije uključen': '📹 Video is not on right now',
+  'Kamera se ne može okrenuti na ovom uređaju.':
+      'The camera can\'t be switched on this device.',
 };

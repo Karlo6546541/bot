@@ -3,12 +3,14 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_webrtc/flutter_webrtc.dart';
 
 import '../l10n/tr.dart';
 import '../models/device.dart';
 import '../models/live_show.dart';
 import '../providers/app_providers.dart';
 import '../services/live_service.dart';
+import '../services/live_video.dart';
 import '../services/trade_service.dart';
 import '../theme/app_theme.dart';
 import '../widgets/category_style.dart';
@@ -164,6 +166,9 @@ class _CreateLiveShowScreenState extends ConsumerState<CreateLiveShowScreen> {
   final _prices = <String, TextEditingController>{};
   int _secs = 30;
 
+  /// Domaćin prenosi video s kamere (kao na Whatnotu).
+  bool _video = true;
+
   /// `null` = kreće odmah.
   DateTime? _startsAt;
   String? _error;
@@ -240,6 +245,7 @@ class _CreateLiveShowScreenState extends ConsumerState<CreateLiveShowScreen> {
             items: items,
             lotSeconds: _secs,
             startsAt: _startsAt,
+            video: _video,
           ),
       successMessage: later ? t('Live je zakazan') : t('Uživo si! 🔴'),
     );
@@ -339,6 +345,28 @@ class _CreateLiveShowScreenState extends ConsumerState<CreateLiveShowScreen> {
                         price: _prices[d.id],
                         onTap: () => _toggle(d),
                       ),
+                    const SizedBox(height: 8),
+                    Material(
+                      color: LoopColors.surface,
+                      borderRadius: BorderRadius.circular(kRadius),
+                      child: SwitchListTile(
+                        key: const ValueKey('live-video'),
+                        value: _video,
+                        onChanged: (v) => setState(() => _video = v),
+                        secondary: const Icon(Icons.videocam),
+                        title: Text(
+                          t('Video uživo s kamere'),
+                          style: const TextStyle(fontWeight: FontWeight.w800),
+                        ),
+                        subtitle: Text(
+                          _video
+                              ? t(
+                                  'Gledatelji te vide i čuju dok pokazuješ predmete. Preglednik će tražiti dopuštenje za kameru i mikrofon.',
+                                )
+                              : t('Gledatelji vide samo fotografije predmeta.'),
+                        ),
+                      ),
+                    ),
                     const SizedBox(height: 16),
                     Text(t('Licitacija po predmetu'), style: bold),
                     const SizedBox(height: 8),
@@ -620,6 +648,11 @@ class _LiveRoomViewState extends ConsumerState<LiveRoomView> {
   final _chat = TextEditingController();
   bool _busy = false;
 
+  /// Video: domaćin šalje kameru, gledatelj prima (samo dok je soba
+  /// aktivna i live nije završio).
+  LiveBroadcaster? _broadcaster;
+  LiveWatcher? _watcher;
+
   static const _reactions = ['🔥', '👏', '😍', '💸'];
 
   AppController get _app => ref.read(appProvider.notifier);
@@ -634,7 +667,10 @@ class _LiveRoomViewState extends ConsumerState<LiveRoomView> {
   void didUpdateWidget(LiveRoomView old) {
     super.didUpdateWidget(old);
     if (widget.active && !old.active) _start();
-    if (!widget.active && old.active) _timer?.cancel();
+    if (!widget.active && old.active) {
+      _timer?.cancel();
+      _stopVideo();
+    }
   }
 
   void _start() {
@@ -643,15 +679,59 @@ class _LiveRoomViewState extends ConsumerState<LiveRoomView> {
       _joinedAt = DateTime.now();
       _app.joinLive(widget.showId);
       _app.settleLive();
+      _startVideo();
     });
     final every = ref.read(tickIntervalProvider);
     _timer?.cancel();
     if (every != null) _timer = Timer.periodic(every, (_) => _tick());
   }
 
+  Future<void> _startVideo() async {
+    final signaling = ref.read(liveSignalingProvider);
+    final s = ref.read(appProvider);
+    final show = s.liveShowById(widget.showId);
+    if (signaling == null || show == null || !show.video) return;
+    if (_broadcaster != null || _watcher != null) return;
+    if (s.liveStateOf(show).isOver) return;
+    if (show.hostId == s.currentUserId) {
+      final b = LiveBroadcaster(signaling(show.id));
+      setState(() => _broadcaster = b);
+      try {
+        await b.start();
+      } catch (_) {
+        if (mounted) setState(() => _broadcaster = null);
+        await b.stop();
+        showLoopSnackBar(
+          t('Dopusti pristup kameri i mikrofonu da gledatelji vide video.'),
+          error: true,
+        );
+      }
+    } else {
+      final w = LiveWatcher(signaling(show.id));
+      setState(() => _watcher = w);
+      try {
+        await w.start();
+      } catch (_) {
+        // Video nije dostupan — ostaju fotografije predmeta.
+      }
+    }
+  }
+
+  void _stopVideo() {
+    final b = _broadcaster;
+    final w = _watcher;
+    _broadcaster = null;
+    _watcher = null;
+    b?.stop();
+    w?.stop();
+    if (mounted) setState(() {});
+  }
+
   @override
   void dispose() {
     _timer?.cancel();
+    _broadcaster?.stop();
+    _watcher?.stop();
     _chat.dispose();
     super.dispose();
   }
@@ -664,6 +744,10 @@ class _LiveRoomViewState extends ConsumerState<LiveRoomView> {
     final me = s.currentUserId;
     if (show == null || me == null) return;
     final now = DateTime.now();
+    if ((_broadcaster != null || _watcher != null) &&
+        s.liveStateOf(show, now).isOver) {
+      _stopVideo();
+    }
     // Gledatelj ostaje brojan dok je u sobi.
     if (now.difference(_joinedAt) > const Duration(minutes: 4)) {
       _joinedAt = now;
@@ -989,9 +1073,13 @@ class _LiveRoomViewState extends ConsumerState<LiveRoomView> {
       child: Stack(
         fit: StackFit.expand,
         children: [
-          StoryBackdrop(
-            gradient: _stageGradient(stageDevice),
-            device: stageDevice,
+          _Stage(
+            broadcaster: _broadcaster,
+            watcher: _watcher,
+            fallback: StoryBackdrop(
+              gradient: _stageGradient(stageDevice),
+              device: stageDevice,
+            ),
           ),
           const DecoratedBox(
             decoration: BoxDecoration(
@@ -1022,11 +1110,31 @@ class _LiveRoomViewState extends ConsumerState<LiveRoomView> {
                       onQueue: () => _showQueue(st),
                     ),
                     Expanded(
-                      child: Center(
-                        child: Padding(
-                          padding: const EdgeInsets.all(16),
-                          child: center,
-                        ),
+                      child: Stack(
+                        children: [
+                          Center(
+                            child: Padding(
+                              padding: const EdgeInsets.all(16),
+                              child: center,
+                            ),
+                          ),
+                          Positioned(
+                            left: 12,
+                            top: 4,
+                            child: _VideoStatus(
+                              show: show,
+                              broadcaster: _broadcaster,
+                              watcher: _watcher,
+                              online: ref.watch(liveSignalingProvider) != null,
+                            ),
+                          ),
+                          if (_broadcaster case final b?)
+                            Positioned(
+                              right: 8,
+                              top: 4,
+                              child: _HostControls(broadcaster: b),
+                            ),
+                        ],
                       ),
                     ),
                     Padding(
@@ -1577,6 +1685,226 @@ class _QueueRow extends StatelessWidget {
         status,
         style: TextStyle(color: color, fontWeight: FontWeight.w800),
       ),
+    );
+  }
+}
+
+// ------------------------------------------------------------------- video
+
+/// Pozornica: video uživo (kamera domaćina) ili, dok videa nema,
+/// fotografija predmeta.
+class _Stage extends StatelessWidget {
+  const _Stage({
+    required this.broadcaster,
+    required this.watcher,
+    required this.fallback,
+  });
+
+  final LiveBroadcaster? broadcaster;
+  final LiveWatcher? watcher;
+  final Widget fallback;
+
+  @override
+  Widget build(BuildContext context) {
+    final b = broadcaster;
+    final w = watcher;
+    if (b == null && w == null) return fallback;
+    return ValueListenableBuilder<MediaStream?>(
+      valueListenable: b?.stream ?? w!.stream,
+      builder: (_, stream, _) => stream == null
+          ? fallback
+          : b == null
+          ? _VideoSurface(stream: stream, mirror: false)
+          : ListenableBuilder(
+              listenable: Listenable.merge([b.cameraOn, b.front]),
+              builder: (_, _) => b.cameraOn.value
+                  ? _VideoSurface(stream: stream, mirror: b.front.value)
+                  : fallback,
+            ),
+    );
+  }
+}
+
+/// Prikaz jednog video toka (vlastiti renderer koji se gasi s widgetom).
+class _VideoSurface extends StatefulWidget {
+  const _VideoSurface({required this.stream, required this.mirror});
+  final MediaStream stream;
+  final bool mirror;
+
+  @override
+  State<_VideoSurface> createState() => _VideoSurfaceState();
+}
+
+class _VideoSurfaceState extends State<_VideoSurface> {
+  final _renderer = RTCVideoRenderer();
+  bool _ready = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _init();
+  }
+
+  Future<void> _init() async {
+    await _renderer.initialize();
+    _renderer.srcObject = widget.stream;
+    if (mounted) setState(() => _ready = true);
+  }
+
+  @override
+  void didUpdateWidget(_VideoSurface old) {
+    super.didUpdateWidget(old);
+    if (_ready && old.stream != widget.stream) {
+      _renderer.srcObject = widget.stream;
+    }
+  }
+
+  @override
+  void dispose() {
+    _renderer.srcObject = null;
+    _renderer.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => !_ready
+      ? const ColoredBox(color: Colors.black)
+      : RTCVideoView(
+          _renderer,
+          key: const ValueKey('live-video'),
+          mirror: widget.mirror,
+          objectFit: RTCVideoViewObjectFit.RTCVideoViewObjectFitCover,
+        );
+}
+
+/// Oznaka stanja videa (spajanje, pauza, broj gledatelja videa).
+class _VideoStatus extends StatelessWidget {
+  const _VideoStatus({
+    required this.show,
+    required this.broadcaster,
+    required this.watcher,
+    required this.online,
+  });
+
+  final LiveShow show;
+  final LiveBroadcaster? broadcaster;
+  final LiveWatcher? watcher;
+  final bool online;
+
+  Widget _pill(String text, {Key? key}) => Container(
+    key: key,
+    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+    decoration: BoxDecoration(
+      color: Colors.black54,
+      borderRadius: BorderRadius.circular(99),
+    ),
+    child: Text(
+      text,
+      style: const TextStyle(
+        color: Colors.white,
+        fontSize: 12,
+        fontWeight: FontWeight.w800,
+      ),
+    ),
+  );
+
+  @override
+  Widget build(BuildContext context) {
+    if (!show.video) return const SizedBox.shrink();
+    if (!online) {
+      return _pill(
+        t('📹 Video radi u online verziji'),
+        key: const ValueKey('live-video-offline'),
+      );
+    }
+    final b = broadcaster;
+    if (b != null) {
+      return ValueListenableBuilder<int>(
+        valueListenable: b.watching,
+        builder: (_, n, _) => _pill(
+          t('📡 Video gleda {0}', ['$n']),
+          key: const ValueKey('live-video-watching'),
+        ),
+      );
+    }
+    final w = watcher;
+    if (w == null) return const SizedBox.shrink();
+    return ValueListenableBuilder<LiveVideoStatus>(
+      valueListenable: w.status,
+      builder: (_, status, _) => switch (status) {
+        LiveVideoStatus.playing => const SizedBox.shrink(),
+        LiveVideoStatus.connecting => _pill(t('📹 Spajam video…')),
+        LiveVideoStatus.offline => _pill(t('📹 Video trenutno nije uključen')),
+      },
+    );
+  }
+}
+
+/// Domaćin: okreni kameru, mikrofon, kamera uključena/isključena.
+class _HostControls extends StatelessWidget {
+  const _HostControls({required this.broadcaster});
+  final LiveBroadcaster broadcaster;
+
+  @override
+  Widget build(BuildContext context) {
+    final b = broadcaster;
+    Widget button(
+      String key,
+      String tooltip,
+      IconData icon,
+      VoidCallback onTap, {
+      bool off = false,
+    }) => Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Material(
+        color: off ? kLiveRed : Colors.black45,
+        shape: const CircleBorder(),
+        child: IconButton(
+          key: ValueKey(key),
+          tooltip: tooltip,
+          onPressed: onTap,
+          icon: Icon(icon, color: Colors.white),
+        ),
+      ),
+    );
+    return Column(
+      children: [
+        button(
+          'live-cam-flip',
+          t('Okreni kameru'),
+          Icons.cameraswitch_outlined,
+          () async {
+            try {
+              await b.switchCamera();
+            } catch (_) {
+              showLoopSnackBar(
+                t('Kamera se ne može okrenuti na ovom uređaju.'),
+                error: true,
+              );
+            }
+          },
+        ),
+        ValueListenableBuilder<bool>(
+          valueListenable: b.micOn,
+          builder: (_, on, _) => button(
+            'live-mic',
+            on ? t('Isključi mikrofon') : t('Uključi mikrofon'),
+            on ? Icons.mic : Icons.mic_off,
+            b.toggleMic,
+            off: !on,
+          ),
+        ),
+        ValueListenableBuilder<bool>(
+          valueListenable: b.cameraOn,
+          builder: (_, on, _) => button(
+            'live-cam',
+            on ? t('Isključi kameru') : t('Uključi kameru'),
+            on ? Icons.videocam : Icons.videocam_off,
+            b.toggleCamera,
+            off: !on,
+          ),
+        ),
+      ],
     );
   }
 }

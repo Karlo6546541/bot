@@ -3,7 +3,9 @@
 <plist version="1.0">
 <dict>
 	<key>NSCameraUsageDescription</key>
-	<string>LOOP koristi kameru za fotografiranje predmeta koje dodaješ.</string>
+	<string>LOOP koristi kameru za fotografiranje predmeta i video u live aukcijama.</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>LOOP koristi mikrofon da te gledatelji live aukcije čuju.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>LOOP treba pristup galeriji kako bi dodao fotografije predmeta.</string>
 	<key>CADisableMinimumFrameDurationOnPhone</key>

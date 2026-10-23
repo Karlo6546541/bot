@@ -238,6 +238,7 @@ class LiveService {
     int lotSeconds = 30,
     DateTime? startsAt,
     DateTime? now,
+    bool video = false,
   }) async {
     final at = now ?? DateTime.now();
     final host = _storage.userById(hostId);
@@ -313,6 +314,7 @@ class LiveService {
       createdAt: at,
       lots: lots,
       lotSeconds: lotSeconds,
+      video: video,
     );
     await _storage.putLiveShow(show);
     await Inbox(_storage).toFollowers(

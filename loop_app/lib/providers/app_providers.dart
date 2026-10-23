@@ -13,6 +13,7 @@ import '../services/account_service.dart';
 import '../services/auction_service.dart';
 import '../services/bargain_service.dart';
 import '../services/live_service.dart';
+import '../services/live_video.dart';
 import '../services/social_service.dart';
 import '../models/app_notification.dart';
 import '../models/live_show.dart';
@@ -61,6 +62,14 @@ final fileStoreProvider = Provider<FileStore>(
 
 /// Sinkronizacija s online bazom (`null` = lokalni način rada).
 final syncProvider = Provider<SyncService?>((ref) => null);
+
+/// Signalizacija za video uživo (Supabase Realtime). Bez online baze (i u
+/// testovima) je `null` — live tada prikazuje fotografije predmeta.
+final liveSignalingProvider = Provider<LiveSignalingFactory?>(
+  (ref) => ref.watch(syncProvider) == null
+      ? null
+      : (showId) => SupabaseLiveSignaling(Supabase.instance.client, showId),
+);
 
 /// Prijava: lokalno, ili Supabase Auth kad je online baza postavljena
 /// (override u `main()`).
@@ -1193,6 +1202,7 @@ class AppController extends Notifier<AppState> {
     required List<(String, double)> items,
     int lotSeconds = 30,
     DateTime? startsAt,
+    bool video = false,
   }) async {
     // Testno: bez podataka prodavatelja (traže se tek za isplatu).
     final show = await _live.create(
@@ -1201,6 +1211,7 @@ class AppController extends Notifier<AppState> {
       items: items,
       lotSeconds: lotSeconds,
       startsAt: startsAt,
+      video: video,
     );
     _refresh();
     return show;

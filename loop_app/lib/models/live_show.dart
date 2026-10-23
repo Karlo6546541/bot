@@ -17,6 +17,7 @@ class LiveShow {
     this.lotSeconds = 30,
     this.endedAt,
     this.settled = const [],
+    this.video = false,
   });
 
   final String id;
@@ -39,6 +40,9 @@ class LiveShow {
 
   /// Indeksi predmeta čija je prodaja već provedena.
   final List<int> settled;
+
+  /// Domaćin prenosi video s kamere (inače se prikazuju fotografije).
+  final bool video;
 
   static const maxTitle = 60;
   static const maxLots = 20;
@@ -64,6 +68,7 @@ class LiveShow {
     lotSeconds: lotSeconds,
     endedAt: endedAt ?? this.endedAt,
     settled: settled ?? this.settled,
+    video: video,
   );
 
   Map<String, dynamic> toMap() => {
@@ -77,6 +82,7 @@ class LiveShow {
     'lotSeconds': lotSeconds,
     'endedAt': endedAt?.toIso8601String(),
     'settled': settled,
+    'video': video,
   };
 
   factory LiveShow.fromMap(Map<dynamic, dynamic> m) => LiveShow(
@@ -97,6 +103,7 @@ class LiveShow {
     settled: [
       for (final i in (m['settled'] as List? ?? const [])) (i as num).toInt(),
     ],
+    video: m['video'] == true,
   );
 }
 
