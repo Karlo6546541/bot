@@ -106,6 +106,55 @@ Future<RTCSessionDescription?> _gatheredDescription(
   return pc.getLocalDescription();
 }
 
+/// Najveći protok videa po gledatelju (bit/s): domaćin šalje zasebnu vezu
+/// svakom gledatelju, pa se protok smanjuje kako gledatelja ima više (da
+/// upload mobitela izdrži).
+int videoBitrateFor(int viewers) => switch (viewers) {
+  <= 2 => 2500000,
+  <= 4 => 1800000,
+  <= 7 => 1200000,
+  _ => 800000,
+};
+
+/// Opis veze s višim početnim protokom: Chrome inače kreće s ~300 kbit/s i
+/// prvih desetak sekundi šalje mutnu sliku. Dodaje `x-google-*-bitrate` u
+/// parametre video kodeka (VP8/VP9/H264/AV1).
+String boostVideoSdp(String sdp, {int startKbps = 1500, int maxKbps = 2500}) {
+  final nl = sdp.contains('\r\n') ? '\r\n' : '\n';
+  final lines = sdp.split(nl);
+  final codec = RegExp(r'^a=rtpmap:(\d+) (VP8|VP9|H264|AV1)/90000');
+  final payloads = <String>{
+    for (final l in lines)
+      if (codec.firstMatch(l) case final m?) m.group(1)!,
+  };
+  if (payloads.isEmpty) return sdp;
+  final extra =
+      'x-google-start-bitrate=$startKbps;x-google-max-bitrate=$maxKbps';
+  final out = <String>[];
+  final withFmtp = <String>{};
+  for (final l in lines) {
+    final fmtp = RegExp(r'^a=fmtp:(\d+) (.*)$').firstMatch(l);
+    if (fmtp != null &&
+        payloads.contains(fmtp.group(1)) &&
+        !l.contains('x-google-start-bitrate')) {
+      out.add('$l;$extra');
+      withFmtp.add(fmtp.group(1)!);
+    } else {
+      out.add(l);
+    }
+  }
+  // Kodeci bez fmtp retka (npr. VP8) dobivaju novi redak iza rtpmap.
+  final result = <String>[];
+  for (final l in out) {
+    result.add(l);
+    final m = codec.firstMatch(l);
+    if (m != null && !withFmtp.contains(m.group(1))) {
+      result.add('a=fmtp:${m.group(1)} $extra');
+    }
+  }
+  return result.join(nl);
+}
+
 /// Domaćin: kamera + mikrofon, po jedna veza za svakog gledatelja.
 class LiveBroadcaster {
   LiveBroadcaster(this._signaling);
@@ -117,6 +166,10 @@ class LiveBroadcaster {
 
   /// Lokalna slika s kamere (za pregled kod domaćina).
   final stream = ValueNotifier<MediaStream?>(null);
+
+  /// Veze s gledateljima (za mjerenje kvalitete u testovima).
+  @visibleForTesting
+  Iterable<RTCPeerConnection> get peers => _peers.values;
 
   /// Koliko gledatelja trenutno prima video.
   final watching = ValueNotifier<int>(0);
@@ -131,11 +184,17 @@ class LiveBroadcaster {
   final revision = ValueNotifier<int>(0);
   bool _stopped = false;
 
+  /// Kamera u punoj kvaliteti (Full HD, 30 sl/s) i u omjeru kakav senzor
+  /// stvarno snima (16:9). Mobitel u uspravnom položaju sam okrene sliku.
+  /// Uspravni zahtjev (720×1280) tjerao je preglednik da izreže sredinu
+  /// senzora — slika je bila zumirana i mutna. `resizeMode: none` zabranjuje
+  /// pregledniku rezanje i umjetno smanjivanje slike.
   static Map<String, dynamic> _video(bool front) => {
     'facingMode': front ? 'user' : 'environment',
-    'width': {'ideal': 720},
-    'height': {'ideal': 1280},
-    'frameRate': {'ideal': 24, 'max': 30},
+    'width': {'ideal': 1920},
+    'height': {'ideal': 1080},
+    'frameRate': {'ideal': 30, 'max': 30},
+    'resizeMode': 'none',
   };
 
   /// Uključuje kameru i počinje slati. Baca grešku ako korisnik ne
@@ -168,10 +227,15 @@ class LiveBroadcaster {
         await _connect(from);
       case 'answer' when m['to'] == _id:
         final pc = _peers[from];
-        if (pc == null) return;
+        final sdp = m['sdp'] as String?;
+        if (pc == null || sdp == null) return;
         await pc.setRemoteDescription(
-          RTCSessionDescription(m['sdp'] as String?, m['sdpType'] as String?),
+          RTCSessionDescription(
+            boostVideoSdp(sdp, maxKbps: videoBitrateFor(_peers.length) ~/ 1000),
+            m['sdpType'] as String?,
+          ),
         );
+        await _tuneSenders();
       case 'bye':
         await _drop(from);
     }
@@ -209,6 +273,33 @@ class LiveBroadcaster {
     final pc = _peers.remove(viewer);
     _count();
     await pc?.close();
+    if (pc != null) await _tuneSenders();
+  }
+
+  /// Protok i broj sličica za svaku vezu prema broju gledatelja; slika
+  /// ostaje u punoj rezoluciji (bez umjetnog smanjivanja).
+  Future<void> _tuneSenders() async {
+    final bitrate = videoBitrateFor(_peers.length);
+    for (final pc in [..._peers.values]) {
+      try {
+        for (final sender in await pc.getSenders()) {
+          if (sender.track?.kind != 'video') continue;
+          final params = sender.parameters;
+          final encodings = params.encodings;
+          if (encodings == null || encodings.isEmpty) continue;
+          for (final e in encodings) {
+            e.maxBitrate = bitrate;
+            e.maxFramerate = 30;
+            e.scaleResolutionDownBy = 1.0;
+          }
+          params.degradationPreference =
+              RTCDegradationPreference.MAINTAIN_RESOLUTION;
+          await sender.setParameters(params);
+        }
+      } catch (_) {
+        // Stariji preglednici ne dopuštaju promjenu — ostaje zadano.
+      }
+    }
   }
 
   void _count() => watching.value = _peers.values
@@ -380,6 +471,10 @@ class LiveWatcher {
 
   final stream = ValueNotifier<MediaStream?>(null);
   final status = ValueNotifier<LiveVideoStatus>(LiveVideoStatus.connecting);
+
+  /// Veza s domaćinom (za mjerenje kvalitete u testovima).
+  @visibleForTesting
+  RTCPeerConnection? get peer => _pc;
 
   Future<void> start() async {
     await _signaling.join(_onMessage);

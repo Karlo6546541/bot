@@ -107,10 +107,43 @@ class _LiveVideoSurfaceState extends State<LiveVideoSurface> {
   @override
   Widget build(BuildContext context) => !_ready
       ? const ColoredBox(color: Colors.black)
-      : RTCVideoView(
-          _renderer,
-          key: const ValueKey('live-video'),
-          mirror: widget.mirror,
-          objectFit: RTCVideoViewObjectFit.RTCVideoViewObjectFitCover,
+      : LayoutBuilder(
+          builder: (_, box) => ValueListenableBuilder<RTCVideoValue>(
+            valueListenable: _renderer,
+            builder: (_, v, _) => ColoredBox(
+              color: Colors.black,
+              child: RTCVideoView(
+                _renderer,
+                key: const ValueKey('live-video'),
+                mirror: widget.mirror,
+                filterQuality: FilterQuality.medium,
+                objectFit: videoFit(
+                  videoAspect: v.width > 0 && v.height > 0
+                      ? v.width / v.height
+                      : null,
+                  viewAspect: box.maxHeight > 0
+                      ? box.maxWidth / box.maxHeight
+                      : null,
+                ),
+              ),
+            ),
+          ),
         );
+}
+
+/// Kako video ispuniti pozornicu: kad je omjer slike blizu omjera ekrana
+/// (npr. mobitel uspravno → uspravni ekran) slika ispuni cijeli ekran uz
+/// malo rezanja ruba; kad se jako razlikuje (položena kamera ili računalo
+/// na uspravnom mobitelu) prikazuje se cijela slika, inače bi bila jako
+/// zumirana.
+RTCVideoViewObjectFit videoFit({double? videoAspect, double? viewAspect}) {
+  if (videoAspect == null || viewAspect == null) {
+    return RTCVideoViewObjectFit.RTCVideoViewObjectFitContain;
+  }
+  final ratio = videoAspect > viewAspect
+      ? videoAspect / viewAspect
+      : viewAspect / videoAspect;
+  return ratio <= 1.35
+      ? RTCVideoViewObjectFit.RTCVideoViewObjectFitCover
+      : RTCVideoViewObjectFit.RTCVideoViewObjectFitContain;
 }

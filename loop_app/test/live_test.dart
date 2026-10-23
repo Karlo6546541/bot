@@ -11,6 +11,8 @@ import 'package:loop_app/providers/app_providers.dart';
 import 'package:loop_app/models/live_show.dart';
 import 'package:loop_app/services/live_service.dart';
 import 'package:loop_app/services/live_video.dart';
+import 'package:loop_app/widgets/live_video_view.dart';
+import 'package:flutter_webrtc/flutter_webrtc.dart' show RTCVideoViewObjectFit;
 import 'package:loop_app/services/seed_data.dart';
 import 'package:loop_app/services/storage_service.dart';
 import 'package:loop_app/services/trade_service.dart';
@@ -1130,5 +1132,59 @@ void main() {
     expect(st.current!.price, 5);
     expect(st.current!.maxOf(host), 20);
     expect(find.byKey(const ValueKey('live-raise')), findsOneWidget);
+  });
+
+  group('kvaliteta videa', () {
+    test('viši početni protok u opisu veze (VP8 bez fmtp, H264 s fmtp)', () {
+      const sdp =
+          'v=0\r\n'
+          'm=video 9 UDP/TLS/RTP/SAVPF 96 102\r\n'
+          'a=rtpmap:96 VP8/90000\r\n'
+          'a=rtpmap:102 H264/90000\r\n'
+          'a=fmtp:102 profile-level-id=42e01f\r\n'
+          'a=rtpmap:111 opus/48000/2\r\n';
+      final out = boostVideoSdp(sdp, startKbps: 1500, maxKbps: 2500);
+      expect(
+        out,
+        contains(
+          'a=fmtp:96 x-google-start-bitrate=1500;x-google-max-bitrate=2500',
+        ),
+      );
+      expect(
+        out,
+        contains(
+          'a=fmtp:102 profile-level-id=42e01f;'
+          'x-google-start-bitrate=1500;x-google-max-bitrate=2500',
+        ),
+      );
+      expect(out, isNot(contains('fmtp:111')));
+      expect(
+        out.split('\r\n').where((l) => l.startsWith('a=fmtp:96')),
+        hasLength(1),
+      );
+      // Bez video kodeka ništa se ne mijenja.
+      expect(boostVideoSdp('v=0\r\n'), 'v=0\r\n');
+    });
+
+    test('protok po gledatelju pada s brojem gledatelja', () {
+      expect(videoBitrateFor(1), 2500000);
+      expect(videoBitrateFor(4), 1800000);
+      expect(videoBitrateFor(6), 1200000);
+      expect(videoBitrateFor(20), 800000);
+    });
+
+    test('slika se ne zumira kad se omjer jako razlikuje', () {
+      // Mobitel uspravno (9:16) na uspravnom ekranu → ispuni ekran.
+      expect(
+        videoFit(videoAspect: 9 / 16, viewAspect: 400 / 800),
+        RTCVideoViewObjectFit.RTCVideoViewObjectFitCover,
+      );
+      // Položena kamera (16:9) na uspravnom ekranu → cijela slika.
+      expect(
+        videoFit(videoAspect: 16 / 9, viewAspect: 400 / 800),
+        RTCVideoViewObjectFit.RTCVideoViewObjectFitContain,
+      );
+      expect(videoFit(), RTCVideoViewObjectFit.RTCVideoViewObjectFitContain);
+    });
   });
 }
