@@ -870,6 +870,15 @@ class _LiveRoomViewState extends ConsumerState<LiveRoomView> {
     }
   }
 
+  /// Srce u stupcu: lajk (srca lete) ili, ako je već crveno, poništi.
+  void _toggleLike() {
+    if (_liked) {
+      setState(() => _liked = false);
+    } else {
+      _heart(like: true, count: 2);
+    }
+  }
+
   void _tapStage(TapUpDetails d) {
     final now = DateTime.now();
     final isDouble =
@@ -1722,27 +1731,44 @@ class _LiveRoomViewState extends ConsumerState<LiveRoomView> {
                               ),
                             ),
                           ),
+                          // Chat zauzima najviše pola slobodnog prostora.
                           Positioned(
                             left: 12,
-                            right: 78,
+                            right: 72,
+                            top: 0,
                             bottom: 4,
-                            child: _ChatFeed(
-                              feed: st.feed,
-                              me: me?.id,
-                              hostId: show.hostId,
+                            child: LayoutBuilder(
+                              builder: (_, c) => Align(
+                                alignment: Alignment.bottomLeft,
+                                child: _ChatFeed(
+                                  feed: st.feed,
+                                  me: me?.id,
+                                  hostId: show.hostId,
+                                  maxHeight: math.min(210, c.maxHeight * 0.55),
+                                ),
+                              ),
                             ),
                           ),
+                          // Desni stupac se smanji da stane (mali ekrani).
                           Positioned(
-                            right: 6,
+                            right: 2,
+                            top: 0,
                             bottom: 4,
-                            child: _SideRail(
-                              show: show,
-                              state: st,
-                              isHost: isHost,
-                              canAct: canAct,
-                              onQueue: () => _showQueue(st, isHost),
-                              liked: _liked,
-                              onHeart: () => _heart(like: true, count: 2),
+                            child: Align(
+                              alignment: Alignment.bottomRight,
+                              child: FittedBox(
+                                fit: BoxFit.scaleDown,
+                                alignment: Alignment.bottomRight,
+                                child: _SideRail(
+                                  show: show,
+                                  state: st,
+                                  isHost: isHost,
+                                  canAct: canAct,
+                                  onQueue: () => _showQueue(st, isHost),
+                                  liked: _liked,
+                                  onHeart: _toggleLike,
+                                ),
+                              ),
                             ),
                           ),
                         ],
@@ -2541,7 +2567,7 @@ class _SideRail extends ConsumerWidget {
                 borderRadius: BorderRadius.circular(10),
                 border: Border.all(color: Colors.white, width: 2),
               ),
-              child: ItemThumb(device: listings.first, size: 46),
+              child: ItemThumb(device: listings.first, size: 38),
             ),
           ),
       ],
@@ -2566,13 +2592,13 @@ class _RailButton extends StatelessWidget {
     onTap: onTap,
     borderRadius: BorderRadius.circular(12),
     child: Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 6),
+      padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 4),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
           IconTheme(
             data: const IconThemeData(
-              size: 30,
+              size: 26,
               shadows: [Shadow(blurRadius: 8, color: Colors.black54)],
             ),
             child: icon,
@@ -2582,7 +2608,7 @@ class _RailButton extends StatelessWidget {
             label,
             style: const TextStyle(
               color: Colors.white,
-              fontSize: 11,
+              fontSize: 10,
               fontWeight: FontWeight.w800,
               shadows: [Shadow(blurRadius: 6, color: Colors.black87)],
             ),
@@ -3284,7 +3310,14 @@ class _LotCard extends StatelessWidget {
 /// poruka, bez oblačića. Ponude su istaknute, a reakcije (srca) lete uz
 /// desni rub umjesto da zatrpaju chat.
 class _ChatFeed extends ConsumerWidget {
-  const _ChatFeed({required this.feed, required this.me, required this.hostId});
+  const _ChatFeed({
+    required this.feed,
+    required this.me,
+    required this.hostId,
+    this.maxHeight = 210,
+  });
+
+  final double maxHeight;
 
   final List<LiveEvent> feed;
   final String? me;
@@ -3299,7 +3332,7 @@ class _ChatFeed extends ConsumerWidget {
     final s = ref.watch(appProvider);
     // Cijeli chat se može listati (najnovije dolje); gore blijedi.
     return ConstrainedBox(
-      constraints: const BoxConstraints(maxHeight: 210),
+      constraints: BoxConstraints(maxHeight: maxHeight),
       child: ShaderMask(
         shaderCallback: (r) => const LinearGradient(
           begin: Alignment.topCenter,

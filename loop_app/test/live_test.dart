@@ -801,6 +801,16 @@ void main() {
         ),
         findsOneWidget,
       );
+      // Ponovni dodir na crveno srce poništava lajk (opet prozirno).
+      await tester.tap(find.byKey(const ValueKey('live-react-0')));
+      await tester.pumpAndSettle();
+      expect(
+        find.descendant(
+          of: find.byKey(const ValueKey('live-react-0')),
+          matching: find.byIcon(Icons.favorite_border),
+        ),
+        findsOneWidget,
+      );
       // Dodir bilo gdje po pozadini pušta srca.
       await tester.tap(find.byKey(const ValueKey('live-stage-tap')));
       await tester.pump(const Duration(milliseconds: 300));
