@@ -1230,7 +1230,8 @@ List<BrowseItem> browseItems(AppState s, {bool buyNow = true}) {
       if (!s.isBlocked(a.sellerId) && !a.isExpired(now))
         BrowseItem.auction(a, s.deviceById(a.deviceId)),
     if (buyNow)
+      // Digitalni proizvodi se više ne prikazuju (pojednostavljeno).
       for (final d in s.marketDevices)
-        if (d.isListed) BrowseItem.item(d),
+        if (d.isListed && !d.isDigital) BrowseItem.item(d),
   ];
 }

@@ -25,7 +25,7 @@ LOOP mogu koristiti fizičke osobe i trgovci (obrti i tvrtke) — i kao kupci i 
 Prodavatelj je privatna osoba (prodaje svoje rabljene stvari) ili trgovac (obrt ili tvrtka koja prodaje kao djelatnost). Prije prve objave na Kupi odmah i prije prve isplate zarade unosi podatke prodavatelja: privatna osoba ime i prezime, OIB, datum rođenja, adresu i IBAN; trgovac naziv obrta ili tvrtke, pravni oblik, OIB, sjedište, odgovornu osobu, e-mail i telefon za kupce, IBAN te po potrebi PDV broj i MBS/MBO, uz potvrdu da prodaje u skladu s propisima. Tko prodaje redovito radi zarade, mora se prijaviti kao trgovac. Kupci uz svaki oglas vide je li prodavatelj privatna osoba ili trgovac, a kod trgovca i njegove podatke za kontakt. Od trgovca kupac ima pravo na povrat u 14 dana od primitka i zakonsko jamstvo; od privatne osobe pravo na povrat ne vrijedi. Trgovci imaju veća ograničenja (do 200 aktivnih aukcija i 200 predmeta po liveu; privatne osobe 10 i 50). Zabranjeni predmeti navedeni su u Pravilima za prodavatelje.
 
 ## 4. Cijene i naknade
-Kupac plaća samo cijenu predmeta (bez naknade platforme) i dostavu. Objava je besplatna. Prodavatelju se od isplate odbija provizija: kod Kupi odmah 5 % od cijene, a kod aukcija i live aukcija 10 % samo od razlike između prodajne i početne cijene (kod padajuće cijene — od najniže cijene); ako se predmet proda po početnoj cijeni, provizije nema. Isticanje računa naplaćuje se prema cijeni prikazanoj prije potvrde.
+Kupac plaća samo cijenu predmeta (bez naknade platforme) i dostavu. Objava je besplatna. Prodavatelju se od isplate odbija provizija: kod Kupi odmah 5 % od cijene, a kod aukcija i live aukcija 10 % samo od razlike između prodajne i početne cijene (kod padajuće cijene — od najniže cijene); ako se predmet proda po početnoj cijeni, provizije nema.
 
 ## 5. Plaćanje i isplata
 Plaćanje karticom i isplate prodavateljima obrađuje licencirani pružatelj platnih usluga ([NAZIV PRUŽATELJA, npr. Mangopay ili Stripe]). LOOP ne drži novac korisnika. Zarada prodavatelja isplaćuje se na IBAN iz podataka prodavatelja.
@@ -45,7 +45,7 @@ Svi prodavatelji su privatne osobe, pa zakonsko pravo na odustanak od 14 dana ne
 Nezakonit sadržaj i oglasi protivni ovim Uvjetima mogu se prijaviti gumbom "Prijavi". Ako ograničimo tvoj sadržaj ili račun, dobit ćeš obrazloženje i mogućnost žalbe (Akt o digitalnim uslugama).
 
 ## 10. Rangiranje i oglašavanje
-Kako određujemo redoslijed oglasa i što znači oznaka "Sponzorirano" objašnjeno je u dokumentu Rangiranje i oglašavanje.
+Kako određujemo redoslijed oglasa objašnjeno je u dokumentu Rangiranje i oglašavanje. LOOP ne prodaje plaćeno isticanje.
 
 ## 11. Odgovornost
 LOOP odgovara za rad platforme, ali ne za stanje, opis ili isporuku predmeta koje prodaju korisnici. Sporove između kupca i prodavatelja pokušavamo riješiti kroz prijave i komunikaciju.
@@ -117,10 +117,10 @@ Prodavatelje s 30 ili više prodaja ili više od 2.000 € godišnje platforma p
 ''',
   'ranking': '''
 ## Redoslijed "Preporučeno"
-Oglasi se slažu prema: isticanju trgovine (plaćeno, označeno "Sponzorirano"), praćenim trgovinama, popularnosti (pregledi, sviđanja), svježini oglasa i ocjeni prodavatelja. Možeš odabrati i drugi poredak (najnovije, cijena, naziv).
+Oglasi se slažu prema: praćenim trgovinama, popularnosti (pregledi, sviđanja), svježini oglasa i ocjeni prodavatelja. Možeš odabrati i drugi poredak (najnovije, cijena, naziv).
 
-## Sponzorirano
-Trgovina može platiti isticanje računa na tjedan dana. Njezini oglasi tada se prikazuju više i uvijek su označeni kao "Sponzorirano". Plaćanje ne utječe na ocjene ni na sigurnosne provjere.
+## Plaćeno isticanje
+Nema ga — nitko ne može platiti da se njegovi oglasi prikazuju više.
 
 ## Ocjene
 Ocjene kupaca koji su kupili od prodavatelja označene su "✓ Provjerena kupnja"; ostale ocjene trgovine označene su "Bez provjerene kupnje". Ocjene ne uklanjamo zbog toga što su negativne.
@@ -152,7 +152,7 @@ LOOP may be used by private persons and traders (sole traders and companies) —
 A seller is either a private person (selling their own used things) or a trader (a sole trader or company selling as a business). Before the first Buy now listing and first payout they provide seller details: a private person their full name, OIB/tax number, date of birth, address and IBAN; a trader the business name, legal form, OIB, registered address, responsible person, email and phone for buyers, IBAN and, where applicable, VAT number and registry number, confirming they sell in line with the law. Anyone selling regularly for profit must register as a trader. Buyers see on every listing whether the seller is a private person or a trader, and for traders their contact details. Buying from a trader gives a 14-day right of withdrawal from delivery and the legal guarantee; buying from a private person does not include the right of withdrawal. Traders have higher limits (up to 200 active auctions and 200 items per live show; private persons 10 and 50). Prohibited items are listed in the Seller rules.
 
 ## 4. Prices and fees
-The buyer pays only the item price (no platform fee) and delivery. Listing is free. A commission is deducted from the seller's payout: 5% of the price for Buy now, and for auctions and live auctions 10% only of the difference between the selling price and the starting price (for price-drop items, the lowest price); if an item sells at its starting price, there is no commission. Account promotion is charged at the price shown before confirmation.
+The buyer pays only the item price (no platform fee) and delivery. Listing is free. A commission is deducted from the seller's payout: 5% of the price for Buy now, and for auctions and live auctions 10% only of the difference between the selling price and the starting price (for price-drop items, the lowest price); if an item sells at its starting price, there is no commission.
 
 ## 5. Payment and payouts
 Card payments and seller payouts are processed by a licensed payment service provider ([PROVIDER NAME, e.g. Mangopay or Stripe]). LOOP does not hold users' money. Seller earnings are paid out to the IBAN in the seller details.
@@ -172,7 +172,7 @@ All sellers are private persons, so there is no statutory 14-day right of withdr
 Illegal content and listings breaching these Terms can be reported with "Report". If we restrict your content or account, you will receive a statement of reasons and can appeal (Digital Services Act).
 
 ## 10. Ranking and advertising
-How we order listings and what "Sponsored" means is explained in Ranking and advertising.
+How we order listings is explained in Ranking and advertising. LOOP does not sell paid promotion.
 
 ## 11. Liability
 LOOP is responsible for operating the platform, not for the condition, description or delivery of items sold by users. We try to resolve disputes between buyers and sellers through reports and communication.
@@ -244,10 +244,10 @@ The platform reports sellers with 30 or more sales or more than €2,000 per yea
 ''',
   'ranking': '''
 ## "Recommended" order
-Listings are ordered by: shop promotion (paid, labelled "Sponsored"), shops you follow, popularity (views, likes), freshness and seller rating. You can choose another order (newest, price, name).
+Listings are ordered by: shops you follow, popularity (views, likes), freshness and seller rating. You can choose another order (newest, price, name).
 
-## Sponsored
-A shop can pay to promote its account for a week. Its listings are then shown more often and are always labelled "Sponsored". Payment does not affect ratings or safety checks.
+## Paid promotion
+There is none — nobody can pay to have their listings shown more.
 
 ## Reviews
 Reviews from buyers who bought from the seller are marked "✓ Verified purchase"; other shop ratings are marked "No verified purchase". We do not remove reviews for being negative.

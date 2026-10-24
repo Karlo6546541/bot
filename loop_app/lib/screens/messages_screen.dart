@@ -36,9 +36,7 @@ class MessagesScreen extends ConsumerWidget {
           ? EmptyState(
               icon: Icons.chat_bubble_outline,
               title: t('Još nema poruka'),
-              message: t(
-                'Na predmetu na prodaji dodirni "Pošalji poruku" ili "Ponudi zamjenu".',
-              ),
+              message: t('Na predmetu na prodaji dodirni "Pošalji poruku".'),
             )
           : Align(
               alignment: Alignment.topCenter,

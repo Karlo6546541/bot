@@ -76,6 +76,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
       // opis i prodavač).
       for (final d in s.marketDevices)
         if (d.isListed &&
+            !d.isDigital &&
             !s.isBlocked(d.ownerId!) &&
             _matches(
               '${d.name} ${d.model} ${d.category.label} ${d.description} '

@@ -19,6 +19,8 @@ Demo Flutter aplikacija u stilu Whatnota — **jedan predmet, tri načina prodaj
 - Radi **lokalno i offline** (Hive), a uz Supabase i **online** s pravim računima.
 
 **Spremljene verzije** (grade se uz glavnu, isti podaci):
+- `/bot/puna/` — verzija prije velikog pojednostavljenja (Istraži, priče, liste želja, zamjene,
+  digitalno, isticanje, kod za poziv), commit `556ea6b`;
 - `/bot/privatni/` — verzija prije prodavatelja-trgovaca (samo privatne osobe; plaćanje,
   BOX NOW, slavlje nakon kupnje), commit `4fd1b56`;
 - `/bot/licit/` — ista aplikacija s LICIT dizajnom (ljubičasto-crveni izgled, čekić u logu),
@@ -400,32 +402,38 @@ dati na pregled odvjetniku prije pokretanja s pravim novcem):
   trenutnog ekrana; nakon prijave ekran se sam zatvori i korisnik ostaje gdje je bio
   (✕ ili *Nastavi razgledavati* vraća na razgledavanje). Nakon odjave prikazuje se ekran
   za prijavu.
-- Donja traka: **Početna · Istraži · [+ Objavi] · Moje · Profil**.
+- Donja traka: **Početna · [+ Objavi] · Moje · Profil** (Istraži je spojen s Početnom).
 - **Početna** (klon Whatnota): tražilica, **pilule** *Za tebe · 🔴 Uživo · 📅 Uskoro ·
   ⏱ Aukcije · 🏷️ Kupi odmah* i kategorije, zatim mreža kartica **Uživo sada**, **Uskoro**
   (zvono *Podsjeti me*), **Završavaju uskoro** i **Kupi odmah**. Kartica: prodavač iznad
   slike, naslovna slika livea (ili fotografija predmeta), oznaka UŽIVO/gledatelji, cijena na
   slici. Dodir na karticu otvara swipe feed.
-- **Istraži**: kategorije kao kartice (*Za tebe*, *Uživo*, *Aukcije*, *Kupi odmah* i sve
-  kategorije — i nove: moda, tenisice, satovi, Pokémon/TCG, stripovi, videoigre, dom i vintage…)
-  i mreža svih liveova, aukcija i predmeta; *Pravila* (ⓘ) i **Live**.
 - **+ Objavi**: *Live aukcija* (odmah ili zakazano), *Aukcija* ili *Prodaj predmet* — na
   predmetu se bira **Kupi odmah**, **Aukcija**, **Live** ili *Samo spremi*. Na detaljima
   vlastitog predmeta: *Kupi odmah · fiksna cijena* / *Stavi na aukciju* / *Pokaži u liveu*;
   predmet na prodaji pokazuje koliko dobivaš nakon provizije.
-- **Moje**: **Kupljeno** (prvo — sve kupnje i pobjede sa slikom; što čeka dostavu je na vrhu s
-  gumbom *Odaberi dostavu*, ostalo s praćenjem paketa) · *Ponude* · *Prodajem* · *Liveovi*.
+- **Moje** ima dva dijela: **Kupujem** (*Kupljeno* — sve kupnje i pobjede sa slikom, što čeka
+  dostavu je na vrhu s gumbom *Odaberi dostavu* · *Ponude*) i **Prodajem** (zarada i *Isplati*
+  na vrhu · *Predmeti* · *Aukcije* · *Liveovi*).
 - **Dostava nakon pobjede u liveu**: ništa ne kreće samo — u sobi se pojavi gumb *📦 Osvojio
   si N · Odaberi dostavu* (i u *Moje → Kupljeno*). Odabir vrijedi za sve osvojeno u istom
   liveu: jedan paket, dostava se plaća jednom.
 - **Pretraga** traži liveove, aukcije **i predmete na Kupi odmah** (naziv, model,
   kategorija, opis, prodavač) te račune.
-- **Moji predmeti** (Profil): bez grafikona — filtri *Sve · Na prodaji · Nije na prodaji ·
+- **Moje → Prodajem → Predmeti**: bez grafikona — filtri *Sve · Na prodaji · Nije na prodaji ·
   Kupljeno*, oznaka stanja na kartici i jedan gumb (*Prodaj* / *Detalji* / *Na aukciji* /
   *Preuzmi*); *+* dodaje novi predmet.
-- **Profil** u tri skupine: *Prodajem* (trgovina, moji predmeti, zarada i isplata) ·
-  *Kupujem* (kartica i adresa, dostave, povijest) · *Račun* i *Postavke* (uvjeti, izgled,
-  jezik). Javna trgovina prikazuje live (ako je uživo), aukcije i ocjene.
+- **Profil** je samo račun i postavke: podaci prodavatelja, naziv i javna trgovina, kartica i
+  adresa, povijest transakcija, račun (uređivanje, lozinka, izvoz, brisanje) i postavke
+  (uvjeti, izgled, jezik). Javna trgovina prikazuje live (ako je uživo), aukcije i ocjene.
+- **Uklonjeno radi jednostavnosti** (iz sučelja; podaci i servisi ostaju): priče (stories),
+  liste želja (srce = spremljeno), zamjene predmeta, ljestvica *Top prodavatelji*, plaćeno
+  isticanje (*Sponzorirano*), kod za poziv i digitalni proizvodi. Sve je i dalje u spremljenoj
+  kopiji `/bot/puna/`.
+- **Live soba**: desno samo *Predmeti* (uključuje i trgovinu), *Srce*, *Podijeli*; jedan veliki
+  gumb *Licitiraj X €* (dugi pritisak ili link ispod = maksimalna ponuda); na kartici predmeta
+  nema više „+ dostava” ni „Ponuda je obvezujuća…”, a „−X % ispod procjene” samo kad je
+  razlika 30 %+. Pada cijena i nagradna igra su kod dodavanja predmeta pod *Napredno*.
 - Na početnoj: kartica **Kako LOOP radi** (tri načina kupnje, može se sakriti) i podsjetnik
   **Dodaj karticu i adresu** dok ih korisnik nema.
 - **Kupi odmah → prvo dostava**: blagajna nema unaprijed odabran način dostave — kupac bira

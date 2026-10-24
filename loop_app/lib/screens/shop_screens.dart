@@ -380,17 +380,7 @@ class _ShopsScreenState extends ConsumerState<ShopsScreen> {
             return p != 0 ? p : key(b).compareTo(key(a));
           });
     return Scaffold(
-      appBar: AppBar(
-        title: Text(t('Trgovine')),
-        actions: [
-          IconButton(
-            key: const ValueKey('open-leaderboard'),
-            tooltip: t('Top prodavatelji'),
-            icon: const Icon(Icons.emoji_events_outlined),
-            onPressed: () => LeaderboardScreen.open(context),
-          ),
-        ],
-      ),
+      appBar: AppBar(title: Text(t('Trgovine'))),
       body: Column(
         children: [
           Padding(

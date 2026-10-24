@@ -8,7 +8,6 @@ import '../services/fee.dart';
 import '../services/trade_service.dart';
 import '../theme/app_theme.dart';
 import '../screens/seller_screens.dart';
-import '../screens/wishlists_screen.dart';
 import '../services/delivery_service.dart';
 import '../screens/login_screen.dart';
 import 'celebration.dart';
@@ -505,15 +504,11 @@ Future<void> toggleFavorite(
     showLoopSnackBar(e.message, error: true);
     return;
   }
-  final ctx = context;
+  // Jedno srce = spremljeno (bez lista želja).
   showLoopSnackBar(
     added
         ? t('Sviđa ti se: {0}', [device.name])
         : t('{0} uklonjen iz favorita', [device.name]),
-    actionLabel: added && ctx != null ? t('Spremi u listu') : null,
-    onAction: added && ctx != null && ctx.mounted
-        ? () => showSaveToListSheet(ctx, ref, device)
-        : null,
   );
 }
 

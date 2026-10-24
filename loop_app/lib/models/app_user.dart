@@ -132,7 +132,9 @@ class AppUser {
   bool promotedAt(DateTime now) =>
       promotedUntil != null && now.isBefore(promotedUntil!);
 
-  bool get isPromoted => promotedAt(DateTime.now());
+  /// Plaćeno isticanje je uklonjeno iz aplikacije — nitko nije istaknut
+  /// (stari zapisi [promotedUntil] se zanemaruju).
+  bool get isPromoted => false;
 
   /// Naziv trgovine: [shopName] ili korisničko ime.
   String get shopTitle => shopName.isNotEmpty ? shopName : handle;

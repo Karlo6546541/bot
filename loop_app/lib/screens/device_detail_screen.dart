@@ -14,7 +14,6 @@ import '../widgets/item_image.dart';
 import '../widgets/photo_viewer.dart';
 import '../widgets/trade_actions.dart';
 import 'auction_detail_screen.dart';
-import 'wishlists_screen.dart';
 import 'create_auction_screen.dart';
 import 'live_screens.dart';
 import 'messages_screen.dart';
@@ -95,9 +94,7 @@ class DeviceDetailScreen extends ConsumerWidget {
               key: const ValueKey('item-menu'),
               tooltip: t('Više'),
               onSelected: (v) {
-                if (v == 'save') {
-                  showSaveToListSheet(context, ref, device);
-                } else if (v == 'report' && owner != null) {
+                if (v == 'report' && owner != null) {
                   showReportSheet(
                     context,
                     ref,
@@ -108,15 +105,6 @@ class DeviceDetailScreen extends ConsumerWidget {
                 }
               },
               itemBuilder: (_) => [
-                PopupMenuItem(
-                  key: const ValueKey('save-item'),
-                  value: 'save',
-                  child: ListTile(
-                    contentPadding: EdgeInsets.zero,
-                    leading: const Icon(Icons.bookmarks_outlined),
-                    title: Text(t('Spremi u listu')),
-                  ),
-                ),
                 if (owner != null)
                   PopupMenuItem(
                     key: const ValueKey('report-item'),
@@ -233,12 +221,6 @@ class DeviceDetailScreen extends ConsumerWidget {
                         ]),
                         style: TextStyle(color: LoopColors.textSecondary),
                       ),
-                    ],
-                    if (owner != null &&
-                        owner.isPromoted &&
-                        device.isListed) ...[
-                      const SizedBox(height: 6),
-                      const PromotedBadge(),
                     ],
                     const SizedBox(height: 20),
                   ],

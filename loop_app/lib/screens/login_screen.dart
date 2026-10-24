@@ -44,12 +44,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   final _regEmail = TextEditingController();
   final _regUsername = TextEditingController();
   final _regPassword = TextEditingController();
-  final _regReferral = TextEditingController();
   // Gost koji je htio nešto napraviti najčešće još nema račun.
   late bool _register = widget.reason != null;
 
   bool get _overlay => widget.reason != null;
-  bool _showReferral = false;
   bool _loading = false;
   bool _obscure = true;
 
@@ -73,7 +71,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       _regEmail,
       _regUsername,
       _regPassword,
-      _regReferral,
     ]) {
       c.dispose();
     }
@@ -118,7 +115,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
             email: _regEmail.text,
             password: _regPassword.text,
             username: _regUsername.text,
-            referral: _regReferral.text,
           );
       if (result is NeedsEmailConfirmation && mounted) {
         await showDialog<void>(
@@ -259,26 +255,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       validator: (v) => AccountService.validatePassword(v ?? ''),
     ),
     const SizedBox(height: 8),
-    if (_showReferral)
-      TextFormField(
-        controller: _regReferral,
-        autocorrect: false,
-        decoration: InputDecoration(
-          labelText: t('Kod za poziv (neobavezno)'),
-          helperText: t('Korisničko ime prijatelja koji te pozvao.'),
-          prefixText: '@',
-          prefixIcon: const Icon(Icons.card_giftcard),
-        ),
-      )
-    else
-      Align(
-        alignment: Alignment.centerLeft,
-        child: TextButton.icon(
-          onPressed: () => setState(() => _showReferral = true),
-          icon: const Icon(Icons.card_giftcard, size: 18),
-          label: Text(t('Imaš kod za poziv?')),
-        ),
-      ),
     // Obvezan pristanak: Uvjeti i Pravila privatnosti (bez dobne granice).
     FormField<bool>(
       key: const ValueKey('accept-terms-field'),
