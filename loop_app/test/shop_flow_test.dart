@@ -84,15 +84,22 @@ void main() {
       'polaroid',
     );
     await tester.pumpAndSettle();
-    expect(find.text('Aukcije (1)'), findsOneWidget);
+    expect(find.text('Objave (1)'), findsOneWidget);
     expect(find.text('Polaroid SX-70'), findsOneWidget);
-    // Oglasi iz Marketa se više ne pretražuju.
+    // Pretražuju se i predmeti na Kupi odmah (naziv, model, opis…).
     await tester.enterText(
       find.byKey(const ValueKey('global-search')),
       'airpods',
     );
     await tester.pumpAndSettle();
-    expect(find.text('Aukcije (0)'), findsOneWidget);
+    expect(find.text('Objave (0)'), findsNothing);
+    expect(find.byKey(const ValueKey('search-posts')), findsOneWidget);
+    await tester.enterText(
+      find.byKey(const ValueKey('global-search')),
+      'nepostojeci predmet xyz',
+    );
+    await tester.pumpAndSettle();
+    expect(find.text('Objave (0)'), findsOneWidget);
     await tester.enterText(find.byKey(const ValueKey('global-search')), 'ana');
     await tester.pumpAndSettle();
     await tester.tap(find.text('Računi (1)'));

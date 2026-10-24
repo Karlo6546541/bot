@@ -5,7 +5,6 @@ import 'package:uuid/uuid.dart';
 import '../l10n/tr.dart';
 import '../models/app_notification.dart';
 import '../models/app_user.dart';
-import '../models/delivery.dart';
 import '../models/live_show.dart';
 import '../models/loop_transaction.dart';
 import '../utils/formatters.dart';
@@ -28,7 +27,6 @@ class LotState {
     required this.bids,
     required this.status,
     this.entrants = 0,
-    this.guesses = const [],
     this.maxes = const {},
   });
 
@@ -38,9 +36,6 @@ class LotState {
 
   /// Nagradna igra: koliko se gledatelja prijavilo.
   final int entrants;
-
-  /// "Pogodi cijenu": prva procjena svakog gledatelja (tijekom licitacije).
-  final List<LiveEvent> guesses;
 
   /// Početak i kraj licitacije (null dok je predmet na čekanju). Kraj
   /// uključuje produljenja zbog ponuda u zadnjim sekundama.
@@ -79,20 +74,6 @@ class LotState {
     return s == null
         ? lot.startPrice
         : lot.dutchPrice(now.difference(s), seconds);
-  }
-
-  /// Procjena s najbližom cijenom (nakon prodaje); kod jednake razlike
-  /// pobjeđuje ranija.
-  LiveEvent? get guessWinner {
-    if (status != LotStatus.sold || mode != LotMode.auction) return null;
-    LiveEvent? best;
-    for (final g in guesses) {
-      if (best == null ||
-          (g.amount - price).abs() < (best.amount - price).abs()) {
-        best = g;
-      }
-    }
-    return best;
   }
 }
 
@@ -246,7 +227,6 @@ class LiveService {
       final valid = <LiveEvent>[];
       var maxes = const <String, double>{};
       var entrants = 0;
-      final guesses = <LiveEvent>[];
       bool inWindow(LiveEvent e) =>
           !e.at.isBefore(start) &&
           !e.at.isAfter(end) &&
@@ -266,13 +246,6 @@ class LiveService {
           bidFeed.addAll(r.steps);
           maxes = r.maxes;
           end = r.end ?? end;
-          final seen = <String>{};
-          for (final g
-              in byLot[(LiveEventType.guess, i)] ?? const <LiveEvent>[]) {
-            if (inWindow(g) && g.amount > 0 && seen.add(g.userId)) {
-              guesses.add(g);
-            }
-          }
         case LotMode.dutch:
           // Prvi koji uzme kupuje po cijeni u tom trenutku.
           final take = (byLot[(LiveEventType.take, i)] ?? const <LiveEvent>[])
@@ -325,7 +298,6 @@ class LiveService {
               : valid,
           status: status,
           entrants: entrants,
-          guesses: guesses,
           maxes: maxes,
         ),
       );
@@ -801,34 +773,6 @@ class LiveService {
             e.type == LiveEventType.enter && e.userId == userId && e.lot == lot,
       );
 
-  /// "Pogodi cijenu": jedna procjena po predmetu dok traje licitacija.
-  /// Najbliža konačnoj cijeni dobiva 🎯.
-  Future<void> guess(
-    String userId,
-    String showId,
-    double amount, {
-    DateTime? now,
-  }) async {
-    final at = now ?? DateTime.now();
-    final (_, lot) = _viewerLot(userId, showId, LotMode.auction, at);
-    if (amount <= 0 || amount > TradeService.maxListPrice) {
-      throw TradeException(t('Upiši svoju procjenu u eurima.'));
-    }
-    if (lot.guesses.any((g) => g.userId == userId)) {
-      throw TradeException(t('Već si dao procjenu za ovaj predmet.'));
-    }
-    await _storage.putLiveEvent(
-      _event(
-        LiveEventType.guess,
-        userId,
-        showId,
-        at: at,
-        lot: lot.index,
-        amount: roundCredits(amount),
-      ),
-    );
-  }
-
   /// Zakazani live: "Podsjeti me" — obavijest kad domaćin krene uživo.
   Future<void> remind(String userId, String showId, {DateTime? now}) async {
     final user = _storage.userById(userId);
@@ -1124,41 +1068,16 @@ class LiveService {
       targetId: device.id,
       now: at,
     );
-    // Kao na Whatnotu: dostava ide automatski na spremljenu adresu, a sve
-    // što kupac osvoji u istom liveu putuje u jednom paketu (dostava se
-    // plaća samo jednom).
-    final address = winner.address?.trim();
-    final deliveries = DeliveryService(_storage);
-    if (address != null &&
-        DeliveryService.validate(DeliveryMethod.courier, address) == null) {
-      final bundled = _storage.deliveries.any(
-        (d) =>
-            d.buyerId == winner.id &&
-            d.id.startsWith('live-${show.id}-') &&
-            d.method != null &&
-            d.cost > 0,
-      );
-      await deliveries.createStarted(
-        id: txId,
-        userId: winner.id,
-        deviceId: device.id,
-        deviceName: l.lot.deviceName,
-        sellerId: seller.id,
-        method: DeliveryMethod.courier,
-        destination: address,
-        free: bundled,
-        now: at,
-      );
-    } else {
-      await deliveries.createPending(
-        id: txId,
-        userId: winner.id,
-        deviceId: device.id,
-        deviceName: l.lot.deviceName,
-        sellerId: seller.id,
-        now: at,
-      );
-    }
+    // Kupac sam bira način dostave (u "Moje → Kupljeno"); sve što osvoji
+    // u istom liveu putuje u jednom paketu i dostava se plaća jednom.
+    await DeliveryService(_storage).createPending(
+      id: txId,
+      userId: winner.id,
+      deviceId: device.id,
+      deviceName: l.lot.deviceName,
+      sellerId: seller.id,
+      now: at,
+    );
   }
 
   /// Briše događaje (chat, ponude) liveova završenih prije više od 2 dana.

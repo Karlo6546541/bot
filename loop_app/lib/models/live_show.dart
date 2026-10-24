@@ -254,8 +254,9 @@ class LiveLot {
 }
 
 /// Vrsta događaja u live aukciji: ponuda, poruka, ulazak, "uzimam"
-/// (pada cijena), prijava na nagradnu igru, procjena cijene (igra
-/// "Pogodi cijenu") i "podsjeti me" (zakazani live).
+/// (pada cijena), prijava na nagradnu igru, procjena cijene (stari zapisi
+/// uklonjene igre "Pogodi cijenu" — ne koriste se) i "podsjeti me"
+/// (zakazani live).
 enum LiveEventType { bid, chat, join, take, enter, guess, remind }
 
 /// Ponuda, poruka u chatu ili ulazak gledatelja. Svaki događaj je zaseban

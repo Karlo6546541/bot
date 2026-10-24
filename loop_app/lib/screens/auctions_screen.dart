@@ -18,6 +18,7 @@ import '../widgets/formatters.dart';
 import '../widgets/item_image.dart';
 import '../widgets/user_avatar.dart';
 import 'auction_detail_screen.dart';
+import 'deliveries_screen.dart';
 import 'create_auction_screen.dart';
 import 'live_screens.dart';
 import 'swipe_feed_screen.dart';
@@ -25,10 +26,10 @@ import '../l10n/tr.dart';
 
 /// Moje: na kojima licitiram, koje prodajem, moji liveovi i završene.
 enum AuctionView {
+  bought('Kupljeno', Icons.shopping_bag_outlined),
   myBids('Ponude', Icons.back_hand_outlined),
   mine('Prodajem', Icons.storefront_outlined),
-  lives('Liveovi', Icons.videocam_outlined),
-  ended('Završeno', Icons.history);
+  lives('Liveovi', Icons.videocam_outlined);
 
   const AuctionView(this._label, this.icon);
   final String _label;
@@ -724,15 +725,14 @@ class MyAuctionsView extends ConsumerStatefulWidget {
 }
 
 class _MyAuctionsViewState extends ConsumerState<MyAuctionsView> {
-  AuctionView _view = AuctionView.myBids;
+  /// Najprije ono što je kupljeno (i čeka odabir dostave).
+  AuctionView _view = AuctionView.bought;
 
   List<Auction> _filter(AppState s, String me) => switch (_view) {
     AuctionView.myBids =>
       s.auctions.where((a) => a.bids.any((b) => b.userId == me)).toList(),
     AuctionView.mine => s.auctions.where((a) => a.sellerId == me).toList(),
-    AuctionView.lives => const [],
-    AuctionView.ended =>
-      s.auctions.where((a) => !a.isActive).toList().reversed.toList(),
+    AuctionView.lives || AuctionView.bought => const [],
   };
 
   @override
@@ -741,7 +741,19 @@ class _MyAuctionsViewState extends ConsumerState<MyAuctionsView> {
     final me = s.currentUserId ?? '';
     final list = _filter(s, me);
     final lives = s.liveShows.where((l) => l.hostId == me).toList();
-    final empty = _view == AuctionView.lives ? lives.isEmpty : list.isEmpty;
+    // Kupljeno: prvo ono što čeka odabir dostave, zatim u dostavi.
+    final bought = [...s.myDeliveries]
+      ..sort((a, b) {
+        if (a.awaitingChoice != b.awaitingChoice) {
+          return a.awaitingChoice ? -1 : 1;
+        }
+        return b.createdAt.compareTo(a.createdAt);
+      });
+    final empty = switch (_view) {
+      AuctionView.lives => lives.isEmpty,
+      AuctionView.bought => bought.isEmpty,
+      _ => list.isEmpty,
+    };
 
     return CustomScrollView(
       slivers: [
@@ -768,23 +780,28 @@ class _MyAuctionsViewState extends ConsumerState<MyAuctionsView> {
           SliverFillRemaining(
             hasScrollBody: false,
             child: EmptyState(
-              icon: _view == AuctionView.lives
-                  ? Icons.videocam_outlined
-                  : Icons.gavel,
+              icon: switch (_view) {
+                AuctionView.lives => Icons.videocam_outlined,
+                AuctionView.bought => Icons.shopping_bag_outlined,
+                _ => Icons.gavel,
+              },
               title: switch (_view) {
+                AuctionView.bought => t('Još ništa nisi kupio'),
                 AuctionView.myBids => t('Još nisi dao nijednu ponudu'),
                 AuctionView.mine => t('Nemaš svojih aukcija'),
                 AuctionView.lives => t('Još nisi bio uživo'),
-                AuctionView.ended => t('Još nema završenih aukcija'),
               },
               message: switch (_view) {
-                AuctionView.myBids || AuctionView.ended => t(
+                AuctionView.bought => t(
+                  'Ovdje su tvoje kupnje i pobjede — odabereš dostavu i pratiš paket.',
+                ),
+                AuctionView.myBids => t(
                   'Licitiraj u liveu ili na aukciji — tvoje ponude bit će ovdje.',
                 ),
                 _ => t('Pokreni aukciju ili live i prodaj prvi predmet.'),
               },
               action: switch (_view) {
-                AuctionView.myBids || AuctionView.ended =>
+                AuctionView.myBids || AuctionView.bought =>
                   widget.onBrowse == null
                       ? null
                       : FilledButton.icon(
@@ -811,6 +828,20 @@ class _MyAuctionsViewState extends ConsumerState<MyAuctionsView> {
                 ),
               },
             ),
+          )
+        else if (_view == AuctionView.bought)
+          SliverList.list(
+            children: [
+              for (final d in bought)
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+                  child: DeliveryCard(
+                    key: ValueKey('bought-${d.id}'),
+                    delivery: d,
+                  ),
+                ),
+              const SizedBox(height: 96),
+            ],
           )
         else if (_view == AuctionView.lives)
           SliverList.list(

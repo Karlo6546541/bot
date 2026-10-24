@@ -1046,7 +1046,7 @@ class _LiveRoomViewState extends ConsumerState<LiveRoomView> {
             title: l.mode == LotMode.dutch
                 ? t('Kupljeno! 🎉')
                 : t('Osvojio si! 🎉'),
-            subtitle: t('Plaćeno karticom · šaljemo na tvoju adresu'),
+            subtitle: t('Plaćeno karticom · odaberi dostavu'),
             device: device,
             amount: l.price,
           );
@@ -1202,53 +1202,6 @@ class _LiveRoomViewState extends ConsumerState<LiveRoomView> {
       showLoopSnackBar(e.message, error: true);
     } finally {
       if (mounted) setState(() => _busy = false);
-    }
-  }
-
-  /// "Pogodi cijenu": tko je najbliže konačnoj cijeni, dobiva priznanje u
-  /// sobi (Whatnot to nema).
-  Future<void> _guess() async {
-    if (blockGuest(context)) return;
-    final controller = TextEditingController();
-    final amount = await showDialog<double>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text(t('🎯 Pogodi konačnu cijenu')),
-        content: TextField(
-          key: const ValueKey('live-guess-amount'),
-          controller: controller,
-          autofocus: true,
-          keyboardType: const TextInputType.numberWithOptions(decimal: true),
-          inputFormatters: [
-            FilteringTextInputFormatter.allow(RegExp(r'[0-9.,]')),
-          ],
-          decoration: InputDecoration(
-            suffixText: t('€'),
-            helperText: t('Najbliži pogodak se objavljuje u sobi'),
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: Text(t('Odustani')),
-          ),
-          FilledButton(
-            key: const ValueKey('live-guess-ok'),
-            onPressed: () => Navigator.pop(
-              ctx,
-              double.tryParse(controller.text.trim().replaceAll(',', '.')),
-            ),
-            child: Text(t('Pošalji')),
-          ),
-        ],
-      ),
-    );
-    controller.dispose();
-    if (amount == null || !mounted) return;
-    try {
-      await _app.liveGuess(widget.showId, amount);
-    } on TradeException catch (e) {
-      showLoopSnackBar(e.message, error: true);
     }
   }
 
@@ -1790,6 +1743,34 @@ class _LiveRoomViewState extends ConsumerState<LiveRoomView> {
                         ],
                       ),
                     ),
+                    // Osvojeno u ovom liveu, a dostava još nije odabrana.
+                    if (s.myDeliveries
+                            .where(
+                              (d) =>
+                                  d.awaitingChoice &&
+                                  d.id.startsWith('live-${show.id}-'),
+                            )
+                            .toList()
+                        case final pending when pending.isNotEmpty)
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(12, 0, 12, 6),
+                        child: FilledButton.icon(
+                          key: const ValueKey('live-choose-delivery'),
+                          style: FilledButton.styleFrom(
+                            backgroundColor: const Color(0xFF1FA463),
+                            foregroundColor: Colors.white,
+                            minimumSize: const Size.fromHeight(42),
+                          ),
+                          onPressed: () =>
+                              pickDelivery(context, ref, pending.first),
+                          icon: const Icon(Icons.local_shipping_outlined),
+                          label: Text(
+                            t('📦 Osvojio si {0} · Odaberi dostavu', [
+                              '${pending.length}',
+                            ]),
+                          ),
+                        ),
+                      ),
                     if (canAct && !st.isOver)
                       _ChatInput(controller: _chat, onSend: _send),
                     if (cur != null)
@@ -2016,33 +1997,8 @@ class _LiveRoomViewState extends ConsumerState<LiveRoomView> {
               child: Text(t('🎁 Sudjeluj besplatno')),
             );
     }
-    final guessed = cur.guesses.any((g) => g.userId == me);
-    // "Pogodi cijenu" tek kad se licitira (prije toga je samo gužva).
-    final Widget guessButton = cur.bidders == 0 && !guessed
-        ? const SizedBox.shrink()
-        : guessed
-        ? Text(
-            t('🎯 Tvoja procjena: {0}', [
-              formatCredits(
-                cur.guesses.firstWhere((g) => g.userId == me).amount,
-              ),
-            ]),
-            style: const TextStyle(color: Color(0xFFFFC233), fontSize: 12),
-          )
-        : TextButton.icon(
-            key: const ValueKey('live-guess'),
-            style: TextButton.styleFrom(
-              foregroundColor: const Color(0xFFFFC233),
-              visualDensity: VisualDensity.compact,
-            ),
-            onPressed: _guess,
-            icon: const Text('🎯'),
-            label: Text(t('Pogodi konačnu cijenu')),
-          );
-    if (cur.leader?.userId == me) {
-      return Column(children: [_leading(cur, me), guessButton]);
-    }
-    return Column(children: [_bidRow(cur), guessButton]);
+    if (cur.leader?.userId == me) return _leading(cur, me);
+    return _bidRow(cur);
   }
 
   Widget _leading(LotState cur, String? me) {
@@ -2289,10 +2245,6 @@ class _Recap extends StatelessWidget {
     final top = spent.entries.isEmpty
         ? null
         : spent.entries.reduce((a, b) => b.value > a.value ? b : a);
-    final guessers = [
-      for (final l in state.lots)
-        if (l.status == LotStatus.sold) ?l.guessWinner,
-    ];
     Widget row(String emoji, String text) => Padding(
       padding: const EdgeInsets.symmetric(vertical: 2),
       child: Text(
@@ -2331,13 +2283,6 @@ class _Recap extends StatelessWidget {
             row(
               '👑',
               t('Top kupac: {0}', [top.key == me ? t('ti') : names[top.key]!]),
-            ),
-          if (guessers.isNotEmpty)
-            row(
-              '🎯',
-              t('Najbolji pogađači: {0}', [
-                {for (final g in guessers) g.userLabel}.join(', '),
-              ]),
             ),
         ],
       ),
@@ -3295,27 +3240,6 @@ class _LotCard extends StatelessWidget {
                 ),
               ),
           ],
-          if (result)
-            if (lot.guessWinner case final g?)
-              Padding(
-                padding: const EdgeInsets.only(top: 6),
-                child: Text(
-                  g.userId == me
-                      ? t('🎯 Najbliže si pogodio cijenu ({0})', [
-                          formatCredits(g.amount),
-                        ])
-                      : t('🎯 {0} je najbliže pogodio cijenu ({1})', [
-                          g.userLabel,
-                          formatCredits(g.amount),
-                        ]),
-                  key: const ValueKey('live-guess-winner'),
-                  style: const TextStyle(
-                    color: _yellow,
-                    fontWeight: FontWeight.w700,
-                    shadows: _shadow,
-                  ),
-                ),
-              ),
         ],
       ),
     );

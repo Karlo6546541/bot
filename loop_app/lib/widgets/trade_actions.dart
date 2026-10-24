@@ -284,7 +284,7 @@ Future<bool> confirmAndBuy(
     await showCelebration(
       nav,
       title: t('Kupljeno! 🎉'),
-      subtitle: t('Prati dostavu u "Moje dostave"'),
+      subtitle: t('Paket pratiš u Moje → Kupljeno'),
       device: device,
       amount: buyTotal(price) + picked.method.cost,
     );

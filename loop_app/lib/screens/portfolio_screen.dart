@@ -3,21 +3,18 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../models/device.dart';
 import '../models/delivery.dart';
-import '../models/portfolio_point.dart';
 import '../providers/app_providers.dart';
-import '../providers/app_state.dart';
 import '../theme/app_theme.dart';
 import '../widgets/stories.dart';
-import '../widgets/category_style.dart';
 import '../widgets/device_card.dart';
 import '../widgets/empty_state.dart';
 import '../widgets/feed.dart';
 import '../widgets/formatters.dart';
-import '../widgets/portfolio_chart.dart';
 import '../widgets/trade_actions.dart';
 import 'auction_detail_screen.dart';
 import 'seller_screens.dart';
 import 'deliveries_screen.dart';
+import 'add_device_screen.dart';
 import 'device_detail_screen.dart';
 import '../l10n/tr.dart';
 
@@ -87,9 +84,9 @@ class PortfolioScreen extends ConsumerWidget {
   }
 }
 
-/// Moji predmeti: vrijednost kroz vrijeme, raspodjela i popis predmeta
-/// (otvara se iz kartice sa stanjem ili iz Profila).
-class MyItemsScreen extends ConsumerWidget {
+/// Moji predmeti — jednostavno: filtri (Sve · Na prodaji · Nije na prodaji ·
+/// Kupljeno) i popis, a svaki predmet ima jedan jasan gumb.
+class MyItemsScreen extends ConsumerStatefulWidget {
   const MyItemsScreen({super.key});
 
   static Future<void> open(BuildContext context) => Navigator.of(
@@ -97,58 +94,93 @@ class MyItemsScreen extends ConsumerWidget {
   ).push(MaterialPageRoute<void>(builder: (_) => const MyItemsScreen()));
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<MyItemsScreen> createState() => _MyItemsScreenState();
+}
+
+enum _ItemsFilter {
+  all('Sve'),
+  selling('Na prodaji'),
+  notSelling('Nije na prodaji'),
+  bought('Kupljeno');
+
+  const _ItemsFilter(this._label);
+  final String _label;
+  String get label => t(_label);
+}
+
+class _MyItemsScreenState extends ConsumerState<MyItemsScreen> {
+  _ItemsFilter _filter = _ItemsFilter.all;
+
+  @override
+  Widget build(BuildContext context) {
     final state = ref.watch(appProvider);
     final user = state.currentUser;
     if (user == null) return const Scaffold();
-    final devices = state.myDevices;
-    final portfolioValue = state.portfolioValueOf(user.id);
+    final mine = state.myDevices;
+    final digital = state.myDigitalPurchases;
+    bool selling(Device d) =>
+        d.isListed || state.activeAuctionFor(d.id) != null;
+    // Kupljeno: Kupi odmah, osvojeno na aukciji ili u liveu (ima pošiljku).
+    final boughtIds = {for (final x in state.myDeliveries) x.deviceId};
+    bool bought(Device d) =>
+        d.ownerId != user.id ||
+        boughtIds.contains(d.id) ||
+        state.hasPurchased(d.id);
+    final all = [...mine, ...digital];
+    final list = switch (_filter) {
+      _ItemsFilter.all => all,
+      _ItemsFilter.selling => mine.where(selling).toList(),
+      _ItemsFilter.notSelling =>
+        mine.where((d) => !selling(d) && !bought(d)).toList(),
+      _ItemsFilter.bought => all.where(bought).toList(),
+    };
     void onGoToMarket() {
       Navigator.of(context).popUntil((r) => r.isFirst);
       ref.read(homeTabProvider.notifier).select(1);
     }
 
     return Scaffold(
-      appBar: AppBar(title: Text(t('Moji predmeti'))),
+      appBar: AppBar(
+        title: Text(t('Moji predmeti')),
+        actions: [
+          IconButton(
+            key: const ValueKey('my-items-add'),
+            tooltip: t('Dodaj predmet'),
+            onPressed: () => AddDeviceScreen.open(context),
+            icon: const Icon(Icons.add),
+          ),
+        ],
+      ),
       body: CustomScrollView(
         slivers: [
           SliverToBoxAdapter(
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-              child: PortfolioChart(
-                history: state.myHistory,
-                current: PortfolioPoint(
-                  time: DateTime.now(),
-                  credits: user.credits,
-                  portfolio: portfolioValue,
-                ),
-              ),
-            ),
-          ),
-          if (devices.isNotEmpty)
-            SliverToBoxAdapter(
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-                child: _Breakdown.of(devices),
-              ),
-            ),
-          SliverToBoxAdapter(
-            child: Padding(
+            child: SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
               padding: const EdgeInsets.fromLTRB(16, 4, 16, 12),
-              child: Text(
-                t('Moji predmeti'),
-                style: Theme.of(
-                  context,
-                ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700),
+              child: Row(
+                children: [
+                  for (final f in _ItemsFilter.values)
+                    Padding(
+                      padding: const EdgeInsets.only(right: 8),
+                      child: ChoiceChip(
+                        key: ValueKey('my-items-${f.name}'),
+                        label: Text(f.label),
+                        selected: _filter == f,
+                        onSelected: (_) => setState(() => _filter = f),
+                      ),
+                    ),
+                ],
               ),
             ),
           ),
-          if (devices.isEmpty && state.myDigitalPurchases.isEmpty)
+          if (list.isEmpty)
             SliverFillRemaining(
               hasScrollBody: false,
               child: EmptyState(
                 icon: Icons.inventory_2_outlined,
-                title: t('Još nemaš predmeta'),
+                title: _filter == _ItemsFilter.all
+                    ? t('Još nemaš predmeta')
+                    : t('Ovdje još nema ničega'),
                 message: t('Dodaj svoj predmet ili kupi nešto.'),
                 action: OutlinedButton.icon(
                   onPressed: onGoToMarket,
@@ -159,9 +191,9 @@ class MyItemsScreen extends ConsumerWidget {
             )
           else
             DeviceGrid(
-              // Kupljeni digitalni proizvodi su također u portfoliju.
-              devices: [...devices, ...state.myDigitalPurchases],
+              devices: list,
               itemBuilder: (context, d) {
+                // Kupljeni digitalni proizvod: samo preuzimanje.
                 if (d.ownerId != user.id) {
                   return DeviceCard(
                     device: d,
@@ -174,30 +206,36 @@ class MyItemsScreen extends ConsumerWidget {
                   );
                 }
                 final auction = state.activeAuctionFor(d.id);
-                // Predmet na aukciji: umjesto prodaje vodi na aukciju.
+                // Jedan gumb: na aukciji → aukcija, inače detalji (tamo su
+                // Kupi odmah, Aukcija i Live).
                 return DeviceCard(
                   device: d,
                   actionLabel: auction != null
                       ? t('Na aukciji')
                       : d.isListed
                       ? t('Detalji')
-                      : t('Objavi za Kupi odmah'),
+                      : t('Prodaj'),
                   actionIcon: auction != null
                       ? Icons.gavel
                       : d.isListed
                       ? Icons.info_outline
-                      : Icons.storefront_outlined,
+                      : Icons.sell_outlined,
                   onAction: auction != null
                       ? () => AuctionDetailScreen.open(context, auction.id)
-                      : d.isListed
-                      ? () => DeviceDetailScreen.open(context, d)
-                      : () => showListDialog(context, ref, d),
+                      : () => DeviceDetailScreen.open(context, d),
                   onTap: () => DeviceDetailScreen.open(context, d),
                   sellerView: true,
-                  badge: d.isListed ? t('🏷️ Kupi odmah') : null,
+                  badge: auction != null
+                      ? t('⏱ Na aukciji')
+                      : d.isListed
+                      ? t('🏷️ Na prodaji')
+                      : bought(d)
+                      ? t('✓ Kupljeno')
+                      : null,
                 );
               },
             ),
+          const SliverToBoxAdapter(child: SizedBox(height: 32)),
         ],
       ),
     );
@@ -434,124 +472,6 @@ class _HowItWorks extends ConsumerWidget {
                         ),
                       ],
                     ),
-                  ),
-              ],
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _Slice {
-  const _Slice(this.label, this.icon, this.color, this.value);
-  final String label;
-  final IconData icon;
-  final Color color;
-  final double value;
-}
-
-/// Raspodjela vrijednosti portfolija (segmentirana traka). Grupira po
-/// odjeljcima; ako su svi predmeti u jednom odjeljku, po kategorijama.
-/// Redoslijed segmenata prati fiksni red odjeljaka/kategorija, pa boja
-/// uvijek pripada istom entitetu.
-class _Breakdown extends StatelessWidget {
-  const _Breakdown({required this.title, required this.slices});
-
-  factory _Breakdown.of(List<Device> devices) {
-    final bySection = AppState.valueBySection(devices);
-    if (bySection.length > 1) {
-      return _Breakdown(
-        title: t('Raspodjela po odjeljcima'),
-        slices: [
-          for (final sec in ItemSection.values)
-            if (bySection[sec] != null)
-              _Slice(sec.label, sec.icon, sec.color, bySection[sec]!),
-        ],
-      );
-    }
-    final byCat = AppState.valueByCategory(devices);
-    return _Breakdown(
-      title: t('Raspodjela po kategorijama'),
-      slices: [
-        for (final c in DeviceCategory.values)
-          if (byCat[c] != null) _Slice(c.label, c.icon, c.color, byCat[c]!),
-      ],
-    );
-  }
-
-  final String title;
-  final List<_Slice> slices;
-
-  @override
-  Widget build(BuildContext context) {
-    final total = slices.fold(0.0, (sum, x) => sum + x.value);
-    String pct(_Slice x) => '${(x.value / total * 100).round()}%';
-
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(title, style: const TextStyle(fontWeight: FontWeight.w700)),
-            const SizedBox(height: 12),
-            ClipRRect(
-              borderRadius: BorderRadius.circular(999),
-              child: SizedBox(
-                height: 12,
-                child: Row(
-                  children: [
-                    for (var i = 0; i < slices.length; i++) ...[
-                      // 2px razmak u boji pozadine između segmenata.
-                      if (i > 0) const SizedBox(width: 2),
-                      Expanded(
-                        // flex mora biti cijeli broj; promili su dovoljno precizni.
-                        flex: (slices[i].value / total * 1000).round().clamp(
-                          1,
-                          1000,
-                        ),
-                        child: Tooltip(
-                          message:
-                              '${slices[i].label}: ${formatCredits(slices[i].value)} (${pct(slices[i])})',
-                          child: Container(color: slices[i].color),
-                        ),
-                      ),
-                    ],
-                  ],
-                ),
-              ),
-            ),
-            const SizedBox(height: 12),
-            // Legenda: obojena oznaka uz tekst u neutralnoj boji.
-            Wrap(
-              spacing: 16,
-              runSpacing: 8,
-              children: [
-                for (final x in slices)
-                  Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Container(
-                        width: 10,
-                        height: 10,
-                        decoration: BoxDecoration(
-                          color: x.color,
-                          borderRadius: BorderRadius.circular(3),
-                        ),
-                      ),
-                      const SizedBox(width: 6),
-                      Icon(x.icon, size: 14, color: LoopColors.textSecondary),
-                      const SizedBox(width: 4),
-                      Text(
-                        '${x.label} · ${pct(x)}',
-                        style: TextStyle(
-                          color: LoopColors.textSecondary,
-                          fontSize: 12,
-                        ),
-                      ),
-                    ],
                   ),
               ],
             ),

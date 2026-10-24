@@ -2180,6 +2180,21 @@ const kEn = <String, String>{
   'Obrt': 'Sole trader',
   'Ostalo': 'Other',
   'Prvo odaberi način dostave': 'Choose a delivery method first',
-  'BOX NOW karta se nije otvorila — odaberi paketomat s popisa.': 'The BOX NOW map did not open — pick a locker from the list.',
+  'BOX NOW karta se nije otvorila — odaberi paketomat s popisa.':
+      'The BOX NOW map did not open — pick a locker from the list.',
   'Karta ne radi? Odaberi s popisa': 'Map not working? Pick from the list',
+  'Još ništa nisi kupio': 'You haven\'t bought anything yet',
+  'Osvojeno u liveu · odaberi dostavu': 'Won in a live show · choose delivery',
+  'Ovdje su tvoje kupnje i pobjede — odabereš dostavu i pratiš paket.':
+      'Your purchases and wins are here — choose delivery and track the parcel.',
+  'Plaćeno karticom · odaberi dostavu': 'Paid by card · choose delivery',
+  'Prodaj': 'Sell',
+  'Traži liveove, aukcije, predmete i račune…':
+      'Search live shows, auctions, items and accounts…',
+  '⏱ Na aukciji': '⏱ In auction',
+  '🏷️ Na prodaji': '🏷️ For sale',
+  '📦 Osvojio si {0} · Odaberi dostavu': '📦 You won {0} · Choose delivery',
+  'Kupljeno': 'Bought',
+  'Nije na prodaji': 'Not for sale',
+  'Paket pratiš u Moje → Kupljeno': 'Track the parcel in My → Bought',
 };

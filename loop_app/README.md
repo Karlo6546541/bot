@@ -282,10 +282,9 @@ ne sinkronizira; online prijavu vodi Supabase Auth i lozinke ne prolaze kroz na�
     najniže; prvi koji klikne *Uzmi* kupuje po trenutnoj cijeni;
   - 🎁 **Nagradna igra** — besplatno; gledatelji se prijave, a dobitnik se na kraju izvlači
     (isti na svakom uređaju) i dobiva obavijest za dostavu.
-- **Čega Whatnot nema**: 🎯 **Pogodi cijenu** (jedna procjena po predmetu, najbliži pogodak
-  se objavljuje u sobi), 💎 **procjena vrijednosti** uz cijenu (*−X % ispod procjene*),
+- **Čega Whatnot nema**: 💎 **procjena vrijednosti** uz cijenu (*−X % ispod procjene*),
   🔥 **hype-metar** (koliko je soba živa u zadnjih 30 s), **sažetak** na kraju livea
-  (prodano, ukupno, najtraženije, top kupac, najbolji pogađači) s dijeljenjem, te
+  (prodano, ukupno, najtraženije, top kupac) s dijeljenjem, te
   *Prati* i *Podijeli* u gornjoj traci sobe. Za zakazani live **Podsjeti me** šalje
   obavijest čim domaćin krene.
 - **Pravila**: licitira se jedan predmet u isto vrijeme; ponuda u zadnjih 10 s vraća sat
@@ -414,7 +413,16 @@ dati na pregled odvjetniku prije pokretanja s pravim novcem):
   predmetu se bira **Kupi odmah**, **Aukcija**, **Live** ili *Samo spremi*. Na detaljima
   vlastitog predmeta: *Kupi odmah · fiksna cijena* / *Stavi na aukciju* / *Pokaži u liveu*;
   predmet na prodaji pokazuje koliko dobivaš nakon provizije.
-- **Moje**: *Moje ponude*, *Moje aukcije*, *Moji liveovi*, *Završene*.
+- **Moje**: **Kupljeno** (prvo — sve kupnje i pobjede sa slikom; što čeka dostavu je na vrhu s
+  gumbom *Odaberi dostavu*, ostalo s praćenjem paketa) · *Ponude* · *Prodajem* · *Liveovi*.
+- **Dostava nakon pobjede u liveu**: ništa ne kreće samo — u sobi se pojavi gumb *📦 Osvojio
+  si N · Odaberi dostavu* (i u *Moje → Kupljeno*). Odabir vrijedi za sve osvojeno u istom
+  liveu: jedan paket, dostava se plaća jednom.
+- **Pretraga** traži liveove, aukcije **i predmete na Kupi odmah** (naziv, model,
+  kategorija, opis, prodavač) te račune.
+- **Moji predmeti** (Profil): bez grafikona — filtri *Sve · Na prodaji · Nije na prodaji ·
+  Kupljeno*, oznaka stanja na kartici i jedan gumb (*Prodaj* / *Detalji* / *Na aukciji* /
+  *Preuzmi*); *+* dodaje novi predmet.
 - **Profil** u tri skupine: *Prodajem* (trgovina, moji predmeti, zarada i isplata) ·
   *Kupujem* (kartica i adresa, dostave, povijest) · *Račun* i *Postavke* (uvjeti, izgled,
   jezik). Javna trgovina prikazuje live (ako je uživo), aukcije i ocjene.
@@ -434,8 +442,8 @@ dati na pregled odvjetniku prije pokretanja s pravim novcem):
   i kupuje. Nestaje sam kad live završi.
 - **Domaćin livea**: jedan veliki gumb *▶ Sljedeći: predmet*, **⚡ Brzo dodaj** (samo naziv i
   cijena — predmet se sam sprema u Moje predmete; *Ponovi zadnji*) i izbornik ⋮ (*Dodaj iz
-  mojih predmeta*, *Završi live*). Mjerač atmosfere i *Pogodi cijenu* pojavljuju se tek kad
-  se licitira.
+  mojih predmeta*, *Završi live*). Mjerač atmosfere pojavljuje se tek kad se licitira.
+  Igra *Pogodi cijenu* je uklonjena (previše za korisnike).
 - **Dodavanje predmeta**: fotografije, naziv, cijena, kategorija (predložena iz naziva), a
   model, opis, stanje i količina su u *Više detalja (neobavezno)*.
 - Pretraga traži live aukcije, aukcije, predmete i račune.

@@ -9,6 +9,8 @@ import 'package:loop_app/models/device.dart';
 import 'package:loop_app/models/loop_transaction.dart';
 import 'package:loop_app/providers/app_providers.dart';
 import 'package:loop_app/models/live_show.dart';
+import 'package:loop_app/models/delivery.dart';
+import 'package:loop_app/services/delivery_service.dart';
 import 'package:loop_app/services/live_service.dart';
 import 'package:loop_app/services/live_video.dart';
 import 'package:loop_app/widgets/live_video_view.dart';
@@ -419,6 +421,36 @@ void main() {
     });
 
     test(
+      'kupac bira dostavu; sve iz istog livea ide u jednom paketu',
+      () async {
+        final id = await start();
+        await live.bid(bob, id, 3, now: at(5));
+        await live.startLot(host, id, index: 1, now: at(40));
+        await live.bid(bob, id, 2, now: at(45));
+        await live.settleDue(userId: bob, now: at(80));
+        final first = storage.deliveryById('live-$id-0')!;
+        final second = storage.deliveryById('live-$id-1')!;
+        // Ništa ne kreće samo — kupac bira način dostave.
+        expect(first.awaitingChoice, isTrue);
+        expect(second.awaitingChoice, isTrue);
+        expect(DeliveryService.liveParcel(first.id), 'live-$id');
+        await DeliveryService(storage).choose(
+          userId: bob,
+          deliveryId: first.id,
+          method: DeliveryMethod.courier,
+          destination: 'Ilica 1, 10000 Zagreb',
+          now: at(90),
+        );
+        final a = storage.deliveryById(first.id)!;
+        final b = storage.deliveryById(second.id)!;
+        expect(a.method, DeliveryMethod.courier);
+        expect(b.method, DeliveryMethod.courier);
+        // Dostava se plaća jednom za cijeli paket.
+        expect(a.cost + b.cost, DeliveryMethod.courier.cost);
+      },
+    );
+
+    test(
       'domaćin završi live usred licitacije — ništa se ne prodaje',
       () async {
         final id = await start();
@@ -609,28 +641,6 @@ void main() {
         ),
         isTrue,
       );
-    });
-
-    test('pogodi cijenu: najbliži pogodak, jednom po predmetu', () async {
-      final id = await start();
-      await live.guess(bob, id, 10, now: at(2));
-      await live.guess(ana, id, 4, now: at(3));
-      await live.guess(marko, id, 6, now: at(4));
-      await expectLater(
-        live.guess(bob, id, 5, now: at(5)),
-        throwsA(isA<TradeException>()),
-      );
-      await expectLater(
-        live.guess(ana, id, 0, now: at(5)),
-        throwsA(isA<TradeException>()),
-      );
-      await live.bid(bob, id, 5, now: at(6));
-      await live.bid(ana, id, 5, now: at(7)); // jednako — Bob vodi s 5 €
-      expect(state(id, 7).current!.guessWinner, isNull);
-      final lot = state(id, 40).lots[0];
-      expect(lot.price, 5);
-      // 4 i 6 su jednako blizu — pobjeđuje raniji.
-      expect(lot.guessWinner!.userId, ana);
     });
 
     test('podsjeti me: obavijest kad zakazani live krene', () async {
@@ -1098,6 +1108,32 @@ void main() {
     );
     await tester.pumpAndSettle();
     expect(find.text('🏆 Osvojio si!'), findsOneWidget);
+
+    // Osvojeno → u sobi gumb za odabir dostave (ništa ne kreće samo).
+    final app = ProviderScope.containerOf(
+      tester.element(find.byType(LoopApp)),
+    ).read(appProvider.notifier);
+    await tester.runAsync(app.settleLive);
+    await tester.pumpAndSettle();
+    final choose = find.byKey(const ValueKey('live-choose-delivery'));
+    expect(choose, findsOneWidget);
+    await tester.tap(choose);
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('delivery-courier')));
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(find.text('Potvrdi · 6 €'));
+    await tester.runAsync(() => tester.tap(find.text('Potvrdi · 6 €')));
+    await tester.runAsync(
+      () => Future<void>.delayed(const Duration(milliseconds: 900)),
+    );
+    await tester.pumpAndSettle();
+    expect(choose, findsNothing);
+    expect(
+      storage.deliveries
+          .where((d) => d.buyerId == host && d.method != null)
+          .length,
+      1,
+    );
 
     // Domaćin pokreće nagradnu igru — gledatelj se prijavljuje.
     await tester.runAsync(() async {

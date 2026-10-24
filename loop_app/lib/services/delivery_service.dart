@@ -126,7 +126,15 @@ class DeliveryService {
     return _start(d, userId, method, destination, now: now, free: free);
   }
 
-  /// Pobjednik aukcije bira način dostave.
+  /// Predmeti osvojeni u istom liveu (isti paket): pošiljke `live-<id>-<n>`.
+  static String? liveParcel(String deliveryId) {
+    final m = RegExp(r'^(live-.+)-\d+$').firstMatch(deliveryId);
+    return m?.group(1);
+  }
+
+  /// Pobjednik aukcije ili livea bira način dostave. Za predmete iz istog
+  /// livea odabir vrijedi za cijeli paket: plaća se jednom, ostali idu
+  /// besplatno s njim.
   Future<Delivery> choose({
     required String userId,
     required String deliveryId,
@@ -141,7 +149,31 @@ class DeliveryService {
     if (!d.awaitingChoice) {
       throw TradeException(t('Dostava je već odabrana.'));
     }
-    return _start(d, userId, method, destination, now: now);
+    final parcel = liveParcel(d.id);
+    if (parcel == null) {
+      return _start(d, userId, method, destination, now: now);
+    }
+    final same = [
+      for (final x in _storage.deliveries)
+        if (x.buyerId == userId && liveParcel(x.id) == parcel) x,
+    ];
+    // Već plaćena dostava za ovaj live → i ovaj predmet ide besplatno.
+    var paid = same.any((x) => x.method != null && x.cost > 0);
+    Delivery? first;
+    for (final x in [d, ...same.where((x) => x.id != d.id)]) {
+      if (!x.awaitingChoice) continue;
+      final started = await _start(
+        x,
+        userId,
+        method,
+        destination,
+        now: now,
+        free: paid,
+      );
+      paid = paid || started.cost > 0;
+      first ??= started;
+    }
+    return first!;
   }
 
   Future<Delivery> _start(

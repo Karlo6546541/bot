@@ -1283,12 +1283,6 @@ class AppController extends Notifier<AppState> {
     _refresh();
   }
 
-  /// "Pogodi cijenu".
-  Future<void> liveGuess(String showId, double amount) async {
-    await _live.guess(_requireUserId(), showId, amount);
-    _refresh();
-  }
-
   /// "Podsjeti me" za zakazani live.
   Future<void> liveRemind(String showId) async {
     await _live.remind(_requireUserId(), showId);

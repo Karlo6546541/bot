@@ -72,6 +72,17 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
             !s.isBlocked(a.sellerId) &&
             _matches('${a.deviceName} ${a.sellerLabel}', terms))
           FeedEntry.auction(a.id),
+      // Kupi odmah: tuđi predmeti na prodaji (naziv, model, kategorija,
+      // opis i prodavač).
+      for (final d in s.marketDevices)
+        if (d.isListed &&
+            !s.isBlocked(d.ownerId!) &&
+            _matches(
+              '${d.name} ${d.model} ${d.category.label} ${d.description} '
+              '${s.userById(d.ownerId)?.handle ?? ''}',
+              terms,
+            ))
+          FeedEntry.item(d.id),
     ];
   }
 
@@ -115,7 +126,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
             onChanged: (v) => setState(() => _q = v),
             onSubmitted: (v) => ref.read(appProvider.notifier).addSearch(v),
             decoration: InputDecoration(
-              hintText: t('Traži objave i račune…'),
+              hintText: t('Traži liveove, aukcije, predmete i račune…'),
               prefixIcon: const Icon(Icons.search),
               suffixIcon: _q.isEmpty
                   ? null
@@ -128,7 +139,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
           ),
           bottom: TabBar(
             tabs: [
-              Tab(text: t('Aukcije ({0})', ['${posts.length}'])),
+              Tab(text: t('Objave ({0})', ['${posts.length}'])),
               Tab(text: t('Računi ({0})', ['${accounts.length}'])),
             ],
           ),

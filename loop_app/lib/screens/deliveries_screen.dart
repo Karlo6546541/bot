@@ -10,6 +10,7 @@ import '../services/delivery_service.dart';
 import '../theme/app_theme.dart';
 import '../widgets/community_widgets.dart';
 import '../widgets/delivery_picker.dart';
+import '../widgets/item_image.dart';
 import '../widgets/empty_state.dart';
 import '../widgets/formatters.dart';
 import '../widgets/trade_actions.dart';
@@ -94,37 +95,41 @@ class _DeliveriesScreenState extends ConsumerState<DeliveriesScreen> {
   }
 }
 
+/// Kupac bira način dostave za kupljeni/osvojeni predmet (za predmete iz
+/// istog livea odabir vrijedi za cijeli paket).
+Future<void> pickDelivery(
+  BuildContext context,
+  WidgetRef ref,
+  Delivery delivery,
+) async {
+  final device = ref.read(appProvider).deviceById(delivery.deviceId);
+  final methods = device == null
+      ? DeliveryMethod.values.where((m) => m != DeliveryMethod.digital).toList()
+      : DeliveryService.methodsFor(device);
+  final choice = await showModalBottomSheet<DeliveryChoice>(
+    context: context,
+    isScrollControlled: true,
+    showDragHandle: true,
+    backgroundColor: LoopColors.background,
+    constraints: const BoxConstraints(maxWidth: 560),
+    builder: (_) => _ChooseSheet(
+      methods: methods,
+      savedAddress: ref.read(appProvider).currentUser?.address,
+    ),
+  );
+  if (choice == null || !context.mounted) return;
+  await runWithLoading(
+    context,
+    () => ref
+        .read(appProvider.notifier)
+        .chooseDelivery(delivery.id, choice.method, choice.destination),
+    successMessage: t('Dostava je krenula 🚚'),
+  );
+}
+
 class DeliveryCard extends ConsumerWidget {
   const DeliveryCard({super.key, required this.delivery});
   final Delivery delivery;
-
-  Future<void> _choose(BuildContext context, WidgetRef ref) async {
-    final device = ref.read(appProvider).deviceById(delivery.deviceId);
-    final methods = device == null
-        ? DeliveryMethod.values
-              .where((m) => m != DeliveryMethod.digital)
-              .toList()
-        : DeliveryService.methodsFor(device);
-    final choice = await showModalBottomSheet<DeliveryChoice>(
-      context: context,
-      isScrollControlled: true,
-      showDragHandle: true,
-      backgroundColor: LoopColors.background,
-      constraints: const BoxConstraints(maxWidth: 560),
-      builder: (_) => _ChooseSheet(
-        methods: methods,
-        savedAddress: ref.read(appProvider).currentUser?.address,
-      ),
-    );
-    if (choice == null || !context.mounted) return;
-    await runWithLoading(
-      context,
-      () => ref
-          .read(appProvider.notifier)
-          .chooseDelivery(delivery.id, choice.method, choice.destination),
-      successMessage: t('Dostava je krenula 🚚'),
-    );
-  }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -143,21 +148,31 @@ class DeliveryCard extends ConsumerWidget {
           children: [
             Row(
               children: [
-                Container(
-                  width: 44,
-                  height: 44,
-                  decoration: BoxDecoration(
-                    color: delivered ? LoopColors.mint : LoopColors.peach,
+                // Slika kupljenog predmeta (ako ga još imamo), inače ikona.
+                if (ref.watch(
+                      appProvider.select((s) => s.deviceById(d.deviceId)),
+                    )
+                    case final device?)
+                  ClipRRect(
                     borderRadius: BorderRadius.circular(12),
+                    child: ItemThumb(device: device, size: 52),
+                  )
+                else
+                  Container(
+                    width: 52,
+                    height: 52,
+                    decoration: BoxDecoration(
+                      color: delivered ? LoopColors.mint : LoopColors.peach,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Icon(
+                      m == null
+                          ? Icons.help_outline
+                          : delivered
+                          ? Icons.check_circle_outline
+                          : deliveryIcon(m),
+                    ),
                   ),
-                  child: Icon(
-                    m == null
-                        ? Icons.help_outline
-                        : delivered
-                        ? Icons.check_circle_outline
-                        : deliveryIcon(m),
-                  ),
-                ),
                 const SizedBox(width: 12),
                 Expanded(
                   child: Column(
@@ -171,7 +186,9 @@ class DeliveryCard extends ConsumerWidget {
                       ),
                       Text(
                         m == null
-                            ? d.fromAuction
+                            ? d.id.startsWith('live-')
+                                  ? t('Osvojeno u liveu · odaberi dostavu')
+                                  : d.fromAuction
                                   ? t('Osvojeno na aukciji · odaberi dostavu')
                                   : t('Zamjena · odaberi dostavu')
                             : '${m.label}${d.destination != null ? ' · ${d.destination}' : ''}',
@@ -190,7 +207,8 @@ class DeliveryCard extends ConsumerWidget {
             if (m == null) ...[
               const SizedBox(height: 12),
               FilledButton.icon(
-                onPressed: () => _choose(context, ref),
+                key: ValueKey('delivery-pick-${d.id}'),
+                onPressed: () => pickDelivery(context, ref, delivery),
                 icon: const Icon(Icons.local_shipping_outlined),
                 label: Text(t('Odaberi dostavu')),
               ),

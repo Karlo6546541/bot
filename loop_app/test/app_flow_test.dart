@@ -6,6 +6,7 @@ import 'package:loop_app/app.dart';
 import 'package:loop_app/l10n/tr.dart';
 import 'package:loop_app/providers/app_providers.dart';
 import 'package:loop_app/screens/home_shell.dart';
+import 'package:loop_app/widgets/device_card.dart';
 import 'package:loop_app/screens/seller_screens.dart';
 import 'package:loop_app/screens/swipe_feed_screen.dart';
 import 'package:loop_app/widgets/feed.dart' show FeedEntry;
@@ -120,8 +121,11 @@ void main() {
       await tester.tap(find.byTooltip('Natrag'));
       await tester.pumpAndSettle();
 
-      // Moje → Moje ponude.
+      // Moje → Kupljeno (prvo), pa Ponude.
       await tester.tap(find.text('Moje').last);
+      await tester.pumpAndSettle();
+      expect(find.byKey(const ValueKey('my-bought')), findsOneWidget);
+      await tester.tap(find.byKey(const ValueKey('my-myBids')));
       await tester.pumpAndSettle();
       expect(find.text('Polaroid SX-70'), findsOneWidget);
       expect(find.text('Vodiš'), findsOneWidget);
@@ -163,26 +167,20 @@ void main() {
     await tester.tap(find.text('Prijavi se'));
     await tester.pumpAndSettle();
 
-    // Grafikon (Moji predmeti) i promjena raspona.
+    // Moji predmeti: bez grafikona, samo filtri i popis.
     await openMyItems(tester);
-    expect(find.text('Vrijednost kroz vrijeme'), findsOneWidget);
-    await tester.tap(find.text('Sve'));
+    expect(find.text('Vrijednost kroz vrijeme'), findsNothing);
+    expect(find.byKey(const ValueKey('my-items-all')), findsOneWidget);
+    final all = find.byType(DeviceCard).evaluate().length;
+    expect(all, greaterThan(0));
+    await tester.tap(find.byKey(const ValueKey('my-items-selling')));
     await tester.pumpAndSettle();
-    expect(find.textContaining('ukupno'), findsOneWidget);
-    // Hover/dodir na grafikon prikazuje tooltip s iznosom.
-    final chart = find
-        .byType(CustomPaint)
-        .evaluate()
-        .map((e) => e.widget)
-        .whereType<CustomPaint>()
-        .where((w) => w.painter?.runtimeType.toString() == '_ChartPainter');
-    expect(chart, isNotEmpty);
-    // Tablični prikaz.
-    await tester.tap(find.byTooltip('Prikaži tablicu'));
+    final selling = find.byType(DeviceCard).evaluate().length;
+    await tester.tap(find.byKey(const ValueKey('my-items-notSelling')));
     await tester.pumpAndSettle();
-    expect(find.text('Ukupno'), findsOneWidget);
-    await tester.pageBack();
-    await tester.pumpAndSettle();
+    final notSelling = find.byType(DeviceCard).evaluate().length;
+    expect(selling + notSelling, lessThanOrEqualTo(all));
+    expect(selling + notSelling, greaterThan(0));
   });
 
   testWidgets('aukcija: ponuda, vodstvo, zaključan obrazac', (tester) async {
