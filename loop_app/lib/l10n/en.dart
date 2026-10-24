@@ -2180,4 +2180,6 @@ const kEn = <String, String>{
   'Obrt': 'Sole trader',
   'Ostalo': 'Other',
   'Prvo odaberi način dostave': 'Choose a delivery method first',
+  'BOX NOW karta se nije otvorila — odaberi paketomat s popisa.': 'The BOX NOW map did not open — pick a locker from the list.',
+  'Karta ne radi? Odaberi s popisa': 'Map not working? Pick from the list',
 };

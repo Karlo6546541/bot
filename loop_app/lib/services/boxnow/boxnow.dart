@@ -73,7 +73,7 @@ class BoxNow {
   static const partnerId = String.fromEnvironment('BOXNOW_PARTNER_ID');
   static const scriptUrl = String.fromEnvironment(
     'BOXNOW_WIDGET_JS',
-    defaultValue: 'https://widget-cdn.boxnow.hr/map-widget/client/v1.js',
+    defaultValue: 'https://widget-cdn.boxnow.hr/map-widget/client/v5.js',
   );
 
   /// Karta postoji samo u pregledniku.

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../models/delivery.dart';
 import '../services/boxnow/boxnow.dart';
+import 'loop_snackbar.dart';
 import '../theme/app_theme.dart';
 import 'formatters.dart';
 import '../l10n/tr.dart';
@@ -75,6 +76,9 @@ class _DeliveryPickerState extends State<DeliveryPicker> {
         case BoxNowUnavailable():
           // Karta se nije učitala — bira se s popisa.
           _mapFailed = true;
+          showLoopSnackBar(
+            t('BOX NOW karta se nije otvorila — odaberi paketomat s popisa.'),
+          );
         case BoxNowClosed():
           break;
       }
@@ -207,6 +211,17 @@ class _DeliveryPickerState extends State<DeliveryPicker> {
         if ((_method?.needsLocker ?? false) && !_mapFailed) ...[
           const SizedBox(height: 4),
           _BoxNowTile(locker: _boxNow, onPick: _pickOnMap),
+          Align(
+            alignment: Alignment.centerLeft,
+            child: TextButton(
+              key: const ValueKey('boxnow-list'),
+              onPressed: () {
+                setState(() => _mapFailed = true);
+                _emit();
+              },
+              child: Text(t('Karta ne radi? Odaberi s popisa')),
+            ),
+          ),
         ],
         if ((_method?.needsLocker ?? false) && _mapFailed) ...[
           const SizedBox(height: 4),

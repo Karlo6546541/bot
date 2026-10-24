@@ -77,8 +77,9 @@ web.HTMLElement _ensureElements() {
   var button =
       doc.querySelector('.boxnow-map-widget-button') as web.HTMLElement?;
   if (button == null) {
+    // Obje klase: dokumentacija spominje i jednu i drugu.
     button = doc.createElement('a') as web.HTMLAnchorElement
-      ..className = 'boxnow-map-widget-button'
+      ..className = 'boxnow-map-widget-button boxnow-widget-button'
       ..href = 'javascript:;'
       ..style.display = 'none';
     doc.body!.append(button);
@@ -91,6 +92,7 @@ void _configure(String partnerId) {
     ..['parentElement'] = '#boxnowmap'.toJS
     ..['type'] = 'popup'.toJS
     ..['autoclose'] = true.toJS
+    ..['buttonSelector'] = '.boxnow-map-widget-button'.toJS
     ..['afterSelect'] = ((JSAny? data) {
       final locker = _read(data);
       if (locker != null) _finish(BoxNowPicked(locker));
@@ -132,5 +134,20 @@ Future<BoxNowPick> boxNowPick(String partnerId, String scriptUrl) async {
     return c.future;
   }
   button.click();
+  // Ako se karta nakon nekoliko sekundi ne pojavi (npr. drukčija verzija
+  // skripte ili blokirana), prelazi se na popis paketomata.
+  Future<void>.delayed(const Duration(seconds: 5), () {
+    if (identical(_pending, c) && !c.isCompleted && !_mapVisible()) {
+      _finish(const BoxNowUnavailable());
+    }
+  });
   return c.future;
+}
+
+/// Je li BOX NOW karta otvorena (iframe ili sadržaj u #boxnowmap).
+bool _mapVisible() {
+  final doc = web.document;
+  if (doc.querySelector('iframe[src*="boxnow"]') != null) return true;
+  final map = doc.getElementById('boxnowmap');
+  return map != null && map.childElementCount > 0;
 }
