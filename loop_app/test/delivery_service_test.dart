@@ -5,6 +5,7 @@ import 'package:hive/hive.dart';
 import 'package:loop_app/models/delivery.dart';
 import 'package:loop_app/models/loop_transaction.dart';
 import 'package:loop_app/services/auction_service.dart';
+import 'package:loop_app/services/boxnow/boxnow.dart';
 import 'package:loop_app/services/delivery_service.dart';
 import 'package:loop_app/services/seed_data.dart';
 import 'package:loop_app/services/storage_service.dart';
@@ -82,6 +83,27 @@ void main() {
       DeliveryService.validate(DeliveryMethod.parcelLocker, kDemoLockers.first),
       isNull,
     );
+  });
+
+  test('BOX NOW paketomat s karte: zapis i provjera', () {
+    const locker = BoxNowLocker(
+      id: '1234',
+      address: 'Ilica 1',
+      postalCode: '10000',
+      name: 'Konzum Ilica',
+    );
+    expect(locker.destination, 'BOX NOW #1234 · Konzum Ilica, Ilica 1, 10000');
+    final back = BoxNowLocker.parse(locker.destination)!;
+    expect(back.id, '1234');
+    expect(back.address, 'Konzum Ilica, Ilica 1, 10000');
+    expect(BoxNowLocker.parse('Ilica 1, Zagreb'), isNull);
+    expect(BoxNowLocker.parse('BOX NOW # · '), isNull);
+    expect(
+      DeliveryService.validate(DeliveryMethod.parcelLocker, locker.destination),
+      isNull,
+    );
+    // Izvan preglednika nema karte — bira se s popisa.
+    expect(BoxNow.available, isFalse);
   });
 
   test('potvrda primitka tek nakon isporuke', () async {

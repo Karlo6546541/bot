@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../models/delivery.dart';
+import '../services/boxnow/boxnow.dart';
 import '../theme/app_theme.dart';
 import 'formatters.dart';
 import '../l10n/tr.dart';
@@ -45,6 +46,29 @@ class _DeliveryPickerState extends State<DeliveryPicker> {
   late final _address = TextEditingController(text: widget.savedAddress);
   String _locker = kDemoLockers.first;
 
+  /// BOX NOW karta (web); ako se ne učita, bira se s popisa.
+  BoxNowLocker? _boxNow;
+  bool _mapFailed = !BoxNow.available;
+
+  /// Karta se otvara preko aplikacije; ako je kupac zatvori bez odabira,
+  /// gumb ostaje dostupan (novo otvaranje zamjenjuje staro).
+  Future<void> _pickOnMap() async {
+    final r = await BoxNow.pick();
+    if (!mounted) return;
+    setState(() {
+      switch (r) {
+        case BoxNowPicked(:final locker):
+          _boxNow = locker;
+        case BoxNowUnavailable():
+          // Karta se nije učitala — bira se s popisa.
+          _mapFailed = true;
+        case BoxNowClosed():
+          break;
+      }
+    });
+    _emit();
+  }
+
   /// Prikazani su i rjeđi načini (ekspres, osobno preuzimanje).
   bool _all = false;
 
@@ -63,7 +87,7 @@ class _DeliveryPickerState extends State<DeliveryPicker> {
   String? get _destination => _method.needsAddress
       ? _address.text
       : _method.needsLocker
-      ? _locker
+      ? (_mapFailed ? _locker : _boxNow?.destination)
       : null;
 
   void _emit() {
@@ -169,7 +193,11 @@ class _DeliveryPickerState extends State<DeliveryPicker> {
             onChanged: (_) => _emit(),
           ),
         ],
-        if (_method.needsLocker) ...[
+        if (_method.needsLocker && !_mapFailed) ...[
+          const SizedBox(height: 4),
+          _BoxNowTile(locker: _boxNow, onPick: _pickOnMap),
+        ],
+        if (_method.needsLocker && _mapFailed) ...[
           const SizedBox(height: 4),
           DropdownButtonFormField<String>(
             initialValue: _locker,
@@ -189,6 +217,71 @@ class _DeliveryPickerState extends State<DeliveryPicker> {
           ),
         ],
       ],
+    );
+  }
+}
+
+/// Odabrani BOX NOW paketomat + gumb koji otvara kartu.
+class _BoxNowTile extends StatelessWidget {
+  const _BoxNowTile({required this.locker, required this.onPick});
+
+  final BoxNowLocker? locker;
+  final VoidCallback onPick;
+
+  @override
+  Widget build(BuildContext context) {
+    final l = locker;
+    return Container(
+      padding: const EdgeInsets.fromLTRB(12, 10, 8, 10),
+      decoration: BoxDecoration(
+        color: LoopColors.surface,
+        borderRadius: BorderRadius.circular(kRadius),
+        border: Border.all(color: LoopColors.surfaceHover, width: 1.5),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 40,
+            height: 40,
+            decoration: BoxDecoration(
+              color: const Color(0xFF6CD04E),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: const Icon(Icons.place, color: Colors.white),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  l == null ? t('Paketomat nije odabran') : 'BOX NOW #${l.id}',
+                  style: const TextStyle(fontWeight: FontWeight.w800),
+                ),
+                Text(
+                  l == null
+                      ? t('Odaberi najbliži BOX NOW paketomat na karti.')
+                      : [
+                          if (l.name.isNotEmpty) l.name,
+                          l.address,
+                          if (l.postalCode.isNotEmpty) l.postalCode,
+                        ].join(', '),
+                  style: TextStyle(
+                    color: LoopColors.textSecondary,
+                    fontSize: 12,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 8),
+          FilledButton.tonal(
+            key: const ValueKey('boxnow-pick'),
+            onPressed: onPick,
+            child: Text(l == null ? t('Karta') : t('Promijeni')),
+          ),
+        ],
+      ),
     );
   }
 }

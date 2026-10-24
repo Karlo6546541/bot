@@ -5,6 +5,7 @@ import 'package:uuid/uuid.dart';
 import '../models/delivery.dart';
 import '../models/device.dart';
 import '../models/loop_transaction.dart';
+import 'boxnow/boxnow.dart';
 import 'storage_service.dart';
 import 'trade_service.dart';
 import '../l10n/tr.dart';
@@ -41,7 +42,9 @@ class DeliveryService {
     if (m.needsAddress && dest.length < 8) {
       return t('Upiši adresu za dostavu (ulica, broj, mjesto).');
     }
-    if (m.needsLocker && !kDemoLockers.contains(dest)) {
+    if (m.needsLocker &&
+        !kDemoLockers.contains(dest) &&
+        BoxNowLocker.parse(dest) == null) {
       return t('Odaberi paketomat.');
     }
     return null;

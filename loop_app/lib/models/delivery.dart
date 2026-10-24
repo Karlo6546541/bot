@@ -4,7 +4,13 @@ import '../l10n/tr.dart';
 /// ubrzano (minute umjesto dana) kako bi se statusi mogli vidjeti uživo.
 enum DeliveryMethod {
   pickup('Osobno preuzimanje', 'LOOP točka, Zagreb · odmah spremno', 0, 2, 0),
-  parcelLocker('Paketomat', 'Isporuka u paketomat · 1–2 dana', 3, 3, 1),
+  parcelLocker(
+    'BOX NOW paketomat',
+    'Odaberi paketomat na karti · 1–2 dana',
+    3,
+    3,
+    1,
+  ),
   courier('Kurir na adresu', 'Dostava na kućnu adresu · 2–3 dana', 6, 4, 2),
   express('Ekspresna dostava', 'Kurir isti ili sljedeći dan', 12, 2, 1),
   digital('Digitalna dostava', 'Ulaznica/vaučer na e-mail · odmah', 0, 1, 0);

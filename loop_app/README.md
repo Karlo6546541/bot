@@ -537,6 +537,24 @@ pa su isti na svim uređajima. Trajanje je ubrzano s dana na minute kako bi se m
 uživo. Svaka pošiljka ima broj za praćenje (`LOOP-XXXXXXXX`), a kupac nakon isporuke
 potvrđuje primitak.
 
+### BOX NOW paketomati (testna integracija)
+
+- U blagajni je **BOX NOW paketomat**: gumb *Karta* otvara službenu BOX NOW kartu
+  (widget `https://widget-cdn.boxnow.hr/map-widget/client/v1.js`, `_bn_map_widget_config`
+  s `type: 'popup'` i `afterSelect`). Odabrani paketomat sprema se u pošiljku kao
+  `BOX NOW #<boxnowLockerId> · naziv, adresa, poštanski broj` — ID treba Partner API-ju.
+- **Partner ID**: dobiva se od BOX NOW-a. Lokalno `--dart-define=BOXNOW_PARTNER_ID=...`,
+  na GitHub Pages kao *repository variable* `BOXNOW_PARTNER_ID` (Settings → Secrets and
+  variables → Actions → Variables). Bez njega karta radi u općem načinu. Druga adresa
+  skripte (npr. novija verzija widgeta): `--dart-define=BOXNOW_WIDGET_JS=...`.
+- Kad karta nije dostupna (mobilna aplikacija, nema mreže, skripta blokirana), bira se s
+  popisa demo paketomata.
+- **Sljedeći korak (stvarne pošiljke)**: BOX NOW Partner API (`/api/v1/auth-sessions` →
+  `/api/v1/delivery-requests` s `destination.locationId` = ID paketomata) traži client ID
+  i tajni ključ — to ide na poslužitelj (npr. Supabase Edge Function), **nikad u
+  aplikaciju**. Testne (stage) pristupne podatke i adresu API-ja daje BOX NOW. Do tada je
+  status pošiljke simuliran kao i za ostale načine dostave.
+
 ### Ideje za pravu dostavu (sljedeći koraci)
 
 - **Escrow:** krediti kupca se drže dok ne potvrdi primitak (ili 3 dana nakon isporuke), a tek

@@ -2102,4 +2102,9 @@ const kEn = <String, String>{
   'Prijava / registracija': 'Log in / sign up',
   'Za kupnju, licitiranje i prodaju treba račun — traje 30 sekundi.':
       'Buying, bidding and selling need an account — it takes 30 seconds.',
+  'Karta': 'Map',
+  'Odaberi najbliži BOX NOW paketomat na karti.': 'Pick the nearest BOX NOW locker on the map.',
+  'Paketomat nije odabran': 'No locker selected',
+  'BOX NOW paketomat': 'BOX NOW locker',
+  'Odaberi paketomat na karti · 1–2 dana': 'Pick a locker on the map · 1–2 days',
 };
