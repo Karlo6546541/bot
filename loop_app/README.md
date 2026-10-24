@@ -11,10 +11,16 @@ Demo Flutter aplikacija u stilu Whatnota — **jedan predmet, tri načina prodaj
 - **Kupi odmah**: fiksna cijena, cjenkanje („Ponudi cijenu”), popusti, zaliha.
 - Svi iznosi su u **eurima** (€). **Kupac ne plaća naknadu.** Provizija se odbija prodavatelju:
   **5 %** za Kupi odmah, **10 % samo od razlike iznad početne cijene** za aukcije i live.
-- Svi korisnici su **fizičke osobe** (kupci i prodavatelji); registracija nema dobnu granicu.
+- Prodavatelj je **privatna osoba** (svoje stvari) ili **trgovac — obrt ili tvrtka** (naziv
+  tvrtke, pravni oblik, OIB, sjedište, kontakt za kupce, neobavezno PDV broj i MBS/MBO).
+  Trgovac smije više (do 200 aktivnih aukcija i 200 predmeta po liveu; privatna osoba 10 i
+  50), kupci ga vide označenog („🏪 Trgovac · naziv”, podaci za kontakt) i od njega imaju
+  pravo na povrat u 14 dana. Registracija nema dobnu granicu.
 - Radi **lokalno i offline** (Hive), a uz Supabase i **online** s pravim računima.
 
 **Spremljene verzije** (grade se uz glavnu, isti podaci):
+- `/bot/privatni/` — verzija prije prodavatelja-trgovaca (samo privatne osobe; plaćanje,
+  BOX NOW, slavlje nakon kupnje), commit `4fd1b56`;
 - `/bot/licit/` — ista aplikacija s LICIT dizajnom (ljubičasto-crveni izgled, čekić u logu),
   commit `6734d35`;
 - `/bot/marketplace/` — tržnica prije prelaska na aukcije (Market, oglasi, cjenkanje, zamjene,

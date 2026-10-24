@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:loop_app/models/seller_info.dart';
 import 'package:hive/hive.dart';
 import 'package:loop_app/models/device.dart';
 import 'package:loop_app/models/loop_transaction.dart';
@@ -106,6 +107,38 @@ void main() {
       );
     },
   );
+
+  test('trgovac (obrt/tvrtka) ima veća ograničenja', () async {
+    final user = storage.userById(tester)!;
+    await storage.putUser(
+      user.copyWith(
+        seller: SellerInfo(
+          kind: SellerKind.business,
+          companyName: 'Retro Kutak j.d.o.o.',
+          legalName: 'Ivo Ivić',
+          oib: '12345678903',
+          address: 'Ilica 1, Zagreb',
+          iban: 'HR2523400091111111111',
+          contactEmail: 'info@retrokutak.hr',
+          contactPhone: '+385 91 123 4567',
+          updatedAt: DateTime(2026),
+        ),
+      ),
+    );
+    expect(
+      auctions.policy.maxActiveFor(tester),
+      AuctionPolicy.businessMaxActive,
+    );
+    expect(auctions.policy.maxActiveFor(demo), AuctionPolicy.maxActive);
+    // Više od dnevnog limita privatne osobe u istom danu.
+    const n = AuctionPolicy.maxNewPerDay + 2;
+    final items = [for (var i = 0; i < n; i++) await add(tester, 100)];
+    final now = DateTime.now();
+    for (final d in items) {
+      await create(tester, d.id, now: now);
+    }
+    expect(auctions.policy.activeCount(tester), n);
+  });
 
   test('neprodani predmet čeka 24 h prije ponovne objave', () async {
     final now = DateTime.now();

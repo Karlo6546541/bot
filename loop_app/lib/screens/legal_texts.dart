@@ -19,10 +19,10 @@ Ovi Uvjeti uređuju korištenje platforme LOOP (aplikacija i web stranica) koju 
 LOOP je platforma za prodaju među građanima na tri načina: live aukcije (prodavatelj uživo pokazuje predmete i pokreće kratke licitacije, live traje dok je prodavatelj uživo), aukcije na vrijeme i Kupi odmah (fiksna cijena). LOOP nije prodavatelj predmeta: ugovor o kupoprodaji sklapaju kupac (pobjednik aukcije) i prodavatelj.
 
 ## 2. Računi
-LOOP mogu koristiti fizičke osobe, za osobne potrebe (ne kao obrt ni tvrtka) — i kao kupci i kao prodavatelji. Jedna osoba smije imati jedan račun. Podaci moraju biti točni. Odgovoran si za sigurnost lozinke. Račun možeš obrisati u Profilu (brisanje se izvršava nakon 7 dana).
+LOOP mogu koristiti fizičke osobe i trgovci (obrti i tvrtke) — i kao kupci i kao prodavatelji. Jedna osoba smije imati jedan račun. Podaci moraju biti točni. Odgovoran si za sigurnost lozinke. Račun možeš obrisati u Profilu (brisanje se izvršava nakon 7 dana).
 
 ## 3. Prodavatelji
-Prodavatelji su fizičke osobe koje prodaju svoje stvari. Prije prve objave na Kupi odmah i prije prve isplate zarade unose podatke prodavatelja (ime i prezime, OIB, datum rođenja, adresu, IBAN). Tko prodaje kao djelatnost (obrt, tvrtka), ne smije koristiti LOOP. Zabranjeni predmeti navedeni su u Pravilima za prodavatelje.
+Prodavatelj je privatna osoba (prodaje svoje rabljene stvari) ili trgovac (obrt ili tvrtka koja prodaje kao djelatnost). Prije prve objave na Kupi odmah i prije prve isplate zarade unosi podatke prodavatelja: privatna osoba ime i prezime, OIB, datum rođenja, adresu i IBAN; trgovac naziv obrta ili tvrtke, pravni oblik, OIB, sjedište, odgovornu osobu, e-mail i telefon za kupce, IBAN te po potrebi PDV broj i MBS/MBO, uz potvrdu da prodaje u skladu s propisima. Tko prodaje redovito radi zarade, mora se prijaviti kao trgovac. Kupci uz svaki oglas vide je li prodavatelj privatna osoba ili trgovac, a kod trgovca i njegove podatke za kontakt. Od trgovca kupac ima pravo na povrat u 14 dana od primitka i zakonsko jamstvo; od privatne osobe pravo na povrat ne vrijedi. Trgovci imaju veća ograničenja (do 200 aktivnih aukcija i 200 predmeta po liveu; privatne osobe 10 i 50). Zabranjeni predmeti navedeni su u Pravilima za prodavatelje.
 
 ## 4. Cijene i naknade
 Kupac plaća samo cijenu predmeta (bez naknade platforme) i dostavu. Objava je besplatna. Prodavatelju se od isplate odbija provizija: kod Kupi odmah 5 % od cijene, a kod aukcija i live aukcija 10 % samo od razlike između prodajne i početne cijene (kod padajuće cijene — od najniže cijene); ako se predmet proda po početnoj cijeni, provizije nema. Isticanje računa naplaćuje se prema cijeni prikazanoj prije potvrde.
@@ -104,7 +104,7 @@ Kontakt točka za korisnike i tijela (DSA): $kCompanyEmail
 ''',
   'sellerRules': '''
 ## Tko može prodavati
-Punoljetne fizičke osobe s ispunjenim podacima prodavatelja koje prodaju svoje stvari. Obrti i tvrtke ne mogu prodavati na LOOP-u.
+Privatne osobe (svoje stvari) i trgovci — obrti i tvrtke — s ispunjenim podacima prodavatelja. Trgovac je jasno označen kod svakog oglasa, kupcima daje podatke za kontakt, pravo na povrat u 14 dana i jamstvo, a za proizvode odgovara prema propisima EU.
 
 ## Zabranjeno je prodavati
 Oružje i streljivo, drogu i lijekove na recept, krivotvorine, ukradene predmete, žive životinje, opasne tvari, sadržaj za odrasle, osobne isprave, predmete koji krše tuđa autorska ili žigovna prava te sve što je zabranjeno zakonom.
@@ -146,10 +146,10 @@ These Terms govern the use of the LOOP platform (app and website) provided by $k
 LOOP is an auction platform: live auctions (the seller shows items live and starts short bidding rounds; a live show lasts as long as the seller is live) and timed auctions. LOOP is not the seller: the sales contract is between the winning bidder and the seller.
 
 ## 2. Accounts
-LOOP may be used by natural persons for personal purposes (not as a sole trader or company) — both as buyers and as sellers. One person may have one account. Your details must be accurate. You are responsible for your password. You can delete your account in Profile (deletion happens after 7 days).
+LOOP may be used by private persons and traders (sole traders and companies) — both as buyers and as sellers. One person may have one account. Your details must be accurate. You are responsible for your password. You can delete your account in Profile (deletion happens after 7 days).
 
 ## 3. Sellers
-Sellers are natural persons selling their own things. Before their first Buy now listing and first payout they provide seller details (full name, OIB/tax number, date of birth, address, IBAN). Anyone selling as a business (sole trader, company) may not use LOOP. Prohibited items are listed in the Seller rules.
+A seller is either a private person (selling their own used things) or a trader (a sole trader or company selling as a business). Before the first Buy now listing and first payout they provide seller details: a private person their full name, OIB/tax number, date of birth, address and IBAN; a trader the business name, legal form, OIB, registered address, responsible person, email and phone for buyers, IBAN and, where applicable, VAT number and registry number, confirming they sell in line with the law. Anyone selling regularly for profit must register as a trader. Buyers see on every listing whether the seller is a private person or a trader, and for traders their contact details. Buying from a trader gives a 14-day right of withdrawal from delivery and the legal guarantee; buying from a private person does not include the right of withdrawal. Traders have higher limits (up to 200 active auctions and 200 items per live show; private persons 10 and 50). Prohibited items are listed in the Seller rules.
 
 ## 4. Prices and fees
 The buyer pays only the item price (no platform fee) and delivery. Listing is free. A commission is deducted from the seller's payout: 5% of the price for Buy now, and for auctions and live auctions 10% only of the difference between the selling price and the starting price (for price-drop items, the lowest price); if an item sells at its starting price, there is no commission. Account promotion is charged at the price shown before confirmation.
@@ -231,7 +231,7 @@ Point of contact for users and authorities (DSA): $kCompanyEmail
 ''',
   'sellerRules': '''
 ## Who can sell
-Adult natural persons with completed seller details selling their own things. Sole traders and companies cannot sell on LOOP.
+Private persons (their own things) and traders — sole traders and companies — with completed seller details. Traders are clearly labelled on every listing, give buyers contact details, a 14-day right of withdrawal and the legal guarantee, and are responsible for their products under EU law.
 
 ## It is prohibited to sell
 Weapons and ammunition, drugs and prescription medicines, counterfeits, stolen goods, live animals, hazardous substances, adult content, identity documents, items infringing copyright or trademarks, and anything prohibited by law.

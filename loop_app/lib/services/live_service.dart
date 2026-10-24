@@ -516,9 +516,10 @@ class LiveService {
         t('Naslov može imati najviše {0} znakova.', ['${LiveShow.maxTitle}']),
       );
     }
-    if (items.length > LiveShow.maxLots) {
+    final maxLots = _maxLots(hostId);
+    if (items.length > maxLots) {
       throw TradeException(
-        t('Live može imati najviše {0} predmeta.', ['${LiveShow.maxLots}']),
+        t('Live može imati najviše {0} predmeta.', ['$maxLots']),
       );
     }
     if (!LiveShow.lotDurations.contains(lotSeconds)) {
@@ -623,9 +624,10 @@ class LiveService {
     if (show.endedAt != null || stateOf(show, now: at).isOver) {
       throw TradeException(t('Live je završio.'));
     }
-    if (show.lots.length >= LiveShow.maxLots) {
+    final maxLots = _maxLots(hostId);
+    if (show.lots.length >= maxLots) {
       throw TradeException(
-        t('Live može imati najviše {0} predmeta.', ['${LiveShow.maxLots}']),
+        t('Live može imati najviše {0} predmeta.', ['$maxLots']),
       );
     }
     if (mode == LotMode.dutch && (floorPrice < 1 || floorPrice >= price)) {
@@ -1035,6 +1037,12 @@ class LiveService {
     }
     return count;
   }
+
+  /// Trgovac (obrt, tvrtka) smije više predmeta u jednom liveu.
+  int _maxLots(String hostId) =>
+      _storage.userById(hostId)?.seller?.isBusiness ?? false
+      ? LiveShow.businessMaxLots
+      : LiveShow.maxLots;
 
   /// Neprodani predmet nakon livea ide na Kupi odmah po početnoj cijeni
   /// (ako domaćin ima podatke prodavatelja i predmet je još njegov).

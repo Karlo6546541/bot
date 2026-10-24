@@ -23,7 +23,7 @@ Future<bool> ensureSellerInfo(BuildContext context) async {
     context,
     title: t('Podaci prodavatelja'),
     message: t(
-      'Prije prve objave zakon traži tvoje podatke: ime ili naziv, OIB, adresu i IBAN za isplatu (EU pravila DAC7 i DSA). Kupci vide samo je li prodavatelj privatna osoba ili trgovac.',
+      'Prije prve objave zakon traži tvoje podatke: ime ili naziv tvrtke, OIB, adresu i IBAN za isplatu (EU pravila DAC7 i DSA). Prodaješ kao privatna osoba ili kao obrt/tvrtka — kupci vide samo tu oznaku (a kod trgovca i podatke za kontakt).',
     ),
     confirmLabel: t('Ispuni podatke'),
   );
@@ -73,17 +73,60 @@ class SellerInfoScreen extends ConsumerStatefulWidget {
 
 class _SellerInfoScreenState extends ConsumerState<SellerInfoScreen> {
   late final SellerInfo? _old = ref.read(appProvider).currentUser?.seller;
-  late final _name = TextEditingController(text: _old?.legalName ?? '');
-  late final _oib = TextEditingController(text: _old?.oib ?? '');
-  late final _address = TextEditingController(text: _old?.address ?? '');
-  late final _iban = TextEditingController(text: _old?.iban ?? '');
+  late final TextEditingController _name;
+  late final TextEditingController _oib;
+  late final TextEditingController _address;
+  late final TextEditingController _iban;
   late DateTime? _birth = _old?.birthDate;
+  late SellerKind _kind = _old?.kind ?? SellerKind.private;
+  late LegalForm _form = _old?.legalForm ?? LegalForm.obrt;
+  late final TextEditingController _company;
+  late final TextEditingController _vat;
+  late final TextEditingController _registry;
+  late final TextEditingController _email;
+  late final TextEditingController _phone;
+
+  @override
+  void initState() {
+    super.initState();
+    // Odmah (ne lijeno): dispose ne smije čitati ref.
+    final old = _old;
+    _name = TextEditingController(text: old?.legalName ?? '');
+    _oib = TextEditingController(text: old?.oib ?? '');
+    _address = TextEditingController(text: old?.address ?? '');
+    _iban = TextEditingController(text: old?.iban ?? '');
+    _company = TextEditingController(text: old?.companyName ?? '');
+    _vat = TextEditingController(text: old?.vatId ?? '');
+    _registry = TextEditingController(text: old?.registryNumber ?? '');
+    // Kontakt za kupce: zadano e-mail računa.
+    final email = old?.contactEmail ?? '';
+    _email = TextEditingController(
+      text: email.isNotEmpty
+          ? email
+          : ref.read(appProvider).currentUser?.email ?? '',
+    );
+    _phone = TextEditingController(text: old?.contactPhone ?? '');
+  }
+
+  late bool _certified = _old?.isBusiness ?? false;
+
+  bool get _business => _kind == SellerKind.business;
   String? _error;
   bool _busy = false;
 
   @override
   void dispose() {
-    for (final c in [_name, _oib, _address, _iban]) {
+    for (final c in [
+      _name,
+      _oib,
+      _address,
+      _iban,
+      _company,
+      _vat,
+      _registry,
+      _email,
+      _phone,
+    ]) {
       c.dispose();
     }
     super.dispose();
@@ -101,13 +144,28 @@ class _SellerInfoScreenState extends ConsumerState<SellerInfoScreen> {
   }
 
   Future<void> _save() async {
+    if (_business && !_certified) {
+      setState(
+        () => _error = t(
+          'Potvrdi da prodaješ u skladu s propisima (trgovac odgovara za proizvode i prava kupaca).',
+        ),
+      );
+      return;
+    }
     final info = SellerInfo(
+      kind: _kind,
       legalName: _name.text.trim(),
       oib: _oib.text.trim(),
-      birthDate: _birth,
+      birthDate: _business ? null : _birth,
       address: _address.text.trim(),
       iban: _iban.text.replaceAll(' ', '').toUpperCase(),
       updatedAt: DateTime.now(),
+      companyName: _business ? _company.text.trim() : '',
+      legalForm: _form,
+      vatId: _business ? _vat.text.replaceAll(' ', '').toUpperCase() : '',
+      registryNumber: _business ? _registry.text.trim() : '',
+      contactEmail: _business ? _email.text.trim() : '',
+      contactPhone: _business ? _phone.text.trim() : '',
     );
     setState(() {
       _busy = true;
@@ -136,17 +194,75 @@ class _SellerInfoScreenState extends ConsumerState<SellerInfoScreen> {
           child: ListView(
             padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
             children: [
+              // Kako prodaješ: kao privatna osoba ili kao obrt/tvrtka.
+              SegmentedButton<SellerKind>(
+                key: const ValueKey('seller-kind'),
+                showSelectedIcon: false,
+                segments: [
+                  ButtonSegment(
+                    value: SellerKind.private,
+                    icon: const Icon(Icons.person_outline),
+                    label: Text(t('Privatna osoba')),
+                  ),
+                  ButtonSegment(
+                    value: SellerKind.business,
+                    icon: const Icon(Icons.storefront_outlined),
+                    label: Text(
+                      t('Obrt / tvrtka'),
+                      key: const ValueKey('seller-kind-business'),
+                    ),
+                  ),
+                ],
+                selected: {_kind},
+                onSelectionChanged: (v) => setState(() {
+                  _kind = v.first;
+                  _error = null;
+                }),
+              ),
+              const SizedBox(height: 10),
               Text(
-                t(
-                  'LOOP je za fizičke osobe koje prodaju svoje stvari. Platforma mora prikupiti ove podatke prije prve objave (DAC7: izvještaj Poreznoj upravi za prodavatelje s 30+ prodaja ili više od 2.000 € godišnje). Kupci ih ne vide.',
-                ),
+                _business
+                    ? t(
+                        'Trgovac prodaje kao djelatnost — može prodavati više predmeta (veća ograničenja za aukcije i live). Kupci vide naziv tvrtke i imaju pravo na povrat u 14 dana. Platforma mora prikupiti ove podatke (DSA čl. 30, DAC7).',
+                      )
+                    : t(
+                        'Privatna osoba prodaje svoje rabljene stvari. Platforma mora prikupiti ove podatke prije prve isplate (DAC7: izvještaj Poreznoj upravi za prodavatelje s 30+ prodaja ili više od 2.000 € godišnje). Kupci ih ne vide. Ako prodaješ redovito radi zarade, odaberi Obrt / tvrtka.',
+                      ),
                 style: TextStyle(color: LoopColors.textSecondary, fontSize: 13),
               ),
               const SizedBox(height: 14),
+              if (_business) ...[
+                TextField(
+                  key: const ValueKey('seller-company'),
+                  controller: _company,
+                  textCapitalization: TextCapitalization.words,
+                  decoration: InputDecoration(
+                    labelText: t('Naziv obrta ili tvrtke'),
+                    hintText: t('npr. Retro Kutak j.d.o.o.'),
+                    prefixIcon: const Icon(Icons.storefront_outlined),
+                  ),
+                ),
+                const SizedBox(height: 10),
+                DropdownButtonFormField<LegalForm>(
+                  key: const ValueKey('seller-form'),
+                  initialValue: _form,
+                  decoration: InputDecoration(labelText: t('Pravni oblik')),
+                  items: [
+                    for (final f in LegalForm.values)
+                      DropdownMenuItem(value: f, child: Text(f.label)),
+                  ],
+                  onChanged: (v) => setState(() => _form = v!),
+                ),
+                const SizedBox(height: 10),
+              ],
               TextField(
                 key: const ValueKey('seller-name'),
                 controller: _name,
-                decoration: InputDecoration(labelText: t('Ime i prezime')),
+                decoration: InputDecoration(
+                  labelText: _business
+                      ? t('Odgovorna osoba (ime i prezime)')
+                      : t('Ime i prezime'),
+                ),
               ),
               const SizedBox(height: 10),
               TextField(
@@ -154,26 +270,71 @@ class _SellerInfoScreenState extends ConsumerState<SellerInfoScreen> {
                 controller: _oib,
                 keyboardType: TextInputType.number,
                 maxLength: 11,
-                decoration: InputDecoration(labelText: t('OIB')),
-              ),
-              ListTile(
-                key: const ValueKey('seller-birth'),
-                contentPadding: EdgeInsets.zero,
-                leading: const Icon(Icons.cake_outlined),
-                title: Text(t('Datum rođenja')),
-                subtitle: Text(
-                  _birth == null ? t('Odaberi') : formatDate(_birth!),
+                decoration: InputDecoration(
+                  labelText: _business ? t('OIB obrta / tvrtke') : t('OIB'),
                 ),
-                onTap: _pickBirth,
               ),
+              if (_business) ...[
+                TextField(
+                  key: const ValueKey('seller-vat'),
+                  controller: _vat,
+                  textCapitalization: TextCapitalization.characters,
+                  decoration: InputDecoration(
+                    labelText: t('PDV broj (neobavezno)'),
+                    hintText: 'HR12345678901',
+                  ),
+                ),
+                const SizedBox(height: 10),
+                TextField(
+                  key: const ValueKey('seller-registry'),
+                  controller: _registry,
+                  decoration: InputDecoration(
+                    labelText: t('MBS / MBO (neobavezno)'),
+                  ),
+                ),
+              ] else
+                ListTile(
+                  key: const ValueKey('seller-birth'),
+                  contentPadding: EdgeInsets.zero,
+                  leading: const Icon(Icons.cake_outlined),
+                  title: Text(t('Datum rođenja')),
+                  subtitle: Text(
+                    _birth == null ? t('Odaberi') : formatDate(_birth!),
+                  ),
+                  onTap: _pickBirth,
+                ),
               const SizedBox(height: 10),
               TextField(
                 key: const ValueKey('seller-address'),
                 controller: _address,
                 decoration: InputDecoration(
-                  labelText: t('Adresa prebivališta'),
+                  labelText: _business
+                      ? t('Adresa sjedišta')
+                      : t('Adresa prebivališta'),
                 ),
               ),
+              if (_business) ...[
+                const SizedBox(height: 10),
+                TextField(
+                  key: const ValueKey('seller-email'),
+                  controller: _email,
+                  keyboardType: TextInputType.emailAddress,
+                  decoration: InputDecoration(
+                    labelText: t('E-mail za kupce'),
+                    prefixIcon: const Icon(Icons.alternate_email),
+                  ),
+                ),
+                const SizedBox(height: 10),
+                TextField(
+                  key: const ValueKey('seller-phone'),
+                  controller: _phone,
+                  keyboardType: TextInputType.phone,
+                  decoration: InputDecoration(
+                    labelText: t('Telefon za kupce'),
+                    prefixIcon: const Icon(Icons.phone_outlined),
+                  ),
+                ),
+              ],
               const SizedBox(height: 10),
               TextField(
                 key: const ValueKey('seller-iban'),
@@ -184,6 +345,20 @@ class _SellerInfoScreenState extends ConsumerState<SellerInfoScreen> {
                   hintText: 'HR12 3456 7890 1234 5678 9',
                 ),
               ),
+              if (_business)
+                CheckboxListTile(
+                  key: const ValueKey('seller-certify'),
+                  contentPadding: EdgeInsets.zero,
+                  controlAffinity: ListTileControlAffinity.leading,
+                  value: _certified,
+                  onChanged: (v) => setState(() => _certified = v ?? false),
+                  title: Text(
+                    t(
+                      'Potvrđujem da prodajem samo proizvode u skladu s propisima EU i da kupcima osiguravam pravo na povrat u 14 dana i jamstvo.',
+                    ),
+                    style: const TextStyle(fontSize: 13),
+                  ),
+                ),
               if (_error != null) ...[
                 const SizedBox(height: 10),
                 Text(_error!, style: TextStyle(color: LoopColors.error)),

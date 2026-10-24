@@ -57,6 +57,52 @@ void main() {
       expect(back.birthDate, DateTime(2000, 1, 1));
       expect(back.toMap().containsKey('type'), isFalse);
       expect(back.maskedIban, 'HR25 •••• 1111');
+      expect(back.isBusiness, isFalse);
+    });
+
+    test('trgovac (obrt/tvrtka): naziv, kontakt, PDV broj', () {
+      String? check({
+        String company = 'Retro Kutak j.d.o.o.',
+        String vat = '',
+        String email = 'info@retrokutak.hr',
+        String phone = '+385 91 123 4567',
+      }) => SellerInfo.validate(
+        kind: SellerKind.business,
+        companyName: company,
+        legalName: 'Ivo Ivić',
+        oib: '12345678903',
+        address: 'Ilica 1, Zagreb',
+        iban: 'HR2523400091111111111',
+        vatId: vat,
+        contactEmail: email,
+        contactPhone: phone,
+      );
+      // Trgovcu ne treba datum rođenja.
+      expect(check(), isNull);
+      expect(check(company: ''), isNotNull);
+      expect(check(email: 'nije-mail'), isNotNull);
+      expect(check(phone: '12'), isNotNull);
+      expect(check(vat: 'HR12345678903'), isNull);
+      expect(check(vat: '12345678903'), isNotNull);
+      final info = SellerInfo(
+        kind: SellerKind.business,
+        companyName: 'Retro Kutak j.d.o.o.',
+        legalForm: LegalForm.jdoo,
+        legalName: 'Ivo Ivić',
+        oib: '12345678903',
+        address: 'Ilica 1',
+        iban: 'HR2523400091111111111',
+        vatId: 'HR12345678903',
+        contactEmail: 'info@retrokutak.hr',
+        contactPhone: '+385 91 123 4567',
+        updatedAt: DateTime(2026),
+      );
+      final back = SellerInfo.fromMap(info.toMap());
+      expect(back.isBusiness, isTrue);
+      expect(back.tradeName, 'Retro Kutak j.d.o.o.');
+      expect(back.legalForm, LegalForm.jdoo);
+      expect(back.vatId, 'HR12345678903');
+      expect(back.contactEmail, 'info@retrokutak.hr');
     });
   });
 

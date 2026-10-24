@@ -66,6 +66,9 @@ class LiveShow {
 
   static const maxTitle = 60;
   static const maxLots = 50;
+
+  /// Trgovci (obrt, tvrtka).
+  static const businessMaxLots = 200;
   static const lotDurations = [15, 20, 30, 45, 60];
 
   /// Ponuda u zadnjih toliko sekundi vraća sat na toliko sekundi.

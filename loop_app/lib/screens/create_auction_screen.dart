@@ -148,13 +148,14 @@ class _CreateAuctionScreenState extends ConsumerState<CreateAuctionScreen> {
                   padding: const EdgeInsets.all(16),
                   children: [
                     // Granice se prikazuju tek kad su blizu.
-                    if (policy.activeCount(me) >= AuctionPolicy.maxActive - 1 ||
+                    if (policy.activeCount(me) >= policy.maxActiveFor(me) - 1 ||
                         policy.createdLast24h(me) >=
-                            AuctionPolicy.maxNewPerDay - 1) ...[
+                            policy.maxNewPerDayFor(me) - 1) ...[
                       _LimitsCard(
                         active: policy.activeCount(me),
-                        maxActive: AuctionPolicy.maxActive,
+                        maxActive: policy.maxActiveFor(me),
                         today: policy.createdLast24h(me),
+                        maxToday: policy.maxNewPerDayFor(me),
                       ),
                       const SizedBox(height: 16),
                     ],
@@ -406,10 +407,12 @@ class _LimitsCard extends StatelessWidget {
     required this.active,
     required this.maxActive,
     required this.today,
+    required this.maxToday,
   });
 
   final int active;
   final int maxActive;
+  final int maxToday;
   final int today;
 
   @override
@@ -450,11 +453,7 @@ class _LimitsCard extends StatelessWidget {
               children: [
                 meter(t('Aktivne aukcije'), active, maxActive),
                 const SizedBox(width: 16),
-                meter(
-                  t('Objavljeno u 24 h'),
-                  today,
-                  AuctionPolicy.maxNewPerDay,
-                ),
+                meter(t('Objavljeno u 24 h'), today, maxToday),
               ],
             ),
           ],

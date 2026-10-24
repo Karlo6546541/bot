@@ -2144,4 +2144,39 @@ const kEn = <String, String>{
   '✗ Odbijena 0002': '✗ Declined 0002',
   'Povuci gore za sljedeće': 'Swipe up for the next one',
   'Prati dostavu': 'Track delivery',
+  'Adresa sjedišta': 'Registered address',
+  'E-mail za kupce': 'Email for buyers',
+  'MBS / MBO (neobavezno)': 'Registry number (optional)',
+  'OIB obrta / tvrtke': 'Business OIB (tax number)',
+  'Obrt / tvrtka': 'Business',
+  'Odgovorna osoba (ime i prezime)': 'Responsible person (full name)',
+  'PDV broj (neobavezno)': 'VAT number (optional)',
+  'PDV broj upiši kao HR + OIB (npr. HR12345678901).':
+      'Enter the VAT number as HR + OIB (e.g. HR12345678901).',
+  'Potvrdi da prodaješ u skladu s propisima (trgovac odgovara za proizvode i prava kupaca).':
+      'Confirm that you sell in line with the law (a trader is responsible for products and buyers\' rights).',
+  'Potvrđujem da prodajem samo proizvode u skladu s propisima EU i da kupcima osiguravam pravo na povrat u 14 dana i jamstvo.':
+      'I confirm that I only sell products that comply with EU law and that I give buyers a 14-day right of withdrawal and a guarantee.',
+  'Pravni oblik': 'Legal form',
+  'Prihvaćam Uvjete korištenja i Pravila privatnosti.':
+      'I accept the Terms of Use and the Privacy Policy.',
+  'Prije prve objave zakon traži tvoje podatke: ime ili naziv tvrtke, OIB, adresu i IBAN za isplatu (EU pravila DAC7 i DSA). Prodaješ kao privatna osoba ili kao obrt/tvrtka — kupci vide samo tu oznaku (a kod trgovca i podatke za kontakt).':
+      'Before your first listing the law requires your details: name or business name, OIB, address and IBAN for payouts (EU DAC7 and DSA rules). You sell as a private person or as a business — buyers only see that label (and, for traders, the contact details).',
+  'Privatna osoba prodaje svoje rabljene stvari. Platforma mora prikupiti ove podatke prije prve isplate (DAC7: izvještaj Poreznoj upravi za prodavatelje s 30+ prodaja ili više od 2.000 € godišnje). Kupci ih ne vide. Ako prodaješ redovito radi zarade, odaberi Obrt / tvrtka.':
+      'A private person sells their own used things. The platform must collect these details before the first payout (DAC7: report to the Tax Administration for sellers with 30+ sales or more than €2,000 a year). Buyers don\'t see them. If you sell regularly for profit, choose Business.',
+  'Prodavatelj je trgovac ({0}): imaš pravo na povrat u 14 dana od primitka i zakonsko jamstvo.':
+      'The seller is a trader ({0}): you have a 14-day right of withdrawal from delivery and the legal guarantee.',
+  'Telefon za kupce': 'Phone for buyers',
+  'Trgovac prodaje kao djelatnost — može prodavati više predmeta (veća ograničenja za aukcije i live). Kupci vide naziv tvrtke i imaju pravo na povrat u 14 dana. Platforma mora prikupiti ove podatke (DSA čl. 30, DAC7).':
+      'A trader sells as a business — they can sell more items (higher limits for auctions and live shows). Buyers see the business name and have a 14-day right of withdrawal. The platform must collect these details (DSA Art. 30, DAC7).',
+  'Trgovac: {0}': 'Trader: {0}',
+  'Upiši adresu sjedišta.': 'Enter the registered address.',
+  'Upiši e-mail za kupce.': 'Enter an email for buyers.',
+  'Upiši ime i prezime odgovorne osobe.':
+      'Enter the responsible person\'s full name.',
+  'Upiši telefon za kupce.': 'Enter a phone number for buyers.',
+  'npr. Retro Kutak j.d.o.o.': 'e.g. Retro Kutak Ltd.',
+  '🏪 Trgovac · {0}': '🏪 Trader · {0}',
+  'Obrt': 'Sole trader',
+  'Ostalo': 'Other',
 };

@@ -6,6 +6,7 @@ import 'package:loop_app/app.dart';
 import 'package:loop_app/l10n/tr.dart';
 import 'package:loop_app/providers/app_providers.dart';
 import 'package:loop_app/screens/home_shell.dart';
+import 'package:loop_app/screens/seller_screens.dart';
 import 'package:loop_app/screens/swipe_feed_screen.dart';
 import 'package:loop_app/widgets/feed.dart' show FeedEntry;
 import 'package:loop_app/services/seed_data.dart';
@@ -993,4 +994,90 @@ void logoTests() {
     expect(find.byKey(const ValueKey('post-bought')), findsOneWidget);
     expect(find.text('Oglas više nije dostupan.'), findsNothing);
   });
+
+  testWidgets('prodavatelj kao obrt/tvrtka: naziv tvrtke i oznaka trgovca', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(400, 900);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    final storage = StorageService();
+    await tester.runAsync(() => storage.init(inMemory: true));
+    addTearDown(() => tester.runAsync(Hive.close));
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          storageProvider.overrideWithValue(storage),
+          tickIntervalProvider.overrideWithValue(null),
+        ],
+        child: const LoopApp(),
+      ),
+    );
+    await tester.ensureVisible(find.text('Prijavi se'));
+    await tester.tap(find.text('Prijavi se'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Profil').last);
+    await tester.pumpAndSettle();
+    await reveal(tester, find.byKey(const ValueKey('seller-info')));
+    await tester.tap(find.byKey(const ValueKey('seller-info')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('seller-kind-business')));
+    await tester.pumpAndSettle();
+    await tester.enterText(
+      find.byKey(const ValueKey('seller-company')),
+      'Retro Kutak j.d.o.o.',
+    );
+    await tester.enterText(
+      find.byKey(const ValueKey('seller-phone')),
+      '+385 91 123 4567',
+    );
+    // Bez potvrde o propisima ne sprema.
+    await tester.scrollUntilVisible(
+      find.byKey(const ValueKey('seller-save')),
+      200,
+      scrollable: find
+          .descendant(
+            of: find.byType(SellerInfoScreen),
+            matching: find.byType(Scrollable),
+          )
+          .first,
+    );
+    await tester.tap(find.byKey(const ValueKey('seller-save')));
+    await tester.pumpAndSettle();
+    expect(SellerInfoScreenFinder.title, findsOneWidget);
+    await tester.scrollUntilVisible(
+      find.byKey(const ValueKey('seller-certify')),
+      200,
+      scrollable: find
+          .descendant(
+            of: find.byType(SellerInfoScreen),
+            matching: find.byType(Scrollable),
+          )
+          .first,
+    );
+    await tester.tap(find.byKey(const ValueKey('seller-certify')));
+    await tester.pumpAndSettle();
+    await tester.scrollUntilVisible(
+      find.byKey(const ValueKey('seller-save')),
+      200,
+      scrollable: find
+          .descendant(
+            of: find.byType(SellerInfoScreen),
+            matching: find.byType(Scrollable),
+          )
+          .first,
+    );
+    await tester.tap(find.byKey(const ValueKey('seller-save')));
+    await tester.pumpAndSettle();
+    final seller = storage.userById(storage.currentUserId!)!.seller!;
+    expect(seller.isBusiness, isTrue);
+    expect(seller.tradeName, 'Retro Kutak j.d.o.o.');
+    expect(seller.contactEmail, isNotEmpty);
+    expect(find.textContaining('Retro Kutak j.d.o.o.'), findsWidgets);
+  });
+}
+
+/// Ekran podataka prodavatelja je još otvoren.
+class SellerInfoScreenFinder {
+  static Finder get title => find.byKey(const ValueKey('seller-save'));
 }

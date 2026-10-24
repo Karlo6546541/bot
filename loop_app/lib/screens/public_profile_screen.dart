@@ -715,6 +715,27 @@ class ProfileHeader extends ConsumerWidget {
                         : 14,
                   ),
                 ),
+                if (user.seller case final info? when info.isBusiness) ...[
+                  const SizedBox(height: 6),
+                  Container(
+                    key: const ValueKey('profile-business'),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 4,
+                    ),
+                    decoration: BoxDecoration(
+                      color: LoopColors.sky,
+                      borderRadius: BorderRadius.circular(99),
+                    ),
+                    child: Text(
+                      t('🏪 Trgovac · {0}', [info.tradeName]),
+                      style: const TextStyle(
+                        fontWeight: FontWeight.w800,
+                        fontSize: 12,
+                      ),
+                    ),
+                  ),
+                ],
                 if (rating != null) ...[
                   const SizedBox(height: 4),
                   RatingBadge(rating: rating!),

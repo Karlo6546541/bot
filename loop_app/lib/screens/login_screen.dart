@@ -298,9 +298,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
               value: field.value ?? false,
               onChanged: (v) => field.didChange(v),
               title: Text(
-                t(
-                  'Koristim LOOP kao fizička osoba (ne kao obrt ni tvrtka) i prihvaćam Uvjete korištenja i Pravila privatnosti.',
-                ),
+                t('Prihvaćam Uvjete korištenja i Pravila privatnosti.'),
                 style: const TextStyle(fontSize: 13),
               ),
             ),

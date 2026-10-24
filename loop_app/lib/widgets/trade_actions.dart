@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../models/app_user.dart';
 import '../models/delivery.dart';
 import '../models/device.dart';
 import '../providers/app_providers.dart';
@@ -52,6 +53,22 @@ Future<bool> runWithLoading(
     showLoopSnackBar(msg, error: true);
     return false;
   }
+}
+
+/// Prava kupca ovise o vrsti prodavatelja: od trgovca (obrt, tvrtka)
+/// kupac ima pravo na povrat u 14 dana i zakonsko jamstvo, od privatne
+/// osobe nema.
+String buyerRightsText(AppUser? seller) {
+  final info = seller?.seller;
+  if (info != null && info.isBusiness) {
+    return t(
+      'Prodavatelj je trgovac ({0}): imaš pravo na povrat u 14 dana od primitka i zakonsko jamstvo.',
+      [info.tradeName],
+    );
+  }
+  return t(
+    'Prodavatelj je privatna osoba: zakonsko pravo na povrat od 14 dana ne vrijedi.',
+  );
 }
 
 /// Gost samo razgledava: kupnja, prodaja, licitiranje i ostale radnje
@@ -259,6 +276,7 @@ Future<bool> confirmAndBuy(
         price: price,
         address: user.address!,
         card: user.paymentCard!,
+        seller: ref.read(appProvider).userById(device.ownerId),
       ),
     );
     if (quick == null || !context.mounted) return false;
@@ -306,12 +324,14 @@ class _QuickBuySheet extends StatelessWidget {
     required this.price,
     required this.address,
     required this.card,
+    this.seller,
   });
 
   final Device device;
   final double price;
   final String address;
   final String card;
+  final AppUser? seller;
 
   @override
   Widget build(BuildContext context) {
@@ -398,9 +418,7 @@ class _QuickBuySheet extends StatelessWidget {
             ),
             const SizedBox(height: 6),
             Text(
-              t(
-                'Prodavatelj je privatna osoba: zakonsko pravo na povrat od 14 dana ne vrijedi.',
-              ),
+              buyerRightsText(seller),
               textAlign: TextAlign.center,
               style: TextStyle(color: LoopColors.textSecondary, fontSize: 11),
             ),
@@ -564,8 +582,8 @@ class _CheckoutSheetState extends ConsumerState<_CheckoutSheet> {
             SizedBox(height: 8),
             // Prava potrošača ovise o vrsti prodavatelja.
             Text(
-              t(
-                'Prodavatelj je privatna osoba: zakonsko pravo na povrat od 14 dana ne vrijedi.',
+              buyerRightsText(
+                ref.read(appProvider).userById(widget.device.ownerId),
               ),
               key: ValueKey('checkout-rights'),
               style: TextStyle(color: LoopColors.textSecondary, fontSize: 12),

@@ -221,13 +221,17 @@ class _CreateLiveShowScreenState extends ConsumerState<CreateLiveShowScreen> {
     super.dispose();
   }
 
+  /// Trgovac smije više predmeta u liveu.
+  int get _maxLots =>
+      ref.read(appProvider).currentUser?.seller?.isBusiness ?? false
+      ? LiveShow.businessMaxLots
+      : LiveShow.maxLots;
+
   void _toggle(Device d) => setState(() {
     _error = null;
     if (_selected.remove(d.id)) return;
-    if (_selected.length >= LiveShow.maxLots) {
-      _error = t('Live može imati najviše {0} predmeta.', [
-        '${LiveShow.maxLots}',
-      ]);
+    if (_selected.length >= _maxLots) {
+      _error = t('Live može imati najviše {0} predmeta.', ['$_maxLots']);
       return;
     }
     _selected.add(d.id);
@@ -445,7 +449,7 @@ class _CreateLiveShowScreenState extends ConsumerState<CreateLiveShowScreen> {
                     child: Text(
                       t('Predmeti ({0}/{1})', [
                         '${_selected.length}',
-                        '${LiveShow.maxLots}',
+                        '$_maxLots',
                       ]),
                       style: bold,
                     ),

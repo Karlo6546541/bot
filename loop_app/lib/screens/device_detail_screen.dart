@@ -329,22 +329,47 @@ class DeviceDetailScreen extends ConsumerWidget {
                           ],
                         ),
                       ),
-                    // Svi prodavatelji su fizičke osobe — o tome ovise
-                    // prava kupca.
+                    // Privatna osoba ili trgovac — o tome ovise prava kupca
+                    // (DSA: trgovac je jasno označen, s podacima za kontakt).
                     if (owner != null && device.isListed && !isMine)
-                      ListTile(
-                        key: const ValueKey('seller-type'),
-                        leading: Icon(
-                          Icons.person_outline,
-                          color: LoopColors.textSecondary,
-                        ),
-                        title: Text(t('Privatni prodavatelj (fizička osoba)')),
-                        subtitle: Text(
-                          t(
-                            'Kupnja od fizičke osobe: zakonsko pravo na povrat od 14 dana ne vrijedi.',
+                      if (owner.seller case final info? when info.isBusiness)
+                        ListTile(
+                          key: const ValueKey('seller-type'),
+                          leading: Icon(
+                            Icons.storefront_outlined,
+                            color: LoopColors.textSecondary,
+                          ),
+                          title: Text(t('Trgovac: {0}', [info.tradeName])),
+                          subtitle: Text(
+                            [
+                              buyerRightsText(owner),
+                              [
+                                info.address,
+                                'OIB ${info.oib}',
+                                if (info.vatId.isNotEmpty) 'PDV ${info.vatId}',
+                                info.contactEmail,
+                                info.contactPhone,
+                              ].join(' · '),
+                            ].join('\n'),
+                          ),
+                          isThreeLine: true,
+                        )
+                      else
+                        ListTile(
+                          key: const ValueKey('seller-type'),
+                          leading: Icon(
+                            Icons.person_outline,
+                            color: LoopColors.textSecondary,
+                          ),
+                          title: Text(
+                            t('Privatni prodavatelj (fizička osoba)'),
+                          ),
+                          subtitle: Text(
+                            t(
+                              'Kupnja od fizičke osobe: zakonsko pravo na povrat od 14 dana ne vrijedi.',
+                            ),
                           ),
                         ),
-                      ),
                     _Spec(
                       Icons.schedule,
                       t('Dodano'),

@@ -1130,6 +1130,11 @@ class AppController extends Notifier<AppState> {
       address: info.address,
       iban: info.iban,
       birthDate: info.birthDate,
+      kind: info.kind,
+      companyName: info.companyName,
+      vatId: info.vatId,
+      contactEmail: info.contactEmail,
+      contactPhone: info.contactPhone,
     );
     if (error != null) throw TradeException(error);
     await _storage.putUser(user.copyWith(seller: info));

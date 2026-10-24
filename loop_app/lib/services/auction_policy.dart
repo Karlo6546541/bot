@@ -33,6 +33,19 @@ class AuctionPolicy {
 
   static const maxActive = 10;
 
+  /// Trgovci (obrt, tvrtka) prodaju više — veća ograničenja.
+  static const businessMaxActive = 200;
+  static const businessMaxNewPerDay = 200;
+
+  bool _business(String userId) =>
+      _storage.userById(userId)?.seller?.isBusiness ?? false;
+
+  int maxActiveFor(String userId) =>
+      _business(userId) ? businessMaxActive : maxActive;
+
+  int maxNewPerDayFor(String userId) =>
+      _business(userId) ? businessMaxNewPerDay : maxNewPerDay;
+
   /// Naknada za objavu — računa se od vrijednosti predmeta, a ne od početne
   /// cijene, kako se ne bi mogla izbjeći niskom početnom cijenom.
   static double listingFee(Device d) =>
@@ -66,16 +79,16 @@ class AuctionPolicy {
   /// ili `null` ako može. Redoslijed: najprije pravila o korisniku,
   /// zatim o predmetu.
   String? blockReason(String userId, Device device, {DateTime? now}) {
-    if (activeCount(userId) >= maxActive) {
+    final active = maxActiveFor(userId);
+    if (activeCount(userId) >= active) {
       return t(
         'Imaš već {0} aktivne aukcije — to je najviše. Pričekaj da neka završi ili prodaj na Kupi odmah.',
-        [maxActive],
+        [active],
       );
     }
-    if (createdLast24h(userId, now: now) >= maxNewPerDay) {
-      return t('Danas si već objavio {0} aukcije. Nove možeš sutra.', [
-        maxNewPerDay,
-      ]);
+    final perDay = maxNewPerDayFor(userId);
+    if (createdLast24h(userId, now: now) >= perDay) {
+      return t('Danas si već objavio {0} aukcije. Nove možeš sutra.', [perDay]);
     }
     if (device.price < minItemValue) {
       return t(
