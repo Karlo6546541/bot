@@ -18,10 +18,7 @@ import 'swipe_feed_screen.dart';
 /// tko je uživo sada, što uskoro kreće, aukcije koje završavaju i predmeti
 /// za Kupi odmah. Dodir na karticu otvara swipe feed te skupine.
 class LiveHomeScreen extends ConsumerStatefulWidget {
-  const LiveHomeScreen({super.key, required this.onBrowse});
-
-  /// Prijelaz na karticu "Aukcije".
-  final VoidCallback onBrowse;
+  const LiveHomeScreen({super.key});
 
   @override
   ConsumerState<LiveHomeScreen> createState() => _LiveHomeScreenState();
@@ -178,7 +175,7 @@ class _LiveHomeScreenState extends ConsumerState<LiveHomeScreen> {
           header(
             t('⏱ Završavaju uskoro'),
             action: t('Sve aukcije'),
-            onAction: widget.onBrowse,
+            onAction: () => setState(() => _filter = const _Timed()),
           ),
         );
         slivers.add(

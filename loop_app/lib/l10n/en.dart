@@ -2197,4 +2197,5 @@ const kEn = <String, String>{
   'Kupljeno': 'Bought',
   'Nije na prodaji': 'Not for sale',
   'Paket pratiš u Moje → Kupljeno': 'Track the parcel in My → Bought',
+  'Na prodaji': 'For sale',
 };

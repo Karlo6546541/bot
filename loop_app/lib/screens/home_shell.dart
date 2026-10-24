@@ -19,7 +19,8 @@ import 'search_screen.dart';
 import 'wishlists_screen.dart';
 import 'notifications_screen.dart';
 
-/// Glavni okvir: Početna · Istraži · [+ Objavi] · Moje · Profil.
+/// Glavni okvir: Početna · [+ Objavi] · Moje · Profil (Istraži je spojen
+/// s Početnom — kategorije su pilule na vrhu).
 class HomeShell extends ConsumerStatefulWidget {
   const HomeShell({super.key});
 
@@ -40,7 +41,6 @@ class _HomeShellState extends ConsumerState<HomeShell> {
 
   static List<ShellDestination> get _destinations => [
     ShellDestination(t('Početna'), Icons.home_outlined, Icons.home),
-    ShellDestination(t('Istraži'), Icons.explore_outlined, Icons.explore),
     ShellDestination(t('Objavi'), Icons.add, Icons.add, action: true),
     ShellDestination(
       t('Moje'),
@@ -50,9 +50,9 @@ class _HomeShellState extends ConsumerState<HomeShell> {
     ShellDestination(t('Profil'), Icons.person_outline, Icons.person),
   ];
 
-  /// Kartice: 0 Početna, 1 Istraži, 2 Moje, 3 Profil. U traci je "+" na
-  /// mjestu 2 pa su Moje i Profil pomaknuti za jedan.
-  static const _createSlot = 2;
+  /// Kartice: 0 Početna, 1 Moje, 2 Profil. U traci je "+" na mjestu 1
+  /// pa su Moje i Profil pomaknuti za jedan.
+  static const _createSlot = 1;
   static int _navIndex(int tab) => tab < _createSlot ? tab : tab + 1;
 
   void _onNav(int nav) {
@@ -154,9 +154,8 @@ class _HomeShellState extends ConsumerState<HomeShell> {
       body: IndexedStack(
         index: _index,
         children: [
-          LiveHomeScreen(onBrowse: () => _go(1)),
-          const AuctionsScreen(),
-          MyAuctionsView(onBrowse: () => _go(1)),
+          const LiveHomeScreen(),
+          MyAuctionsView(onBrowse: () => _go(0)),
           const ProfileScreen(),
         ],
       ),

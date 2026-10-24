@@ -86,7 +86,7 @@ class PortfolioScreen extends ConsumerWidget {
 
 /// Moji predmeti — jednostavno: filtri (Sve · Na prodaji · Nije na prodaji ·
 /// Kupljeno) i popis, a svaki predmet ima jedan jasan gumb.
-class MyItemsScreen extends ConsumerStatefulWidget {
+class MyItemsScreen extends StatelessWidget {
   const MyItemsScreen({super.key});
 
   static Future<void> open(BuildContext context) => Navigator.of(
@@ -94,7 +94,28 @@ class MyItemsScreen extends ConsumerStatefulWidget {
   ).push(MaterialPageRoute<void>(builder: (_) => const MyItemsScreen()));
 
   @override
-  ConsumerState<MyItemsScreen> createState() => _MyItemsScreenState();
+  Widget build(BuildContext context) => Scaffold(
+    appBar: AppBar(
+      title: Text(t('Moji predmeti')),
+      actions: [
+        IconButton(
+          key: const ValueKey('my-items-add'),
+          tooltip: t('Dodaj predmet'),
+          onPressed: () => AddDeviceScreen.open(context),
+          icon: const Icon(Icons.add),
+        ),
+      ],
+    ),
+    body: const MyItemsView(),
+  );
+}
+
+/// Popis mojih predmeta s filtrima (i u kartici Moje → Prodajem).
+class MyItemsView extends ConsumerStatefulWidget {
+  const MyItemsView({super.key});
+
+  @override
+  ConsumerState<MyItemsView> createState() => _MyItemsViewState();
 }
 
 enum _ItemsFilter {
@@ -108,14 +129,14 @@ enum _ItemsFilter {
   String get label => t(_label);
 }
 
-class _MyItemsScreenState extends ConsumerState<MyItemsScreen> {
+class _MyItemsViewState extends ConsumerState<MyItemsView> {
   _ItemsFilter _filter = _ItemsFilter.all;
 
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(appProvider);
     final user = state.currentUser;
-    if (user == null) return const Scaffold();
+    if (user == null) return const SizedBox.shrink();
     final mine = state.myDevices;
     final digital = state.myDigitalPurchases;
     bool selling(Device d) =>
@@ -136,108 +157,95 @@ class _MyItemsScreenState extends ConsumerState<MyItemsScreen> {
     };
     void onGoToMarket() {
       Navigator.of(context).popUntil((r) => r.isFirst);
-      ref.read(homeTabProvider.notifier).select(1);
+      ref.read(homeTabProvider.notifier).select(0);
     }
 
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(t('Moji predmeti')),
-        actions: [
-          IconButton(
-            key: const ValueKey('my-items-add'),
-            tooltip: t('Dodaj predmet'),
-            onPressed: () => AddDeviceScreen.open(context),
-            icon: const Icon(Icons.add),
-          ),
-        ],
-      ),
-      body: CustomScrollView(
-        slivers: [
-          SliverToBoxAdapter(
-            child: SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              padding: const EdgeInsets.fromLTRB(16, 4, 16, 12),
-              child: Row(
-                children: [
-                  for (final f in _ItemsFilter.values)
-                    Padding(
-                      padding: const EdgeInsets.only(right: 8),
-                      child: ChoiceChip(
-                        key: ValueKey('my-items-${f.name}'),
-                        label: Text(f.label),
-                        selected: _filter == f,
-                        onSelected: (_) => setState(() => _filter = f),
-                      ),
+    return CustomScrollView(
+      slivers: [
+        SliverToBoxAdapter(
+          child: SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            padding: const EdgeInsets.fromLTRB(16, 4, 16, 12),
+            child: Row(
+              children: [
+                for (final f in _ItemsFilter.values)
+                  Padding(
+                    padding: const EdgeInsets.only(right: 8),
+                    child: ChoiceChip(
+                      key: ValueKey('my-items-${f.name}'),
+                      label: Text(f.label),
+                      selected: _filter == f,
+                      onSelected: (_) => setState(() => _filter = f),
                     ),
-                ],
-              ),
+                  ),
+              ],
             ),
           ),
-          if (list.isEmpty)
-            SliverFillRemaining(
-              hasScrollBody: false,
-              child: EmptyState(
-                icon: Icons.inventory_2_outlined,
-                title: _filter == _ItemsFilter.all
-                    ? t('Još nemaš predmeta')
-                    : t('Ovdje još nema ničega'),
-                message: t('Dodaj svoj predmet ili kupi nešto.'),
-                action: OutlinedButton.icon(
-                  onPressed: onGoToMarket,
-                  icon: const Icon(Icons.storefront),
-                  label: Text(t('Istraži')),
-                ),
+        ),
+        if (list.isEmpty)
+          SliverFillRemaining(
+            hasScrollBody: false,
+            child: EmptyState(
+              icon: Icons.inventory_2_outlined,
+              title: _filter == _ItemsFilter.all
+                  ? t('Još nemaš predmeta')
+                  : t('Ovdje još nema ničega'),
+              message: t('Dodaj svoj predmet ili kupi nešto.'),
+              action: OutlinedButton.icon(
+                onPressed: onGoToMarket,
+                icon: const Icon(Icons.storefront),
+                label: Text(t('Istraži')),
               ),
-            )
-          else
-            DeviceGrid(
-              devices: list,
-              itemBuilder: (context, d) {
-                // Kupljeni digitalni proizvod: samo preuzimanje.
-                if (d.ownerId != user.id) {
-                  return DeviceCard(
-                    device: d,
-                    actionLabel: t('Preuzmi'),
-                    actionIcon: Icons.download,
-                    onAction: () => downloadDigital(context, ref, d),
-                    onTap: () => DeviceDetailScreen.open(context, d),
-                    sellerView: true,
-                    badge: t('✓ Kupljeno'),
-                  );
-                }
-                final auction = state.activeAuctionFor(d.id);
-                // Jedan gumb: na aukciji → aukcija, inače detalji (tamo su
-                // Kupi odmah, Aukcija i Live).
+            ),
+          )
+        else
+          DeviceGrid(
+            devices: list,
+            itemBuilder: (context, d) {
+              // Kupljeni digitalni proizvod: samo preuzimanje.
+              if (d.ownerId != user.id) {
                 return DeviceCard(
                   device: d,
-                  actionLabel: auction != null
-                      ? t('Na aukciji')
-                      : d.isListed
-                      ? t('Detalji')
-                      : t('Prodaj'),
-                  actionIcon: auction != null
-                      ? Icons.gavel
-                      : d.isListed
-                      ? Icons.info_outline
-                      : Icons.sell_outlined,
-                  onAction: auction != null
-                      ? () => AuctionDetailScreen.open(context, auction.id)
-                      : () => DeviceDetailScreen.open(context, d),
+                  actionLabel: t('Preuzmi'),
+                  actionIcon: Icons.download,
+                  onAction: () => downloadDigital(context, ref, d),
                   onTap: () => DeviceDetailScreen.open(context, d),
                   sellerView: true,
-                  badge: auction != null
-                      ? t('⏱ Na aukciji')
-                      : d.isListed
-                      ? t('🏷️ Na prodaji')
-                      : bought(d)
-                      ? t('✓ Kupljeno')
-                      : null,
+                  badge: t('✓ Kupljeno'),
                 );
-              },
-            ),
-          const SliverToBoxAdapter(child: SizedBox(height: 32)),
-        ],
-      ),
+              }
+              final auction = state.activeAuctionFor(d.id);
+              // Jedan gumb: na aukciji → aukcija, inače detalji (tamo su
+              // Kupi odmah, Aukcija i Live).
+              return DeviceCard(
+                device: d,
+                actionLabel: auction != null
+                    ? t('Na aukciji')
+                    : d.isListed
+                    ? t('Detalji')
+                    : t('Prodaj'),
+                actionIcon: auction != null
+                    ? Icons.gavel
+                    : d.isListed
+                    ? Icons.info_outline
+                    : Icons.sell_outlined,
+                onAction: auction != null
+                    ? () => AuctionDetailScreen.open(context, auction.id)
+                    : () => DeviceDetailScreen.open(context, d),
+                onTap: () => DeviceDetailScreen.open(context, d),
+                sellerView: true,
+                badge: auction != null
+                    ? t('⏱ Na aukciji')
+                    : d.isListed
+                    ? t('🏷️ Na prodaji')
+                    : bought(d)
+                    ? t('✓ Kupljeno')
+                    : null,
+              );
+            },
+          ),
+        const SliverToBoxAdapter(child: SizedBox(height: 96)),
+      ],
     );
   }
 }

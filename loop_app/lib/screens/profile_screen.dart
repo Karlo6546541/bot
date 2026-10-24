@@ -4,14 +4,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../providers/app_providers.dart';
 import '../services/sync_service.dart';
 import '../theme/app_theme.dart';
-import '../widgets/formatters.dart';
 import '../widgets/trade_actions.dart';
 import 'activity_screen.dart';
 import 'legal_screen.dart';
 import 'login_screen.dart';
 import 'seller_screens.dart';
-import 'portfolio_screen.dart';
-import 'deliveries_screen.dart';
 import '../l10n/tr.dart';
 import '../widgets/language_button.dart';
 import '../models/app_user.dart';
@@ -19,7 +16,6 @@ import 'account_screens.dart';
 import 'public_profile_screen.dart';
 import 'shop_screens.dart';
 import '../widgets/shop_widgets.dart';
-import 'package:flutter/services.dart';
 import '../widgets/user_avatar.dart';
 
 class ProfileScreen extends ConsumerWidget {
@@ -42,42 +38,17 @@ class ProfileScreen extends ConsumerWidget {
               children: [
                 ProfileHeader(user: user, editable: !user.isGuest),
                 const SizedBox(height: 12),
+                // Profil je samo za račun i postavke — kupnje i prodaja su
+                // u kartici Moje.
                 if (user.isGuest)
                   const _GuestCard()
                 else ...[
-                  // Tri skupine: što prodajem, što kupujem, postavke.
-                  _SectionTitle(t('Prodajem'), Icons.storefront_outlined),
+                  _SectionTitle(t('Račun'), Icons.manage_accounts_outlined),
                   _ShopCard(user: user),
                   const SizedBox(height: 8),
                   Card(
-                    child: ListTile(
-                      leading: Icon(
-                        Icons.account_balance_wallet_outlined,
-                        color: LoopColors.textSecondary,
-                      ),
-                      title: Text(t('Zarada za isplatu')),
-                      subtitle: Text(
-                        formatCredits(user.credits),
-                        style: const TextStyle(
-                          fontWeight: FontWeight.w900,
-                          fontSize: 18,
-                        ),
-                      ),
-                      trailing: FilledButton(
-                        key: const ValueKey('profile-payout'),
-                        onPressed: user.credits > 0
-                            ? () => showPayoutDialog(context, ref)
-                            : null,
-                        child: Text(t('Isplati')),
-                      ),
-                    ),
-                  ),
-                ],
-                _SectionTitle(t('Kupujem'), Icons.shopping_bag_outlined),
-                Card(
-                  child: Column(
-                    children: [
-                      if (!user.isGuest) ...[
+                    child: Column(
+                      children: [
                         _NavTile(
                           key: const ValueKey('profile-checkout'),
                           icon: Icons.credit_card,
@@ -88,28 +59,16 @@ class ProfileScreen extends ConsumerWidget {
                               ensureCheckout(context, ref, force: true),
                         ),
                         const Divider(height: 1),
+                        _NavTile(
+                          key: const ValueKey('open-activity'),
+                          icon: Icons.receipt_long_outlined,
+                          title: t('Povijest transakcija'),
+                          onTap: () => ActivityPage.open(context),
+                        ),
                       ],
-                      _NavTile(
-                        icon: Icons.local_shipping_outlined,
-                        title: state.myOpenDeliveries.isEmpty
-                            ? t('Moje dostave')
-                            : t('Moje dostave ({0} u tijeku)', [
-                                state.myOpenDeliveries.length,
-                              ]),
-                        onTap: () => DeliveriesScreen.open(context),
-                      ),
-                      const Divider(height: 1),
-                      _NavTile(
-                        key: const ValueKey('open-activity'),
-                        icon: Icons.receipt_long_outlined,
-                        title: t('Povijest transakcija'),
-                        onTap: () => ActivityPage.open(context),
-                      ),
-                    ],
+                    ),
                   ),
-                ),
-                if (!user.isGuest) ...[
-                  _SectionTitle(t('Račun'), Icons.manage_accounts_outlined),
+                  const SizedBox(height: 8),
                   _AccountCard(user: user),
                 ],
                 _SectionTitle(t('Postavke'), Icons.tune),
@@ -441,16 +400,6 @@ class _ShopCard extends ConsumerWidget {
             onTap: () => SellerInfoScreen.open(context),
           ),
           const Divider(height: 1),
-          _NavTile(
-            key: const ValueKey('my-items'),
-            icon: Icons.inventory_2_outlined,
-            title: t('Moji predmeti ({0})', [
-              state.myDevices.length + state.myDigitalPurchases.length,
-            ]),
-            subtitle: t('Vrijednost, raspodjela i svi tvoji predmeti'),
-            onTap: () => MyItemsScreen.open(context),
-          ),
-          const Divider(height: 1),
           ListTile(
             key: const ValueKey('my-shop'),
             leading: const Icon(Icons.storefront_outlined),
@@ -483,13 +432,6 @@ class _ShopCard extends ConsumerWidget {
               ),
             ),
             onTap: () => showShopNameDialog(context, ref),
-          ),
-          const Divider(height: 1),
-          ListTile(
-            leading: const Icon(Icons.emoji_events_outlined),
-            title: Text(t('Top prodavatelji')),
-            trailing: const Icon(Icons.chevron_right),
-            onTap: () => LeaderboardScreen.open(context),
           ),
         ],
       ),
@@ -585,24 +527,6 @@ class _AccountCard extends ConsumerWidget {
             ),
             trailing: const Icon(Icons.chevron_right),
             onTap: () => DeleteAccountScreen.open(context),
-          ),
-          const Divider(height: 1),
-          ListTile(
-            leading: const Icon(Icons.card_giftcard),
-            title: Text(t('Pozovi prijatelja')),
-            subtitle: Text(
-              t('Kod za poziv: {0} — podijeli ga s prijateljima.', [
-                user.handle,
-              ]),
-            ),
-            trailing: IconButton(
-              tooltip: t('Kopiraj'),
-              icon: const Icon(Icons.copy),
-              onPressed: () {
-                Clipboard.setData(ClipboardData(text: user.username));
-                showLoopSnackBar(t('Kod kopiran'));
-              },
-            ),
           ),
         ],
       ),

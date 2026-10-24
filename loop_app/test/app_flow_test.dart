@@ -15,20 +15,44 @@ import 'package:loop_app/services/storage_service.dart';
 
 /// Početna počinje feedom — kartica sa stanjem je ispod; skrolaj do nje.
 Future<void> reveal(WidgetTester tester, Finder finder) async {
-  await tester.scrollUntilVisible(
-    finder,
-    300,
-    scrollable: find.byType(Scrollable).first,
-  );
+  await tester.scrollUntilVisible(finder, 300, scrollable: vScroll());
   await tester.pumpAndSettle();
 }
 
-/// Profil → Moji predmeti.
+/// Prvi okomiti popis na ekranu (vodoravni redovi filtara se preskaču).
+Finder vScroll() => find
+    .byWidgetPredicate(
+      (w) => w is Scrollable && w.axisDirection == AxisDirection.down,
+    )
+    .first;
+
+/// Moje → Prodajem → Predmeti.
 Future<void> openMyItems(WidgetTester tester) async {
-  await tester.tap(find.text('Profil').last);
+  await tester.tap(find.text('Moje').last);
   await tester.pumpAndSettle();
-  await reveal(tester, find.byKey(const ValueKey('my-items')));
-  await tester.tap(find.byKey(const ValueKey('my-items')));
+  await tester.tap(find.byKey(const ValueKey('my-selling')));
+  await tester.pumpAndSettle();
+}
+
+/// Početna → pilula "Aukcije" (Istraži je spojen s Početnom).
+Future<void> openAuctionsPill(WidgetTester tester) async {
+  // Pilule su na vrhu Početne.
+  await tester.scrollUntilVisible(
+    find.byKey(const ValueKey('home-cats')),
+    -300,
+    scrollable: vScroll(),
+  );
+  await tester.scrollUntilVisible(
+    find.byKey(const ValueKey('home-cat-timed')),
+    100,
+    scrollable: find.descendant(
+      of: find.byKey(const ValueKey('home-cats')),
+      matching: find.byType(Scrollable),
+    ),
+  );
+  await tester.ensureVisible(find.byKey(const ValueKey('home-cat-timed')));
+  await tester.pumpAndSettle();
+  await tester.tap(find.byKey(const ValueKey('home-cat-timed')));
   await tester.pumpAndSettle();
 }
 
@@ -99,15 +123,16 @@ void main() {
       await tester.scrollUntilVisible(
         find.text('iPhone 13'),
         300,
-        scrollable: find.byType(Scrollable).first,
+        scrollable: vScroll(),
       );
       await tester.pumpAndSettle();
       expect(find.text('iPhone 13'), findsOneWidget);
-      await tester.pageBack();
+      await tester.tap(find.text('Početna').last);
       await tester.pumpAndSettle();
 
       // Aukcije → kartica → swipe feed → licitiraj.
-      await tester.tap(find.text('Istraži').last);
+      await openAuctionsPill(tester);
+      await tester.ensureVisible(find.text('Polaroid SX-70'));
       await tester.pumpAndSettle();
       await tester.tap(find.text('Polaroid SX-70'));
       await tester.pumpAndSettle();
@@ -121,14 +146,19 @@ void main() {
       await tester.tap(find.byTooltip('Natrag'));
       await tester.pumpAndSettle();
 
-      // Moje → Kupljeno (prvo), pa Ponude.
+      // Moje → Kupujem → Kupljeno (prvo), pa Ponude.
       await tester.tap(find.text('Moje').last);
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('my-buying')));
       await tester.pumpAndSettle();
       expect(find.byKey(const ValueKey('my-bought')), findsOneWidget);
       await tester.tap(find.byKey(const ValueKey('my-myBids')));
       await tester.pumpAndSettle();
       expect(find.text('Polaroid SX-70'), findsOneWidget);
       expect(find.text('Vodiš'), findsOneWidget);
+      // Prodajem → Liveovi.
+      await tester.tap(find.byKey(const ValueKey('my-selling')));
+      await tester.pumpAndSettle();
       await tester.ensureVisible(find.byKey(const ValueKey('my-lives')));
       await tester.pumpAndSettle();
       await tester.tap(find.byKey(const ValueKey('my-lives')));
@@ -193,8 +223,7 @@ void main() {
     await tester.tap(find.text('Prijavi se'));
     await tester.pumpAndSettle();
 
-    await tester.tap(find.text('Istraži').last);
-    await tester.pumpAndSettle();
+    await openAuctionsPill(tester);
     expect(find.text('Polaroid SX-70'), findsOneWidget);
 
     await openAuction(tester, 'Polaroid SX-70');
@@ -246,10 +275,8 @@ void main() {
     await tester.tap(find.text('Prijavi se'));
     await tester.pumpAndSettle();
 
-    // Zarada (1.250 €) ide na IBAN iz podataka prodavatelja (Profil).
-    await tester.tap(find.text('Profil').last);
-    await tester.pumpAndSettle();
-    await reveal(tester, find.byKey(const ValueKey('profile-payout')));
+    // Zarada (1.250 €) ide na IBAN iz podataka prodavatelja (Moje → Prodajem).
+    await openMyItems(tester);
     await tester.tap(find.byKey(const ValueKey('profile-payout')));
     await tester.pumpAndSettle();
     expect(find.text('Isplatiti zaradu?'), findsOneWidget);
@@ -265,7 +292,7 @@ void main() {
     await tester.scrollUntilVisible(
       find.text('Tamna'),
       200,
-      scrollable: find.byType(Scrollable).first,
+      scrollable: vScroll(),
     );
     await tester.pumpAndSettle();
     await tester.tap(find.text('Tamna'));
@@ -408,26 +435,29 @@ void main() {
     expect(find.text('For you'), findsOneWidget);
 
     // Swipe feed aukcija na engleskom.
-    await tester.tap(find.text('Explore').last);
+    await openAuctionsPill(tester);
+    await tester.ensureVisible(find.text('Polaroid SX-70'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Polaroid SX-70'));
     await tester.pumpAndSettle();
-    expect(find.text('For you'), findsOneWidget);
+    expect(find.text('Auctions'), findsWidgets);
     expect(find.text('Share'), findsOneWidget);
     await tester.tap(find.byTooltip('Back'));
     await tester.pumpAndSettle();
 
-    for (final tab in ['Mine', 'Profile']) {
-      await tester.tap(find.text(tab).last);
-      await tester.pumpAndSettle();
-    }
-    expect(find.text('Edit profile'), findsOneWidget);
-    // Engleski zapis eura (zarada u Profilu).
+    // Engleski zapis eura (zarada u Moje → Prodajem).
+    await tester.tap(find.text('Mine').last);
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('my-selling')));
+    await tester.pumpAndSettle();
     expect(find.textContaining('1,250'), findsWidgets);
+    await tester.tap(find.text('Profile').last);
+    await tester.pumpAndSettle();
+    expect(find.text('Edit profile'), findsOneWidget);
     await tester.scrollUntilVisible(
       find.text('Language / Jezik'),
       200,
-      scrollable: find.byType(Scrollable).first,
+      scrollable: vScroll(),
     );
     expect(find.text('Language / Jezik'), findsOneWidget);
     expect(Tr.missing, isEmpty, reason: 'nedostaju prijevodi');
@@ -437,7 +467,7 @@ void main() {
     await tester.scrollUntilVisible(
       find.text('Reset demo data'),
       200,
-      scrollable: find.byType(Scrollable).first,
+      scrollable: vScroll(),
     );
     await tester.pumpAndSettle();
     await tester.tap(find.text('🇭🇷 Hrvatski'));
@@ -447,7 +477,7 @@ void main() {
     await tester.scrollUntilVisible(
       find.text('Jezik / Language'),
       200,
-      scrollable: find.byType(Scrollable).first,
+      scrollable: vScroll(),
     );
     expect(find.text('Jezik / Language'), findsOneWidget);
     expect(Tr.lang, AppLang.hr);
@@ -513,7 +543,7 @@ void accountTests() {
     await tester.scrollUntilVisible(
       find.text('Odjavi se'),
       200,
-      scrollable: find.byType(Scrollable).first,
+      scrollable: vScroll(),
     );
     await tester.pumpAndSettle();
     await tester.tap(find.text('Odjavi se'));
@@ -523,7 +553,8 @@ void accountTests() {
     await tester.ensureVisible(find.text('Samo razgledaj (gost)'));
     await tester.tap(find.text('Samo razgledaj (gost)'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Istraži').last);
+    await openAuctionsPill(tester);
+    await tester.ensureVisible(find.text('Polaroid SX-70'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Polaroid SX-70'));
     await tester.pumpAndSettle();
@@ -562,7 +593,8 @@ void accountTests() {
       expect(storage.currentUserId, 'user-guest');
 
       // Licitiranje otvara registraciju preko predmeta.
-      await tester.tap(find.text('Istraži').last);
+      await openAuctionsPill(tester);
+      await tester.ensureVisible(find.text('Polaroid SX-70'));
       await tester.pumpAndSettle();
       await tester.tap(find.text('Polaroid SX-70'));
       await tester.pumpAndSettle();
@@ -600,7 +632,7 @@ void listingTests() {
     await tester.scrollUntilVisible(
       find.text('iPhone 13'),
       300,
-      scrollable: find.byType(Scrollable).first,
+      scrollable: vScroll(),
     );
     await tester.pumpAndSettle();
     await tester.tap(find.text('iPhone 13'));
@@ -674,7 +706,7 @@ void deletionTests() {
     await tester.scrollUntilVisible(
       find.text('Obriši račun'),
       200,
-      scrollable: find.byType(Scrollable).first,
+      scrollable: vScroll(),
     );
     await tester.pumpAndSettle();
     await tester.tap(find.text('Obriši račun'));
@@ -736,7 +768,7 @@ void communityTests() {
       await tester.scrollUntilVisible(
         find.text('Odjavi se'),
         200,
-        scrollable: find.byType(Scrollable).first,
+        scrollable: vScroll(),
       );
       await tester.pumpAndSettle();
       await tester.tap(find.text('Odjavi se'));
@@ -747,8 +779,7 @@ void communityTests() {
     await login('demo@loop.com');
 
     // Demo nadmaši Marka na Polaroidu.
-    await tester.tap(find.text('Istraži').last);
-    await tester.pumpAndSettle();
+    await openAuctionsPill(tester);
     await openAuction(tester, 'Polaroid SX-70');
     await tester.tap(find.byKey(const ValueKey('open-bid')));
     await tester.pumpAndSettle();
@@ -801,8 +832,7 @@ void communityTests() {
     expect(find.descendant(of: bell, matching: find.text('1')), findsNothing);
 
     // Javni profil prodavateljice: ocjene i izbornik prijave/blokiranja.
-    await tester.tap(find.text('Istraži').last);
-    await tester.pumpAndSettle();
+    await openAuctionsPill(tester);
     await openAuction(tester, 'Polaroid SX-70');
     await tester.tap(find.textContaining('@ana.kolekcija'));
     await tester.pumpAndSettle();
@@ -813,7 +843,7 @@ void communityTests() {
     await tester.scrollUntilVisible(
       find.byKey(const ValueKey('shop-tabs')),
       300,
-      scrollable: find.byType(Scrollable).first,
+      scrollable: vScroll(),
     );
     await tester.pumpAndSettle();
     await tester.tap(find.byTooltip('Ocjene'));
@@ -858,7 +888,7 @@ void chatTests() {
       await tester.scrollUntilVisible(
         find.text('Odjavi se'),
         200,
-        scrollable: find.byType(Scrollable).first,
+        scrollable: vScroll(),
       );
       await tester.pumpAndSettle();
       await tester.tap(find.text('Odjavi se'));
@@ -939,8 +969,8 @@ void logoTests() {
       await tester.pumpAndSettle();
       expect(find.byKey(const ValueKey('home-search')), findsOneWidget);
 
-      // Aukcije → logo → natrag na početnu.
-      await tester.tap(find.text('Istraži').last);
+      // Moje → logo → natrag na početnu.
+      await tester.tap(find.text('Moje').last);
       await tester.pumpAndSettle();
       expect(find.byKey(const ValueKey('home-search')), findsNothing);
       await tester.tap(find.byKey(const ValueKey('logo-home')));

@@ -32,7 +32,19 @@ void main() {
       await tester.tap(find.text('Prijavi se'));
       await tester.pumpAndSettle();
       // Aukcije → kartica otvara swipe feed (kao TikTok).
-      await tester.tap(find.text('Istraži').last);
+      await tester.scrollUntilVisible(
+        find.byKey(const ValueKey('home-cat-timed')),
+        100,
+        scrollable: find.descendant(
+          of: find.byKey(const ValueKey('home-cats')),
+          matching: find.byType(Scrollable),
+        ),
+      );
+      await tester.ensureVisible(find.byKey(const ValueKey('home-cat-timed')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('home-cat-timed')));
+      await tester.pumpAndSettle();
+      await tester.ensureVisible(find.text('Polaroid SX-70'));
       await tester.pumpAndSettle();
       await tester.tap(find.text('Polaroid SX-70'));
       await tester.pumpAndSettle();

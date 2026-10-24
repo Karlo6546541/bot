@@ -748,24 +748,11 @@ void main() {
       await tester.tap(find.text('Prijavi se'));
       await tester.pumpAndSettle();
 
-      // Aukcije: kategorije kao kartice i mreža kartica (live prvi).
-      await tester.tap(find.text('Istraži').last);
+      // Početna: pilula "Uživo" pokazuje samo liveove.
+      await tester.tap(find.byKey(const ValueKey('home-cat-live')));
       await tester.pumpAndSettle();
       final card = find.byKey(ValueKey('browse-live-$bobShow'));
       expect(card, findsOneWidget);
-      expect(
-        find.byKey(const ValueKey('browse-auction-seed-auction-4')),
-        findsOneWidget,
-      );
-      await tester.tap(find.byKey(const ValueKey('auction-cat-live')));
-      await tester.pumpAndSettle();
-      expect(card, findsOneWidget);
-      expect(
-        find.byKey(const ValueKey('browse-auction-seed-auction-4')),
-        findsNothing,
-      );
-      await tester.tap(find.byKey(const ValueKey('auction-cat-all')));
-      await tester.pumpAndSettle();
 
       // Dodir na live → swipe feed, prva stranica je soba uživo.
       await tester.tap(card);
@@ -858,8 +845,8 @@ void main() {
         1500,
       );
       await tester.pumpAndSettle();
+      // Feed liveova: iza zadnjeg je kraj popisa.
       expect(find.byKey(const ValueKey('live-lot')), findsNothing);
-      expect(find.byKey(const ValueKey('post-bid')), findsOneWidget);
       await tester.tap(find.byTooltip('Natrag'));
       await tester.pumpAndSettle();
 

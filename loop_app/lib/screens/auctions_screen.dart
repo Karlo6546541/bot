@@ -18,6 +18,8 @@ import '../widgets/formatters.dart';
 import '../widgets/item_image.dart';
 import '../widgets/user_avatar.dart';
 import 'auction_detail_screen.dart';
+import 'portfolio_screen.dart';
+import 'seller_screens.dart';
 import 'deliveries_screen.dart';
 import 'create_auction_screen.dart';
 import 'live_screens.dart';
@@ -26,15 +28,21 @@ import '../l10n/tr.dart';
 
 /// Moje: na kojima licitiram, koje prodajem, moji liveovi i završene.
 enum AuctionView {
-  bought('Kupljeno', Icons.shopping_bag_outlined),
-  myBids('Ponude', Icons.back_hand_outlined),
-  mine('Prodajem', Icons.storefront_outlined),
-  lives('Liveovi', Icons.videocam_outlined);
+  // Kupujem
+  bought('Kupljeno', Icons.shopping_bag_outlined, selling: false),
+  myBids('Ponude', Icons.back_hand_outlined, selling: false),
+  // Prodajem
+  items('Predmeti', Icons.inventory_2_outlined, selling: true),
+  mine('Aukcije', Icons.gavel, selling: true),
+  lives('Liveovi', Icons.videocam_outlined, selling: true);
 
-  const AuctionView(this._label, this.icon);
+  const AuctionView(this._label, this.icon, {required this.selling});
   final String _label;
   String get label => t(_label);
   final IconData icon;
+
+  /// Dio "Prodajem" (inače "Kupujem").
+  final bool selling;
 }
 
 /// Odnos prijavljenog korisnika prema aukciji (za oznaku na kartici).
@@ -732,7 +740,7 @@ class _MyAuctionsViewState extends ConsumerState<MyAuctionsView> {
     AuctionView.myBids =>
       s.auctions.where((a) => a.bids.any((b) => b.userId == me)).toList(),
     AuctionView.mine => s.auctions.where((a) => a.sellerId == me).toList(),
-    AuctionView.lives || AuctionView.bought => const [],
+    AuctionView.lives || AuctionView.bought || AuctionView.items => const [],
   };
 
   @override
@@ -755,120 +763,197 @@ class _MyAuctionsViewState extends ConsumerState<MyAuctionsView> {
       _ => list.isEmpty,
     };
 
-    return CustomScrollView(
-      slivers: [
-        SliverToBoxAdapter(
-          child: SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
-            child: SegmentedButton<AuctionView>(
-              showSelectedIcon: false,
-              segments: [
-                for (final v in AuctionView.values)
-                  ButtonSegment(
-                    value: v,
-                    label: Text(v.label, key: ValueKey('my-${v.name}')),
-                    icon: Icon(v.icon, size: 18),
-                  ),
-              ],
-              selected: {_view},
-              onSelectionChanged: (v) => setState(() => _view = v.first),
+    final selling = _view.selling;
+    final user = s.currentUser;
+    // Moje = dvije stvari: što kupujem i što prodajem.
+    final header = Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+          child: SegmentedButton<bool>(
+            showSelectedIcon: false,
+            segments: [
+              ButtonSegment(
+                value: false,
+                icon: const Icon(Icons.shopping_bag_outlined, size: 18),
+                label: Text(t('Kupujem'), key: const ValueKey('my-buying')),
+              ),
+              ButtonSegment(
+                value: true,
+                icon: const Icon(Icons.storefront_outlined, size: 18),
+                label: Text(t('Prodajem'), key: const ValueKey('my-selling')),
+              ),
+            ],
+            selected: {selling},
+            onSelectionChanged: (v) => setState(
+              () => _view = v.first ? AuctionView.items : AuctionView.bought,
             ),
           ),
         ),
-        if (empty)
-          SliverFillRemaining(
-            hasScrollBody: false,
-            child: EmptyState(
-              icon: switch (_view) {
-                AuctionView.lives => Icons.videocam_outlined,
-                AuctionView.bought => Icons.shopping_bag_outlined,
-                _ => Icons.gavel,
-              },
-              title: switch (_view) {
-                AuctionView.bought => t('Još ništa nisi kupio'),
-                AuctionView.myBids => t('Još nisi dao nijednu ponudu'),
-                AuctionView.mine => t('Nemaš svojih aukcija'),
-                AuctionView.lives => t('Još nisi bio uživo'),
-              },
-              message: switch (_view) {
-                AuctionView.bought => t(
-                  'Ovdje su tvoje kupnje i pobjede — odabereš dostavu i pratiš paket.',
-                ),
-                AuctionView.myBids => t(
-                  'Licitiraj u liveu ili na aukciji — tvoje ponude bit će ovdje.',
-                ),
-                _ => t('Pokreni aukciju ili live i prodaj prvi predmet.'),
-              },
-              action: switch (_view) {
-                AuctionView.myBids || AuctionView.bought =>
-                  widget.onBrowse == null
-                      ? null
-                      : FilledButton.icon(
-                          key: const ValueKey('my-empty-browse'),
-                          onPressed: widget.onBrowse,
-                          icon: const Icon(Icons.explore_outlined),
-                          label: Text(t('Istraži')),
-                        ),
-                AuctionView.mine => FilledButton.icon(
-                  key: const ValueKey('my-empty-auction'),
-                  onPressed: () => CreateAuctionScreen.open(context),
-                  icon: const Icon(Icons.gavel),
-                  label: Text(t('Nova aukcija')),
-                ),
-                AuctionView.lives => FilledButton.icon(
-                  key: const ValueKey('my-empty-live'),
-                  style: FilledButton.styleFrom(
-                    backgroundColor: kLiveRed,
-                    foregroundColor: Colors.white,
-                  ),
-                  onPressed: () => CreateLiveShowScreen.open(context),
-                  icon: const Icon(Icons.videocam),
-                  label: Text(t('Kreni uživo')),
-                ),
-              },
-            ),
-          )
-        else if (_view == AuctionView.bought)
-          SliverList.list(
+        SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+          child: Row(
             children: [
-              for (final d in bought)
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
-                  child: DeliveryCard(
-                    key: ValueKey('bought-${d.id}'),
-                    delivery: d,
+              for (final v in AuctionView.values)
+                if (v.selling == selling)
+                  Padding(
+                    padding: const EdgeInsets.only(right: 8),
+                    child: ChoiceChip(
+                      avatar: Icon(v.icon, size: 18),
+                      label: Text(v.label, key: ValueKey('my-${v.name}')),
+                      selected: _view == v,
+                      onSelected: (_) => setState(() => _view = v),
+                    ),
+                  ),
+            ],
+          ),
+        ),
+        // Zarada (Prodajem): iznos i isplata.
+        if (selling && user != null)
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+            child: Card(
+              child: ListTile(
+                leading: Icon(
+                  Icons.account_balance_wallet_outlined,
+                  color: LoopColors.textSecondary,
+                ),
+                title: Text(t('Zarada za isplatu')),
+                subtitle: Text(
+                  formatCredits(user.credits),
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w900,
+                    fontSize: 18,
                   ),
                 ),
-              const SizedBox(height: 96),
-            ],
-          )
-        else if (_view == AuctionView.lives)
-          SliverList.list(
-            children: [
-              for (final l in lives)
-                _MyLiveTile(show: l, state: s.liveStateOf(l)),
-              const SizedBox(height: 96),
-            ],
-          )
-        else
-          SliverPadding(
-            padding: const EdgeInsets.fromLTRB(16, 0, 16, 96),
-            sliver: SliverGrid(
-              gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(
-                maxCrossAxisExtent: 420,
-                mainAxisExtent: MediaQuery.sizeOf(context).width < 600
-                    ? 136
-                    : 156,
-                mainAxisSpacing: 12,
-                crossAxisSpacing: 12,
-              ),
-              delegate: SliverChildBuilderDelegate(
-                (context, i) => AuctionCard(auction: list[i], viewerId: me),
-                childCount: list.length,
+                trailing: FilledButton(
+                  key: const ValueKey('profile-payout'),
+                  onPressed: user.credits > 0
+                      ? () => showPayoutDialog(context, ref)
+                      : null,
+                  child: Text(t('Isplati')),
+                ),
               ),
             ),
           ),
+      ],
+    );
+    if (_view == AuctionView.items) {
+      return Column(
+        children: [
+          header,
+          const Expanded(child: MyItemsView()),
+        ],
+      );
+    }
+
+    return Column(
+      children: [
+        header,
+        Expanded(
+          child: CustomScrollView(
+            slivers: [
+              if (empty)
+                SliverFillRemaining(
+                  hasScrollBody: false,
+                  child: EmptyState(
+                    icon: switch (_view) {
+                      AuctionView.lives => Icons.videocam_outlined,
+                      AuctionView.bought => Icons.shopping_bag_outlined,
+                      _ => Icons.gavel,
+                    },
+                    title: switch (_view) {
+                      AuctionView.bought => t('Još ništa nisi kupio'),
+                      AuctionView.myBids => t('Još nisi dao nijednu ponudu'),
+                      AuctionView.mine ||
+                      AuctionView.items => t('Nemaš svojih aukcija'),
+                      AuctionView.lives => t('Još nisi bio uživo'),
+                    },
+                    message: switch (_view) {
+                      AuctionView.bought => t(
+                        'Ovdje su tvoje kupnje i pobjede — odabereš dostavu i pratiš paket.',
+                      ),
+                      AuctionView.myBids => t(
+                        'Licitiraj u liveu ili na aukciji — tvoje ponude bit će ovdje.',
+                      ),
+                      _ => t('Pokreni aukciju ili live i prodaj prvi predmet.'),
+                    },
+                    action: switch (_view) {
+                      AuctionView.myBids || AuctionView.bought =>
+                        widget.onBrowse == null
+                            ? null
+                            : FilledButton.icon(
+                                key: const ValueKey('my-empty-browse'),
+                                onPressed: widget.onBrowse,
+                                icon: const Icon(Icons.explore_outlined),
+                                label: Text(t('Istraži')),
+                              ),
+                      AuctionView.mine ||
+                      AuctionView.items => FilledButton.icon(
+                        key: const ValueKey('my-empty-auction'),
+                        onPressed: () => CreateAuctionScreen.open(context),
+                        icon: const Icon(Icons.gavel),
+                        label: Text(t('Nova aukcija')),
+                      ),
+                      AuctionView.lives => FilledButton.icon(
+                        key: const ValueKey('my-empty-live'),
+                        style: FilledButton.styleFrom(
+                          backgroundColor: kLiveRed,
+                          foregroundColor: Colors.white,
+                        ),
+                        onPressed: () => CreateLiveShowScreen.open(context),
+                        icon: const Icon(Icons.videocam),
+                        label: Text(t('Kreni uživo')),
+                      ),
+                    },
+                  ),
+                )
+              else if (_view == AuctionView.bought)
+                SliverList.list(
+                  children: [
+                    for (final d in bought)
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+                        child: DeliveryCard(
+                          key: ValueKey('bought-${d.id}'),
+                          delivery: d,
+                        ),
+                      ),
+                    const SizedBox(height: 96),
+                  ],
+                )
+              else if (_view == AuctionView.lives)
+                SliverList.list(
+                  children: [
+                    for (final l in lives)
+                      _MyLiveTile(show: l, state: s.liveStateOf(l)),
+                    const SizedBox(height: 96),
+                  ],
+                )
+              else
+                SliverPadding(
+                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 96),
+                  sliver: SliverGrid(
+                    gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(
+                      maxCrossAxisExtent: 420,
+                      mainAxisExtent: MediaQuery.sizeOf(context).width < 600
+                          ? 136
+                          : 156,
+                      mainAxisSpacing: 12,
+                      crossAxisSpacing: 12,
+                    ),
+                    delegate: SliverChildBuilderDelegate(
+                      (context, i) =>
+                          AuctionCard(auction: list[i], viewerId: me),
+                      childCount: list.length,
+                    ),
+                  ),
+                ),
+            ],
+          ),
+        ),
       ],
     );
   }
