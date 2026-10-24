@@ -420,8 +420,10 @@ dati na pregled odvjetniku prije pokretanja s pravim novcem):
   jezik). Javna trgovina prikazuje live (ako je uživo), aukcije i ocjene.
 - Na početnoj: kartica **Kako LOOP radi** (tri načina kupnje, može se sakriti) i podsjetnik
   **Dodaj karticu i adresu** dok ih korisnik nema.
-- **Kupnja jednim dodirom**: s karticom i adresom *Kupi odmah* otvara kratku potvrdu
-  (kurir na spremljenu adresu, ukupni iznos); *Promijeni dostavu* otvara cijelu blagajnu.
+- **Kupi odmah → prvo dostava**: blagajna nema unaprijed odabran način dostave — kupac bira
+  (BOX NOW paketomat, kurir, a pod *Više načina dostave* ekspres i osobno preuzimanje), a tek
+  onda se gumb *Plati … i potvrdi kupnju* može stisnuti (dotad piše *Prvo odaberi način
+  dostave*). Spremljena kartica i adresa (za kurira) koriste se automatski.
 - **Slavlje preko cijelog ekrana** (kao na Whatnotu): konfeti, „Kupljeno!” / „Osvojio si!”,
   slika i cijena — nakon kupnje i kad osvojiš predmet u liveu. Ostali gledatelji vide traku
   „🔨 PRODANO @kupac · cijena”.
@@ -559,7 +561,8 @@ potvrđuje primitak.
   `4000 0000 0000 9995` nema sredstava; datum bilo koji budući, CVC bilo koji.
 - Sprema se **samo oznaka** (npr. `Visa •••• 4242`, `Google Pay · Visa •••• 4242`) —
   broj kartice i CVC nikad. Spremljeni način plaćanja koristi se **automatski**: Kupi odmah
-  jednim dodirom, a pobjeda na aukciji ili u liveu naplaćuje se sama.
+  bez ponovnog unosa (kupac samo odabere dostavu), a pobjeda na aukciji ili u liveu
+  naplaćuje se sama.
 - **Prava plaćanja (sljedeći korak)**: Stripe (Payment Element; Payment Request Button za
   Google/Apple Pay) i SetupIntent na poslužitelju (Supabase Edge Function s tajnim
   ključem); spremljeni `payment_method` naplaćuje se *off_session* kad kupac pobijedi.

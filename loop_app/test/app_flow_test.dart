@@ -979,10 +979,17 @@ void logoTests() {
     await tester.pumpAndSettle();
     await tester.tap(find.byKey(const ValueKey('post-buy')));
     await tester.pumpAndSettle();
-    // Demo račun ima karticu i adresu → kupnja jednim dodirom.
-    await tester.runAsync(
-      () => tester.tap(find.byKey(const ValueKey('quick-buy'))),
-    );
+    // Prvo se mora odabrati način dostave — bez toga nema plaćanja.
+    final pay = find.byKey(const ValueKey('checkout-pay'));
+    expect(find.text('Prvo odaberi način dostave'), findsOneWidget);
+    expect(tester.widget<ButtonStyleButton>(pay).onPressed, isNull);
+    await tester.tap(find.byKey(const ValueKey('delivery-courier')));
+    await tester.pumpAndSettle();
+    expect(tester.widget<ButtonStyleButton>(pay).onPressed, isNotNull);
+    // Kartica i adresa demo računa koriste se automatski.
+    await tester.ensureVisible(pay);
+    await tester.pumpAndSettle();
+    await tester.runAsync(() => tester.tap(pay));
     await tester.runAsync(
       () => Future<void>.delayed(const Duration(milliseconds: 900)),
     );

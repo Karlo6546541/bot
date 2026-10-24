@@ -2179,4 +2179,5 @@ const kEn = <String, String>{
   '🏪 Trgovac · {0}': '🏪 Trader · {0}',
   'Obrt': 'Sole trader',
   'Ostalo': 'Other',
+  'Prvo odaberi način dostave': 'Choose a delivery method first',
 };

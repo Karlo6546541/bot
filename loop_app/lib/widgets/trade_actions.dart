@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../models/app_user.dart';
-import '../models/delivery.dart';
 import '../models/device.dart';
 import '../providers/app_providers.dart';
 import '../services/fee.dart';
@@ -14,7 +13,6 @@ import '../services/delivery_service.dart';
 import '../screens/login_screen.dart';
 import 'celebration.dart';
 import 'delivery_picker.dart';
-import 'item_image.dart';
 import 'payment_sheet.dart';
 import 'formatters.dart';
 import 'loop_snackbar.dart';
@@ -261,30 +259,9 @@ Future<bool> confirmAndBuy(
     return _buyDigital(context, ref, device, price);
   }
 
-  // Kartica i adresa spremljene → kupnja jednim dodirom (kurir na
-  // spremljenu adresu); inače cijela blagajna.
-  DeliveryChoice? choice;
-  final methods = DeliveryService.methodsFor(device);
-  if (user.checkoutReady && methods.contains(DeliveryMethod.courier)) {
-    final quick = await showModalBottomSheet<String>(
-      context: context,
-      showDragHandle: true,
-      backgroundColor: LoopColors.background,
-      constraints: const BoxConstraints(maxWidth: 560),
-      builder: (_) => _QuickBuySheet(
-        device: device,
-        price: price,
-        address: user.address!,
-        card: user.paymentCard!,
-        seller: ref.read(appProvider).userById(device.ownerId),
-      ),
-    );
-    if (quick == null || !context.mounted) return false;
-    if (quick == 'buy') {
-      choice = DeliveryChoice(DeliveryMethod.courier, user.address);
-    }
-  }
-  choice ??= await showModalBottomSheet<DeliveryChoice>(
+  // Prvo se bira način dostave (ništa nije unaprijed odabrano), a
+  // spremljena kartica i adresa koriste se automatski.
+  final picked = await showModalBottomSheet<DeliveryChoice>(
     context: context,
     isScrollControlled: true,
     showDragHandle: true,
@@ -292,7 +269,6 @@ Future<bool> confirmAndBuy(
     constraints: BoxConstraints(maxWidth: 560),
     builder: (_) => _CheckoutSheet(device: device, price: price),
   );
-  final picked = choice;
   if (picked == null || !context.mounted) return false;
   // Gumb kupnje nestaje čim predmet ode (npr. objava u swipe feedu), pa
   // slavlje ide preko navigatora, ne preko gumba.
@@ -314,119 +290,6 @@ Future<bool> confirmAndBuy(
     );
   }
   return ok;
-}
-
-/// Kupnja jednim dodirom: predmet, dostava kurirom na spremljenu adresu,
-/// kartica i ukupno. "Promijeni" otvara cijelu blagajnu.
-class _QuickBuySheet extends StatelessWidget {
-  const _QuickBuySheet({
-    required this.device,
-    required this.price,
-    required this.address,
-    required this.card,
-    this.seller,
-  });
-
-  final Device device;
-  final double price;
-  final String address;
-  final String card;
-  final AppUser? seller;
-
-  @override
-  Widget build(BuildContext context) {
-    final shipping = DeliveryMethod.courier.cost;
-    final total = buyTotal(price) + shipping;
-    Widget line(IconData icon, String text) => Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
-      child: Row(
-        children: [
-          Icon(icon, size: 20, color: LoopColors.textSecondary),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Text(
-              text,
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-              style: TextStyle(color: LoopColors.textSecondary),
-            ),
-          ),
-        ],
-      ),
-    );
-    return SafeArea(
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Row(
-              children: [
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(12),
-                  child: ItemThumb(device: device, size: 56),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Text(
-                    device.name,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.w900,
-                    ),
-                  ),
-                ),
-                Text(
-                  formatCredits(buyTotal(price)),
-                  style: const TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.w900,
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 12),
-            line(
-              Icons.local_shipping_outlined,
-              t('Kurir {0} · {1}', [formatCredits(shipping), address]),
-            ),
-            line(Icons.credit_card, card),
-            const SizedBox(height: 4),
-            Align(
-              alignment: Alignment.centerLeft,
-              child: TextButton(
-                key: const ValueKey('quick-buy-change'),
-                onPressed: () => Navigator.pop(context, 'change'),
-                child: Text(t('Promijeni dostavu')),
-              ),
-            ),
-            FilledButton(
-              key: const ValueKey('quick-buy'),
-              style: FilledButton.styleFrom(
-                minimumSize: const Size.fromHeight(52),
-                textStyle: const TextStyle(
-                  fontFamily: kFontFamily,
-                  fontWeight: FontWeight.w900,
-                  fontSize: 17,
-                ),
-              ),
-              onPressed: () => Navigator.pop(context, 'buy'),
-              child: Text(t('Kupi za {0}', [formatCredits(total)])),
-            ),
-            const SizedBox(height: 6),
-            Text(
-              buyerRightsText(seller),
-              textAlign: TextAlign.center,
-              style: TextStyle(color: LoopColors.textSecondary, fontSize: 11),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
 }
 
 /// Blagajna: odabir dostave i ukupan iznos (predmet + fee + dostava).
@@ -594,6 +457,7 @@ class _CheckoutSheetState extends ConsumerState<_CheckoutSheet> {
             ],
             SizedBox(height: 14),
             FilledButton.icon(
+              key: ValueKey('checkout-pay'),
               onPressed: _choice == null
                   ? null
                   : () {
@@ -613,7 +477,9 @@ class _CheckoutSheetState extends ConsumerState<_CheckoutSheet> {
                     },
               icon: Icon(Icons.lock_outline),
               label: Text(
-                t('Plati {0} i potvrdi kupnju', [formatCredits(total)]),
+                _choice == null
+                    ? t('Prvo odaberi način dostave')
+                    : t('Plati {0} i potvrdi kupnju', [formatCredits(total)]),
               ),
             ),
           ],

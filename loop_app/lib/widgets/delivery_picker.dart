@@ -42,7 +42,20 @@ class DeliveryPicker extends StatefulWidget {
 }
 
 class _DeliveryPickerState extends State<DeliveryPicker> {
-  late DeliveryMethod _method = widget.methods.first;
+  /// Ništa nije unaprijed odabrano — kupac sam bira način dostave (osim
+  /// kad postoji samo jedan, npr. digitalna dostava).
+  late DeliveryMethod? _method = widget.methods.length == 1
+      ? widget.methods.first
+      : null;
+
+  @override
+  void initState() {
+    super.initState();
+    if (_method != null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) => _emit());
+    }
+  }
+
   late final _address = TextEditingController(text: widget.savedAddress);
   String _locker = kDemoLockers.first;
 
@@ -72,10 +85,10 @@ class _DeliveryPickerState extends State<DeliveryPicker> {
   /// Prikazani su i rjeđi načini (ekspres, osobno preuzimanje).
   bool _all = false;
 
-  @override
-  void initState() {
-    super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) => _emit());
+  /// Odabran je način koji je inače skriven iza "Više načina dostave".
+  bool get _hiddenSelected {
+    final m = _method;
+    return m != null && widget.methods.indexOf(m) >= 2;
   }
 
   @override
@@ -84,14 +97,15 @@ class _DeliveryPickerState extends State<DeliveryPicker> {
     super.dispose();
   }
 
-  String? get _destination => _method.needsAddress
-      ? _address.text
-      : _method.needsLocker
-      ? (_mapFailed ? _locker : _boxNow?.destination)
-      : null;
+  String? get _destination => switch (_method) {
+    final m? when m.needsAddress => _address.text,
+    final m? when m.needsLocker => _mapFailed ? _locker : _boxNow?.destination,
+    _ => null,
+  };
 
   void _emit() {
-    if (mounted) widget.onChanged(DeliveryChoice(_method, _destination));
+    final m = _method;
+    if (mounted && m != null) widget.onChanged(DeliveryChoice(m, _destination));
   }
 
   @override
@@ -101,11 +115,10 @@ class _DeliveryPickerState extends State<DeliveryPicker> {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         for (final m in widget.methods.take(
-          _all || widget.methods.indexOf(_method) >= 2
-              ? widget.methods.length
-              : 2,
+          _all || _hiddenSelected ? widget.methods.length : 2,
         ))
           Padding(
+            key: ValueKey('delivery-${m.name}'),
             padding: const EdgeInsets.only(bottom: 8),
             child: Material(
               color: LoopColors.surface,
@@ -170,9 +183,7 @@ class _DeliveryPickerState extends State<DeliveryPicker> {
               ),
             ),
           ),
-        if (!_all &&
-            widget.methods.length > 2 &&
-            widget.methods.indexOf(_method) < 2)
+        if (!_all && widget.methods.length > 2 && !_hiddenSelected)
           Align(
             alignment: Alignment.centerLeft,
             child: TextButton(
@@ -181,7 +192,7 @@ class _DeliveryPickerState extends State<DeliveryPicker> {
               child: Text(t('Više načina dostave')),
             ),
           ),
-        if (_method.needsAddress) ...[
+        if (_method?.needsAddress ?? false) ...[
           const SizedBox(height: 4),
           TextField(
             controller: _address,
@@ -193,11 +204,11 @@ class _DeliveryPickerState extends State<DeliveryPicker> {
             onChanged: (_) => _emit(),
           ),
         ],
-        if (_method.needsLocker && !_mapFailed) ...[
+        if ((_method?.needsLocker ?? false) && !_mapFailed) ...[
           const SizedBox(height: 4),
           _BoxNowTile(locker: _boxNow, onPick: _pickOnMap),
         ],
-        if (_method.needsLocker && _mapFailed) ...[
+        if ((_method?.needsLocker ?? false) && _mapFailed) ...[
           const SizedBox(height: 4),
           DropdownButtonFormField<String>(
             initialValue: _locker,
