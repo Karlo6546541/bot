@@ -23,6 +23,7 @@ import '../widgets/item_image.dart';
 import '../widgets/story_canvas.dart';
 import '../widgets/trade_actions.dart';
 import '../widgets/live_video_view.dart';
+import '../widgets/mini_live.dart';
 import '../widgets/shop_widgets.dart';
 import '../widgets/user_avatar.dart';
 import 'add_device_screen.dart';
@@ -807,9 +808,18 @@ class LiveRoomScreen extends StatelessWidget {
       );
 
   @override
-  Widget build(BuildContext context) => Scaffold(
-    backgroundColor: Colors.black,
-    body: LiveRoomView(showId: showId),
+  Widget build(BuildContext context) => Consumer(
+    // Izlazak iz sobe: live se gleda dalje u malom prozoru.
+    builder: (context, ref, child) => PopScope(
+      onPopInvokedWithResult: (didPop, _) {
+        if (didPop) ref.read(miniLiveProvider.notifier).show(showId);
+      },
+      child: child!,
+    ),
+    child: Scaffold(
+      backgroundColor: Colors.black,
+      body: LiveRoomView(showId: showId),
+    ),
   );
 }
 
@@ -912,6 +922,8 @@ class _LiveRoomViewState extends ConsumerState<LiveRoomView> {
   void _start() {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
+      // U sobi nema malog prozora (isti live bi se gledao dvaput).
+      ref.read(miniLiveProvider.notifier).hide();
       _joinedAt = DateTime.now();
       _app.joinLive(widget.showId);
       _app.settleLive();

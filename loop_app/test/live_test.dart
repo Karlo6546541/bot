@@ -964,6 +964,70 @@ void main() {
     });
   }
 
+  testWidgets('mali prozor s liveom nakon izlaska iz sobe', (tester) async {
+    tester.view.physicalSize = const Size(400, 860);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    final storage = StorageService();
+    late String id;
+    await tester.runAsync(() async {
+      await storage.init(inMemory: true);
+      final trade = TradeService(storage);
+      final live = LiveService(storage);
+      final d = await addItem(trade, bob, 'Gramofon');
+      id = (await live.create(hostId: bob, title: 'Petak navečer')).id;
+      await live.addLot(bob, id, d.id, 40);
+      await live.startLot(bob, id);
+    });
+    addTearDown(() => tester.runAsync(Hive.close));
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          storageProvider.overrideWithValue(storage),
+          tickIntervalProvider.overrideWithValue(null),
+        ],
+        child: const LoopApp(),
+      ),
+    );
+    await tester.ensureVisible(find.text('Prijavi se'));
+    await tester.tap(find.text('Prijavi se'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('home-cat-live')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(ValueKey('browse-live-$id')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('mini-live')), findsNothing);
+
+    // Izlazak iz sobe → mali prozor; aplikacija se koristi dalje.
+    await tester.tap(find.byKey(const ValueKey('live-close')).first);
+    await tester.pumpAndSettle();
+    final mini = find.byKey(const ValueKey('mini-live'));
+    expect(mini, findsOneWidget);
+    expect(find.byKey(const ValueKey('home-search')), findsOneWidget);
+
+    // Povlači se po ekranu (lijepi se uz bliži rub).
+    final before = tester.getTopLeft(mini);
+    await tester.drag(mini, const Offset(-300, -250));
+    await tester.pumpAndSettle();
+    final after = tester.getTopLeft(mini);
+    expect(after.dx, lessThan(before.dx));
+    expect(after.dy, lessThan(before.dy));
+
+    // Dodir vraća u sobu (prozor nestaje), izlazak ga vraća.
+    await tester.tap(mini);
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('live-lot')), findsOneWidget);
+    expect(find.byKey(const ValueKey('mini-live')), findsNothing);
+    await tester.tap(find.byKey(const ValueKey('live-close')).first);
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('mini-live')), findsOneWidget);
+
+    // ✕ ga gasi.
+    await tester.tap(find.byKey(const ValueKey('mini-live-close')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('mini-live')), findsNothing);
+  });
+
   testWidgets('početna i posebni predmeti: pada cijena, nagradna igra', (
     tester,
   ) async {

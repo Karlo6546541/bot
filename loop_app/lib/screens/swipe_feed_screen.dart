@@ -16,6 +16,7 @@ import '../widgets/category_style.dart';
 import '../widgets/countdown.dart';
 import '../widgets/feed.dart' show FeedEntry;
 import '../widgets/item_image.dart';
+import '../widgets/mini_live.dart';
 import '../widgets/shop_widgets.dart';
 import '../widgets/trade_actions.dart';
 import '../widgets/user_avatar.dart';
@@ -87,70 +88,78 @@ class _SwipeFeedScreenState extends ConsumerState<SwipeFeedScreen> {
   Widget build(BuildContext context) {
     final state = ref.watch(appProvider);
     final entries = widget.entries;
-    return Scaffold(
-      backgroundColor: Colors.black,
-      body: Center(
-        // Na širokom ekranu objava ima oblik mobitela.
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 520),
-          child: Stack(
-            children: [
-              PageView.builder(
-                key: const ValueKey('swipe-feed'),
-                controller: _pages,
-                scrollDirection: Axis.vertical,
-                itemCount: entries.length + 1,
-                onPageChanged: (i) {
-                  setState(() => _index = i);
-                  _seen(i);
-                },
-                itemBuilder: (context, i) {
-                  if (i == entries.length) {
-                    return _EndPage(onBack: () => Navigator.pop(context));
-                  }
-                  final e = entries[i];
-                  if (e.isLive) {
-                    return LiveRoomView(
-                      key: ValueKey('feed-live-${e.liveId}'),
-                      showId: e.liveId!,
-                      active: i == _index,
-                    );
-                  }
-                  return _PostPage(entry: e, state: state);
-                },
-              ),
-              // Gornja traka: natrag, naslov, broj objave (live ima svoju).
-              if (_index >= entries.length || !entries[_index].isLive)
-                SafeArea(
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 4),
-                    child: Row(
-                      children: [
-                        IconButton(
-                          tooltip: t('Natrag'),
-                          color: Colors.white,
-                          icon: const Icon(Icons.arrow_back),
-                          onPressed: () => Navigator.pop(context),
-                        ),
-                        Expanded(
-                          child: Text(
-                            widget.title ?? t('Za tebe'),
-                            textAlign: TextAlign.center,
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 18,
-                              fontWeight: FontWeight.w800,
-                              shadows: _shadow,
+    // Izlazak dok se gleda live: live se gleda dalje u malom prozoru.
+    return PopScope(
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop || _index >= entries.length) return;
+        final e = entries[_index];
+        if (e.isLive) ref.read(miniLiveProvider.notifier).show(e.liveId!);
+      },
+      child: Scaffold(
+        backgroundColor: Colors.black,
+        body: Center(
+          // Na širokom ekranu objava ima oblik mobitela.
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 520),
+            child: Stack(
+              children: [
+                PageView.builder(
+                  key: const ValueKey('swipe-feed'),
+                  controller: _pages,
+                  scrollDirection: Axis.vertical,
+                  itemCount: entries.length + 1,
+                  onPageChanged: (i) {
+                    setState(() => _index = i);
+                    _seen(i);
+                  },
+                  itemBuilder: (context, i) {
+                    if (i == entries.length) {
+                      return _EndPage(onBack: () => Navigator.pop(context));
+                    }
+                    final e = entries[i];
+                    if (e.isLive) {
+                      return LiveRoomView(
+                        key: ValueKey('feed-live-${e.liveId}'),
+                        showId: e.liveId!,
+                        active: i == _index,
+                      );
+                    }
+                    return _PostPage(entry: e, state: state);
+                  },
+                ),
+                // Gornja traka: natrag, naslov, broj objave (live ima svoju).
+                if (_index >= entries.length || !entries[_index].isLive)
+                  SafeArea(
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 4),
+                      child: Row(
+                        children: [
+                          IconButton(
+                            tooltip: t('Natrag'),
+                            color: Colors.white,
+                            icon: const Icon(Icons.arrow_back),
+                            onPressed: () => Navigator.pop(context),
+                          ),
+                          Expanded(
+                            child: Text(
+                              widget.title ?? t('Za tebe'),
+                              textAlign: TextAlign.center,
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 18,
+                                fontWeight: FontWeight.w800,
+                                shadows: _shadow,
+                              ),
                             ),
                           ),
-                        ),
-                        // Isti razmak kao gumb Natrag (naslov ostaje u sredini).
-                        const SizedBox(width: 48),
-                      ],
+                          // Isti razmak kao gumb Natrag (naslov ostaje u sredini).
+                          const SizedBox(width: 48),
+                        ],
+                      ),
                     ),
                   ),
-                ),
-            ],
+              ],
+            ),
           ),
         ),
       ),

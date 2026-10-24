@@ -9,6 +9,7 @@ import 'screens/home_shell.dart';
 import 'screens/login_screen.dart';
 import 'theme/app_theme.dart';
 import 'widgets/countdown.dart';
+import 'widgets/mini_live.dart';
 import 'widgets/trade_actions.dart';
 
 /// Korijen aplikacije: ovisno o sesiji prikazuje login, korisnički dio
@@ -82,6 +83,10 @@ class LoopApp extends ConsumerWidget {
       title: 'LOOP',
       debugShowCheckedModeBanner: false,
       scaffoldMessengerKey: rootMessengerKey,
+      navigatorKey: navigatorKeyFor((brightness, lang)),
+      // Mali prozor s liveom lebdi iznad svih ekrana.
+      builder: (context, child) =>
+          Stack(children: [?child, const MiniLiveOverlay()]),
       theme: buildLoopTheme(accent: isAdmin ? LoopColors.admin : null),
       // Zaključivanje isteklih aukcija radi u pozadini cijele aplikacije.
       home: AuctionHeartbeat(child: home),

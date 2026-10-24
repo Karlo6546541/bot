@@ -425,6 +425,11 @@ dati na pregled odvjetniku prije pokretanja s pravim novcem):
 - **Slavlje preko cijelog ekrana** (kao na Whatnotu): konfeti, „Kupljeno!” / „Osvojio si!”,
   slika i cijena — nakon kupnje i kad osvojiš predmet u liveu. Ostali gledatelji vide traku
   „🔨 PRODANO @kupac · cijena”.
+- **Mali prozor s liveom** (kao na Whatnotu): kad gledatelj izađe iz livea (strelica ili
+  natrag), live se gleda dalje u malom prozoru iznad cijele aplikacije — video (ili slika),
+  oznaka UŽIVO, trenutni predmet, cijena i odbrojavanje. Prozor se povlači po ekranu i lijepi
+  uz bliži rub, ✕ ga gasi, a dodir vraća u punu sobu. Za to vrijeme se normalno razgledava
+  i kupuje. Nestaje sam kad live završi.
 - **Domaćin livea**: jedan veliki gumb *▶ Sljedeći: predmet*, **⚡ Brzo dodaj** (samo naziv i
   cijena — predmet se sam sprema u Moje predmete; *Ponovi zadnji*) i izbornik ⋮ (*Dodaj iz
   mojih predmeta*, *Završi live*). Mjerač atmosfere i *Pogodi cijenu* pojavljuju se tek kad
