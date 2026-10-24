@@ -2047,44 +2047,32 @@ class _LiveRoomViewState extends ConsumerState<LiveRoomView> {
   Widget _bidRow(LotState cur) {
     return Column(
       children: [
-        Row(
-          children: [
-            Expanded(
-              child: FilledButton(
-                key: const ValueKey('live-bid'),
-                style: FilledButton.styleFrom(
-                  backgroundColor: kLiveRed,
-                  foregroundColor: Colors.white,
-                  minimumSize: const Size.fromHeight(52),
-                  textStyle: const TextStyle(
-                    fontFamily: kFontFamily,
-                    fontWeight: FontWeight.w900,
-                    fontSize: 18,
-                  ),
-                ),
-                onPressed: _busy ? null : () => _bid(cur.minNext),
-                child: Text(t('Licitiraj {0}', [formatCredits(cur.minNext)])),
-              ),
+        // Jedan veliki gumb; dugi pritisak = maksimalna ponuda.
+        FilledButton(
+          key: const ValueKey('live-bid'),
+          style: FilledButton.styleFrom(
+            backgroundColor: kLiveRed,
+            foregroundColor: Colors.white,
+            minimumSize: const Size.fromHeight(54),
+            textStyle: const TextStyle(
+              fontFamily: kFontFamily,
+              fontWeight: FontWeight.w900,
+              fontSize: 18,
             ),
-            const SizedBox(width: 8),
-            SizedBox(
-              height: 52,
-              child: OutlinedButton(
-                key: const ValueKey('live-bid-custom'),
-                style: OutlinedButton.styleFrom(
-                  foregroundColor: Colors.white,
-                  side: const BorderSide(color: Colors.white54),
-                ),
-                onPressed: _busy ? null : () => _customBid(cur.minNext),
-                child: Text(t('Maks')),
-              ),
-            ),
-          ],
+          ),
+          onPressed: _busy ? null : () => _bid(cur.minNext),
+          onLongPress: _busy ? null : () => _customBid(cur.minNext),
+          child: Text(t('Licitiraj {0}', [formatCredits(cur.minNext)])),
         ),
-        const SizedBox(height: 4),
-        Text(
-          t('Ponuda je obvezujuća · pobjednik plaća automatski karticom'),
-          style: const TextStyle(color: Colors.white60, fontSize: 11),
+        TextButton(
+          key: const ValueKey('live-bid-custom'),
+          style: TextButton.styleFrom(
+            foregroundColor: Colors.white70,
+            visualDensity: VisualDensity.compact,
+            textStyle: const TextStyle(fontSize: 12),
+          ),
+          onPressed: _busy ? null : () => _customBid(cur.minNext),
+          child: Text(t('Maksimalna ponuda (ili drži gumb)')),
         ),
       ],
     );
@@ -2454,9 +2442,7 @@ class _SideRail extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final listings = ref.watch(
-      appProvider.select((s) => s.listingsOf(show.hostId)),
-    );
+    // "Predmeti" uključuje i prodavačevu trgovinu (Kupi odmah).
     final upcoming = state.queue.length;
     return Column(
       mainAxisSize: MainAxisSize.min,
@@ -2508,29 +2494,6 @@ class _SideRail extends ConsumerWidget {
           ),
           icon: const Icon(Icons.ios_share, color: Colors.white),
         ),
-        if (canAct && !isHost)
-          _RailButton(
-            key: const ValueKey('live-wallet'),
-            label: t('Novčanik'),
-            onTap: () => ensureCheckout(context, ref, force: true),
-            icon: const Icon(
-              Icons.account_balance_wallet_outlined,
-              color: Colors.white,
-            ),
-          ),
-        if (listings.isNotEmpty)
-          _RailButton(
-            key: const ValueKey('live-shop-open'),
-            label: t('Trgovina'),
-            onTap: onQueue,
-            icon: Container(
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(10),
-                border: Border.all(color: Colors.white, width: 2),
-              ),
-              child: ItemThumb(device: listings.first, size: 38),
-            ),
-          ),
       ],
     );
   }
@@ -3138,19 +3101,9 @@ class _LotCard extends StatelessWidget {
                         ),
                       ),
                     const SizedBox(height: 4),
-                    Wrap(
-                      spacing: 4,
-                      runSpacing: 4,
-                      children: [
-                        chip(
-                          lot.mode == LotMode.giveaway
-                              ? t('besplatno + dostava')
-                              : t('+ dostava'),
-                        ),
-                        if (lot.mode != LotMode.auction)
-                          chip('${lot.mode.emoji} ${lot.mode.label}'),
-                      ],
-                    ),
+                    // Samo kad je predmet posebne vrste (pada cijena, igra).
+                    if (lot.mode != LotMode.auction)
+                      chip('${lot.mode.emoji} ${lot.mode.label}'),
                   ],
                 ),
               ),
@@ -3191,7 +3144,8 @@ class _LotCard extends StatelessWidget {
                       ),
                     )
                   else ...[
-                    if (below >= 5)
+                    // Samo kad je razlika velika (inače je šum).
+                    if (below >= 30)
                       Text(
                         t('−{0}% ispod procjene', ['$below']),
                         style: const TextStyle(
@@ -3730,36 +3684,57 @@ class _AddLotSheetState extends ConsumerState<_AddLotSheet> {
                       label: Text(t('Novi predmet')),
                     ),
                     const SizedBox(height: 8),
-                    Wrap(
-                      spacing: 8,
-                      children: [
-                        for (final m in LotMode.values)
-                          ChoiceChip(
-                            key: ValueKey('lot-mode-${m.name}'),
-                            label: Text('${m.emoji} ${t(m.label)}'),
-                            selected: _mode == m,
-                            onSelected: (_) => setState(() => _mode = m),
-                          ),
-                      ],
-                    ),
-                    Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 6),
-                      child: Text(
-                        switch (_mode) {
-                          LotMode.auction => t(
-                            'Klasična licitacija — najviša ponuda pobjeđuje.',
-                          ),
-                          LotMode.dutch => t(
-                            'Cijena pada svake sekunde — prvi koji klikne "Uzmi" kupuje.',
-                          ),
-                          LotMode.giveaway => t(
-                            'Besplatno za sve koji se prijave — dobitnik se izvlači na kraju.',
-                          ),
-                        },
-                        style: TextStyle(
-                          color: LoopColors.textSecondary,
-                          fontSize: 12,
+                    // Većina koristi običnu licitaciju — posebne vrste
+                    // (pada cijena, nagradna igra) su pod "Napredno".
+                    Theme(
+                      data: Theme.of(
+                        context,
+                      ).copyWith(dividerColor: Colors.transparent),
+                      child: ExpansionTile(
+                        key: const ValueKey('lot-advanced'),
+                        tilePadding: EdgeInsets.zero,
+                        childrenPadding: EdgeInsets.zero,
+                        initiallyExpanded: _mode != LotMode.auction,
+                        title: Text(
+                          _mode == LotMode.auction
+                              ? t('Napredno: pada cijena, nagradna igra')
+                              : '${_mode.emoji} ${t(_mode.label)}',
+                          style: const TextStyle(fontSize: 14),
                         ),
+                        children: [
+                          Wrap(
+                            spacing: 8,
+                            children: [
+                              for (final m in LotMode.values)
+                                ChoiceChip(
+                                  key: ValueKey('lot-mode-${m.name}'),
+                                  label: Text('${m.emoji} ${t(m.label)}'),
+                                  selected: _mode == m,
+                                  onSelected: (_) => setState(() => _mode = m),
+                                ),
+                            ],
+                          ),
+                          Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 6),
+                            child: Text(
+                              switch (_mode) {
+                                LotMode.auction => t(
+                                  'Klasična licitacija — najviša ponuda pobjeđuje.',
+                                ),
+                                LotMode.dutch => t(
+                                  'Cijena pada svake sekunde — prvi koji klikne "Uzmi" kupuje.',
+                                ),
+                                LotMode.giveaway => t(
+                                  'Besplatno za sve koji se prijave — dobitnik se izvlači na kraju.',
+                                ),
+                              },
+                              style: TextStyle(
+                                color: LoopColors.textSecondary,
+                                fontSize: 12,
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                     if (_mode != LotMode.giveaway)

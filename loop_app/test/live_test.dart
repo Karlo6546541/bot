@@ -1115,6 +1115,9 @@ void main() {
     );
     await tester.pumpAndSettle();
     expect(choose, findsNothing);
+    // Poruka "Dostava je krenula" nestane sama.
+    await tester.pump(const Duration(seconds: 5));
+    await tester.pumpAndSettle();
     expect(
       storage.deliveries
           .where((d) => d.buyerId == host && d.method != null)

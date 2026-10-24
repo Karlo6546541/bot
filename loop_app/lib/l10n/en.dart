@@ -2198,4 +2198,6 @@ const kEn = <String, String>{
   'Nije na prodaji': 'Not for sale',
   'Paket pratiš u Moje → Kupljeno': 'Track the parcel in My → Bought',
   'Na prodaji': 'For sale',
+  'Maksimalna ponuda (ili drži gumb)': 'Max bid (or hold the button)',
+  'Napredno: pada cijena, nagradna igra': 'Advanced: price drop, giveaway',
 };
