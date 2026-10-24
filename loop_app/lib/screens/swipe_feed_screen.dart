@@ -20,6 +20,7 @@ import '../widgets/shop_widgets.dart';
 import '../widgets/trade_actions.dart';
 import '../widgets/user_avatar.dart';
 import 'auction_detail_screen.dart';
+import 'deliveries_screen.dart';
 import 'device_detail_screen.dart';
 import 'live_screens.dart';
 import 'public_profile_screen.dart';
@@ -185,6 +186,57 @@ class _EndPage extends StatelessWidget {
   );
 }
 
+/// Predmet koji sam upravo kupio (umjesto "Oglas više nije dostupan").
+class _BoughtPage extends StatelessWidget {
+  const _BoughtPage({required this.device});
+  final Device device;
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      key: const ValueKey('post-bought'),
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ClipRRect(
+              borderRadius: BorderRadius.circular(20),
+              child: ItemThumb(device: device, size: 160),
+            ),
+            const SizedBox(height: 16),
+            Text(
+              t('Kupljeno! 🎉'),
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 26,
+                fontWeight: FontWeight.w900,
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              device.name,
+              textAlign: TextAlign.center,
+              style: const TextStyle(color: Colors.white70),
+            ),
+            const SizedBox(height: 16),
+            FilledButton.icon(
+              onPressed: () => DeliveriesScreen.open(context),
+              icon: const Icon(Icons.local_shipping_outlined),
+              label: Text(t('Prati dostavu')),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              t('Povuci gore za sljedeće'),
+              style: const TextStyle(color: Colors.white54, fontSize: 12),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 /// Jedna objava: slika preko cijelog ekrana, a dolje opis (lijevo) i
 /// stupac akcija (desno) jedan pokraj drugoga — nikad se ne preklapaju.
 class _PostPage extends ConsumerStatefulWidget {
@@ -217,6 +269,12 @@ class _PostPageState extends ConsumerState<_PostPage> {
     final d = state.deviceById(e.deviceId ?? auction?.deviceId ?? '');
     final available =
         d != null && (auction != null ? auction.isActive : d.isForSale);
+    if (!available &&
+        d != null &&
+        auction == null &&
+        state.hasPurchased(d.id)) {
+      return _BoughtPage(device: d);
+    }
     if (!available) {
       return Center(
         child: Text(

@@ -2109,26 +2109,32 @@ const kEn = <String, String>{
   'BOX NOW paketomat': 'BOX NOW locker',
   'Odaberi paketomat na karti · 1–2 dana':
       'Pick a locker on the map · 1–2 days',
-  'Banka je odbila karticu. Pokušaj drugu.': 'The bank declined the card. Try another one.',
+  'Banka je odbila karticu. Pokušaj drugu.':
+      'The bank declined the card. Try another one.',
   'Broj kartice': 'Card number',
-  'Broj kartice i CVC ne spremamo — pružatelj plaćanja vraća samo token. U testnom načinu ništa se stvarno ne naplaćuje.': 'We never store the card number or CVC — the payment provider returns only a token. In test mode nothing is actually charged.',
+  'Broj kartice i CVC ne spremamo — pružatelj plaćanja vraća samo token. U testnom načinu ništa se stvarno ne naplaćuje.':
+      'We never store the card number or CVC — the payment provider returns only a token. In test mode nothing is actually charged.',
   'Broj kartice nije ispravan.': 'The card number is not valid.',
   'CVC ima {0} znamenke.': 'The CVC has {0} digits.',
-  'Dodaj karticu, Google Pay ili Apple Pay': 'Add a card, Google Pay or Apple Pay',
+  'Dodaj karticu, Google Pay ili Apple Pay':
+      'Add a card, Google Pay or Apple Pay',
   'Dodaj način plaćanja.': 'Add a payment method.',
   'Dodirni za promjenu': 'Tap to change',
   'Kartica je istekla.': 'The card has expired.',
-  'LOOP sprema token kartice za automatsku naplatu.': 'LOOP saves a card token for automatic payments.',
+  'LOOP sprema token kartice za automatsku naplatu.':
+      'LOOP saves a card token for automatic payments.',
   'MM/GG': 'MM/YY',
   'Na kartici nema dovoljno sredstava.': 'Insufficient funds on the card.',
   'Način plaćanja nije dodan': 'No payment method added',
   'Potvrdi s Face ID': 'Confirm with Face ID',
   'Spremi karticu': 'Save card',
-  'Spremljeni način plaćanja koristi se automatski: Kupi odmah jednim dodirom, a kad pobijediš na aukciji ili u liveu, naplata ide sama.': 'Your saved payment method is used automatically: one-tap Buy now, and when you win an auction or a live lot you\'re charged automatically.',
+  'Spremljeni način plaćanja koristi se automatski: Kupi odmah jednim dodirom, a kad pobijediš na aukciji ili u liveu, naplata ide sama.':
+      'Your saved payment method is used automatically: one-tap Buy now, and when you win an auction or a live lot you\'re charged automatically.',
   'TEST': 'TEST',
   'TESTNI NAČIN': 'TEST MODE',
   'Testne kartice:': 'Test cards:',
-  'Testni način — koristi testnu karticu 4242.': 'Test mode — use test card 4242.',
+  'Testni način — koristi testnu karticu 4242.':
+      'Test mode — use test card 4242.',
   'Upiši datum isteka kao MM/GG.': 'Enter the expiry date as MM/YY.',
   'Vrijedi do': 'Expires',
   'ili karticom': 'or pay by card',
@@ -2136,4 +2142,6 @@ const kEn = <String, String>{
   '✓ Visa 4242': '✓ Visa 4242',
   '✗ Nema sredstava 9995': '✗ No funds 9995',
   '✗ Odbijena 0002': '✗ Declined 0002',
+  'Povuci gore za sljedeće': 'Swipe up for the next one',
+  'Prati dostavu': 'Track delivery',
 };

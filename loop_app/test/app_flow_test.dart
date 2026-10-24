@@ -5,6 +5,9 @@ import 'package:hive/hive.dart';
 import 'package:loop_app/app.dart';
 import 'package:loop_app/l10n/tr.dart';
 import 'package:loop_app/providers/app_providers.dart';
+import 'package:loop_app/screens/home_shell.dart';
+import 'package:loop_app/screens/swipe_feed_screen.dart';
+import 'package:loop_app/widgets/feed.dart' show FeedEntry;
 import 'package:loop_app/services/seed_data.dart';
 import 'package:loop_app/services/storage_service.dart';
 
@@ -946,4 +949,48 @@ void logoTests() {
       expect(find.byKey(const ValueKey('home-search')), findsOneWidget);
     });
   }
+
+  testWidgets('Kupi odmah iz swipe feeda: kupljeno, ne "nije dostupan"', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(400, 860);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    await tester.pumpWidget(await buildApp(tester));
+    await tester.ensureVisible(find.text('Prijavi se'));
+    await tester.tap(find.text('Prijavi se'));
+    await tester.pumpAndSettle();
+    // Swipe feed s tuđim predmetom na Kupi odmah.
+    final container = ProviderScope.containerOf(
+      tester.element(find.byType(HomeShell)),
+    );
+    final me = container.read(appProvider).currentUserId;
+    final item = container
+        .read(appProvider)
+        .devices
+        .firstWhere((d) => d.isListed && d.ownerId != me && !d.isDigital);
+    SwipeFeedScreen.open(
+      tester.element(find.byType(HomeShell)),
+      [FeedEntry.item(item.id)],
+      0,
+      title: 'Kupi odmah',
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('post-buy')));
+    await tester.pumpAndSettle();
+    // Demo račun ima karticu i adresu → kupnja jednim dodirom.
+    await tester.runAsync(
+      () => tester.tap(find.byKey(const ValueKey('quick-buy'))),
+    );
+    await tester.runAsync(
+      () => Future<void>.delayed(const Duration(milliseconds: 900)),
+    );
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 400));
+    await tester.pump(const Duration(milliseconds: 400));
+    expect(find.byKey(const ValueKey('celebration')), findsOneWidget);
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('post-bought')), findsOneWidget);
+    expect(find.text('Oglas više nije dostupan.'), findsNothing);
+  });
 }

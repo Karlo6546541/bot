@@ -276,6 +276,9 @@ Future<bool> confirmAndBuy(
   );
   final picked = choice;
   if (picked == null || !context.mounted) return false;
+  // Gumb kupnje nestaje čim predmet ode (npr. objava u swipe feedu), pa
+  // slavlje ide preko navigatora, ne preko gumba.
+  final nav = Navigator.of(context, rootNavigator: true).context;
   final ok = await runWithLoading(
     context,
     () => ref
@@ -283,9 +286,9 @@ Future<bool> confirmAndBuy(
         .buy(device.id, method: picked.method, destination: picked.destination),
     successMessage: null,
   );
-  if (ok && context.mounted) {
+  if (ok && nav.mounted) {
     await showCelebration(
-      context,
+      nav,
       title: t('Kupljeno! 🎉'),
       subtitle: t('Prati dostavu u "Moje dostave"'),
       device: device,
