@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../models/app_user.dart';
 import '../models/delivery.dart';
 import '../models/device.dart';
 import '../providers/app_providers.dart';
@@ -15,6 +14,7 @@ import '../screens/login_screen.dart';
 import 'celebration.dart';
 import 'delivery_picker.dart';
 import 'item_image.dart';
+import 'payment_sheet.dart';
 import 'formatters.dart';
 import 'loop_snackbar.dart';
 import '../l10n/tr.dart';
@@ -87,16 +87,18 @@ Future<bool> ensureCheckout(
     constraints: const BoxConstraints(maxWidth: 560),
     builder: (_) => _CheckoutSetupSheet(
       address: user.address ?? '',
-      hasCard: user.paymentCard != null,
+      card: user.paymentCard,
     ),
   );
   return ok == true;
 }
 
 class _CheckoutSetupSheet extends ConsumerStatefulWidget {
-  const _CheckoutSetupSheet({required this.address, this.hasCard = false});
+  const _CheckoutSetupSheet({required this.address, this.card});
   final String address;
-  final bool hasCard;
+
+  /// Spremljeni način plaćanja (oznaka) ili null.
+  final String? card;
 
   @override
   ConsumerState<_CheckoutSetupSheet> createState() =>
@@ -105,7 +107,7 @@ class _CheckoutSetupSheet extends ConsumerStatefulWidget {
 
 class _CheckoutSetupSheetState extends ConsumerState<_CheckoutSetupSheet> {
   late final _address = TextEditingController(text: widget.address);
-  late bool _card = widget.hasCard;
+  late String? _card = widget.card;
   bool _busy = false;
 
   @override
@@ -117,7 +119,9 @@ class _CheckoutSetupSheetState extends ConsumerState<_CheckoutSetupSheet> {
   Future<void> _save() async {
     setState(() => _busy = true);
     try {
-      await ref.read(appProvider.notifier).saveCheckout(address: _address.text);
+      await ref
+          .read(appProvider.notifier)
+          .saveCheckout(address: _address.text, card: _card);
       if (mounted) Navigator.pop(context, true);
     } on TradeException catch (e) {
       showLoopSnackBar(e.message, error: true);
@@ -152,7 +156,7 @@ class _CheckoutSetupSheetState extends ConsumerState<_CheckoutSetupSheet> {
           ),
           const SizedBox(height: 14),
           Material(
-            color: _card ? LoopColors.mint : LoopColors.surface,
+            color: _card != null ? LoopColors.mint : LoopColors.surface,
             borderRadius: BorderRadius.circular(kRadius),
             child: ListTile(
               key: const ValueKey('checkout-card'),
@@ -161,17 +165,22 @@ class _CheckoutSetupSheetState extends ConsumerState<_CheckoutSetupSheet> {
               ),
               leading: const Icon(Icons.credit_card),
               title: Text(
-                _card ? kDemoCard : t('Dodaj karticu'),
+                _card ?? t('Dodaj karticu, Google Pay ili Apple Pay'),
                 style: const TextStyle(fontWeight: FontWeight.w800),
               ),
               subtitle: Text(
-                t('Testna kartica — u demo verziji ne unosiš prave podatke.'),
+                _card == null
+                    ? t('Testni način — koristi testnu karticu 4242.')
+                    : t('Dodirni za promjenu'),
               ),
               trailing: Icon(
-                _card ? Icons.check_circle : Icons.add_circle_outline,
-                color: _card ? LoopColors.success : null,
+                _card != null ? Icons.check_circle : Icons.add_circle_outline,
+                color: _card != null ? LoopColors.success : null,
               ),
-              onTap: () => setState(() => _card = true),
+              onTap: () async {
+                final card = await addPaymentMethod(context);
+                if (card != null && mounted) setState(() => _card = card);
+              },
             ),
           ),
           const SizedBox(height: 12),
@@ -198,7 +207,7 @@ class _CheckoutSetupSheetState extends ConsumerState<_CheckoutSetupSheet> {
             style: FilledButton.styleFrom(
               minimumSize: const Size.fromHeight(50),
             ),
-            onPressed: !_card || _busy ? null : _save,
+            onPressed: _card == null || _busy ? null : _save,
             child: Text(t('Spremi i nastavi')),
           ),
         ],
@@ -224,7 +233,16 @@ Future<bool> confirmAndBuy(
     return false;
   }
 
-  if (device.isDigital) return _buyDigital(context, ref, device, price);
+  if (device.isDigital) {
+    // Digitalno: treba samo način plaćanja (bez adrese).
+    if (user.paymentCard == null) {
+      final card = await addPaymentMethod(context);
+      if (card == null || !context.mounted) return false;
+      await ref.read(appProvider.notifier).savePaymentMethod(card);
+      if (!context.mounted) return false;
+    }
+    return _buyDigital(context, ref, device, price);
+  }
 
   // Kartica i adresa spremljene → kupnja jednim dodirom (kurir na
   // spremljenu adresu); inače cijela blagajna.
@@ -391,21 +409,32 @@ class _QuickBuySheet extends StatelessWidget {
 }
 
 /// Blagajna: odabir dostave i ukupan iznos (predmet + fee + dostava).
-class _CheckoutSheet extends StatefulWidget {
+class _CheckoutSheet extends ConsumerStatefulWidget {
   const _CheckoutSheet({required this.device, required this.price});
   final Device device;
   final double price;
 
   @override
-  State<_CheckoutSheet> createState() => _CheckoutSheetState();
+  ConsumerState<_CheckoutSheet> createState() => _CheckoutSheetState();
 }
 
-class _CheckoutSheetState extends State<_CheckoutSheet> {
+class _CheckoutSheetState extends ConsumerState<_CheckoutSheet> {
+  /// Dodaje ili mijenja način plaćanja (sprema se korisniku).
+  Future<void> _changeCard() async {
+    final card = await addPaymentMethod(context);
+    if (card == null || !mounted) return;
+    await ref.read(appProvider.notifier).savePaymentMethod(card);
+    setState(() => _error = null);
+  }
+
   DeliveryChoice? _choice;
   String? _error;
 
   @override
   Widget build(BuildContext context) {
+    final card = ref.watch(
+      appProvider.select((s) => s.currentUser?.paymentCard),
+    );
     final d = widget.device;
     final shipping = _choice?.method.cost ?? 0;
     final price = widget.price;
@@ -506,7 +535,7 @@ class _CheckoutSheetState extends State<_CheckoutSheet> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          t('Kartica •••• 4242 (demo)'),
+                          card ?? t('Način plaćanja nije dodan'),
                           style: TextStyle(fontWeight: FontWeight.w800),
                         ),
                         Text(
@@ -520,6 +549,11 @@ class _CheckoutSheetState extends State<_CheckoutSheet> {
                         ),
                       ],
                     ),
+                  ),
+                  TextButton(
+                    key: ValueKey('checkout-pay-change'),
+                    onPressed: _changeCard,
+                    child: Text(card == null ? t('Dodaj') : t('Promijeni')),
                   ),
                 ],
               ),
@@ -548,6 +582,10 @@ class _CheckoutSheetState extends State<_CheckoutSheet> {
                       );
                       if (err != null) {
                         setState(() => _error = err);
+                        return;
+                      }
+                      if (card == null) {
+                        _changeCard();
                         return;
                       }
                       Navigator.pop(context, _choice);

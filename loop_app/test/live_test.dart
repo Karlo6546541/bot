@@ -1134,8 +1134,28 @@ void main() {
     await tester.tap(find.byKey(const ValueKey('live-amount-ok')));
     await tester.pumpAndSettle();
     expect(find.text('Spremni za licitiranje?'), findsOneWidget);
+    // Testna kartica: odbijena pa uspješna (broj i CVC se ne spremaju).
     await tester.tap(find.byKey(const ValueKey('checkout-card')));
-    await tester.pump();
+    await tester.pumpAndSettle();
+    Future<void> tapIn(String key) async {
+      await tester.ensureVisible(find.byKey(ValueKey(key)));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(ValueKey(key)));
+      await tester.pump();
+    }
+
+    await tapIn('pay-test-declined');
+    await tapIn('pay-card-save');
+    await tester.pump(const Duration(milliseconds: 500));
+    expect(
+      find.text('Banka je odbila karticu. Pokušaj drugu.'),
+      findsOneWidget,
+    );
+    await tapIn('pay-test-fill');
+    await tapIn('pay-card-save');
+    await tester.pump(const Duration(milliseconds: 500));
+    await tester.pumpAndSettle();
+    expect(find.text('Visa •••• 4242'), findsOneWidget);
     await tester.enterText(
       find.byKey(const ValueKey('checkout-address')),
       'Testna ulica 1, 10000 Zagreb',

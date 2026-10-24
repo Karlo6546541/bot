@@ -1331,15 +1331,26 @@ class AppController extends Notifier<AppState> {
   }
 
   /// Kartica i adresa za automatsku naplatu i dostavu (kao na Whatnotu).
-  /// U demo verziji kartica je samo testna oznaka.
-  Future<void> saveCheckout({required String address}) async {
+  /// Sprema se samo oznaka načina plaćanja ("Visa •••• 4242", "Google
+  /// Pay · …") — broj kartice i CVC nikad.
+  Future<void> saveCheckout({required String address, String? card}) async {
     final user = _storage.userById(_requireUserId());
     if (user == null) return;
     final error = DeliveryService.validate(DeliveryMethod.courier, address);
     if (error != null) throw TradeException(error);
+    final payment = card ?? user.paymentCard;
+    if (payment == null) throw TradeException(t('Dodaj način plaćanja.'));
     await _storage.putUser(
-      user.copyWith(address: address.trim(), paymentCard: kDemoCard),
+      user.copyWith(address: address.trim(), paymentCard: payment),
     );
+    _refresh();
+  }
+
+  /// Sprema (ili mijenja) način plaćanja.
+  Future<void> savePaymentMethod(String card) async {
+    final user = _storage.userById(_requireUserId());
+    if (user == null) return;
+    await _storage.putUser(user.copyWith(paymentCard: card));
     _refresh();
   }
 

@@ -537,6 +537,23 @@ pa su isti na svim uređajima. Trajanje je ubrzano s dana na minute kako bi se m
 uživo. Svaka pošiljka ima broj za praćenje (`LOOP-XXXXXXXX`), a kupac nakon isporuke
 potvrđuje primitak.
 
+### Plaćanje: kartica, Google Pay, Apple Pay (testni način)
+
+- *Novčanik* (live), *Kupujem → kartica i adresa* (Profil) i blagajna otvaraju **Način
+  plaćanja**: crni gumbi **Apple Pay** i **Google Pay** (testni prozor novčanika) ili
+  **kartica** — broj se formatira, prepoznaje se Visa/Mastercard/Amex/Maestro, provjeravaju
+  se Luhn, datum isteka (vrijedi do kraja mjeseca) i CVC (Amex 4 znamenke).
+- **Testne kartice** (kao Stripeov testni način): `4242 4242 4242 4242` i
+  `5555 5555 5555 4444` prolaze, `4000 0000 0000 0002` banka odbija,
+  `4000 0000 0000 9995` nema sredstava; datum bilo koji budući, CVC bilo koji.
+- Sprema se **samo oznaka** (npr. `Visa •••• 4242`, `Google Pay · Visa •••• 4242`) —
+  broj kartice i CVC nikad. Spremljeni način plaćanja koristi se **automatski**: Kupi odmah
+  jednim dodirom, a pobjeda na aukciji ili u liveu naplaćuje se sama.
+- **Prava plaćanja (sljedeći korak)**: Stripe (Payment Element; Payment Request Button za
+  Google/Apple Pay) i SetupIntent na poslužitelju (Supabase Edge Function s tajnim
+  ključem); spremljeni `payment_method` naplaćuje se *off_session* kad kupac pobijedi.
+  Apple Pay na webu traži i potvrdu domene kod Applea.
+
 ### BOX NOW paketomati (testna integracija)
 
 - U blagajni je **BOX NOW paketomat**: gumb *Karta* otvara službenu BOX NOW kartu
