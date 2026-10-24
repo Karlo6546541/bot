@@ -6,6 +6,7 @@ import '../providers/app_providers.dart';
 import '../widgets/adaptive_shell.dart';
 import '../widgets/create_sheet.dart';
 import 'auctions_screen.dart';
+import 'categories_screen.dart';
 import 'live_home_screen.dart';
 import 'live_screens.dart';
 import 'profile_screen.dart';
@@ -19,8 +20,7 @@ import 'search_screen.dart';
 import 'wishlists_screen.dart';
 import 'notifications_screen.dart';
 
-/// Glavni okvir: Početna · [+ Objavi] · Moje · Profil (Istraži je spojen
-/// s Početnom — kategorije su pilule na vrhu).
+/// Glavni okvir: Početna · Kategorije · [+ Objavi] · Moje · Profil.
 class HomeShell extends ConsumerStatefulWidget {
   const HomeShell({super.key});
 
@@ -41,6 +41,11 @@ class _HomeShellState extends ConsumerState<HomeShell> {
 
   static List<ShellDestination> get _destinations => [
     ShellDestination(t('Početna'), Icons.home_outlined, Icons.home),
+    ShellDestination(
+      t('Kategorije'),
+      Icons.grid_view_outlined,
+      Icons.grid_view_rounded,
+    ),
     ShellDestination(t('Objavi'), Icons.add, Icons.add, action: true),
     ShellDestination(
       t('Moje'),
@@ -50,9 +55,9 @@ class _HomeShellState extends ConsumerState<HomeShell> {
     ShellDestination(t('Profil'), Icons.person_outline, Icons.person),
   ];
 
-  /// Kartice: 0 Početna, 1 Moje, 2 Profil. U traci je "+" na mjestu 1
-  /// pa su Moje i Profil pomaknuti za jedan.
-  static const _createSlot = 1;
+  /// Kartice: 0 Početna, 1 Kategorije, 2 Moje, 3 Profil. U traci je "+"
+  /// na mjestu 2 pa su Moje i Profil pomaknuti za jedan.
+  static const _createSlot = 2;
   static int _navIndex(int tab) => tab < _createSlot ? tab : tab + 1;
 
   void _onNav(int nav) {
@@ -155,6 +160,7 @@ class _HomeShellState extends ConsumerState<HomeShell> {
         index: _index,
         children: [
           const LiveHomeScreen(),
+          const CategoriesScreen(),
           MyAuctionsView(onBrowse: () => _go(0)),
           const ProfileScreen(),
         ],

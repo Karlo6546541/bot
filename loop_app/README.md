@@ -402,7 +402,10 @@ dati na pregled odvjetniku prije pokretanja s pravim novcem):
   trenutnog ekrana; nakon prijave ekran se sam zatvori i korisnik ostaje gdje je bio
   (✕ ili *Nastavi razgledavati* vraća na razgledavanje). Nakon odjave prikazuje se ekran
   za prijavu.
-- Donja traka: **Početna · [+ Objavi] · Moje · Profil** (Istraži je spojen s Početnom).
+- Donja traka: **Početna · Kategorije · [+ Objavi] · Moje · Profil**.
+- **Kategorije**: samo kategorije, po odjeljcima (Elektronika, Kolekcionarstvo, Hobiji, Moda,
+  Dom i vintage…), s brojem predmeta; dodir otvara mrežu liveova, aukcija i Kupi odmah
+  predmeta te kategorije (dalje swipe feed). Pilule na Početnoj više nemaju kategorije.
 - **Početna** (klon Whatnota): tražilica, **pilule** *Za tebe · 🔴 Uživo · 📅 Uskoro ·
   ⏱ Aukcije · 🏷️ Kupi odmah* i kategorije, zatim mreža kartica **Uživo sada**, **Uskoro**
   (zvono *Podsjeti me*), **Završavaju uskoro** i **Kupi odmah**. Kartica: prodavač iznad

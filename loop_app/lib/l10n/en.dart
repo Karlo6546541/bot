@@ -2200,5 +2200,8 @@ const kEn = <String, String>{
   'Na prodaji': 'For sale',
   'Maksimalna ponuda (ili drži gumb)': 'Max bid (or hold the button)',
   'Napredno: pada cijena, nagradna igra': 'Advanced: price drop, giveaway',
-  'Na predmetu na prodaji dodirni "Pošalji poruku".': 'On an item for sale, tap "Send message".',
+  'Na predmetu na prodaji dodirni "Pošalji poruku".':
+      'On an item for sale, tap "Send message".',
+  'Kategorije': 'Categories',
+  'Kad netko objavi predmet u ovoj kategoriji, bit će ovdje.': 'When someone lists an item in this category, it will show up here.',
 };

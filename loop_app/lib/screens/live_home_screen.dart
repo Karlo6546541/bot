@@ -4,10 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../l10n/tr.dart';
-import '../models/device.dart';
 import '../providers/app_providers.dart';
 import '../theme/app_theme.dart';
-import '../widgets/category_style.dart';
 import '../widgets/trade_actions.dart';
 import 'auctions_screen.dart';
 import 'live_screens.dart';
@@ -49,11 +47,6 @@ class _BuyNow extends _Filter {
   const _BuyNow();
 }
 
-class _Category extends _Filter {
-  const _Category(this.category);
-  final DeviceCategory category;
-}
-
 class _LiveHomeScreenState extends ConsumerState<LiveHomeScreen> {
   Timer? _timer;
   _Filter _filter = const _ForYou();
@@ -85,19 +78,6 @@ class _LiveHomeScreenState extends ConsumerState<LiveHomeScreen> {
     final soon = all.where((i) => i.live?.isScheduled ?? false).toList();
     final auctions = all.where((i) => i.auction != null).toList();
     final buyNow = all.where((i) => i.isBuyNow).toList();
-
-    // Kategorije koje trenutno imaju nešto (najviše prvo).
-    final counts = <DeviceCategory, int>{};
-    for (final i in all) {
-      for (final c in i.categories) {
-        counts[c] = (counts[c] ?? 0) + 1;
-      }
-    }
-    final cats = counts.keys.toList()
-      ..sort((a, b) => counts[b]!.compareTo(counts[a]!));
-    if (_filter case _Category(:final category) when !cats.contains(category)) {
-      _filter = const _ForYou();
-    }
 
     void open(List<BrowseItem> list, int i, String title) =>
         SwipeFeedScreen.open(
@@ -262,10 +242,6 @@ class _LiveHomeScreenState extends ConsumerState<LiveHomeScreen> {
                 )
               : grid('home-soon', soon, t('Uskoro')),
         );
-      case _Category(:final category):
-        final list = all.where((i) => i.categories.contains(category)).toList();
-        slivers.add(const SliverToBoxAdapter(child: SizedBox(height: 12)));
-        slivers.add(grid('home-category', list, category.label));
     }
 
     return CustomScrollView(
@@ -342,17 +318,7 @@ class _LiveHomeScreenState extends ConsumerState<LiveHomeScreen> {
                   selected: _filter is _BuyNow,
                   onTap: () => setState(() => _filter = const _BuyNow()),
                 ),
-                for (final c in cats)
-                  _Pill(
-                    id: c.name,
-                    label: c.label,
-                    icon: c.icon,
-                    selected: switch (_filter) {
-                      _Category(:final category) => category == c,
-                      _ => false,
-                    },
-                    onTap: () => setState(() => _filter = _Category(c)),
-                  ),
+                // Kategorije su u svojoj kartici (donja traka).
               ],
             ),
           ),
@@ -505,14 +471,12 @@ class _Pill extends StatelessWidget {
     required this.label,
     required this.selected,
     required this.onTap,
-    this.icon,
   });
 
   final String id;
   final String label;
   final bool selected;
   final VoidCallback onTap;
-  final IconData? icon;
 
   @override
   Widget build(BuildContext context) {
@@ -531,10 +495,6 @@ class _Pill extends StatelessWidget {
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                if (icon != null) ...[
-                  Icon(icon, size: 16, color: fg),
-                  const SizedBox(width: 6),
-                ],
                 Text(
                   label,
                   style: TextStyle(

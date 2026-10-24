@@ -1110,6 +1110,28 @@ void logoTests() {
     expect(seller.contactEmail, isNotEmpty);
     expect(find.textContaining('Retro Kutak j.d.o.o.'), findsWidgets);
   });
+  testWidgets('kartica Kategorije: samo kategorije, dodir otvara predmete', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(400, 860);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    await tester.pumpWidget(await buildApp(tester));
+    await tester.ensureVisible(find.text('Prijavi se'));
+    await tester.tap(find.text('Prijavi se'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Kategorije').last);
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('categories')), findsOneWidget);
+    // Samo kategorije — bez liveova, aukcija i predmeta.
+    expect(find.byKey(const ValueKey('home-live')), findsNothing);
+    final camera = find.byKey(const ValueKey('category-camera'));
+    expect(camera, findsOneWidget);
+    await tester.tap(camera);
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('category-items')), findsOneWidget);
+    expect(find.text('Polaroid SX-70'), findsOneWidget);
+  });
 }
 
 /// Ekran podataka prodavatelja je još otvoren.
