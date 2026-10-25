@@ -279,18 +279,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
               ),
             ),
           ),
-          Wrap(
-            children: [
-              TextButton(
-                onPressed: () => LegalScreen.open(context, LegalDoc.terms),
-                child: Text(t('Uvjeti korištenja')),
-              ),
-              TextButton(
-                onPressed: () => LegalScreen.open(context, LegalDoc.privacy),
-                child: Text(t('Pravila privatnosti')),
-              ),
-            ],
-          ),
           if (field.hasError)
             Text(
               field.errorText!,
@@ -355,7 +343,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
             const SizedBox(height: 4),
             Text(
               _register
-                  ? t('Registracija je besplatna.')
+                  ? t('Treba ti samo e-mail i lozinka.')
                   : t('Prijavi se e-mailom i lozinkom.'),
               style: TextStyle(color: LoopColors.textSecondary),
             ),

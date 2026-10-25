@@ -2203,5 +2203,8 @@ const kEn = <String, String>{
   'Na predmetu na prodaji dodirni "Pošalji poruku".':
       'On an item for sale, tap "Send message".',
   'Kategorije': 'Categories',
-  'Kad netko objavi predmet u ovoj kategoriji, bit će ovdje.': 'When someone lists an item in this category, it will show up here.',
+  'Kad netko objavi predmet u ovoj kategoriji, bit će ovdje.':
+      'When someone lists an item in this category, it will show up here.',
+  'Treba ti samo e-mail i lozinka.': 'All you need is an email and a password.',
+  'Još prazno': 'Nothing yet',
 };

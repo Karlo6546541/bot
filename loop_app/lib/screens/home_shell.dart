@@ -140,12 +140,14 @@ class _HomeShellState extends ConsumerState<HomeShell> {
                 child: LoopLogo(size: 20, onTap: _goHome),
               ),
         actions: [
-          IconButton(
-            key: const ValueKey('open-search'),
-            tooltip: t('Pretraži objave i račune'),
-            icon: const Icon(Icons.search),
-            onPressed: () => SearchScreen.open(context),
-          ),
+          // Početna već ima traku za pretragu.
+          if (_index != 0 || isDesktop)
+            IconButton(
+              key: const ValueKey('open-search'),
+              tooltip: t('Pretraži objave i račune'),
+              icon: const Icon(Icons.search),
+              onPressed: () => SearchScreen.open(context),
+            ),
           const MessagesButton(),
           const NotificationBell(),
           if (!phone) ...[

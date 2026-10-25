@@ -129,14 +129,15 @@ class _CategoryTile extends StatelessWidget {
                         fontSize: 13,
                       ),
                     ),
-                    if (count > 0)
-                      Text(
-                        t('{0} predmeta', ['$count']),
-                        style: TextStyle(
-                          color: LoopColors.textSecondary,
-                          fontSize: 11,
-                        ),
+                    Text(
+                      count > 0
+                          ? t('{0} predmeta', ['$count'])
+                          : t('Još prazno'),
+                      style: TextStyle(
+                        color: LoopColors.textSecondary,
+                        fontSize: 11,
                       ),
+                    ),
                   ],
                 ),
               ),

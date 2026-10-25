@@ -89,7 +89,7 @@ void main() {
     await tester.tap(find.text('Prijavi se'));
     await tester.pumpAndSettle();
 
-    await tester.tap(find.byKey(const ValueKey('open-search')));
+    await tester.tap(find.byKey(const ValueKey('home-search')));
     await tester.pumpAndSettle();
     await tester.enterText(
       find.byKey(const ValueKey('global-search')),

@@ -36,8 +36,11 @@ class ProfileScreen extends ConsumerWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                ProfileHeader(user: user, editable: !user.isGuest),
-                const SizedBox(height: 12),
+                // Gost nema profil — dovoljna je kartica za prijavu.
+                if (!user.isGuest) ...[
+                  ProfileHeader(user: user, editable: true),
+                  const SizedBox(height: 12),
+                ],
                 // Profil je samo za račun i postavke — kupnje i prodaja su
                 // u kartici Moje.
                 if (user.isGuest)
