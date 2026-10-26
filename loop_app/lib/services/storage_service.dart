@@ -165,8 +165,13 @@ class StorageService {
 
   /// Otvara boxove i puni demo podatke pri prvom pokretanju.
   /// [path] i [inMemory] koriste se u testovima; u aplikaciji Hive sam
-  /// bira direktorij.
-  Future<void> init({String? path, bool inMemory = false}) async {
+  /// bira direktorij. [seed] = false (online baza): bez demo podataka —
+  /// podaci dolaze samo iz baze, pa se stari demo nikad ne vraća u nju.
+  Future<void> init({
+    String? path,
+    bool inMemory = false,
+    bool seed = true,
+  }) async {
     if (path != null) {
       Hive.init(path);
     } else if (!inMemory) {
@@ -195,6 +200,7 @@ class StorageService {
     _liveShows = await Hive.openBox<Map>(_liveShowsBox, bytes: bytes);
     _liveEvents = await Hive.openBox<Map>(_liveEventsBox, bytes: bytes);
 
+    if (!seed) return;
     if (_session.get(_seededKey) != true) {
       await _seed();
     } else if ((_session.get(_seedVersionKey) as int? ?? 1) < _seedVersion) {

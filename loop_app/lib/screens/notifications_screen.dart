@@ -482,10 +482,7 @@ class _NotificationTile extends ConsumerWidget {
                       const SizedBox(height: 3),
                       Text(
                         more > 0
-                            ? t('{0} · još {1} slične', [
-                                _when(n.createdAt),
-                                more,
-                              ])
+                            ? moreSimilarLabel(_when(n.createdAt), more)
                             : _when(n.createdAt),
                         style: TextStyle(
                           color: LoopColors.textSecondary,
@@ -565,7 +562,10 @@ class _AuctionActions extends ConsumerWidget {
         if (mine)
           pill(t('{0} ponuda', ['${a.bids.length}']), LoopColors.accent),
       ] else
-        pill(a.status.label, LoopColors.textSecondary),
+        pill(
+          a.statusLabelFor(ref.read(appProvider).currentUserId),
+          LoopColors.textSecondary,
+        ),
     ];
 
     final compact = FilledButton.styleFrom(

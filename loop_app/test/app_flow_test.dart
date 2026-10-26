@@ -320,7 +320,7 @@ void main() {
     await tester.tap(find.text('Uvjeti korištenja').first);
     await tester.pumpAndSettle();
     expect(find.byKey(const ValueKey('legal-terms')), findsOneWidget);
-    await tester.pageBack();
+    await tester.tap(find.byTooltip('Natrag').last);
     await tester.pumpAndSettle();
 
     // Gost razgleda; novi račun nema podatke prodavatelja.
@@ -352,7 +352,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Novi live'), findsOneWidget);
     expect(find.text('Podaci prodavatelja'), findsNothing);
-    await tester.pageBack();
+    await tester.tap(find.byTooltip('Natrag').last);
     await tester.pumpAndSettle();
 
     // + Objavi → Aukcija također bez podataka prodavatelja.
@@ -362,7 +362,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Podaci prodavatelja'), findsNothing);
     expect(find.text('Nemaš predmeta za aukciju'), findsOneWidget);
-    await tester.pageBack();
+    await tester.tap(find.byTooltip('Natrag').last);
     await tester.pumpAndSettle();
 
     // Podaci prodavatelja (za Kupi odmah i isplatu) — iz Profila.
@@ -386,7 +386,7 @@ void main() {
     );
     await tester.tap(find.byKey(const ValueKey('seller-birth')));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('OK'));
+    await tester.tap(find.text('U REDU'));
     await tester.pumpAndSettle();
     await tester.ensureVisible(find.byKey(const ValueKey('seller-save')));
     await tester.tap(find.byKey(const ValueKey('seller-save')));
@@ -667,7 +667,7 @@ void listingTests() {
     await tester.tap(find.byKey(const ValueKey('item-auction')));
     await tester.pumpAndSettle();
     expect(find.text('Nova aukcija'), findsOneWidget);
-    await tester.pageBack();
+    await tester.tap(find.byTooltip('Natrag').last);
     await tester.pumpAndSettle();
 
     // Obriši predmet.
@@ -786,7 +786,7 @@ void communityTests() {
     await tester.enterText(find.byKey(const ValueKey('bid-amount')), '70');
     await tester.tap(find.byKey(const ValueKey('bid-submit')));
     await tester.pumpAndSettle();
-    await tester.pageBack();
+    await tester.tap(find.byTooltip('Natrag').last);
     await tester.pumpAndSettle();
     await tester.tap(find.byTooltip('Natrag'));
     await tester.pumpAndSettle();
@@ -825,9 +825,9 @@ void communityTests() {
     await tester.tap(find.text(text));
     await tester.pumpAndSettle();
     expect(find.text('Povijest ponuda (2)'), findsOneWidget);
-    await tester.pageBack();
+    await tester.tap(find.byTooltip('Natrag').last);
     await tester.pumpAndSettle();
-    await tester.pageBack();
+    await tester.tap(find.byTooltip('Natrag').last);
     await tester.pumpAndSettle();
     expect(find.descendant(of: bell, matching: find.text('1')), findsNothing);
 
@@ -921,11 +921,11 @@ void chatTests() {
     await tester.tap(find.byKey(const ValueKey('chat-send')));
     await tester.pumpAndSettle();
     expect(find.text('Je li još dostupan?'), findsOneWidget);
-    await tester.pageBack();
+    await tester.tap(find.byTooltip('Natrag').last);
     await tester.pumpAndSettle();
-    await tester.pageBack();
+    await tester.tap(find.byTooltip('Natrag').last);
     await tester.pumpAndSettle();
-    await tester.pageBack();
+    await tester.tap(find.byTooltip('Natrag').last);
     await tester.pumpAndSettle();
     await logout();
 
@@ -945,9 +945,9 @@ void chatTests() {
     await tester.tap(find.byKey(const ValueKey('chat-send')));
     await tester.pumpAndSettle();
     expect(find.text('Je!'), findsOneWidget);
-    await tester.pageBack();
+    await tester.tap(find.byTooltip('Natrag').last);
     await tester.pumpAndSettle();
-    await tester.pageBack();
+    await tester.tap(find.byTooltip('Natrag').last);
     await tester.pumpAndSettle();
     expect(
       find.descendant(of: messages, matching: find.text('1')),

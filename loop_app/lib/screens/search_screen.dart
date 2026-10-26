@@ -5,7 +5,8 @@ import '../l10n/tr.dart';
 import '../models/app_user.dart';
 import '../providers/app_providers.dart';
 import '../providers/app_state.dart';
-import '../services/market_filter.dart' show normalizeSearch;
+import '../services/market_filter.dart' show normalizeSearch, searchMatches;
+import '../services/sync_service.dart';
 import '../theme/app_theme.dart';
 import '../widgets/empty_state.dart';
 import '../widgets/feed.dart';
@@ -47,10 +48,10 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
     _q = q;
   });
 
-  static bool _matches(String text, List<String> terms) {
-    final n = normalizeSearch(text);
-    return terms.every(n.contains);
-  }
+  /// Svaki pojam mora biti početak neke riječi — "nike" ne smije naći
+  /// "početnike" (violina, fotoaparat…).
+  static bool _matches(String text, List<String> terms) =>
+      searchMatches(text, terms);
 
   List<String> get _terms => normalizeSearch(
     _q.replaceAll('@', ''),
@@ -151,9 +152,11 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
             _q.trim().isEmpty
                 ? _History(onPick: _set)
                 : posts.isEmpty
-                ? EmptyState(
-                    icon: Icons.search_off,
-                    title: t('Nema objava za "{0}"', [_q.trim()]),
+                ? _EmptyOrLoading(
+                    child: EmptyState(
+                      icon: Icons.search_off,
+                      title: t('Nema objava za "{0}"', [_q.trim()]),
+                    ),
                   )
                 : LayoutBuilder(
                     builder: (context, c) {
@@ -185,9 +188,11 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                   ),
             // Računi
             accounts.isEmpty
-                ? EmptyState(
-                    icon: Icons.person_search_outlined,
-                    title: t('Nema računa za "{0}"', [_q.trim()]),
+                ? _EmptyOrLoading(
+                    child: EmptyState(
+                      icon: Icons.person_search_outlined,
+                      title: t('Nema računa za "{0}"', [_q.trim()]),
+                    ),
                   )
                 : ListView.separated(
                     key: const ValueKey('search-accounts'),
@@ -231,6 +236,36 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
           ],
         ),
       ),
+    );
+  }
+}
+
+/// Dok se online podaci još učitavaju, "0 rezultata" bi lagalo —
+/// prikaži "Učitavam…".
+class _EmptyOrLoading extends ConsumerWidget {
+  const _EmptyOrLoading({required this.child});
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final sync = ref.watch(syncProvider);
+    if (sync == null) return child;
+    return ValueListenableBuilder<SyncStatus>(
+      valueListenable: sync.statusListenable,
+      builder: (context, status, _) =>
+          status == SyncStatus.connecting || status == SyncStatus.offline
+          ? Center(
+              key: const ValueKey('search-loading'),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const CircularProgressIndicator(),
+                  const SizedBox(height: 12),
+                  Text(t('Učitavam…')),
+                ],
+              ),
+            )
+          : child,
     );
   }
 }

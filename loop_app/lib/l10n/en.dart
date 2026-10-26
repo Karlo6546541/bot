@@ -2207,4 +2207,27 @@ const kEn = <String, String>{
       'When someone lists an item in this category, it will show up here.',
   'Treba ti samo e-mail i lozinka.': 'All you need is an email and a password.',
   'Još prazno': 'Nothing yet',
+  '{0} predmet': '{0} item',
+  '{0} · još {1} slična': '{0} · {1} more like this',
+  '{0} · još {1} sličnih': '{0} · {1} more like this',
+  'Prije licitiranja dodaj način plaćanja.':
+      'Add a payment method before bidding.',
+  'Učitavam…': 'Loading…',
+  'U transportu': 'In transit',
+  'U paketomatu': 'In the locker',
+  'očekivano {0}': 'expected {0}',
+  'Pošiljka': 'Shipment',
+  'Pošiljka nije pronađena': 'Shipment not found',
+  'Dostava na': 'Deliver to',
+  'Broj pošiljke': 'Tracking number',
+  'Za poslati': 'To ship',
+  'Nema paketa za poslati': 'No parcels to ship',
+  'Kad kupac odabere dostavu, paket se pojavi ovdje s adresom.':
+      'When a buyer chooses delivery, the parcel shows up here with the address.',
+  'Kupac: {0}': 'Buyer: {0}',
+  'Prijavi se za svoje kupnje i prodaje':
+      'Sign in to see your purchases and sales',
+  'Ovdje pratiš što si kupio, svoje ponude, predmete i pakete za poslati.':
+      'Track what you bought, your bids, your items and parcels to ship.',
+  'Osvojeno 🎉': 'Won 🎉',
 };

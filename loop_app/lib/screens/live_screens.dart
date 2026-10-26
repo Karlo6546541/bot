@@ -573,8 +573,19 @@ class _CreateLiveShowScreenState extends ConsumerState<CreateLiveShowScreen> {
                   ),
                 ),
               ],
-              const SizedBox(height: 16),
-              FilledButton.icon(
+            ],
+          ),
+        ),
+      ),
+      // Gumb za objavu uvijek je vidljiv na dnu ekrana.
+      bottomNavigationBar: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
+          child: Center(
+            heightFactor: 1,
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 568),
+              child: FilledButton.icon(
                 key: const ValueKey('live-go'),
                 style: FilledButton.styleFrom(
                   backgroundColor: kLiveRed,
@@ -587,7 +598,7 @@ class _CreateLiveShowScreenState extends ConsumerState<CreateLiveShowScreen> {
                   _startsAt == null ? t('Kreni uživo') : t('Zakaži live'),
                 ),
               ),
-            ],
+            ),
           ),
         ),
       ),
@@ -1158,7 +1169,7 @@ class _LiveRoomViewState extends ConsumerState<LiveRoomView> {
 
   Future<void> _bid(double amount, {int? lot}) async {
     if (blockGuest(context) || _busy) return;
-    if (!await ensureCheckout(context, ref) || !mounted) return;
+    if (!await ensureCard(context, ref) || !mounted) return;
     setState(() => _busy = true);
     try {
       // Bez potvrde u SnackBaru (prekrio bi chat) — gumb postaje "Vodiš".
@@ -1180,7 +1191,7 @@ class _LiveRoomViewState extends ConsumerState<LiveRoomView> {
 
   Future<void> _take() async {
     if (blockGuest(context) || _busy) return;
-    if (!await ensureCheckout(context, ref) || !mounted) return;
+    if (!await ensureCard(context, ref) || !mounted) return;
     setState(() => _busy = true);
     try {
       final won = await _app.liveTake(widget.showId);
@@ -1194,7 +1205,7 @@ class _LiveRoomViewState extends ConsumerState<LiveRoomView> {
 
   Future<void> _enter() async {
     if (blockGuest(context) || _busy) return;
-    if (!await ensureCheckout(context, ref) || !mounted) return;
+    if (!await ensureCard(context, ref) || !mounted) return;
     setState(() => _busy = true);
     try {
       await _app.liveEnter(widget.showId);
@@ -2064,15 +2075,22 @@ class _LiveRoomViewState extends ConsumerState<LiveRoomView> {
           onLongPress: _busy ? null : () => _customBid(cur.minNext),
           child: Text(t('Licitiraj {0}', [formatCredits(cur.minNext)])),
         ),
-        TextButton(
-          key: const ValueKey('live-bid-custom'),
-          style: TextButton.styleFrom(
-            foregroundColor: Colors.white70,
-            visualDensity: VisualDensity.compact,
-            textStyle: const TextStyle(fontSize: 12),
-          ),
-          onPressed: _busy ? null : () => _customBid(cur.minNext),
-          child: Text(t('Maksimalna ponuda (ili drži gumb)')),
+        Row(
+          children: [
+            Expanded(
+              child: TextButton(
+                key: const ValueKey('live-bid-custom'),
+                style: TextButton.styleFrom(
+                  foregroundColor: Colors.white70,
+                  visualDensity: VisualDensity.compact,
+                  textStyle: const TextStyle(fontSize: 12),
+                ),
+                onPressed: _busy ? null : () => _customBid(cur.minNext),
+                child: Text(t('Maksimalna ponuda (ili drži gumb)')),
+              ),
+            ),
+            const _LiveWallet(),
+          ],
         ),
       ],
     );
@@ -3135,7 +3153,11 @@ class _LotCard extends StatelessWidget {
                     ),
                   if (result)
                     Text(
-                      leader == null ? t('Nije prodano') : t('Prodano'),
+                      leader == null
+                          ? t('Nije prodano')
+                          : leader.userId == me
+                          ? t('Osvojeno 🎉')
+                          : t('Prodano'),
                       style: TextStyle(
                         color: leader == null ? Colors.white70 : kLiveRed,
                         fontWeight: FontWeight.w900,
@@ -3991,6 +4013,34 @@ class _HostControls extends StatelessWidget {
           ),
         ),
       ],
+    );
+  }
+}
+
+/// Mali novčanik uz gumb za ponudu: koja se kartica naplaćuje, dodir je
+/// mijenja (ili dodaje prvu).
+class _LiveWallet extends ConsumerWidget {
+  const _LiveWallet();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final user = ref.watch(appProvider.select((s) => s.currentUser));
+    if (user == null || user.isGuest) return const SizedBox.shrink();
+    final card = user.paymentCard;
+    return TextButton.icon(
+      key: const ValueKey('live-wallet'),
+      style: TextButton.styleFrom(
+        foregroundColor: card == null ? Colors.amberAccent : Colors.white70,
+        visualDensity: VisualDensity.compact,
+        textStyle: const TextStyle(fontSize: 12),
+      ),
+      onPressed: () => changeCard(context, ref),
+      icon: const Icon(Icons.account_balance_wallet_outlined, size: 16),
+      label: Text(
+        card ?? t('Dodaj karticu'),
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+      ),
     );
   }
 }

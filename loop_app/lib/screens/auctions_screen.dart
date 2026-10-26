@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../models/auction.dart';
+import '../models/delivery.dart';
 import '../models/device.dart';
 import '../models/live_show.dart';
 import '../providers/app_providers.dart';
@@ -23,6 +24,7 @@ import 'seller_screens.dart';
 import 'deliveries_screen.dart';
 import 'create_auction_screen.dart';
 import 'live_screens.dart';
+import 'login_screen.dart';
 import 'swipe_feed_screen.dart';
 import '../l10n/tr.dart';
 
@@ -33,6 +35,7 @@ enum AuctionView {
   myBids('Ponude', Icons.back_hand_outlined, selling: false),
   // Prodajem
   items('Predmeti', Icons.inventory_2_outlined, selling: true),
+  toShip('Za poslati', Icons.local_shipping_outlined, selling: true),
   mine('Aukcije', Icons.gavel, selling: true),
   lives('Liveovi', Icons.videocam_outlined, selling: true);
 
@@ -476,7 +479,7 @@ class AuctionBrowseCard extends ConsumerWidget {
     if (live != null) {
       price = live.current != null
           ? t('Sada: {0}', [formatCredits(live.current!.price)])
-          : t('{0} predmeta', ['${show!.lots.length}']);
+          : itemsLabel(show!.lots.length);
     } else if (a != null) {
       price = formatCredits(a.currentPrice);
     } else {
@@ -645,14 +648,18 @@ class AuctionBrowseCard extends ConsumerWidget {
               ),
             ),
             const SizedBox(height: 6),
-            Text(
-              title,
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-              style: const TextStyle(
-                fontWeight: FontWeight.w800,
-                fontSize: 14,
-                height: 1.2,
+            // Uvijek mjesto za dva retka — slike u retku ostaju iste visine.
+            SizedBox(
+              height: 34,
+              child: Text(
+                title,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  fontWeight: FontWeight.w800,
+                  fontSize: 14,
+                  height: 1.2,
+                ),
               ),
             ),
             Text(
@@ -740,12 +747,32 @@ class _MyAuctionsViewState extends ConsumerState<MyAuctionsView> {
     AuctionView.myBids =>
       s.auctions.where((a) => a.bids.any((b) => b.userId == me)).toList(),
     AuctionView.mine => s.auctions.where((a) => a.sellerId == me).toList(),
-    AuctionView.lives || AuctionView.bought || AuctionView.items => const [],
+    AuctionView.lives ||
+    AuctionView.bought ||
+    AuctionView.items ||
+    AuctionView.toShip => const [],
   };
 
   @override
   Widget build(BuildContext context) {
     final s = ref.watch(appProvider);
+    // Gost: umjesto praznih popisa poziv na prijavu.
+    if (s.currentUser?.isGuest ?? true) {
+      return EmptyState(
+        key: const ValueKey('my-guest'),
+        icon: Icons.person_outline,
+        title: t('Prijavi se za svoje kupnje i prodaje'),
+        message: t(
+          'Ovdje pratiš što si kupio, svoje ponude, predmete i pakete za poslati.',
+        ),
+        action: FilledButton.icon(
+          key: const ValueKey('my-guest-login'),
+          onPressed: () => LoginScreen.open(context),
+          icon: const Icon(Icons.login),
+          label: Text(t('Prijavi se')),
+        ),
+      );
+    }
     final me = s.currentUserId ?? '';
     final list = _filter(s, me);
     final lives = s.liveShows.where((l) => l.hostId == me).toList();
@@ -757,7 +784,9 @@ class _MyAuctionsViewState extends ConsumerState<MyAuctionsView> {
         }
         return b.createdAt.compareTo(a.createdAt);
       });
+    final toShip = s.toShip;
     final empty = switch (_view) {
+      AuctionView.toShip => toShip.isEmpty,
       AuctionView.lives => lives.isEmpty,
       AuctionView.bought => bought.isEmpty,
       _ => list.isEmpty,
@@ -802,7 +831,12 @@ class _MyAuctionsViewState extends ConsumerState<MyAuctionsView> {
                     padding: const EdgeInsets.only(right: 8),
                     child: ChoiceChip(
                       avatar: Icon(v.icon, size: 18),
-                      label: Text(v.label, key: ValueKey('my-${v.name}')),
+                      label: Text(
+                        v == AuctionView.toShip && toShip.isNotEmpty
+                            ? '${v.label} (${toShip.length})'
+                            : v.label,
+                        key: ValueKey('my-${v.name}'),
+                      ),
                       selected: _view == v,
                       onSelected: (_) => setState(() => _view = v),
                     ),
@@ -860,6 +894,7 @@ class _MyAuctionsViewState extends ConsumerState<MyAuctionsView> {
                   hasScrollBody: false,
                   child: EmptyState(
                     icon: switch (_view) {
+                      AuctionView.toShip => Icons.local_shipping_outlined,
                       AuctionView.lives => Icons.videocam_outlined,
                       AuctionView.bought => Icons.shopping_bag_outlined,
                       _ => Icons.gavel,
@@ -870,6 +905,7 @@ class _MyAuctionsViewState extends ConsumerState<MyAuctionsView> {
                       AuctionView.mine ||
                       AuctionView.items => t('Nemaš svojih aukcija'),
                       AuctionView.lives => t('Još nisi bio uživo'),
+                      AuctionView.toShip => t('Nema paketa za poslati'),
                     },
                     message: switch (_view) {
                       AuctionView.bought => t(
@@ -877,6 +913,9 @@ class _MyAuctionsViewState extends ConsumerState<MyAuctionsView> {
                       ),
                       AuctionView.myBids => t(
                         'Licitiraj u liveu ili na aukciji — tvoje ponude bit će ovdje.',
+                      ),
+                      AuctionView.toShip => t(
+                        'Kad kupac odabere dostavu, paket se pojavi ovdje s adresom.',
                       ),
                       _ => t('Pokreni aukciju ili live i prodaj prvi predmet.'),
                     },
@@ -890,6 +929,7 @@ class _MyAuctionsViewState extends ConsumerState<MyAuctionsView> {
                                 icon: const Icon(Icons.explore_outlined),
                                 label: Text(t('Istraži')),
                               ),
+                      AuctionView.toShip => null,
                       AuctionView.mine ||
                       AuctionView.items => FilledButton.icon(
                         key: const ValueKey('my-empty-auction'),
@@ -920,6 +960,17 @@ class _MyAuctionsViewState extends ConsumerState<MyAuctionsView> {
                           key: ValueKey('bought-${d.id}'),
                           delivery: d,
                         ),
+                      ),
+                    const SizedBox(height: 96),
+                  ],
+                )
+              else if (_view == AuctionView.toShip)
+                SliverList.list(
+                  children: [
+                    for (final d in toShip)
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+                        child: _ToShipCard(delivery: d),
                       ),
                     const SizedBox(height: 96),
                   ],
@@ -1158,7 +1209,7 @@ class AuctionCard extends ConsumerWidget {
                         AuctionCountdown(endsAt: a.endsAt)
                       else
                         Text(
-                          a.status.label,
+                          a.statusLabelFor(ref.read(appProvider).currentUserId),
                           style: const TextStyle(fontWeight: FontWeight.w700),
                         ),
                     ],
@@ -1234,4 +1285,76 @@ List<BrowseItem> browseItems(AppState s, {bool buyNow = true}) {
       for (final d in s.marketDevices)
         if (d.isListed && !d.isDigital) BrowseItem.item(d),
   ];
+}
+
+/// Prodavatelj: paket za poslati — što, kome i kamo.
+class _ToShipCard extends ConsumerWidget {
+  const _ToShipCard({required this.delivery});
+  final Delivery delivery;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final d = delivery;
+    final s = ref.watch(appProvider);
+    final buyer = s.userById(d.buyerId);
+    final device = s.deviceById(d.deviceId);
+    return Card(
+      key: ValueKey('to-ship-${d.id}'),
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: () => DeliveryDetailScreen.open(context, d.id),
+        child: Padding(
+          padding: const EdgeInsets.all(14),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              if (device != null)
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(10),
+                  child: ItemThumb(device: device, size: 52),
+                ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      d.deviceName,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(fontWeight: FontWeight.w800),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      t('Kupac: {0}', [
+                        buyer?.name.isNotEmpty == true
+                            ? '${buyer!.name} (${buyer.handle})'
+                            : s.userLabel(d.buyerId),
+                      ]),
+                    ),
+                    Text(
+                      '${d.method?.label ?? ''}'
+                      '${d.destination != null ? ' · ${d.destination}' : ''}',
+                      style: TextStyle(
+                        color: LoopColors.textSecondary,
+                        fontSize: 12,
+                      ),
+                    ),
+                    Text(
+                      d.status(DateTime.now()).label,
+                      style: TextStyle(
+                        color: LoopColors.accent,
+                        fontWeight: FontWeight.w800,
+                        fontSize: 12,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
 }

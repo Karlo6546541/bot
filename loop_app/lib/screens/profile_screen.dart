@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+
+import '../config/backend_config.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../providers/app_providers.dart';
@@ -125,21 +127,26 @@ class ProfileScreen extends ConsumerWidget {
                 const SizedBox(height: 8),
                 const LanguageSelector(),
                 const SizedBox(height: 24),
-                OutlinedButton.icon(
-                  onPressed: () => ref.read(appProvider.notifier).logout(),
-                  icon: const Icon(Icons.logout),
-                  label: Text(t('Odjavi se')),
-                ),
-                const SizedBox(height: 12),
-                OutlinedButton.icon(
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: LoopColors.error,
-                    side: BorderSide(color: LoopColors.error),
+                if (!user.isGuest) ...[
+                  OutlinedButton.icon(
+                    onPressed: () => ref.read(appProvider.notifier).logout(),
+                    icon: const Icon(Icons.logout),
+                    label: Text(t('Odjavi se')),
                   ),
-                  onPressed: () => _reset(context, ref),
-                  icon: const Icon(Icons.restart_alt),
-                  label: Text(t('Resetiraj demo podatke')),
-                ),
+                  const SizedBox(height: 12),
+                ],
+                // Reset briše samo lokalne demo podatke; uz online bazu
+                // ga nema, da nitko ne može prebrisati zajedničke podatke.
+                if (!BackendConfig.isOnline)
+                  OutlinedButton.icon(
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: LoopColors.error,
+                      side: BorderSide(color: LoopColors.error),
+                    ),
+                    onPressed: () => _reset(context, ref),
+                    icon: const Icon(Icons.restart_alt),
+                    label: Text(t('Resetiraj demo podatke')),
+                  ),
               ],
             ),
           ),

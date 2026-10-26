@@ -101,11 +101,7 @@ class SyncService {
         for (final t in StorageService.syncedTables)
           if (remote.containsKey(t)) t,
       ];
-      final remoteEmpty = remote.values.every((m) => m.isEmpty);
-      if (remoteEmpty) {
-        // Prvi korisnik: baza je prazna — pošalji demo podatke.
-        await _pushAll();
-      } else {
+      {
         // Vlastiti profil koji online još ne postoji (napravljen dok veza
         // nije radila) ne smije nestati.
         final me = _storage.currentUserId;
@@ -142,23 +138,6 @@ class SyncService {
     final seconds = (15 * (1 << _attempt)).clamp(15, 120);
     _attempt = (_attempt + 1).clamp(0, 4);
     _reconnect = Timer(Duration(seconds: seconds), _connect);
-  }
-
-  Future<void> _pushAll() async {
-    final all = _storage.exportAll();
-    for (final t in all.entries.where((e) => _tables.contains(e.key))) {
-      for (final row in t.value.entries) {
-        await _remote.upsert(t.key, row.key, row.value);
-      }
-    }
-  }
-
-  /// Nakon "Resetiraj demo podatke": isprazni bazu i pošalji nove podatke.
-  Future<void> resetRemote() async {
-    if (status != SyncStatus.online) return;
-    _pending.clear();
-    await _remote.clearAll(_tables);
-    await _pushAll();
   }
 
   /// Neposlane promjene iz prošlog pokretanja (npr. oglas objavljen pa

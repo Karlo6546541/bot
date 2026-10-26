@@ -130,9 +130,7 @@ class _CategoryTile extends StatelessWidget {
                       ),
                     ),
                     Text(
-                      count > 0
-                          ? t('{0} predmeta', ['$count'])
-                          : t('Još prazno'),
+                      count > 0 ? itemsLabel(count) : t('Još prazno'),
                       style: TextStyle(
                         color: LoopColors.textSecondary,
                         fontSize: 11,

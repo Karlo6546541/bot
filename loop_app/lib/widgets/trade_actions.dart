@@ -107,6 +107,23 @@ Future<bool> ensureCheckout(
   return ok == true;
 }
 
+/// Live: za ponudu treba samo način plaćanja — adresu/dostavu kupac bira
+/// tek kad pobijedi. Gledanje ne traži ništa.
+Future<bool> ensureCard(BuildContext context, WidgetRef ref) async {
+  final user = ref.read(appProvider).currentUser;
+  if (user == null || user.isGuest) return false;
+  if (user.paymentCard != null) return true;
+  return changeCard(context, ref);
+}
+
+/// Dodaje ili mijenja spremljeni način plaćanja (mali novčanik).
+Future<bool> changeCard(BuildContext context, WidgetRef ref) async {
+  final card = await addPaymentMethod(context);
+  if (card == null || !context.mounted) return false;
+  await ref.read(appProvider.notifier).savePaymentMethod(card);
+  return true;
+}
+
 class _CheckoutSetupSheet extends ConsumerStatefulWidget {
   const _CheckoutSetupSheet({required this.address, this.card});
   final String address;

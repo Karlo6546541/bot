@@ -195,7 +195,7 @@ class _MarketScreenState extends ConsumerState<MarketScreen> {
             child: Row(
               children: [
                 Text(
-                  t('{0} predmeta', [devices.length]),
+                  itemsLabel(devices.length),
                   key: const ValueKey('market-count'),
                   style: const TextStyle(fontWeight: FontWeight.w800),
                 ),

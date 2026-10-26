@@ -211,6 +211,7 @@ class _MyItemsViewState extends ConsumerState<MyItemsView> {
                   onAction: () => downloadDigital(context, ref, d),
                   onTap: () => DeviceDetailScreen.open(context, d),
                   sellerView: true,
+                  showPrice: false,
                   badge: t('✓ Kupljeno'),
                 );
               }
@@ -234,6 +235,7 @@ class _MyItemsViewState extends ConsumerState<MyItemsView> {
                     : () => DeviceDetailScreen.open(context, d),
                 onTap: () => DeviceDetailScreen.open(context, d),
                 sellerView: true,
+                showPrice: auction != null || d.isListed,
                 badge: auction != null
                     ? t('⏱ Na aukciji')
                     : d.isListed

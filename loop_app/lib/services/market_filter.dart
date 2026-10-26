@@ -41,8 +41,17 @@ class MarketFilter {
         device.condition.label,
       ].join(' '),
     );
-    return terms.every(searchable.contains);
+    return searchMatches(searchable, terms);
   }
+}
+
+/// Svaki pojam mora biti početak neke riječi u tekstu ("nike" ne nalazi
+/// "početnike"). [text] se normalizira ovdje; [terms] već normalizirani.
+bool searchMatches(String text, Iterable<String> terms) {
+  final words = normalizeSearch(
+    text,
+  ).split(RegExp(r'[^\p{L}\p{N}]+', unicode: true));
+  return terms.every((t) => words.any((w) => w.startsWith(t)));
 }
 
 /// Hrvatska dijakritika, više uzastopnih razmaka i veličina slova

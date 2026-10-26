@@ -853,13 +853,11 @@ class LiveService {
     );
   }
 
-  /// Kao na Whatnotu: prije prve ponude ili kupnje traže se kartica i
-  /// adresa za dostavu (pobjedniku se naplaćuje automatski).
+  /// Prije prve ponude traži se samo način plaćanja (pobjedniku se
+  /// naplaćuje automatski); dostavu pobjednik bira nakon pobjede.
   static void requireCheckout(AppUser user) {
-    if (!user.checkoutReady) {
-      throw TradeException(
-        t('Prije licitiranja dodaj karticu i adresu za dostavu.'),
-      );
+    if (user.paymentCard == null) {
+      throw TradeException(t('Prije licitiranja dodaj način plaćanja.'));
     }
   }
 

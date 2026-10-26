@@ -64,20 +64,35 @@ void main() {
     storage = StorageService();
     await storage.init(inMemory: true);
     remote = FakeRemote();
+    // Online baza već postoji (s demo podacima) — aplikacija ih ne šalje
+    // sama, pa ih test unaprijed upisuje.
+    for (final t in storage.exportAll().entries) {
+      remote.data[t.key] = {
+        for (final r in t.value.entries) r.key: Map.of(r.value),
+      };
+    }
   });
 
   tearDown(() => Hive.close());
 
-  test('prazna online baza dobiva lokalne demo podatke', () async {
+  test('demo podaci se nikad sami ne šalju u online bazu', () async {
+    remote.data.clear();
     final sync = SyncService(storage, remote);
     await sync.start();
     expect(sync.status, SyncStatus.online);
-    expect(remote.data['users']!.keys, contains(SeedData.demoUserId));
-    expect(remote.data['devices'], hasLength(41));
-    expect(remote.data['auctions'], hasLength(4));
+    expect(remote.data['users'] ?? {}, isEmpty);
+    expect(remote.data['devices'] ?? {}, isEmpty);
+  });
+
+  test('s online bazom nema lokalnih demo podataka', () async {
+    await Hive.close();
+    final fresh = StorageService();
+    await fresh.init(inMemory: true, seed: false);
+    expect(fresh.users, isEmpty);
   });
 
   test('postojeća online baza zamjenjuje lokalne podatke', () async {
+    remote.data.clear();
     remote.data['users'] = {
       'u-x': {
         'id': 'u-x',
@@ -165,16 +180,6 @@ void main() {
     // Tuđi podaci iz baze su stigli.
     expect(storage.userById('u-x'), isNotNull);
     await sync.dispose();
-  });
-
-  test('reset demo podataka prepisuje i online bazu', () async {
-    final sync = SyncService(storage, remote);
-    await sync.start();
-    remote.data['users']!['strani'] = {'id': 'strani'};
-    await storage.resetAll();
-    await sync.resetRemote();
-    expect(remote.data['users']!.containsKey('strani'), isFalse);
-    expect(remote.data['users'], hasLength(4));
   });
 
   test(

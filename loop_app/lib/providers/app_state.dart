@@ -499,6 +499,23 @@ class AppState {
       ? const []
       : deliveries.where((d) => d.buyerId == currentUserId).toList();
 
+  /// Pošiljke mojih prodaja (prodavatelj), najnovije prvo.
+  List<Delivery> get sellerDeliveries => currentUserId == null
+      ? const []
+      : deliveries.where((d) => d.sellerId == currentUserId).toList();
+
+  /// Prodavatelj: pošiljke koje treba poslati (kupac je odabrao dostavu,
+  /// paket još nije stigao).
+  List<Delivery> get toShip => sellerDeliveries
+      .where(
+        (d) =>
+            d.method != null &&
+            d.method != DeliveryMethod.digital &&
+            d.confirmedAt == null &&
+            !d.isDelivered(DateTime.now()),
+      )
+      .toList();
+
   /// Pošiljke koje još nisu potvrđene (za prikaz "u tijeku").
   List<Delivery> get myOpenDeliveries =>
       myDeliveries.where((d) => d.confirmedAt == null).toList();

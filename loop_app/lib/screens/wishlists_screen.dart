@@ -137,7 +137,7 @@ class _SaveSheet extends ConsumerWidget {
               }),
               secondary: const _Emoji('❤️'),
               title: Text(t('Sviđa mi se')),
-              subtitle: Text(t('{0} predmeta', ['${me.favorites.length}'])),
+              subtitle: Text(itemsLabel(me.favorites.length)),
             ),
             for (final w in me.wishlists)
               CheckboxListTile(
@@ -154,7 +154,7 @@ class _SaveSheet extends ConsumerWidget {
                 }),
                 secondary: _Emoji(w.emoji),
                 title: Text(w.name),
-                subtitle: Text(t('{0} predmeta', ['${w.deviceIds.length}'])),
+                subtitle: Text(itemsLabel(w.deviceIds.length)),
               ),
             const SizedBox(height: 6),
             OutlinedButton.icon(
@@ -358,7 +358,7 @@ class WishlistsScreen extends ConsumerWidget {
                           style: const TextStyle(fontWeight: FontWeight.w900),
                         ),
                         Text(
-                          t('{0} predmeta', ['${items.length}']),
+                          itemsLabel(items.length),
                           style: TextStyle(
                             color: LoopColors.textSecondary,
                             fontSize: 12,
@@ -462,7 +462,7 @@ class WishlistDetailScreen extends ConsumerWidget {
               padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
               child: Text(
                 isMine
-                    ? t('{0} predmeta', ['${items.length}'])
+                    ? itemsLabel(items.length)
                     : t('Lista korisnika {0} · {1} predmeta', [
                         owner.handle,
                         '${items.length}',

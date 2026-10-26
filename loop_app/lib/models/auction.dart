@@ -114,6 +114,15 @@ class Auction {
 
   Bid? get highestBid => bids.isEmpty ? null : bids.last;
 
+  /// Oznaka statusa iz perspektive [viewerId]: prodavatelj vidi
+  /// "Prodano", pobjednik "Osvojeno", a svi ostali "Završeno".
+  String statusLabelFor(String? viewerId) {
+    if (status != AuctionStatus.sold || viewerId == sellerId) {
+      return status.label;
+    }
+    return highestBid?.userId == viewerId ? t('Osvojeno') : t('Završeno');
+  }
+
   /// Trenutna cijena: najviša ponuda ili početna cijena.
   double get currentPrice => highestBid?.amount ?? startPrice;
 

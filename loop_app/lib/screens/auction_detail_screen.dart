@@ -178,7 +178,9 @@ class _AuctionDetailScreenState extends ConsumerState<AuctionDetailScreen> {
                                 )
                               else
                                 Text(
-                                  a.status.label,
+                                  a.statusLabelFor(
+                                    ref.read(appProvider).currentUserId,
+                                  ),
                                   style: const TextStyle(
                                     fontSize: 20,
                                     fontWeight: FontWeight.w800,

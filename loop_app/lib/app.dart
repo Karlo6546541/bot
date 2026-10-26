@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'admin/admin_shell.dart';
@@ -81,6 +82,10 @@ class LoopApp extends ConsumerWidget {
       // svaki widget preuzme nove boje i tekstove.
       key: ValueKey((brightness, lang)),
       title: 'LOOP',
+      // Ugrađeni tekstovi (npr. "Natrag", kalendar) na jeziku aplikacije.
+      locale: Locale(lang == AppLang.en ? 'en' : 'hr'),
+      supportedLocales: const [Locale('hr'), Locale('en')],
+      localizationsDelegates: GlobalMaterialLocalizations.delegates,
       debugShowCheckedModeBanner: false,
       scaffoldMessengerKey: rootMessengerKey,
       navigatorKey: navigatorKeyFor((brightness, lang)),

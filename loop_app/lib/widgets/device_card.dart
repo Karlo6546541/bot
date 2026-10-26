@@ -22,6 +22,7 @@ class DeviceCard extends StatefulWidget {
     this.badge,
     this.promoted = false,
     this.sellerView = false,
+    this.showPrice = true,
   });
 
   final Device device;
@@ -40,6 +41,9 @@ class DeviceCard extends StatefulWidget {
 
   /// Vlastiti predmet: cijena oglasa (koliko dobivam), a ne cijena kupca.
   final bool sellerView;
+
+  /// false: predmet nije na prodaji — bez (automatske) cijene.
+  final bool showPrice;
 
   String? get _badgeText => badge == null
       ? null
@@ -178,7 +182,15 @@ class _DeviceCardState extends State<DeviceCard> {
               FittedBox(
                 fit: BoxFit.scaleDown,
                 alignment: Alignment.centerLeft,
-                child: _price(d, 16, widget.sellerView),
+                child: widget.showPrice
+                    ? _price(d, 16, widget.sellerView)
+                    : Text(
+                        t('Nije na prodaji'),
+                        style: TextStyle(
+                          color: LoopColors.textSecondary,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
               ),
               const SizedBox(height: 8),
               FilledButton.icon(
@@ -279,7 +291,15 @@ class _DeviceCardState extends State<DeviceCard> {
               child: FittedBox(
                 fit: BoxFit.scaleDown,
                 alignment: Alignment.centerLeft,
-                child: _price(d, 18, widget.sellerView),
+                child: widget.showPrice
+                    ? _price(d, 18, widget.sellerView)
+                    : Text(
+                        t('Nije na prodaji'),
+                        style: TextStyle(
+                          color: LoopColors.textSecondary,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
               ),
             ),
             FilledButton.icon(

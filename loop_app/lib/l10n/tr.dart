@@ -40,3 +40,20 @@ String t(String hr, [List<Object?> args = const []]) {
   }
   return s;
 }
+
+/// Hrvatski: 1, 21, 31… su jednina (osim 11).
+bool _hrSingular(int n) => n % 10 == 1 && n % 100 != 11;
+
+/// "1 predmet", "2 predmeta", "5 predmeta".
+String itemsLabel(int n) =>
+    _hrSingular(n) ? t('{0} predmet', ['$n']) : t('{0} predmeta', ['$n']);
+
+/// "još 1 slična", "još 3 slične", "još 7 sličnih".
+String moreSimilarLabel(String when, int n) {
+  final few = n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 12 || n % 100 > 14);
+  return _hrSingular(n)
+      ? t('{0} · još {1} slična', [when, n])
+      : few
+      ? t('{0} · još {1} slične', [when, n])
+      : t('{0} · još {1} sličnih', [when, n]);
+}

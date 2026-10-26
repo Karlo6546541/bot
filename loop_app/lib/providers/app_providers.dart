@@ -806,7 +806,6 @@ class AppController extends Notifier<AppState> {
 
   Future<void> resetDemoData() async {
     await _storage.resetAll();
-    await ref.read(syncProvider)?.resetRemote();
     await ref.read(imageStoreProvider).clearAll();
     _refresh();
   }

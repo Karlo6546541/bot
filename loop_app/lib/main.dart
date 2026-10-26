@@ -38,7 +38,7 @@ class _BootstrapState extends State<_Bootstrap> {
 
   Future<(StorageService, SyncService?)> _initStorage() async {
     final storage = StorageService();
-    await storage.init();
+    await storage.init(seed: !BackendConfig.isOnline);
     // Online baza (Supabase) ako su predane postavke; inače lokalno.
     SyncService? sync;
     if (BackendConfig.isOnline) {

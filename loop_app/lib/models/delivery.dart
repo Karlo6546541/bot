@@ -50,10 +50,11 @@ enum DeliveryMethod {
 /// (vidi [Delivery.steps]).
 enum DeliveryStatus {
   awaitingChoice('Odaberi dostavu'),
-  ordered('Naručeno'),
+  ordered('Plaćeno'),
   packed('Zapakirano'),
   shipped('Poslano'),
-  inTransit('U dostavi'),
+  inTransit('U transportu'),
+  inLocker('U paketomatu'),
   readyForPickup('Spremno za preuzimanje'),
   sent('Poslano e-mailom'),
   delivered('Dostavljeno');
@@ -140,9 +141,15 @@ class Delivery {
       DeliveryStatus.sent,
       DeliveryStatus.delivered,
     ],
+    DeliveryMethod.parcelLocker => const [
+      DeliveryStatus.ordered,
+      DeliveryStatus.shipped,
+      DeliveryStatus.inTransit,
+      DeliveryStatus.inLocker,
+      DeliveryStatus.delivered,
+    ],
     _ => const [
       DeliveryStatus.ordered,
-      DeliveryStatus.packed,
       DeliveryStatus.shipped,
       DeliveryStatus.inTransit,
       DeliveryStatus.delivered,
@@ -170,6 +177,19 @@ class Delivery {
   }
 
   DeliveryStatus status(DateTime now) => steps[stepIndex(now)];
+
+  /// Kada je korak [i] dosegnut (ili se očekuje) — za prikaz datuma uz
+  /// svaki korak. Prvi korak (Plaćeno) je trenutak kupnje.
+  DateTime? stepAt(int i) {
+    final m = method;
+    final start = startedAt;
+    if (m == null || start == null) return null;
+    if (i == 0) return createdAt.isBefore(start) ? createdAt : start;
+    final total = Duration(minutes: m.demoMinutes).inSeconds;
+    return start.add(
+      Duration(seconds: (total * i / (steps.length - 1)).round()),
+    );
+  }
 
   bool isDelivered(DateTime now) => status(now) == DeliveryStatus.delivered;
 

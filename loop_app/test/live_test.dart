@@ -1149,123 +1149,114 @@ void main() {
     expect(find.byKey(const ValueKey('live-entered')), findsOneWidget);
   });
 
-  testWidgets('kartica i adresa prije ponude, maksimalna ponuda, Kupi odmah', (
-    tester,
-  ) async {
-    tester.view.physicalSize = const Size(400, 860);
-    tester.view.devicePixelRatio = 1;
-    addTearDown(tester.view.reset);
+  testWidgets(
+    'samo kartica prije ponude (bez adrese), maksimalna ponuda, Kupi odmah',
+    (tester) async {
+      tester.view.physicalSize = const Size(400, 860);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
 
-    final storage = StorageService();
-    late String id;
-    await tester.runAsync(() async {
-      await storage.init(inMemory: true);
-      final trade = TradeService(storage);
-      final live = LiveService(storage);
-      final g = await addItem(trade, bob, 'Gramofon');
-      id = (await live.create(hostId: bob, title: 'Vinili')).id;
-      await live.addLot(bob, id, g.id, 5);
-      await live.startLot(bob, id);
-      // Demo korisnik (gledatelj) još nema karticu.
-      final me = storage.userById(host)!;
-      await storage.putUser(
-        AppUser.fromMap({...me.toMap(), 'paymentCard': null}),
+      final storage = StorageService();
+      late String id;
+      await tester.runAsync(() async {
+        await storage.init(inMemory: true);
+        final trade = TradeService(storage);
+        final live = LiveService(storage);
+        final g = await addItem(trade, bob, 'Gramofon');
+        id = (await live.create(hostId: bob, title: 'Vinili')).id;
+        await live.addLot(bob, id, g.id, 5);
+        await live.startLot(bob, id);
+        // Demo korisnik (gledatelj) još nema karticu.
+        final me = storage.userById(host)!;
+        await storage.putUser(
+          AppUser.fromMap({...me.toMap(), 'paymentCard': null}),
+        );
+      });
+      addTearDown(() => tester.runAsync(Hive.close));
+
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            storageProvider.overrideWithValue(storage),
+            tickIntervalProvider.overrideWithValue(null),
+          ],
+          child: const LoopApp(),
+        ),
       );
-    });
-    addTearDown(() => tester.runAsync(Hive.close));
-
-    await tester.pumpWidget(
-      ProviderScope(
-        overrides: [
-          storageProvider.overrideWithValue(storage),
-          tickIntervalProvider.overrideWithValue(null),
-        ],
-        child: const LoopApp(),
-      ),
-    );
-    await tester.ensureVisible(find.text('Prijavi se'));
-    await tester.tap(find.text('Prijavi se'));
-    await tester.pumpAndSettle();
-
-    // Početna: i predmeti za Kupi odmah (pilule se vrte vodoravno).
-    final pills = find
-        .descendant(
-          of: find.byKey(const ValueKey('home-cats')),
-          matching: find.byType(Scrollable),
-        )
-        .first;
-    await tester.scrollUntilVisible(
-      find.byKey(const ValueKey('home-cat-buy')),
-      100,
-      scrollable: pills,
-    );
-    await tester.ensureVisible(find.byKey(const ValueKey('home-cat-buy')));
-    await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const ValueKey('home-cat-buy')));
-    await tester.pumpAndSettle();
-    expect(find.byKey(const ValueKey('home-buy')), findsOneWidget);
-    await tester.scrollUntilVisible(
-      find.byKey(const ValueKey('home-cat-live')),
-      -100,
-      scrollable: pills,
-    );
-    await tester.ensureVisible(find.byKey(const ValueKey('home-cat-live')));
-    await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const ValueKey('home-cat-live')));
-    await tester.pumpAndSettle();
-    await tester.tap(find.byKey(ValueKey('browse-live-$id')));
-    await tester.pumpAndSettle();
-
-    // Maksimalna ponuda → prvo kartica i adresa.
-    await tester.tap(find.byKey(const ValueKey('live-bid-custom')));
-    await tester.pumpAndSettle();
-    expect(find.text('Maksimalna ponuda'), findsOneWidget);
-    await tester.enterText(find.byKey(const ValueKey('live-amount')), '20');
-    await tester.tap(find.byKey(const ValueKey('live-amount-ok')));
-    await tester.pumpAndSettle();
-    expect(find.text('Spremni za licitiranje?'), findsOneWidget);
-    // Testna kartica: odbijena pa uspješna (broj i CVC se ne spremaju).
-    await tester.tap(find.byKey(const ValueKey('checkout-card')));
-    await tester.pumpAndSettle();
-    Future<void> tapIn(String key) async {
-      await tester.ensureVisible(find.byKey(ValueKey(key)));
+      await tester.ensureVisible(find.text('Prijavi se'));
+      await tester.tap(find.text('Prijavi se'));
       await tester.pumpAndSettle();
-      await tester.tap(find.byKey(ValueKey(key)));
-      await tester.pump();
-    }
 
-    await tapIn('pay-test-declined');
-    await tapIn('pay-card-save');
-    await tester.pump(const Duration(milliseconds: 500));
-    expect(
-      find.text('Banka je odbila karticu. Pokušaj drugu.'),
-      findsOneWidget,
-    );
-    await tapIn('pay-test-fill');
-    await tapIn('pay-card-save');
-    await tester.pump(const Duration(milliseconds: 500));
-    await tester.pumpAndSettle();
-    expect(find.text('Visa •••• 4242'), findsOneWidget);
-    await tester.enterText(
-      find.byKey(const ValueKey('checkout-address')),
-      'Testna ulica 1, 10000 Zagreb',
-    );
-    await tester.runAsync(
-      () => tester.tap(find.byKey(const ValueKey('checkout-save'))),
-    );
-    await tester.runAsync(
-      () => Future<void>.delayed(const Duration(milliseconds: 100)),
-    );
-    await tester.pumpAndSettle();
-    expect(storage.userById(host)!.checkoutReady, isTrue);
-    // Ponuda je prošla: vodim s početnom cijenom, maksimum je 20 €.
-    expect(find.byKey(const ValueKey('live-leading')), findsOneWidget);
-    expect(find.textContaining('tvoj maks 20'), findsOneWidget);
-    final st = LiveService(storage).stateOf(storage.liveShowById(id)!);
-    expect(st.current!.price, 5);
-    expect(st.current!.maxOf(host), 20);
-    expect(find.byKey(const ValueKey('live-raise')), findsOneWidget);
-  });
+      // Početna: i predmeti za Kupi odmah (pilule se vrte vodoravno).
+      final pills = find
+          .descendant(
+            of: find.byKey(const ValueKey('home-cats')),
+            matching: find.byType(Scrollable),
+          )
+          .first;
+      await tester.scrollUntilVisible(
+        find.byKey(const ValueKey('home-cat-buy')),
+        100,
+        scrollable: pills,
+      );
+      await tester.ensureVisible(find.byKey(const ValueKey('home-cat-buy')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('home-cat-buy')));
+      await tester.pumpAndSettle();
+      expect(find.byKey(const ValueKey('home-buy')), findsOneWidget);
+      await tester.scrollUntilVisible(
+        find.byKey(const ValueKey('home-cat-live')),
+        -100,
+        scrollable: pills,
+      );
+      await tester.ensureVisible(find.byKey(const ValueKey('home-cat-live')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('home-cat-live')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(ValueKey('browse-live-$id')));
+      await tester.pumpAndSettle();
+
+      // Maksimalna ponuda → prvo kartica i adresa.
+      await tester.tap(find.byKey(const ValueKey('live-bid-custom')));
+      await tester.pumpAndSettle();
+      expect(find.text('Maksimalna ponuda'), findsOneWidget);
+      await tester.enterText(find.byKey(const ValueKey('live-amount')), '20');
+      await tester.tap(find.byKey(const ValueKey('live-amount-ok')));
+      await tester.pumpAndSettle();
+      // Live traži samo način plaćanja (bez adrese) — odmah se otvara
+      // novčanik. Testna kartica: odbijena pa uspješna.
+      Future<void> tapIn(String key) async {
+        await tester.ensureVisible(find.byKey(ValueKey(key)));
+        await tester.pumpAndSettle();
+        await tester.tap(find.byKey(ValueKey(key)));
+        await tester.pump();
+      }
+
+      await tapIn('pay-test-declined');
+      await tapIn('pay-card-save');
+      await tester.pump(const Duration(milliseconds: 500));
+      expect(
+        find.text('Banka je odbila karticu. Pokušaj drugu.'),
+        findsOneWidget,
+      );
+      await tapIn('pay-test-fill');
+      await tapIn('pay-card-save');
+      await tester.pump(const Duration(milliseconds: 500));
+      await tester.pumpAndSettle();
+      await tester.runAsync(
+        () => Future<void>.delayed(const Duration(milliseconds: 100)),
+      );
+      await tester.pumpAndSettle();
+      expect(storage.userById(host)!.paymentCard, 'Visa •••• 4242');
+      // Ponuda je prošla: vodim s početnom cijenom, maksimum je 20 €.
+      expect(find.byKey(const ValueKey('live-leading')), findsOneWidget);
+      expect(find.textContaining('tvoj maks 20'), findsOneWidget);
+      final st = LiveService(storage).stateOf(storage.liveShowById(id)!);
+      expect(st.current!.price, 5);
+      expect(st.current!.maxOf(host), 20);
+      expect(find.byKey(const ValueKey('live-raise')), findsOneWidget);
+    },
+  );
 
   group('kvaliteta videa', () {
     test('viši početni protok u opisu veze (VP8 bez fmtp, H264 s fmtp)', () {

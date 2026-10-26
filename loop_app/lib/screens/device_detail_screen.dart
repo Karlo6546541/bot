@@ -63,8 +63,74 @@ class DeviceDetailScreen extends ConsumerWidget {
     final price = isMine ? device.askPrice : state.priceForMe(device);
     final owner = state.userById(device.ownerId);
     final isFav = state.isFavorite(device.id);
+    // Računalo: šira stranica, veća slika i gumb za kupnju uvijek vidljiv.
+    final wide = MediaQuery.sizeOf(context).width >= 900;
+    final buyBar =
+        wide &&
+        !isMine &&
+        auction == null &&
+        device.isForSale &&
+        !(device.isDigital && state.hasPurchased(device.id));
 
     return Scaffold(
+      bottomNavigationBar: !buyBar
+          ? null
+          : SafeArea(
+              child: Container(
+                padding: const EdgeInsets.fromLTRB(24, 10, 24, 12),
+                decoration: BoxDecoration(
+                  color: LoopColors.surface,
+                  boxShadow: LoopColors.softShadow,
+                ),
+                child: Center(
+                  heightFactor: 1,
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 900),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            device.name,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              fontWeight: FontWeight.w800,
+                              fontSize: 16,
+                            ),
+                          ),
+                        ),
+                        Text(
+                          formatCredits(buyTotal(price)),
+                          style: const TextStyle(
+                            fontWeight: FontWeight.w900,
+                            fontSize: 20,
+                          ),
+                        ),
+                        const SizedBox(width: 16),
+                        FilledButton.icon(
+                          key: const ValueKey('buy-now-bar'),
+                          style: FilledButton.styleFrom(
+                            minimumSize: const Size(180, 50),
+                          ),
+                          onPressed: () async {
+                            final ok = await confirmAndBuy(
+                              context,
+                              ref,
+                              device,
+                            );
+                            if (ok && !device.isDigital && context.mounted) {
+                              Navigator.pop(context);
+                            }
+                          },
+                          icon: const Icon(Icons.shopping_bag_outlined),
+                          label: Text(t('Kupi odmah')),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
       appBar: AppBar(
         title: Text(device.name, overflow: TextOverflow.ellipsis),
         actions: [
@@ -122,7 +188,7 @@ class DeviceDetailScreen extends ConsumerWidget {
       body: Align(
         alignment: Alignment.topCenter,
         child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 640),
+          constraints: BoxConstraints(maxWidth: wide ? 900 : 640),
           child: ListView(
             padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
             children: [
@@ -154,6 +220,7 @@ class DeviceDetailScreen extends ConsumerWidget {
                       // Ključ: nakon dodavanja/brisanja slike galerija kreće iznova.
                       key: ValueKey(device.imagePaths.join('|')),
                       device: device,
+                      height: wide ? 460 : 280,
                     ),
                     const SizedBox(height: 18),
                     Text(
