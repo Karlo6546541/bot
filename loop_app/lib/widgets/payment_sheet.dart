@@ -15,7 +15,7 @@ Future<String?> addPaymentMethod(BuildContext context) =>
       showDragHandle: true,
       backgroundColor: LoopColors.background,
       constraints: const BoxConstraints(maxWidth: 520),
-      builder: (_) => const _PaymentSheet(),
+      builder: (_) => appThemed(const _PaymentSheet()),
     );
 
 class _PaymentSheet extends StatefulWidget {
@@ -79,7 +79,7 @@ class _PaymentSheetState extends State<_PaymentSheet> {
     final ok = await showModalBottomSheet<bool>(
       context: context,
       backgroundColor: Colors.transparent,
-      builder: (_) => _WalletSheet(kind: kind),
+      builder: (_) => appThemed(_WalletSheet(kind: kind)),
     );
     if (ok == true && mounted) {
       Navigator.pop(context, TestPayments.wallet(kind));

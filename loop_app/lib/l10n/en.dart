@@ -2247,4 +2247,13 @@ const kEn = <String, String>{
   'još bez ocjena': 'no ratings yet',
   '{0} ocjena': '{0} ratings',
   'prosječno slanje': 'avg. shipping',
+  'Kartica za automatsku naplatu i adresa za dostavu — koriste se za svaku kupnju i pobjedu.': 'Card for automatic payment and delivery address — used for every purchase and win.',
+  'Još nema predmeta na aukciji.': 'No items up for auction yet.',
+  '🔴 Licitira se sada': '🔴 Bidding now',
+  '🥇 Tvoja predponuda vodi': '🥇 Your pre-bid leads',
+  'Predponuda: {0}': 'Pre-bid: {0}',
+  '✅ Prodano · {0}': '✅ Sold · {0}',
+  'Prodavač nema predmeta za Kupi odmah.': 'The seller has no Buy now items.',
+  '🔨 Na aukciji ({0})': '🔨 Auction ({0})',
+  '🛍️ Kupi odmah ({0})': '🛍️ Buy now ({0})',
 };

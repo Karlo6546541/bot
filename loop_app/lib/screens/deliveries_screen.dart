@@ -112,9 +112,11 @@ Future<void> pickDelivery(
     showDragHandle: true,
     backgroundColor: LoopColors.background,
     constraints: const BoxConstraints(maxWidth: 560),
-    builder: (_) => _ChooseSheet(
-      methods: methods,
-      savedAddress: ref.read(appProvider).currentUser?.address,
+    builder: (_) => appThemed(
+      _ChooseSheet(
+        methods: methods,
+        savedAddress: ref.read(appProvider).currentUser?.address,
+      ),
     ),
   );
   if (choice == null || !context.mounted) return;

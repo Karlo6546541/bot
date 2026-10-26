@@ -845,16 +845,30 @@ class LiveRoomScreen extends StatelessWidget {
 /// gumb za licitiranje, chat i red predmeta. Domaćin vidi gumb za kraj.
 /// U swipe feedu je aktivna samo soba na ekranu ([active]): samo ona broji
 /// gledatelja i osvježava odbrojavanje.
-class LiveRoomView extends ConsumerStatefulWidget {
+class LiveRoomView extends StatelessWidget {
   const LiveRoomView({super.key, required this.showId, this.active = true});
   final String showId;
   final bool active;
 
+  // Tamna tema IZNAD stanja sobe: i listovi koje soba otvara (predmeti,
+  // dodavanje…) su tamni s čitljivim svijetlim tekstom.
   @override
-  ConsumerState<LiveRoomView> createState() => _LiveRoomViewState();
+  Widget build(BuildContext context) => Theme(
+    data: buildLiveTheme(),
+    child: _LiveRoomBody(showId: showId, active: active),
+  );
 }
 
-class _LiveRoomViewState extends ConsumerState<LiveRoomView> {
+class _LiveRoomBody extends ConsumerStatefulWidget {
+  const _LiveRoomBody({required this.showId, required this.active});
+  final String showId;
+  final bool active;
+
+  @override
+  ConsumerState<_LiveRoomBody> createState() => _LiveRoomViewState();
+}
+
+class _LiveRoomViewState extends ConsumerState<_LiveRoomBody> {
   Timer? _timer;
   DateTime _joinedAt = DateTime.now();
   DateTime _beatAt = DateTime.now();
@@ -928,7 +942,7 @@ class _LiveRoomViewState extends ConsumerState<LiveRoomView> {
   }
 
   @override
-  void didUpdateWidget(LiveRoomView old) {
+  void didUpdateWidget(_LiveRoomBody old) {
     super.didUpdateWidget(old);
     if (widget.active && !old.active) _start();
     if (!widget.active && old.active) {
@@ -1279,80 +1293,42 @@ class _LiveRoomViewState extends ConsumerState<LiveRoomView> {
     );
   }
 
+  /// Trgovina livea (kao Douyin): predmeti na aukciji (predlicitacija) i
+  /// prodavačevi predmeti za Kupi odmah, u dvije kartice.
   void _showQueue(LiveState st, bool isHost) => showModalBottomSheet<void>(
     context: context,
     showDragHandle: true,
     isScrollControlled: true,
     backgroundColor: kLiveSheet,
     constraints: const BoxConstraints(maxWidth: 520),
-    builder: (ctx) => DraggableScrollableSheet(
-      expand: false,
-      initialChildSize: 0.6,
-      maxChildSize: 0.9,
-      builder: (ctx, scroll) => ListView(
-        controller: scroll,
-        padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
-        children: [
-          Text(
-            t('Predmeti u liveu'),
-            style: const TextStyle(fontSize: 19, fontWeight: FontWeight.w900),
-          ),
-          if (!isHost && st.queue.any((l) => l.mode == LotMode.auction))
-            Text(
-              t(
-                'Predlicitiraj predmet koji tek dolazi — tvoja maksimalna ponuda vrijedi kad krene.',
-              ),
-              style: TextStyle(color: LoopColors.textSecondary, fontSize: 13),
-            ),
-          const SizedBox(height: 8),
-          for (final l in st.lots)
-            _QueueRow(
-              lot: l,
-              me: ref.read(appProvider).currentUserId,
-              onStart: isHost && st.canStart && l.status == LotStatus.upcoming
-                  ? () {
-                      Navigator.pop(ctx);
-                      _startLot(l.index);
-                    }
-                  : null,
-              onPreBid:
-                  !isHost &&
-                      !st.isOver &&
-                      l.status == LotStatus.upcoming &&
-                      l.mode == LotMode.auction
-                  ? () async {
-                      final mine =
-                          l.leader?.userId ==
-                          ref.read(appProvider).currentUserId;
-                      final min = mine
-                          ? (l.maxOf(l.leader!.userId) ?? l.price) +
-                                LiveLot.increment(l.price)
-                          : l.minNext;
-                      final amount = await showMaxBidDialog(
-                        ctx,
-                        min: min,
-                        preBid: true,
-                        raise: mine,
-                      );
-                      if (amount == null || !ctx.mounted) return;
-                      Navigator.pop(ctx);
-                      await _bid(amount, lot: l.index);
-                    }
-                  : null,
-            ),
-          _ShowShop(hostId: st.show.hostId, isHost: isHost),
-        ],
-      ),
+    builder: (ctx) => _LiveShopSheet(
+      showId: st.show.id,
+      isHost: isHost,
+      onStart: (i) {
+        Navigator.pop(ctx);
+        _startLot(i);
+      },
+      onPreBid: (l) async {
+        final mine = l.leader?.userId == ref.read(appProvider).currentUserId;
+        final min = mine
+            ? (l.maxOf(l.leader!.userId) ?? l.price) +
+                  LiveLot.increment(l.price)
+            : l.minNext;
+        final amount = await showMaxBidDialog(
+          ctx,
+          min: min,
+          preBid: true,
+          raise: mine,
+        );
+        if (amount == null || !ctx.mounted) return;
+        Navigator.pop(ctx);
+        await _bid(amount, lot: l.index);
+      },
     ),
   );
 
   @override
-  Widget build(BuildContext context) => Theme(
-    data: buildLiveTheme(),
-    child: Builder(builder: _build),
-  );
-
-  Widget _build(BuildContext context) {
+  Widget build(BuildContext context) {
     final s = ref.watch(appProvider);
     final show = s.liveShowById(widget.showId);
     if (show == null) {
@@ -1763,7 +1739,7 @@ class _LiveRoomViewState extends ConsumerState<LiveRoomView> {
                           // Chat zauzima najviše pola slobodnog prostora.
                           Positioned(
                             left: 12,
-                            right: 72,
+                            right: 12,
                             top: 0,
                             bottom: 4,
                             child: LayoutBuilder(
@@ -1782,28 +1758,6 @@ class _LiveRoomViewState extends ConsumerState<LiveRoomView> {
                                       c.maxHeight * 0.55,
                                     ),
                                   ),
-                                ),
-                              ),
-                            ),
-                          ),
-                          // Desni stupac se smanji da stane (mali ekrani).
-                          Positioned(
-                            right: 2,
-                            top: 0,
-                            bottom: 4,
-                            child: Align(
-                              alignment: Alignment.bottomRight,
-                              child: FittedBox(
-                                fit: BoxFit.scaleDown,
-                                alignment: Alignment.bottomRight,
-                                child: _SideRail(
-                                  show: show,
-                                  state: st,
-                                  isHost: isHost,
-                                  canAct: canAct,
-                                  onQueue: () => _showQueue(st, isHost),
-                                  liked: _liked,
-                                  onHeart: _toggleLike,
                                 ),
                               ),
                             ),
@@ -1839,8 +1793,26 @@ class _LiveRoomViewState extends ConsumerState<LiveRoomView> {
                           ),
                         ),
                       ),
-                    if (canAct && !st.isOver)
-                      _ChatInput(controller: _chat, onSend: _send),
+                    // Douyin: dolje trgovina (vrećica), chat, srce, dijeljenje.
+                    _DouyinBar(
+                      controller: _chat,
+                      onSend: _send,
+                      showChat: canAct && !st.isOver,
+                      bagCount:
+                          st.queue.length +
+                          s
+                              .listingsOf(show.hostId)
+                              .where((d) => !d.isDigital)
+                              .length,
+                      onBag: () => _showQueue(st, isHost),
+                      liked: _liked,
+                      onHeart: st.isOver ? null : _toggleLike,
+                      onShare: () => shareLink(
+                        context,
+                        publicLink(live: show.id),
+                        text: t('Gledaj "{0}" uživo na Subhastu', [show.title]),
+                      ),
+                    ),
                     if (cur != null)
                       _LotCard(
                         lot: cur,
@@ -2486,130 +2458,6 @@ class _TopBar extends ConsumerWidget {
       ),
     );
   }
-}
-
-/// Desni stupac gumba (kao na Whatnotu): predmeti, srce, dijeljenje,
-/// novčanik (kartica i adresa) i trgovina prodavača.
-class _SideRail extends ConsumerWidget {
-  const _SideRail({
-    required this.show,
-    required this.state,
-    required this.isHost,
-    required this.canAct,
-    required this.onQueue,
-    required this.onHeart,
-    this.liked = false,
-  });
-
-  final bool liked;
-  final LiveShow show;
-  final LiveState state;
-  final bool isHost;
-  final bool canAct;
-  final VoidCallback onQueue;
-  final VoidCallback onHeart;
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    // "Predmeti" uključuje i prodavačevu trgovinu (Kupi odmah).
-    final upcoming = state.queue.length;
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        _RailButton(
-          key: const ValueKey('live-queue'),
-          label: t('Predmeti'),
-          onTap: onQueue,
-          icon: Badge(
-            isLabelVisible: upcoming > 0,
-            label: Text('$upcoming'),
-            child: const Icon(Icons.format_list_bulleted, color: Colors.white),
-          ),
-        ),
-        if (!state.isOver)
-          _RailButton(
-            key: const ValueKey('live-react-0'),
-            label: t('Srce'),
-            onTap: onHeart,
-            icon: AnimatedSwitcher(
-              duration: const Duration(milliseconds: 250),
-              transitionBuilder: (c, a) => ScaleTransition(
-                scale: Tween(
-                  begin: 0.4,
-                  end: 1.0,
-                ).animate(CurvedAnimation(parent: a, curve: Curves.elasticOut)),
-                child: c,
-              ),
-              child: liked
-                  ? const Icon(
-                      Icons.favorite,
-                      key: ValueKey('liked'),
-                      color: Color(0xFFFF4D6D),
-                    )
-                  : const Icon(
-                      Icons.favorite_border,
-                      key: ValueKey('not-liked'),
-                      color: Colors.white,
-                    ),
-            ),
-          ),
-        _RailButton(
-          key: const ValueKey('live-share'),
-          label: t('Podijeli'),
-          onTap: () => shareLink(
-            context,
-            publicLink(live: show.id),
-            text: t('Gledaj "{0}" uživo na Subhastu', [show.title]),
-          ),
-          icon: const Icon(Icons.ios_share, color: Colors.white),
-        ),
-      ],
-    );
-  }
-}
-
-class _RailButton extends StatelessWidget {
-  const _RailButton({
-    super.key,
-    required this.icon,
-    required this.label,
-    required this.onTap,
-  });
-
-  final Widget icon;
-  final String label;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) => InkWell(
-    onTap: onTap,
-    borderRadius: BorderRadius.circular(12),
-    child: Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 4),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          IconTheme(
-            data: const IconThemeData(
-              size: 26,
-              shadows: [Shadow(blurRadius: 8, color: Colors.black54)],
-            ),
-            child: icon,
-          ),
-          const SizedBox(height: 2),
-          Text(
-            label,
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 10,
-              fontWeight: FontWeight.w800,
-              shadows: [Shadow(blurRadius: 6, color: Colors.black87)],
-            ),
-          ),
-        ],
-      ),
-    ),
-  );
 }
 
 /// Reakcije (srca i emoji) lete prema gore uz desni rub — kao na Whatnotu.
@@ -3527,219 +3375,6 @@ class _FeedLine extends StatelessWidget {
   }
 }
 
-class _ChatInput extends StatelessWidget {
-  const _ChatInput({required this.controller, required this.onSend});
-
-  final TextEditingController controller;
-  final Future<void> Function(String) onSend;
-
-  @override
-  Widget build(BuildContext context) => Padding(
-    padding: const EdgeInsets.fromLTRB(12, 4, 12, 6),
-    child: TextField(
-      key: const ValueKey('live-chat'),
-      controller: controller,
-      maxLength: LiveEvent.maxText,
-      style: const TextStyle(color: Colors.white),
-      textInputAction: TextInputAction.send,
-      onSubmitted: onSend,
-      decoration: InputDecoration(
-        isDense: true,
-        counterText: '',
-        hintText: t('Reci nešto…'),
-        hintStyle: const TextStyle(color: Colors.white70),
-        filled: true,
-        fillColor: Colors.black26,
-        contentPadding: const EdgeInsets.symmetric(
-          horizontal: 18,
-          vertical: 12,
-        ),
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(99),
-          borderSide: const BorderSide(color: Colors.white70),
-        ),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(99),
-          borderSide: const BorderSide(color: Colors.white70),
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(99),
-          borderSide: const BorderSide(color: Colors.white, width: 1.5),
-        ),
-        suffixIcon: IconButton(
-          key: const ValueKey('live-send'),
-          tooltip: t('Pošalji'),
-          onPressed: () => onSend(controller.text),
-          icon: const Icon(Icons.send, color: Colors.white, size: 20),
-        ),
-      ),
-    ),
-  );
-}
-
-class _QueueRow extends StatelessWidget {
-  const _QueueRow({
-    required this.lot,
-    required this.me,
-    this.onStart,
-    this.onPreBid,
-  });
-  final LotState lot;
-  final String? me;
-
-  /// Domaćin: pokreni licitaciju ovog predmeta.
-  final VoidCallback? onStart;
-
-  /// Gledatelj: predlicitacija (maksimalna ponuda prije početka).
-  final VoidCallback? onPreBid;
-
-  @override
-  Widget build(BuildContext context) {
-    final l = lot;
-    final (String status, Color color) = switch (l.status) {
-      LotStatus.running => (t('🔴 Licitira se'), kLiveRed),
-      LotStatus.upcoming when l.leader != null => (
-        l.leader!.userId == me
-            ? t('🥇 Ti · {0}', [formatCredits(l.price)])
-            : t('Predponuda {0}', [formatCredits(l.price)]),
-        l.leader!.userId == me ? LoopColors.success : LoopColors.accent,
-      ),
-      LotStatus.upcoming => (
-        t('Od {0}', [formatCredits(l.lot.startPrice)]),
-        LoopColors.textSecondary,
-      ),
-      LotStatus.sold => (
-        t('✅ {0} · {1}', [l.leader!.userLabel, formatCredits(l.price)]),
-        LoopColors.success,
-      ),
-      LotStatus.unsold => (t('Nije prodano'), LoopColors.textSecondary),
-      LotStatus.skipped => (t('Preskočeno'), LoopColors.textSecondary),
-    };
-    return ListTile(
-      contentPadding: EdgeInsets.zero,
-      leading: CircleAvatar(
-        radius: 14,
-        backgroundColor: l.status == LotStatus.running
-            ? kLiveRed
-            : LoopColors.surface,
-        child: Text(
-          '${l.index + 1}',
-          style: TextStyle(
-            fontSize: 12,
-            fontWeight: FontWeight.w900,
-            color: l.status == LotStatus.running
-                ? Colors.white
-                : LoopColors.textPrimary,
-          ),
-        ),
-      ),
-      title: Text(
-        l.mode == LotMode.auction
-            ? l.lot.deviceName
-            : '${l.mode.emoji} ${l.lot.deviceName}',
-        maxLines: 1,
-        overflow: TextOverflow.ellipsis,
-        style: const TextStyle(fontWeight: FontWeight.w700),
-      ),
-      subtitle: onPreBid == null
-          ? null
-          : Text(
-              status,
-              style: TextStyle(
-                color: color,
-                fontWeight: FontWeight.w800,
-                fontSize: 12,
-              ),
-            ),
-      trailing: onStart != null
-          ? FilledButton(
-              key: ValueKey('live-start-${l.index}'),
-              style: FilledButton.styleFrom(
-                backgroundColor: kLiveRed,
-                foregroundColor: Colors.white,
-                visualDensity: VisualDensity.compact,
-              ),
-              onPressed: onStart,
-              child: Text(t('Pokreni')),
-            )
-          : onPreBid != null
-          ? OutlinedButton(
-              key: ValueKey('live-prebid-${l.index}'),
-              style: OutlinedButton.styleFrom(
-                visualDensity: VisualDensity.compact,
-              ),
-              onPressed: onPreBid,
-              child: Text(t('Predlicitiraj')),
-            )
-          : Text(
-              status,
-              style: TextStyle(color: color, fontWeight: FontWeight.w800),
-            ),
-    );
-  }
-}
-
-/// Trgovina prodavača u liveu (kao "Shop" na Whatnotu): predmeti za
-/// Kupi odmah koje gledatelji mogu kupiti bilo kada tijekom livea.
-class _ShowShop extends ConsumerWidget {
-  const _ShowShop({required this.hostId, required this.isHost});
-  final String hostId;
-  final bool isHost;
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final s = ref.watch(appProvider);
-    // Predmet dodan u live izlazi iz prodaje, pa su ovdje samo slobodni.
-    final items = [
-      for (final d in s.listingsOf(hostId))
-        if (!d.isDigital) d,
-    ];
-    if (items.isEmpty) return const SizedBox.shrink();
-    return Column(
-      key: const ValueKey('live-shop'),
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const SizedBox(height: 16),
-        Text(
-          t('🛍️ Kupi odmah'),
-          style: const TextStyle(fontSize: 19, fontWeight: FontWeight.w900),
-        ),
-        Text(
-          isHost
-              ? t(
-                  'Tvoji predmeti za Kupi odmah — gledatelji ih kupuju tijekom livea.',
-                )
-              : t('Kupi bez licitiranja, dok live traje.'),
-          style: TextStyle(color: LoopColors.textSecondary, fontSize: 13),
-        ),
-        const SizedBox(height: 6),
-        for (final d in items)
-          ListTile(
-            contentPadding: EdgeInsets.zero,
-            leading: ItemThumb(device: d, size: 40),
-            title: Text(
-              d.name,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: const TextStyle(fontWeight: FontWeight.w700),
-            ),
-            subtitle: Text(formatCredits(s.priceForMe(d))),
-            trailing: isHost
-                ? null
-                : FilledButton(
-                    key: ValueKey('live-buy-${d.id}'),
-                    style: FilledButton.styleFrom(
-                      visualDensity: VisualDensity.compact,
-                    ),
-                    onPressed: () => confirmAndBuy(context, ref, d),
-                    child: Text(t('Kupi')),
-                  ),
-          ),
-      ],
-    );
-  }
-}
-
 /// Domaćin dodaje predmet u live: odabir vlastitog predmeta i početne
 /// cijene (ili novi predmet).
 class _AddLotSheet extends ConsumerStatefulWidget {
@@ -4172,6 +3807,465 @@ class _HostControls extends StatelessWidget {
           ),
         ),
       ],
+    );
+  }
+}
+
+/// Donja traka livea u stilu Douyina: narančasta vrećica (trgovina livea s
+/// brojem predmeta), chat, srce i dijeljenje.
+class _DouyinBar extends StatelessWidget {
+  const _DouyinBar({
+    required this.controller,
+    required this.onSend,
+    required this.showChat,
+    required this.bagCount,
+    required this.onBag,
+    required this.liked,
+    required this.onHeart,
+    required this.onShare,
+  });
+
+  final TextEditingController controller;
+  final Future<void> Function(String) onSend;
+  final bool showChat;
+  final int bagCount;
+  final VoidCallback onBag;
+  final bool liked;
+  final VoidCallback? onHeart;
+  final VoidCallback onShare;
+
+  @override
+  Widget build(BuildContext context) => Padding(
+    padding: const EdgeInsets.fromLTRB(10, 4, 6, 6),
+    child: Row(
+      children: [
+        Material(
+          color: Colors.transparent,
+          child: InkWell(
+            key: const ValueKey('live-queue'),
+            borderRadius: BorderRadius.circular(14),
+            onTap: onBag,
+            child: Ink(
+              width: 46,
+              height: 46,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(14),
+                gradient: const LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [Color(0xFFFFA24C), kBidOrange],
+                ),
+                boxShadow: const [
+                  BoxShadow(blurRadius: 10, color: Colors.black38),
+                ],
+              ),
+              child: Center(
+                child: Badge(
+                  isLabelVisible: bagCount > 0,
+                  label: Text('$bagCount'),
+                  backgroundColor: kLiveRed,
+                  child: const Icon(
+                    Icons.shopping_bag,
+                    color: Colors.white,
+                    size: 24,
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+        const SizedBox(width: 8),
+        Expanded(
+          child: showChat
+              ? TextField(
+                  key: const ValueKey('live-chat'),
+                  controller: controller,
+                  maxLength: LiveEvent.maxText,
+                  style: const TextStyle(color: Colors.white),
+                  textInputAction: TextInputAction.send,
+                  onSubmitted: onSend,
+                  decoration: InputDecoration(
+                    isDense: true,
+                    counterText: '',
+                    hintText: t('Reci nešto…'),
+                    hintStyle: const TextStyle(color: Colors.white70),
+                    filled: true,
+                    fillColor: Colors.white.withValues(alpha: 0.14),
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 12,
+                    ),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(99),
+                      borderSide: BorderSide.none,
+                    ),
+                    suffixIcon: IconButton(
+                      key: const ValueKey('live-send'),
+                      tooltip: t('Pošalji'),
+                      onPressed: () => onSend(controller.text),
+                      icon: const Icon(
+                        Icons.send,
+                        color: Colors.white,
+                        size: 20,
+                      ),
+                    ),
+                  ),
+                )
+              : const SizedBox.shrink(),
+        ),
+        if (onHeart != null)
+          IconButton(
+            key: const ValueKey('live-react-0'),
+            tooltip: t('Srce'),
+            onPressed: onHeart,
+            icon: AnimatedSwitcher(
+              duration: const Duration(milliseconds: 250),
+              transitionBuilder: (c, a) => ScaleTransition(
+                scale: Tween(
+                  begin: 0.4,
+                  end: 1.0,
+                ).animate(CurvedAnimation(parent: a, curve: Curves.elasticOut)),
+                child: c,
+              ),
+              child: liked
+                  ? const Icon(
+                      Icons.favorite,
+                      key: ValueKey('liked'),
+                      color: Color(0xFFFF4D6D),
+                      size: 28,
+                    )
+                  : const Icon(
+                      Icons.favorite_border,
+                      key: ValueKey('not-liked'),
+                      color: Colors.white,
+                      size: 28,
+                    ),
+            ),
+          ),
+        IconButton(
+          key: const ValueKey('live-share'),
+          tooltip: t('Podijeli'),
+          onPressed: onShare,
+          icon: const Icon(Icons.ios_share, color: Colors.white, size: 26),
+        ),
+      ],
+    ),
+  );
+}
+
+/// Trgovina livea (Douyin): numerirani predmeti s velikom slikom, cijenom
+/// i gumbom — kartica "Na aukciji" (predlicitacija, domaćin pokreće) i
+/// "Kupi odmah" (kupnja bilo kada tijekom livea).
+class _LiveShopSheet extends ConsumerWidget {
+  const _LiveShopSheet({
+    required this.showId,
+    required this.isHost,
+    required this.onStart,
+    required this.onPreBid,
+  });
+
+  final String showId;
+  final bool isHost;
+  final void Function(int index) onStart;
+  final Future<void> Function(LotState lot) onPreBid;
+
+  static const _white = Color(0xFFF5EDE6);
+  static const _muted = Color(0xFFB3A69B);
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final s = ref.watch(appProvider);
+    final show = s.liveShowById(showId);
+    if (show == null) return const SizedBox.shrink();
+    final st = s.liveStateOf(show, DateTime.now());
+    final me = s.currentUserId;
+    final host = s.userById(show.hostId);
+    final shop = [
+      for (final d in s.listingsOf(show.hostId))
+        if (!d.isDigital) d,
+    ];
+    final h = MediaQuery.sizeOf(context).height;
+
+    Widget thumb(Device? d, int n, {bool running = false}) => SizedBox(
+      width: 72,
+      height: 72,
+      child: Stack(
+        children: [
+          Positioned.fill(
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(12),
+              child: d != null
+                  ? ItemThumb(device: d, size: 72)
+                  : const ColoredBox(color: Colors.white12),
+            ),
+          ),
+          Positioned(
+            left: 0,
+            top: 0,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+              decoration: BoxDecoration(
+                color: running ? kLiveRed : Colors.black.withValues(alpha: 0.7),
+                borderRadius: const BorderRadius.only(
+                  topLeft: Radius.circular(12),
+                  bottomRight: Radius.circular(10),
+                ),
+              ),
+              child: Text(
+                running ? t('UŽIVO') : '$n',
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w900,
+                  fontSize: 11,
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+
+    Widget row({
+      required Key key,
+      required Widget image,
+      required String title,
+      required String price,
+      required Color priceColor,
+      String? note,
+      Widget? action,
+    }) => Container(
+      key: key,
+      margin: const EdgeInsets.only(bottom: 10),
+      padding: const EdgeInsets.all(8),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.06),
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Row(
+        children: [
+          image,
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: _white,
+                    fontWeight: FontWeight.w800,
+                    height: 1.2,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  price,
+                  style: TextStyle(
+                    color: priceColor,
+                    fontWeight: FontWeight.w900,
+                    fontSize: 18,
+                  ),
+                ),
+                if (note != null)
+                  Text(
+                    note,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(color: _muted, fontSize: 12),
+                  ),
+              ],
+            ),
+          ),
+          if (action != null) ...[const SizedBox(width: 8), action],
+        ],
+      ),
+    );
+
+    final lots = st.lots;
+    final auctionTab = ListView(
+      padding: const EdgeInsets.fromLTRB(14, 10, 14, 24),
+      children: [
+        if (!isHost && st.queue.any((l) => l.mode == LotMode.auction))
+          Padding(
+            padding: const EdgeInsets.only(bottom: 10),
+            child: Text(
+              t(
+                'Predlicitiraj predmet koji tek dolazi — tvoja maksimalna ponuda vrijedi kad krene.',
+              ),
+              style: const TextStyle(color: _muted, fontSize: 13),
+            ),
+          ),
+        if (lots.isEmpty)
+          Text(
+            t('Još nema predmeta na aukciji.'),
+            style: const TextStyle(color: _muted),
+          ),
+        for (final l in lots)
+          row(
+            key: ValueKey('live-lot-row-${l.index}'),
+            image: thumb(
+              s.deviceById(l.lot.deviceId),
+              l.index + 1,
+              running: l.status == LotStatus.running,
+            ),
+            title: l.mode == LotMode.auction
+                ? l.lot.deviceName
+                : '${l.mode.emoji} ${l.lot.deviceName}',
+            price: switch (l.status) {
+              LotStatus.upcoming when l.leader == null => t('Od {0}', [
+                formatCredits(l.lot.startPrice),
+              ]),
+              _ => formatCredits(l.price),
+            },
+            priceColor: l.status == LotStatus.sold
+                ? _muted
+                : const Color(0xFFFFA24C),
+            note: switch (l.status) {
+              LotStatus.running => t('🔴 Licitira se sada'),
+              LotStatus.upcoming when l.leader != null =>
+                l.leader!.userId == me
+                    ? t('🥇 Tvoja predponuda vodi')
+                    : t('Predponuda: {0}', [l.leader!.userLabel]),
+              LotStatus.upcoming => null,
+              LotStatus.sold => t('✅ Prodano · {0}', [l.leader!.userLabel]),
+              LotStatus.unsold => t('Nije prodano'),
+              LotStatus.skipped => t('Preskočeno'),
+            },
+            action: isHost && st.canStart && l.status == LotStatus.upcoming
+                ? FilledButton(
+                    key: ValueKey('live-start-${l.index}'),
+                    style: FilledButton.styleFrom(
+                      backgroundColor: kLiveRed,
+                      foregroundColor: Colors.white,
+                      visualDensity: VisualDensity.compact,
+                    ),
+                    onPressed: () => onStart(l.index),
+                    child: Text(t('Pokreni')),
+                  )
+                : !isHost &&
+                      !st.isOver &&
+                      l.status == LotStatus.upcoming &&
+                      l.mode == LotMode.auction
+                ? FilledButton(
+                    key: ValueKey('live-prebid-${l.index}'),
+                    style: FilledButton.styleFrom(
+                      backgroundColor: kBidOrange,
+                      foregroundColor: Colors.white,
+                      visualDensity: VisualDensity.compact,
+                    ),
+                    onPressed: () => onPreBid(l),
+                    child: Text(t('Predlicitiraj')),
+                  )
+                : null,
+          ),
+      ],
+    );
+    final shopTab = ListView(
+      key: const ValueKey('live-shop'),
+      padding: const EdgeInsets.fromLTRB(14, 10, 14, 24),
+      children: [
+        Padding(
+          padding: const EdgeInsets.only(bottom: 10),
+          child: Text(
+            isHost
+                ? t(
+                    'Tvoji predmeti za Kupi odmah — gledatelji ih kupuju tijekom livea.',
+                  )
+                : t('Kupi bez licitiranja, dok live traje.'),
+            style: const TextStyle(color: _muted, fontSize: 13),
+          ),
+        ),
+        if (shop.isEmpty)
+          Text(
+            t('Prodavač nema predmeta za Kupi odmah.'),
+            style: const TextStyle(color: _muted),
+          ),
+        for (final (i, d) in shop.indexed)
+          row(
+            key: ValueKey('live-shop-row-${d.id}'),
+            image: thumb(d, i + 1),
+            title: d.name,
+            price: formatCredits(s.priceForMe(d)),
+            priceColor: const Color(0xFF4ADE80),
+            note: d.condition.label,
+            action: isHost
+                ? null
+                : FilledButton(
+                    key: ValueKey('live-buy-${d.id}'),
+                    style: FilledButton.styleFrom(
+                      backgroundColor: LoopColors.buyNow,
+                      foregroundColor: Colors.white,
+                      visualDensity: VisualDensity.compact,
+                    ),
+                    onPressed: () => confirmAndBuy(context, ref, d),
+                    child: Text(t('Kupi')),
+                  ),
+          ),
+      ],
+    );
+
+    return DefaultTabController(
+      length: 2,
+      child: SizedBox(
+        height: h * 0.72,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 4),
+              child: Row(
+                children: [
+                  UserAvatar(user: host, size: 34),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          t('Predmeti u liveu'),
+                          style: const TextStyle(
+                            color: _white,
+                            fontSize: 18,
+                            fontWeight: FontWeight.w900,
+                          ),
+                        ),
+                        Text(
+                          host?.handle ?? show.hostLabel,
+                          style: const TextStyle(color: _muted, fontSize: 12),
+                        ),
+                      ],
+                    ),
+                  ),
+                  if (!isHost) const WalletChip(dark: true),
+                ],
+              ),
+            ),
+            TabBar(
+              labelColor: _white,
+              unselectedLabelColor: _muted,
+              indicatorColor: kBidOrange,
+              dividerColor: Colors.white12,
+              labelStyle: const TextStyle(
+                fontFamily: kFontFamily,
+                fontWeight: FontWeight.w900,
+              ),
+              tabs: [
+                Tab(
+                  key: const ValueKey('live-tab-auction'),
+                  text: t('🔨 Na aukciji ({0})', ['${lots.length}']),
+                ),
+                Tab(
+                  key: const ValueKey('live-tab-shop'),
+                  text: t('🛍️ Kupi odmah ({0})', ['${shop.length}']),
+                ),
+              ],
+            ),
+            Expanded(child: TabBarView(children: [auctionTab, shopTab])),
+          ],
+        ),
+      ),
     );
   }
 }

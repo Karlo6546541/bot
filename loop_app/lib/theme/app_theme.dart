@@ -306,3 +306,7 @@ ThemeData buildLoopTheme({Color? accent}) {
     ),
   );
 }
+
+/// Listovi aplikacije (plaćanje, novčanik, dostava) uvijek u temi
+/// aplikacije — i kad se otvore iz tamnog livea.
+Widget appThemed(Widget child) => Theme(data: buildLoopTheme(), child: child);

@@ -100,9 +100,12 @@ Future<bool> ensureCheckout(
     showDragHandle: true,
     backgroundColor: LoopColors.background,
     constraints: const BoxConstraints(maxWidth: 560),
-    builder: (_) => _CheckoutSetupSheet(
-      address: user.address ?? '',
-      card: user.paymentCard,
+    builder: (_) => appThemed(
+      _CheckoutSetupSheet(
+        address: user.address ?? '',
+        card: user.paymentCard,
+        wallet: force,
+      ),
     ),
   );
   return ok == true;
@@ -183,7 +186,14 @@ class WalletChip extends ConsumerWidget {
 }
 
 class _CheckoutSetupSheet extends ConsumerStatefulWidget {
-  const _CheckoutSetupSheet({required this.address, this.card});
+  const _CheckoutSetupSheet({
+    required this.address,
+    this.card,
+    this.wallet = false,
+  });
+
+  /// Otvoren kao novčanik (promjena kartice i adrese), ne prije ponude.
+  final bool wallet;
   final String address;
 
   /// Spremljeni način plaćanja (oznaka) ili null.
@@ -232,15 +242,31 @@ class _CheckoutSetupSheetState extends ConsumerState<_CheckoutSetupSheet> {
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Text(
-            t('Spremni za licitiranje?'),
-            style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w900),
+          Row(
+            children: [
+              if (widget.wallet) ...[
+                const Icon(Icons.account_balance_wallet_outlined),
+                const SizedBox(width: 8),
+              ],
+              Text(
+                widget.wallet ? t('Novčanik') : t('Spremni za licitiranje?'),
+                key: const ValueKey('wallet-title'),
+                style: const TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+            ],
           ),
           const SizedBox(height: 6),
           Text(
-            t(
-              'Kad pobijediš, naplata ide automatski s kartice, a paket kreće na tvoju adresu. Sve što osvojiš u istom liveu stiže u jednom paketu.',
-            ),
+            widget.wallet
+                ? t(
+                    'Kartica za automatsku naplatu i adresa za dostavu — koriste se za svaku kupnju i pobjedu.',
+                  )
+                : t(
+                    'Kad pobijediš, naplata ide automatski s kartice, a paket kreće na tvoju adresu. Sve što osvojiš u istom liveu stiže u jednom paketu.',
+                  ),
             style: TextStyle(color: LoopColors.textSecondary),
           ),
           const SizedBox(height: 14),
@@ -341,7 +367,7 @@ Future<bool> confirmAndBuy(
     showDragHandle: true,
     backgroundColor: LoopColors.background,
     constraints: BoxConstraints(maxWidth: 560),
-    builder: (_) => _CheckoutSheet(device: device, price: price),
+    builder: (_) => appThemed(_CheckoutSheet(device: device, price: price)),
   );
   if (picked == null || !context.mounted) return false;
   // Gumb kupnje nestaje čim predmet ode (npr. objava u swipe feedu), pa
