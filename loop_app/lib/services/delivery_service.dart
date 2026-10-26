@@ -7,6 +7,7 @@ import '../models/device.dart';
 import '../models/loop_transaction.dart';
 import '../models/app_notification.dart';
 import 'boxnow/boxnow.dart';
+import 'boxnow/boxnow_demo.dart';
 import 'inbox.dart';
 import 'storage_service.dart';
 import 'trade_service.dart';
@@ -249,6 +250,29 @@ class DeliveryService {
   Future<int> autoConfirmPickups(String userId, {DateTime? now}) async {
     final at = now ?? DateTime.now();
     var n = 0;
+    // Paket stigao u paketomat → kupac dobiva PIN za preuzimanje (jednom).
+    for (final d in _storage.deliveries) {
+      if (!d.autoConfirms ||
+          d.buyerId != userId ||
+          d.confirmedAt != null ||
+          d.status(at) != DeliveryStatus.inLocker) {
+        continue;
+      }
+      final sent = _storage.notifications.any(
+        (x) =>
+            x.userId == userId &&
+            x.kind == NotificationKind.parcelArrived &&
+            x.targetId == d.id,
+      );
+      if (sent) continue;
+      await Inbox(_storage).send(
+        userId,
+        NotificationKind.parcelArrived,
+        args: [d.deviceName, d.destination ?? '', BoxNowDemo.pickupPin(d)],
+        targetId: d.id,
+        now: at,
+      );
+    }
     for (final d in _storage.deliveries) {
       if (!d.autoConfirms ||
           d.confirmedAt != null ||

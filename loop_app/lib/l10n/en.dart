@@ -2352,4 +2352,16 @@ const kEn = <String, String>{
   'PIN za predaju na paketomatu': 'Drop-off PIN at the locker',
   'PIN za preuzimanje': 'Pickup PIN',
   '{0} · kodovi i PIN-ovi za BOX NOW': '{0} · codes and PINs for BOX NOW',
+  'Paket te čeka u paketomatu': 'Your parcel is waiting in the locker',
+  'PIN kopiran': 'PIN copied',
+  'PIN': 'PIN',
+  'PIN-ovi za preuzimanje': 'Pickup PINs',
+  'Nema paketa u paketomatu': 'No parcels in a locker',
+  'Kad paket stigne u tvoj BOX NOW paketomat, ovdje dobiješ PIN za otvaranje pretinca.':
+      'When a parcel reaches your BOX NOW locker, you get the PIN to open the compartment here.',
+  'Na paketomatu odaberi "Preuzmi paket" i upiši PIN — pretinac se otvori. Preuzimanje se u aplikaciji potvrdi samo.':
+      'At the locker choose "Collect parcel" and enter the PIN — the compartment opens. The pickup is confirmed in the app automatically.',
+  '"{0}" te čeka u paketomatu {1}. PIN za preuzimanje: {2}':
+      '"{0}" is waiting for you at locker {1}. Pickup PIN: {2}',
+  '{0} u paketomatu — dodirni za PIN': '{0} in a locker — tap for the PIN',
 };

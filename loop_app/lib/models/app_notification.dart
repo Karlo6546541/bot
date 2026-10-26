@@ -49,7 +49,11 @@ enum NotificationKind {
     '📦',
     '{0} je odabrao dostavu za "{1}" — kod za paketomat je spreman.',
   ),
-  parcelPickedUp('✅', '{0} je preuzeo "{1}" iz paketomata.');
+  parcelPickedUp('✅', '{0} je preuzeo "{1}" iz paketomata.'),
+  parcelArrived(
+    '📬',
+    '"{0}" te čeka u paketomatu {1}. PIN za preuzimanje: {2}',
+  );
 
   const NotificationKind(this.emoji, this._template);
   final String emoji;
@@ -74,6 +78,7 @@ enum NotificationKind {
     itemSold ||
     shipReady ||
     parcelPickedUp ||
+    parcelArrived ||
     priceDrop ||
     soldOut ||
     followedNewItem ||

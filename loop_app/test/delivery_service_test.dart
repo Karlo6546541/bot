@@ -92,6 +92,16 @@ void main() {
       expect(d.steps.last, DeliveryStatus.pickedUp);
       // Još u paketomatu — ništa se ne potvrđuje.
       expect(await deliveries.autoConfirmPickups(demo, now: start), 0);
+      // Paket u paketomatu → kupac dobiva PIN za preuzimanje (jednom).
+      final arrived = start.add(const Duration(seconds: 150));
+      expect(d.status(arrived), DeliveryStatus.inLocker);
+      expect(await deliveries.autoConfirmPickups(demo, now: arrived), 0);
+      await deliveries.autoConfirmPickups(demo, now: arrived);
+      final pinNotes = storage.notifications.where(
+        (n) => n.userId == demo && n.kind == NotificationKind.parcelArrived,
+      );
+      expect(pinNotes, hasLength(1));
+      expect(pinNotes.single.args.last, BoxNowDemo.pickupPin(d));
       // Kupac preuzeo → automatski potvrđeno (bez gumba).
       final later = start.add(const Duration(minutes: 10));
       expect(await deliveries.autoConfirmPickups(demo, now: later), 1);

@@ -803,6 +803,7 @@ class _MyAuctionsViewState extends ConsumerState<MyAuctionsView> {
     ];
     final waiting =
         toShip.length + bought.where((d) => d.awaitingChoice).length;
+    final pins = PickupPinsScreen.waiting(s.myDeliveries, now);
     // Otpremnice: svi paketi koje šaljem (kupac je odabrao dostavu).
     final notes =
         [
@@ -831,6 +832,31 @@ class _MyAuctionsViewState extends ConsumerState<MyAuctionsView> {
             ],
           ),
         ),
+        // PIN-ovi za preuzimanje: paketi koji me čekaju u paketomatu.
+        if (pins.isNotEmpty)
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+            child: Material(
+              color: const Color(0xFF6BBE45).withValues(alpha: 0.14),
+              borderRadius: BorderRadius.circular(kRadius),
+              child: ListTile(
+                key: const ValueKey('my-pins'),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(kRadius),
+                ),
+                leading: const Text('📬', style: TextStyle(fontSize: 24)),
+                title: Text(
+                  t('PIN-ovi za preuzimanje'),
+                  style: const TextStyle(fontWeight: FontWeight.w900),
+                ),
+                subtitle: Text(
+                  t('{0} u paketomatu — dodirni za PIN', ['${pins.length}']),
+                ),
+                trailing: const Icon(Icons.chevron_right),
+                onTap: () => PickupPinsScreen.open(context),
+              ),
+            ),
+          ),
         // Otpremnice: zasebna kategorija (vlastiti ekran, BOX NOW).
         if (notes.isNotEmpty || _view == AuctionView.deliveries)
           Padding(

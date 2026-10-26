@@ -298,11 +298,21 @@ class DeliveryCard extends ConsumerWidget {
                       ),
                     if (d.confirmedAt != null)
                       Text(
-                        t('Primitak potvrđen ✅'),
+                        d.autoConfirms
+                            ? t('Preuzeto iz paketomata ✅')
+                            : t('Primitak potvrđen ✅'),
                         style: TextStyle(color: LoopColors.success),
                       ),
                   ],
                 ),
+                // Paket je u paketomatu: PIN za preuzimanje odmah na kartici.
+                if (d.autoConfirms &&
+                    d.confirmedAt == null &&
+                    d.status(now) == DeliveryStatus.inLocker &&
+                    d.buyerId == ref.read(appProvider).currentUserId) ...[
+                  const SizedBox(height: 12),
+                  PickupPinBox(delivery: d),
+                ],
                 if (delivered && d.confirmedAt == null && !d.autoConfirms) ...[
                   const SizedBox(height: 12),
                   OutlinedButton.icon(
@@ -1191,6 +1201,143 @@ class DeliveryNotesScreen extends ConsumerWidget {
                       onTap: () => DeliveryNoteScreen.open(context, d.id),
                     ),
                   ),
+              ],
+            ),
+    );
+  }
+}
+
+/// PIN za preuzimanje iz BOX NOW paketomata (kupac) — veliko i jasno.
+class PickupPinBox extends StatelessWidget {
+  const PickupPinBox({super.key, required this.delivery});
+  final Delivery delivery;
+
+  @override
+  Widget build(BuildContext context) {
+    final d = delivery;
+    final pin = BoxNowDemo.pickupPin(d);
+    return Container(
+      key: ValueKey('pickup-pin-${d.id}'),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: BoxNowCard._green.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: BoxNowCard._green, width: 1.5),
+      ),
+      child: Row(
+        children: [
+          const Text('📬', style: TextStyle(fontSize: 26)),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  t('Paket te čeka u paketomatu'),
+                  style: const TextStyle(fontWeight: FontWeight.w900),
+                ),
+                if (d.destination != null)
+                  Text(
+                    d.destination!,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      color: LoopColors.textSecondary,
+                      fontSize: 12,
+                    ),
+                  ),
+              ],
+            ),
+          ),
+          InkWell(
+            onTap: () {
+              Clipboard.setData(ClipboardData(text: pin));
+              showLoopSnackBar(t('PIN kopiran'));
+            },
+            child: Column(
+              children: [
+                Text(
+                  t('PIN'),
+                  style: TextStyle(
+                    color: LoopColors.textSecondary,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+                Text(
+                  pin,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w900,
+                    fontSize: 24,
+                    letterSpacing: 3,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// PIN-ovi za preuzimanje (zasebna kategorija u Moje): svi paketi koji
+/// kupca čekaju u BOX NOW paketomatima.
+class PickupPinsScreen extends ConsumerWidget {
+  const PickupPinsScreen({super.key});
+
+  static Future<void> open(BuildContext context) => Navigator.of(
+    context,
+  ).push(MaterialPageRoute<void>(builder: (_) => const PickupPinsScreen()));
+
+  /// Paketi koji čekaju u paketomatu (kupac).
+  static List<Delivery> waiting(List<Delivery> mine, DateTime now) => [
+    for (final d in mine)
+      if (d.autoConfirms &&
+          d.confirmedAt == null &&
+          d.status(now) == DeliveryStatus.inLocker)
+        d,
+  ];
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final s = ref.watch(appProvider);
+    final list = waiting(s.myDeliveries, DateTime.now());
+    return Scaffold(
+      appBar: AppBar(title: Text(t('PIN-ovi za preuzimanje'))),
+      body: list.isEmpty
+          ? EmptyState(
+              icon: Icons.markunread_mailbox_outlined,
+              title: t('Nema paketa u paketomatu'),
+              message: t(
+                'Kad paket stigne u tvoj BOX NOW paketomat, ovdje dobiješ PIN za otvaranje pretinca.',
+              ),
+            )
+          : ListView(
+              key: const ValueKey('pickup-pins-list'),
+              padding: const EdgeInsets.all(16),
+              children: [
+                for (final d in list)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 12),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          d.deviceName,
+                          style: const TextStyle(fontWeight: FontWeight.w800),
+                        ),
+                        const SizedBox(height: 6),
+                        PickupPinBox(delivery: d),
+                      ],
+                    ),
+                  ),
+                Text(
+                  t(
+                    'Na paketomatu odaberi "Preuzmi paket" i upiši PIN — pretinac se otvori. Preuzimanje se u aplikaciji potvrdi samo.',
+                  ),
+                  style: TextStyle(color: LoopColors.textSecondary),
+                ),
               ],
             ),
     );
