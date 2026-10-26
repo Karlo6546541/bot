@@ -396,61 +396,69 @@ class _LiveHomeScreenState extends ConsumerState<LiveHomeScreen> {
               borderRadius: BorderRadius.circular(24),
               boxShadow: LoopColors.softShadow,
             ),
-            child: Row(
-              key: const ValueKey('home-cats'),
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                _Pill(
-                  id: 'for-you',
-                  icon: Icons.auto_awesome,
-                  label: t('Za tebe'),
-                  color: LoopColors.textPrimary,
-                  selected: _filter is _ForYou,
-                  onTap: () => setState(() => _filter = const _ForYou()),
-                ),
-                _Pill(
-                  id: 'live',
-                  icon: Icons.sensors,
-                  label: t('Uživo'),
-                  color: LoopColors.live,
-                  badge: live.length,
-                  selected: _filter is _LiveOnly,
-                  onTap: () => setState(() => _filter = const _LiveOnly()),
-                ),
-                _Pill(
-                  id: 'soon',
-                  icon: Icons.event,
-                  label: t('Uskoro'),
-                  color: LoopColors.info,
-                  selected: _filter is _Soon,
-                  onTap: () => setState(() => _filter = const _Soon()),
-                ),
-                _Pill(
-                  id: 'timed',
-                  icon: Icons.gavel,
-                  label: t('Aukcije'),
-                  color: LoopColors.accent,
-                  selected: _filter is _Timed,
-                  onTap: () => setState(() => _filter = const _Timed()),
-                ),
-                _Pill(
-                  id: 'following',
-                  icon: Icons.people_alt,
-                  label: t('Pratim'),
-                  color: const Color(0xFF7C4DFF),
-                  badge: theirs.length,
-                  selected: _filter is _Following,
-                  onTap: () => setState(() => _filter = const _Following()),
-                ),
-                _Pill(
-                  id: 'buy',
-                  icon: Icons.local_offer,
-                  label: t('Kupi odmah'),
-                  color: LoopColors.buyNow,
-                  selected: _filter is _BuyNow,
-                  onTap: () => setState(() => _filter = const _BuyNow()),
-                ),
-              ],
+            child: LayoutBuilder(
+              builder: (context, box) => Row(
+                key: const ValueKey('home-cats'),
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _Pill(
+                    fontSize: _pillFont(context, box.maxWidth),
+                    id: 'for-you',
+                    icon: Icons.auto_awesome,
+                    label: t('Za tebe'),
+                    color: LoopColors.textPrimary,
+                    selected: _filter is _ForYou,
+                    onTap: () => setState(() => _filter = const _ForYou()),
+                  ),
+                  _Pill(
+                    fontSize: _pillFont(context, box.maxWidth),
+                    id: 'live',
+                    icon: Icons.sensors,
+                    label: t('Uživo'),
+                    color: LoopColors.live,
+                    badge: live.length,
+                    selected: _filter is _LiveOnly,
+                    onTap: () => setState(() => _filter = const _LiveOnly()),
+                  ),
+                  _Pill(
+                    fontSize: _pillFont(context, box.maxWidth),
+                    id: 'soon',
+                    icon: Icons.event,
+                    label: t('Uskoro'),
+                    color: LoopColors.info,
+                    selected: _filter is _Soon,
+                    onTap: () => setState(() => _filter = const _Soon()),
+                  ),
+                  _Pill(
+                    fontSize: _pillFont(context, box.maxWidth),
+                    id: 'timed',
+                    icon: Icons.gavel,
+                    label: t('Aukcije'),
+                    color: LoopColors.accent,
+                    selected: _filter is _Timed,
+                    onTap: () => setState(() => _filter = const _Timed()),
+                  ),
+                  _Pill(
+                    fontSize: _pillFont(context, box.maxWidth),
+                    id: 'following',
+                    icon: Icons.people_alt,
+                    label: t('Pratim'),
+                    color: const Color(0xFF7C4DFF),
+                    badge: theirs.length,
+                    selected: _filter is _Following,
+                    onTap: () => setState(() => _filter = const _Following()),
+                  ),
+                  _Pill(
+                    fontSize: _pillFont(context, box.maxWidth),
+                    id: 'buy',
+                    icon: Icons.local_offer,
+                    label: t('Kupi odmah'),
+                    color: LoopColors.buyNow,
+                    selected: _filter is _BuyNow,
+                    onTap: () => setState(() => _filter = const _BuyNow()),
+                  ),
+                ],
+              ),
             ),
           ),
         ),
@@ -600,8 +608,38 @@ class _CheckoutBanner extends ConsumerWidget {
 }
 
 /// Kategorija kao "pilula" (kao na Whatnotu); odabrana je ispunjena.
+/// Natpisi brzog izbornika — ista veličina za sve, koliko stane najduži.
+const _pillLabels = [
+  'Za tebe',
+  'Uživo',
+  'Uskoro',
+  'Aukcije',
+  'Pratim',
+  'Kupi odmah',
+];
+const _pillStyle = TextStyle(fontWeight: FontWeight.w800, fontSize: 12);
+
+double _pillFont(BuildContext context, double width) {
+  final slot = width / _pillLabels.length - 4;
+  var widest = 0.0;
+  for (final l in _pillLabels) {
+    final tp = TextPainter(
+      text: TextSpan(
+        text: t(l),
+        style: DefaultTextStyle.of(context).style.merge(_pillStyle),
+      ),
+      textDirection: TextDirection.ltr,
+      textScaler: MediaQuery.textScalerOf(context),
+      maxLines: 1,
+    )..layout();
+    if (tp.width > widest) widest = tp.width;
+  }
+  return widest <= slot ? 12 : (12 * slot / widest).clamp(9.0, 12.0);
+}
+
 class _Pill extends StatelessWidget {
   const _Pill({
+    required this.fontSize,
     required this.id,
     required this.icon,
     required this.label,
@@ -614,6 +652,9 @@ class _Pill extends StatelessWidget {
   final String id;
   final IconData icon;
   final String label;
+
+  /// Zajednička veličina natpisa (vidi [_pillFont]).
+  final double fontSize;
 
   /// Boja vrste (crvena = uživo, zelena = Kupi odmah…).
   final Color color;
@@ -686,18 +727,16 @@ class _Pill extends StatelessWidget {
               const SizedBox(height: 6),
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 2),
-                child: FittedBox(
-                  fit: BoxFit.scaleDown,
-                  child: Text(
-                    label,
-                    maxLines: 1,
-                    style: TextStyle(
-                      color: selected
-                          ? LoopColors.textPrimary
-                          : LoopColors.textSecondary,
-                      fontWeight: selected ? FontWeight.w900 : FontWeight.w700,
-                      fontSize: 12,
-                    ),
+                child: Text(
+                  label,
+                  maxLines: 1,
+                  softWrap: false,
+                  overflow: TextOverflow.visible,
+                  style: _pillStyle.copyWith(
+                    fontSize: fontSize,
+                    color: selected
+                        ? LoopColors.textPrimary
+                        : LoopColors.textSecondary,
                   ),
                 ),
               ),
