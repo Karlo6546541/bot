@@ -179,7 +179,7 @@ void main() {
     await tester.tap(find.widgetWithText(FilledButton, 'Prijava'));
     await tester.pumpAndSettle();
 
-    expect(find.textContaining('LOOP Admin'), findsOneWidget);
+    expect(find.textContaining('Subhasto Admin'), findsOneWidget);
     expect(find.text('Ukupni volume'), findsOneWidget);
 
     await tester.tap(find.byIcon(Icons.group_outlined));

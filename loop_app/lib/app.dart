@@ -81,7 +81,7 @@ class LoopApp extends ConsumerWidget {
       // Ključ po temi i jeziku: promjena ponovno gradi cijelo sučelje, pa
       // svaki widget preuzme nove boje i tekstove.
       key: ValueKey((brightness, lang)),
-      title: 'LOOP',
+      title: 'Subhasto',
       // Ugrađeni tekstovi (npr. "Natrag", kalendar) na jeziku aplikacije.
       locale: Locale(lang == AppLang.en ? 'en' : 'hr'),
       supportedLocales: const [Locale('hr'), Locale('en')],

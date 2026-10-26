@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import 'brand.dart';
+
 import '../l10n/tr.dart';
 
 import '../theme/app_theme.dart';
@@ -115,7 +117,7 @@ class AdaptiveShell extends StatelessWidget {
   }
 }
 
-/// LOOP logotip.
+/// Subhasto logotip.
 class LoopLogo extends StatelessWidget {
   const LoopLogo({super.key, this.size = 28, this.color, this.onTap});
   final double size;
@@ -130,14 +132,18 @@ class LoopLogo extends StatelessWidget {
     final logo = Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Icon(Icons.all_inclusive, color: c, size: size * 1.1),
-        SizedBox(width: size * 0.3),
+        SpearMark(
+          size: size * 1.25,
+          head: c,
+          shaft: color ?? LoopColors.textPrimary,
+        ),
+        SizedBox(width: size * 0.25),
         Text(
-          'LOOP',
+          kAppName.toUpperCase(),
           style: TextStyle(
-            fontSize: size,
+            fontSize: size * 0.9,
             fontWeight: FontWeight.w900,
-            letterSpacing: size * 0.12,
+            letterSpacing: size * 0.08,
             color: color ?? LoopColors.textPrimary,
           ),
         ),

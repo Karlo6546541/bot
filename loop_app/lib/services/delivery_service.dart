@@ -50,10 +50,10 @@ class DeliveryService {
     return null;
   }
 
-  /// "LOOP-7KQ2M9XA"
+  /// "SUBH-7KQ2M9XA"
   String _trackingNumber() {
     const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-    return 'LOOP-${List.generate(8, (_) => chars[_random.nextInt(chars.length)]).join()}';
+    return 'SUBH-${List.generate(8, (_) => chars[_random.nextInt(chars.length)]).join()}';
   }
 
   /// Pošiljka za kupnju u Marketu. Poziva se NAKON uspješne kupnje
@@ -216,7 +216,7 @@ class DeliveryService {
           amount: cost,
           buyerId: userId,
           buyerLabel: user.handle,
-          sellerLabel: 'LOOP dostava',
+          sellerLabel: 'Subhasto dostava',
           createdAt: at,
         ),
       );

@@ -3,15 +3,17 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 
 import '../theme/app_theme.dart';
+import 'brand.dart';
 
-/// Uvodni ekran (~1,4 s): znak ∞ se iscrta, "LOOP" uskoči slovo po
-/// slovo, pa kratki sjaj i traka učitavanja. [onDone] se zove kad
-/// animacija završi (aplikacija se tad otvori ako su podaci spremni).
+/// Uvodni ekran (~1,7 s): koplje uleti dijagonalno i zabije se u sredinu
+/// (udarni val i kratki potres), slova SUBHASTO padnu jedno po jedno,
+/// odsjaj prijeđe preko vrha koplja i traka učitavanja se napuni.
+/// [onDone] se zove kad animacija završi.
 class LoopSplash extends StatefulWidget {
   const LoopSplash({super.key, this.onDone});
   final VoidCallback? onDone;
 
-  static const duration = Duration(milliseconds: 1500);
+  static const duration = Duration(milliseconds: 1700);
 
   @override
   State<LoopSplash> createState() => _LoopSplashState();
@@ -34,102 +36,151 @@ class _LoopSplashState extends State<LoopSplash>
   double _seg(double from, double to, [Curve curve = Curves.easeOutCubic]) =>
       curve.transform(((_c.value - from) / (to - from)).clamp(0.0, 1.0));
 
+  static const _accent = Color(0xFFFF9248);
+  static const _cream = Color(0xFFF5EDE6);
+
+  /// Trenutak udarca (udio animacije).
+  static const _hit = 0.3;
+
   @override
   Widget build(BuildContext context) {
-    const accent = Color(0xFFFF8A5C);
     return Material(
       color: const Color(0xFF17120F),
       child: AnimatedBuilder(
         animation: _c,
         builder: (context, _) {
-          final draw = _seg(0, 0.5, Curves.easeInOutCubic);
-          final pop = _seg(0.15, 0.45, Curves.elasticOut);
-          final shine = _seg(0.55, 0.85);
-          final bar = _seg(0.1, 1, Curves.easeInOut);
+          final v = _c.value;
+          // Let: iz donjeg lijevog kuta do sredine, ubrzano (kao bačeno).
+          final fly = _seg(0, _hit, Curves.easeInQuad);
+          final flyOffset = Offset(-260, 260) * (1 - fly);
+          // Udarac: val i potres odmah nakon _hit.
+          final wave = _seg(_hit, _hit + 0.35);
+          final shakeT = _seg(_hit, _hit + 0.12, Curves.linear);
+          final shake = v > _hit && shakeT < 1
+              ? math.sin(shakeT * math.pi * 6) * 6 * (1 - shakeT)
+              : 0.0;
+          final glint = _seg(0.62, 0.9, Curves.easeInOut);
+          final bar = _seg(0.05, 1, Curves.easeInOut);
           return Stack(
             fit: StackFit.expand,
             children: [
-              // Topli sjaj iza znaka koji "diše".
+              // Topli sjaj iza znaka nakon udarca.
               Center(
                 child: Container(
-                  width: 320 + 60 * math.sin(_c.value * math.pi),
-                  height: 320 + 60 * math.sin(_c.value * math.pi),
+                  width: 360,
+                  height: 360,
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
                     gradient: RadialGradient(
                       colors: [
-                        accent.withValues(alpha: 0.35 * draw),
-                        accent.withValues(alpha: 0),
+                        _accent.withValues(alpha: 0.30 * wave),
+                        _accent.withValues(alpha: 0),
                       ],
                     ),
                   ),
                 ),
               ),
-              Center(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Transform.scale(
-                      scale: 0.6 + 0.4 * pop,
-                      child: SizedBox(
+              Transform.translate(
+                offset: Offset(shake, 0),
+                child: Center(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      SizedBox(
                         width: 150,
-                        height: 76,
-                        child: CustomPaint(
-                          painter: _InfinityPainter(
-                            progress: draw,
-                            shine: shine,
-                            color: accent,
-                          ),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 18),
-                    Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        for (final (i, ch) in 'LOOP'.split('').indexed)
-                          Builder(
-                            builder: (_) {
-                              final v = _seg(
-                                0.3 + i * 0.07,
-                                0.55 + i * 0.07,
-                                Curves.easeOutBack,
-                              );
-                              return Opacity(
-                                opacity: v.clamp(0.0, 1.0),
-                                child: Transform.translate(
-                                  offset: Offset(0, 24 * (1 - v)),
-                                  child: Text(
-                                    ch,
-                                    style: const TextStyle(
-                                      fontFamily: kFontFamily,
-                                      color: Colors.white,
-                                      fontSize: 44,
-                                      fontWeight: FontWeight.w900,
-                                      letterSpacing: 6,
+                        height: 150,
+                        child: Stack(
+                          clipBehavior: Clip.none,
+                          alignment: Alignment.center,
+                          children: [
+                            // Udarni val.
+                            if (v > _hit && wave < 1)
+                              CustomPaint(
+                                size: const Size.square(150),
+                                painter: _WavePainter(wave, _accent),
+                              ),
+                            // Trag leta.
+                            if (fly > 0 && fly < 1)
+                              Transform.translate(
+                                offset: flyOffset * 1.25,
+                                child: Opacity(
+                                  opacity: 0.25,
+                                  child: SizedBox.square(
+                                    dimension: 120,
+                                    child: CustomPaint(
+                                      painter: SpearPainter(
+                                        head: _accent,
+                                        shaft: _cream,
+                                      ),
                                     ),
                                   ),
                                 ),
-                              );
-                            },
-                          ),
-                      ],
-                    ),
-                    const SizedBox(height: 6),
-                    Opacity(
-                      opacity: _seg(0.6, 0.85),
-                      child: const Text(
-                        'LIVE · AUKCIJE · KUPI ODMAH',
-                        style: TextStyle(
-                          fontFamily: kFontFamily,
-                          color: Colors.white60,
-                          fontSize: 12,
-                          fontWeight: FontWeight.w800,
-                          letterSpacing: 2.4,
+                              ),
+                            Transform.translate(
+                              offset: flyOffset,
+                              child: SizedBox.square(
+                                dimension: 120,
+                                child: CustomPaint(
+                                  painter: SpearPainter(
+                                    head: _accent,
+                                    shaft: _cream,
+                                    glint: glint,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
                       ),
-                    ),
-                  ],
+                      const SizedBox(height: 14),
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          for (final (i, ch)
+                              in kAppName.toUpperCase().split('').indexed)
+                            Builder(
+                              builder: (_) {
+                                final l = _seg(
+                                  _hit + 0.05 + i * 0.04,
+                                  _hit + 0.25 + i * 0.04,
+                                  Curves.easeOutBack,
+                                );
+                                return Opacity(
+                                  opacity: l.clamp(0.0, 1.0),
+                                  child: Transform.translate(
+                                    offset: Offset(0, -22 * (1 - l)),
+                                    child: Text(
+                                      ch,
+                                      style: const TextStyle(
+                                        fontFamily: kFontFamily,
+                                        color: Colors.white,
+                                        fontSize: 38,
+                                        fontWeight: FontWeight.w900,
+                                        letterSpacing: 4,
+                                      ),
+                                    ),
+                                  ),
+                                );
+                              },
+                            ),
+                        ],
+                      ),
+                      const SizedBox(height: 6),
+                      Opacity(
+                        opacity: _seg(0.65, 0.9),
+                        child: const Text(
+                          'LIVE · AUKCIJE · KUPI ODMAH',
+                          style: TextStyle(
+                            fontFamily: kFontFamily,
+                            color: Colors.white60,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w800,
+                            letterSpacing: 2.4,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
               Positioned(
@@ -144,7 +195,7 @@ class _LoopSplashState extends State<LoopSplash>
                       height: 4,
                       child: LinearProgressIndicator(
                         value: bar,
-                        color: accent,
+                        color: _accent,
                         backgroundColor: Colors.white12,
                       ),
                     ),
@@ -159,58 +210,29 @@ class _LoopSplashState extends State<LoopSplash>
   }
 }
 
-/// Znak ∞ (lemniskata) koji se iscrtava, s bijelim odsjajem koji jednom
-/// proleti po crti.
-class _InfinityPainter extends CustomPainter {
-  _InfinityPainter({
-    required this.progress,
-    required this.shine,
-    required this.color,
-  });
-
-  final double progress;
-  final double shine;
+/// Udarni val: dva prstena koji se šire i blijede.
+class _WavePainter extends CustomPainter {
+  _WavePainter(this.t, this.color);
+  final double t;
   final Color color;
-
-  Path _path(Size s) {
-    final path = Path();
-    final a = s.width / 2 - 8;
-    final cx = s.width / 2;
-    final cy = s.height / 2;
-    const n = 120;
-    for (var i = 0; i <= n; i++) {
-      final t = i / n * 2 * math.pi;
-      final d = 1 + math.pow(math.sin(t), 2);
-      final x = cx + a * math.cos(t) / d;
-      final y = cy + a * math.sin(t) * math.cos(t) / d * 1.25;
-      i == 0 ? path.moveTo(x, y) : path.lineTo(x, y);
-    }
-    return path;
-  }
 
   @override
   void paint(Canvas canvas, Size size) {
-    final metric = _path(size).computeMetrics().first;
-    final len = metric.length;
-    final stroke = Paint()
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 12
-      ..strokeCap = StrokeCap.round
-      ..strokeJoin = StrokeJoin.round
-      ..color = color;
-    canvas.drawPath(metric.extractPath(0, len * progress), stroke);
-    if (shine > 0 && shine < 1) {
-      final at = len * shine;
-      canvas.drawPath(
-        metric.extractPath(math.max(0, at - len * 0.12), at),
-        stroke
-          ..strokeWidth = 5
-          ..color = Colors.white.withValues(alpha: 0.85),
+    final c = size.center(Offset.zero);
+    for (final (delay, width) in const [(0.0, 5.0), (0.18, 3.0)]) {
+      final p = ((t - delay) / (1 - delay)).clamp(0.0, 1.0);
+      if (p <= 0) continue;
+      canvas.drawCircle(
+        c,
+        20 + 110 * p,
+        Paint()
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = width * (1 - p) + 0.5
+          ..color = color.withValues(alpha: 0.8 * (1 - p)),
       );
     }
   }
 
   @override
-  bool shouldRepaint(_InfinityPainter old) =>
-      old.progress != progress || old.shine != shine;
+  bool shouldRepaint(_WavePainter old) => old.t != t;
 }

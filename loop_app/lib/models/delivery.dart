@@ -3,7 +3,13 @@ import '../l10n/tr.dart';
 /// Način dostave. Cijena je u kreditima; trajanje je u demo verziji
 /// ubrzano (minute umjesto dana) kako bi se statusi mogli vidjeti uživo.
 enum DeliveryMethod {
-  pickup('Osobno preuzimanje', 'LOOP točka, Zagreb · odmah spremno', 0, 2, 0),
+  pickup(
+    'Osobno preuzimanje',
+    'Subhasto točka, Zagreb · odmah spremno',
+    0,
+    2,
+    0,
+  ),
   parcelLocker(
     'BOX NOW paketomat',
     'Odaberi paketomat na karti · 1–2 dana',
@@ -116,7 +122,7 @@ class Delivery {
   final DateTime? confirmedAt;
   final bool fromAuction;
 
-  /// Prodavatelj (korisnik) — `null` kad je prodavatelj LOOP Market.
+  /// Prodavatelj (korisnik) — `null` kad je prodavatelj Subhasto Market.
   final String? sellerId;
 
   /// Kupac je ocijenio prodavatelja.

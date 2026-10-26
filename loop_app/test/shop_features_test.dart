@@ -276,7 +276,7 @@ void main() {
       final d = await addMugs(quantity: 3);
       await trade.buy(userId: tester, deviceId: d.id);
       await trade.buy(userId: marko, deviceId: d.id);
-      // Prodaja LOOP-u se ne broji.
+      // Prodaja Subhastu se ne broji.
       await trade.sell(userId: demo, deviceId: 'seed-9');
       await storage.saveSession(userId: demo);
       final state = AppState.fromStorage(storage);
@@ -304,28 +304,31 @@ void main() {
     },
   );
 
-  test('nema LOOP Marketa: predmeti platforme dobiju prodavatelje', () async {
-    final before = storage.devices.where((d) => d.ownerId == null).length;
-    expect(before, greaterThan(0));
-    expect(await trade.assignPlatformItems(), before);
-    expect(storage.devices.where((d) => d.ownerId == null), isEmpty);
-    final heirs = storage.devices
-        .where((d) => d.id.startsWith('seed-') && d.isListed)
-        .map((d) => d.ownerId)
-        .toSet();
-    expect(heirs, containsAll(TradeService.platformHeirs));
-    // Drugi prolaz ništa ne mijenja (svi uređaji dođu do istog rezultata).
-    expect(await trade.assignPlatformItems(), 0);
-    // Kupnja ide od prodavatelja: on dobiva cijenu − 5 %.
-    final d = storage.deviceById('seed-5')!;
-    final sellerBefore = storage.userById(d.ownerId!)!.credits;
-    await trade.buy(userId: demo, deviceId: d.id);
-    expect(storage.userById(d.ownerId!), isNotNull);
-    expect(
-      storage.userById(storage.transactions.first.sellerId!)!.credits,
-      sellerBefore + 175.75,
-    );
-  });
+  test(
+    'nema Subhasto Marketa: predmeti platforme dobiju prodavatelje',
+    () async {
+      final before = storage.devices.where((d) => d.ownerId == null).length;
+      expect(before, greaterThan(0));
+      expect(await trade.assignPlatformItems(), before);
+      expect(storage.devices.where((d) => d.ownerId == null), isEmpty);
+      final heirs = storage.devices
+          .where((d) => d.id.startsWith('seed-') && d.isListed)
+          .map((d) => d.ownerId)
+          .toSet();
+      expect(heirs, containsAll(TradeService.platformHeirs));
+      // Drugi prolaz ništa ne mijenja (svi uređaji dođu do istog rezultata).
+      expect(await trade.assignPlatformItems(), 0);
+      // Kupnja ide od prodavatelja: on dobiva cijenu − 5 %.
+      final d = storage.deviceById('seed-5')!;
+      final sellerBefore = storage.userById(d.ownerId!)!.credits;
+      await trade.buy(userId: demo, deviceId: d.id);
+      expect(storage.userById(d.ownerId!), isNotNull);
+      expect(
+        storage.userById(storage.transactions.first.sellerId!)!.credits,
+        sellerBefore + 175.75,
+      );
+    },
+  );
 
   test('ocjena trgovine: jedna po korisniku, zamjenjuje se', () async {
     await community.rateShop(raterId: tester, sellerId: demo, stars: 5);

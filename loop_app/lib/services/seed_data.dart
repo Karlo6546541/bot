@@ -345,7 +345,7 @@ class SeedData {
         DeviceCategory.tickets,
         anaUserId,
       ),
-      // Digitalno (LOOP Originals) — prave datoteke za isprobavanje.
+      // Digitalno (Subhasto Originals) — prave datoteke za isprobavanje.
       d(
         'Kocka za kalibraciju',
         '3D model · STL, 20 mm',
@@ -441,7 +441,7 @@ class SeedData {
   <text x="105" y="90" font-family="sans-serif" font-size="22" font-weight="900" text-anchor="middle" fill="#2A1F17">NASLOV DOGAĐAJA</text>
   <text x="105" y="115" font-family="sans-serif" font-size="9" text-anchor="middle" fill="#76685D">Datum · mjesto · vrijeme</text>
   <circle cx="105" cy="185" r="45" fill="#FFE1D1"/>
-  <text x="105" y="270" font-family="sans-serif" font-size="7" text-anchor="middle" fill="#76685D">Napravljeno s LOOP predloškom</text>
+  <text x="105" y="270" font-family="sans-serif" font-size="7" text-anchor="middle" fill="#76685D">Napravljeno s Subhasto predloškom</text>
 </svg>
 ''';
 

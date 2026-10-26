@@ -83,8 +83,8 @@ const kEn = <String, String>{
   'Dnevni limit je {0} kredita. Danas možeš kupiti još {1}.':
       'The daily limit is {0} credits. You can buy {1} more today.',
   'Dobivaš': 'You get',
-  'Iznos ide na tvoje LOOP stanje (u eurima).':
-      'The amount goes to your LOOP balance (in euros).',
+  'Iznos ide na tvoje Subhasto stanje (u eurima).':
+      'The amount goes to your Subhasto balance (in euros).',
   'Dobivaš prodajom': 'You get from the sale',
   'Dobivaš {0} odmah': 'You get {0} right away',
   'Dobro došao natrag! Demo: bilo koja lozinka radi.':
@@ -147,7 +147,7 @@ const kEn = <String, String>{
   'Još nisi dao nijednu ponudu': 'You haven\'t placed any bids yet',
   'Kad nešto kupiš ili osvojiš na aukciji, pošiljka će se pojaviti ovdje.':
       'When you buy something or win an auction, the shipment will show up here.',
-  'Kako LOOP radi': 'How LOOP works',
+  'Kako Subhasto radi': 'How Subhasto works',
   'Kako želiš preuzeti predmet?': 'How do you want to receive the item?',
   'Kartice': 'Cards',
   'Kategorija': 'Category',
@@ -158,8 +158,8 @@ const kEn = <String, String>{
   'Korisnik ne postoji.': 'User doesn\'t exist.',
   'Korisnik obrisan': 'User deleted',
   'Kraj: {0}{1}': 'Ends: {0}{1}',
-  'Zarađeno potroši na druge stvari u LOOP-u.':
-      'Spend what you earn on other things in LOOP.',
+  'Zarađeno potroši na druge stvari u Subhastu.':
+      'Spend what you earn on other things in Subhasto.',
   'Stanje računa': 'Balance',
   'Stanje nakon kupnje': 'Balance after purchase',
   'Stanje {0}\nPredmeti {1}': 'Balance {0}\nItems {1}',
@@ -168,7 +168,7 @@ const kEn = <String, String>{
   'Kupnje': 'Purchases',
   'Kupnje i prodaje pojavit će se ovdje.':
       'Purchases and sales will show up here.',
-  'LOOP Admin · {0}': 'LOOP Admin · {0}',
+  'Subhasto Admin · {0}': 'Subhasto Admin · {0}',
   'Stanje je u eurima. Prodaja je bez naknade, kupac plaća 2%. Status: Bronze < 2000 €, Silver 2000–5000 €, Gold > 5000 € (stanje + portfolio).':
       'Your balance is in euros. Selling is free, buyers pay 2%. Status: Bronze < €2000, Silver €2000–5000, Gold > €5000 (balance + portfolio).',
   'Licitiraj': 'Place bid',
@@ -323,8 +323,8 @@ const kEn = <String, String>{
   'Primitak potvrđen ✅': 'Receipt confirmed ✅',
   'Prodaj ili licitiraj': 'Sell or bid',
   'Prodaj odmah': 'Sell now',
-  'Prodaj odmah ili na aukciji — novac ide na tvoje LOOP stanje.':
-      'Sell right away or at auction — the money goes to your LOOP balance.',
+  'Prodaj odmah ili na aukciji — novac ide na tvoje Subhasto stanje.':
+      'Sell right away or at auction — the money goes to your Subhasto balance.',
   'Prodaje': 'Sales',
   'Prodaje {0}': 'Sold by {0}',
   'Prodaje {0}{1}': 'Sold by {0}{1}',
@@ -512,7 +512,8 @@ const kEn = <String, String>{
   'Bez ponuda': 'No bids',
   'Otkazano': 'Cancelled',
   'Osobno preuzimanje': 'Personal pickup',
-  'LOOP točka, Zagreb · odmah spremno': 'LOOP point, Zagreb · ready now',
+  'Subhasto točka, Zagreb · odmah spremno':
+      'Subhasto point, Zagreb · ready now',
   'Isporuka u paketomat · 1–2 dana': 'Delivery to a parcel locker · 1–2 days',
   'Kurir na adresu': 'Courier to address',
   'Dostava na kućnu adresu · 2–3 dana':
@@ -692,7 +693,7 @@ const kEn = <String, String>{
       'The item is for sale in the Market — remove it from the Market first.',
   'Predmet ostaje tvoj dok ga netko ne kupi. Možeš ga ukloniti iz Marketa kad god želiš.':
       'The item stays yours until someone buys it. You can remove it from the Market any time.',
-  'Prodaj odmah LOOP-u': 'Sell to LOOP now',
+  'Prodaj odmah Subhastu': 'Sell to Subhasto now',
   'Prodavatelj': 'Seller',
   'Promijeni cijenu': 'Change price',
   'Ti dobivaš {0} (bez naknade)': 'You get {0} (no fee)',
@@ -741,7 +742,7 @@ const kEn = <String, String>{
   'Komentar (neobavezno)': 'Comment (optional)',
   'Komentar može imati najviše {0} znakova.':
       'The comment can be at most {0} characters.',
-  'LOOP Market se ne ocjenjuje.': 'LOOP Market can\'t be rated.',
+  'Subhasto Market se ne ocjenjuje.': 'Subhasto Market can\'t be rated.',
   'Ne možeš blokirati sam sebe.': 'You can\'t block yourself.',
   'Ne možeš licitirati na ovu aukciju.': 'You can\'t bid on this auction.',
   'Ne možeš prijaviti sam sebe.': 'You can\'t report yourself.',
@@ -932,8 +933,8 @@ const kEn = <String, String>{
   'Datoteku nije moguće pročitati.': 'The file can\'t be read.',
   'Digitalni proizvod odmah ide u Market i možeš ga prodati više puta. Kupac plaća cijenu + 2%, ti dobivaš punu cijenu, a kupac odmah preuzima datoteku.':
       'A digital product goes straight to the Market and can be sold many times. The buyer pays the price + 2%, you get the full price, and the buyer downloads the file right away.',
-  'Digitalni proizvod se ne prodaje LOOP-u — kupci ga kupuju u Marketu.':
-      'A digital product isn\'t sold to LOOP — buyers buy it in the Market.',
+  'Digitalni proizvod se ne prodaje Subhastu — kupci ga kupuju u Marketu.':
+      'A digital product isn\'t sold to Subhasto — buyers buy it in the Market.',
   'Digitalni proizvod treba datoteku koju kupac preuzima.':
       'A digital product needs a file for buyers to download.',
   'Digitalni proizvod: datoteka {0} ({1}) preuzima se odmah nakon plaćanja i ostaje ti u "Moje digitalne kupnje".':
@@ -1050,8 +1051,8 @@ const kEn = <String, String>{
   'Ovu protuponudu ne možeš prihvatiti.':
       'You can\'t accept this counteroffer.',
   'Očisti povijest': 'Clear history',
-  'Plaća se s LOOP stanja. Stanje: {0}':
-      'Paid from your LOOP balance. Balance: {0}',
+  'Plaća se s Subhasto stanja. Stanje: {0}':
+      'Paid from your Subhasto balance. Balance: {0}',
   'Podijeli': 'Share',
   'Podijeli oglas': 'Share listing',
   'Podijeli trgovinu': 'Share shop',
@@ -1198,7 +1199,7 @@ const kEn = <String, String>{
   'Oglas više nije dostupan.': 'The listing is no longer available.',
   'Otvori': 'Open',
   'Otvori svoj webshop': 'Open your webshop',
-  'Pogledaj moju trgovinu {0} na LOOP-u': 'Check out my shop {0} on LOOP',
+  'Pogledaj moju trgovinu {0} na Subhastu': 'Check out my shop {0} on Subhasto',
   'Pogledao si sve objave': 'You\'ve seen all posts',
   'Ponudi': 'Offer',
   'Poveznica je kopirana — zalijepi je u Instagram poruku ili priču.':
@@ -1215,12 +1216,12 @@ const kEn = <String, String>{
       'Every account is a shop: list at your own price or at auction, and buyers can follow you.',
   'Svaki račun je webshop — otvori svoj!':
       'Every account is a webshop — open yours!',
-  'Svaki račun na LOOP-u je webshop: objavi predmet i tvoja trgovina se pojavljuje ovdje.':
-      'Every LOOP account is a webshop: list an item and your shop appears here.',
+  'Svaki račun na Subhastu je webshop: objavi predmet i tvoja trgovina se pojavljuje ovdje.':
+      'Every Subhasto account is a webshop: list an item and your shop appears here.',
   'Sve trgovine': 'All shops',
   'Ti dobivaš {0}': 'You get {0}',
   'Traži trgovinu ili korisnika…': 'Search shops or users…',
-  'Trgovina {0} na LOOP-u': 'The shop {0} on LOOP',
+  'Trgovina {0} na Subhastu': 'The shop {0} on Subhasto',
   'Trgovine': 'Shops',
   'Trgovine koje pratim': 'Shops I follow',
   'Trgovine za tebe': 'Shops for you',
@@ -1239,7 +1240,7 @@ const kEn = <String, String>{
   '{0} oglasa · {1} pratitelja · {2} prodaja':
       '{0} listings · {1} followers · {2} sales',
   '{0} pratitelja': '{0} followers',
-  '{0} za {1} na LOOP-u': '{0} for {1} on LOOP',
+  '{0} za {1} na Subhastu': '{0} for {1} on Subhasto',
   '{0} · kupac {1}': '{0} · buyer {1}',
   '{0} · {1} pratitelja': '{0} · {1} followers',
   '▶ {0} prikaza · ♥ {1}': '▶ {0} views · ♥ {1}',
@@ -1251,8 +1252,8 @@ const kEn = <String, String>{
   '"Kupi odmah" više nije dostupno.': '"Buy now" is no longer available.',
   '"Kupi odmah" za {0} — vrijedi dok ponude ne dosegnu tu cijenu.':
       '"Buy now" for {0} — valid until bids reach that price.',
-  'Aukcija: {0} — trenutno {1} na LOOP-u':
-      'Auction: {0} — currently {1} on LOOP',
+  'Aukcija: {0} — trenutno {1} na Subhastu':
+      'Auction: {0} — currently {1} on Subhasto',
   'Automatska ponuda': 'Automatic bid',
   'Automatska ponuda je povišena na {0}': 'Automatic bid raised to {0}',
   'Automatska ponuda mora biti barem koliko i ponuda.':
@@ -1361,7 +1362,7 @@ const kEn = <String, String>{
   'Lista s tim nazivom već postoji.': 'A list with that name already exists.',
   'Liste želja': 'Wishlists',
   'Liste želja ({0})': 'Wishlists ({0})',
-  'Moja lista "{0}" na LOOP-u': 'My list "{0}" on LOOP',
+  'Moja lista "{0}" na Subhastu': 'My list "{0}" on Subhasto',
   'Možeš imati najviše {0} aktivnih priča.':
       'You can have at most {0} active stories.',
   'Možeš imati najviše {0} lista.': 'You can have at most {0} lists.',
@@ -1515,8 +1516,8 @@ const kEn = <String, String>{
   'Nemaš zarade za isplatu.': 'You have no earnings to pay out.',
   'Nije ispunjeno — potrebno za Kupi odmah i isplatu':
       'Not filled in — needed for Buy now and payouts',
-  'Novac obrađuje pružatelj plaćanja — LOOP ne drži novac kupaca.':
-      'Money is handled by a payment provider — LOOP does not hold buyers\' money.',
+  'Novac obrađuje pružatelj plaćanja — Subhasto ne drži novac kupaca.':
+      'Money is handled by a payment provider — Subhasto does not hold buyers\' money.',
   'OIB': 'OIB (tax number)',
   'OIB nije ispravan (11 znamenki).': 'The OIB is not valid (11 digits).',
   'Obrt ili tvrtka: kupci imaju pravo na povrat u 14 dana i jamstvo.':
@@ -1531,8 +1532,8 @@ const kEn = <String, String>{
   'Plaća se karticom. Istaknuti oglasi označeni su kao "Sponzorirano".':
       'Paid by card. Promoted listings are labelled "Sponsored".',
   'Plaćanje karticom pri kupnji': 'Card payment at checkout',
-  'Plaćanje obrađuje pružatelj plaćanja; LOOP ne drži tvoj novac.':
-      'The payment is processed by a payment provider; LOOP does not hold your money.',
+  'Plaćanje obrađuje pružatelj plaćanja; Subhasto ne drži tvoj novac.':
+      'The payment is processed by a payment provider; Subhasto does not hold your money.',
   'Podaci o trgovcu': 'Trader details',
   'Podaci prodavatelja': 'Seller details',
   'Podaci prodavatelja su spremljeni.': 'Seller details saved.',
@@ -1725,11 +1726,11 @@ const kEn = <String, String>{
   'Predmet je u live aukciji — pričekaj da se licitira.':
       'This item is in a live auction — wait until it has been auctioned.',
   'Fizička osoba': 'Private person',
-  'Koristim LOOP kao fizička osoba (ne kao obrt ni tvrtka) i prihvaćam Uvjete korištenja i Pravila privatnosti.':
-      'I use LOOP as a private person (not as a sole trader or company) and I accept the Terms of Use and the Privacy Policy.',
+  'Koristim Subhasto kao fizička osoba (ne kao obrt ni tvrtka) i prihvaćam Uvjete korištenja i Pravila privatnosti.':
+      'I use Subhasto as a private person (not as a sole trader or company) and I accept the Terms of Use and the Privacy Policy.',
   'Istraži': 'Explore',
-  'LOOP je za fizičke osobe koje prodaju svoje stvari. Platforma mora prikupiti ove podatke prije prve objave (DAC7: izvještaj Poreznoj upravi za prodavatelje s 30+ prodaja ili više od 2.000 € godišnje). Kupci ih ne vide.':
-      'LOOP is for private persons selling their own things. The platform must collect these details before your first listing (DAC7: report to the Tax Administration for sellers with 30+ sales or more than €2,000 a year). Buyers don\'t see them.',
+  'Subhasto je za fizičke osobe koje prodaju svoje stvari. Platforma mora prikupiti ove podatke prije prve objave (DAC7: izvještaj Poreznoj upravi za prodavatelje s 30+ prodaja ili više od 2.000 € godišnje). Kupci ih ne vide.':
+      'Subhasto is for private persons selling their own things. The platform must collect these details before your first listing (DAC7: report to the Tax Administration for sellers with 30+ sales or more than €2,000 a year). Buyers don\'t see them.',
   'Live': 'Live',
   'Nitko trenutno nije uživo': 'Nobody is live right now',
   'Pokreni live — predmeti se licitiraju jedan za drugim, brzo i uz chat.':
@@ -1830,7 +1831,7 @@ const kEn = <String, String>{
       'Free for everyone who enters — the winner is drawn at the end.',
   'Cijena pada svake sekunde — prvi koji klikne "Uzmi" kupuje.':
       'The price drops every second — the first to tap "Take" buys it.',
-  'Gledaj "{0}" uživo na LOOP-u': 'Watch "{0}" live on LOOP',
+  'Gledaj "{0}" uživo na Subhastu': 'Watch "{0}" live on Subhasto',
   'Javit ćemo ti kad krene uživo 🔔':
       'We\'ll let you know when it goes live 🔔',
   'Klasična licitacija — najviša ponuda pobjeđuje.':
@@ -2026,8 +2027,8 @@ const kEn = <String, String>{
       '📹 Video won\'t connect — retrying…',
   '📹 Video ne prolazi kroz ovu mrežu — probaj isti Wi-Fi':
       '📹 Video can\'t get through this network — try the same Wi-Fi',
-  'Digitalni proizvod se ne prodaje LOOP-u — kupci ga kupuju na Kupi odmah.':
-      'A digital product isn\'t sold to LOOP — buyers get it via Buy now.',
+  'Digitalni proizvod se ne prodaje Subhastu — kupci ga kupuju na Kupi odmah.':
+      'A digital product isn\'t sold to Subhasto — buyers get it via Buy now.',
   'Digitalni proizvodi se ne stavljaju na aukciju — prodaju se više puta na Kupi odmah.':
       'Digital products can\'t be auctioned — they sell many times via Buy now.',
   'Dodaj iz mojih predmeta': 'Add from my items',
@@ -2121,8 +2122,8 @@ const kEn = <String, String>{
   'Dodaj način plaćanja.': 'Add a payment method.',
   'Dodirni za promjenu': 'Tap to change',
   'Kartica je istekla.': 'The card has expired.',
-  'LOOP sprema token kartice za automatsku naplatu.':
-      'LOOP saves a card token for automatic payments.',
+  'Subhasto sprema token kartice za automatsku naplatu.':
+      'Subhasto saves a card token for automatic payments.',
   'MM/GG': 'MM/YY',
   'Na kartici nema dovoljno sredstava.': 'Insufficient funds on the card.',
   'Način plaćanja nije dodan': 'No payment method added',
@@ -2233,8 +2234,8 @@ const kEn = <String, String>{
   'Prodano {0} za {1}': 'Sold to {0} for {1}',
   'Uđi': 'Join',
   'Zaštita kupca': 'Buyer protection',
-  'Plaćaš LOOP-u, ne prodavaču — novac čeka kod nas.':
-      'You pay LOOP, not the seller — the money waits with us.',
+  'Plaćaš Subhastu, ne prodavaču — novac čeka kod nas.':
+      'You pay Subhasto, not the seller — the money waits with us.',
   'Prodavač dobije novac tek kad potvrdiš da je paket stigao.':
       'The seller is paid only after you confirm the parcel arrived.',
   'Ako predmet ne stigne ili nije kao u opisu, vraćamo ti novac.':

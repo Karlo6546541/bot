@@ -126,7 +126,7 @@ class AppState {
   /// Prijava koja čeka odabir korisničkog imena.
   final AuthIdentity? pendingSignup;
 
-  /// Prikazati karticu "Kako LOOP radi" na početnoj.
+  /// Prikazati karticu "Kako Subhasto radi" na početnoj.
   final bool showHowItWorks;
 
   /// Ocjene prodavatelja, najnovije prvo.
@@ -370,7 +370,7 @@ class AppState {
     for (final t in transactions) {
       if (t.type != TransactionType.sell) continue;
       final seller = t.sellerId ?? t.userId;
-      // Samo prodaje drugim korisnicima (ne LOOP-u).
+      // Samo prodaje drugim korisnicima (ne Subhastu).
       if (t.buyerId == null || t.buyerId == seller) continue;
       if (since != null && t.createdAt.isBefore(since)) continue;
       final user = userById(seller);
@@ -650,7 +650,7 @@ class AppState {
   double totalValueOf(AppUser user) => user.credits + portfolioValueOf(user.id);
 
   String userLabel(String? userId) {
-    if (userId == null) return 'LOOP Market';
+    if (userId == null) return 'Subhasto Market';
     for (final u in users) {
       if (u.id == userId) return u.handle;
     }

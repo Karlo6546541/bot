@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-/// Paleta boja LOOP-a. Vrijednosti ovise o aktivnoj temi (svijetla/tamna),
+/// Paleta boja Subhasta. Vrijednosti ovise o aktivnoj temi (svijetla/tamna),
 /// koju postavlja [LoopColors.use] prije izgradnje [MaterialApp].
 ///
 /// Smjer dizajna: topla, prijateljska tržnica rabljenih stvari — krem

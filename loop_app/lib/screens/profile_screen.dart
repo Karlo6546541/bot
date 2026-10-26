@@ -436,7 +436,7 @@ class _ShopCard extends ConsumerWidget {
               onPressed: () => shareLink(
                 context,
                 publicLink(shop: user.username),
-                text: t('Pogledaj moju trgovinu {0} na LOOP-u', [
+                text: t('Pogledaj moju trgovinu {0} na Subhastu', [
                   user.shopTitle,
                 ]),
               ),

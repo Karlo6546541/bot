@@ -452,7 +452,7 @@ class _WalletSheetState extends State<_WalletSheet> {
             ),
             const SizedBox(height: 10),
             Text(
-              t('LOOP sprema token kartice za automatsku naplatu.'),
+              t('Subhasto sprema token kartice za automatsku naplatu.'),
               style: TextStyle(
                 color: apple ? Colors.white60 : Colors.black54,
                 fontSize: 12,

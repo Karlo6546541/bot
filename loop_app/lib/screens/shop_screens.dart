@@ -387,7 +387,7 @@ class _ShopsScreenState extends ConsumerState<ShopsScreen> {
             padding: const EdgeInsets.fromLTRB(12, 8, 12, 4),
             child: Text(
               t(
-                'Svaki račun na LOOP-u je webshop: objavi predmet i tvoja trgovina se pojavljuje ovdje.',
+                'Svaki račun na Subhastu je webshop: objavi predmet i tvoja trgovina se pojavljuje ovdje.',
               ),
               style: TextStyle(color: LoopColors.textSecondary),
             ),

@@ -56,7 +56,7 @@ class _LiveHomeScreenState extends ConsumerState<LiveHomeScreen> {
   _Filter _filter = const _ForYou();
   bool _hideCheckout = false;
 
-  /// "Kako LOOP radi" vidi se samo pri prvom otvaranju — odmah se bilježi
+  /// "Kako Subhasto radi" vidi se samo pri prvom otvaranju — odmah se bilježi
   /// kao viđeno, a do kraja ove sesije ostaje (dok ga ne zatvoriš).
   late bool _showHow = ref.read(appProvider).showHowItWorks;
 
@@ -407,7 +407,7 @@ class _HowLoopWorks extends ConsumerWidget {
                 children: [
                   Expanded(
                     child: Text(
-                      t('Kako LOOP radi'),
+                      t('Kako Subhasto radi'),
                       style: const TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.w900,

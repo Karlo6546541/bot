@@ -21,7 +21,7 @@ enum TransactionType {
 
 /// Zapis jedne transakcije. Kupac/prodavatelj su spremljeni i kao ID i kao
 /// e-mail, kako bi povijest ostala čitljiva i nakon brisanja korisnika.
-/// `null` ID znači da je druga strana LOOP Market (platforma).
+/// `null` ID znači da je druga strana Subhasto Market (platforma).
 class LoopTransaction {
   const LoopTransaction({
     required this.id,

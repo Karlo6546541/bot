@@ -23,7 +23,7 @@ class TradeException implements Exception {
   String toString() => message;
 }
 
-/// Poslovna pravila LOOP-a: dodavanje, prodaja, kupnja
+/// Poslovna pravila Subhasta: dodavanje, prodaja, kupnja
 /// i admin akcije. Radi direktno nad [StorageService].
 class TradeService {
   TradeService(this._storage);
@@ -39,7 +39,7 @@ class TradeService {
   static const welcomeCredits = 0;
 
   /// Oznaka platforme kao druge strane u transakciji.
-  static const marketLabel = 'LOOP Market';
+  static const marketLabel = 'Subhasto Market';
 
   bool isAdminLogin(String email, String password) =>
       email.trim().toLowerCase() == adminEmail && password == adminPassword;
@@ -108,7 +108,7 @@ class TradeService {
     return device;
   }
 
-  /// INSTANT SELL: LOOP otkupljuje predmet po punoj vrijednosti.
+  /// INSTANT SELL: Subhasto otkupljuje predmet po punoj vrijednosti.
   Future<LoopTransaction> sell({
     required String userId,
     required String deviceId,
@@ -121,7 +121,7 @@ class TradeService {
     if (device.isDigital) {
       throw TradeException(
         t(
-          'Digitalni proizvod se ne prodaje LOOP-u — kupci ga kupuju na Kupi odmah.',
+          'Digitalni proizvod se ne prodaje Subhastu — kupci ga kupuju na Kupi odmah.',
         ),
       );
     }
@@ -515,7 +515,7 @@ class TradeService {
         d.priceAt(at);
   }
 
-  /// Demo prodavatelji koji preuzimaju predmete bivšeg "LOOP Marketa".
+  /// Demo prodavatelji koji preuzimaju predmete bivšeg "Subhasto Marketa".
   static const platformHeirs = [
     SeedData.anaUserId,
     SeedData.markoUserId,
@@ -523,7 +523,7 @@ class TradeService {
   ];
 
   /// U aplikaciji postoje samo kupci i prodavatelji: predmeti bez vlasnika
-  /// (stari LOOP Market) dodijele se demo prodavateljima i objave po svojoj
+  /// (stari Subhasto Market) dodijele se demo prodavateljima i objave po svojoj
   /// cijeni. Raspodjela ovisi samo o ID-u predmeta, pa svi uređaji dođu do
   /// istog rezultata. Vraća broj dodijeljenih predmeta.
   Future<int> assignPlatformItems({DateTime? now}) async {

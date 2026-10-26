@@ -769,7 +769,7 @@ class AppController extends Notifier<AppState> {
     }
     _autoListing = true;
     try {
-      // Nema više "LOOP Marketa": predmeti platforme dobiju prodavatelja.
+      // Nema više "Subhasto Marketa": predmeti platforme dobiju prodavatelja.
       await _trade.assignPlatformItems();
       await _trade.autoListPortfolios();
       if (ref.mounted) _refresh();

@@ -6,7 +6,7 @@ import '../models/app_user.dart';
 import '../providers/app_providers.dart';
 import '../theme/app_theme.dart';
 
-/// "Zaštita kupca": novac čeka kod LOOP-a dok kupac ne potvrdi primitak.
+/// "Zaštita kupca": novac čeka kod Subhasta dok kupac ne potvrdi primitak.
 /// Dodir otvara kratko objašnjenje. [dark] za tamnu pozadinu (live, feed).
 class BuyerProtectionBadge extends StatelessWidget {
   const BuyerProtectionBadge({
@@ -46,7 +46,7 @@ class BuyerProtectionBadge extends StatelessWidget {
             ),
             const SizedBox(height: 12),
             for (final line in [
-              t('Plaćaš LOOP-u, ne prodavaču — novac čeka kod nas.'),
+              t('Plaćaš Subhastu, ne prodavaču — novac čeka kod nas.'),
               t('Prodavač dobije novac tek kad potvrdiš da je paket stigao.'),
               t(
                 'Ako predmet ne stigne ili nije kao u opisu, vraćamo ti novac.',
