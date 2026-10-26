@@ -2364,4 +2364,14 @@ const kEn = <String, String>{
   '"{0}" te čeka u paketomatu {1}. PIN za preuzimanje: {2}':
       '"{0}" is waiting for you at locker {1}. Pickup PIN: {2}',
   '{0} u paketomatu — dodirni za PIN': '{0} in a locker — tap for the PIN',
+  'Netko je upravo kupio ovaj komad — predmet više nije dostupan.':
+      'Someone just bought this unit — the item is no longer available.',
+  '📦 Pošalji "{0}" kupcu {1}.\nBOX NOW pošiljka {2} · paketomat: {3}\nPIN za predaju: {4}\nNa bilo kojem BOX NOW paketomatu odaberi "Pošalji paket" i upiši PIN.':
+      '📦 Ship "{0}" to buyer {1}.\nBOX NOW parcel {2} · locker: {3}\nDrop-off PIN: {4}\nAt any BOX NOW locker choose "Send a parcel" and enter the PIN.',
+  '📦 Pošalji "{0}" kupcu {1} ({2}). Kod pošiljke: {3} — otpremnica je u Moje → Otpremnice.':
+      '📦 Ship "{0}" to buyer {1} ({2}). Shipment code: {3} — the delivery note is in My → Delivery notes.',
+  '📬 "{0}" te čeka u paketomatu {1}.\nPIN za preuzimanje: {2}\nNa paketomatu odaberi "Preuzmi paket" i upiši PIN.':
+      '📬 "{0}" is waiting for you at locker {1}.\nPickup PIN: {2}\nAt the locker choose "Collect parcel" and enter the PIN.',
+  'Službene poruke Subhasta — PIN-ovi i upute za dostavu.':
+      'Official Subhasto messages — PINs and delivery instructions.',
 };

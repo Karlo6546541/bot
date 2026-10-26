@@ -1545,7 +1545,12 @@ class _PortfolioHeader extends ConsumerWidget {
     final s = ref.watch(appProvider);
     final me = s.currentUserId;
     final paid = s.transactions
-        .where((t) => t.buyerId == me && t.type != TransactionType.payout)
+        .where(
+          (t) =>
+              t.buyerId == me &&
+              t.type != TransactionType.payout &&
+              t.type != TransactionType.delivery,
+        )
         .fold<double>(0, (a, t) => a + t.price);
     final count = deliveries.length + s.myDigitalPurchases.length;
     return Padding(
@@ -1593,7 +1598,13 @@ class _BoughtTile extends ConsumerWidget {
     final id = digital?.id ?? d!.deviceId;
     final name = digital?.name ?? d!.deviceName;
     final paid = s.transactions
-        .where((t) => t.deviceId == id && t.buyerId == s.currentUserId)
+        .where(
+          (t) =>
+              t.deviceId == id &&
+              t.buyerId == s.currentUserId &&
+              t.type != TransactionType.delivery &&
+              t.price > 0,
+        )
         .firstOrNull
         ?.price;
     final (String label, Color color) = digital != null

@@ -37,8 +37,7 @@ class AuctionPolicy {
   static const businessMaxActive = 200;
   static const businessMaxNewPerDay = 200;
 
-  bool _business(String userId) =>
-      _storage.userById(userId)?.seller?.isBusiness ?? false;
+  bool _business(String userId) => _storage.userById(userId)?.isTrader ?? false;
 
   int maxActiveFor(String userId) =>
       _business(userId) ? businessMaxActive : maxActive;

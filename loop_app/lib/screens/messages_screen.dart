@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../widgets/brand.dart';
+
+import '../services/chat_service.dart';
+
 import '../l10n/tr.dart';
 import '../models/chat_message.dart';
 import '../models/device.dart';
@@ -53,39 +57,94 @@ class MessagesScreen extends ConsumerWidget {
                           child: SwapOfferCard(offer: o),
                         ),
                     ],
-                    if (conversations.isNotEmpty) _Section(t('Razgovori')),
+                    // Službene poruke od Subhasta — zaključane na vrhu.
                     for (final c in conversations)
-                      Card(
-                        child: ListTile(
-                          leading: UserAvatar(
-                            user: state.userById(c.otherId),
-                            size: 40,
-                          ),
-                          title: Text(
-                            state.userLabel(c.otherId),
-                            style: TextStyle(
-                              fontWeight: c.unread > 0
-                                  ? FontWeight.w900
-                                  : FontWeight.w600,
+                      if (c.otherId == ChatService.systemId)
+                        Card(
+                          key: const ValueKey('chat-system'),
+                          color: LoopColors.peach,
+                          child: ListTile(
+                            leading: CircleAvatar(
+                              backgroundColor: const Color(0xFF17120F),
+                              child: SpearMark(
+                                size: 24,
+                                head: const Color(0xFFFF9248),
+                                shaft: const Color(0xFFF5EDE6),
+                              ),
                             ),
-                          ),
-                          subtitle: Text(
-                            '${c.last.senderId == state.currentUserId ? '${t('Ti')}: ' : ''}${c.last.text}',
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                          trailing: c.unread > 0
-                              ? Badge(label: Text('${c.unread}'))
-                              : Text(
-                                  formatDate(c.last.createdAt),
+                            title: Row(
+                              children: [
+                                Text(
+                                  kAppName,
                                   style: TextStyle(
-                                    color: LoopColors.textSecondary,
-                                    fontSize: 12,
+                                    fontWeight: c.unread > 0
+                                        ? FontWeight.w900
+                                        : FontWeight.w700,
                                   ),
                                 ),
-                          onTap: () => ChatScreen.open(context, c.otherId),
+                                const SizedBox(width: 4),
+                                Icon(
+                                  Icons.verified,
+                                  size: 16,
+                                  color: LoopColors.info,
+                                ),
+                                const Spacer(),
+                                Icon(
+                                  Icons.push_pin,
+                                  size: 16,
+                                  color: LoopColors.textSecondary,
+                                ),
+                              ],
+                            ),
+                            subtitle: Text(
+                              c.last.text,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            trailing: c.unread > 0
+                                ? Badge(label: Text('${c.unread}'))
+                                : null,
+                            onTap: () =>
+                                ChatScreen.open(context, ChatService.systemId),
+                          ),
                         ),
-                      ),
+                    if (conversations.any(
+                      (c) => c.otherId != ChatService.systemId,
+                    ))
+                      _Section(t('Razgovori')),
+                    for (final c in conversations)
+                      if (c.otherId != ChatService.systemId)
+                        Card(
+                          child: ListTile(
+                            leading: UserAvatar(
+                              user: state.userById(c.otherId),
+                              size: 40,
+                            ),
+                            title: Text(
+                              state.userLabel(c.otherId),
+                              style: TextStyle(
+                                fontWeight: c.unread > 0
+                                    ? FontWeight.w900
+                                    : FontWeight.w600,
+                              ),
+                            ),
+                            subtitle: Text(
+                              '${c.last.senderId == state.currentUserId ? '${t('Ti')}: ' : ''}${c.last.text}',
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            trailing: c.unread > 0
+                                ? Badge(label: Text('${c.unread}'))
+                                : Text(
+                                    formatDate(c.last.createdAt),
+                                    style: TextStyle(
+                                      color: LoopColors.textSecondary,
+                                      fontSize: 12,
+                                    ),
+                                  ),
+                            onTap: () => ChatScreen.open(context, c.otherId),
+                          ),
+                        ),
                   ],
                 ),
               ),
@@ -191,6 +250,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
       WidgetsBinding.instance.addPostFrameCallback((_) => _markRead());
     }
     final pending = _deviceId == null ? null : state.deviceById(_deviceId!);
+    final system = widget.otherId == ChatService.systemId;
 
     return Scaffold(
       appBar: AppBar(
@@ -201,11 +261,22 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
               : () => PublicProfileScreen.open(context, other.id),
           child: Row(
             children: [
-              UserAvatar(user: other, size: 34),
+              if (system)
+                const CircleAvatar(
+                  radius: 17,
+                  backgroundColor: Color(0xFF17120F),
+                  child: SpearMark(
+                    size: 22,
+                    head: Color(0xFFFF9248),
+                    shaft: Color(0xFFF5EDE6),
+                  ),
+                )
+              else
+                UserAvatar(user: other, size: 34),
               const SizedBox(width: 10),
               Flexible(
                 child: Text(
-                  state.userLabel(widget.otherId),
+                  system ? kAppName : state.userLabel(widget.otherId),
                   overflow: TextOverflow.ellipsis,
                 ),
               ),
@@ -273,38 +344,57 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                     ],
                   ),
                 ),
-              SafeArea(
-                top: false,
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: TextField(
-                          key: const ValueKey('chat-input'),
-                          controller: _text,
-                          minLines: 1,
-                          maxLines: 4,
-                          maxLength: ChatMessage.maxLength,
-                          textInputAction: TextInputAction.send,
-                          onSubmitted: (_) => _send(),
-                          decoration: InputDecoration(
-                            hintText: t('Poruka…'),
-                            counterText: '',
+              // Na službene poruke se ne odgovara.
+              if (system)
+                SafeArea(
+                  top: false,
+                  child: Padding(
+                    padding: const EdgeInsets.all(12),
+                    child: Text(
+                      t(
+                        'Službene poruke Subhasta — PIN-ovi i upute za dostavu.',
+                      ),
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        color: LoopColors.textSecondary,
+                        fontSize: 12,
+                      ),
+                    ),
+                  ),
+                )
+              else
+                SafeArea(
+                  top: false,
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: TextField(
+                            key: const ValueKey('chat-input'),
+                            controller: _text,
+                            minLines: 1,
+                            maxLines: 4,
+                            maxLength: ChatMessage.maxLength,
+                            textInputAction: TextInputAction.send,
+                            onSubmitted: (_) => _send(),
+                            decoration: InputDecoration(
+                              hintText: t('Poruka…'),
+                              counterText: '',
+                            ),
                           ),
                         ),
-                      ),
-                      const SizedBox(width: 8),
-                      IconButton.filled(
-                        key: const ValueKey('chat-send'),
-                        tooltip: t('Pošalji'),
-                        onPressed: _sending ? null : _send,
-                        icon: const Icon(Icons.send),
-                      ),
-                    ],
+                        const SizedBox(width: 8),
+                        IconButton.filled(
+                          key: const ValueKey('chat-send'),
+                          tooltip: t('Pošalji'),
+                          onPressed: _sending ? null : _send,
+                          icon: const Icon(Icons.send),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
-              ),
             ],
           ),
         ),

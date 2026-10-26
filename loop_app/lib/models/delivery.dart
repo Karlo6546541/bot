@@ -100,6 +100,8 @@ class Delivery {
     this.fromAuction = false,
     this.sellerId,
     this.reviewed = false,
+    this.dropOffPin,
+    this.pickupPin,
   });
 
   final String id;
@@ -128,6 +130,11 @@ class Delivery {
 
   /// Kupac je ocijenio prodavatelja.
   final bool reviewed;
+
+  /// BOX NOW PIN-ovi (nasumični, nastaju kad dostava krene). Ne mogu se
+  /// izračunati iz javnog broja pošiljke.
+  final String? dropOffPin;
+  final String? pickupPin;
 
   /// Kupac može ocijeniti prodavatelja nakon potvrde primitka.
   bool get canReview => confirmedAt != null && sellerId != null && !reviewed;
@@ -216,6 +223,8 @@ class Delivery {
     DateTime? startedAt,
     DateTime? confirmedAt,
     bool? reviewed,
+    String? dropOffPin,
+    String? pickupPin,
   }) => Delivery(
     id: id,
     deviceId: deviceId,
@@ -231,6 +240,8 @@ class Delivery {
     fromAuction: fromAuction,
     sellerId: sellerId,
     reviewed: reviewed ?? this.reviewed,
+    dropOffPin: dropOffPin ?? this.dropOffPin,
+    pickupPin: pickupPin ?? this.pickupPin,
   );
 
   Map<String, dynamic> toMap() => {
@@ -248,6 +259,8 @@ class Delivery {
     'fromAuction': fromAuction,
     'sellerId': sellerId,
     'reviewed': reviewed,
+    'dropOffPin': dropOffPin,
+    'pickupPin': pickupPin,
   };
 
   factory Delivery.fromMap(Map<dynamic, dynamic> m) => Delivery(
@@ -271,5 +284,7 @@ class Delivery {
     fromAuction: m['fromAuction'] as bool? ?? false,
     sellerId: m['sellerId'] as String?,
     reviewed: m['reviewed'] as bool? ?? false,
+    dropOffPin: m['dropOffPin'] as String?,
+    pickupPin: m['pickupPin'] as String?,
   );
 }

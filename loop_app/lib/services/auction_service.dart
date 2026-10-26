@@ -452,17 +452,13 @@ class AuctionService {
     final payout = auctionPayout(top.amount, a.startPrice);
     // Pobjednik plaća karticom (pružatelj plaćanja), prodavatelj dobiva
     // zaradu za isplatu.
-    await _storage.putDevice(device.withOwner(winner.id));
-    await _storage.putUser(
-      seller.copyWith(credits: roundCredits(seller.credits + payout)),
-    );
     final done = a.copyWith(status: AuctionStatus.sold);
-    await _storage.putAuction(done);
-
-    // Jedan zapis za obje strane (vidi LoopTransaction.typeFor).
-    await _storage.putTransaction(
+    // Jedan zapis za obje strane (vidi LoopTransaction.typeFor) — s ID-jem
+    // aukcije i upisan samo jednom (atomski): ako dva uređaja istovremeno
+    // zaključuju istu aukciju, prodaju i dostavu radi samo prvi.
+    final claimed = await _storage.claimTransaction(
       LoopTransaction(
-        id: _uuid.v4(),
+        id: 'auction-${a.id}',
         type: TransactionType.sell,
         userId: seller.id,
         deviceId: device.id,
@@ -478,6 +474,15 @@ class AuctionService {
         isAuction: true,
       ),
     );
+    if (!claimed) {
+      await _storage.putAuction(done);
+      return AuctionResult(done, winnerId: winner.id);
+    }
+    await _storage.putDevice(device.withOwner(winner.id));
+    await _storage.putUser(
+      seller.copyWith(credits: roundCredits(seller.credits + payout)),
+    );
+    await _storage.putAuction(done);
     await _storage.recordSnapshot(seller.id, now: at);
     await _storage.recordSnapshot(winner.id, now: at);
     final inbox = Inbox(_storage);
@@ -509,6 +514,7 @@ class AuctionService {
     }
     // Pobjednik bira način dostave u "Moje dostave".
     await DeliveryService(_storage).createPending(
+      id: 'auction-${a.id}',
       userId: winner.id,
       deviceId: device.id,
       deviceName: a.deviceName,

@@ -102,6 +102,26 @@ void main() {
       );
       expect(pinNotes, hasLength(1));
       expect(pinNotes.single.args.last, BoxNowDemo.pickupPin(d));
+      // PIN-ovi stižu i kao službene poruke od Subhasta.
+      final sys = storage.messages.where((m) => m.senderId == 'subhasto');
+      expect(
+        sys.any(
+          (m) =>
+              m.receiverId == seller &&
+              m.text.contains(BoxNowDemo.dropOffPin(d)),
+        ),
+        isTrue,
+      );
+      expect(
+        sys.any(
+          (m) =>
+              m.receiverId == demo && m.text.contains(BoxNowDemo.pickupPin(d)),
+        ),
+        isTrue,
+      );
+      // PIN-ovi su nasumični (spremljeni uz pošiljku), ne iz broja pošiljke.
+      expect(d.pickupPin, isNotNull);
+      expect(d.dropOffPin, isNotNull);
       // Kupac preuzeo → automatski potvrđeno (bez gumba).
       final later = start.add(const Duration(minutes: 10));
       expect(await deliveries.autoConfirmPickups(demo, now: later), 1);

@@ -705,7 +705,7 @@ class ProfileHeader extends ConsumerWidget {
                         : 14,
                   ),
                 ),
-                if (user.seller case final info? when info.isBusiness) ...[
+                if (user.traderInfo case final info?) ...[
                   const SizedBox(height: 6),
                   Container(
                     key: const ValueKey('profile-business'),
@@ -718,7 +718,7 @@ class ProfileHeader extends ConsumerWidget {
                       borderRadius: BorderRadius.circular(99),
                     ),
                     child: Text(
-                      t('🏪 Trgovac · {0}', [info.tradeName]),
+                      t('🏪 Trgovac · {0}', [info.name]),
                       style: const TextStyle(
                         fontWeight: FontWeight.w800,
                         fontSize: 12,

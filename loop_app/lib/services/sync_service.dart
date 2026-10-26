@@ -79,6 +79,7 @@ class SyncService {
     _timeout = timeout;
     // Lokalne promjene se bilježe od početka; šalju se kad veza proradi.
     _storage.onLocalChange = _queue;
+    _storage.remoteClaim = _claim;
     _restorePending();
     await _connect();
   }
@@ -130,6 +131,24 @@ class SyncService {
       lastError = '$e';
       _setStatus(SyncStatus.error);
       _scheduleReconnect();
+    }
+  }
+
+  /// Atomski upis u bazu (vidi [StorageService.claimTransaction]).
+  Future<bool?> _claim(
+    String table,
+    String id,
+    Map<String, dynamic> data,
+  ) async {
+    if (status != SyncStatus.online ||
+        !_remote.canWrite ||
+        !_tables.contains(table)) {
+      return null;
+    }
+    try {
+      return await _remote.claim(table, id, data);
+    } catch (_) {
+      return null;
     }
   }
 
@@ -244,5 +263,6 @@ class SyncService {
     _reconnect?.cancel();
     await _sub?.cancel();
     _storage.onLocalChange = null;
+    _storage.remoteClaim = null;
   }
 }

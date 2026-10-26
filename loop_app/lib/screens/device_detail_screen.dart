@@ -277,14 +277,14 @@ class DeviceDetailScreen extends ConsumerWidget {
                   // Privatna osoba ili trgovac — o tome ovise prava kupca
                   // (DSA: trgovac je jasno označen, s podacima za kontakt).
                   if (owner != null && device.isListed && !isMine)
-                    if (owner.seller case final info? when info.isBusiness)
+                    if (owner.traderInfo case final info?)
                       ListTile(
                         key: const ValueKey('seller-type'),
                         leading: Icon(
                           Icons.storefront_outlined,
                           color: LoopColors.textSecondary,
                         ),
-                        title: Text(t('Trgovac: {0}', [info.tradeName])),
+                        title: Text(t('Trgovac: {0}', [info.name])),
                         subtitle: Text(
                           [
                             buyerRightsText(owner),
@@ -292,8 +292,8 @@ class DeviceDetailScreen extends ConsumerWidget {
                               info.address,
                               'OIB ${info.oib}',
                               if (info.vatId.isNotEmpty) 'PDV ${info.vatId}',
-                              info.contactEmail,
-                              info.contactPhone,
+                              info.email,
+                              info.phone,
                             ].join(' · '),
                           ].join('\n'),
                         ),

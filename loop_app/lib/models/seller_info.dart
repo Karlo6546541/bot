@@ -215,3 +215,53 @@ class SellerInfo {
     return null;
   }
 }
+
+/// Javni podaci trgovca (DSA: trgovac mora biti prepoznatljiv s podacima
+/// za kontakt). Spremaju se uz javni profil, pa ih vide svi korisnici —
+/// za razliku od [SellerInfo] (IBAN, datum rođenja… ostaju privatni).
+class TraderPublic {
+  const TraderPublic({
+    required this.name,
+    required this.address,
+    required this.oib,
+    this.vatId = '',
+    this.email = '',
+    this.phone = '',
+  });
+
+  factory TraderPublic.of(SellerInfo i) => TraderPublic(
+    name: i.tradeName,
+    address: i.address,
+    oib: i.oib,
+    vatId: i.vatId,
+    email: i.contactEmail,
+    phone: i.contactPhone,
+  );
+
+  final String name;
+  final String address;
+  final String oib;
+  final String vatId;
+  final String email;
+  final String phone;
+
+  Map<String, dynamic> toMap() => {
+    'name': name,
+    'address': address,
+    'oib': oib,
+    'vatId': vatId,
+    'email': email,
+    'phone': phone,
+  };
+
+  static TraderPublic? fromMap(Object? m) => m is Map
+      ? TraderPublic(
+          name: m['name'] as String? ?? '',
+          address: m['address'] as String? ?? '',
+          oib: m['oib'] as String? ?? '',
+          vatId: m['vatId'] as String? ?? '',
+          email: m['email'] as String? ?? '',
+          phone: m['phone'] as String? ?? '',
+        )
+      : null;
+}

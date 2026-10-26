@@ -8,6 +8,7 @@ import '../models/loop_transaction.dart';
 import '../models/app_notification.dart';
 import 'boxnow/boxnow.dart';
 import 'boxnow/boxnow_demo.dart';
+import 'chat_service.dart';
 import 'inbox.dart';
 import 'storage_service.dart';
 import 'trade_service.dart';
@@ -52,6 +53,11 @@ class DeliveryService {
     }
     return null;
   }
+
+  static final _secure = Random.secure();
+
+  /// Šesteroznamenkasti PIN.
+  static String _pin() => _secure.nextInt(1000000).toString().padLeft(6, '0');
 
   /// "SUBH-7KQ2M9XA"
   String _trackingNumber() {
@@ -210,6 +216,9 @@ class DeliveryService {
       cost: cost,
       trackingNumber: _trackingNumber(),
       startedAt: at,
+      // BOX NOW: nasumični PIN-ovi (sigurni generator), ne iz broja pošiljke.
+      dropOffPin: method == DeliveryMethod.parcelLocker ? _pin() : null,
+      pickupPin: method == DeliveryMethod.parcelLocker ? _pin() : null,
     );
     await _storage.putDelivery(started);
     // Prodavač dobiva kod za paketomat / etiketu (ime i adresa kupca).
@@ -219,6 +228,32 @@ class DeliveryService {
         NotificationKind.shipReady,
         args: [user.handle, d.deviceName],
         targetId: d.id,
+        now: at,
+      );
+      // Službena poruka od Subhasta s uputama (i PIN-om za BOX NOW).
+      await ChatService(_storage).sendSystem(
+        d.sellerId!,
+        method == DeliveryMethod.parcelLocker
+            ? t(
+                '📦 Pošalji "{0}" kupcu {1}.\nBOX NOW pošiljka {2} · paketomat: {3}\nPIN za predaju: {4}\nNa bilo kojem BOX NOW paketomatu odaberi "Pošalji paket" i upiši PIN.',
+                [
+                  d.deviceName,
+                  user.handle,
+                  BoxNowDemo.parcelId(started),
+                  dest ?? '',
+                  BoxNowDemo.dropOffPin(started),
+                ],
+              )
+            : t(
+                '📦 Pošalji "{0}" kupcu {1} ({2}). Kod pošiljke: {3} — otpremnica je u Moje → Otpremnice.',
+                [
+                  d.deviceName,
+                  user.handle,
+                  method.label,
+                  started.trackingNumber ?? '',
+                ],
+              ),
+        deviceId: d.deviceId,
         now: at,
       );
     }
@@ -270,6 +305,15 @@ class DeliveryService {
         NotificationKind.parcelArrived,
         args: [d.deviceName, d.destination ?? '', BoxNowDemo.pickupPin(d)],
         targetId: d.id,
+        now: at,
+      );
+      await ChatService(_storage).sendSystem(
+        userId,
+        t(
+          '📬 "{0}" te čeka u paketomatu {1}.\nPIN za preuzimanje: {2}\nNa paketomatu odaberi "Preuzmi paket" i upiši PIN.',
+          [d.deviceName, d.destination ?? '', BoxNowDemo.pickupPin(d)],
+        ),
+        deviceId: d.deviceId,
         now: at,
       );
     }

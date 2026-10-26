@@ -14,6 +14,28 @@ class ChatService {
   final StorageService _storage;
   final _uuid = const Uuid();
 
+  /// Pošiljatelj službenih poruka (PIN-ovi, upute za slanje) — razgovor
+  /// je zaključan na vrhu Poruka i ne može se odgovoriti.
+  static const systemId = 'subhasto';
+
+  /// Službena poruka od Subhasta (bez provjera korisnika i bez dodatne
+  /// obavijesti — o događaju već stiže obavijest).
+  Future<void> sendSystem(
+    String receiverId,
+    String text, {
+    String? deviceId,
+    DateTime? now,
+  }) => _storage.putMessage(
+    ChatMessage(
+      id: _uuid.v4(),
+      senderId: systemId,
+      receiverId: receiverId,
+      text: text,
+      deviceId: deviceId,
+      createdAt: now ?? DateTime.now(),
+    ),
+  );
+
   Future<ChatMessage> send({
     required String senderId,
     required String receiverId,

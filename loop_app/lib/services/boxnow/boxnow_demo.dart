@@ -2,10 +2,9 @@ import '../../l10n/tr.dart';
 import '../../models/delivery.dart';
 
 /// Demo BOX NOW integracija (bez pravog API-ja): pošiljka dobiva BOX NOW
-/// broj, PIN za predaju (prodavač) i PIN za preuzimanje (kupac), a
-/// praćenje prati korake pošiljke. Sve je izvedeno iz pošiljke, pa je
-/// isto na svakom uređaju. S pravim partnerskim API-jem ove vrijednosti
-/// vraća BOX NOW.
+/// broj (javni, iz ID-ja pošiljke), nasumičan PIN za predaju (prodavač) i
+/// PIN za preuzimanje (kupac), a praćenje prati korake pošiljke. S pravim
+/// partnerskim API-jem ove vrijednosti vraća BOX NOW.
 class BoxNowDemo {
   const BoxNowDemo._();
 
@@ -31,11 +30,12 @@ class BoxNowDemo {
   /// BOX NOW broj pošiljke (10 znamenki).
   static String parcelId(Delivery d) => '92${_digits(d.id, 1, 8)}';
 
-  /// PIN koji prodavač upiše na paketomatu kad predaje paket.
-  static String dropOffPin(Delivery d) => _digits(d.id, 2, 6);
+  /// PIN koji prodavač upiše na paketomatu kad predaje paket (nasumičan,
+  /// spremljen uz pošiljku; stare pošiljke bez PIN-a imaju zamjenski).
+  static String dropOffPin(Delivery d) => d.dropOffPin ?? _digits(d.id, 2, 6);
 
   /// PIN kojim kupac otvara pretinac (vidi ga kad paket stigne).
-  static String pickupPin(Delivery d) => _digits(d.id, 3, 6);
+  static String pickupPin(Delivery d) => d.pickupPin ?? _digits(d.id, 3, 6);
 
   /// Praćenje u stilu BOX NOW-a: (opis, kada, gotovo).
   static List<(String, DateTime?, bool)> events(Delivery d, DateTime now) {

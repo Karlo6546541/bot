@@ -132,6 +132,48 @@ void main() {
     expect(tx.feeFor(marko), 0);
   });
 
+  test(
+    'aukcija se zaključuje samo jednom (drugi uređaj je bio brži)',
+    () async {
+      final a = auction('2');
+      // Drugi uređaj je već upisao prodaju ove aukcije.
+      final first = await storage.claimTransaction(
+        LoopTransaction(
+          id: 'auction-${a.id}',
+          type: TransactionType.sell,
+          userId: ana,
+          deviceId: a.deviceId,
+          deviceName: a.deviceName,
+          price: 60,
+          fee: 0,
+          amount: 60,
+          sellerId: ana,
+          sellerLabel: 'ana',
+          buyerId: marko,
+          buyerLabel: 'marko',
+          createdAt: a.endsAt,
+          isAuction: true,
+        ),
+      );
+      expect(first, isTrue);
+      final before = credits(ana);
+      await auctions.settleExpired(
+        now: a.endsAt.add(const Duration(seconds: 1)),
+      );
+      // Bez druge prodaje, druge dostave i dvostruke zarade.
+      expect(
+        storage.transactions.where((t) => t.id == 'auction-${a.id}'),
+        hasLength(1),
+      );
+      expect(
+        storage.deliveries.where((d) => d.deviceId == a.deviceId),
+        isEmpty,
+      );
+      expect(auction('2').status, AuctionStatus.sold);
+      expect(credits(ana), greaterThanOrEqualTo(before));
+    },
+  );
+
   test('istek bez ponuda: predmet ostaje prodavatelju', () async {
     final a = auction('3');
     await auctions.settleExpired(now: a.endsAt.add(const Duration(minutes: 1)));

@@ -57,11 +57,11 @@ Future<bool> runWithLoading(
 /// kupac ima pravo na povrat u 14 dana i zakonsko jamstvo, od privatne
 /// osobe nema.
 String buyerRightsText(AppUser? seller) {
-  final info = seller?.seller;
-  if (info != null && info.isBusiness) {
+  final info = seller?.traderInfo;
+  if (info != null) {
     return t(
       'Prodavatelj je trgovac ({0}): imaš pravo na povrat u 14 dana od primitka i zakonsko jamstvo.',
-      [info.tradeName],
+      [info.name],
     );
   }
   return t(

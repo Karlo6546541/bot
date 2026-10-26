@@ -128,6 +128,30 @@ class StorageService {
   void Function(String table, String id, Map<String, dynamic>? data)?
   onLocalChange;
 
+  /// Online "zauzimanje" zapisa (postavlja sinkronizacija dok je veza
+  /// aktivna). Bez njega vrijedi samo lokalna provjera.
+  /// Vraća `true` (upisano u bazu), `false` (već postoji) ili `null`
+  /// (nema veze — upis ide kroz običnu sinkronizaciju).
+  Future<bool?> Function(String table, String id, Map<String, dynamic> data)?
+  remoteClaim;
+
+  /// Upiše transakciju [tx] samo ako takva još ne postoji — lokalno i u
+  /// online bazi. Tako se isti komad ne proda dvaput, a aukcija ne
+  /// zaključi dvaput (dva uređaja istovremeno).
+  Future<bool> claimTransaction(LoopTransaction tx) async {
+    if (_transactions.containsKey(tx.id)) return false;
+    final data = tx.toMap();
+    final claimed = await remoteClaim?.call(_transactionsBox, tx.id, data);
+    if (claimed == false) return false;
+    if (claimed == true) {
+      // Već je u bazi — samo lokalno (bez ponovnog slanja).
+      await _transactions.put(tx.id, data);
+    } else {
+      await _write(_transactionsBox, tx.id, data);
+    }
+    return true;
+  }
+
   Map<String, Box<Map>> get _tables => {
     _usersBox: _users,
     _devicesBox: _devices,

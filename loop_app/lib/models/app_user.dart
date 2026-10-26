@@ -36,6 +36,7 @@ class AppUser {
     this.wishlists = const [],
     this.mutedNotifications = const [],
     this.seller,
+    this.trader,
     this.promotedUntil,
     this.shopName = '',
     this.coverPath,
@@ -105,6 +106,18 @@ class AppUser {
 
   /// Podaci prodavatelja (DAC7) — traže se prije prve objave.
   final SellerInfo? seller;
+
+  /// Javni podaci trgovca (vidljivi svima) — postoje samo za trgovce.
+  final TraderPublic? trader;
+
+  /// Trgovac (obrt, tvrtka) — po privatnim podacima (vlasnik) ili javnoj
+  /// oznaci (svi ostali korisnici).
+  bool get isTrader => seller?.isBusiness ?? (trader != null);
+
+  /// Javni podaci trgovca (za oznaku, prava kupca i ograničenja).
+  TraderPublic? get traderInfo => seller != null
+      ? (seller!.isBusiness ? TraderPublic.of(seller!) : null)
+      : trader;
 
   Wishlist? wishlistById(String id) {
     for (final w in wishlists) {
@@ -181,6 +194,8 @@ class AppUser {
     List<Wishlist>? wishlists,
     List<String>? mutedNotifications,
     SellerInfo? seller,
+    TraderPublic? trader,
+    bool clearTrader = false,
     DateTime? promotedUntil,
     String? shopName,
     String? coverPath,
@@ -213,6 +228,7 @@ class AppUser {
     wishlists: wishlists ?? this.wishlists,
     mutedNotifications: mutedNotifications ?? this.mutedNotifications,
     seller: seller ?? this.seller,
+    trader: clearTrader ? null : trader ?? this.trader,
     promotedUntil: promotedUntil ?? this.promotedUntil,
     shopName: shopName ?? this.shopName,
     coverPath: clearCover ? null : coverPath ?? this.coverPath,
@@ -244,6 +260,7 @@ class AppUser {
     'wishlists': [for (final w in wishlists) w.toMap()],
     if (mutedNotifications.isNotEmpty) 'mutedNotifications': mutedNotifications,
     if (seller != null) 'seller': seller!.toMap(),
+    if (trader != null) 'trader': trader!.toMap(),
     'promotedUntil': promotedUntil?.toIso8601String(),
     'shopName': shopName,
     'coverPath': coverPath,
@@ -281,6 +298,7 @@ class AppUser {
     ],
     mutedNotifications:
         (map['mutedNotifications'] as List?)?.cast<String>() ?? const [],
+    trader: TraderPublic.fromMap(map['trader']),
     seller: map['seller'] is Map
         ? SellerInfo.fromMap(map['seller'] as Map)
         : null,

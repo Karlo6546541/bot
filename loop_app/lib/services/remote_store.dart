@@ -22,6 +22,10 @@ abstract class RemoteStore {
   Future<void> upsert(String table, String id, Map<String, dynamic> data);
   Future<void> delete(String table, String id);
 
+  /// Upis samo ako zapis još ne postoji (atomski u bazi). `false` znači da
+  /// ga je netko već upisao — npr. drugi kupac je upravo kupio isti komad.
+  Future<bool> claim(String table, String id, Map<String, dynamic> data);
+
   /// Smije li pisati (online baza prima izmjene samo od prijavljenih).
   bool get canWrite;
   Future<void> clearAll(List<String> tables);
@@ -56,9 +60,20 @@ class SupabaseRemoteStore implements RemoteStore {
 
   /// `null` ako tablica još ne postoji u bazi.
   Future<Map<String, Map<String, dynamic>>?> _pull(String t) async {
-    final List<Map<String, dynamic>> rows;
+    // Baza vraća najviše 1000 redaka po upitu — čitaj po stranicama da se
+    // ništa ne izgubi (npr. velika tablica live događaja).
+    const page = 1000;
+    final rows = <Map<String, dynamic>>[];
     try {
-      rows = await _client.from(tableName(t)).select('id, data');
+      for (var from = 0; ; from += page) {
+        final chunk = await _client
+            .from(tableName(t))
+            .select('id, data')
+            .order('id')
+            .range(from, from + page - 1);
+        rows.addAll(chunk);
+        if (chunk.length < page) break;
+      }
     } on PostgrestException catch (e) {
       if (e.code == '42P01' ||
           e.code == 'PGRST205' ||
@@ -91,6 +106,22 @@ class SupabaseRemoteStore implements RemoteStore {
           'data': data,
           'updated_at': DateTime.now().toUtc().toIso8601String(),
         });
+
+  @override
+  Future<bool> claim(String table, String id, Map<String, dynamic> data) async {
+    try {
+      await _client.from(tableName(table)).insert({
+        'id': id,
+        'data': data,
+        'updated_at': DateTime.now().toUtc().toIso8601String(),
+      });
+      return true;
+    } on PostgrestException catch (e) {
+      // 23505 = jedinstveni ključ već postoji (netko je bio brži).
+      if (e.code == '23505' || e.code == '409') return false;
+      rethrow;
+    }
+  }
 
   @override
   Future<void> delete(String table, String id) => _skip(table, id)

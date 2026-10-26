@@ -13,6 +13,15 @@ class FakeRemote implements RemoteStore {
   final data = <String, Map<String, Map<String, dynamic>>>{};
   final _changes = StreamController<RemoteChange>.broadcast();
   bool failPull = false;
+
+  @override
+  Future<bool> claim(String table, String id, Map<String, dynamic> d) async {
+    final t = data[table] ??= {};
+    if (t.containsKey(id)) return false;
+    t[id] = d;
+    return true;
+  }
+
   int upserts = 0;
 
   @override
@@ -250,4 +259,26 @@ void main() {
       expect(storage.userById(SeedData.demoUserId)!.seller!.oib, '12345678903');
     },
   );
+
+  test('isti komad ne može se prodati dvaput (dva uređaja)', () async {
+    final sync = SyncService(storage, remote);
+    await sync.start();
+    // Drugi uređaj je već zauzeo ovaj komad u bazi.
+    final own = storage.devices.firstWhere(
+      (x) => !x.isDigital && x.ownerId == SeedData.anaUserId,
+    );
+    await storage.putDevice(own.withListing(50));
+    final d = storage.deviceById(own.id)!;
+    final seller = storage.userById(d.ownerId!)!;
+    remote.data['transactions']!['sale-${d.id}-${seller.id}-${d.listedAt?.millisecondsSinceEpoch ?? 0}-${d.quantity}'] =
+        {'id': 'drugi'};
+    await expectLater(
+      TradeService(storage).buy(userId: SeedData.demoUserId, deviceId: d.id),
+      throwsA(isA<TradeException>()),
+    );
+    // Ništa se nije promijenilo: predmet i zarada prodavatelja ostaju.
+    expect(storage.deviceById(d.id)!.ownerId, seller.id);
+    expect(storage.userById(seller.id)!.credits, seller.credits);
+    await sync.dispose();
+  });
 }

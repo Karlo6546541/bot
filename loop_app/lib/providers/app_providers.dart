@@ -914,6 +914,17 @@ class AppController extends Notifier<AppState> {
     _refresh();
   }
 
+  /// Trgovci iz starijih verzija: objavi javnu oznaku trgovca (jednom).
+  Future<void> publishTraderFlag() async {
+    final u = state.currentUser;
+    final info = u?.seller;
+    if (u == null || info == null || !info.isBusiness || u.trader != null) {
+      return;
+    }
+    await _storage.putUser(u.copyWith(trader: TraderPublic.of(info)));
+    _refresh();
+  }
+
   /// Paketomat: preuzete pošiljke se same potvrđuju.
   Future<void> autoConfirmPickups() async {
     final me = state.currentUserId;
@@ -1144,7 +1155,14 @@ class AppController extends Notifier<AppState> {
       contactPhone: info.contactPhone,
     );
     if (error != null) throw TradeException(error);
-    await _storage.putUser(user.copyWith(seller: info));
+    // Trgovac: javna oznaka uz profil (vide je svi); privatna osoba: bez.
+    await _storage.putUser(
+      user.copyWith(
+        seller: info,
+        trader: info.isBusiness ? TraderPublic.of(info) : null,
+        clearTrader: !info.isBusiness,
+      ),
+    );
     _refresh();
   }
 

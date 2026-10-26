@@ -988,8 +988,7 @@ class LiveService {
   }
 
   /// Trgovac (obrt, tvrtka) smije više predmeta u jednom liveu.
-  int _maxLots(String hostId) =>
-      _storage.userById(hostId)?.seller?.isBusiness ?? false
+  int _maxLots(String hostId) => _storage.userById(hostId)?.isTrader ?? false
       ? LiveShow.businessMaxLots
       : LiveShow.maxLots;
 
@@ -1030,11 +1029,9 @@ class LiveService {
     final price = l.price;
     final fee = auctionCommission(price, l.lot.basePrice);
     final payout = auctionPayout(price, l.lot.basePrice);
-    await _storage.putDevice(device.withOwner(winner.id));
-    await _storage.putUser(
-      seller.copyWith(credits: roundCredits(seller.credits + payout)),
-    );
-    await _storage.putTransaction(
+    // Upis prodaje samo jednom (atomski) — domaćin i pobjednik mogu
+    // istovremeno provoditi prodaju s dva uređaja.
+    final claimed = await _storage.claimTransaction(
       LoopTransaction(
         id: txId,
         type: TransactionType.sell,
@@ -1051,6 +1048,11 @@ class LiveService {
         createdAt: l.end!,
         isAuction: true,
       ),
+    );
+    if (!claimed) return;
+    await _storage.putDevice(device.withOwner(winner.id));
+    await _storage.putUser(
+      seller.copyWith(credits: roundCredits(seller.credits + payout)),
     );
     await _storage.recordSnapshot(seller.id, now: at);
     await _storage.recordSnapshot(winner.id, now: at);
