@@ -42,7 +42,7 @@ void main() {
     expect(credits(marko), 1500);
     expect(storage.deviceById('seed-34')!.ownerId, ana);
     expect(auction('1').currentPrice, 320);
-    expect(auction('1').minNextBid, 336); // 320 + 5%
+    expect(auction('1').minNextBid, 321); // 320 + 1 €
   });
 
   test('ponuda ne dira stanje (pobjednik plaća karticom na kraju)', () async {
@@ -77,7 +77,7 @@ void main() {
         auctions.placeBid(
           userId: tester,
           auctionId: 'seed-auction-1',
-          amount: 330,
+          amount: 320,
         ),
         throwsA(isA<TradeException>()),
       );
@@ -218,14 +218,14 @@ void main() {
       expect(credits(demo), 1250); // ništa se ne blokira
       expect(auction('1').autoMaxOf(demo), 500);
 
-      // Test nudi 360 — demo automatski odgovara korakom (360 + 18).
+      // Test nudi 360 — demo automatski odgovara korakom (360 + 1).
       await auctions.placeBid(
         userId: tester,
         auctionId: 'seed-auction-1',
         amount: 360,
       );
       expect(auction('1').highestBid!.userId, demo);
-      expect(auction('1').highestBid!.amount, 378);
+      expect(auction('1').highestBid!.amount, 361);
       expect(credits(demo), 1250);
       expect(credits(tester), 800);
       expect(
@@ -235,7 +235,7 @@ void main() {
         isTrue,
       );
 
-      // Test s automatskom do 600 nadmašuje demo maksimum (500 + 25).
+      // Test s automatskom do 600 nadmašuje demo maksimum (500 + 1).
       await auctions.placeBid(
         userId: tester,
         auctionId: 'seed-auction-1',
@@ -244,7 +244,7 @@ void main() {
       );
       final a = auction('1');
       expect(a.highestBid!.userId, tester);
-      expect(a.highestBid!.amount, 525);
+      expect(a.highestBid!.amount, 501);
       expect(a.bids[a.bids.length - 2].amount, 500); // demo do maksimuma
       expect(credits(demo), 1250);
       expect(credits(tester), 800);

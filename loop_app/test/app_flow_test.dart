@@ -138,10 +138,10 @@ void main() {
       await tester.tap(find.byTooltip('Natrag'));
       await tester.pumpAndSettle();
 
-      // Moje → Kupujem → Kupljeno (prvo), pa Ponude.
+      // Moje → Kupljeno (prvo), pa Ponude.
       await tester.tap(find.text('Moje').last);
       await tester.pumpAndSettle();
-      await tester.tap(find.byKey(const ValueKey('my-buying')));
+      await tester.tap(find.byKey(const ValueKey('my-bought')));
       await tester.pumpAndSettle();
       expect(find.byKey(const ValueKey('my-bought')), findsOneWidget);
       await tester.tap(find.byKey(const ValueKey('my-myBids')));
@@ -189,20 +189,22 @@ void main() {
     await tester.tap(find.text('Prijavi se'));
     await tester.pumpAndSettle();
 
-    // Moji predmeti: bez grafikona, samo filtri i popis.
+    // Prodajem: samo ono što je na prodaji; ostalo skriveno ispod.
     await openMyItems(tester);
     expect(find.text('Vrijednost kroz vrijeme'), findsNothing);
-    expect(find.byKey(const ValueKey('my-items-all')), findsOneWidget);
-    final all = find.byType(DeviceCard).evaluate().length;
-    expect(all, greaterThan(0));
-    await tester.tap(find.byKey(const ValueKey('my-items-selling')));
-    await tester.pumpAndSettle();
     final selling = find.byType(DeviceCard).evaluate().length;
-    await tester.tap(find.byKey(const ValueKey('my-items-notSelling')));
-    await tester.pumpAndSettle();
-    final notSelling = find.byType(DeviceCard).evaluate().length;
-    expect(selling + notSelling, lessThanOrEqualTo(all));
-    expect(selling + notSelling, greaterThan(0));
+    final idle = find.byKey(const ValueKey('my-items-idle'));
+    if (idle.evaluate().isNotEmpty) {
+      await tester.ensureVisible(idle);
+      await tester.pumpAndSettle();
+      await tester.tap(idle);
+      await tester.pumpAndSettle();
+      expect(
+        find.byType(DeviceCard).evaluate().length,
+        greaterThanOrEqualTo(selling),
+      );
+    }
+    expect(selling + idle.evaluate().length, greaterThan(0));
   });
 
   testWidgets('aukcija: ponuda, vodstvo, zaključan obrazac', (tester) async {
@@ -219,16 +221,16 @@ void main() {
     expect(find.text('Polaroid SX-70'), findsOneWidget);
 
     await openAuction(tester, 'Polaroid SX-70');
-    expect(find.textContaining('Najmanja ponuda: 63 €'), findsOneWidget);
+    expect(find.textContaining('Najmanja ponuda: 61 €'), findsOneWidget);
 
     // Licitiranje u listu: premalo → poruka; zatim prava ponuda.
     await tester.tap(find.byKey(const ValueKey('open-bid')));
     await tester.pumpAndSettle();
-    await tester.enterText(find.byKey(const ValueKey('bid-amount')), '61');
+    await tester.enterText(find.byKey(const ValueKey('bid-amount')), '60');
     await tester.pumpAndSettle();
     await tester.tap(find.byKey(const ValueKey('bid-submit')));
     await tester.pumpAndSettle();
-    expect(find.text('Najmanja ponuda je 63 €.'), findsOneWidget);
+    expect(find.text('Najmanja ponuda je 61 €.'), findsOneWidget);
 
     await tester.enterText(find.byKey(const ValueKey('bid-amount')), '70');
     await tester.pumpAndSettle();

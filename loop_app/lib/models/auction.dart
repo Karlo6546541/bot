@@ -131,11 +131,8 @@ class Auction {
   /// Najmanji korak povećanja: 5% trenutne cijene, najmanje 1 €.
   double get minIncrement => stepFor(currentPrice);
 
-  /// Korak za zadanu cijenu: 5%, zaokruženo naviše, najmanje 1 €.
-  static double stepFor(double price) {
-    final step = (price * 0.05).ceilToDouble();
-    return step < 1 ? 1 : step;
-  }
+  /// Korak licitiranja: uvijek 1 € (i na aukcijama i u liveu).
+  static double stepFor(double price) => 1;
 
   /// Najmanja dopuštena sljedeća ponuda.
   double get minNextBid =>

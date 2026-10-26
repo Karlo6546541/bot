@@ -2308,4 +2308,17 @@ const kEn = <String, String>{
   'Preuzeto': 'Picked up',
   'Preuzeto iz paketomata ✅': 'Picked up from the locker ✅',
   '{0} je preuzeo "{1}" iz paketomata.': '{0} picked up "{1}" from the locker.',
+  'Nema pošiljki': 'No shipments',
+  'Ovdje su paketi koje šalješ i koji stižu tebi — s kodom za paketomat.':
+      'Parcels you send and ones coming to you — with the locker code.',
+  '⏳ Odaberi dostavu': '⏳ Choose delivery',
+  '📤 Za poslati ({0})': '📤 To ship ({0})',
+  '📥 Stiže meni': '📥 Coming to me',
+  '✓ Završeno': '✓ Done',
+  'Pokreni live i prodaj prvi predmet.': 'Go live and sell your first item.',
+  'Još ništa ne prodaješ': 'You\'re not selling anything yet',
+  'Objavi predmet za Kupi odmah, aukciju ili live.':
+      'List an item for Buy now, an auction or a show.',
+  'Sakrij one koji nisu na prodaji': 'Hide items not for sale',
+  'Nije na prodaji ({0})': 'Not for sale ({0})',
 };

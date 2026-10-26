@@ -118,18 +118,9 @@ class MyItemsView extends ConsumerStatefulWidget {
   ConsumerState<MyItemsView> createState() => _MyItemsViewState();
 }
 
-enum _ItemsFilter {
-  all('Sve'),
-  selling('Na prodaji'),
-  notSelling('Nije na prodaji');
-
-  const _ItemsFilter(this._label);
-  final String _label;
-  String get label => t(_label);
-}
-
 class _MyItemsViewState extends ConsumerState<MyItemsView> {
-  _ItemsFilter _filter = _ItemsFilter.all;
+  /// Predmeti koji nisu na prodaji (skice) — skriveni dok se ne otvore.
+  bool _showIdle = false;
 
   @override
   Widget build(BuildContext context) {
@@ -148,51 +139,24 @@ class _MyItemsViewState extends ConsumerState<MyItemsView> {
     // Kupljene stvari su portfolio u "Kupujem → Kupljeno"; ovdje samo
     // ako ih je korisnik sam ponovno stavio na prodaju.
     final own = mine.where((d) => !bought(d) || selling(d)).toList();
-    final list = switch (_filter) {
-      _ItemsFilter.all => own,
-      _ItemsFilter.selling => own.where(selling).toList(),
-      _ItemsFilter.notSelling => own.where((d) => !selling(d)).toList(),
-    };
-    void onGoToMarket() {
-      Navigator.of(context).popUntil((r) => r.isFirst);
-      ref.read(homeTabProvider.notifier).select(0);
-    }
-
+    // Prodajem = samo ono što je stvarno na prodaji (Kupi odmah, aukcija).
+    final onSale = own.where(selling).toList();
+    final idle = own.where((d) => !selling(d)).toList();
+    final list = _showIdle ? [...onSale, ...idle] : onSale;
     return CustomScrollView(
       slivers: [
-        SliverToBoxAdapter(
-          child: SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            padding: const EdgeInsets.fromLTRB(16, 4, 16, 12),
-            child: Row(
-              children: [
-                for (final f in _ItemsFilter.values)
-                  Padding(
-                    padding: const EdgeInsets.only(right: 8),
-                    child: ChoiceChip(
-                      key: ValueKey('my-items-${f.name}'),
-                      label: Text(f.label),
-                      selected: _filter == f,
-                      onSelected: (_) => setState(() => _filter = f),
-                    ),
-                  ),
-              ],
-            ),
-          ),
-        ),
         if (list.isEmpty)
           SliverFillRemaining(
             hasScrollBody: false,
             child: EmptyState(
               icon: Icons.inventory_2_outlined,
-              title: _filter == _ItemsFilter.all
-                  ? t('Još nemaš predmeta')
-                  : t('Ovdje još nema ničega'),
-              message: t('Dodaj svoj predmet ili kupi nešto.'),
-              action: OutlinedButton.icon(
-                onPressed: onGoToMarket,
-                icon: const Icon(Icons.storefront),
-                label: Text(t('Istraži')),
+              title: t('Još ništa ne prodaješ'),
+              message: t('Objavi predmet za Kupi odmah, aukciju ili live.'),
+              action: FilledButton.icon(
+                key: const ValueKey('my-items-add-empty'),
+                onPressed: () => AddDeviceScreen.open(context),
+                icon: const Icon(Icons.add),
+                label: Text(t('Objavi')),
               ),
             ),
           )
@@ -243,6 +207,21 @@ class _MyItemsViewState extends ConsumerState<MyItemsView> {
                     : null,
               );
             },
+          ),
+        if (idle.isNotEmpty)
+          SliverToBoxAdapter(
+            child: Center(
+              child: TextButton.icon(
+                key: const ValueKey('my-items-idle'),
+                onPressed: () => setState(() => _showIdle = !_showIdle),
+                icon: Icon(_showIdle ? Icons.expand_less : Icons.expand_more),
+                label: Text(
+                  _showIdle
+                      ? t('Sakrij one koji nisu na prodaji')
+                      : t('Nije na prodaji ({0})', ['${idle.length}']),
+                ),
+              ),
+            ),
           ),
         const SliverToBoxAdapter(child: SizedBox(height: 96)),
       ],

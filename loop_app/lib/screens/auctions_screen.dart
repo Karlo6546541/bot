@@ -25,30 +25,26 @@ import 'portfolio_screen.dart';
 import 'seller_screens.dart';
 import 'deliveries_screen.dart';
 import 'device_detail_screen.dart';
-import 'create_auction_screen.dart';
 import 'live_screens.dart';
 import 'login_screen.dart';
 import 'swipe_feed_screen.dart';
 import '../l10n/tr.dart';
 
-/// Moje: na kojima licitiram, koje prodajem, moji liveovi i završene.
+/// Moje: jedan red kartica (bez "Kupujem / Prodajem").
 enum AuctionView {
-  // Kupujem
-  bought('Kupljeno', Icons.shopping_bag_outlined, selling: false),
-  myBids('Ponude', Icons.back_hand_outlined, selling: false),
-  // Prodajem
-  items('Predmeti', Icons.inventory_2_outlined, selling: true),
-  toShip('Za poslati', Icons.local_shipping_outlined, selling: true),
-  mine('Aukcije', Icons.gavel, selling: true),
-  lives('Liveovi', Icons.videocam_outlined, selling: true);
+  bought('Kupljeno', Icons.shopping_bag_outlined),
+  myBids('Ponude', Icons.back_hand_outlined),
+  items('Prodajem', Icons.sell_outlined),
+  deliveries('Dostave', Icons.local_shipping_outlined),
+  lives('Liveovi', Icons.videocam_outlined);
 
-  const AuctionView(this._label, this.icon, {required this.selling});
+  const AuctionView(this._label, this.icon);
   final String _label;
   String get label => t(_label);
   final IconData icon;
 
-  /// Dio "Prodajem" (inače "Kupujem").
-  final bool selling;
+  /// Ključ kartice (testovi i stari linkovi: Prodajem = "my-selling").
+  String get key => this == items ? 'my-selling' : 'my-$name';
 }
 
 /// Odnos prijavljenog korisnika prema aukciji (za oznaku na kartici).
@@ -754,16 +750,6 @@ class _MyAuctionsViewState extends ConsumerState<MyAuctionsView> {
   /// Najprije ono što je kupljeno (i čeka odabir dostave).
   AuctionView _view = AuctionView.bought;
 
-  List<Auction> _filter(AppState s, String me) => switch (_view) {
-    AuctionView.myBids =>
-      s.auctions.where((a) => a.bids.any((b) => b.userId == me)).toList(),
-    AuctionView.mine => s.auctions.where((a) => a.sellerId == me).toList(),
-    AuctionView.lives ||
-    AuctionView.bought ||
-    AuctionView.items ||
-    AuctionView.toShip => const [],
-  };
-
   @override
   Widget build(BuildContext context) {
     final s = ref.watch(appProvider);
@@ -785,9 +771,12 @@ class _MyAuctionsViewState extends ConsumerState<MyAuctionsView> {
       );
     }
     final me = s.currentUserId ?? '';
-    final list = _filter(s, me);
+    final user = s.currentUser!;
+    final bids = s.auctions
+        .where((a) => a.bids.any((b) => b.userId == me))
+        .toList();
     final lives = s.liveShows.where((l) => l.hostId == me).toList();
-    // Kupljeno: prvo ono što čeka odabir dostave, zatim u dostavi.
+    // Kupljeno: prvo ono što čeka odabir dostave, zatim ostalo.
     final bought = [...s.myDeliveries]
       ..sort((a, b) {
         if (a.awaitingChoice != b.awaitingChoice) {
@@ -795,68 +784,45 @@ class _MyAuctionsViewState extends ConsumerState<MyAuctionsView> {
         }
         return b.createdAt.compareTo(a.createdAt);
       });
+    // Dostave: što šaljem i što stiže meni, na jednom mjestu.
     final toShip = s.toShip;
-    final empty = switch (_view) {
-      AuctionView.toShip => toShip.isEmpty,
-      AuctionView.lives => lives.isEmpty,
-      AuctionView.bought => bought.isEmpty,
-      _ => list.isEmpty,
-    };
+    final now = DateTime.now();
+    final incoming = [
+      for (final d in bought)
+        if (d.method != DeliveryMethod.digital &&
+            !d.awaitingChoice &&
+            d.confirmedAt == null)
+          d,
+    ];
+    final doneDeliveries = [
+      for (final d in [...bought, ...s.sellerDeliveries])
+        if (d.method != null &&
+            d.method != DeliveryMethod.digital &&
+            (d.confirmedAt != null || (d.sellerId == me && d.isDelivered(now))))
+          d,
+    ];
+    final waiting =
+        toShip.length + bought.where((d) => d.awaitingChoice).length;
 
-    final selling = _view.selling;
-    final user = s.currentUser;
-    // Moje = dvije stvari: što kupujem i što prodajem.
     final header = Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         Padding(
-          padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
-          child: SegmentedButton<bool>(
-            showSelectedIcon: false,
-            segments: [
-              ButtonSegment(
-                value: false,
-                icon: const Icon(Icons.shopping_bag_outlined, size: 18),
-                label: Text(t('Kupujem'), key: const ValueKey('my-buying')),
-              ),
-              ButtonSegment(
-                value: true,
-                icon: const Icon(Icons.storefront_outlined, size: 18),
-                label: Text(t('Prodajem'), key: const ValueKey('my-selling')),
-              ),
-            ],
-            selected: {selling},
-            onSelectionChanged: (v) => setState(
-              () => _view = v.first ? AuctionView.items : AuctionView.bought,
-            ),
-          ),
-        ),
-        SingleChildScrollView(
-          scrollDirection: Axis.horizontal,
-          padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+          padding: const EdgeInsets.fromLTRB(10, 8, 10, 8),
           child: Row(
             children: [
               for (final v in AuctionView.values)
-                if (v.selling == selling)
-                  Padding(
-                    padding: const EdgeInsets.only(right: 8),
-                    child: ChoiceChip(
-                      avatar: Icon(v.icon, size: 18),
-                      label: Text(
-                        v == AuctionView.toShip && toShip.isNotEmpty
-                            ? '${v.label} (${toShip.length})'
-                            : v.label,
-                        key: ValueKey('my-${v.name}'),
-                      ),
-                      selected: _view == v,
-                      onSelected: (_) => setState(() => _view = v),
-                    ),
-                  ),
+                _MyTab(
+                  view: v,
+                  selected: _view == v,
+                  badge: v == AuctionView.deliveries ? waiting : 0,
+                  onTap: () => setState(() => _view = v),
+                ),
             ],
           ),
         ),
-        // Zarada (Prodajem): iznos i isplata.
-        if (selling && user != null)
+        // Zarada samo pod Prodajem.
+        if (_view == AuctionView.items)
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
             child: Card(
@@ -894,152 +860,262 @@ class _MyAuctionsViewState extends ConsumerState<MyAuctionsView> {
       );
     }
 
-    return Column(
-      children: [
-        header,
-        Expanded(
-          child: CustomScrollView(
-            slivers: [
-              if (empty)
-                SliverFillRemaining(
-                  hasScrollBody: false,
-                  child: EmptyState(
-                    icon: switch (_view) {
-                      AuctionView.toShip => Icons.local_shipping_outlined,
-                      AuctionView.lives => Icons.videocam_outlined,
-                      AuctionView.bought => Icons.shopping_bag_outlined,
-                      _ => Icons.gavel,
-                    },
-                    title: switch (_view) {
-                      AuctionView.bought => t('Još ništa nisi kupio'),
-                      AuctionView.myBids => t('Još nisi dao nijednu ponudu'),
-                      AuctionView.mine ||
-                      AuctionView.items => t('Nemaš svojih aukcija'),
-                      AuctionView.lives => t('Još nisi bio uživo'),
-                      AuctionView.toShip => t('Nema paketa za poslati'),
-                    },
-                    message: switch (_view) {
-                      AuctionView.bought => t(
-                        'Ovdje su tvoje kupnje i pobjede — odabereš dostavu i pratiš paket.',
-                      ),
-                      AuctionView.myBids => t(
-                        'Licitiraj u liveu ili na aukciji — tvoje ponude bit će ovdje.',
-                      ),
-                      AuctionView.toShip => t(
-                        'Kad kupac odabere dostavu, paket se pojavi ovdje s adresom.',
-                      ),
-                      _ => t('Pokreni aukciju ili live i prodaj prvi predmet.'),
-                    },
-                    action: switch (_view) {
-                      AuctionView.myBids || AuctionView.bought =>
-                        widget.onBrowse == null
-                            ? null
-                            : FilledButton.icon(
-                                key: const ValueKey('my-empty-browse'),
-                                onPressed: widget.onBrowse,
-                                icon: const Icon(Icons.explore_outlined),
-                                label: Text(t('Istraži')),
-                              ),
-                      AuctionView.toShip => null,
-                      AuctionView.mine ||
-                      AuctionView.items => FilledButton.icon(
-                        key: const ValueKey('my-empty-auction'),
-                        onPressed: () => CreateAuctionScreen.open(context),
-                        icon: const Icon(Icons.gavel),
-                        label: Text(t('Nova aukcija')),
-                      ),
-                      AuctionView.lives => FilledButton.icon(
-                        key: const ValueKey('my-empty-live'),
-                        style: FilledButton.styleFrom(
-                          backgroundColor: kLiveRed,
-                          foregroundColor: Colors.white,
-                        ),
-                        onPressed: () => CreateLiveShowScreen.open(context),
-                        icon: const Icon(Icons.videocam),
-                        label: Text(t('Kreni uživo')),
-                      ),
-                    },
+    Widget section(String title) => Padding(
+      padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+      child: Text(
+        title,
+        style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 16),
+      ),
+    );
+
+    final List<Widget> slivers = switch (_view) {
+      AuctionView.bought when bought.isEmpty && s.myDigitalPurchases.isEmpty => [
+        SliverFillRemaining(
+          hasScrollBody: false,
+          child: EmptyState(
+            icon: Icons.shopping_bag_outlined,
+            title: t('Još ništa nisi kupio'),
+            message: t(
+              'Ovdje su tvoje kupnje i pobjede — odabereš dostavu i pratiš paket.',
+            ),
+            action: widget.onBrowse == null
+                ? null
+                : FilledButton.icon(
+                    key: const ValueKey('my-empty-browse'),
+                    onPressed: widget.onBrowse,
+                    icon: const Icon(Icons.explore_outlined),
+                    label: Text(t('Istraži')),
                   ),
-                )
-              else if (_view == AuctionView.bought) ...[
-                // Prvo ono što čeka odabir dostave (treba radnju).
-                SliverList.list(
-                  children: [
-                    for (final d in bought)
-                      if (d.awaitingChoice)
-                        Padding(
-                          padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
-                          child: DeliveryCard(
-                            key: ValueKey('bought-${d.id}'),
-                            delivery: d,
-                          ),
-                        ),
-                  ],
-                ),
-                // Portfolio kupljenih stvari (bez cijena za preprodaju).
-                SliverToBoxAdapter(child: _PortfolioHeader(deliveries: bought)),
-                SliverPadding(
-                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 96),
-                  sliver: SliverGrid(
-                    gridDelegate:
-                        const SliverGridDelegateWithMaxCrossAxisExtent(
-                          maxCrossAxisExtent: 200,
-                          mainAxisSpacing: 12,
-                          crossAxisSpacing: 12,
-                          childAspectRatio: 0.68,
-                        ),
-                    delegate: SliverChildListDelegate([
-                      for (final d in bought)
-                        if (!d.awaitingChoice) _BoughtTile(delivery: d),
-                      for (final dev in s.myDigitalPurchases)
-                        _BoughtTile(digital: dev),
-                    ]),
-                  ),
-                ),
-              ] else if (_view == AuctionView.toShip)
-                SliverList.list(
-                  children: [
-                    for (final d in toShip)
-                      Padding(
-                        padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
-                        child: _ToShipCard(delivery: d),
-                      ),
-                    const SizedBox(height: 96),
-                  ],
-                )
-              else if (_view == AuctionView.lives)
-                SliverList.list(
-                  children: [
-                    for (final l in lives)
-                      _MyLiveTile(show: l, state: s.liveStateOf(l)),
-                    const SizedBox(height: 96),
-                  ],
-                )
-              else
-                SliverPadding(
-                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 96),
-                  sliver: SliverGrid(
-                    gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(
-                      maxCrossAxisExtent: 420,
-                      mainAxisExtent: MediaQuery.sizeOf(context).width < 600
-                          ? 136
-                          : 156,
-                      mainAxisSpacing: 12,
-                      crossAxisSpacing: 12,
-                    ),
-                    delegate: SliverChildBuilderDelegate(
-                      (context, i) =>
-                          AuctionCard(auction: list[i], viewerId: me),
-                      childCount: list.length,
-                    ),
-                  ),
-                ),
-            ],
           ),
         ),
       ],
+      AuctionView.bought => [
+        SliverList.list(
+          children: [
+            for (final d in bought)
+              if (d.awaitingChoice)
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+                  child: DeliveryCard(
+                    key: ValueKey('bought-${d.id}'),
+                    delivery: d,
+                  ),
+                ),
+          ],
+        ),
+        SliverToBoxAdapter(child: _PortfolioHeader(deliveries: bought)),
+        SliverPadding(
+          padding: const EdgeInsets.fromLTRB(16, 0, 16, 96),
+          sliver: SliverGrid(
+            gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+              maxCrossAxisExtent: 200,
+              mainAxisSpacing: 12,
+              crossAxisSpacing: 12,
+              childAspectRatio: 0.68,
+            ),
+            delegate: SliverChildListDelegate([
+              for (final d in bought)
+                if (!d.awaitingChoice) _BoughtTile(delivery: d),
+              for (final dev in s.myDigitalPurchases) _BoughtTile(digital: dev),
+            ]),
+          ),
+        ),
+      ],
+      AuctionView.myBids when bids.isEmpty => [
+        SliverFillRemaining(
+          hasScrollBody: false,
+          child: EmptyState(
+            icon: Icons.back_hand_outlined,
+            title: t('Još nisi dao nijednu ponudu'),
+            message: t(
+              'Licitiraj u liveu ili na aukciji — tvoje ponude bit će ovdje.',
+            ),
+          ),
+        ),
+      ],
+      AuctionView.myBids => [
+        SliverPadding(
+          padding: const EdgeInsets.fromLTRB(16, 0, 16, 96),
+          sliver: SliverGrid(
+            gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(
+              maxCrossAxisExtent: 420,
+              mainAxisExtent: MediaQuery.sizeOf(context).width < 600
+                  ? 136
+                  : 156,
+              mainAxisSpacing: 12,
+              crossAxisSpacing: 12,
+            ),
+            delegate: SliverChildBuilderDelegate(
+              (context, i) => AuctionCard(auction: bids[i], viewerId: me),
+              childCount: bids.length,
+            ),
+          ),
+        ),
+      ],
+      AuctionView.deliveries
+          when toShip.isEmpty &&
+              incoming.isEmpty &&
+              doneDeliveries.isEmpty &&
+              !bought.any((d) => d.awaitingChoice) =>
+        [
+          SliverFillRemaining(
+            hasScrollBody: false,
+            child: EmptyState(
+              icon: Icons.local_shipping_outlined,
+              title: t('Nema pošiljki'),
+              message: t(
+                'Ovdje su paketi koje šalješ i koji stižu tebi — s kodom za paketomat.',
+              ),
+            ),
+          ),
+        ],
+      AuctionView.deliveries => [
+        SliverList.list(
+          key: const ValueKey('my-deliveries-list'),
+          children: [
+            if (bought.any((d) => d.awaitingChoice)) ...[
+              section(t('⏳ Odaberi dostavu')),
+              for (final d in bought)
+                if (d.awaitingChoice)
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+                    child: DeliveryCard(delivery: d),
+                  ),
+            ],
+            if (toShip.isNotEmpty) ...[
+              section(t('📤 Za poslati ({0})', ['${toShip.length}'])),
+              for (final d in toShip)
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+                  child: _ToShipCard(delivery: d),
+                ),
+            ],
+            if (incoming.isNotEmpty) ...[
+              section(t('📥 Stiže meni')),
+              for (final d in incoming)
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+                  child: DeliveryCard(delivery: d),
+                ),
+            ],
+            if (doneDeliveries.isNotEmpty) ...[
+              section(t('✓ Završeno')),
+              for (final d in doneDeliveries)
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+                  child: d.sellerId == me
+                      ? _ToShipCard(delivery: d)
+                      : DeliveryCard(delivery: d),
+                ),
+            ],
+            const SizedBox(height: 96),
+          ],
+        ),
+      ],
+      AuctionView.lives when lives.isEmpty => [
+        SliverFillRemaining(
+          hasScrollBody: false,
+          child: EmptyState(
+            icon: Icons.videocam_outlined,
+            title: t('Još nisi bio uživo'),
+            message: t('Pokreni live i prodaj prvi predmet.'),
+            action: FilledButton.icon(
+              key: const ValueKey('my-empty-live'),
+              style: FilledButton.styleFrom(
+                backgroundColor: kLiveRed,
+                foregroundColor: Colors.white,
+              ),
+              onPressed: () => CreateLiveShowScreen.open(context),
+              icon: const Icon(Icons.videocam),
+              label: Text(t('Kreni uživo')),
+            ),
+          ),
+        ),
+      ],
+      AuctionView.lives => [
+        SliverList.list(
+          children: [
+            for (final l in lives)
+              _MyLiveTile(show: l, state: s.liveStateOf(l)),
+            const SizedBox(height: 96),
+          ],
+        ),
+      ],
+      AuctionView.items => const [],
+    };
+
+    return Column(
+      children: [
+        header,
+        Expanded(child: CustomScrollView(slivers: slivers)),
+      ],
     );
   }
+}
+
+/// Kartica u "Moje" (pet jednakih, bez listanja).
+class _MyTab extends StatelessWidget {
+  const _MyTab({
+    required this.view,
+    required this.selected,
+    required this.onTap,
+    this.badge = 0,
+  });
+
+  final AuctionView view;
+  final bool selected;
+  final VoidCallback onTap;
+  final int badge;
+
+  @override
+  Widget build(BuildContext context) => Expanded(
+    child: Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 3),
+      child: Material(
+        color: selected ? LoopColors.textPrimary : LoopColors.surface,
+        borderRadius: BorderRadius.circular(14),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(14),
+          onTap: onTap,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 8),
+            child: Column(
+              children: [
+                Badge(
+                  isLabelVisible: badge > 0,
+                  label: Text('$badge'),
+                  backgroundColor: LoopColors.accent,
+                  child: Icon(
+                    view.icon,
+                    size: 20,
+                    color: selected
+                        ? LoopColors.background
+                        : LoopColors.textPrimary,
+                  ),
+                ),
+                const SizedBox(height: 3),
+                FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: Text(
+                    view.label,
+                    key: ValueKey(view.key),
+                    maxLines: 1,
+                    style: TextStyle(
+                      color: selected
+                          ? LoopColors.background
+                          : LoopColors.textPrimary,
+                      fontWeight: FontWeight.w800,
+                      fontSize: 11.5,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    ),
+  );
 }
 
 /// Moj live: naslov, stanje i prodano (dodir otvara sobu).
