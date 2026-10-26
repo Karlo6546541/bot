@@ -12,6 +12,18 @@ class DeliveryChoice {
   const DeliveryChoice(this.method, this.destination);
   final DeliveryMethod method;
   final String? destination;
+
+  /// Zapamćeni odabir korisnika ([AppUser.lastDelivery]) ili null.
+  static DeliveryChoice? saved(String? raw) {
+    if (raw == null || !raw.contains('|')) return null;
+    final i = raw.indexOf('|');
+    final m = DeliveryMethod.values
+        .where((x) => x.name == raw.substring(0, i))
+        .firstOrNull;
+    if (m == null) return null;
+    final dest = raw.substring(i + 1);
+    return DeliveryChoice(m, dest.isEmpty ? null : dest);
+  }
 }
 
 IconData deliveryIcon(DeliveryMethod m) => switch (m) {
@@ -30,7 +42,16 @@ class DeliveryPicker extends StatefulWidget {
     required this.methods,
     required this.onChanged,
     this.savedAddress,
+    this.saved,
+    this.onCleared,
   });
+
+  /// Zapamćeni način dostave — prikaže se kao gotov odabir s gumbom
+  /// "Odaberi drugi način dostave".
+  final DeliveryChoice? saved;
+
+  /// Kupac je odustao od zapamćenog odabira (bira ispočetka).
+  final VoidCallback? onCleared;
 
   final List<DeliveryMethod> methods;
   final ValueChanged<DeliveryChoice> onChanged;
@@ -49,10 +70,19 @@ class _DeliveryPickerState extends State<DeliveryPicker> {
       ? widget.methods.first
       : null;
 
+  /// Koristi se zapamćeni odabir (dok kupac ne odabere drugi).
+  late bool _useSaved =
+      widget.saved != null && widget.methods.contains(widget.saved!.method);
+
   @override
   void initState() {
     super.initState();
-    if (_method != null) {
+    if (_useSaved) {
+      final s = widget.saved!;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) widget.onChanged(s);
+      });
+    } else if (_method != null) {
       WidgetsBinding.instance.addPostFrameCallback((_) => _emit());
     }
   }
@@ -115,6 +145,79 @@ class _DeliveryPickerState extends State<DeliveryPicker> {
   @override
   Widget build(BuildContext context) {
     final accent = Theme.of(context).colorScheme.primary;
+    if (_useSaved) {
+      final saved = widget.saved!;
+      final m = saved.method;
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Container(
+            key: const ValueKey('delivery-saved'),
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              color: LoopColors.surface,
+              borderRadius: BorderRadius.circular(kRadius),
+              border: Border.all(color: accent, width: 2),
+            ),
+            child: Row(
+              children: [
+                Icon(deliveryIcon(m), color: accent),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        m.label,
+                        style: const TextStyle(fontWeight: FontWeight.w900),
+                      ),
+                      if (saved.destination != null)
+                        Text(
+                          saved.destination!,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            color: LoopColors.textSecondary,
+                            fontSize: 12.5,
+                          ),
+                        ),
+                      Text(
+                        t('Zapamćeno iz prošle kupnje'),
+                        style: TextStyle(
+                          color: LoopColors.buyNow,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Text(
+                  m.cost == 0 ? t('besplatno') : formatCredits(m.cost),
+                  style: const TextStyle(fontWeight: FontWeight.w900),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 6),
+          OutlinedButton.icon(
+            key: const ValueKey('delivery-change'),
+            onPressed: () {
+              setState(() {
+                _useSaved = false;
+                _method = widget.methods.length == 1
+                    ? widget.methods.first
+                    : null;
+              });
+              widget.onCleared?.call();
+              _emit();
+            },
+            icon: const Icon(Icons.swap_horiz),
+            label: Text(t('Odaberi drugi način dostave ili paketomat')),
+          ),
+        ],
+      );
+    }
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [

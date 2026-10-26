@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -8,6 +9,7 @@ import 'package:qr_flutter/qr_flutter.dart';
 import '../models/delivery.dart';
 import '../providers/app_providers.dart';
 import '../services/delivery_service.dart';
+import '../services/file_saver/file_saver.dart';
 import '../theme/app_theme.dart';
 import '../widgets/community_widgets.dart';
 import '../widgets/delivery_picker.dart';
@@ -117,6 +119,9 @@ Future<void> pickDelivery(
       _ChooseSheet(
         methods: methods,
         savedAddress: ref.read(appProvider).currentUser?.address,
+        saved: DeliveryChoice.saved(
+          ref.read(appProvider).currentUser?.lastDelivery,
+        ),
       ),
     ),
   );
@@ -568,9 +573,12 @@ class _Dot extends StatelessWidget {
 }
 
 class _ChooseSheet extends StatefulWidget {
-  const _ChooseSheet({required this.methods, this.savedAddress});
+  const _ChooseSheet({required this.methods, this.savedAddress, this.saved});
   final List<DeliveryMethod> methods;
   final String? savedAddress;
+
+  /// Zapamćeni način dostave iz prošle kupnje.
+  final DeliveryChoice? saved;
 
   @override
   State<_ChooseSheet> createState() => _ChooseSheetState();
@@ -597,10 +605,12 @@ class _ChooseSheetState extends State<_ChooseSheet> {
             DeliveryPicker(
               methods: widget.methods,
               savedAddress: widget.savedAddress,
+              saved: widget.saved,
               onChanged: (c) => setState(() {
                 _choice = c;
                 _error = null;
               }),
+              onCleared: () => setState(() => _choice = null),
             ),
             if (_error != null)
               Text(_error!, style: TextStyle(color: LoopColors.error)),
@@ -739,6 +749,14 @@ class ShippingLabel extends ConsumerWidget {
               style: const TextStyle(fontWeight: FontWeight.w700),
             ),
             const SizedBox(height: 12),
+            const SizedBox(height: 12),
+            OutlinedButton.icon(
+              key: const ValueKey('delivery-note'),
+              onPressed: () => DeliveryNoteScreen.open(context, d.id),
+              icon: const Icon(Icons.description_outlined),
+              label: Text(t('Otpremnica')),
+            ),
+            const SizedBox(height: 12),
             Text(
               locker
                   ? t(
@@ -751,6 +769,192 @@ class ShippingLabel extends ConsumerWidget {
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+/// Otpremnica (prodavač): pošiljatelj, primatelj, predmet, način dostave,
+/// kod i QR — za ispis ili preuzimanje (HTML koji se ispiše iz preglednika).
+class DeliveryNoteScreen extends ConsumerWidget {
+  const DeliveryNoteScreen({super.key, required this.deliveryId});
+  final String deliveryId;
+
+  static Future<void> open(BuildContext context, String id) =>
+      Navigator.of(context).push(
+        MaterialPageRoute<void>(
+          builder: (_) => DeliveryNoteScreen(deliveryId: id),
+        ),
+      );
+
+  static String _esc(String v) => v
+      .replaceAll('&', '&amp;')
+      .replaceAll('<', '&lt;')
+      .replaceAll('>', '&gt;');
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final s = ref.watch(appProvider);
+    final d = s.sellerDeliveries.where((e) => e.id == deliveryId).firstOrNull;
+    if (d == null) {
+      return Scaffold(
+        appBar: AppBar(),
+        body: EmptyState(
+          icon: Icons.description_outlined,
+          title: t('Pošiljka nije pronađena'),
+        ),
+      );
+    }
+    final seller = s.currentUser!;
+    final buyer = s.userById(d.buyerId);
+    final recipient = (buyer?.name.trim().isNotEmpty ?? false)
+        ? buyer!.name.trim()
+        : (buyer?.handle ?? '');
+    final sender = seller.seller?.tradeName.isNotEmpty ?? false
+        ? seller.seller!.tradeName
+        : (seller.name.trim().isNotEmpty ? seller.name.trim() : seller.handle);
+    final senderAddress = seller.seller?.address ?? seller.address ?? '';
+    final code = d.trackingNumber ?? d.id;
+    final paid = s.transactions
+        .where((x) => x.deviceId == d.deviceId && x.buyerId == d.buyerId)
+        .firstOrNull
+        ?.price;
+    final date = formatDateTime(d.startedAt ?? d.createdAt);
+    final rows = <(String, String)>[
+      (t('Broj otpremnice'), code),
+      (t('Datum'), date),
+      (
+        t('Pošiljatelj'),
+        [sender, senderAddress].where((x) => x.isNotEmpty).join(', '),
+      ),
+      (t('Primatelj'), recipient),
+      (
+        d.method == DeliveryMethod.parcelLocker ? t('Paketomat') : t('Adresa'),
+        d.destination ?? '—',
+      ),
+      (t('Način dostave'), d.method?.label ?? '—'),
+      (t('Predmet'), '1 × ${d.deviceName}'),
+      if (paid != null) (t('Vrijednost'), formatCredits(paid)),
+    ];
+
+    Future<void> download() async {
+      final png = await QrPainter(
+        data: ShippingLabel.payload(d, recipient),
+        version: QrVersions.auto,
+        gapless: true,
+      ).toImageData(400);
+      final qr = png == null
+          ? ''
+          : '<img src="data:image/png;base64,${base64Encode(png.buffer.asUint8List())}" width="180" height="180">';
+      final html =
+          """<!doctype html><html lang="hr"><head><meta charset="utf-8">
+<title>Otpremnica $code</title>
+<style>body{font-family:sans-serif;max-width:640px;margin:24px auto;color:#222}
+h1{font-size:22px;margin:0 0 4px}table{width:100%;border-collapse:collapse;margin-top:16px}
+td{border-bottom:1px solid #ddd;padding:8px 4px;vertical-align:top}td:first-child{color:#666;width:38%}
+.code{font-size:26px;font-weight:800;letter-spacing:2px}.qr{text-align:center;margin:16px 0}
+@media print{button{display:none}}</style></head><body>
+<h1>${_esc(t('Otpremnica'))} — Subhasto</h1>
+<div class="qr">$qr<div class="code">${_esc(code)}</div></div>
+<table>${rows.map((r) => '<tr><td>${_esc(r.$1)}</td><td>${_esc(r.$2)}</td></tr>').join()}</table>
+<p style="color:#666;font-size:13px">${_esc(t('Zalijepi otpremnicu na paket ili je priloži unutra. Kod skenira paketomat ili kurir.'))}</p>
+<button onclick="print()">${_esc(t('Ispiši'))}</button></body></html>""";
+      final where = await saveBytesFile(
+        'otpremnica-$code.html',
+        Uint8List.fromList(utf8.encode(html)),
+        mime: 'text/html',
+      );
+      showLoopSnackBar(t('Otpremnica spremljena: {0}', [where]));
+    }
+
+    return Scaffold(
+      appBar: AppBar(title: Text(t('Otpremnica'))),
+      body: ListView(
+        key: const ValueKey('delivery-note-screen'),
+        padding: const EdgeInsets.all(16),
+        children: [
+          Card(
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Text(
+                    t('OTPREMNICA'),
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.w900,
+                      fontSize: 20,
+                      letterSpacing: 2,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Center(
+                    child: Container(
+                      padding: const EdgeInsets.all(8),
+                      color: Colors.white,
+                      child: QrImageView(
+                        data: ShippingLabel.payload(d, recipient),
+                        size: 150,
+                        backgroundColor: Colors.white,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    code,
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.w900,
+                      fontSize: 20,
+                      letterSpacing: 1.5,
+                    ),
+                  ),
+                  const Divider(height: 24),
+                  for (final (k, v) in rows)
+                    Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 5),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          SizedBox(
+                            width: 130,
+                            child: Text(
+                              k,
+                              style: TextStyle(color: LoopColors.textSecondary),
+                            ),
+                          ),
+                          Expanded(
+                            child: Text(
+                              v,
+                              style: const TextStyle(
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 12),
+          FilledButton.icon(
+            key: const ValueKey('delivery-note-download'),
+            onPressed: download,
+            icon: const Icon(Icons.print_outlined),
+            label: Text(t('Preuzmi za ispis')),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            t(
+              'Zalijepi otpremnicu na paket ili je priloži unutra. Kod skenira paketomat ili kurir.',
+            ),
+            textAlign: TextAlign.center,
+            style: TextStyle(color: LoopColors.textSecondary, fontSize: 13),
+          ),
+        ],
       ),
     );
   }

@@ -194,7 +194,13 @@ class DeliveryService {
     // Dostava se plaća karticom; zapamti adresu za sljedeći put.
     final dest = destination?.trim();
     await _storage.putUser(
-      user.copyWith(address: method.needsAddress ? dest : null),
+      user.copyWith(
+        address: method.needsAddress ? dest : null,
+        // Zapamti odabir za sljedeću kupnju (osim digitalne dostave).
+        lastDelivery: method == DeliveryMethod.digital
+            ? null
+            : '${method.name}|${dest ?? ''}',
+      ),
     );
     final cost = free ? 0.0 : method.cost;
     final started = d.copyWith(

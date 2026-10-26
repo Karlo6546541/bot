@@ -21,6 +21,7 @@ class AppUser {
     this.isGuest = false,
     this.favorites = const [],
     this.address,
+    this.lastDelivery,
     this.bio = '',
     this.city,
     this.avatarPath,
@@ -59,6 +60,10 @@ class AppUser {
 
   /// Zadnja adresa za dostavu (predlaže se pri sljedećoj kupnji).
   final String? address;
+
+  /// Zapamćeni način dostave ("parcelLocker|BOX NOW #… · …") — nudi se
+  /// odmah pri sljedećoj kupnji.
+  final String? lastDelivery;
 
   /// Kratki opis na profilu (do [maxBio] znakova).
   final String bio;
@@ -157,6 +162,7 @@ class AppUser {
     double? credits,
     List<String>? favorites,
     String? address,
+    String? lastDelivery,
     String? name,
     String? username,
     String? bio,
@@ -190,6 +196,7 @@ class AppUser {
     isGuest: isGuest,
     favorites: favorites ?? this.favorites,
     address: address ?? this.address,
+    lastDelivery: lastDelivery ?? this.lastDelivery,
     bio: bio ?? this.bio,
     city: city ?? this.city,
     avatarPath: clearAvatar ? null : avatarPath ?? this.avatarPath,
@@ -221,6 +228,7 @@ class AppUser {
     'isGuest': isGuest,
     'favorites': favorites,
     'address': address,
+    'lastDelivery': lastDelivery,
     'paymentCard': paymentCard,
     'bio': bio,
     'city': city,
@@ -254,6 +262,7 @@ class AppUser {
     isGuest: map['isGuest'] as bool? ?? false,
     favorites: (map['favorites'] as List?)?.cast<String>() ?? const [],
     address: map['address'] as String?,
+    lastDelivery: map['lastDelivery'] as String?,
     paymentCard: map['paymentCard'] as String?,
     bio: map['bio'] as String? ?? '',
     city: map['city'] as String?,

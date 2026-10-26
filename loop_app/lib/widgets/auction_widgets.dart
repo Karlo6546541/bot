@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'trust_widgets.dart';
 import 'package:flutter/services.dart';
@@ -118,11 +120,14 @@ class _BidSheetState extends ConsumerState<_BidSheet> {
         roundCredits((myMax ?? (leading ? a.currentPrice : min)) * 1.25),
       );
     }
-    final quick = <double>{
-      min,
-      roundCredits(min + a.minIncrement),
-      roundCredits(min + a.minIncrement * 3),
-    }.toList();
+    // Brzi iznosi: najmanja ponuda (+1 €) pa +5 / 10 / 20 / 30 % iznad
+    // trenutne cijene (zaokruženo na cijeli euro).
+    final base = a.currentPrice;
+    final quick = <(String, double)>[
+      ('+1 €', min),
+      for (final pct in const [5, 10, 20, 30])
+        ('+$pct %', math.max(min, (base * (1 + pct / 100)).ceilToDouble())),
+    ];
     final bold = const TextStyle(fontWeight: FontWeight.w800);
 
     return Padding(
@@ -196,9 +201,10 @@ class _BidSheetState extends ConsumerState<_BidSheet> {
                 spacing: 8,
                 runSpacing: 8,
                 children: [
-                  for (final v in quick)
+                  for (final (tag, v) in quick)
                     ChoiceChip(
-                      label: Text(formatCredits(v)),
+                      key: ValueKey('bid-quick-$tag'),
+                      label: Text('$tag · ${formatCredits(v)}'),
                       selected: _parse(_amount.text) == v,
                       onSelected: (_) => setState(() {
                         _amount.text = _fmt(v);

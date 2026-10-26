@@ -53,6 +53,8 @@ void main() {
       );
       expect(storage.userById(demo)!.credits, 1250); // dostava karticom
       expect(storage.userById(demo)!.address, 'Ilica 1, Zagreb');
+      // Odabir se pamti za sljedeću kupnju.
+      expect(storage.userById(demo)!.lastDelivery, 'courier|Ilica 1, Zagreb');
       expect(d.trackingNumber, startsWith('SUBH-'));
       expect(storage.transactions.single.type, TransactionType.delivery);
 

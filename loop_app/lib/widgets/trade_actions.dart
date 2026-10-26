@@ -639,10 +639,14 @@ class _CheckoutSheetState extends ConsumerState<_CheckoutSheet> {
               builder: (context, ref, _) => DeliveryPicker(
                 methods: DeliveryService.methodsFor(d),
                 savedAddress: ref.read(appProvider).currentUser?.address,
+                saved: DeliveryChoice.saved(
+                  ref.read(appProvider).currentUser?.lastDelivery,
+                ),
                 onChanged: (c) => setState(() {
                   _choice = c;
                   _error = null;
                 }),
+                onCleared: () => setState(() => _choice = null),
               ),
             ),
             SizedBox(height: 12),
