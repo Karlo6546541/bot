@@ -111,7 +111,9 @@ class _AuctionHeartbeatState extends ConsumerState<AuctionHeartbeat> {
   }
 
   void _settle() {
-    if (mounted) ref.read(appProvider.notifier).settleExpiredAuctions();
+    if (!mounted) return;
+    ref.read(appProvider.notifier).settleExpiredAuctions();
+    ref.read(appProvider.notifier).autoConfirmPickups();
   }
 
   @override

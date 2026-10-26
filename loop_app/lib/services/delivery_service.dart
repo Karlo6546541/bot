@@ -237,6 +237,35 @@ class DeliveryService {
     return started;
   }
 
+  /// Paketomat javlja preuzimanje: pošiljke koje je kupac preuzeo sami se
+  /// potvrđuju (bez gumba "Potvrdi primitak"), a prodavač dobiva obavijest.
+  /// Vraća broj potvrđenih.
+  Future<int> autoConfirmPickups(String userId, {DateTime? now}) async {
+    final at = now ?? DateTime.now();
+    var n = 0;
+    for (final d in _storage.deliveries) {
+      if (!d.autoConfirms ||
+          d.confirmedAt != null ||
+          (d.buyerId != userId && d.sellerId != userId) ||
+          !d.isDelivered(at)) {
+        continue;
+      }
+      final picked = d.stepAt(d.steps.length - 1) ?? at;
+      await _storage.putDelivery(d.copyWith(confirmedAt: picked));
+      if (d.sellerId != null) {
+        await Inbox(_storage).send(
+          d.sellerId,
+          NotificationKind.parcelPickedUp,
+          args: [_storage.userById(d.buyerId)?.handle ?? '', d.deviceName],
+          targetId: d.id,
+          now: at,
+        );
+      }
+      n++;
+    }
+    return n;
+  }
+
   /// Kupac potvrđuje primitak (moguće tek kad je pošiljka isporučena).
   Future<void> confirmReceipt(
     String userId,

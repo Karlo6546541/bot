@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hive/hive.dart';
+import 'package:loop_app/models/app_notification.dart';
 import 'package:loop_app/models/delivery.dart';
 import 'package:loop_app/models/loop_transaction.dart';
 import 'package:loop_app/services/auction_service.dart';
@@ -62,6 +63,45 @@ void main() {
         DeliveryStatus.shipped,
       );
       expect(d.isDelivered(start.add(const Duration(minutes: 4))), isTrue);
+    },
+  );
+
+  test(
+    'paketomat: preuzimanje se samo potvrdi, prodavač dobiva obavijesti',
+    () async {
+      final start = DateTime(2026, 10, 21, 12);
+      const seller = SeedData.anaUserId;
+      final d = await deliveries.createForPurchase(
+        userId: demo,
+        device: storage.deviceById('seed-1')!,
+        method: DeliveryMethod.parcelLocker,
+        destination: kDemoLockers.first,
+        sellerId: seller,
+        now: start,
+      );
+      // Prodavač dobiva kod za paketomat.
+      expect(
+        storage.notifications.where(
+          (n) => n.userId == seller && n.kind == NotificationKind.shipReady,
+        ),
+        hasLength(1),
+      );
+      expect(d.steps.last, DeliveryStatus.pickedUp);
+      // Još u paketomatu — ništa se ne potvrđuje.
+      expect(await deliveries.autoConfirmPickups(demo, now: start), 0);
+      // Kupac preuzeo → automatski potvrđeno (bez gumba).
+      final later = start.add(const Duration(minutes: 10));
+      expect(await deliveries.autoConfirmPickups(demo, now: later), 1);
+      expect(storage.deliveryById(d.id)!.confirmedAt, isNotNull);
+      expect(
+        storage.notifications.where(
+          (n) =>
+              n.userId == seller && n.kind == NotificationKind.parcelPickedUp,
+        ),
+        hasLength(1),
+      );
+      // Samo jednom.
+      expect(await deliveries.autoConfirmPickups(demo, now: later), 0);
     },
   );
 

@@ -61,6 +61,7 @@ enum DeliveryStatus {
   shipped('Poslano'),
   inTransit('U transportu'),
   inLocker('U paketomatu'),
+  pickedUp('Preuzeto'),
   readyForPickup('Spremno za preuzimanje'),
   sent('Poslano e-mailom'),
   delivered('Dostavljeno');
@@ -152,7 +153,7 @@ class Delivery {
       DeliveryStatus.shipped,
       DeliveryStatus.inTransit,
       DeliveryStatus.inLocker,
-      DeliveryStatus.delivered,
+      DeliveryStatus.pickedUp,
     ],
     _ => const [
       DeliveryStatus.ordered,
@@ -197,7 +198,11 @@ class Delivery {
     );
   }
 
-  bool isDelivered(DateTime now) => status(now) == DeliveryStatus.delivered;
+  /// Stiglo kupcu (dostavljeno, ili preuzeto iz paketomata).
+  bool isDelivered(DateTime now) => stepIndex(now) == steps.length - 1;
+
+  /// Paketomat: kupac preuzima sam — preuzimanje se bilježi automatski.
+  bool get autoConfirms => method == DeliveryMethod.parcelLocker;
 
   /// Očekivani trenutak isporuke (demo).
   DateTime? eta() =>

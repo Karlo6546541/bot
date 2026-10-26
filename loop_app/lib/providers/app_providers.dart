@@ -914,6 +914,14 @@ class AppController extends Notifier<AppState> {
     _refresh();
   }
 
+  /// Paketomat: preuzete pošiljke se same potvrđuju.
+  Future<void> autoConfirmPickups() async {
+    final me = state.currentUserId;
+    if (me == null) return;
+    final n = await ref.read(deliveryServiceProvider).autoConfirmPickups(me);
+    if (n > 0) _refresh();
+  }
+
   Future<void> confirmReceipt(String deliveryId) async {
     await ref
         .read(deliveryServiceProvider)

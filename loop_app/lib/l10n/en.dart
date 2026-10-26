@@ -2305,4 +2305,7 @@ const kEn = <String, String>{
       'Show the QR to the courier or print the label and stick it on the parcel.',
   '{0} je odabrao dostavu za "{1}" — kod za paketomat je spreman.':
       '{0} chose delivery for "{1}" — the locker code is ready.',
+  'Preuzeto': 'Picked up',
+  'Preuzeto iz paketomata ✅': 'Picked up from the locker ✅',
+  '{0} je preuzeo "{1}" iz paketomata.': '{0} picked up "{1}" from the locker.',
 };

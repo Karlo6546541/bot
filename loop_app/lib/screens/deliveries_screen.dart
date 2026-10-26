@@ -297,7 +297,7 @@ class DeliveryCard extends ConsumerWidget {
                       ),
                   ],
                 ),
-                if (delivered && d.confirmedAt == null) ...[
+                if (delivered && d.confirmedAt == null && !d.autoConfirms) ...[
                   const SizedBox(height: 12),
                   OutlinedButton.icon(
                     onPressed: () async {
