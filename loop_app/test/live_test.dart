@@ -1188,28 +1188,12 @@ void main() {
       await tester.tap(find.text('Prijavi se'));
       await tester.pumpAndSettle();
 
-      // Početna: i predmeti za Kupi odmah (pilule se vrte vodoravno).
-      final pills = find
-          .descendant(
-            of: find.byKey(const ValueKey('home-cats')),
-            matching: find.byType(Scrollable),
-          )
-          .first;
-      await tester.scrollUntilVisible(
-        find.byKey(const ValueKey('home-cat-buy')),
-        100,
-        scrollable: pills,
-      );
+      // Početna: i predmeti za Kupi odmah (izbornik je bez listanja).
       await tester.ensureVisible(find.byKey(const ValueKey('home-cat-buy')));
       await tester.pumpAndSettle();
       await tester.tap(find.byKey(const ValueKey('home-cat-buy')));
       await tester.pumpAndSettle();
       expect(find.byKey(const ValueKey('home-buy')), findsOneWidget);
-      await tester.scrollUntilVisible(
-        find.byKey(const ValueKey('home-cat-live')),
-        -100,
-        scrollable: pills,
-      );
       await tester.ensureVisible(find.byKey(const ValueKey('home-cat-live')));
       await tester.pumpAndSettle();
       await tester.tap(find.byKey(const ValueKey('home-cat-live')));

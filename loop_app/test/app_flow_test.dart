@@ -42,14 +42,6 @@ Future<void> openAuctionsPill(WidgetTester tester) async {
     -300,
     scrollable: vScroll(),
   );
-  await tester.scrollUntilVisible(
-    find.byKey(const ValueKey('home-cat-timed')),
-    100,
-    scrollable: find.descendant(
-      of: find.byKey(const ValueKey('home-cats')),
-      matching: find.byType(Scrollable),
-    ),
-  );
   await tester.ensureVisible(find.byKey(const ValueKey('home-cat-timed')));
   await tester.pumpAndSettle();
   await tester.tap(find.byKey(const ValueKey('home-cat-timed')));

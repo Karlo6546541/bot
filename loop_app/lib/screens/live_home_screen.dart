@@ -317,45 +317,55 @@ class _LiveHomeScreenState extends ConsumerState<LiveHomeScreen> {
             ),
           ),
         ),
+        // Brzi izbornik: pet jednakih pločica preko cijele širine (bez
+        // listanja); odabrana se ispuni bojom svoje vrste.
         SliverToBoxAdapter(
-          child: SizedBox(
-            height: 44,
-            child: ListView(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(12, 4, 12, 6),
+            child: Row(
               key: const ValueKey('home-cats'),
-              scrollDirection: Axis.horizontal,
-              padding: const EdgeInsets.symmetric(horizontal: 16),
               children: [
                 _Pill(
                   id: 'for-you',
+                  icon: Icons.auto_awesome,
                   label: t('Za tebe'),
+                  color: LoopColors.textPrimary,
                   selected: _filter is _ForYou,
                   onTap: () => setState(() => _filter = const _ForYou()),
                 ),
                 _Pill(
                   id: 'live',
-                  label: t('🔴 Uživo'),
+                  icon: Icons.sensors,
+                  label: t('Uživo'),
+                  color: LoopColors.live,
+                  badge: live.length,
                   selected: _filter is _LiveOnly,
                   onTap: () => setState(() => _filter = const _LiveOnly()),
                 ),
                 _Pill(
                   id: 'soon',
-                  label: t('📅 Uskoro'),
+                  icon: Icons.event,
+                  label: t('Uskoro'),
+                  color: LoopColors.info,
                   selected: _filter is _Soon,
                   onTap: () => setState(() => _filter = const _Soon()),
                 ),
                 _Pill(
                   id: 'timed',
-                  label: t('⏱ Aukcije'),
+                  icon: Icons.gavel,
+                  label: t('Aukcije'),
+                  color: LoopColors.accent,
                   selected: _filter is _Timed,
                   onTap: () => setState(() => _filter = const _Timed()),
                 ),
                 _Pill(
                   id: 'buy',
-                  label: t('🏷️ Kupi odmah'),
+                  icon: Icons.local_offer,
+                  label: t('Kupi odmah'),
+                  color: LoopColors.buyNow,
                   selected: _filter is _BuyNow,
                   onTap: () => setState(() => _filter = const _BuyNow()),
                 ),
-                // Kategorije su u svojoj kartici (donja traka).
               ],
             ),
           ),
@@ -509,42 +519,94 @@ class _CheckoutBanner extends ConsumerWidget {
 class _Pill extends StatelessWidget {
   const _Pill({
     required this.id,
+    required this.icon,
     required this.label,
+    required this.color,
     required this.selected,
     required this.onTap,
+    this.badge = 0,
   });
 
   final String id;
+  final IconData icon;
   final String label;
+
+  /// Boja vrste (crvena = uživo, zelena = Kupi odmah…).
+  final Color color;
   final bool selected;
   final VoidCallback onTap;
 
+  /// Broj (npr. koliko je liveova uživo) u kutu ikone.
+  final int badge;
+
   @override
   Widget build(BuildContext context) {
-    final fg = selected ? LoopColors.background : LoopColors.textPrimary;
-    return Padding(
-      padding: const EdgeInsets.only(right: 8),
-      child: Material(
-        color: selected ? LoopColors.textPrimary : LoopColors.surface,
-        borderRadius: BorderRadius.circular(999),
-        child: InkWell(
-          key: ValueKey('home-cat-$id'),
-          borderRadius: BorderRadius.circular(999),
-          onTap: onTap,
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  label,
-                  style: TextStyle(
-                    color: fg,
-                    fontWeight: FontWeight.w800,
-                    fontSize: 13,
-                  ),
+    final onColor = color == LoopColors.textPrimary
+        ? LoopColors.background
+        : Colors.white;
+    return Expanded(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 3),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          curve: Curves.easeOut,
+          decoration: BoxDecoration(
+            color: selected ? color : LoopColors.surface,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: selected ? color : color.withValues(alpha: 0.25),
+              width: 1.5,
+            ),
+            boxShadow: selected
+                ? [
+                    BoxShadow(
+                      color: color.withValues(alpha: 0.35),
+                      blurRadius: 12,
+                      offset: const Offset(0, 4),
+                    ),
+                  ]
+                : LoopColors.softShadow,
+          ),
+          child: Material(
+            type: MaterialType.transparency,
+            child: InkWell(
+              key: ValueKey('home-cat-$id'),
+              borderRadius: BorderRadius.circular(16),
+              onTap: onTap,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 9),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Badge(
+                      isLabelVisible: badge > 0,
+                      label: Text('$badge'),
+                      backgroundColor: selected
+                          ? Colors.white
+                          : LoopColors.live,
+                      textColor: selected ? LoopColors.live : Colors.white,
+                      child: Icon(
+                        icon,
+                        size: 22,
+                        color: selected ? onColor : color,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    FittedBox(
+                      fit: BoxFit.scaleDown,
+                      child: Text(
+                        label,
+                        maxLines: 1,
+                        style: TextStyle(
+                          color: selected ? onColor : LoopColors.textPrimary,
+                          fontWeight: FontWeight.w900,
+                          fontSize: 12,
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
-              ],
+              ),
             ),
           ),
         ),
