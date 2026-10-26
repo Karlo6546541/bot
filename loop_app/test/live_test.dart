@@ -300,12 +300,12 @@ void main() {
       var lot = state(id, 2).current!;
       expect(lot.price, 30);
       expect(lot.leader!.userId, bob);
-      // Gumb "Licitiraj" nudi korak više (32 €).
-      expect(lot.minNext, 32);
+      // Gumb "Licitiraj" nudi 1 € više (31 €).
+      expect(lot.minNext, 31);
       await live.bid(ana, id, lot.minNext, now: at(3));
       lot = state(id, 3).current!;
       expect(lot.leader!.userId, ana);
-      expect(lot.price, 32);
+      expect(lot.price, 31);
       // Marko skoči na 50 € — vidljivo u chatu kao 50 €.
       await live.bid(marko, id, 50, now: at(4));
       lot = state(id, 4).current!;
@@ -316,18 +316,13 @@ void main() {
         50,
       );
       // Niža ponuda od sljedećeg koraka se odbija.
-      expect(() => live.bid(bob, id, 51, now: at(5)), throwsA(anything));
+      expect(() => live.bid(bob, id, 50, now: at(5)), throwsA(anything));
     });
 
-    test('koraci licitiranja kao na Whatnotu', () {
-      expect(LiveLot.increment(1), 1);
-      expect(LiveLot.increment(9), 1);
-      expect(LiveLot.increment(10), 2);
-      expect(LiveLot.increment(60), 5);
-      expect(LiveLot.increment(120), 10);
-      expect(LiveLot.increment(300), 25);
-      expect(LiveLot.increment(700), 50);
-      expect(LiveLot.increment(1500), 100);
+    test('korak licitiranja je uvijek 1 €', () {
+      for (final p in [1.0, 9.0, 10.0, 60.0, 120.0, 300.0, 1500.0]) {
+        expect(LiveLot.increment(p), 1);
+      }
     });
 
     test('predlicitacija na predmet koji tek dolazi', () async {

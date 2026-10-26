@@ -53,6 +53,8 @@ class NotificationsScreen extends ConsumerStatefulWidget {
         await DeliveriesScreen.open(context);
       case NotificationKind.liveStarted:
         if (id != null) await LiveRoomScreen.open(context, id);
+      case NotificationKind.shipReady:
+        if (id != null) await DeliveryDetailScreen.open(context, id);
       case NotificationKind.itemSold ||
           NotificationKind.priceDrop ||
           NotificationKind.bargainNew ||

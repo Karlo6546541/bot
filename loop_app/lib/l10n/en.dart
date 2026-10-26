@@ -2296,4 +2296,13 @@ const kEn = <String, String>{
       'Accounts you follow have no listings right now.',
   'Svaka ponuda +2 s!': 'Every bid +2 s!',
   'Preostalo vrijeme': 'Time left',
+  'Kod za paketomat': 'Locker code',
+  'Etiketa za slanje': 'Shipping label',
+  'Primatelj': 'Recipient',
+  'Na bilo kojem BOX NOW paketomatu odaberi "Pošalji paket" i skeniraj QR (ili upiši kod) — paket ide u paketomat kupca.':
+      'At any BOX NOW locker choose "Send a parcel" and scan the QR (or enter the code) — the parcel goes to the buyer\'s locker.',
+  'Pokaži QR kuriru ili ispiši etiketu i zalijepi je na paket.':
+      'Show the QR to the courier or print the label and stick it on the parcel.',
+  '{0} je odabrao dostavu za "{1}" — kod za paketomat je spreman.':
+      '{0} chose delivery for "{1}" — the locker code is ready.',
 };

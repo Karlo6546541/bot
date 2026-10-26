@@ -1383,6 +1383,13 @@ class _ToShipCard extends ConsumerWidget {
                   ],
                 ),
               ),
+              // Kod za paketomat / etiketa (ime i adresa kupca).
+              IconButton.filledTonal(
+                key: ValueKey('to-ship-code-${d.id}'),
+                tooltip: t('Kod za paketomat'),
+                onPressed: () => DeliveryDetailScreen.open(context, d.id),
+                icon: const Icon(Icons.qr_code_2),
+              ),
             ],
           ),
         ),

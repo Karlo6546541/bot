@@ -676,17 +676,6 @@ class _Info extends ConsumerWidget {
             fontSize: 22,
             color: Colors.white,
           ),
-        if (a?.canBuyNow ?? false) ...[
-          const SizedBox(height: 2),
-          Text(
-            t('⚡ Kupi odmah za {0}', [formatCredits(a!.buyNowPrice!)]),
-            style: const TextStyle(
-              color: Colors.white,
-              fontWeight: FontWeight.w700,
-              shadows: _shadow,
-            ),
-          ),
-        ],
         const SizedBox(height: 8),
         const Wrap(
           spacing: 6,

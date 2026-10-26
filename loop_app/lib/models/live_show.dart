@@ -206,17 +206,8 @@ class LiveLot {
   /// a kod padajuće cijene najniža (ispod nje prodavatelj ne prodaje).
   double get basePrice => mode == LotMode.dutch ? floorPrice : startPrice;
 
-  /// Korak licitiranja za zadanu cijenu (kao na Whatnotu — veći korak
-  /// kod veće cijene).
-  static double increment(double price) => switch (price) {
-    < 10 => 1,
-    < 50 => 2,
-    < 100 => 5,
-    < 250 => 10,
-    < 500 => 25,
-    < 1000 => 50,
-    _ => 100,
-  };
+  /// Korak licitiranja u liveu: uvijek 1 € (bez obzira na cijenu).
+  static double increment(double price) => 1;
 
   /// Pada cijena: koliko predmet košta nakon [elapsed] od početka.
   double dutchPrice(Duration elapsed, int seconds) {

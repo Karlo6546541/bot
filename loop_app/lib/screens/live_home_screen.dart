@@ -232,28 +232,6 @@ class _LiveHomeScreenState extends ConsumerState<LiveHomeScreen> {
             ),
           ),
         );
-        if (following.isNotEmpty) {
-          slivers.add(header(t('👥 Pratiš')));
-          slivers.add(
-            SliverToBoxAdapter(
-              child: _FollowingRow(
-                users: following,
-                liveBy: {for (final i in live) i.show!.hostId: i},
-                onLive: (i) => open([i], 0, t('Uživo')),
-              ),
-            ),
-          );
-          if (theirs.isNotEmpty) {
-            slivers.add(header(t('Od računa koje pratiš')));
-            slivers.add(
-              grid(
-                'home-following',
-                theirs.take(6).toList(),
-                t('Od računa koje pratiš'),
-              ),
-            );
-          }
-        }
         final rest = byViewers.skip(1).toList();
         if (live.isEmpty || rest.isNotEmpty) {
           slivers.add(header(t('🔴 Uživo sada')));

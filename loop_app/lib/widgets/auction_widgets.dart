@@ -97,25 +97,6 @@ class _BidSheetState extends ConsumerState<_BidSheet> {
     });
   }
 
-  Future<void> _buyNow(Auction a) async {
-    final ok = await confirmDialog(
-      context,
-      title: t('Kupi odmah?'),
-      message: t('Plaćaš {0} i odmah osvajaš "{1}". Aukcija time završava.', [
-        formatCredits(a.buyNowPrice!),
-        a.deviceName,
-      ]),
-      confirmLabel: t('Kupi odmah'),
-    );
-    if (!ok || !mounted) return;
-    await _run(() async {
-      await ref.read(appProvider.notifier).buyNowAuction(a.id);
-      if (!mounted) return;
-      Navigator.pop(context);
-      showLoopSnackBar(t('🏆 Kupljeno! Odaberi dostavu u "Moje dostave".'));
-    });
-  }
-
   @override
   Widget build(BuildContext context) {
     final s = ref.watch(appProvider);
@@ -264,17 +245,6 @@ class _BidSheetState extends ConsumerState<_BidSheet> {
                       ]),
               ),
             ),
-            if (a.canBuyNow) ...[
-              const SizedBox(height: 8),
-              OutlinedButton.icon(
-                key: const ValueKey('bid-buy-now'),
-                onPressed: _busy ? null : () => _buyNow(a),
-                icon: const Icon(Icons.bolt),
-                label: Text(
-                  t('Kupi odmah za {0}', [formatCredits(a.buyNowPrice!)]),
-                ),
-              ),
-            ],
             const SizedBox(height: 10),
             Text(
               t(

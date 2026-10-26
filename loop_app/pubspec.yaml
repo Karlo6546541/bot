@@ -52,6 +52,7 @@ dependencies:
   url_launcher: ^6.3.3
   flutter_webrtc: ^1.6.2+hotfix.4
   dart_webrtc: ^1.8.2
+  qr_flutter: ^4.1.0
 
 dev_dependencies:
   flutter_test:

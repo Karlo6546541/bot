@@ -5,7 +5,9 @@ import 'package:uuid/uuid.dart';
 import '../models/delivery.dart';
 import '../models/device.dart';
 import '../models/loop_transaction.dart';
+import '../models/app_notification.dart';
 import 'boxnow/boxnow.dart';
+import 'inbox.dart';
 import 'storage_service.dart';
 import 'trade_service.dart';
 import '../l10n/tr.dart';
@@ -203,6 +205,16 @@ class DeliveryService {
       startedAt: at,
     );
     await _storage.putDelivery(started);
+    // Prodavač dobiva kod za paketomat / etiketu (ime i adresa kupca).
+    if (d.sellerId != null && method != DeliveryMethod.digital) {
+      await Inbox(_storage).send(
+        d.sellerId,
+        NotificationKind.shipReady,
+        args: [user.handle, d.deviceName],
+        targetId: d.id,
+        now: at,
+      );
+    }
     if (cost > 0) {
       await _storage.putTransaction(
         LoopTransaction(

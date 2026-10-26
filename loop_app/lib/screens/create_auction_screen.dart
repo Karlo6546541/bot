@@ -44,8 +44,6 @@ class CreateAuctionScreen extends ConsumerStatefulWidget {
 class _CreateAuctionScreenState extends ConsumerState<CreateAuctionScreen> {
   String? _deviceId;
   final _start = TextEditingController();
-  final _buyNow = TextEditingController();
-  String? _buyNowError;
   Duration _duration = AuctionService.durations[2].$2;
   String? _error;
 
@@ -58,7 +56,6 @@ class _CreateAuctionScreenState extends ConsumerState<CreateAuctionScreen> {
   @override
   void dispose() {
     _start.dispose();
-    _buyNow.dispose();
     super.dispose();
   }
 
@@ -84,14 +81,6 @@ class _CreateAuctionScreenState extends ConsumerState<CreateAuctionScreen> {
       setState(() => _error = t('Unesi početnu cijenu veću od 0'));
       return;
     }
-    final buyNowText = _buyNow.text.trim();
-    final buyNow = buyNowText.isEmpty
-        ? null
-        : double.tryParse(buyNowText.replaceAll(',', '.'));
-    if (buyNowText.isNotEmpty && (buyNow == null || buyNow <= price)) {
-      setState(() => _buyNowError = t('Mora biti veće od početne cijene'));
-      return;
-    }
     Auction? created;
     final ok = await runWithLoading(
       context,
@@ -101,7 +90,6 @@ class _CreateAuctionScreenState extends ConsumerState<CreateAuctionScreen> {
             deviceId: _deviceId!,
             startPrice: price,
             duration: _duration,
-            buyNowPrice: buyNow,
           ),
       successMessage: t('Aukcija je objavljena'),
     );
@@ -221,26 +209,6 @@ class _CreateAuctionScreenState extends ConsumerState<CreateAuctionScreen> {
                           errorText: _error,
                         ),
                         onChanged: (_) => setState(() => _error = null),
-                      ),
-                      const SizedBox(height: 12),
-                      TextField(
-                        key: const ValueKey('buy-now-price'),
-                        controller: _buyNow,
-                        keyboardType: const TextInputType.numberWithOptions(
-                          decimal: true,
-                        ),
-                        inputFormatters: [
-                          FilteringTextInputFormatter.allow(RegExp(r'[0-9.,]')),
-                        ],
-                        decoration: InputDecoration(
-                          labelText: t('"Kupi odmah" cijena (neobavezno)'),
-                          suffixText: t('€'),
-                          helperText: t(
-                            'Tko plati ovu cijenu, odmah osvaja predmet.',
-                          ),
-                          errorText: _buyNowError,
-                        ),
-                        onChanged: (_) => setState(() => _buyNowError = null),
                       ),
                       const SizedBox(height: 20),
                       Text(

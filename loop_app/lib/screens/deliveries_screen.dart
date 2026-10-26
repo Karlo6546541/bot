@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:qr_flutter/qr_flutter.dart';
 
 import '../models/delivery.dart';
 import '../providers/app_providers.dart';
@@ -415,6 +416,13 @@ class DeliveryDetailScreen extends ConsumerWidget {
               ),
             ],
           ),
+          // Prodavač: etiketa s kodom za paketomat (ime i adresa kupca).
+          if (d.sellerId == s.currentUserId &&
+              d.method != null &&
+              d.method != DeliveryMethod.digital) ...[
+            const SizedBox(height: 16),
+            ShippingLabel(delivery: d),
+          ],
           const SizedBox(height: 16),
           Card(
             child: Padding(
@@ -616,6 +624,130 @@ class _ChooseSheetState extends State<_ChooseSheet> {
                     ? t('Potvrdi dostavu')
                     : t('Potvrdi · {0}', [formatCredits(_choice!.method.cost)]),
               ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Etiketa za slanje (prodavač): QR i kod koje paketomat ili kurir
+/// skenira — u sebi ima ime i prezime kupca i adresu / paketomat.
+class ShippingLabel extends ConsumerWidget {
+  const ShippingLabel({super.key, required this.delivery});
+  final Delivery delivery;
+
+  /// Sadržaj QR koda (kod pošiljke, primatelj, odredište, način).
+  static String payload(Delivery d, String recipient) => [
+    'SUBHASTO',
+    d.trackingNumber ?? d.id,
+    recipient,
+    d.destination ?? '',
+    d.method?.name ?? '',
+  ].join('|');
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final d = delivery;
+    final buyer = ref.watch(appProvider.select((s) => s.userById(d.buyerId)));
+    final recipient = (buyer?.name.trim().isNotEmpty ?? false)
+        ? buyer!.name.trim()
+        : (buyer?.handle ?? '');
+    final code = d.trackingNumber ?? d.id;
+    final locker = d.method == DeliveryMethod.parcelLocker;
+    return Card(
+      key: const ValueKey('shipping-label'),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                const Text('📦', style: TextStyle(fontSize: 20)),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    locker ? t('Kod za paketomat') : t('Etiketa za slanje'),
+                    style: const TextStyle(
+                      fontWeight: FontWeight.w900,
+                      fontSize: 17,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            Center(
+              child: Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: QrImageView(
+                  key: const ValueKey('shipping-qr'),
+                  data: payload(d, recipient),
+                  size: 180,
+                  backgroundColor: Colors.white,
+                ),
+              ),
+            ),
+            const SizedBox(height: 10),
+            Center(
+              child: InkWell(
+                onTap: () {
+                  Clipboard.setData(ClipboardData(text: code));
+                  showLoopSnackBar(t('Kod kopiran'));
+                },
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      code,
+                      key: const ValueKey('shipping-code'),
+                      style: const TextStyle(
+                        fontWeight: FontWeight.w900,
+                        fontSize: 22,
+                        letterSpacing: 1.5,
+                      ),
+                    ),
+                    const SizedBox(width: 6),
+                    const Icon(Icons.copy, size: 16),
+                  ],
+                ),
+              ),
+            ),
+            const Divider(height: 24),
+            Text(
+              t('Primatelj'),
+              style: TextStyle(color: LoopColors.textSecondary, fontSize: 12),
+            ),
+            Text(
+              recipient,
+              key: const ValueKey('shipping-recipient'),
+              style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 16),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              locker ? t('Paketomat') : t('Adresa'),
+              style: TextStyle(color: LoopColors.textSecondary, fontSize: 12),
+            ),
+            Text(
+              d.destination ?? '—',
+              style: const TextStyle(fontWeight: FontWeight.w700),
+            ),
+            const SizedBox(height: 12),
+            Text(
+              locker
+                  ? t(
+                      'Na bilo kojem BOX NOW paketomatu odaberi "Pošalji paket" i skeniraj QR (ili upiši kod) — paket ide u paketomat kupca.',
+                    )
+                  : t(
+                      'Pokaži QR kuriru ili ispiši etiketu i zalijepi je na paket.',
+                    ),
+              style: TextStyle(color: LoopColors.textSecondary, fontSize: 13),
             ),
           ],
         ),

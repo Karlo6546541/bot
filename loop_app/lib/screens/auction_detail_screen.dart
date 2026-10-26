@@ -260,25 +260,6 @@ class _AuctionDetailScreenState extends ConsumerState<AuctionDetailScreen> {
                   ),
                 ),
               ],
-              if (a.canBuyNow && a.sellerId != me) ...[
-                const SizedBox(height: 8),
-                OutlinedButton.icon(
-                  key: const ValueKey('detail-buy-now'),
-                  onPressed: () => showBidSheet(context, ref, a.id),
-                  icon: const Icon(Icons.bolt),
-                  label: Text(
-                    t('Kupi odmah za {0}', [formatCredits(a.buyNowPrice!)]),
-                  ),
-                ),
-              ],
-              if (a.buyNowPrice != null && a.sellerId == me && a.isActive)
-                _InfoBox(
-                  icon: Icons.bolt,
-                  text: t(
-                    '"Kupi odmah" za {0} — vrijedi dok ponude ne dosegnu tu cijenu.',
-                    [formatCredits(a.buyNowPrice!)],
-                  ),
-                ),
               if (a.isActive && a.sellerId == me) ...[
                 _InfoBox(
                   icon: Icons.info_outline,

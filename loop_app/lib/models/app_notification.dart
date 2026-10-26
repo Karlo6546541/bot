@@ -44,7 +44,11 @@ enum NotificationKind {
     '🛡️',
     'Tvoj oglas "{0}" je uklonjen. Razlog: {1}. Ako se ne slažeš, podnesi žalbu.',
   ),
-  liveStarted('🔴', '{0} ide uživo: "{1}" ({2}).');
+  liveStarted('🔴', '{0} ide uživo: "{1}" ({2}).'),
+  shipReady(
+    '📦',
+    '{0} je odabrao dostavu za "{1}" — kod za paketomat je spreman.',
+  );
 
   const NotificationKind(this.emoji, this._template);
   final String emoji;
@@ -67,6 +71,7 @@ enum NotificationKind {
     liveStarted ||
     auctionEndingSoon => NotificationGroup.auctions,
     itemSold ||
+    shipReady ||
     priceDrop ||
     soldOut ||
     followedNewItem ||
