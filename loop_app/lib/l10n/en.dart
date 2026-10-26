@@ -2340,4 +2340,16 @@ const kEn = <String, String>{
   'Još nema otpremnica': 'No delivery notes yet',
   'Kad kupac odabere dostavu, ovdje dobiješ otpremnicu s kodom za paketomat.':
       'When a buyer chooses delivery, you get a delivery note with the locker code here.',
+  'Pošiljka prijavljena u BOX NOW': 'Parcel registered with BOX NOW',
+  'Prodavač predao paket u paketomat': 'Seller dropped the parcel at a locker',
+  'BOX NOW: u transportu': 'BOX NOW: in transit',
+  'Stiglo u paketomat kupca': 'Arrived at the buyer\'s locker',
+  'Kupac preuzeo paket': 'Buyer picked up the parcel',
+  'BOX NOW broj pošiljke': 'BOX NOW parcel no.',
+  'PIN za predaju': 'Drop-off PIN',
+  'Pošiljka {0}': 'Parcel {0}',
+  'demo': 'demo',
+  'PIN za predaju na paketomatu': 'Drop-off PIN at the locker',
+  'PIN za preuzimanje': 'Pickup PIN',
+  '{0} · kodovi i PIN-ovi za BOX NOW': '{0} · codes and PINs for BOX NOW',
 };

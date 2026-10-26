@@ -7,6 +7,7 @@ import 'package:loop_app/models/delivery.dart';
 import 'package:loop_app/models/loop_transaction.dart';
 import 'package:loop_app/services/auction_service.dart';
 import 'package:loop_app/services/boxnow/boxnow.dart';
+import 'package:loop_app/services/boxnow/boxnow_demo.dart';
 import 'package:loop_app/services/delivery_service.dart';
 import 'package:loop_app/services/seed_data.dart';
 import 'package:loop_app/services/storage_service.dart';
@@ -104,6 +105,16 @@ void main() {
       );
       // Samo jednom.
       expect(await deliveries.autoConfirmPickups(demo, now: later), 0);
+
+      // BOX NOW (demo): stalni broj i PIN-ovi, praćenje do preuzimanja.
+      final done = storage.deliveryById(d.id)!;
+      expect(BoxNowDemo.parcelId(done), hasLength(10));
+      expect(BoxNowDemo.parcelId(done), BoxNowDemo.parcelId(d));
+      expect(BoxNowDemo.dropOffPin(done), matches(RegExp(r'^\d{6}$')));
+      expect(BoxNowDemo.pickupPin(done), matches(RegExp(r'^\d{6}$')));
+      final events = BoxNowDemo.events(done, later);
+      expect(events, hasLength(5));
+      expect(events.every((e) => e.$3), isTrue);
     },
   );
 

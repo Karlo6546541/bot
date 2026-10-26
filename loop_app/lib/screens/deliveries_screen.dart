@@ -8,6 +8,7 @@ import 'package:qr_flutter/qr_flutter.dart';
 
 import '../models/delivery.dart';
 import '../providers/app_providers.dart';
+import '../services/boxnow/boxnow_demo.dart';
 import '../services/delivery_service.dart';
 import '../services/file_saver/file_saver.dart';
 import '../theme/app_theme.dart';
@@ -428,6 +429,11 @@ class DeliveryDetailScreen extends ConsumerWidget {
             const SizedBox(height: 16),
             ShippingLabel(delivery: d),
           ],
+          // BOX NOW (demo): broj pošiljke, PIN-ovi i praćenje.
+          if (d.method == DeliveryMethod.parcelLocker) ...[
+            const SizedBox(height: 16),
+            BoxNowCard(delivery: d, seller: d.sellerId == s.currentUserId),
+          ],
           const SizedBox(height: 16),
           Card(
             child: Padding(
@@ -835,6 +841,10 @@ class DeliveryNoteScreen extends ConsumerWidget {
       (t('Način dostave'), d.method?.label ?? '—'),
       (t('Predmet'), '1 × ${d.deviceName}'),
       if (paid != null) (t('Vrijednost'), formatCredits(paid)),
+      if (d.method == DeliveryMethod.parcelLocker) ...[
+        (t('BOX NOW broj pošiljke'), BoxNowDemo.parcelId(d)),
+        (t('PIN za predaju'), BoxNowDemo.dropOffPin(d)),
+      ],
     ];
 
     Future<void> download() async {
@@ -956,6 +966,233 @@ td{border-bottom:1px solid #ddd;padding:8px 4px;vertical-align:top}td:first-chil
           ),
         ],
       ),
+    );
+  }
+}
+
+/// BOX NOW (demo): broj pošiljke, PIN za predaju (prodavač) ili PIN za
+/// preuzimanje (kupac, kad paket stigne) i praćenje kao u BOX NOW-u.
+class BoxNowCard extends StatelessWidget {
+  const BoxNowCard({super.key, required this.delivery, required this.seller});
+  final Delivery delivery;
+  final bool seller;
+
+  static const _green = Color(0xFF6BBE45);
+
+  @override
+  Widget build(BuildContext context) {
+    final d = delivery;
+    final now = DateTime.now();
+    final idx = d.stepIndex(now);
+    final inLocker =
+        d.steps.indexOf(DeliveryStatus.inLocker) <= idx &&
+        d.confirmedAt == null;
+    Widget pin(String label, String value, Key key) => Container(
+      key: key,
+      margin: const EdgeInsets.only(top: 10),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      decoration: BoxDecoration(
+        color: _green.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: _green),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: Text(
+              label,
+              style: const TextStyle(fontWeight: FontWeight.w700),
+            ),
+          ),
+          Text(
+            value,
+            style: const TextStyle(
+              fontWeight: FontWeight.w900,
+              fontSize: 22,
+              letterSpacing: 3,
+            ),
+          ),
+        ],
+      ),
+    );
+    return Card(
+      key: const ValueKey('boxnow-card'),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 3,
+                  ),
+                  decoration: BoxDecoration(
+                    color: _green,
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: const Text(
+                    'BOX NOW',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w900,
+                      fontSize: 12,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    t('Pošiljka {0}', [BoxNowDemo.parcelId(d)]),
+                    style: const TextStyle(fontWeight: FontWeight.w800),
+                  ),
+                ),
+                Text(
+                  t('demo'),
+                  style: TextStyle(
+                    color: LoopColors.textSecondary,
+                    fontSize: 11,
+                  ),
+                ),
+              ],
+            ),
+            if (d.destination != null) ...[
+              const SizedBox(height: 6),
+              Text(
+                d.destination!,
+                style: TextStyle(color: LoopColors.textSecondary, fontSize: 13),
+              ),
+            ],
+            if (seller && idx <= 1)
+              pin(
+                t('PIN za predaju na paketomatu'),
+                BoxNowDemo.dropOffPin(d),
+                const ValueKey('boxnow-dropoff-pin'),
+              ),
+            if (!seller && inLocker)
+              pin(
+                t('PIN za preuzimanje'),
+                BoxNowDemo.pickupPin(d),
+                const ValueKey('boxnow-pickup-pin'),
+              ),
+            const SizedBox(height: 12),
+            for (final (label, at, done) in BoxNowDemo.events(d, now))
+              Padding(
+                padding: const EdgeInsets.only(bottom: 6),
+                child: Row(
+                  children: [
+                    Icon(
+                      done ? Icons.check_circle : Icons.radio_button_unchecked,
+                      size: 18,
+                      color: done ? _green : LoopColors.textSecondary,
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        label,
+                        style: TextStyle(
+                          fontWeight: done ? FontWeight.w700 : FontWeight.w500,
+                          color: done ? null : LoopColors.textSecondary,
+                        ),
+                      ),
+                    ),
+                    if (at != null && done)
+                      Text(
+                        formatDateTime(at),
+                        style: TextStyle(
+                          color: LoopColors.textSecondary,
+                          fontSize: 11,
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Otpremnice (zasebna kategorija u Moje): svi paketi koje šaljem, s
+/// BOX NOW brojem i stanjem; dodir otvara otpremnicu.
+class DeliveryNotesScreen extends ConsumerWidget {
+  const DeliveryNotesScreen({super.key});
+
+  static Future<void> open(BuildContext context) => Navigator.of(
+    context,
+  ).push(MaterialPageRoute<void>(builder: (_) => const DeliveryNotesScreen()));
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final s = ref.watch(appProvider);
+    final now = DateTime.now();
+    final notes =
+        [
+          for (final d in s.sellerDeliveries)
+            if (d.method != null && d.method != DeliveryMethod.digital) d,
+        ]..sort(
+          (a, b) => (b.startedAt ?? b.createdAt).compareTo(
+            a.startedAt ?? a.createdAt,
+          ),
+        );
+    return Scaffold(
+      appBar: AppBar(title: Text(t('Otpremnice'))),
+      body: notes.isEmpty
+          ? EmptyState(
+              icon: Icons.description_outlined,
+              title: t('Još nema otpremnica'),
+              message: t(
+                'Kad kupac odabere dostavu, ovdje dobiješ otpremnicu s kodom za paketomat.',
+              ),
+            )
+          : ListView(
+              key: const ValueKey('my-notes-list'),
+              padding: const EdgeInsets.all(16),
+              children: [
+                for (final d in notes)
+                  Card(
+                    child: ListTile(
+                      key: ValueKey('note-${d.id}'),
+                      leading: const Icon(Icons.description_outlined),
+                      title: Text(
+                        d.trackingNumber ?? d.id,
+                        style: const TextStyle(
+                          fontWeight: FontWeight.w900,
+                          letterSpacing: 1,
+                        ),
+                      ),
+                      subtitle: Text(
+                        [
+                          d.deviceName,
+                          [
+                            s.userById(d.buyerId)?.handle ?? '',
+                            formatDateTime(d.startedAt ?? d.createdAt),
+                            if (d.method == DeliveryMethod.parcelLocker)
+                              'BOX NOW ${BoxNowDemo.parcelId(d)}',
+                          ].join(' · '),
+                        ].join('\n'),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      isThreeLine: true,
+                      trailing: Text(
+                        d.status(now).label,
+                        style: TextStyle(
+                          color: d.isDelivered(now)
+                              ? LoopColors.buyNow
+                              : LoopColors.accent,
+                          fontWeight: FontWeight.w800,
+                          fontSize: 12,
+                        ),
+                      ),
+                      onTap: () => DeliveryNoteScreen.open(context, d.id),
+                    ),
+                  ),
+              ],
+            ),
     );
   }
 }
