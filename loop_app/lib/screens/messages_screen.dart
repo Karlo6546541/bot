@@ -49,14 +49,6 @@ class MessagesScreen extends ConsumerWidget {
                 child: ListView(
                   padding: const EdgeInsets.fromLTRB(12, 8, 12, 32),
                   children: [
-                    if (offers.isNotEmpty) ...[
-                      _Section(t('Ponude zamjene ({0})', [offers.length])),
-                      for (final o in offers)
-                        Padding(
-                          padding: const EdgeInsets.only(bottom: 8),
-                          child: SwapOfferCard(offer: o),
-                        ),
-                    ],
                     // Službene poruke od Subhasta — zaključane na vrhu.
                     for (final c in conversations)
                       if (c.otherId == ChatService.systemId)
@@ -108,6 +100,14 @@ class MessagesScreen extends ConsumerWidget {
                                 ChatScreen.open(context, ChatService.systemId),
                           ),
                         ),
+                    if (offers.isNotEmpty) ...[
+                      _Section(t('Ponude zamjene ({0})', [offers.length])),
+                      for (final o in offers)
+                        Padding(
+                          padding: const EdgeInsets.only(bottom: 8),
+                          child: SwapOfferCard(offer: o),
+                        ),
+                    ],
                     if (conversations.any(
                       (c) => c.otherId != ChatService.systemId,
                     ))

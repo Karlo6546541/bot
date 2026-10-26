@@ -8,7 +8,7 @@ import '../models/loop_transaction.dart';
 import '../models/app_notification.dart';
 import 'boxnow/boxnow.dart';
 import 'boxnow/boxnow_demo.dart';
-import 'chat_service.dart';
+import 'system_messages.dart';
 import 'inbox.dart';
 import 'storage_service.dart';
 import 'trade_service.dart';
@@ -231,31 +231,7 @@ class DeliveryService {
         now: at,
       );
       // Službena poruka od Subhasta s uputama (i PIN-om za BOX NOW).
-      await ChatService(_storage).sendSystem(
-        d.sellerId!,
-        method == DeliveryMethod.parcelLocker
-            ? t(
-                '📦 Pošalji "{0}" kupcu {1}.\nBOX NOW pošiljka {2} · paketomat: {3}\nPIN za predaju: {4}\nNa bilo kojem BOX NOW paketomatu odaberi "Pošalji paket" i upiši PIN.',
-                [
-                  d.deviceName,
-                  user.handle,
-                  BoxNowDemo.parcelId(started),
-                  dest ?? '',
-                  BoxNowDemo.dropOffPin(started),
-                ],
-              )
-            : t(
-                '📦 Pošalji "{0}" kupcu {1} ({2}). Kod pošiljke: {3} — otpremnica je u Moje → Otpremnice.',
-                [
-                  d.deviceName,
-                  user.handle,
-                  method.label,
-                  started.trackingNumber ?? '',
-                ],
-              ),
-        deviceId: d.deviceId,
-        now: at,
-      );
+      await _storage.putMessage(SystemMessages.ship(started, user.handle));
     }
     if (cost > 0) {
       await _storage.putTransaction(
@@ -307,15 +283,7 @@ class DeliveryService {
         targetId: d.id,
         now: at,
       );
-      await ChatService(_storage).sendSystem(
-        userId,
-        t(
-          '📬 "{0}" te čeka u paketomatu {1}.\nPIN za preuzimanje: {2}\nNa paketomatu odaberi "Preuzmi paket" i upiši PIN.',
-          [d.deviceName, d.destination ?? '', BoxNowDemo.pickupPin(d)],
-        ),
-        deviceId: d.deviceId,
-        now: at,
-      );
+      await _storage.putMessage(SystemMessages.pickup(d, at: at));
     }
     for (final d in _storage.deliveries) {
       if (!d.autoConfirms ||

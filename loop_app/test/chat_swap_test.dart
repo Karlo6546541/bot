@@ -61,7 +61,12 @@ void main() {
         text: 'Može li 280?',
       );
       final demo = await stateOf(SeedData.demoUserId);
-      expect(demo.conversations.single.otherId, SeedData.testUserId);
+      // Subhasto razgovor uvijek postoji (zaključan na vrhu) + novi razgovor.
+      expect(demo.conversations.map((c) => c.otherId).toSet(), {
+        'subhasto',
+        SeedData.testUserId,
+      });
+      expect(demo.chatWith('subhasto'), isNotEmpty);
       expect(demo.unreadMessages, 2);
       expect(
         storage.notifications

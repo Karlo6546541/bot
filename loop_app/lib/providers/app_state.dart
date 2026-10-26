@@ -16,7 +16,9 @@ import '../models/device.dart';
 import '../models/loop_transaction.dart';
 import '../models/portfolio_point.dart';
 import '../models/live_show.dart';
+import '../services/chat_service.dart';
 import '../services/live_service.dart';
+import '../services/system_messages.dart';
 import '../services/seed_data.dart';
 import '../services/storage_service.dart';
 
@@ -416,10 +418,12 @@ class AppState {
     if (me == null) return const [];
     final byOther = <String, List<ChatMessage>>{};
     for (final m in messages) {
+      if (m.senderId == ChatService.systemId) continue;
       if (m.senderId == me || m.receiverId == me) {
         (byOther[m.otherThan(me)] ??= []).add(m);
       }
     }
+    byOther[ChatService.systemId] = systemChat;
     final list = [
       for (final e in byOther.entries)
         Conversation(
@@ -433,10 +437,35 @@ class AppState {
 
   int get unreadMessages => conversations.fold(0, (s, c) => s + c.unread);
 
+  /// Službeni razgovor sa Subhastom (najstarije prvo): poruke izračunate iz
+  /// mojih pošiljki + spremljene (spremljena ima prednost — pamti pročitano).
+  List<ChatMessage> get systemChat {
+    final me = currentUser;
+    if (me == null) return const [];
+    final byId = {
+      for (final m in SystemMessages.derive(
+        me.id,
+        me.createdAt,
+        deliveries,
+        (id) => userById(id)?.handle ?? userLabel(id),
+        DateTime.now(),
+      ))
+        m.id: m,
+    };
+    for (final m in messages) {
+      if (m.senderId == ChatService.systemId && m.receiverId == me.id) {
+        byId[m.id] = m;
+      }
+    }
+    return byId.values.toList()
+      ..sort((a, b) => a.createdAt.compareTo(b.createdAt));
+  }
+
   /// Poruke s jednim korisnikom (najstarije prvo).
   List<ChatMessage> chatWith(String otherId) {
     final me = currentUserId;
     if (me == null) return const [];
+    if (otherId == ChatService.systemId) return systemChat;
     final id = ChatMessage.conversationOf(me, otherId);
     return messages.where((m) => m.conversationId == id).toList();
   }

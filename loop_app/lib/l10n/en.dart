@@ -2374,4 +2374,6 @@ const kEn = <String, String>{
       '📬 "{0}" is waiting for you at locker {1}.\nPickup PIN: {2}\nAt the locker choose "Collect parcel" and enter the PIN.',
   'Službene poruke Subhasta — PIN-ovi i upute za dostavu.':
       'Official Subhasto messages — PINs and delivery instructions.',
+  '👋 Ovdje ti Subhasto šalje PIN-ove za paketomate i upute za slanje. Na ove poruke ne možeš odgovoriti.':
+      '👋 Subhasto sends you parcel locker PINs and shipping instructions here. You can\'t reply to these messages.',
 };
