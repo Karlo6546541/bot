@@ -2270,4 +2270,9 @@ const kEn = <String, String>{
   'Dodaj adresu za dostavu': 'Add a delivery address',
   'Kurir na adresu. BOX NOW paketomat biraš pri svakoj kupnji.':
       'Courier to your address. Pick a BOX NOW locker at each purchase.',
+  '🥇 Ti vodiš s {0}': '🥇 You lead with {0}',
+  '🎉 Dobitnik!': '🎉 Winner!',
+  '🎁 Izvlačenje…': '🎁 Drawing…',
+  '{0} osvaja nagradu!': '{0} wins the prize!',
+  '{0} prijavljenih': '{0} entered',
 };

@@ -1059,6 +1059,10 @@ class _LiveRoomViewState extends ConsumerState<_LiveRoomBody> {
   LotState? _sweep;
   DateTime? _sweepAt;
 
+  /// Izvlačenje nagradne igre: predmet, imena prijavljenih, dobitnik.
+  (LotState, List<String>, String)? _spin;
+  DateTime? _spinAt;
+
   /// Whatnot: kad predmet ode, pobjednik dobiva slavlje preko cijelog
   /// ekrana, a ostali traku "PRODANO @kupac · cijena".
   int? _leadLot;
@@ -1078,9 +1082,23 @@ class _LiveRoomViewState extends ConsumerState<_LiveRoomBody> {
     }
     for (final l in sold) {
       if (!seen.add(l.index)) continue;
+      final giveaway = l.mode == LotMode.giveaway;
+      if (giveaway) {
+        // Nagradna igra: bubanj s imenima prijavljenih se vrti i stane na
+        // dobitniku (svi gledatelji ga vide).
+        final names = <String>{
+          for (final e in ref.read(storageProvider).liveEventsOf(st.show.id))
+            if (e.type == LiveEventType.enter && e.lot == l.index) e.userLabel,
+        }.toList();
+        _spin = (l, names, l.leader!.userLabel);
+        _spinAt = DateTime.now();
+      }
       if (l.leader!.userId == me) {
         final device = ref.read(appProvider).deviceById(l.lot.deviceId);
-        WidgetsBinding.instance.addPostFrameCallback((_) {
+        // Kod nagradne igre čestitka tek kad bubanj stane.
+        Future<void>.delayed(
+          giveaway ? _GiveawaySpin.duration : Duration.zero,
+        ).then((_) {
           if (!mounted) return;
           showCelebration(
             context,
@@ -1092,7 +1110,7 @@ class _LiveRoomViewState extends ConsumerState<_LiveRoomBody> {
             amount: l.price,
           );
         });
-      } else {
+      } else if (!giveaway) {
         _sweep = l;
         _sweepAt = DateTime.now();
       }
@@ -1389,6 +1407,12 @@ class _LiveRoomViewState extends ConsumerState<_LiveRoomBody> {
     final flash =
         _outbidAt != null &&
         now.difference(_outbidAt!) < const Duration(milliseconds: 900);
+    final spin = _spin;
+    final showSpin =
+        spin != null &&
+        _spinAt != null &&
+        now.difference(_spinAt!) <
+            _GiveawaySpin.duration + const Duration(seconds: 2);
     final sweep = _sweep;
     final showSweep =
         sweep != null &&
@@ -1650,6 +1674,16 @@ class _LiveRoomViewState extends ConsumerState<_LiveRoomBody> {
                               ),
                             ),
                           ],
+                          if (showSpin)
+                            Positioned.fill(
+                              child: IgnorePointer(
+                                child: _GiveawaySpin(
+                                  key: ValueKey('live-spin-${spin.$1.index}'),
+                                  names: spin.$2,
+                                  winner: spin.$3,
+                                ),
+                              ),
+                            ),
                           if (flash)
                             Positioned.fill(
                               child: IgnorePointer(
@@ -1802,6 +1836,7 @@ class _LiveRoomViewState extends ConsumerState<_LiveRoomBody> {
                       onBag: () => _showQueue(st, isHost),
                       liked: _liked,
                       onHeart: st.isOver ? null : _toggleLike,
+                      showWallet: !isHost,
                       onShare: () => shareLink(
                         context,
                         publicLink(live: show.id),
@@ -2967,8 +3002,8 @@ class _LotCard extends StatelessWidget {
     // Velika kartica trenutnog predmeta na dnu (tamni poluprozirni panel).
     return Container(
       key: ValueKey(result ? 'live-result' : 'live-lot'),
-      margin: const EdgeInsets.fromLTRB(10, 4, 10, 0),
-      padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
+      margin: const EdgeInsets.fromLTRB(10, 2, 10, 0),
+      padding: const EdgeInsets.fromLTRB(10, 8, 10, 8),
       decoration: BoxDecoration(
         color: Colors.black.withValues(alpha: 0.55),
         borderRadius: BorderRadius.circular(20),
@@ -3014,10 +3049,10 @@ class _LotCard extends StatelessWidget {
               ClipRRect(
                 borderRadius: BorderRadius.circular(10),
                 child: d != null
-                    ? ItemThumb(device: d, size: 72)
+                    ? ItemThumb(device: d, size: 54)
                     : Container(
-                        width: 72,
-                        height: 72,
+                        width: 54,
+                        height: 54,
                         color: Colors.white12,
                         child: const Icon(Icons.inventory_2_outlined),
                       ),
@@ -3034,19 +3069,41 @@ class _LotCard extends StatelessWidget {
                       style: const TextStyle(
                         color: Colors.white,
                         fontWeight: FontWeight.w900,
-                        fontSize: 17,
+                        fontSize: 15,
                         height: 1.15,
                         shadows: _shadow,
                       ),
                     ),
                     if (d != null)
-                      Text(
-                        '${d.condition.label} · ${d.category.singular}',
-                        style: const TextStyle(
-                          color: Colors.white70,
-                          fontSize: 12.5,
-                          shadows: _shadow,
-                        ),
+                      Row(
+                        children: [
+                          Flexible(
+                            child: Text(
+                              '${d.condition.label} · ${d.category.singular}',
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                color: Colors.white70,
+                                fontSize: 12,
+                                shadows: _shadow,
+                              ),
+                            ),
+                          ),
+                          if (!result && !isHost) ...[
+                            const SizedBox(width: 6),
+                            // Zaštita kupca: mali štit, dodir objašnjava.
+                            InkWell(
+                              key: const ValueKey('buyer-protection'),
+                              onTap: () =>
+                                  BuyerProtectionBadge.explain(context),
+                              child: const Icon(
+                                Icons.verified_user,
+                                size: 16,
+                                color: Color(0xFF4ADE80),
+                              ),
+                            ),
+                          ],
+                        ],
                       ),
                     const SizedBox(height: 4),
                     // Samo kad je predmet posebne vrste (pada cijena, igra).
@@ -3117,15 +3174,15 @@ class _LotCard extends StatelessWidget {
                     const SizedBox(height: 4),
                     // Odbrojavanje u krugu (crveno u zadnjim sekundama).
                     SizedBox(
-                      width: 44,
-                      height: 44,
+                      width: 34,
+                      height: 34,
                       child: Stack(
                         alignment: Alignment.center,
                         children: [
                           CircularProgressIndicator(
                             value: (left.inMilliseconds / (lotSeconds * 1000))
                                 .clamp(0.0, 1.0),
-                            strokeWidth: 4,
+                            strokeWidth: 3,
                             color: hot ? kLiveRed : Colors.white,
                             backgroundColor: Colors.white24,
                           ),
@@ -3135,7 +3192,7 @@ class _LotCard extends StatelessWidget {
                             style: TextStyle(
                               color: hot ? kLiveRed : Colors.white,
                               fontWeight: FontWeight.w900,
-                              fontSize: 15,
+                              fontSize: 13,
                             ),
                           ),
                         ],
@@ -3146,23 +3203,6 @@ class _LotCard extends StatelessWidget {
               ),
             ],
           ),
-          // Zaštita kupca i novčanik u svom redu (gledatelji, ne domaćin).
-          if (!result && !isHost)
-            const Padding(
-              padding: EdgeInsets.only(top: 8),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Align(
-                      alignment: Alignment.centerLeft,
-                      child: BuyerProtectionBadge(dark: true),
-                    ),
-                  ),
-                  SizedBox(width: 8),
-                  WalletChip(dark: true),
-                ],
-              ),
-            ),
           if (!result) ...[
             if (hot)
               Padding(
@@ -3785,8 +3825,11 @@ class _DouyinBar extends StatelessWidget {
     required this.liked,
     required this.onHeart,
     required this.onShare,
+    this.showWallet = false,
   });
 
+  /// Novčanik uz srce i dijeljenje (gledatelji).
+  final bool showWallet;
   final TextEditingController controller;
   final Future<void> Function(String) onSend;
   final bool showChat;
@@ -3903,6 +3946,11 @@ class _DouyinBar extends StatelessWidget {
                       size: 28,
                     ),
             ),
+          ),
+        if (showWallet)
+          const Padding(
+            padding: EdgeInsets.symmetric(horizontal: 2),
+            child: WalletChip(dark: true),
           ),
         IconButton(
           key: const ValueKey('live-share'),
@@ -4228,6 +4276,161 @@ class _LiveShopSheet extends ConsumerWidget {
           ],
         ),
       ),
+    );
+  }
+}
+
+/// Izvlačenje nagradne igre: imena prijavljenih se vrte kao bubanj,
+/// usporavaju i stanu na dobitniku — zatim konfete i "Dobitnik!".
+class _GiveawaySpin extends StatefulWidget {
+  const _GiveawaySpin({super.key, required this.names, required this.winner});
+
+  final List<String> names;
+  final String winner;
+
+  /// Koliko se bubanj vrti (čestitka dobitniku dolazi nakon toga).
+  static const duration = Duration(milliseconds: 4200);
+
+  @override
+  State<_GiveawaySpin> createState() => _GiveawaySpinState();
+}
+
+class _GiveawaySpinState extends State<_GiveawaySpin>
+    with SingleTickerProviderStateMixin {
+  static const _row = 44.0;
+  static const _gold = Color(0xFFFFC233);
+
+  late final _c = AnimationController(
+    vsync: this,
+    duration: _GiveawaySpin.duration,
+  )..forward();
+
+  /// Bubanj: imena ponovljena nekoliko krugova, dobitnik na kraju.
+  late final List<String> _reel = () {
+    final others = [
+      for (final n in widget.names)
+        if (n != widget.winner) n,
+    ];
+    final pool = others.isEmpty ? [widget.winner] : others;
+    final r = math.Random(widget.winner.hashCode);
+    return [
+      for (var i = 0; i < 28; i++) pool[r.nextInt(pool.length)],
+      widget.winner,
+    ];
+  }();
+
+  @override
+  void dispose() {
+    _c.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _c,
+      builder: (context, _) {
+        final done = _c.isCompleted;
+        // Brzo pa sve sporije (kao kolo sreće).
+        final pos =
+            Curves.easeOutQuart.transform(_c.value) * (_reel.length - 1);
+        final base = pos.floor();
+        final frac = pos - base;
+        return Stack(
+          fit: StackFit.expand,
+          children: [
+            const ColoredBox(color: Color(0x88000000)),
+            if (done) const ConfettiBurst(),
+            Center(
+              child: Container(
+                width: 260,
+                padding: const EdgeInsets.fromLTRB(16, 14, 16, 16),
+                decoration: BoxDecoration(
+                  color: const Color(0xEE17120F),
+                  borderRadius: BorderRadius.circular(22),
+                  border: Border.all(color: _gold, width: 2),
+                  boxShadow: [
+                    BoxShadow(
+                      color: _gold.withValues(alpha: done ? 0.6 : 0.25),
+                      blurRadius: done ? 30 : 16,
+                    ),
+                  ],
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      done ? t('🎉 Dobitnik!') : t('🎁 Izvlačenje…'),
+                      style: const TextStyle(
+                        color: _gold,
+                        fontWeight: FontWeight.w900,
+                        fontSize: 18,
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    // Prozor bubnja: tri reda, srednji je odabrani.
+                    SizedBox(
+                      height: _row * 3,
+                      child: ClipRect(
+                        child: Stack(
+                          children: [
+                            Positioned(
+                              left: 0,
+                              right: 0,
+                              top: _row,
+                              height: _row,
+                              child: DecoratedBox(
+                                decoration: BoxDecoration(
+                                  color: _gold.withValues(alpha: 0.16),
+                                  borderRadius: BorderRadius.circular(10),
+                                  border: Border.all(color: _gold),
+                                ),
+                              ),
+                            ),
+                            for (var k = -1; k <= 2; k++)
+                              if (base + k >= 0 && base + k < _reel.length)
+                                Positioned(
+                                  left: 0,
+                                  right: 0,
+                                  top: _row * (1 + k - frac),
+                                  height: _row,
+                                  child: Center(
+                                    child: Text(
+                                      _reel[base + k],
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: TextStyle(
+                                        color: k == 0 || (k == 1 && frac > 0.5)
+                                            ? Colors.white
+                                            : Colors.white38,
+                                        fontWeight: FontWeight.w900,
+                                        fontSize: done && k == 0 ? 20 : 17,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      done
+                          ? t('{0} osvaja nagradu!', [widget.winner])
+                          : t('{0} prijavljenih', ['${widget.names.length}']),
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(
+                        color: Colors.white70,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        );
+      },
     );
   }
 }
