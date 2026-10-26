@@ -2091,23 +2091,117 @@ class _LiveRoomViewState extends ConsumerState<_LiveRoomBody> {
   );
 
   Widget _bidRow(LotState cur) {
-    // Jedan veliki gumb — svaki dodir je ponuda za sljedeći korak.
-    return FilledButton(
-      key: const ValueKey('live-bid'),
-      style: FilledButton.styleFrom(
-        backgroundColor: kBidOrange,
-        foregroundColor: Colors.white,
-        minimumSize: const Size.fromHeight(54),
-        textStyle: const TextStyle(
-          fontFamily: kFontFamily,
-          fontWeight: FontWeight.w900,
-          fontSize: 18,
+    // Veliki gumb = korak više; "Iznos" = vlastita ponuda koja odmah
+    // postaje nova cijena.
+    return Row(
+      children: [
+        Expanded(
+          child: FilledButton(
+            key: const ValueKey('live-bid'),
+            style: FilledButton.styleFrom(
+              backgroundColor: kBidOrange,
+              foregroundColor: Colors.white,
+              minimumSize: const Size.fromHeight(54),
+              textStyle: const TextStyle(
+                fontFamily: kFontFamily,
+                fontWeight: FontWeight.w900,
+                fontSize: 18,
+              ),
+            ),
+            onPressed: _busy ? null : () => _bid(cur.minNext),
+            child: Text(t('Licitiraj {0}', [formatCredits(cur.minNext)])),
+          ),
         ),
-      ),
-      onPressed: _busy ? null : () => _bid(cur.minNext),
-      child: Text(t('Licitiraj {0}', [formatCredits(cur.minNext)])),
+        const SizedBox(width: 8),
+        SizedBox(
+          height: 54,
+          child: OutlinedButton.icon(
+            key: const ValueKey('live-bid-custom'),
+            style: OutlinedButton.styleFrom(
+              foregroundColor: Colors.white,
+              side: const BorderSide(color: Colors.white70, width: 1.5),
+              padding: const EdgeInsets.symmetric(horizontal: 14),
+            ),
+            onPressed: _busy ? null : () => _customBid(cur),
+            icon: const Icon(Icons.edit, size: 18),
+            label: Text(t('Iznos')),
+          ),
+        ),
+      ],
     );
   }
+
+  /// Vlastiti iznos ponude: cijena na ekranu odmah skoči na taj iznos.
+  Future<void> _customBid(LotState cur) async {
+    if (blockGuest(context)) return;
+    final c = TextEditingController(
+      text: _fmtAmount(cur.minNext + LiveLot.increment(cur.minNext) * 4),
+    );
+    c.selection = TextSelection(baseOffset: 0, extentOffset: c.text.length);
+    final amount = await showDialog<double>(
+      context: context,
+      builder: (ctx) {
+        String? error;
+        return StatefulBuilder(
+          builder: (ctx, setD) => AlertDialog(
+            title: Text(t('Tvoja ponuda')),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  t('Najmanje {0} · cijena odmah skače na tvoj iznos.', [
+                    formatCredits(cur.minNext),
+                  ]),
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  key: const ValueKey('live-custom-amount'),
+                  controller: c,
+                  autofocus: true,
+                  keyboardType: const TextInputType.numberWithOptions(
+                    decimal: true,
+                  ),
+                  decoration: InputDecoration(
+                    suffixText: '€',
+                    errorText: error,
+                  ),
+                ),
+              ],
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx),
+                child: Text(t('Odustani')),
+              ),
+              FilledButton(
+                key: const ValueKey('live-custom-ok'),
+                style: FilledButton.styleFrom(backgroundColor: kBidOrange),
+                onPressed: () {
+                  final v = double.tryParse(c.text.trim().replaceAll(',', '.'));
+                  if (v == null || v < cur.minNext) {
+                    setD(
+                      () => error = t('Najmanje {0}', [
+                        formatCredits(cur.minNext),
+                      ]),
+                    );
+                    return;
+                  }
+                  Navigator.pop(ctx, v);
+                },
+                child: Text(t('Licitiraj')),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+    c.dispose();
+    if (amount != null && mounted) await _bid(amount);
+  }
+
+  static String _fmtAmount(double v) =>
+      v == v.roundToDouble() ? v.toStringAsFixed(0) : v.toStringAsFixed(2);
 }
 
 /// Predmet u moj live: dodaje ga u live koji traje ili je zakazan (od 1 €),

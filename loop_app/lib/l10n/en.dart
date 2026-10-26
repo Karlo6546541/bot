@@ -2276,7 +2276,8 @@ const kEn = <String, String>{
   '{0} osvaja nagradu!': '{0} wins the prize!',
   '{0} prijavljenih': '{0} entered',
   '⬇️ Digitalno': '⬇️ Digital',
-  'Kupljeno · u tvom portfoliju kupljenih stvari': 'Bought · in your portfolio of purchases',
+  'Kupljeno · u tvom portfoliju kupljenih stvari':
+      'Bought · in your portfolio of purchases',
   'Ipak želiš preprodati?': 'Want to resell after all?',
   'Moj portfolio': 'My portfolio',
   'ukupno {0}': 'total {0}',
@@ -2284,4 +2285,6 @@ const kEn = <String, String>{
   'Plaćeno {0}': 'Paid {0}',
   '👥 Pratiš': '👥 Following',
   'Od računa koje pratiš': 'From accounts you follow',
+  'Najmanje {0} · cijena odmah skače na tvoj iznos.':
+      'At least {0} · the price jumps to your amount right away.',
 };

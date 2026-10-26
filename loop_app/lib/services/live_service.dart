@@ -356,10 +356,15 @@ class LiveService {
     for (final b in bids) {
       if (b.userId == show.hostId) continue;
       if (close != null && b.at.isAfter(close)) continue;
+      // Dok sat teče ponuda je "skok": cijena odmah postaje taj iznos
+      // (gumb "Licitiraj" nudi korak više, vlastiti iznos skače odmah).
+      // Predlicitacije (prije početka) ostaju maksimalne ponude.
+      final running = start != null && !b.at.isBefore(start);
       if (leader == null) {
         if (b.amount < lot.startPrice) continue;
         leader = b;
         leaderMax = b.amount;
+        if (running) price = b.amount;
       } else if (b.userId == leader.userId) {
         // Vodeći povisuje svoj maksimum — cijena ostaje ista.
         if (b.amount > leaderMax) {
@@ -370,7 +375,9 @@ class LiveService {
       } else {
         if (b.amount < price + LiveLot.increment(price)) continue;
         if (b.amount > leaderMax) {
-          price = min(b.amount, leaderMax + LiveLot.increment(leaderMax));
+          price = running
+              ? b.amount
+              : min(b.amount, leaderMax + LiveLot.increment(leaderMax));
           leader = b;
           leaderMax = b.amount;
         } else {

@@ -293,35 +293,30 @@ void main() {
       },
     );
 
-    test('maksimalna ponuda (proxy): cijena raste samo koliko treba', () async {
+    test('vlastiti iznos: cijena odmah skače na ponudu', () async {
       final id = await start();
-      // Bob je spreman platiti do 30 €, cijena ostaje na početnoj.
+      // Bob upiše 30 € → cijena je odmah 30 € (ne ostaje na početnoj).
       await live.bid(bob, id, 30, now: at(2));
-      expect(state(id, 2).current!.price, 1);
-      // Ana nudi 12 → Bobov automatski odgovor: 12 + korak (2) = 14.
-      await live.bid(ana, id, 12, now: at(3));
-      var lot = state(id, 3).current!;
+      var lot = state(id, 2).current!;
+      expect(lot.price, 30);
       expect(lot.leader!.userId, bob);
-      expect(lot.price, 14);
-      // Marko nudi 50 → vodi s 30 + korak (2) = 32.
+      // Gumb "Licitiraj" nudi korak više (32 €).
+      expect(lot.minNext, 32);
+      await live.bid(ana, id, lot.minNext, now: at(3));
+      lot = state(id, 3).current!;
+      expect(lot.leader!.userId, ana);
+      expect(lot.price, 32);
+      // Marko skoči na 50 € — vidljivo u chatu kao 50 €.
       await live.bid(marko, id, 50, now: at(4));
       lot = state(id, 4).current!;
       expect(lot.leader!.userId, marko);
-      expect(lot.price, 32);
-      // Jednaki maksimum: vodi raniji (Marko), cijena = 50.
-      await live.bid(bob, id, 50, now: at(5));
-      lot = state(id, 5).current!;
-      expect(lot.leader!.userId, marko);
       expect(lot.price, 50);
-      // Chat ne otkriva maksimume — samo vidljive cijene.
       expect(
-        state(id, 5).feed.where((e) => e.type == LiveEventType.bid).last.amount,
+        state(id, 4).feed.where((e) => e.type == LiveEventType.bid).last.amount,
         50,
       );
-      expect(
-        state(id, 5).feed.where((e) => e.amount == 30 && e.userId == bob),
-        isEmpty,
-      );
+      // Niža ponuda od sljedećeg koraka se odbija.
+      expect(() => live.bid(bob, id, 51, now: at(5)), throwsA(anything));
     });
 
     test('koraci licitiranja kao na Whatnotu', () {
@@ -388,8 +383,7 @@ void main() {
 
     test('prodaju provodi pobjednik ili domaćin — samo jednom', () async {
       final id = await start();
-      await live.bid(bob, id, 3, now: at(5));
-      await live.bid(ana, id, 2, now: at(6)); // Bob vodi s 3 €
+      await live.bid(bob, id, 3, now: at(5)); // Bob vodi s 3 €
       final hostCredits = storage.userById(host)!.credits;
       final bobCredits = storage.userById(bob)!.credits;
 
