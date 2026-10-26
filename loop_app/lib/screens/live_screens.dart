@@ -3019,7 +3019,6 @@ class _LotCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final left = lot.left(now);
-    final secs = (left.inMilliseconds / 1000).ceil();
     final hot =
         !result && left <= LiveShow.hotWindow && lot.mode == LotMode.auction;
     final myMax = lot.maxOf(me);
@@ -3265,53 +3264,23 @@ class _LotCard extends StatelessWidget {
                           shadows: _shadow,
                         ),
                       ),
-                    const SizedBox(height: 4),
-                    // Odbrojavanje u krugu (crveno u zadnjim sekundama).
-                    SizedBox(
-                      width: 34,
-                      height: 34,
-                      child: Stack(
-                        alignment: Alignment.center,
-                        children: [
-                          CircularProgressIndicator(
-                            value: (left.inMilliseconds / (lotSeconds * 1000))
-                                .clamp(0.0, 1.0),
-                            strokeWidth: 3,
-                            color: hot ? kLiveRed : Colors.white,
-                            backgroundColor: Colors.white24,
-                          ),
-                          Text(
-                            '$secs',
-                            key: const ValueKey('live-secs'),
-                            style: TextStyle(
-                              color: hot ? kLiveRed : Colors.white,
-                              fontWeight: FontWeight.w900,
-                              fontSize: 13,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
                   ],
                 ],
               ),
             ],
           ),
-          if (!result) ...[
-            if (hot)
-              Padding(
-                padding: const EdgeInsets.only(top: 4),
-                child: Text(
-                  t('⚡ Svaka ponuda dodaje +2 s'),
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 11,
-                    fontWeight: FontWeight.w700,
-                    shadows: _shadow,
-                  ),
-                ),
+          // Traka vremena: smanjuje se, u zadnjim sekundama crveno treperi,
+          // a svaka ponuda iskoči kao "+2 s".
+          if (!result && lot.mode == LotMode.auction)
+            Padding(
+              padding: const EdgeInsets.only(top: 8),
+              child: _TimeBar(
+                left: left,
+                total: Duration(seconds: lotSeconds),
+                end: lot.end,
+                hot: hot,
               ),
-          ],
+            ),
         ],
       ),
     );
@@ -4523,6 +4492,205 @@ class _GiveawaySpinState extends State<_GiveawaySpin>
               ),
             ),
           ],
+        );
+      },
+    );
+  }
+}
+
+/// Traka preostalog vremena licitacije s brojem sekundi. U zadnjim
+/// sekundama je crvena i treperi; kad ponuda produlji sat, iskoči "+2 s".
+class _TimeBar extends StatefulWidget {
+  const _TimeBar({
+    required this.left,
+    required this.total,
+    required this.end,
+    required this.hot,
+  });
+
+  final Duration left;
+  final Duration total;
+  final DateTime? end;
+  final bool hot;
+
+  @override
+  State<_TimeBar> createState() => _TimeBarState();
+}
+
+class _TimeBarState extends State<_TimeBar> with TickerProviderStateMixin {
+  late final _blink = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 450),
+  );
+  late final _bonus = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 1100),
+  );
+  int _added = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.hot) _blink.repeat(reverse: true);
+  }
+
+  @override
+  void didUpdateWidget(_TimeBar old) {
+    super.didUpdateWidget(old);
+    if (widget.hot && !_blink.isAnimating) {
+      _blink.repeat(reverse: true);
+    } else if (!widget.hot && _blink.isAnimating) {
+      _blink
+        ..stop()
+        ..value = 0;
+    }
+    // Sat je produljen (nova ponuda) → "+N s".
+    final was = old.end;
+    final now = widget.end;
+    if (was != null && now != null && now.isAfter(was)) {
+      _added = now.difference(was).inSeconds;
+      _bonus.forward(from: 0);
+    }
+  }
+
+  @override
+  void dispose() {
+    _blink.dispose();
+    _bonus.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final secs = (widget.left.inMilliseconds / 1000).ceil();
+    final f = widget.total.inMilliseconds == 0
+        ? 0.0
+        : (widget.left.inMilliseconds / widget.total.inMilliseconds).clamp(
+            0.0,
+            1.0,
+          );
+    return AnimatedBuilder(
+      animation: Listenable.merge([_blink, _bonus]),
+      builder: (context, _) {
+        final color = widget.hot
+            ? Color.lerp(kLiveRed, const Color(0xFFFFB3C1), _blink.value)!
+            : kBidOrange;
+        final b = _bonus.value;
+        return SizedBox(
+          height: 22,
+          child: Stack(
+            clipBehavior: Clip.none,
+            alignment: Alignment.centerLeft,
+            children: [
+              Positioned.fill(
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: Colors.white12,
+                    borderRadius: BorderRadius.circular(99),
+                  ),
+                ),
+              ),
+              // Glatko smanjivanje između otkucaja.
+              TweenAnimationBuilder<double>(
+                tween: Tween(end: f),
+                duration: const Duration(milliseconds: 400),
+                builder: (context, v, _) => FractionallySizedBox(
+                  widthFactor: v,
+                  child: Container(
+                    height: 22,
+                    decoration: BoxDecoration(
+                      color: color,
+                      borderRadius: BorderRadius.circular(99),
+                      boxShadow: widget.hot
+                          ? [
+                              BoxShadow(
+                                color: kLiveRed.withValues(
+                                  alpha: 0.6 * (1 - _blink.value),
+                                ),
+                                blurRadius: 12,
+                              ),
+                            ]
+                          : null,
+                    ),
+                  ),
+                ),
+              ),
+              Positioned.fill(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 10),
+                  child: Row(
+                    children: [
+                      Icon(
+                        widget.hot ? Icons.bolt : Icons.timer_outlined,
+                        size: 14,
+                        color: Colors.white,
+                      ),
+                      const SizedBox(width: 4),
+                      Expanded(
+                        child: Text(
+                          widget.hot
+                              ? t('Svaka ponuda +2 s!')
+                              : t('Preostalo vrijeme'),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.w800,
+                            fontSize: 11.5,
+                          ),
+                        ),
+                      ),
+                      Text(
+                        '$secs s',
+                        key: const ValueKey('live-secs'),
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w900,
+                          fontSize: 13,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              // "+2 s" iskoči iznad trake i odleti gore.
+              if (_bonus.isAnimating)
+                Positioned(
+                  right: 6,
+                  top: -18 - 22 * b,
+                  child: Opacity(
+                    opacity: (1 - b).clamp(0.0, 1.0),
+                    child: Transform.scale(
+                      scale:
+                          0.8 +
+                          0.6 *
+                              Curves.elasticOut.transform(
+                                (b * 2).clamp(0.0, 1.0),
+                              ),
+                      child: Container(
+                        key: const ValueKey('live-bonus'),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 2,
+                        ),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF4ADE80),
+                          borderRadius: BorderRadius.circular(99),
+                        ),
+                        child: Text(
+                          '+$_added s',
+                          style: const TextStyle(
+                            color: Colors.black,
+                            fontWeight: FontWeight.w900,
+                            fontSize: 13,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+            ],
+          ),
         );
       },
     );

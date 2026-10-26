@@ -2287,4 +2287,13 @@ const kEn = <String, String>{
   'Od računa koje pratiš': 'From accounts you follow',
   'Najmanje {0} · cijena odmah skače na tvoj iznos.':
       'At least {0} · the price jumps to your amount right away.',
+  'Pratim': 'Following',
+  'Prijavi se i prati prodavače — njihovi oglasi bit će ovdje.':
+      'Sign in and follow sellers — their listings will appear here.',
+  'Još nikoga ne pratiš. Dodirni "Prati" na liveu ili trgovini.':
+      'You don\'t follow anyone yet. Tap "Follow" in a show or shop.',
+  'Računi koje pratiš trenutno nemaju oglasa.':
+      'Accounts you follow have no listings right now.',
+  'Svaka ponuda +2 s!': 'Every bid +2 s!',
+  'Preostalo vrijeme': 'Time left',
 };

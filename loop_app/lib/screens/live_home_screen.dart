@@ -54,6 +54,10 @@ class _BuyNow extends _Filter {
   const _BuyNow();
 }
 
+class _Following extends _Filter {
+  const _Following();
+}
+
 class _LiveHomeScreenState extends ConsumerState<LiveHomeScreen> {
   Timer? _timer;
   _Filter _filter = const _ForYou();
@@ -142,8 +146,68 @@ class _LiveHomeScreenState extends ConsumerState<LiveHomeScreen> {
           ),
         );
 
+    // Računi koje pratiš i njihove objave (liveovi, aukcije, Kupi odmah).
+    final following = s.currentUser == null || s.currentUser!.isGuest
+        ? const <AppUser>[]
+        : s.followingListOf(me);
+    final followIds = {for (final u in following) u.id};
+    final theirs = [
+      for (final i in all)
+        if (followIds.contains(
+          i.show?.hostId ?? i.auction?.sellerId ?? i.device?.ownerId,
+        ))
+          i,
+    ];
+
     final slivers = <Widget>[];
     switch (_filter) {
+      case _Following():
+        if (following.isEmpty) {
+          slivers.add(
+            SliverToBoxAdapter(
+              child: Padding(
+                key: const ValueKey('home-following-empty'),
+                padding: const EdgeInsets.all(24),
+                child: Text(
+                  s.currentUser?.isGuest ?? true
+                      ? t(
+                          'Prijavi se i prati prodavače — njihovi oglasi bit će ovdje.',
+                        )
+                      : t(
+                          'Još nikoga ne pratiš. Dodirni "Prati" na liveu ili trgovini.',
+                        ),
+                  textAlign: TextAlign.center,
+                  style: TextStyle(color: LoopColors.textSecondary),
+                ),
+              ),
+            ),
+          );
+        } else {
+          slivers.add(const SliverToBoxAdapter(child: SizedBox(height: 8)));
+          slivers.add(
+            SliverToBoxAdapter(
+              child: _FollowingRow(
+                users: following,
+                liveBy: {for (final i in live) i.show!.hostId: i},
+                onLive: (i) => open([i], 0, t('Uživo')),
+              ),
+            ),
+          );
+          slivers.add(const SliverToBoxAdapter(child: SizedBox(height: 12)));
+          slivers.add(
+            theirs.isEmpty
+                ? SliverToBoxAdapter(
+                    child: Padding(
+                      padding: const EdgeInsets.all(16),
+                      child: Text(
+                        t('Računi koje pratiš trenutno nemaju oglasa.'),
+                        style: TextStyle(color: LoopColors.textSecondary),
+                      ),
+                    ),
+                  )
+                : grid('home-following', theirs, t('Pratim')),
+          );
+        }
       case _ForYou():
         // Hero: najgledaniji live preko cijele širine, ostali u mreži.
         final byViewers = [...live]
@@ -168,19 +232,7 @@ class _LiveHomeScreenState extends ConsumerState<LiveHomeScreen> {
             ),
           ),
         );
-        // Računi koje pratiš: krugovi (UŽIVO ako emitiraju) i njihove objave.
-        final following = s.currentUser == null || s.currentUser!.isGuest
-            ? const <AppUser>[]
-            : s.followingListOf(me);
         if (following.isNotEmpty) {
-          final ids = {for (final u in following) u.id};
-          final theirs = [
-            for (final i in all)
-              if (ids.contains(
-                i.show?.hostId ?? i.auction?.sellerId ?? i.device?.ownerId,
-              ))
-                i,
-          ];
           slivers.add(header(t('👥 Pratiš')));
           slivers.add(
             SliverToBoxAdapter(
@@ -358,7 +410,7 @@ class _LiveHomeScreenState extends ConsumerState<LiveHomeScreen> {
         // listanja); odabrana se ispuni bojom svoje vrste.
         SliverToBoxAdapter(
           child: Padding(
-            padding: const EdgeInsets.fromLTRB(12, 4, 12, 6),
+            padding: const EdgeInsets.fromLTRB(10, 4, 10, 6),
             child: Row(
               key: const ValueKey('home-cats'),
               children: [
@@ -394,6 +446,15 @@ class _LiveHomeScreenState extends ConsumerState<LiveHomeScreen> {
                   color: LoopColors.accent,
                   selected: _filter is _Timed,
                   onTap: () => setState(() => _filter = const _Timed()),
+                ),
+                _Pill(
+                  id: 'following',
+                  icon: Icons.people_alt,
+                  label: t('Pratim'),
+                  color: const Color(0xFF7C4DFF),
+                  badge: theirs.length,
+                  selected: _filter is _Following,
+                  onTap: () => setState(() => _filter = const _Following()),
                 ),
                 _Pill(
                   id: 'buy',
@@ -583,7 +644,7 @@ class _Pill extends StatelessWidget {
         : Colors.white;
     return Expanded(
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 3),
+        padding: const EdgeInsets.symmetric(horizontal: 2.5),
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 200),
           curve: Curves.easeOut,
@@ -618,10 +679,8 @@ class _Pill extends StatelessWidget {
                     Badge(
                       isLabelVisible: badge > 0,
                       label: Text('$badge'),
-                      backgroundColor: selected
-                          ? Colors.white
-                          : LoopColors.live,
-                      textColor: selected ? LoopColors.live : Colors.white,
+                      backgroundColor: selected ? Colors.white : color,
+                      textColor: selected ? color : Colors.white,
                       child: Icon(
                         icon,
                         size: 22,
