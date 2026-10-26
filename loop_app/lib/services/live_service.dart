@@ -233,8 +233,8 @@ class LiveService {
           e.userId != show.hostId;
       switch (lot.mode) {
         case LotMode.auction:
-          // Predlicitacije (prije početka) i ponude dok sat teče; ponuda
-          // u zadnjih 10 s vraća sat na 10 s.
+          // Predlicitacije (prije početka) i ponude dok sat teče; svaka
+          // ponuda dodaje 2 s.
           final r = _proxy(
             lot,
             allBids.where((b) => !b.at.isAfter(now)),
@@ -395,8 +395,8 @@ class LiveService {
       if (s != null &&
           close != null &&
           !b.at.isBefore(s) &&
-          close.difference(b.at) < LiveShow.extendWindow) {
-        close = b.at.add(LiveShow.extendWindow);
+          !b.at.isAfter(close)) {
+        close = close.add(LiveShow.bidBonus);
       }
     }
     return (steps: steps, maxes: maxes, end: close);

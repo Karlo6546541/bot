@@ -6,7 +6,7 @@ import '../l10n/tr.dart';
 ///
 /// Emisiju mijenja samo domaćin (početak licitacije, novi predmeti, "još sam
 /// tu"), a ponude i chat su zasebni zapisi. Ponuda u zadnjih
-/// [LiveShow.extendWindow] sekundi produljuje licitaciju. Zato svaki uređaj iz
+/// [LiveShow.bidBonus] produljuje licitaciju. Zato svaki uređaj iz
 /// istih podataka izračuna isto stanje, bez središnjeg poslužitelja.
 class LiveShow {
   const LiveShow({
@@ -69,10 +69,15 @@ class LiveShow {
 
   /// Trgovci (obrt, tvrtka).
   static const businessMaxLots = 200;
-  static const lotDurations = [15, 20, 30, 45, 60];
 
-  /// Ponuda u zadnjih toliko sekundi vraća sat na toliko sekundi.
-  static const extendWindow = Duration(seconds: 10);
+  /// Trajanje licitacije jednog predmeta (5 i 10 s = brze licitacije).
+  static const lotDurations = [5, 10, 15, 20, 30, 45, 60];
+
+  /// Svaka prihvaćena ponuda dok sat teče dodaje toliko vremena.
+  static const bidBonus = Duration(seconds: 2);
+
+  /// Zadnje sekunde licitacije (sat crveni, "+2 s" se ističe).
+  static const hotWindow = Duration(seconds: 5);
 
   /// Live se ne može zakazati dalje od ovoga.
   static const maxScheduleAhead = Duration(days: 7);

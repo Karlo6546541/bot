@@ -128,8 +128,9 @@ Future<bool> changeCard(BuildContext context, WidgetRef ref) async {
   return true;
 }
 
-/// Mali novčanik: koja se kartica naplaćuje; dodir je mijenja (ili dodaje
-/// prvu). [dark] za tamnu pozadinu (live, swipe feed). Gost ga ne vidi.
+/// Novčanik kao ikona: dodir otvara [showWallet] (kartica i dostava
+/// odvojeno). Točkica: zelena = sve spremno, žuta = nešto nedostaje.
+/// [dark] za tamnu pozadinu (live, swipe feed). Gost ga ne vidi.
 class WalletChip extends ConsumerWidget {
   const WalletChip({super.key, this.dark = false});
   final bool dark;
@@ -138,47 +139,212 @@ class WalletChip extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final user = ref.watch(appProvider.select((s) => s.currentUser));
     if (user == null || user.isGuest) return const SizedBox.shrink();
-    final card = user.paymentCard;
-    final fg = dark
-        ? (card == null ? Colors.amberAccent : Colors.white)
-        : (card == null ? LoopColors.accent : LoopColors.textPrimary);
-    // U uskom prostoru se smanji umjesto da se prelije.
-    return FittedBox(
-      fit: BoxFit.scaleDown,
-      alignment: Alignment.centerLeft,
+    final ready = user.checkoutReady;
+    return Tooltip(
+      message: t('Novčanik'),
       child: InkWell(
         key: const ValueKey('wallet'),
-        borderRadius: BorderRadius.circular(99),
-        onTap: () => changeCard(context, ref),
+        customBorder: const CircleBorder(),
+        onTap: () => showWallet(context, ref),
         child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
+          width: 36,
+          height: 36,
           decoration: BoxDecoration(
-            color: dark ? Colors.white12 : LoopColors.surface,
-            borderRadius: BorderRadius.circular(99),
+            shape: BoxShape.circle,
+            color: dark
+                ? Colors.white.withValues(alpha: 0.16)
+                : LoopColors.surface,
             border: Border.all(
-              color: dark ? Colors.white24 : LoopColors.surfaceHover,
+              color: dark ? Colors.white30 : LoopColors.surfaceHover,
             ),
           ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
+          child: Stack(
+            alignment: Alignment.center,
             children: [
-              Icon(Icons.account_balance_wallet_outlined, size: 14, color: fg),
-              const SizedBox(width: 5),
-              ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 130),
-                child: Text(
-                  card ?? t('Dodaj karticu'),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    color: fg,
-                    fontSize: 11.5,
-                    fontWeight: FontWeight.w800,
+              Icon(
+                Icons.account_balance_wallet_rounded,
+                size: 19,
+                color: dark ? Colors.white : LoopColors.textPrimary,
+              ),
+              Positioned(
+                right: 5,
+                top: 5,
+                child: Container(
+                  width: 9,
+                  height: 9,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: ready
+                        ? const Color(0xFF4ADE80)
+                        : const Color(0xFFFFC233),
+                    border: Border.all(
+                      color: dark ? Colors.black : Colors.white,
+                      width: 1.5,
+                    ),
                   ),
                 ),
               ),
             ],
           ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Novčanik: način plaćanja i adresa za dostavu, svako zasebno.
+Future<void> showWallet(BuildContext context, WidgetRef ref) =>
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      showDragHandle: true,
+      backgroundColor: LoopColors.background,
+      constraints: const BoxConstraints(maxWidth: 520),
+      builder: (_) => appThemed(const _WalletSheet()),
+    );
+
+class _WalletSheet extends ConsumerWidget {
+  const _WalletSheet();
+
+  Future<void> _editAddress(BuildContext context, WidgetRef ref) async {
+    final user = ref.read(appProvider).currentUser;
+    final c = TextEditingController(text: user?.address ?? '');
+    final value = await showDialog<String>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(t('Adresa za dostavu')),
+        content: TextField(
+          key: const ValueKey('wallet-address-field'),
+          controller: c,
+          autofocus: true,
+          textCapitalization: TextCapitalization.words,
+          decoration: InputDecoration(
+            hintText: t('Ulica i broj, poštanski broj i mjesto'),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: Text(t('Odustani')),
+          ),
+          FilledButton(
+            key: const ValueKey('wallet-address-save'),
+            onPressed: () => Navigator.pop(ctx, c.text),
+            child: Text(t('Spremi')),
+          ),
+        ],
+      ),
+    );
+    c.dispose();
+    if (value == null) return;
+    try {
+      await ref.read(appProvider.notifier).saveAddress(value);
+      showLoopSnackBar(t('Adresa spremljena'));
+    } on TradeException catch (e) {
+      showLoopSnackBar(e.message, error: true);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final user = ref.watch(appProvider).currentUser;
+    if (user == null) return const SizedBox.shrink();
+    final card = user.paymentCard;
+    final address = user.address?.trim();
+    Widget section(String title) => Padding(
+      padding: const EdgeInsets.fromLTRB(4, 14, 4, 6),
+      child: Text(
+        title,
+        style: TextStyle(
+          color: LoopColors.textSecondary,
+          fontWeight: FontWeight.w900,
+          fontSize: 12,
+          letterSpacing: 0.8,
+        ),
+      ),
+    );
+    Widget tile({
+      required Key key,
+      required IconData icon,
+      required String title,
+      required String subtitle,
+      required bool done,
+      required VoidCallback onTap,
+    }) => Material(
+      color: LoopColors.surface,
+      borderRadius: BorderRadius.circular(kRadius),
+      child: ListTile(
+        key: key,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(kRadius),
+        ),
+        leading: CircleAvatar(
+          backgroundColor: done ? LoopColors.mint : LoopColors.peach,
+          child: Icon(icon, color: LoopColors.textPrimary),
+        ),
+        title: Text(title, style: const TextStyle(fontWeight: FontWeight.w800)),
+        subtitle: Text(subtitle),
+        trailing: Text(
+          done ? t('Promijeni') : t('Dodaj'),
+          style: TextStyle(
+            color: LoopColors.accent,
+            fontWeight: FontWeight.w900,
+          ),
+        ),
+        onTap: onTap,
+      ),
+    );
+    return SafeArea(
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+        child: Column(
+          key: const ValueKey('wallet-sheet'),
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Row(
+              children: [
+                const Icon(Icons.account_balance_wallet_rounded),
+                const SizedBox(width: 8),
+                Text(
+                  t('Novčanik'),
+                  style: const TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+              ],
+            ),
+            section(t('PLAĆANJE')),
+            tile(
+              key: const ValueKey('wallet-card'),
+              icon: Icons.credit_card,
+              title: card ?? t('Dodaj karticu, Google Pay ili Apple Pay'),
+              subtitle: card == null
+                  ? t('Testni način — koristi testnu karticu 4242.')
+                  : t('Naplaćuje se automatski kad kupiš ili pobijediš.'),
+              done: card != null,
+              onTap: () => changeCard(context, ref),
+            ),
+            section(t('DOSTAVA')),
+            tile(
+              key: const ValueKey('wallet-address'),
+              icon: Icons.local_shipping_outlined,
+              title: (address == null || address.isEmpty)
+                  ? t('Dodaj adresu za dostavu')
+                  : address,
+              subtitle: t(
+                'Kurir na adresu. BOX NOW paketomat biraš pri svakoj kupnji.',
+              ),
+              done: address != null && address.isNotEmpty,
+              onTap: () => _editAddress(context, ref),
+            ),
+            const SizedBox(height: 12),
+            const Align(
+              alignment: Alignment.centerLeft,
+              child: BuyerProtectionBadge(),
+            ),
+          ],
         ),
       ),
     );

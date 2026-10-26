@@ -2247,7 +2247,8 @@ const kEn = <String, String>{
   'još bez ocjena': 'no ratings yet',
   '{0} ocjena': '{0} ratings',
   'prosječno slanje': 'avg. shipping',
-  'Kartica za automatsku naplatu i adresa za dostavu — koriste se za svaku kupnju i pobjedu.': 'Card for automatic payment and delivery address — used for every purchase and win.',
+  'Kartica za automatsku naplatu i adresa za dostavu — koriste se za svaku kupnju i pobjedu.':
+      'Card for automatic payment and delivery address — used for every purchase and win.',
   'Još nema predmeta na aukciji.': 'No items up for auction yet.',
   '🔴 Licitira se sada': '🔴 Bidding now',
   '🥇 Tvoja predponuda vodi': '🥇 Your pre-bid leads',
@@ -2256,4 +2257,17 @@ const kEn = <String, String>{
   'Prodavač nema predmeta za Kupi odmah.': 'The seller has no Buy now items.',
   '🔨 Na aukciji ({0})': '🔨 Auction ({0})',
   '🛍️ Kupi odmah ({0})': '🛍️ Buy now ({0})',
+  '⚡ Svaka ponuda dodaje +2 s': '⚡ Every bid adds +2 s',
+  '• Live traje dok si uživo — završavaš ga ti (ili kad izađeš).\n• Ti biraš predmet i pokrećeš licitaciju od {0} s.\n• Svaka ponuda dodaje 2 s na sat (brze licitacije: 5 ili 10 s).\n• Pobjednik plaća automatski karticom, a dostava kreće na njegovu adresu.\n• Provizija je 10 % samo od razlike iznad početne cijene.':
+      '• The show lasts while you\'re live — you end it (or when you leave).\n• You pick an item and start {0} s bidding.\n• Every bid adds 2 s to the clock (quick auctions: 5 or 10 s).\n• The winner pays automatically by card and delivery goes to their address.\n• Commission is 10% only of the amount above the start price.',
+  '🔴  Predmeti se licitiraju jedan za drugim — brze licitacije od 5 ili 10 sekundi.\n\n⚡  Svaka ponuda dodaje 2 s na sat.\n\n👆  Povuci gore ili dolje za sljedeći live ili aukciju.':
+      '🔴  Items are auctioned one after another — quick 5 or 10 second auctions.\n\n⚡  Every bid adds 2 s to the clock.\n\n👆  Swipe up or down for the next show or auction.',
+  'Adresa spremljena': 'Address saved',
+  'PLAĆANJE': 'PAYMENT',
+  'DOSTAVA': 'DELIVERY',
+  'Naplaćuje se automatski kad kupiš ili pobijediš.':
+      'Charged automatically when you buy or win.',
+  'Dodaj adresu za dostavu': 'Add a delivery address',
+  'Kurir na adresu. BOX NOW paketomat biraš pri svakoj kupnji.':
+      'Courier to your address. Pick a BOX NOW locker at each purchase.',
 };

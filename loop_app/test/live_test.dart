@@ -371,11 +371,13 @@ void main() {
       await live.bid(bob, id, 1, now: at(3));
     });
 
-    test('ponuda u zadnjih 10 s vraća sat na 10 s', () async {
+    test('svaka ponuda dodaje 2 s na sat', () async {
       final id = await start();
       await live.bid(bob, id, 2, now: at(25));
       final lot = state(id, 26).current!;
-      expect(lot.end, at(35));
+      expect(lot.end, at(32));
+      await live.bid(ana, id, 3, now: at(31));
+      expect(state(id, 31).current!.end, at(34));
       expect(state(id, 33).current!.index, 0);
       expect(state(id, 37).lots[0].status, LotStatus.sold);
       // Sljedeći kreće kad ga domaćin pokrene.
@@ -1151,7 +1153,7 @@ void main() {
   });
 
   testWidgets(
-    'samo kartica prije ponude (bez adrese), maksimalna ponuda, Kupi odmah',
+    'samo kartica prije ponude (bez adrese), jedan gumb za ponudu, Kupi odmah',
     (tester) async {
       tester.view.physicalSize = const Size(400, 860);
       tester.view.devicePixelRatio = 1;
@@ -1201,12 +1203,8 @@ void main() {
       await tester.tap(find.byKey(ValueKey('browse-live-$id')));
       await tester.pumpAndSettle();
 
-      // Maksimalna ponuda → prvo kartica i adresa.
-      await tester.tap(find.byKey(const ValueKey('live-bid-custom')));
-      await tester.pumpAndSettle();
-      expect(find.text('Maksimalna ponuda'), findsOneWidget);
-      await tester.enterText(find.byKey(const ValueKey('live-amount')), '20');
-      await tester.tap(find.byKey(const ValueKey('live-amount-ok')));
+      // Prva ponuda (jedan veliki gumb) → prvo način plaćanja.
+      await tester.tap(find.byKey(const ValueKey('live-bid')));
       await tester.pumpAndSettle();
       // Live traži samo način plaćanja (bez adrese) — odmah se otvara
       // novčanik. Testna kartica: odbijena pa uspješna.
@@ -1233,13 +1231,13 @@ void main() {
       );
       await tester.pumpAndSettle();
       expect(storage.userById(host)!.paymentCard, 'Visa •••• 4242');
-      // Ponuda je prošla: vodim s početnom cijenom, maksimum je 20 €.
+      // Ponuda je prošla: vodim s početnom cijenom (bez maksimalne ponude).
       expect(find.byKey(const ValueKey('live-leading')), findsOneWidget);
-      expect(find.textContaining('tvoj maks 20'), findsOneWidget);
       final st = LiveService(storage).stateOf(storage.liveShowById(id)!);
       expect(st.current!.price, 5);
-      expect(st.current!.maxOf(host), 20);
-      expect(find.byKey(const ValueKey('live-raise')), findsOneWidget);
+      expect(st.current!.leader!.userId, host);
+      expect(find.byKey(const ValueKey('live-raise')), findsNothing);
+      expect(find.byKey(const ValueKey('live-bid-custom')), findsNothing);
     },
   );
 

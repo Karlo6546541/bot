@@ -539,7 +539,11 @@ class _CreateLiveShowScreenState extends ConsumerState<CreateLiveShowScreen> {
                               for (final sec in LiveShow.lotDurations)
                                 ChoiceChip(
                                   key: ValueKey('live-secs-$sec'),
-                                  label: Text(t('{0} s', ['$sec'])),
+                                  label: Text(
+                                    sec <= 10
+                                        ? '⚡ ${t('{0} s', ['$sec'])}'
+                                        : t('{0} s', ['$sec']),
+                                  ),
                                   selected: _secs == sec,
                                   onSelected: (_) =>
                                       setState(() => _secs = sec),
@@ -561,7 +565,7 @@ class _CreateLiveShowScreenState extends ConsumerState<CreateLiveShowScreen> {
                 ),
                 child: Text(
                   t(
-                    '• Live traje dok si uživo — završavaš ga ti (ili kad izađeš).\n• Ti biraš predmet i pokrećeš licitaciju od {0} s.\n• Ponuda u zadnjih 10 s vraća sat na 10 s.\n• Pobjednik plaća automatski karticom, a dostava kreće na njegovu adresu.\n• Provizija je 10 % samo od razlike iznad početne cijene.',
+                    '• Live traje dok si uživo — završavaš ga ti (ili kad izađeš).\n• Ti biraš predmet i pokrećeš licitaciju od {0} s.\n• Svaka ponuda dodaje 2 s na sat (brze licitacije: 5 ili 10 s).\n• Pobjednik plaća automatski karticom, a dostava kreće na njegovu adresu.\n• Provizija je 10 % samo od razlike iznad početne cijene.',
                     ['$_secs'],
                   ),
                   style: TextStyle(
@@ -1242,15 +1246,6 @@ class _LiveRoomViewState extends ConsumerState<_LiveRoomBody> {
     }
   }
 
-  /// Maksimalna ponuda (kao "custom bid" na Whatnotu): sustav licitira
-  /// umjesto tebe do tog iznosa. [lot] = predlicitacija za predmet na
-  /// čekanju.
-  Future<void> _customBid(double min, {int? lot, bool raise = false}) async {
-    if (blockGuest(context)) return;
-    final amount = await showMaxBidDialog(context, min: min, raise: raise);
-    if (amount != null && mounted) await _bid(amount, lot: lot);
-  }
-
   Future<void> _send(String text) async {
     if (text.trim().isEmpty || blockGuest(context)) return;
     try {
@@ -1747,14 +1742,14 @@ class _LiveRoomViewState extends ConsumerState<_LiveRoomBody> {
                                 alignment: Alignment.bottomLeft,
                                 child: ConstrainedBox(
                                   constraints: const BoxConstraints(
-                                    maxWidth: 300,
+                                    maxWidth: 220,
                                   ),
                                   child: _ChatFeed(
                                     feed: st.feed,
                                     me: me?.id,
                                     hostId: show.hostId,
                                     maxHeight: math.min(
-                                      210,
+                                      150,
                                       c.maxHeight * 0.55,
                                     ),
                                   ),
@@ -2042,80 +2037,40 @@ class _LiveRoomViewState extends ConsumerState<_LiveRoomBody> {
     return _bidRow(cur);
   }
 
-  Widget _leading(LotState cur, String? me) {
-    final myMax = cur.maxOf(me) ?? cur.price;
-    return Row(
-      children: [
-        Expanded(
-          child: Container(
-            key: const ValueKey('live-leading'),
-            height: 52,
-            alignment: Alignment.center,
-            decoration: BoxDecoration(
-              color: LoopColors.success.withValues(alpha: 0.9),
-              borderRadius: BorderRadius.circular(kRadius),
-            ),
-            child: Text(
-              t('✓ Vodiš s {0}', [formatCredits(cur.price)]),
-              style: const TextStyle(
-                color: Colors.white,
-                fontWeight: FontWeight.w900,
-                fontSize: 17,
-              ),
-            ),
-          ),
-        ),
-        const SizedBox(width: 8),
-        SizedBox(
-          height: 52,
-          child: OutlinedButton(
-            key: const ValueKey('live-raise'),
-            style: OutlinedButton.styleFrom(
-              foregroundColor: Colors.white,
-              side: const BorderSide(color: Colors.white54),
-            ),
-            onPressed: _busy
-                ? null
-                : () =>
-                      _customBid(myMax + LiveLot.increment(myMax), raise: true),
-            child: Text(t('Povisi maks')),
-          ),
-        ),
-      ],
-    );
-  }
+  Widget _leading(LotState cur, String? me) => Container(
+    key: const ValueKey('live-leading'),
+    height: 54,
+    alignment: Alignment.center,
+    decoration: BoxDecoration(
+      color: LoopColors.success.withValues(alpha: 0.9),
+      borderRadius: BorderRadius.circular(kRadius),
+    ),
+    child: Text(
+      t('✓ Vodiš s {0}', [formatCredits(cur.price)]),
+      style: const TextStyle(
+        color: Colors.white,
+        fontWeight: FontWeight.w900,
+        fontSize: 17,
+      ),
+    ),
+  );
 
   Widget _bidRow(LotState cur) {
-    return Column(
-      children: [
-        // Jedan veliki gumb; dugi pritisak = maksimalna ponuda.
-        FilledButton(
-          key: const ValueKey('live-bid'),
-          style: FilledButton.styleFrom(
-            backgroundColor: kBidOrange,
-            foregroundColor: Colors.white,
-            minimumSize: const Size.fromHeight(54),
-            textStyle: const TextStyle(
-              fontFamily: kFontFamily,
-              fontWeight: FontWeight.w900,
-              fontSize: 18,
-            ),
-          ),
-          onPressed: _busy ? null : () => _bid(cur.minNext),
-          onLongPress: _busy ? null : () => _customBid(cur.minNext),
-          child: Text(t('Licitiraj {0}', [formatCredits(cur.minNext)])),
+    // Jedan veliki gumb — svaki dodir je ponuda za sljedeći korak.
+    return FilledButton(
+      key: const ValueKey('live-bid'),
+      style: FilledButton.styleFrom(
+        backgroundColor: kBidOrange,
+        foregroundColor: Colors.white,
+        minimumSize: const Size.fromHeight(54),
+        textStyle: const TextStyle(
+          fontFamily: kFontFamily,
+          fontWeight: FontWeight.w900,
+          fontSize: 18,
         ),
-        TextButton(
-          key: const ValueKey('live-bid-custom'),
-          style: TextButton.styleFrom(
-            foregroundColor: Colors.white70,
-            visualDensity: VisualDensity.compact,
-            textStyle: const TextStyle(fontSize: 12),
-          ),
-          onPressed: _busy ? null : () => _customBid(cur.minNext),
-          child: Text(t('Maksimalna ponuda (ili drži gumb)')),
-        ),
-      ],
+      ),
+      onPressed: _busy ? null : () => _bid(cur.minNext),
+      child: Text(t('Licitiraj {0}', [formatCredits(cur.minNext)])),
     );
   }
 }
@@ -2937,7 +2892,7 @@ class _LotCard extends StatelessWidget {
     final left = lot.left(now);
     final secs = (left.inMilliseconds / 1000).ceil();
     final hot =
-        !result && left <= LiveShow.extendWindow && lot.mode == LotMode.auction;
+        !result && left <= LiveShow.hotWindow && lot.mode == LotMode.auction;
     final myMax = lot.maxOf(me);
     final leader = lot.leader;
     final d = device;
@@ -3094,16 +3049,6 @@ class _LotCard extends StatelessWidget {
                         ),
                       ),
                     const SizedBox(height: 4),
-                    // Zaštita kupca i novčanik (gledatelji, ne domaćin).
-                    if (!result && !isHost)
-                      const Wrap(
-                        spacing: 6,
-                        runSpacing: 4,
-                        children: [
-                          BuyerProtectionBadge(dark: true, compact: true),
-                          WalletChip(dark: true),
-                        ],
-                      ),
                     // Samo kad je predmet posebne vrste (pada cijena, igra).
                     if (lot.mode != LotMode.auction)
                       chip('${lot.mode.emoji} ${lot.mode.label}'),
@@ -3201,12 +3146,29 @@ class _LotCard extends StatelessWidget {
               ),
             ],
           ),
+          // Zaštita kupca i novčanik u svom redu (gledatelji, ne domaćin).
+          if (!result && !isHost)
+            const Padding(
+              padding: EdgeInsets.only(top: 8),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Align(
+                      alignment: Alignment.centerLeft,
+                      child: BuyerProtectionBadge(dark: true),
+                    ),
+                  ),
+                  SizedBox(width: 8),
+                  WalletChip(dark: true),
+                ],
+              ),
+            ),
           if (!result) ...[
             if (hot)
               Padding(
                 padding: const EdgeInsets.only(top: 4),
                 child: Text(
-                  t('⚡ Ponuda sada vraća sat na 10 s'),
+                  t('⚡ Svaka ponuda dodaje +2 s'),
                   style: const TextStyle(
                     color: Colors.white,
                     fontSize: 11,
@@ -3266,9 +3228,9 @@ class _ChatFeed extends ConsumerWidget {
           itemBuilder: (_, i) {
             final e = lines[lines.length - 1 - i];
             return Padding(
-              padding: const EdgeInsets.only(bottom: 5),
+              padding: const EdgeInsets.only(bottom: 3),
               child: Container(
-                padding: const EdgeInsets.fromLTRB(4, 4, 10, 4),
+                padding: const EdgeInsets.fromLTRB(3, 2, 8, 3),
                 decoration: BoxDecoration(
                   color: Colors.black.withValues(alpha: 0.30),
                   borderRadius: BorderRadius.circular(16),
@@ -3309,8 +3271,8 @@ class _FeedLine extends StatelessWidget {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        UserAvatar(user: user, size: 30),
-        const SizedBox(width: 8),
+        UserAvatar(user: user, size: 20),
+        const SizedBox(width: 6),
         Flexible(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -3325,7 +3287,7 @@ class _FeedLine extends StatelessWidget {
                       overflow: TextOverflow.ellipsis,
                       style: const TextStyle(
                         color: Colors.white70,
-                        fontSize: 12,
+                        fontSize: 10.5,
                         fontWeight: FontWeight.w700,
                         shadows: _shadow,
                       ),
@@ -3362,7 +3324,7 @@ class _FeedLine extends StatelessWidget {
                 overflow: TextOverflow.ellipsis,
                 style: TextStyle(
                   color: bid ? const Color(0xFFFFD166) : Colors.white,
-                  fontSize: 14.5,
+                  fontSize: 12.5,
                   fontWeight: FontWeight.w800,
                   shadows: _shadow,
                 ),

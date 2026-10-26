@@ -1345,6 +1345,16 @@ class AppController extends Notifier<AppState> {
   }
 
   /// Sprema (ili mijenja) način plaćanja.
+  /// Novčanik: samo adresa za dostavu (kartica se sprema zasebno).
+  Future<void> saveAddress(String address) async {
+    final user = _storage.userById(_requireUserId());
+    if (user == null) return;
+    final error = DeliveryService.validate(DeliveryMethod.courier, address);
+    if (error != null) throw TradeException(error);
+    await _storage.putUser(user.copyWith(address: address.trim()));
+    _refresh();
+  }
+
   Future<void> savePaymentMethod(String card) async {
     final user = _storage.userById(_requireUserId());
     if (user == null) return;

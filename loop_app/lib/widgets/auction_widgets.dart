@@ -186,6 +186,7 @@ class _BidSheetState extends ConsumerState<_BidSheet> {
             // Pobjedniku se naplaćuje automatski s ove kartice.
             const Wrap(
               spacing: 6,
+              crossAxisAlignment: WrapCrossAlignment.center,
               runSpacing: 4,
               children: [BuyerProtectionBadge(compact: true), WalletChip()],
             ),

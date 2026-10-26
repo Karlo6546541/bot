@@ -159,6 +159,7 @@ class _AuctionDetailScreenState extends ConsumerState<AuctionDetailScreen> {
                                 const SizedBox(height: 4),
                                 const Wrap(
                                   spacing: 6,
+                                  crossAxisAlignment: WrapCrossAlignment.center,
                                   runSpacing: 4,
                                   children: [
                                     BuyerProtectionBadge(compact: true),

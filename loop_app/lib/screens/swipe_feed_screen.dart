@@ -690,6 +690,7 @@ class _Info extends ConsumerWidget {
         const SizedBox(height: 8),
         const Wrap(
           spacing: 6,
+          crossAxisAlignment: WrapCrossAlignment.center,
           runSpacing: 4,
           children: [
             BuyerProtectionBadge(dark: true, compact: true),

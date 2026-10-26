@@ -1081,7 +1081,7 @@ Future<void> showAuctionRules(
         const SizedBox(height: 8),
         Text(
           t(
-            '🔴  Predmeti se licitiraju jedan za drugim, svaki 20–60 sekundi.\n\n⚡  Ponuda u zadnjih 10 s vraća sat na 10 s.\n\n👆  Povuci gore ili dolje za sljedeći live ili aukciju.',
+            '🔴  Predmeti se licitiraju jedan za drugim — brze licitacije od 5 ili 10 sekundi.\n\n⚡  Svaka ponuda dodaje 2 s na sat.\n\n👆  Povuci gore ili dolje za sljedeći live ili aukciju.',
           ),
           style: const TextStyle(height: 1.4, fontSize: 15),
         ),
