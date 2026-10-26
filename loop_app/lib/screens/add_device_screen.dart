@@ -303,19 +303,18 @@ class _AddDeviceScreenState extends ConsumerState<AddDeviceScreen> {
                                   runSpacing: 8,
                                   children: [
                                     for (final sec in ItemSection.values)
-                                      if (sec != ItemSection.digital)
-                                        ChoiceChip(
-                                          avatar: Icon(sec.icon, size: 18),
-                                          label: Text(sec.label),
-                                          selected: _section == sec,
-                                          onSelected: (_) {
-                                            setState(() {
-                                              _section = sec;
-                                              _category = null;
-                                            });
-                                            field.didChange(null);
-                                          },
-                                        ),
+                                      ChoiceChip(
+                                        avatar: Icon(sec.icon, size: 18),
+                                        label: Text(sec.label),
+                                        selected: _section == sec,
+                                        onSelected: (_) {
+                                          setState(() {
+                                            _section = sec;
+                                            _category = null;
+                                          });
+                                          field.didChange(null);
+                                        },
+                                      ),
                                   ],
                                 ),
                                 const SizedBox(height: 14),

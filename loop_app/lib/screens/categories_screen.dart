@@ -24,11 +24,8 @@ class CategoriesScreen extends ConsumerWidget {
         counts[c] = (counts[c] ?? 0) + 1;
       }
     }
-    // Digitalni proizvodi su uklonjeni iz aplikacije.
-    final sections = [
-      for (final sec in ItemSection.values)
-        if (sec != ItemSection.digital) sec,
-    ];
+    // Uključujući digitalno (softver, e-knjige, 3D modeli…).
+    const sections = ItemSection.values;
     return CustomScrollView(
       key: const ValueKey('categories'),
       slivers: [

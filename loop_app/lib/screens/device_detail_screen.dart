@@ -58,6 +58,9 @@ class DeviceDetailScreen extends ConsumerWidget {
     }
 
     final isMine = device.ownerId == user.id;
+    // Kupljeno (Kupi odmah, aukcija ili live) — ide u portfolio.
+    final bought =
+        isMine && state.myDeliveries.any((x) => x.deviceId == device.id);
     final auction = state.activeAuctionFor(device.id);
     final cat = device.category;
     // Kupac vidi cijenu iz Marketa; vlasnik vrijednost i isplatu.
@@ -434,6 +437,62 @@ class DeviceDetailScreen extends ConsumerWidget {
                     label: Text(t('Pokaži u liveu')),
                   ),
                 ],
+              ] else if (!device.isDigital && bought) ...[
+                // Kupljeno: dio portfolija — preprodaja je skrivena ispod.
+                Container(
+                  key: const ValueKey('item-portfolio'),
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: LoopColors.mint,
+                    borderRadius: BorderRadius.circular(kRadius),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.inventory_2_outlined),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Text(
+                          t('Kupljeno · u tvom portfoliju kupljenih stvari'),
+                          style: const TextStyle(fontWeight: FontWeight.w800),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Theme(
+                  data: Theme.of(
+                    context,
+                  ).copyWith(dividerColor: Colors.transparent),
+                  child: ExpansionTile(
+                    key: const ValueKey('item-resell'),
+                    tilePadding: EdgeInsets.zero,
+                    title: Text(
+                      t('Ipak želiš preprodati?'),
+                      style: TextStyle(
+                        color: LoopColors.textSecondary,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    children: [
+                      OutlinedButton.icon(
+                        key: const ValueKey('item-buy-now'),
+                        onPressed: () => showListDialog(context, ref, device),
+                        icon: const Icon(Icons.sell_outlined),
+                        label: Text(t('Kupi odmah')),
+                      ),
+                      const SizedBox(height: 8),
+                      OutlinedButton.icon(
+                        key: const ValueKey('item-auction'),
+                        onPressed: () => CreateAuctionScreen.open(
+                          context,
+                          deviceId: device.id,
+                        ),
+                        icon: const Icon(Icons.gavel),
+                        label: Text(t('Stavi na aukciju')),
+                      ),
+                    ],
+                  ),
+                ),
               ] else if (!device.isDigital) ...[
                 Text(
                   t('Kako želiš prodati?'),

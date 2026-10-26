@@ -8,6 +8,7 @@ import '../models/auction.dart';
 import '../models/delivery.dart';
 import '../models/device.dart';
 import '../models/live_show.dart';
+import '../models/loop_transaction.dart';
 import '../providers/app_providers.dart';
 import '../providers/app_state.dart';
 import '../services/live_service.dart';
@@ -23,6 +24,7 @@ import 'auction_detail_screen.dart';
 import 'portfolio_screen.dart';
 import 'seller_screens.dart';
 import 'deliveries_screen.dart';
+import 'device_detail_screen.dart';
 import 'create_auction_screen.dart';
 import 'live_screens.dart';
 import 'login_screen.dart';
@@ -461,7 +463,10 @@ class AuctionBrowseCard extends ConsumerWidget {
       );
     } else if (a == null) {
       topLeft = pill(
-        Text(t('🏷️ Kupi odmah'), style: pillText),
+        Text(
+          device?.isDigital ?? false ? t('⬇️ Digitalno') : t('🏷️ Kupi odmah'),
+          style: pillText,
+        ),
         LoopColors.buyNow,
       );
     } else {
@@ -956,21 +961,42 @@ class _MyAuctionsViewState extends ConsumerState<MyAuctionsView> {
                     },
                   ),
                 )
-              else if (_view == AuctionView.bought)
+              else if (_view == AuctionView.bought) ...[
+                // Prvo ono što čeka odabir dostave (treba radnju).
                 SliverList.list(
                   children: [
                     for (final d in bought)
-                      Padding(
-                        padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
-                        child: DeliveryCard(
-                          key: ValueKey('bought-${d.id}'),
-                          delivery: d,
+                      if (d.awaitingChoice)
+                        Padding(
+                          padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+                          child: DeliveryCard(
+                            key: ValueKey('bought-${d.id}'),
+                            delivery: d,
+                          ),
                         ),
-                      ),
-                    const SizedBox(height: 96),
                   ],
-                )
-              else if (_view == AuctionView.toShip)
+                ),
+                // Portfolio kupljenih stvari (bez cijena za preprodaju).
+                SliverToBoxAdapter(child: _PortfolioHeader(deliveries: bought)),
+                SliverPadding(
+                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 96),
+                  sliver: SliverGrid(
+                    gridDelegate:
+                        const SliverGridDelegateWithMaxCrossAxisExtent(
+                          maxCrossAxisExtent: 200,
+                          mainAxisSpacing: 12,
+                          crossAxisSpacing: 12,
+                          childAspectRatio: 0.68,
+                        ),
+                    delegate: SliverChildListDelegate([
+                      for (final d in bought)
+                        if (!d.awaitingChoice) _BoughtTile(delivery: d),
+                      for (final dev in s.myDigitalPurchases)
+                        _BoughtTile(digital: dev),
+                    ]),
+                  ),
+                ),
+              ] else if (_view == AuctionView.toShip)
                 SliverList.list(
                   children: [
                     for (final d in toShip)
@@ -1289,7 +1315,7 @@ List<BrowseItem> browseItems(AppState s, {bool buyNow = true}) {
     if (buyNow)
       // Digitalni proizvodi se više ne prikazuju (pojednostavljeno).
       for (final d in s.marketDevices)
-        if (d.isListed && !d.isDigital) BrowseItem.item(d),
+        if (d.isListed) BrowseItem.item(d),
   ];
 }
 
@@ -1360,6 +1386,131 @@ class _ToShipCard extends ConsumerWidget {
             ],
           ),
         ),
+      ),
+    );
+  }
+}
+
+/// Zaglavlje portfolija: broj kupljenih stvari i ukupno plaćeno.
+class _PortfolioHeader extends ConsumerWidget {
+  const _PortfolioHeader({required this.deliveries});
+  final List<Delivery> deliveries;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final s = ref.watch(appProvider);
+    final me = s.currentUserId;
+    final paid = s.transactions
+        .where((t) => t.buyerId == me && t.type != TransactionType.payout)
+        .fold<double>(0, (a, t) => a + t.price);
+    final count = deliveries.length + s.myDigitalPurchases.length;
+    return Padding(
+      key: const ValueKey('bought-portfolio'),
+      padding: const EdgeInsets.fromLTRB(16, 4, 16, 12),
+      child: Row(
+        children: [
+          const Text('🗂️', style: TextStyle(fontSize: 22)),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  t('Moj portfolio'),
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w900,
+                    fontSize: 17,
+                  ),
+                ),
+                Text(
+                  '${itemsLabel(count)} · ${t('ukupno {0}', [formatCredits(paid)])}',
+                  style: TextStyle(color: LoopColors.textSecondary),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Kupljena stvar u portfoliju: slika, naziv, plaćeno i stanje pošiljke.
+class _BoughtTile extends ConsumerWidget {
+  const _BoughtTile({this.delivery, this.digital});
+  final Delivery? delivery;
+  final Device? digital;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final s = ref.watch(appProvider);
+    final d = delivery;
+    final device = digital ?? s.deviceById(d!.deviceId);
+    final id = digital?.id ?? d!.deviceId;
+    final name = digital?.name ?? d!.deviceName;
+    final paid = s.transactions
+        .where((t) => t.deviceId == id && t.buyerId == s.currentUserId)
+        .firstOrNull
+        ?.price;
+    final (String label, Color color) = digital != null
+        ? (t('⬇️ Digitalno'), LoopColors.info)
+        : d!.isDelivered(DateTime.now())
+        ? (t('✓ Stiglo'), LoopColors.buyNow)
+        : (d.status(DateTime.now()).label, LoopColors.accent);
+    return InkWell(
+      key: ValueKey('bought-tile-$id'),
+      borderRadius: BorderRadius.circular(kRadius),
+      onTap: () => digital != null
+          ? DeviceDetailScreen.open(context, digital!)
+          : DeliveryDetailScreen.open(context, d!.id),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Expanded(
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(kRadius - 4),
+              child: Stack(
+                fit: StackFit.expand,
+                children: [
+                  BrowseCardMedia(device: device),
+                  Positioned(
+                    left: 8,
+                    top: 8,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 7,
+                        vertical: 3,
+                      ),
+                      decoration: BoxDecoration(
+                        color: color,
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child: Text(
+                        label,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w900,
+                          fontSize: 11,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            name,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(fontWeight: FontWeight.w800),
+          ),
+          Text(
+            paid == null ? '' : t('Plaćeno {0}', [formatCredits(paid)]),
+            style: TextStyle(color: LoopColors.textSecondary, fontSize: 12),
+          ),
+        ],
       ),
     );
   }

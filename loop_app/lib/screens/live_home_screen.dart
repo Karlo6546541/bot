@@ -4,6 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../l10n/tr.dart';
+import '../widgets/user_avatar.dart';
+import '../models/app_user.dart';
 import '../providers/app_providers.dart';
 import '../theme/app_theme.dart';
 import '../widgets/trade_actions.dart';
@@ -11,6 +13,7 @@ import '../models/device.dart';
 import '../widgets/category_style.dart';
 import '../widgets/formatters.dart';
 import 'auctions_screen.dart';
+import 'public_profile_screen.dart';
 import 'categories_screen.dart';
 import 'live_screens.dart';
 import 'search_screen.dart';
@@ -165,6 +168,40 @@ class _LiveHomeScreenState extends ConsumerState<LiveHomeScreen> {
             ),
           ),
         );
+        // Računi koje pratiš: krugovi (UŽIVO ako emitiraju) i njihove objave.
+        final following = s.currentUser == null || s.currentUser!.isGuest
+            ? const <AppUser>[]
+            : s.followingListOf(me);
+        if (following.isNotEmpty) {
+          final ids = {for (final u in following) u.id};
+          final theirs = [
+            for (final i in all)
+              if (ids.contains(
+                i.show?.hostId ?? i.auction?.sellerId ?? i.device?.ownerId,
+              ))
+                i,
+          ];
+          slivers.add(header(t('👥 Pratiš')));
+          slivers.add(
+            SliverToBoxAdapter(
+              child: _FollowingRow(
+                users: following,
+                liveBy: {for (final i in live) i.show!.hostId: i},
+                onLive: (i) => open([i], 0, t('Uživo')),
+              ),
+            ),
+          );
+          if (theirs.isNotEmpty) {
+            slivers.add(header(t('Od računa koje pratiš')));
+            slivers.add(
+              grid(
+                'home-following',
+                theirs.take(6).toList(),
+                t('Od računa koje pratiš'),
+              ),
+            );
+          }
+        }
         final rest = byViewers.skip(1).toList();
         if (live.isEmpty || rest.isNotEmpty) {
           slivers.add(header(t('🔴 Uživo sada')));
@@ -824,6 +861,10 @@ class _CategoryCircles extends StatelessWidget {
     DeviceCategory.models,
     DeviceCategory.camera,
     DeviceCategory.laptop,
+    // Digitalno: preuzimanje odmah nakon kupnje.
+    DeviceCategory.models3d,
+    DeviceCategory.software,
+    DeviceCategory.ebooks,
   ];
 
   @override
@@ -854,6 +895,110 @@ class _CategoryCircles extends StatelessWidget {
                   const SizedBox(height: 4),
                   Text(
                     c.singular,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      fontSize: 11.5,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+}
+
+/// Računi koje pratiš (kao priče): krug s avatarom, crveni prsten i
+/// UŽIVO kad emitira (dodir ulazi u live), inače otvara trgovinu.
+class _FollowingRow extends StatelessWidget {
+  const _FollowingRow({
+    required this.users,
+    required this.liveBy,
+    required this.onLive,
+  });
+
+  final List<AppUser> users;
+  final Map<String, BrowseItem> liveBy;
+  final void Function(BrowseItem) onLive;
+
+  @override
+  Widget build(BuildContext context) {
+    // Oni koji su uživo idu prvi.
+    final list = [...users]
+      ..sort(
+        (a, b) => (liveBy.containsKey(b.id) ? 1 : 0).compareTo(
+          liveBy.containsKey(a.id) ? 1 : 0,
+        ),
+      );
+    return SizedBox(
+      height: 96,
+      child: ListView.separated(
+        key: const ValueKey('home-following-row'),
+        scrollDirection: Axis.horizontal,
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        itemCount: list.length,
+        separatorBuilder: (_, _) => const SizedBox(width: 12),
+        itemBuilder: (context, i) {
+          final u = list[i];
+          final live = liveBy[u.id];
+          return InkWell(
+            key: ValueKey('following-${u.id}'),
+            borderRadius: BorderRadius.circular(40),
+            onTap: () => live != null
+                ? onLive(live)
+                : PublicProfileScreen.open(context, u.id),
+            child: SizedBox(
+              width: 66,
+              child: Column(
+                children: [
+                  Stack(
+                    clipBehavior: Clip.none,
+                    alignment: Alignment.bottomCenter,
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(2.5),
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          border: Border.all(
+                            color: live != null
+                                ? LoopColors.live
+                                : LoopColors.surfaceHover,
+                            width: 2.5,
+                          ),
+                        ),
+                        child: UserAvatar(user: u, size: 54),
+                      ),
+                      if (live != null)
+                        Positioned(
+                          bottom: -6,
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 5,
+                              vertical: 1,
+                            ),
+                            decoration: BoxDecoration(
+                              color: LoopColors.live,
+                              borderRadius: BorderRadius.circular(4),
+                            ),
+                            child: Text(
+                              t('UŽIVO'),
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.w900,
+                                fontSize: 9,
+                              ),
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    u.handle,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: const TextStyle(

@@ -121,8 +121,7 @@ class MyItemsView extends ConsumerStatefulWidget {
 enum _ItemsFilter {
   all('Sve'),
   selling('Na prodaji'),
-  notSelling('Nije na prodaji'),
-  bought('Kupljeno');
+  notSelling('Nije na prodaji');
 
   const _ItemsFilter(this._label);
   final String _label;
@@ -138,7 +137,6 @@ class _MyItemsViewState extends ConsumerState<MyItemsView> {
     final user = state.currentUser;
     if (user == null) return const SizedBox.shrink();
     final mine = state.myDevices;
-    final digital = state.myDigitalPurchases;
     bool selling(Device d) =>
         d.isListed || state.activeAuctionFor(d.id) != null;
     // Kupljeno: Kupi odmah, osvojeno na aukciji ili u liveu (ima pošiljku).
@@ -147,13 +145,13 @@ class _MyItemsViewState extends ConsumerState<MyItemsView> {
         d.ownerId != user.id ||
         boughtIds.contains(d.id) ||
         state.hasPurchased(d.id);
-    final all = [...mine, ...digital];
+    // Kupljene stvari su portfolio u "Kupujem → Kupljeno"; ovdje samo
+    // ako ih je korisnik sam ponovno stavio na prodaju.
+    final own = mine.where((d) => !bought(d) || selling(d)).toList();
     final list = switch (_filter) {
-      _ItemsFilter.all => all,
-      _ItemsFilter.selling => mine.where(selling).toList(),
-      _ItemsFilter.notSelling =>
-        mine.where((d) => !selling(d) && !bought(d)).toList(),
-      _ItemsFilter.bought => all.where(bought).toList(),
+      _ItemsFilter.all => own,
+      _ItemsFilter.selling => own.where(selling).toList(),
+      _ItemsFilter.notSelling => own.where((d) => !selling(d)).toList(),
     };
     void onGoToMarket() {
       Navigator.of(context).popUntil((r) => r.isFirst);
