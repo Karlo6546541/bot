@@ -734,6 +734,19 @@ class StorageService {
 
   Future<void> setThemeMode(String mode) => _session.put(_themeKey, mode);
 
+  /// Kategorije nedavno otvorenih oglasa (najnovije zadnje, najviše 30) —
+  /// signal za "Za tebe". Samo na ovom uređaju.
+  List<String> get recentCategories =>
+      (_session.get('recentCategories') as List?)?.cast<String>() ?? const [];
+
+  Future<void> addRecentCategories(Iterable<String> names) {
+    final list = [...recentCategories, ...names];
+    return _session.put(
+      'recentCategories',
+      list.length > 30 ? list.sublist(list.length - 30) : list,
+    );
+  }
+
   /// Zvuk u liveu utišan (vibracija ostaje).
   bool get liveMuted => _session.get('liveMuted') == true;
 

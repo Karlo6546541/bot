@@ -13,6 +13,7 @@ import '../models/device.dart';
 import '../widgets/category_style.dart';
 import '../widgets/formatters.dart';
 import 'auctions_screen.dart';
+import 'for_you_ranker.dart';
 import 'public_profile_screen.dart';
 import 'categories_screen.dart';
 import 'live_screens.dart';
@@ -99,13 +100,18 @@ class _LiveHomeScreenState extends ConsumerState<LiveHomeScreen> {
     final auctions = all.where((i) => i.auction != null).toList();
     final buyNow = all.where((i) => i.isBuyNow).toList();
 
-    void open(List<BrowseItem> list, int i, String title) =>
-        SwipeFeedScreen.open(
-          context,
-          [for (final x in list) x.entry],
-          i,
-          title: title,
-        );
+    void open(List<BrowseItem> list, int i, String title) {
+      // Signal za "Za tebe": što otvaraš (samo na ovom uređaju).
+      ref.read(storageProvider).addRecentCategories([
+        for (final c in list[i].categories) c.name,
+      ]);
+      SwipeFeedScreen.open(
+        context,
+        [for (final x in list) x.entry],
+        i,
+        title: title,
+      );
+    }
 
     Widget grid(String key, List<BrowseItem> list, String title) =>
         SliverPadding(
@@ -232,6 +238,38 @@ class _LiveHomeScreenState extends ConsumerState<LiveHomeScreen> {
             ),
           ),
         );
+        // Odabrano za tebe (vidi [ForYouRanker]) — bez heroja.
+        final picks =
+            ForYouRanker(
+              s,
+              now: DateTime.now(),
+              recentCategories: ref.read(storageProvider).recentCategories,
+            ).rank([
+              for (final i in all)
+                if (byViewers.isEmpty || i != byViewers.first) i,
+            ], limit: 6);
+        if (picks.isNotEmpty) {
+          slivers.add(header(t('✨ Odabrano za tebe')));
+          final list = [for (final p in picks) p.item];
+          slivers.add(
+            SliverPadding(
+              key: const ValueKey('home-for-you'),
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              sliver: SliverGrid(
+                gridDelegate: const BrowseGridDelegate(),
+                delegate: SliverChildBuilderDelegate(
+                  (_, i) => AuctionBrowseCard(
+                    item: list[i],
+                    viewerId: me,
+                    reason: picks[i].reason,
+                    onTap: () => open(list, i, t('Za tebe')),
+                  ),
+                  childCount: list.length,
+                ),
+              ),
+            ),
+          );
+        }
         final rest = byViewers.skip(1).toList();
         if (live.isEmpty || rest.isNotEmpty) {
           slivers.add(header(t('🔴 Uživo sada')));

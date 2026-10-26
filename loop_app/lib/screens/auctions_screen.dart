@@ -416,11 +416,15 @@ class AuctionBrowseCard extends ConsumerWidget {
     required this.item,
     required this.viewerId,
     required this.onTap,
+    this.reason,
   });
 
   final BrowseItem item;
   final String viewerId;
   final VoidCallback onTap;
+
+  /// Zašto je predložen ("Jer pratiš @ana") — samo u "Za tebe".
+  final String? reason;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -544,6 +548,32 @@ class AuctionBrowseCard extends ConsumerWidget {
                         ],
                       ),
                     ),
+                    if (reason != null)
+                      Positioned(
+                        left: 8,
+                        right: 8,
+                        bottom: 8,
+                        child: Align(
+                          alignment: Alignment.centerLeft,
+                          child: Container(
+                            key: const ValueKey('card-reason'),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 4,
+                            ),
+                            decoration: BoxDecoration(
+                              color: Colors.black.withValues(alpha: 0.55),
+                              borderRadius: BorderRadius.circular(99),
+                            ),
+                            child: Text(
+                              '✨ $reason',
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: pillText,
+                            ),
+                          ),
+                        ),
+                      ),
                     if (show != null && (live?.isScheduled ?? false))
                       Positioned(
                         right: 4,

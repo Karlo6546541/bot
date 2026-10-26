@@ -2380,4 +2380,12 @@ const kEn = <String, String>{
       'No connection to the server — purchase isn\'t possible. Please try again.',
   'Uključi zvuk': 'Turn sound on',
   'Utišaj zvuk': 'Mute sound',
+  'Voliš: {0}': 'You like: {0}',
+  'Tražio si "{0}"': 'You searched "{0}"',
+  'Jer pratiš {0}': 'Because you follow {0}',
+  'Kupovao si od {0}': 'You bought from {0}',
+  'U tvom budžetu': 'In your budget',
+  'Završava za {0} min': 'Ends in {0} min',
+  'Popularno': 'Popular',
+  '✨ Odabrano za tebe': '✨ Picked for you',
 };

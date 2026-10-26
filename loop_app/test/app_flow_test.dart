@@ -100,6 +100,7 @@ void main() {
       await tester.pumpAndSettle();
 
       // Početna: poziv na live, tko je uživo i aukcije koje završavaju.
+      await reveal(tester, find.byKey(const ValueKey('home-go-live')));
       expect(find.byKey(const ValueKey('home-go-live')), findsOneWidget);
       expect(
         find.text('Nitko trenutno nije uživo — budi prvi!'),
@@ -528,6 +529,7 @@ void accountTests() {
     await tester.ensureVisible(find.byKey(const ValueKey('register-submit')));
     await tester.tap(find.byKey(const ValueKey('register-submit')));
     await tester.pumpAndSettle();
+    await reveal(tester, find.byKey(const ValueKey('home-go-live')));
     expect(find.byKey(const ValueKey('home-go-live')), findsOneWidget);
 
     // Profil prikazuje @ime; odjava.
