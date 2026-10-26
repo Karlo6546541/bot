@@ -1850,6 +1850,7 @@ class _LiveRoomViewState extends ConsumerState<LiveRoomView> {
                         now: now,
                         me: me?.id,
                         leaderUser: s.userById(cur.leader?.userId),
+                        isHost: isHost,
                       )
                     else if (done != null && !st.isOver)
                       _LotCard(
@@ -2132,22 +2133,15 @@ class _LiveRoomViewState extends ConsumerState<LiveRoomView> {
           onLongPress: _busy ? null : () => _customBid(cur.minNext),
           child: Text(t('Licitiraj {0}', [formatCredits(cur.minNext)])),
         ),
-        Row(
-          children: [
-            Expanded(
-              child: TextButton(
-                key: const ValueKey('live-bid-custom'),
-                style: TextButton.styleFrom(
-                  foregroundColor: Colors.white70,
-                  visualDensity: VisualDensity.compact,
-                  textStyle: const TextStyle(fontSize: 12),
-                ),
-                onPressed: _busy ? null : () => _customBid(cur.minNext),
-                child: Text(t('Maksimalna ponuda (ili drži gumb)')),
-              ),
-            ),
-            const _LiveWallet(),
-          ],
+        TextButton(
+          key: const ValueKey('live-bid-custom'),
+          style: TextButton.styleFrom(
+            foregroundColor: Colors.white70,
+            visualDensity: VisualDensity.compact,
+            textStyle: const TextStyle(fontSize: 12),
+          ),
+          onPressed: _busy ? null : () => _customBid(cur.minNext),
+          child: Text(t('Maksimalna ponuda (ili drži gumb)')),
         ),
       ],
     );
@@ -3068,7 +3062,11 @@ class _LotCard extends StatelessWidget {
     required this.me,
     required this.leaderUser,
     this.result = false,
+    this.isHost = false,
   });
+
+  /// Domaćin ne vidi zaštitu kupca ni novčanik.
+  final bool isHost;
 
   final LotState lot;
   final Device? device;
@@ -3248,8 +3246,16 @@ class _LotCard extends StatelessWidget {
                         ),
                       ),
                     const SizedBox(height: 4),
-                    if (!result)
-                      const BuyerProtectionBadge(dark: true, compact: true),
+                    // Zaštita kupca i novčanik (gledatelji, ne domaćin).
+                    if (!result && !isHost)
+                      const Wrap(
+                        spacing: 6,
+                        runSpacing: 4,
+                        children: [
+                          BuyerProtectionBadge(dark: true, compact: true),
+                          WalletChip(dark: true),
+                        ],
+                      ),
                     // Samo kad je predmet posebne vrste (pada cijena, igra).
                     if (lot.mode != LotMode.auction)
                       chip('${lot.mode.emoji} ${lot.mode.label}'),
@@ -4166,34 +4172,6 @@ class _HostControls extends StatelessWidget {
           ),
         ),
       ],
-    );
-  }
-}
-
-/// Mali novčanik uz gumb za ponudu: koja se kartica naplaćuje, dodir je
-/// mijenja (ili dodaje prvu).
-class _LiveWallet extends ConsumerWidget {
-  const _LiveWallet();
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final user = ref.watch(appProvider.select((s) => s.currentUser));
-    if (user == null || user.isGuest) return const SizedBox.shrink();
-    final card = user.paymentCard;
-    return TextButton.icon(
-      key: const ValueKey('live-wallet'),
-      style: TextButton.styleFrom(
-        foregroundColor: card == null ? Colors.amberAccent : Colors.white70,
-        visualDensity: VisualDensity.compact,
-        textStyle: const TextStyle(fontSize: 12),
-      ),
-      onPressed: () => changeCard(context, ref),
-      icon: const Icon(Icons.account_balance_wallet_outlined, size: 16),
-      label: Text(
-        card ?? t('Dodaj karticu'),
-        maxLines: 1,
-        overflow: TextOverflow.ellipsis,
-      ),
     );
   }
 }

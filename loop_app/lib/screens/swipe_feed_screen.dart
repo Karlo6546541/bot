@@ -688,7 +688,14 @@ class _Info extends ConsumerWidget {
           ),
         ],
         const SizedBox(height: 8),
-        const BuyerProtectionBadge(dark: true, compact: true),
+        const Wrap(
+          spacing: 6,
+          runSpacing: 4,
+          children: [
+            BuyerProtectionBadge(dark: true, compact: true),
+            WalletChip(dark: true),
+          ],
+        ),
         const SizedBox(height: 8),
         primary,
       ],

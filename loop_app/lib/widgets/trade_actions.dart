@@ -125,6 +125,63 @@ Future<bool> changeCard(BuildContext context, WidgetRef ref) async {
   return true;
 }
 
+/// Mali novčanik: koja se kartica naplaćuje; dodir je mijenja (ili dodaje
+/// prvu). [dark] za tamnu pozadinu (live, swipe feed). Gost ga ne vidi.
+class WalletChip extends ConsumerWidget {
+  const WalletChip({super.key, this.dark = false});
+  final bool dark;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final user = ref.watch(appProvider.select((s) => s.currentUser));
+    if (user == null || user.isGuest) return const SizedBox.shrink();
+    final card = user.paymentCard;
+    final fg = dark
+        ? (card == null ? Colors.amberAccent : Colors.white)
+        : (card == null ? LoopColors.accent : LoopColors.textPrimary);
+    // U uskom prostoru se smanji umjesto da se prelije.
+    return FittedBox(
+      fit: BoxFit.scaleDown,
+      alignment: Alignment.centerLeft,
+      child: InkWell(
+        key: const ValueKey('wallet'),
+        borderRadius: BorderRadius.circular(99),
+        onTap: () => changeCard(context, ref),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
+          decoration: BoxDecoration(
+            color: dark ? Colors.white12 : LoopColors.surface,
+            borderRadius: BorderRadius.circular(99),
+            border: Border.all(
+              color: dark ? Colors.white24 : LoopColors.surfaceHover,
+            ),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(Icons.account_balance_wallet_outlined, size: 14, color: fg),
+              const SizedBox(width: 5),
+              ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 130),
+                child: Text(
+                  card ?? t('Dodaj karticu'),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: fg,
+                    fontSize: 11.5,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 class _CheckoutSetupSheet extends ConsumerStatefulWidget {
   const _CheckoutSetupSheet({required this.address, this.card});
   final String address;

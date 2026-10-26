@@ -139,6 +139,14 @@ class _PublicProfileScreenState extends ConsumerState<PublicProfileScreen> {
       appBar: AppBar(
         title: Text(user.shopTitle, overflow: TextOverflow.ellipsis),
         actions: [
+          // Novčanik dok kupuješ u tuđoj trgovini.
+          if (!isMe)
+            const Center(
+              child: Padding(
+                padding: EdgeInsets.only(right: 4),
+                child: WalletChip(),
+              ),
+            ),
           if (user.username.isNotEmpty)
             ShareButton(
               url: publicLink(shop: user.username),
