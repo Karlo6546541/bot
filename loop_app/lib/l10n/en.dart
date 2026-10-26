@@ -2376,4 +2376,6 @@ const kEn = <String, String>{
       'Official Subhasto messages — PINs and delivery instructions.',
   '👋 Ovdje ti Subhasto šalje PIN-ove za paketomate i upute za slanje. Na ove poruke ne možeš odgovoriti.':
       '👋 Subhasto sends you parcel locker PINs and shipping instructions here. You can\'t reply to these messages.',
+  'Nema veze s poslužiteljem — kupnja nije moguća. Pokušaj ponovno.':
+      'No connection to the server — purchase isn\'t possible. Please try again.',
 };

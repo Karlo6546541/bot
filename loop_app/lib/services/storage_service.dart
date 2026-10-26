@@ -21,6 +21,11 @@ import 'username_rules.dart';
 
 /// Lokalna pohrana na Hive-u. Svaki entitet je spremljen kao obična mapa
 /// (ključ = ID), pa nisu potrebni generirani TypeAdapteri.
+/// Atomski upis nije moguć: online baza postoji, ali veza ne radi.
+class OfflineClaimException implements Exception {
+  const OfflineClaimException();
+}
+
 class StorageService {
   static const _usersBox = 'users';
   static const _devicesBox = 'devices';
@@ -138,10 +143,22 @@ class StorageService {
   /// Upiše transakciju [tx] samo ako takva još ne postoji — lokalno i u
   /// online bazi. Tako se isti komad ne proda dvaput, a aukcija ne
   /// zaključi dvaput (dva uređaja istovremeno).
-  Future<bool> claimTransaction(LoopTransaction tx) async {
+  ///
+  /// [strict]: bez veze s bazom (ili ako upis ne uspije) baca
+  /// [OfflineClaimException] umjesto lokalnog upisa — za kupnju, gdje bi
+  /// lokalni upis kasnije mogao prepisati tuđu kupnju istog komada.
+  Future<bool> claimTransaction(
+    LoopTransaction tx, {
+    bool strict = false,
+  }) async {
     if (_transactions.containsKey(tx.id)) return false;
     final data = tx.toMap();
-    final claimed = await remoteClaim?.call(_transactionsBox, tx.id, data);
+    bool? claimed;
+    try {
+      claimed = await remoteClaim?.call(_transactionsBox, tx.id, data);
+    } on OfflineClaimException {
+      if (strict) rethrow;
+    }
     if (claimed == false) return false;
     if (claimed == true) {
       // Već je u bazi — samo lokalno (bez ponovnog slanja).

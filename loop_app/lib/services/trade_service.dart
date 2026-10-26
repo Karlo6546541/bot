@@ -9,6 +9,7 @@ import 'bargain_service.dart';
 import 'seed_data.dart';
 import 'fee.dart';
 import 'live_service.dart';
+import 'earnings.dart';
 import 'storage_service.dart';
 import '../l10n/tr.dart';
 import '../models/app_notification.dart';
@@ -211,27 +212,48 @@ class TradeService {
     // preostala zaliha). Upisuje se PRVI i samo jednom (atomski u bazi):
     // ako su dva kupca istovremeno kupila zadnji komad, prolazi samo prvi.
     final payout = sellPayout(price);
+    LoopTransaction sale(String id) => LoopTransaction(
+      id: id,
+      type: TransactionType.sell,
+      userId: seller!.id,
+      deviceId: device.id,
+      deviceName: '${device.name} ${device.model}',
+      price: price,
+      fee: buyNowCommission(price),
+      amount: payout,
+      sellerId: seller.id,
+      sellerLabel: seller.handle,
+      buyerId: userId,
+      buyerLabel: user.handle,
+      createdAt: at,
+    );
+    LoopTransaction? sold;
+    // Komad koji je zauzet (kod zalihe: koji po redu, od zadnjeg prema
+    // prvom). Ako je netko istovremeno kupio isti komad, probaj sljedeći —
+    // zapis prodaje u bazi je jedina istina o tome što je prodano.
+    var unitNo = device.quantity;
     if (seller != null && !device.isDigital) {
-      final claimed = await _storage.claimTransaction(
-        LoopTransaction(
-          id:
-              'sale-${device.id}-${seller.id}-'
-              '${device.listedAt?.millisecondsSinceEpoch ?? 0}-${device.quantity}',
-          type: TransactionType.sell,
-          userId: seller.id,
-          deviceId: device.id,
-          deviceName: '${device.name} ${device.model}',
-          price: price,
-          fee: buyNowCommission(price),
-          amount: payout,
-          sellerId: seller.id,
-          sellerLabel: seller.handle,
-          buyerId: userId,
-          buyerLabel: user.handle,
-          createdAt: at,
-        ),
-      );
-      if (!claimed) {
+      final base =
+          'sale-${device.id}-${seller.id}-'
+          '${device.listedAt?.millisecondsSinceEpoch ?? 0}';
+      for (; unitNo >= 1; unitNo--) {
+        final tx = sale('$base-$unitNo');
+        final bool ok;
+        try {
+          ok = await _storage.claimTransaction(tx, strict: true);
+        } on OfflineClaimException {
+          throw TradeException(
+            t(
+              'Nema veze s poslužiteljem — kupnja nije moguća. Pokušaj ponovno.',
+            ),
+          );
+        }
+        if (ok) {
+          sold = tx;
+          break;
+        }
+      }
+      if (sold == null) {
         throw TradeException(
           t('Netko je upravo kupio ovaj komad — predmet više nije dostupan.'),
         );
@@ -239,11 +261,13 @@ class TradeService {
     }
 
     var boughtId = device.id;
-    if (device.hasStock && device.isListed) {
+    if (device.hasStock && device.isListed && unitNo > 1) {
       final unit = device.unitFor(userId, _uuid.v4(), at);
       boughtId = unit.id;
       await _storage.putDevice(unit);
-      await _storage.putDevice(device.withQuantity(device.quantity - 1));
+      // Preostala zaliha = komadi ispod zauzetog (ne lokalni broj, koji
+      // može biti zastario).
+      await _storage.putDevice(device.withQuantity(unitNo - 1));
     } else if (!device.isDigital) {
       await _storage.putDevice(device.withOwner(userId));
     }
@@ -267,31 +291,14 @@ class TradeService {
     await _storage.putTransaction(tx);
 
     if (seller != null) {
-      // Prodavatelj dobiva cijenu umanjenu za proviziju (5 %).
-      await _storage.putUser(
-        seller.copyWith(credits: roundCredits(seller.credits + payout)),
-      );
       // Digitalni proizvod (više kupaca istog primjerka): zapis prodaje
       // ovdje; fizički komad je već zapisan (zauzet) gore.
       if (device.isDigital) {
-        await _storage.putTransaction(
-          LoopTransaction(
-            id: _uuid.v4(),
-            type: TransactionType.sell,
-            userId: seller.id,
-            deviceId: device.id,
-            deviceName: '${device.name} ${device.model}',
-            price: price,
-            fee: buyNowCommission(price),
-            amount: payout,
-            sellerId: seller.id,
-            sellerLabel: seller.handle,
-            buyerId: userId,
-            buyerLabel: user.handle,
-            createdAt: at,
-          ),
-        );
+        sold = sale('sale-d-${_uuid.v4()}');
+        await _storage.putTransaction(sold);
       }
+      // Prodavatelj dobiva cijenu umanjenu za proviziju (5 %) — jednom.
+      await Earnings(_storage).credit(sold!);
       await _snapshot(seller.id);
       final inbox = Inbox(_storage);
       await inbox.send(
@@ -301,7 +308,7 @@ class TradeService {
         targetId: device.id,
         now: at,
       );
-      if (!device.isDigital && !device.hasStock) {
+      if (!device.isDigital && unitNo <= 1) {
         // Zadnji komad: oglas je rasprodan; otvorene ponude više ne vrijede.
         for (final o in _storage.bargains) {
           if (o.deviceId == device.id && (o.isOpen || o.usableAt(at))) {

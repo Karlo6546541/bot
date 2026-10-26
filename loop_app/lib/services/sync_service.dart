@@ -140,15 +140,13 @@ class SyncService {
     String id,
     Map<String, dynamic> data,
   ) async {
-    if (status != SyncStatus.online ||
-        !_remote.canWrite ||
-        !_tables.contains(table)) {
-      return null;
-    }
+    // Bez prijave (promjene ionako čekaju) ili tablica nije online.
+    if (!_remote.canWrite || !_tables.contains(table)) return null;
+    if (status != SyncStatus.online) throw const OfflineClaimException();
     try {
       return await _remote.claim(table, id, data);
     } catch (_) {
-      return null;
+      throw const OfflineClaimException();
     }
   }
 

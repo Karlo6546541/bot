@@ -11,6 +11,7 @@ import '../utils/formatters.dart';
 import 'delivery_service.dart';
 import 'fee.dart';
 import 'inbox.dart';
+import 'earnings.dart';
 import 'storage_service.dart';
 import 'trade_service.dart';
 
@@ -1031,29 +1032,26 @@ class LiveService {
     final payout = auctionPayout(price, l.lot.basePrice);
     // Upis prodaje samo jednom (atomski) — domaćin i pobjednik mogu
     // istovremeno provoditi prodaju s dva uređaja.
-    final claimed = await _storage.claimTransaction(
-      LoopTransaction(
-        id: txId,
-        type: TransactionType.sell,
-        userId: seller.id,
-        deviceId: device.id,
-        deviceName: l.lot.deviceName,
-        price: price,
-        fee: fee,
-        amount: payout,
-        sellerId: seller.id,
-        sellerLabel: seller.handle,
-        buyerId: winner.id,
-        buyerLabel: winner.handle,
-        createdAt: l.end!,
-        isAuction: true,
-      ),
+    final sale = LoopTransaction(
+      id: txId,
+      type: TransactionType.sell,
+      userId: seller.id,
+      deviceId: device.id,
+      deviceName: l.lot.deviceName,
+      price: price,
+      fee: fee,
+      amount: payout,
+      sellerId: seller.id,
+      sellerLabel: seller.handle,
+      buyerId: winner.id,
+      buyerLabel: winner.handle,
+      createdAt: l.end!,
+      isAuction: true,
     );
+    final claimed = await _storage.claimTransaction(sale);
     if (!claimed) return;
     await _storage.putDevice(device.withOwner(winner.id));
-    await _storage.putUser(
-      seller.copyWith(credits: roundCredits(seller.credits + payout)),
-    );
+    await Earnings(_storage).credit(sale);
     await _storage.recordSnapshot(seller.id, now: at);
     await _storage.recordSnapshot(winner.id, now: at);
     final inbox = Inbox(_storage);

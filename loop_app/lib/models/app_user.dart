@@ -37,6 +37,7 @@ class AppUser {
     this.mutedNotifications = const [],
     this.seller,
     this.trader,
+    this.creditedSales,
     this.promotedUntil,
     this.shopName = '',
     this.coverPath,
@@ -109,6 +110,12 @@ class AppUser {
 
   /// Javni podaci trgovca (vidljivi svima) — postoje samo za trgovce.
   final TraderPublic? trader;
+
+  /// ID-ovi prodaja već uračunatih u [credits] (vidi `Earnings`). Zapisuju
+  /// se zajedno sa stanjem, pa prepisivanje zastarjelim podacima ne gubi
+  /// zaradu — nedostajuća prodaja se jednostavno ponovno uračuna.
+  /// `null` = stariji račun (još nije pokrenuto praćenje).
+  final List<String>? creditedSales;
 
   /// Trgovac (obrt, tvrtka) — po privatnim podacima (vlasnik) ili javnoj
   /// oznaci (svi ostali korisnici).
@@ -196,6 +203,7 @@ class AppUser {
     SellerInfo? seller,
     TraderPublic? trader,
     bool clearTrader = false,
+    List<String>? creditedSales,
     DateTime? promotedUntil,
     String? shopName,
     String? coverPath,
@@ -229,6 +237,7 @@ class AppUser {
     mutedNotifications: mutedNotifications ?? this.mutedNotifications,
     seller: seller ?? this.seller,
     trader: clearTrader ? null : trader ?? this.trader,
+    creditedSales: creditedSales ?? this.creditedSales,
     promotedUntil: promotedUntil ?? this.promotedUntil,
     shopName: shopName ?? this.shopName,
     coverPath: clearCover ? null : coverPath ?? this.coverPath,
@@ -261,6 +270,7 @@ class AppUser {
     if (mutedNotifications.isNotEmpty) 'mutedNotifications': mutedNotifications,
     if (seller != null) 'seller': seller!.toMap(),
     if (trader != null) 'trader': trader!.toMap(),
+    if (creditedSales != null) 'creditedSales': creditedSales,
     'promotedUntil': promotedUntil?.toIso8601String(),
     'shopName': shopName,
     'coverPath': coverPath,
@@ -299,6 +309,7 @@ class AppUser {
     mutedNotifications:
         (map['mutedNotifications'] as List?)?.cast<String>() ?? const [],
     trader: TraderPublic.fromMap(map['trader']),
+    creditedSales: (map['creditedSales'] as List?)?.cast<String>(),
     seller: map['seller'] is Map
         ? SellerInfo.fromMap(map['seller'] as Map)
         : null,

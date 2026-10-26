@@ -14,6 +14,7 @@ import 'package:loop_app/providers/app_state.dart';
 import 'package:loop_app/services/auction_service.dart';
 import 'package:loop_app/services/boxnow/boxnow_demo.dart';
 import 'package:loop_app/services/delivery_service.dart';
+import 'package:loop_app/services/earnings.dart';
 import 'package:loop_app/services/live_service.dart';
 import 'package:loop_app/services/remote_store.dart';
 import 'package:loop_app/services/seed_data.dart';
@@ -168,30 +169,73 @@ void main() {
     },
   );
 
-  test('5: zaliha 2, tri kupca — najviše 2 prodana, nikad minus', () async {
-    final d = await listed(ana, 20, quantity: 2);
-    final anaBefore = remoteCredits(ana);
-    var ok = 0;
-    for (final buyer in [demo, tester, marko]) {
-      // Svaki kupac kupuje sa svježim podacima, ali dva istovremeno.
+  test(
+    '5: zaliha 2, dva kupca istovremeno — oba dobiju komad, treći ne',
+    () async {
+      final d = await listed(ana, 20, quantity: 2);
+      final anaBefore = remoteCredits(ana);
       final stale = snapshot();
-      for (final b in [buyer, buyer == marko ? demo : marko]) {
+      final ok = <String>[];
+      // Oba kupca vide "2 na zalihi" i kupuju u istoj sekundi.
+      for (final b in [demo, tester]) {
         await device(stale);
-        try {
-          await TradeService(storage).buy(userId: b, deviceId: d.id);
-          ok++;
-        } on TradeException catch (_) {}
+        await TradeService(storage).buy(userId: b, deviceId: d.id);
+        ok.add(b);
       }
+      expect(ok, [demo, tester]);
+      // Treći (također zastarjeli podaci) — rasprodano.
+      await device(stale);
+      await expectLater(
+        TradeService(storage).buy(userId: marko, deviceId: d.id),
+        throwsA(isA<TradeException>()),
+      );
       await reload();
-    }
-    final listing = storage.deviceById(d.id)!;
-    expect(ok, 2);
-    expect(listing.quantity, greaterThanOrEqualTo(0));
-    final sales = remote.data['transactions']!.values.where(
-      (t) => t['type'] == 'sell' && t['deviceId'] == d.id,
+      final sales = remote.data['transactions']!.values.where(
+        (t) => t['type'] == 'sell' && t['deviceId'] == d.id,
+      );
+      expect(sales, hasLength(2));
+      // Istovremeni upisi profila prodavača: jedna zarada se prepisala…
+      expect(remoteCredits(ana), lessThan(anaBefore + 2 * 19));
+      // …a prodavačev uređaj je ponovno uračuna (i nikad dvaput).
+      expect(await Earnings(storage).reconcile(ana), 1);
+      expect(await Earnings(storage).reconcile(ana), 0);
+      await sync.flushNow();
+      expect(remoteCredits(ana), closeTo(anaBefore + 2 * 19, 0.001));
+      // Komadi su kod kupaca, oglas ne ide u minus.
+      expect(storage.deviceById(d.id)!.quantity, greaterThanOrEqualTo(0));
+    },
+  );
+
+  test('5: bez veze s bazom kupnja se ne radi lokalno', () async {
+    final d = await listed(ana, 50);
+    remote.canWrite = true;
+    await sync.dispose();
+    // Baza postoji, ali veza je pala.
+    final offline = SyncService(storage, _DownRemote(remote));
+    await offline.start(timeout: const Duration(milliseconds: 50));
+    await expectLater(
+      TradeService(storage).buy(userId: demo, deviceId: d.id),
+      throwsA(
+        isA<TradeException>().having(
+          (e) => e.message,
+          'message',
+          contains('Nema veze'),
+        ),
+      ),
     );
-    expect(sales, hasLength(2));
-    expect(remoteCredits(ana), closeTo(anaBefore + 2 * 19, 0.001));
+    expect(storage.deviceById(d.id)!.ownerId, ana);
+    await offline.dispose();
+    sync = SyncService(storage, remote);
+    await sync.start();
+  });
+
+  test('zarada: stari račun se ne uračunava ponovno', () async {
+    final before = storage.userById(ana)!;
+    expect(before.creditedSales, isNull);
+    // Prvo pokretanje samo označi postojeće prodaje.
+    expect(await Earnings(storage).reconcile(ana), 0);
+    expect(storage.userById(ana)!.credits, before.credits);
+    expect(storage.userById(ana)!.creditedSales, isNotNull);
   });
 
   test(
@@ -401,4 +445,19 @@ void main() {
       expect(requests.length, 3);
     },
   );
+}
+
+/// Baza koja postoji, ali veza ne radi.
+class _DownRemote extends SharedRemote {
+  _DownRemote(this.real);
+  final SharedRemote real;
+
+  @override
+  Future<Map<String, Map<String, Map<String, dynamic>>>> pullAll(
+    List<String> tables,
+  ) async => throw Exception('nema mreže');
+
+  @override
+  Future<bool> claim(String table, String id, Map<String, dynamic> d) async =>
+      throw Exception('nema mreže');
 }

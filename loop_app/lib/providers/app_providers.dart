@@ -26,6 +26,7 @@ import '../services/community_service.dart';
 import '../services/swap_service.dart';
 import '../models/report.dart';
 import '../services/delivery_service.dart';
+import '../services/earnings.dart';
 import '../models/delivery.dart';
 import '../services/file_store.dart';
 import '../services/image_store.dart';
@@ -923,6 +924,14 @@ class AppController extends Notifier<AppState> {
     }
     await _storage.putUser(u.copyWith(trader: TraderPublic.of(info)));
     _refresh();
+  }
+
+  /// Zarada iz prodaja koje su se dogodile istovremeno (s drugih uređaja)
+  /// — uračunava one koje nedostaju, nikad dvaput.
+  Future<void> reconcileEarnings() async {
+    final me = state.currentUserId;
+    if (me == null) return;
+    if (await Earnings(_storage).reconcile(me) > 0) _refresh();
   }
 
   /// Paketomat: preuzete pošiljke se same potvrđuju.

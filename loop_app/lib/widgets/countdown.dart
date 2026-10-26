@@ -115,6 +115,7 @@ class _AuctionHeartbeatState extends ConsumerState<AuctionHeartbeat> {
     ref.read(appProvider.notifier).settleExpiredAuctions();
     ref.read(appProvider.notifier).autoConfirmPickups();
     ref.read(appProvider.notifier).publishTraderFlag();
+    ref.read(appProvider.notifier).reconcileEarnings();
   }
 
   @override

@@ -7,6 +7,7 @@ import 'auction_policy.dart';
 import 'delivery_service.dart';
 import 'fee.dart';
 import 'live_service.dart';
+import 'earnings.dart';
 import 'storage_service.dart';
 import 'trade_service.dart';
 import '../l10n/tr.dart';
@@ -456,32 +457,29 @@ class AuctionService {
     // Jedan zapis za obje strane (vidi LoopTransaction.typeFor) — s ID-jem
     // aukcije i upisan samo jednom (atomski): ako dva uređaja istovremeno
     // zaključuju istu aukciju, prodaju i dostavu radi samo prvi.
-    final claimed = await _storage.claimTransaction(
-      LoopTransaction(
-        id: 'auction-${a.id}',
-        type: TransactionType.sell,
-        userId: seller.id,
-        deviceId: device.id,
-        deviceName: a.deviceName,
-        price: top.amount,
-        fee: fee,
-        amount: payout,
-        sellerId: seller.id,
-        sellerLabel: seller.handle,
-        buyerId: winner.id,
-        buyerLabel: winner.handle,
-        createdAt: at,
-        isAuction: true,
-      ),
+    final sale = LoopTransaction(
+      id: 'auction-${a.id}',
+      type: TransactionType.sell,
+      userId: seller.id,
+      deviceId: device.id,
+      deviceName: a.deviceName,
+      price: top.amount,
+      fee: fee,
+      amount: payout,
+      sellerId: seller.id,
+      sellerLabel: seller.handle,
+      buyerId: winner.id,
+      buyerLabel: winner.handle,
+      createdAt: at,
+      isAuction: true,
     );
+    final claimed = await _storage.claimTransaction(sale);
     if (!claimed) {
       await _storage.putAuction(done);
       return AuctionResult(done, winnerId: winner.id);
     }
     await _storage.putDevice(device.withOwner(winner.id));
-    await _storage.putUser(
-      seller.copyWith(credits: roundCredits(seller.credits + payout)),
-    );
+    await Earnings(_storage).credit(sale);
     await _storage.putAuction(done);
     await _storage.recordSnapshot(seller.id, now: at);
     await _storage.recordSnapshot(winner.id, now: at);
