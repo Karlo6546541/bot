@@ -170,3 +170,96 @@ class FadeSlideIn extends StatelessWidget {
     );
   }
 }
+
+/// Sličica kategorije (veliki emoji) — za krugove na početnoj i pločice
+/// u Kategorijama.
+extension CategoryEmoji on DeviceCategory {
+  String get emoji => switch (this) {
+    DeviceCategory.phone => '📱',
+    DeviceCategory.laptop => '💻',
+    DeviceCategory.tablet => '📲',
+    DeviceCategory.audio => '🎧',
+    DeviceCategory.console => '🎮',
+    DeviceCategory.watch => '⌚',
+    DeviceCategory.camera => '📷',
+    DeviceCategory.other => '🔌',
+    DeviceCategory.cards => '🏀',
+    DeviceCategory.tcg => '⚡',
+    DeviceCategory.comics => '📚',
+    DeviceCategory.coins => '🪙',
+    DeviceCategory.stamps => '✉️',
+    DeviceCategory.figures => '🧸',
+    DeviceCategory.vinyl => '💿',
+    DeviceCategory.sport => '⚽',
+    DeviceCategory.instruments => '🎸',
+    DeviceCategory.books => '📖',
+    DeviceCategory.boardGames => '🎲',
+    DeviceCategory.models => '🧱',
+    DeviceCategory.videoGames => '🕹️',
+    DeviceCategory.clothes => '👕',
+    DeviceCategory.sneakers => '👟',
+    DeviceCategory.bags => '👜',
+    DeviceCategory.watches => '🕰️',
+    DeviceCategory.accessories => '🕶️',
+    DeviceCategory.homeDecor => '🪴',
+    DeviceCategory.vintage => '🏺',
+    DeviceCategory.beauty => '💄',
+    DeviceCategory.kids => '🧩',
+    DeviceCategory.jewelry => '💍',
+    DeviceCategory.ceramics => '🍶',
+    DeviceCategory.textile => '🧶',
+    DeviceCategory.woodwork => '🪵',
+    DeviceCategory.paintings => '🎨',
+    DeviceCategory.workshops => '🛠️',
+    DeviceCategory.tutoring => '🎓',
+    DeviceCategory.tickets => '🎟️',
+    DeviceCategory.experiences => '🎈',
+    DeviceCategory.models3d => '🧊',
+    DeviceCategory.software => '💾',
+    DeviceCategory.ebooks => '📘',
+    DeviceCategory.templates => '🖼️',
+    DeviceCategory.sounds => '🎵',
+  };
+}
+
+/// Ilustracija kategorije: mekani gradijent u boji kategorije s velikim
+/// emojijem. [circle] za red krugova na početnoj.
+class CategoryArt extends StatelessWidget {
+  const CategoryArt({
+    super.key,
+    required this.category,
+    this.size = 64,
+    this.circle = false,
+  });
+
+  final DeviceCategory category;
+  final double size;
+  final bool circle;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = category.color;
+    return Container(
+      width: size,
+      height: size,
+      decoration: BoxDecoration(
+        shape: circle ? BoxShape.circle : BoxShape.rectangle,
+        borderRadius: circle ? null : BorderRadius.circular(size * 0.24),
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            c.withValues(alpha: LoopColors.isDark ? 0.45 : 0.22),
+            c.withValues(alpha: LoopColors.isDark ? 0.18 : 0.08),
+          ],
+        ),
+        border: Border.all(color: c.withValues(alpha: 0.35), width: 1.5),
+      ),
+      alignment: Alignment.center,
+      child: Text(
+        category.emoji,
+        style: TextStyle(fontSize: size * 0.46, height: 1),
+      ),
+    );
+  }
+}

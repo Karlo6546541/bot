@@ -1073,7 +1073,8 @@ void main() {
     // Početna kao Whatnot: pretraga, pilule kategorija, tko je uživo.
     expect(find.byKey(const ValueKey('home-search')), findsOneWidget);
     expect(find.byKey(const ValueKey('home-cat-for-you')), findsOneWidget);
-    expect(find.byKey(const ValueKey('home-live')), findsOneWidget);
+    // Jedini live je istaknut na vrhu (hero).
+    expect(find.byKey(const ValueKey('home-hero')), findsOneWidget);
     expect(find.byKey(const ValueKey('home-go-live')), findsNothing);
     await tester.tap(find.byKey(const ValueKey('home-cat-live')));
     await tester.pumpAndSettle();

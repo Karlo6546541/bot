@@ -7,7 +7,11 @@ import '../l10n/tr.dart';
 import '../providers/app_providers.dart';
 import '../theme/app_theme.dart';
 import '../widgets/trade_actions.dart';
+import '../models/device.dart';
+import '../widgets/category_style.dart';
+import '../widgets/formatters.dart';
 import 'auctions_screen.dart';
+import 'categories_screen.dart';
 import 'live_screens.dart';
 import 'search_screen.dart';
 import 'swipe_feed_screen.dart';
@@ -52,9 +56,18 @@ class _LiveHomeScreenState extends ConsumerState<LiveHomeScreen> {
   _Filter _filter = const _ForYou();
   bool _hideCheckout = false;
 
+  /// "Kako LOOP radi" vidi se samo pri prvom otvaranju — odmah se bilježi
+  /// kao viđeno, a do kraja ove sesije ostaje (dok ga ne zatvoriš).
+  late bool _showHow = ref.read(appProvider).showHowItWorks;
+
   @override
   void initState() {
     super.initState();
+    if (_showHow) {
+      WidgetsBinding.instance.addPostFrameCallback(
+        (_) => ref.read(appProvider.notifier).dismissHowItWorks(),
+      );
+    }
     // Liveovi počinju i završavaju sami (domaćin dođe ili ode).
     if (ref.read(tickIntervalProvider) != null) {
       _timer = Timer.periodic(const Duration(seconds: 5), (_) {
@@ -92,12 +105,7 @@ class _LiveHomeScreenState extends ConsumerState<LiveHomeScreen> {
           key: ValueKey(key),
           padding: const EdgeInsets.symmetric(horizontal: 16),
           sliver: SliverGrid(
-            gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-              maxCrossAxisExtent: 240,
-              childAspectRatio: 0.52,
-              mainAxisSpacing: 16,
-              crossAxisSpacing: 12,
-            ),
+            gridDelegate: const BrowseGridDelegate(),
             delegate: SliverChildBuilderDelegate(
               (_, i) => AuctionBrowseCard(
                 item: list[i],
@@ -134,19 +142,48 @@ class _LiveHomeScreenState extends ConsumerState<LiveHomeScreen> {
     final slivers = <Widget>[];
     switch (_filter) {
       case _ForYou():
-        slivers.add(header(t('🔴 Uživo sada')));
+        // Hero: najgledaniji live preko cijele širine, ostali u mreži.
+        final byViewers = [...live]
+          ..sort((a, b) => b.live!.viewers.compareTo(a.live!.viewers));
+        if (byViewers.isNotEmpty) {
+          slivers.add(
+            SliverToBoxAdapter(
+              child: _LiveHero(
+                item: byViewers.first,
+                onTap: () => open(byViewers, 0, t('Uživo sada')),
+              ),
+            ),
+          );
+        }
         slivers.add(
-          live.isEmpty
-              ? SliverToBoxAdapter(
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    child: _EmptyLive(
-                      onGoLive: () => CreateLiveShowScreen.open(context),
-                    ),
-                  ),
-                )
-              : grid('home-live', live, t('Uživo sada')),
+          SliverToBoxAdapter(
+            child: _CategoryCircles(
+              counts: {
+                for (final i in all)
+                  for (final c in i.categories) c: 1,
+              },
+            ),
+          ),
         );
+        final rest = byViewers.skip(1).toList();
+        if (live.isEmpty || rest.isNotEmpty) {
+          slivers.add(header(t('🔴 Uživo sada')));
+        }
+        // Jedini live je već u heroju — mreža samo za ostale.
+        if (live.isEmpty || rest.isNotEmpty) {
+          slivers.add(
+            live.isEmpty
+                ? SliverToBoxAdapter(
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      child: _EmptyLive(
+                        onGoLive: () => CreateLiveShowScreen.open(context),
+                      ),
+                    ),
+                  )
+                : grid('home-live', rest, t('Uživo sada')),
+          );
+        }
         if (soon.isNotEmpty) {
           slivers.add(header(t('📅 Uskoro')));
           slivers.add(grid('home-soon', soon, t('Uskoro')));
@@ -323,8 +360,12 @@ class _LiveHomeScreenState extends ConsumerState<LiveHomeScreen> {
             ),
           ),
         ),
-        if (s.showHowItWorks && _filter is _ForYou)
-          const SliverToBoxAdapter(child: _HowLoopWorks()),
+        if (_showHow && _filter is _ForYou)
+          SliverToBoxAdapter(
+            child: _HowLoopWorks(
+              onClose: () => setState(() => _showHow = false),
+            ),
+          ),
         if (!_hideCheckout &&
             s.currentUser != null &&
             !s.currentUser!.isGuest &&
@@ -343,7 +384,8 @@ class _LiveHomeScreenState extends ConsumerState<LiveHomeScreen> {
 
 /// Kratko objašnjenje tri načina kupnje (može se sakriti zauvijek).
 class _HowLoopWorks extends ConsumerWidget {
-  const _HowLoopWorks();
+  const _HowLoopWorks({required this.onClose});
+  final VoidCallback onClose;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -375,8 +417,7 @@ class _HowLoopWorks extends ConsumerWidget {
                   IconButton(
                     key: const ValueKey('home-how-close'),
                     tooltip: t('Sakrij'),
-                    onPressed: () =>
-                        ref.read(appProvider.notifier).dismissHowItWorks(),
+                    onPressed: onClose,
                     icon: const Icon(Icons.close, size: 20),
                   ),
                 ],
@@ -552,4 +593,218 @@ class _EmptyLive extends StatelessWidget {
       ],
     ),
   );
+}
+
+/// Istaknuti live na vrhu početne: velika slika, UŽIVO, gledatelji i
+/// gumb "Uđi".
+class _LiveHero extends ConsumerWidget {
+  const _LiveHero({required this.item, required this.onTap});
+  final BrowseItem item;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final s = ref.watch(appProvider);
+    final show = item.show!;
+    final live = item.live!;
+    final lot = live.current ?? live.next ?? live.lots.firstOrNull;
+    final device = lot == null ? null : s.deviceById(lot.lot.deviceId);
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
+      child: Material(
+        color: Colors.black,
+        borderRadius: BorderRadius.circular(kRadius + 4),
+        clipBehavior: Clip.antiAlias,
+        child: InkWell(
+          key: const ValueKey('home-hero'),
+          onTap: onTap,
+          child: AspectRatio(
+            aspectRatio: 16 / 11,
+            child: Stack(
+              fit: StackFit.expand,
+              children: [
+                BrowseCardMedia(device: device, cover: show.coverPath),
+                const DecoratedBox(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: [
+                        Colors.black26,
+                        Colors.transparent,
+                        Colors.black87,
+                      ],
+                      stops: [0, 0.4, 1],
+                    ),
+                  ),
+                ),
+                Positioned(
+                  left: 14,
+                  top: 14,
+                  child: Row(
+                    children: [
+                      const LiveBadge(),
+                      const SizedBox(width: 6),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 4,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Colors.black54,
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        child: Row(
+                          children: [
+                            const Icon(
+                              Icons.visibility,
+                              size: 14,
+                              color: Colors.white,
+                            ),
+                            const SizedBox(width: 4),
+                            Text(
+                              '${live.viewers}',
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.w900,
+                                fontSize: 12,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Positioned(
+                  left: 16,
+                  right: 16,
+                  bottom: 14,
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              show.title,
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.w900,
+                                fontSize: 20,
+                                height: 1.15,
+                              ),
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              [
+                                show.hostLabel,
+                                if (live.current != null)
+                                  t('Sada: {0}', [
+                                    formatCredits(live.current!.price),
+                                  ]),
+                              ].join(' · '),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                color: Colors.white70,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      FilledButton.icon(
+                        style: FilledButton.styleFrom(
+                          backgroundColor: LoopColors.live,
+                          foregroundColor: Colors.white,
+                        ),
+                        onPressed: onTap,
+                        icon: const Icon(Icons.play_arrow_rounded),
+                        label: Text(t('Uđi')),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Red okruglih sličica kategorija — brzi skok na ono što te zanima.
+class _CategoryCircles extends StatelessWidget {
+  const _CategoryCircles({required this.counts});
+
+  /// Kategorije koje imaju barem nešto (idu prve).
+  final Map<DeviceCategory, int> counts;
+
+  static const _popular = [
+    DeviceCategory.tcg,
+    DeviceCategory.sneakers,
+    DeviceCategory.watches,
+    DeviceCategory.phone,
+    DeviceCategory.videoGames,
+    DeviceCategory.console,
+    DeviceCategory.cards,
+    DeviceCategory.figures,
+    DeviceCategory.clothes,
+    DeviceCategory.vinyl,
+    DeviceCategory.coins,
+    DeviceCategory.models,
+    DeviceCategory.camera,
+    DeviceCategory.laptop,
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    final list = [
+      ..._popular.where(counts.containsKey),
+      ..._popular.where((c) => !counts.containsKey(c)),
+    ];
+    return SizedBox(
+      height: 104,
+      child: ListView.separated(
+        key: const ValueKey('home-circles'),
+        scrollDirection: Axis.horizontal,
+        padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+        itemCount: list.length,
+        separatorBuilder: (_, _) => const SizedBox(width: 12),
+        itemBuilder: (context, i) {
+          final c = list[i];
+          return InkWell(
+            key: ValueKey('home-circle-${c.name}'),
+            borderRadius: BorderRadius.circular(40),
+            onTap: () => CategoryItemsScreen.open(context, c),
+            child: SizedBox(
+              width: 66,
+              child: Column(
+                children: [
+                  CategoryArt(category: c, size: 60, circle: true),
+                  const SizedBox(height: 4),
+                  Text(
+                    c.singular,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      fontSize: 11.5,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
 }

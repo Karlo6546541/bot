@@ -2230,4 +2230,20 @@ const kEn = <String, String>{
   'Ovdje pratiš što si kupio, svoje ponude, predmete i pakete za poslati.':
       'Track what you bought, your bids, your items and parcels to ship.',
   'Osvojeno 🎉': 'Won 🎉',
+  'Prodano {0} za {1}': 'Sold to {0} for {1}',
+  'Uđi': 'Join',
+  'Zaštita kupca': 'Buyer protection',
+  'Plaćaš LOOP-u, ne prodavaču — novac čeka kod nas.':
+      'You pay LOOP, not the seller — the money waits with us.',
+  'Prodavač dobije novac tek kad potvrdiš da je paket stigao.':
+      'The seller is paid only after you confirm the parcel arrived.',
+  'Ako predmet ne stigne ili nije kao u opisu, vraćamo ti novac.':
+      'If the item doesn\'t arrive or isn\'t as described, you get your money back.',
+  'Zaštita kupca · novac čeka do primitka':
+      'Buyer protection · money held until delivery',
+  '< 1 dan': '< 1 day',
+  'Provjeren prodavač': 'Verified seller',
+  'još bez ocjena': 'no ratings yet',
+  '{0} ocjena': '{0} ratings',
+  'prosječno slanje': 'avg. shipping',
 };

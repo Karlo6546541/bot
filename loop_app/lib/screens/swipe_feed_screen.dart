@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../l10n/tr.dart';
+import '../widgets/trust_widgets.dart';
 import '../models/auction.dart';
 import '../models/device.dart';
 import '../providers/app_providers.dart';
@@ -560,6 +561,7 @@ class _Info extends ConsumerWidget {
             ? t('Preuzmi')
             : t('Kupi · {0}', [formatCredits(price)]),
         onTap: () => confirmAndBuy(context, ref, d),
+        color: LoopColors.buyNow,
       );
     }
 
@@ -685,7 +687,9 @@ class _Info extends ConsumerWidget {
             ),
           ),
         ],
-        const SizedBox(height: 10),
+        const SizedBox(height: 8),
+        const BuyerProtectionBadge(dark: true, compact: true),
+        const SizedBox(height: 8),
         primary,
       ],
     );

@@ -6,6 +6,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../l10n/tr.dart';
+import '../widgets/trust_widgets.dart';
 import '../models/app_user.dart';
 import '../models/delivery.dart';
 import '../models/device.dart';
@@ -31,7 +32,13 @@ import 'deliveries_screen.dart';
 import 'public_profile_screen.dart';
 
 /// Crvena boja live aukcija (oznaka UŽIVO, gumb za licitiranje).
-const kLiveRed = Color(0xFFFF2D55);
+const kLiveRed = LoopColors.live;
+
+/// Pozadina listova u liveu (live je uvijek taman).
+const kLiveSheet = Color(0xFF17120F);
+
+/// Glavna radnja u liveu (Licitiraj) — narančasta, crvena je samo "uživo".
+const kBidOrange = Color(0xFFF26B1D);
 const _defaultStage = [Color(0xFF3A1C71), Color(0xFFD76D77)];
 
 /// Gradijent pozornice prema kategoriji predmeta.
@@ -982,7 +989,7 @@ class _LiveRoomViewState extends ConsumerState<LiveRoomView> {
       context: context,
       showDragHandle: true,
       isScrollControlled: true,
-      backgroundColor: LoopColors.background,
+      backgroundColor: kLiveSheet,
       constraints: const BoxConstraints(maxWidth: 520),
       builder: (_) => _AddLotSheet(showId: show.id),
     );
@@ -999,7 +1006,7 @@ class _LiveRoomViewState extends ConsumerState<LiveRoomView> {
       context: context,
       showDragHandle: true,
       isScrollControlled: true,
-      backgroundColor: LoopColors.background,
+      backgroundColor: kLiveSheet,
       constraints: const BoxConstraints(maxWidth: 520),
       builder: (_) => _QuickAddSheet(last: _lastQuick),
     );
@@ -1036,6 +1043,11 @@ class _LiveRoomViewState extends ConsumerState<LiveRoomView> {
 
   /// Whatnot: kad predmet ode, pobjednik dobiva slavlje preko cijelog
   /// ekrana, a ostali traku "PRODANO @kupac · cijena".
+  int? _leadLot;
+  bool _wasLeading = false;
+  DateTime? _outbidAt;
+  int _outbids = 0;
+
   void _watchSales(LiveState st, String? me) {
     final sold = [
       for (final l in st.lots)
@@ -1271,7 +1283,7 @@ class _LiveRoomViewState extends ConsumerState<LiveRoomView> {
     context: context,
     showDragHandle: true,
     isScrollControlled: true,
-    backgroundColor: LoopColors.background,
+    backgroundColor: kLiveSheet,
     constraints: const BoxConstraints(maxWidth: 520),
     builder: (ctx) => DraggableScrollableSheet(
       expand: false,
@@ -1335,7 +1347,12 @@ class _LiveRoomViewState extends ConsumerState<LiveRoomView> {
   );
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context) => Theme(
+    data: buildLiveTheme(),
+    child: Builder(builder: _build),
+  );
+
+  Widget _build(BuildContext context) {
     final s = ref.watch(appProvider);
     final show = s.liveShowById(widget.showId);
     if (show == null) {
@@ -1385,6 +1402,22 @@ class _LiveRoomViewState extends ConsumerState<LiveRoomView> {
         : s.deviceById(stageLot.lot.deviceId);
     final canAct = me != null && !me.isGuest;
     if (widget.active) _watchSales(st, me?.id);
+    // Nadmašen: kratka vibracija i crveni bljesak.
+    final leadingNow = cur != null && cur.leader?.userId == me?.id;
+    if (widget.active &&
+        cur != null &&
+        _leadLot == cur.index &&
+        _wasLeading &&
+        !leadingNow) {
+      _outbidAt = now;
+      _outbids++;
+      HapticFeedback.heavyImpact();
+    }
+    _leadLot = cur?.index;
+    _wasLeading = leadingNow;
+    final flash =
+        _outbidAt != null &&
+        now.difference(_outbidAt!) < const Duration(milliseconds: 900);
     final sweep = _sweep;
     final showSweep =
         sweep != null &&
@@ -1622,7 +1655,14 @@ class _LiveRoomViewState extends ConsumerState<LiveRoomView> {
                               child: center,
                             ),
                           ),
-                          if (showSweep)
+                          if (showSweep) ...[
+                            Positioned.fill(
+                              child: IgnorePointer(
+                                child: ConfettiBurst(
+                                  key: ValueKey('live-confetti-${sweep.index}'),
+                                ),
+                              ),
+                            ),
                             Positioned(
                               left: 0,
                               right: 0,
@@ -1630,11 +1670,20 @@ class _LiveRoomViewState extends ConsumerState<LiveRoomView> {
                               child: IgnorePointer(
                                 child: _SoldSweep(
                                   key: ValueKey('live-sold-${sweep.index}'),
-                                  text: t('PRODANO @{0} · {1}', [
+                                  text: t('Prodano {0} za {1}', [
                                     s.userById(sweep.leader!.userId)?.handle ??
                                         '?',
                                     formatCredits(sweep.price),
                                   ]),
+                                ),
+                              ),
+                            ),
+                          ],
+                          if (flash)
+                            Positioned.fill(
+                              child: IgnorePointer(
+                                child: _OutbidFlash(
+                                  key: ValueKey('live-outbid-$_outbids'),
                                 ),
                               ),
                             ),
@@ -1720,11 +1769,19 @@ class _LiveRoomViewState extends ConsumerState<LiveRoomView> {
                             child: LayoutBuilder(
                               builder: (_, c) => Align(
                                 alignment: Alignment.bottomLeft,
-                                child: _ChatFeed(
-                                  feed: st.feed,
-                                  me: me?.id,
-                                  hostId: show.hostId,
-                                  maxHeight: math.min(210, c.maxHeight * 0.55),
+                                child: ConstrainedBox(
+                                  constraints: const BoxConstraints(
+                                    maxWidth: 300,
+                                  ),
+                                  child: _ChatFeed(
+                                    feed: st.feed,
+                                    me: me?.id,
+                                    hostId: show.hostId,
+                                    maxHeight: math.min(
+                                      210,
+                                      c.maxHeight * 0.55,
+                                    ),
+                                  ),
                                 ),
                               ),
                             ),
@@ -1768,7 +1825,7 @@ class _LiveRoomViewState extends ConsumerState<LiveRoomView> {
                         child: FilledButton.icon(
                           key: const ValueKey('live-choose-delivery'),
                           style: FilledButton.styleFrom(
-                            backgroundColor: const Color(0xFF1FA463),
+                            backgroundColor: LoopColors.buyNow,
                             foregroundColor: Colors.white,
                             minimumSize: const Size.fromHeight(42),
                           ),
@@ -1958,7 +2015,7 @@ class _LiveRoomViewState extends ConsumerState<LiveRoomView> {
       return FilledButton(
         key: const ValueKey('live-take'),
         style: FilledButton.styleFrom(
-          backgroundColor: const Color(0xFF1FA463),
+          backgroundColor: LoopColors.buyNow,
           foregroundColor: Colors.white,
           minimumSize: const Size.fromHeight(52),
           textStyle: const TextStyle(
@@ -2062,7 +2119,7 @@ class _LiveRoomViewState extends ConsumerState<LiveRoomView> {
         FilledButton(
           key: const ValueKey('live-bid'),
           style: FilledButton.styleFrom(
-            backgroundColor: kLiveRed,
+            backgroundColor: kBidOrange,
             foregroundColor: Colors.white,
             minimumSize: const Size.fromHeight(54),
             textStyle: const TextStyle(
@@ -2796,24 +2853,89 @@ class _SoldSweepState extends State<_SoldSweep>
       },
       child: Center(
         child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
           decoration: BoxDecoration(
-            color: const Color(0xFF1FA463),
-            borderRadius: BorderRadius.circular(99),
-            boxShadow: const [BoxShadow(blurRadius: 16, color: Colors.black45)],
+            color: Colors.black.withValues(alpha: 0.82),
+            borderRadius: BorderRadius.circular(22),
+            border: Border.all(color: const Color(0xFFFFC233), width: 2),
+            boxShadow: const [BoxShadow(blurRadius: 24, color: Colors.black54)],
           ),
-          child: Text(
-            '🔨 ${widget.text}',
-            style: const TextStyle(
-              color: Colors.white,
-              fontWeight: FontWeight.w900,
-              fontSize: 16,
-            ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Čekić udari (zamah na početku animacije).
+              AnimatedBuilder(
+                animation: _c,
+                builder: (_, child) {
+                  final v = (_c.value / 0.3).clamp(0.0, 1.0);
+                  final angle = -0.9 * (1 - Curves.elasticOut.transform(v));
+                  return Transform.rotate(
+                    angle: angle,
+                    alignment: Alignment.bottomRight,
+                    child: child,
+                  );
+                },
+                child: const Text('🔨', style: TextStyle(fontSize: 34)),
+              ),
+              const SizedBox(width: 10),
+              Flexible(
+                child: Text(
+                  widget.text,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w900,
+                    fontSize: 18,
+                  ),
+                ),
+              ),
+            ],
           ),
         ),
       ),
     );
   }
+}
+
+/// Crveni bljesak rubova ekrana kad te netko nadmaši.
+class _OutbidFlash extends StatefulWidget {
+  const _OutbidFlash({super.key});
+
+  @override
+  State<_OutbidFlash> createState() => _OutbidFlashState();
+}
+
+class _OutbidFlashState extends State<_OutbidFlash>
+    with SingleTickerProviderStateMixin {
+  late final _c = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 800),
+  )..forward();
+
+  @override
+  void dispose() {
+    _c.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => AnimatedBuilder(
+    animation: _c,
+    builder: (_, _) {
+      final a = (1 - _c.value) * 0.55;
+      return DecoratedBox(
+        decoration: BoxDecoration(
+          gradient: RadialGradient(
+            radius: 1.1,
+            colors: [
+              Colors.transparent,
+              kLiveRed.withValues(alpha: a),
+            ],
+            stops: const [0.55, 1],
+          ),
+        ),
+      );
+    },
+  );
 }
 
 /// Brzo dodavanje predmeta u live: naziv i početna cijena.
@@ -3041,9 +3163,16 @@ class _LotCard extends StatelessWidget {
       ),
     );
 
-    return Padding(
+    // Velika kartica trenutnog predmeta na dnu (tamni poluprozirni panel).
+    return Container(
       key: ValueKey(result ? 'live-result' : 'live-lot'),
-      padding: const EdgeInsets.fromLTRB(14, 4, 14, 0),
+      margin: const EdgeInsets.fromLTRB(10, 4, 10, 0),
+      padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
+      decoration: BoxDecoration(
+        color: Colors.black.withValues(alpha: 0.55),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: Colors.white12),
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -3084,10 +3213,10 @@ class _LotCard extends StatelessWidget {
               ClipRRect(
                 borderRadius: BorderRadius.circular(10),
                 child: d != null
-                    ? ItemThumb(device: d, size: 64)
+                    ? ItemThumb(device: d, size: 72)
                     : Container(
-                        width: 64,
-                        height: 64,
+                        width: 72,
+                        height: 72,
                         color: Colors.white12,
                         child: const Icon(Icons.inventory_2_outlined),
                       ),
@@ -3119,6 +3248,8 @@ class _LotCard extends StatelessWidget {
                         ),
                       ),
                     const SizedBox(height: 4),
+                    if (!result)
+                      const BuyerProtectionBadge(dark: true, compact: true),
                     // Samo kad je predmet posebne vrste (pada cijena, igra).
                     if (lot.mode != LotMode.auction)
                       chip('${lot.mode.emoji} ${lot.mode.label}'),
@@ -3130,16 +3261,23 @@ class _LotCard extends StatelessWidget {
                 key: const ValueKey('live-value'),
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
-                  Text(
-                    lot.mode == LotMode.giveaway
-                        ? t('Besplatno')
-                        : formatCredits(price),
-                    key: const ValueKey('live-price'),
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.w900,
-                      fontSize: 22,
-                      shadows: _shadow,
+                  ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 120),
+                    child: FittedBox(
+                      fit: BoxFit.scaleDown,
+                      child: Text(
+                        lot.mode == LotMode.giveaway
+                            ? t('Besplatno')
+                            : formatCredits(price),
+                        key: const ValueKey('live-price'),
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w900,
+                          fontSize: 30,
+                          height: 1.05,
+                          shadows: _shadow,
+                        ),
+                      ),
                     ),
                   ),
                   if (value > 0)
@@ -3177,13 +3315,31 @@ class _LotCard extends StatelessWidget {
                           shadows: _shadow,
                         ),
                       ),
-                    Text(
-                      '0:${secs.toString().padLeft(2, '0')}',
-                      style: TextStyle(
-                        color: hot ? kLiveRed : Colors.white,
-                        fontWeight: FontWeight.w900,
-                        fontSize: 17,
-                        shadows: _shadow,
+                    const SizedBox(height: 4),
+                    // Odbrojavanje u krugu (crveno u zadnjim sekundama).
+                    SizedBox(
+                      width: 44,
+                      height: 44,
+                      child: Stack(
+                        alignment: Alignment.center,
+                        children: [
+                          CircularProgressIndicator(
+                            value: (left.inMilliseconds / (lotSeconds * 1000))
+                                .clamp(0.0, 1.0),
+                            strokeWidth: 4,
+                            color: hot ? kLiveRed : Colors.white,
+                            backgroundColor: Colors.white24,
+                          ),
+                          Text(
+                            '$secs',
+                            key: const ValueKey('live-secs'),
+                            style: TextStyle(
+                              color: hot ? kLiveRed : Colors.white,
+                              fontWeight: FontWeight.w900,
+                              fontSize: 15,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                   ],
@@ -3192,16 +3348,6 @@ class _LotCard extends StatelessWidget {
             ],
           ),
           if (!result) ...[
-            const SizedBox(height: 8),
-            ClipRRect(
-              borderRadius: BorderRadius.circular(99),
-              child: LinearProgressIndicator(
-                value: (left.inMilliseconds / (lotSeconds * 1000)).clamp(0, 1),
-                minHeight: 3,
-                color: hot ? kLiveRed : Colors.white,
-                backgroundColor: Colors.white24,
-              ),
-            ),
             if (hot)
               Padding(
                 padding: const EdgeInsets.only(top: 4),
@@ -3266,12 +3412,19 @@ class _ChatFeed extends ConsumerWidget {
           itemBuilder: (_, i) {
             final e = lines[lines.length - 1 - i];
             return Padding(
-              padding: const EdgeInsets.only(bottom: 6),
-              child: _FeedLine(
-                event: e,
-                user: s.userById(e.userId),
-                mine: e.userId == me,
-                host: e.userId == hostId,
+              padding: const EdgeInsets.only(bottom: 5),
+              child: Container(
+                padding: const EdgeInsets.fromLTRB(4, 4, 10, 4),
+                decoration: BoxDecoration(
+                  color: Colors.black.withValues(alpha: 0.30),
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: _FeedLine(
+                  event: e,
+                  user: s.userById(e.userId),
+                  mine: e.userId == me,
+                  host: e.userId == hostId,
+                ),
               ),
             );
           },

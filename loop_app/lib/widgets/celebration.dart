@@ -228,3 +228,31 @@ class _ConfettiPainter extends CustomPainter {
   @override
   bool shouldRepaint(_ConfettiPainter old) => old.t != t;
 }
+
+/// Jednokratni pljusak konfeta preko roditelja (npr. "Prodano" u liveu).
+class ConfettiBurst extends StatefulWidget {
+  const ConfettiBurst({super.key});
+
+  @override
+  State<ConfettiBurst> createState() => _ConfettiBurstState();
+}
+
+class _ConfettiBurstState extends State<ConfettiBurst>
+    with SingleTickerProviderStateMixin {
+  late final _c = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 2400),
+  )..forward();
+
+  @override
+  void dispose() {
+    _c.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => AnimatedBuilder(
+    animation: _c,
+    builder: (_, _) => CustomPaint(painter: _ConfettiPainter(_c.value)),
+  );
+}

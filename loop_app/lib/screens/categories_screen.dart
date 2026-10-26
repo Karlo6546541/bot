@@ -55,9 +55,9 @@ class CategoriesScreen extends ConsumerWidget {
             padding: const EdgeInsets.symmetric(horizontal: 16),
             sliver: SliverGrid(
               gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-                maxCrossAxisExtent: 190,
-                mainAxisExtent: 64,
-                mainAxisSpacing: 10,
+                maxCrossAxisExtent: 130,
+                mainAxisExtent: 164,
+                mainAxisSpacing: 8,
                 crossAxisSpacing: 10,
               ),
               delegate: SliverChildListDelegate([
@@ -89,62 +89,39 @@ class _CategoryTile extends StatelessWidget {
   final VoidCallback onTap;
 
   @override
-  Widget build(BuildContext context) {
-    final color = category.color;
-    return Material(
-      color: LoopColors.surface,
-      borderRadius: BorderRadius.circular(kRadius),
-      child: InkWell(
-        key: ValueKey('category-${category.name}'),
-        borderRadius: BorderRadius.circular(kRadius),
-        onTap: onTap,
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 10),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(kRadius),
-            border: Border.all(color: LoopColors.surfaceHover),
+  Widget build(BuildContext context) => InkWell(
+    key: ValueKey('category-${category.name}'),
+    borderRadius: BorderRadius.circular(kRadius),
+    onTap: onTap,
+    child: Padding(
+      padding: const EdgeInsets.all(4),
+      child: Column(
+        children: [
+          // Sličica preko cijele širine pločice.
+          LayoutBuilder(
+            builder: (context, c) =>
+                CategoryArt(category: category, size: c.maxWidth.clamp(0, 88)),
           ),
-          child: Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(7),
-                decoration: BoxDecoration(
-                  color: color.withValues(alpha: 0.18),
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: Icon(category.icon, size: 20, color: color),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      category.label,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        fontWeight: FontWeight.w800,
-                        fontSize: 13,
-                      ),
-                    ),
-                    Text(
-                      count > 0 ? itemsLabel(count) : t('Još prazno'),
-                      style: TextStyle(
-                        color: LoopColors.textSecondary,
-                        fontSize: 11,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
+          const SizedBox(height: 6),
+          Text(
+            category.label,
+            maxLines: 2,
+            textAlign: TextAlign.center,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(
+              fontWeight: FontWeight.w800,
+              fontSize: 12.5,
+              height: 1.15,
+            ),
           ),
-        ),
+          Text(
+            count > 0 ? itemsLabel(count) : t('Još prazno'),
+            style: TextStyle(color: LoopColors.textSecondary, fontSize: 11),
+          ),
+        ],
       ),
-    );
-  }
+    ),
+  );
 }
 
 /// Jedna kategorija: mreža liveova, aukcija i Kupi odmah predmeta.
@@ -180,12 +157,7 @@ class CategoryItemsScreen extends ConsumerWidget {
           : GridView.builder(
               key: const ValueKey('category-items'),
               padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
-              gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-                maxCrossAxisExtent: 240,
-                childAspectRatio: 0.52,
-                mainAxisSpacing: 16,
-                crossAxisSpacing: 12,
-              ),
+              gridDelegate: const BrowseGridDelegate(),
               itemCount: list.length,
               itemBuilder: (_, i) => AuctionBrowseCard(
                 item: list[i],

@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../models/auction.dart';
@@ -267,7 +268,7 @@ class _AuctionsScreenState extends ConsumerState<AuctionsScreen> {
                   id: _buy,
                   label: t('Kupi odmah'),
                   icon: Icons.sell_outlined,
-                  color: const Color(0xFF1FA463),
+                  color: LoopColors.buyNow,
                   count: all.where((i) => i.isBuyNow).length,
                   selected: _filter == _buy,
                   onTap: () => setState(() => _filter = _buy),
@@ -305,12 +306,7 @@ class _AuctionsScreenState extends ConsumerState<AuctionsScreen> {
           SliverPadding(
             padding: const EdgeInsets.fromLTRB(16, 0, 16, 96),
             sliver: SliverGrid(
-              gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-                maxCrossAxisExtent: 240,
-                childAspectRatio: 0.52,
-                mainAxisSpacing: 12,
-                crossAxisSpacing: 12,
-              ),
+              gridDelegate: const BrowseGridDelegate(),
               delegate: SliverChildBuilderDelegate(
                 (context, i) => AuctionBrowseCard(
                   item: list[i],
@@ -466,7 +462,7 @@ class AuctionBrowseCard extends ConsumerWidget {
     } else if (a == null) {
       topLeft = pill(
         Text(t('🏷️ Kupi odmah'), style: pillText),
-        const Color(0xFF1FA463),
+        LoopColors.buyNow,
       );
     } else {
       topLeft = pill(
@@ -486,15 +482,16 @@ class AuctionBrowseCard extends ConsumerWidget {
       price = formatCredits(s.priceForMe(device!));
     }
 
-    final category = item.categories.firstOrNull;
     final hot = (live?.hype ?? 0) >= 0.5;
     final reminded =
         show != null &&
         s.wantsReminder(show.id) &&
         (live?.isScheduled ?? false);
 
-    // Kao Whatnot: prodavatelj iznad slike, slika s oznakama, ispod naslov
-    // i kategorija.
+    final rating = s.ratingOf(sellerId);
+    // Kao Vinted/Whatnot: slika 4:5 s oznakama, ispod cijena velikim
+    // slovima, naziv i prodavatelj s ocjenom — sve kartice iste visine
+    // (vidi [BrowseGridDelegate]).
     return Material(
       type: MaterialType.transparency,
       child: InkWell(
@@ -510,52 +507,14 @@ class AuctionBrowseCard extends ConsumerWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Padding(
-              padding: const EdgeInsets.only(bottom: 6),
-              child: Row(
-                children: [
-                  UserAvatar(user: seller, size: 22),
-                  const SizedBox(width: 6),
-                  Expanded(
-                    child: Text(
-                      seller?.handle ?? show?.hostLabel ?? a?.sellerLabel ?? '',
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w800,
-                      ),
-                    ),
-                  ),
-                  if (s.ratingOf(sellerId).count > 0)
-                    Text(
-                      '★ ${s.ratingOf(sellerId).average.toStringAsFixed(1)}',
-                      style: TextStyle(
-                        color: LoopColors.textSecondary,
-                        fontSize: 11,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                ],
-              ),
-            ),
-            Expanded(
+            AspectRatio(
+              aspectRatio: 4 / 5,
               child: ClipRRect(
                 borderRadius: BorderRadius.circular(kRadius - 4),
                 child: Stack(
                   fit: StackFit.expand,
                   children: [
-                    _CardMedia(device: device, cover: show?.coverPath),
-                    const DecoratedBox(
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          begin: Alignment.topCenter,
-                          end: Alignment.bottomCenter,
-                          colors: [Colors.transparent, Colors.black54],
-                          stops: [0.6, 1],
-                        ),
-                      ),
-                    ),
+                    BrowseCardMedia(device: device, cover: show?.coverPath),
                     Positioned(
                       left: 8,
                       top: 8,
@@ -580,6 +539,7 @@ class AuctionBrowseCard extends ConsumerWidget {
                                 ],
                               ),
                             ),
+                          if (hot) pill(Text(t('🔥 vruće'), style: pillText)),
                         ],
                       ),
                     ),
@@ -618,55 +578,61 @@ class AuctionBrowseCard extends ConsumerWidget {
                           ),
                         ),
                       ),
-                    Positioned(
-                      left: 8,
-                      right: 8,
-                      bottom: 8,
-                      child: Row(
-                        children: [
-                          Expanded(
-                            child: Text(
-                              price,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontWeight: FontWeight.w900,
-                                fontSize: 15,
-                                shadows: [
-                                  Shadow(blurRadius: 6, color: Colors.black54),
-                                ],
-                              ),
-                            ),
-                          ),
-                          if (role != AuctionRole.none) RoleBadge(role: role),
-                        ],
+                    if (role != AuctionRole.none)
+                      Positioned(
+                        left: 8,
+                        bottom: 8,
+                        child: RoleBadge(role: role),
                       ),
-                    ),
                   ],
                 ),
               ),
             ),
             const SizedBox(height: 6),
-            // Uvijek mjesto za dva retka — slike u retku ostaju iste visine.
-            SizedBox(
-              height: 34,
-              child: Text(
-                title,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
-                  fontWeight: FontWeight.w800,
-                  fontSize: 14,
-                  height: 1.2,
-                ),
+            Text(
+              price,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                fontWeight: FontWeight.w900,
+                fontSize: 18,
+                height: 1.15,
+                color: a == null && show == null ? LoopColors.buyNow : null,
               ),
             ),
             Text(
-              [?category?.label, if (hot) t('🔥 vruće')].join(' · '),
+              title,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: TextStyle(color: LoopColors.textSecondary, fontSize: 12),
+              style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13),
+            ),
+            const SizedBox(height: 3),
+            Row(
+              children: [
+                UserAvatar(user: seller, size: 16),
+                const SizedBox(width: 5),
+                Expanded(
+                  child: Text(
+                    seller?.handle ?? show?.hostLabel ?? a?.sellerLabel ?? '',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      color: LoopColors.textSecondary,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
+                if (rating.count > 0)
+                  Text(
+                    '★ ${rating.average.toStringAsFixed(1)}',
+                    style: TextStyle(
+                      color: LoopColors.textSecondary,
+                      fontSize: 11,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+              ],
             ),
           ],
         ),
@@ -675,9 +641,49 @@ class AuctionBrowseCard extends ConsumerWidget {
   }
 }
 
+/// Mreža kartica [AuctionBrowseCard]: stupci do [maxTileWidth], a visina
+/// pločice izračunata iz širine (slika 4:5 + tri retka teksta) — sve
+/// kartice jednako visoke, bez preljeva.
+class BrowseGridDelegate extends SliverGridDelegate {
+  const BrowseGridDelegate({
+    this.maxTileWidth = 240,
+    this.spacing = 12,
+    this.runSpacing = 18,
+  });
+
+  final double maxTileWidth;
+  final double spacing;
+  final double runSpacing;
+
+  /// Visina teksta ispod slike (cijena, naziv, prodavatelj).
+  static const textHeight = 76.0;
+
+  @override
+  SliverGridLayout getLayout(SliverConstraints constraints) {
+    final w = constraints.crossAxisExtent;
+    final cols = ((w + spacing) / (maxTileWidth + spacing)).ceil().clamp(2, 99);
+    final tileW = (w - spacing * (cols - 1)) / cols;
+    final tileH = tileW * 5 / 4 + textHeight;
+    return SliverGridRegularTileLayout(
+      crossAxisCount: cols,
+      mainAxisStride: tileH + runSpacing,
+      crossAxisStride: tileW + spacing,
+      childMainAxisExtent: tileH,
+      childCrossAxisExtent: tileW,
+      reverseCrossAxis: false,
+    );
+  }
+
+  @override
+  bool shouldRelayout(BrowseGridDelegate oldDelegate) =>
+      oldDelegate.maxTileWidth != maxTileWidth ||
+      oldDelegate.spacing != spacing ||
+      oldDelegate.runSpacing != runSpacing;
+}
+
 /// Fotografija predmeta preko cijele kartice (ili ilustracija kategorije).
-class _CardMedia extends StatelessWidget {
-  const _CardMedia({required this.device, this.cover});
+class BrowseCardMedia extends StatelessWidget {
+  const BrowseCardMedia({super.key, required this.device, this.cover});
   final Device? device;
 
   /// Naslovna slika livea (ima prednost pred fotografijom predmeta).

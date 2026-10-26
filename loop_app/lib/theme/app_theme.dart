@@ -22,10 +22,22 @@ class LoopColors {
   static Color get surfaceHover =>
       _dark ? const Color(0xFF2E2520) : const Color(0xFFFFEFE2);
 
-  /// Glavni akcent (gumbi, odabrano). Svijetla: bijeli tekst 4.9:1;
-  /// tamna: tamni tekst 7.8:1.
+  // Pravila boja (nikad se ne miješaju):
+  //  * narančasta [accent] — glavne radnje: Licitiraj, Kupi, Objavi;
+  //  * crvena [live] — samo "uživo";
+  //  * zelena [buyNow] — Kupi odmah, dostavljeno, zaštita kupca.
+
+  /// Glavni akcent (gumbi, odabrano) — narančasta. Svijetla: bijeli
+  /// tekst 5.2:1; tamna: tamni tekst 7.9:1.
   static Color get accent =>
-      _dark ? const Color(0xFFFF8A5C) : const Color(0xFFC8441E);
+      _dark ? const Color(0xFFFF9248) : const Color(0xFFC2410C);
+
+  /// Uživo (oznaka UŽIVO, live gumbi i bljesak) — isključivo za live.
+  static const Color live = Color(0xFFFF2D55);
+
+  /// Kupi odmah, dostavljeno, zaštita kupca. Bijeli tekst 5.0:1.
+  static Color get buyNow =>
+      _dark ? const Color(0xFF4CC38A) : const Color(0xFF15803D);
 
   /// Tekst/ikone na akcentu.
   static Color get onAccent =>
@@ -77,6 +89,18 @@ class LoopColors {
 
 const double kRadius = 18;
 const String kFontFamily = 'Nunito';
+
+/// Live je uvijek taman (kao TikTok/Whatnot), neovisno o temi aplikacije:
+/// tamna Material tema za sobu i listove otvorene iz nje.
+ThemeData buildLiveTheme() {
+  final was = LoopColors._dark;
+  LoopColors._dark = true;
+  try {
+    return buildLoopTheme();
+  } finally {
+    LoopColors._dark = was;
+  }
+}
 
 /// Material 3 tema za trenutno aktivnu paletu ([LoopColors.use]).
 ThemeData buildLoopTheme({Color? accent}) {

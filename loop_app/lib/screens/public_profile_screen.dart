@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../widgets/trust_widgets.dart';
+
 import '../l10n/tr.dart';
 import '../models/app_user.dart';
 import '../models/device.dart';
@@ -209,6 +211,8 @@ class _PublicProfileScreenState extends ConsumerState<PublicProfileScreen> {
                     listings: allListings.length,
                     promoted: user.isPromoted,
                   ),
+                  const SizedBox(height: 10),
+                  SellerTrustCard(user: user),
                   if (!isMe && !blocked) ...[
                     const SizedBox(height: 10),
                     Row(

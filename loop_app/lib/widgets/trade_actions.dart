@@ -16,6 +16,7 @@ import 'payment_sheet.dart';
 import 'formatters.dart';
 import 'loop_snackbar.dart';
 import '../l10n/tr.dart';
+import 'trust_widgets.dart';
 
 export 'loop_snackbar.dart';
 
@@ -471,6 +472,11 @@ class _CheckoutSheetState extends ConsumerState<_CheckoutSheet> {
               SizedBox(height: 8),
               Text(_error!, style: TextStyle(color: LoopColors.error)),
             ],
+            SizedBox(height: 10),
+            Align(
+              alignment: Alignment.centerLeft,
+              child: BuyerProtectionBadge(),
+            ),
             SizedBox(height: 14),
             FilledButton.icon(
               key: ValueKey('checkout-pay'),

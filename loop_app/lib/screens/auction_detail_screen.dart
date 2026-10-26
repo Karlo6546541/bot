@@ -13,6 +13,7 @@ import '../widgets/item_image.dart';
 import '../widgets/trade_actions.dart';
 import 'auctions_screen.dart';
 import '../l10n/tr.dart';
+import '../widgets/trust_widgets.dart';
 import 'public_profile_screen.dart';
 
 /// Detalji aukcije: predmet, trenutna cijena, odbrojavanje, povijest ponuda
@@ -155,6 +156,8 @@ class _AuctionDetailScreenState extends ConsumerState<AuctionDetailScreen> {
                                     fontWeight: FontWeight.w900,
                                   ),
                                 ),
+                                const SizedBox(height: 4),
+                                const BuyerProtectionBadge(compact: true),
                               ],
                             ),
                           ),
