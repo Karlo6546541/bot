@@ -157,7 +157,14 @@ class _AuctionDetailScreenState extends ConsumerState<AuctionDetailScreen> {
                                   ),
                                 ),
                                 const SizedBox(height: 4),
-                                const BuyerProtectionBadge(compact: true),
+                                const Wrap(
+                                  spacing: 6,
+                                  runSpacing: 4,
+                                  children: [
+                                    BuyerProtectionBadge(compact: true),
+                                    WalletChip(),
+                                  ],
+                                ),
                               ],
                             ),
                           ),

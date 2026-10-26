@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'trust_widgets.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -180,6 +181,13 @@ class _BidSheetState extends ConsumerState<_BidSheet> {
                   style: bold,
                 ),
               ],
+            ),
+            const SizedBox(height: 8),
+            // Pobjedniku se naplaćuje automatski s ove kartice.
+            const Wrap(
+              spacing: 6,
+              runSpacing: 4,
+              children: [BuyerProtectionBadge(compact: true), WalletChip()],
             ),
             const SizedBox(height: 14),
             if (leading) ...[
