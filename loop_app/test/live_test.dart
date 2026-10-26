@@ -799,6 +799,25 @@ void main() {
         ),
         findsOneWidget,
       );
+      // Brza reakcija: više emojija leti, a ostalima ide jedna poruka.
+      await tester.tap(find.byKey(const ValueKey('live-reaction-🔥')));
+      await tester.pump(const Duration(milliseconds: 300));
+      expect(find.text('🔥'), findsAtLeastNWidgets(3));
+      await tester.pumpAndSettle();
+      expect(
+        storage
+            .liveEventsOf(bobShow)
+            .where((e) => e.userId == host && e.text == '🔥'),
+        hasLength(1),
+      );
+      // Zvuk se utišava i to se pamti.
+      await tester.tap(find.byKey(const ValueKey('live-sound')));
+      await tester.pump();
+      expect(storage.liveMuted, isTrue);
+      expect(find.byIcon(Icons.volume_off), findsOneWidget);
+      await tester.tap(find.byKey(const ValueKey('live-sound')));
+      await tester.pump();
+      expect(storage.liveMuted, isFalse);
       // Dodir bilo gdje po pozadini pušta srca.
       await tester.tap(find.byKey(const ValueKey('live-stage-tap')));
       await tester.pump(const Duration(milliseconds: 300));

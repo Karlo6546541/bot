@@ -13,6 +13,7 @@ import '../models/device.dart';
 import '../models/live_show.dart';
 import '../providers/app_providers.dart';
 import '../services/live_service.dart';
+import '../services/live_sound/live_sound.dart';
 import '../services/live_video.dart';
 import '../services/trade_service.dart';
 import '../theme/app_theme.dart';
@@ -885,7 +886,78 @@ class _LiveRoomViewState extends ConsumerState<_LiveRoomBody> {
   LiveWatcher? _watcher;
 
   /// Reakcije: šalju se kao kratka poruka, a u sobi lete uz desni rub.
-  static const _reactions = ['❤️', '🔥', '👏', '😍', '💸'];
+  static const _reactions = ['❤️', '🔥', '😮', '💸', '👏', '😍', '🎉'];
+
+  /// Brze reakcije u redu iznad trake (srce je zaseban gumb).
+  static const _quick = ['🔥', '😮', '💸', '👏', '😍'];
+  final _rnd = math.Random();
+  DateTime _reactSentAt = DateTime(2000);
+
+  /// Brza reakcija: 2–4 emojija na nasumičnim mjestima (veličina, nagib,
+  /// put), ostalima se šalje jedna (najviše jedna u 1,2 s).
+  void _react(String emoji) {
+    LiveSound.pop();
+    _burst(emoji, 2 + _rnd.nextInt(3));
+    final me = ref.read(appProvider).currentUser;
+    final now = DateTime.now();
+    if (me != null &&
+        !me.isGuest &&
+        now.difference(_reactSentAt) > const Duration(milliseconds: 1200)) {
+      _reactSentAt = now;
+      _app.liveChat(widget.showId, emoji).catchError((_) {});
+    }
+  }
+
+  /// Lokalni prasak emojija uz desni rub (bez slanja).
+  void _burst(String emoji, int count) {
+    if (!mounted) return;
+    setState(() {
+      for (var i = 0; i < count; i++) {
+        _bursts.add(_Burst(_burstId++, null, emoji));
+      }
+      if (_bursts.length > 40) _bursts.removeRange(0, _bursts.length - 40);
+    });
+  }
+
+  bool _muted = false;
+
+  void _toggleSound() {
+    setState(() => _muted = !_muted);
+    LiveSound.muted = _muted;
+    ref.read(storageProvider).setLiveMuted(_muted);
+    if (!_muted) LiveSound.bid();
+  }
+
+  /// Zadnjih 5 s licitacije u kojoj sudjelujem: "tik" svake sekunde.
+  int? _tickLot;
+  int? _tickSec;
+
+  void _countdownTick(LotState? cur, String? me, DateTime now) {
+    final end = cur?.end;
+    if (cur == null || end == null || me == null) return;
+    if (!cur.bids.any((b) => b.userId == me)) return;
+    final left = end.difference(now).inMilliseconds;
+    if (left <= 0 || left > 5000) return;
+    final sec = (left / 1000).ceil();
+    if (_tickLot == cur.index && _tickSec == sec) return;
+    _tickLot = cur.index;
+    _tickSec = sec;
+    LiveSound.tick(last: sec == 1);
+  }
+
+  /// Tuđa ponuda u liveu: mali prasak 🔥/💸 (nasumično) — soba "živi".
+  int _seenBids = -1;
+
+  void _bidBursts(LotState? cur, String? me) {
+    final n = cur?.bids.length ?? 0;
+    if (_seenBids >= 0 && n > _seenBids && cur!.bids.last.userId != me) {
+      final emoji = ['🔥', '💸', '😮'][_rnd.nextInt(3)];
+      WidgetsBinding.instance.addPostFrameCallback(
+        (_) => _burst(emoji, 1 + _rnd.nextInt(2)),
+      );
+    }
+    _seenBids = n;
+  }
 
   static bool isReaction(LiveEvent e) =>
       e.type == LiveEventType.chat && _reactions.contains(e.text);
@@ -906,7 +978,7 @@ class _LiveRoomViewState extends ConsumerState<_LiveRoomBody> {
     setState(() {
       if (like) _liked = true;
       for (var i = 0; i < count; i++) {
-        _bursts.add(_Burst(_burstId++, at));
+        _bursts.add(_Burst(_burstId++, at, '❤️'));
       }
       if (_bursts.length > 40) _bursts.removeRange(0, _bursts.length - 40);
     });
@@ -942,6 +1014,8 @@ class _LiveRoomViewState extends ConsumerState<_LiveRoomBody> {
   void initState() {
     super.initState();
     pushSnackBarLift();
+    _muted = ref.read(storageProvider).liveMuted;
+    LiveSound.muted = _muted;
     if (widget.active) _start();
   }
 
@@ -1095,6 +1169,14 @@ class _LiveRoomViewState extends ConsumerState<_LiveRoomBody> {
       }
       if (l.leader!.userId == me) {
         final device = ref.read(appProvider).deviceById(l.lot.deviceId);
+        Future<void>.delayed(
+          giveaway ? _GiveawaySpin.duration : Duration.zero,
+        ).then((_) {
+          if (!mounted) return;
+          LiveSound.win();
+          _burst('🎉', 4);
+          _burst('💸', 3);
+        });
         // Kod nagradne igre čestitka tek kad bubanj stane.
         Future<void>.delayed(
           giveaway ? _GiveawaySpin.duration : Duration.zero,
@@ -1222,6 +1304,7 @@ class _LiveRoomViewState extends ConsumerState<_LiveRoomBody> {
     try {
       // Bez potvrde u SnackBaru (prekrio bi chat) — gumb postaje "Vodiš".
       final leading = await _app.liveBid(widget.showId, amount, lot: lot);
+      if (leading) LiveSound.bid();
       if (!leading) {
         showLoopSnackBar(
           t('Netko ima višu maksimalnu ponudu — povisi!'),
@@ -1400,10 +1483,14 @@ class _LiveRoomViewState extends ConsumerState<_LiveRoomBody> {
         !leadingNow) {
       _outbidAt = now;
       _outbids++;
-      HapticFeedback.heavyImpact();
+      LiveSound.outbid();
     }
     _leadLot = cur?.index;
     _wasLeading = leadingNow;
+    if (widget.active) {
+      _countdownTick(cur, me?.id, now);
+      _bidBursts(cur, me?.id);
+    }
     final flash =
         _outbidAt != null &&
         now.difference(_outbidAt!) < const Duration(milliseconds: 900);
@@ -1725,8 +1812,8 @@ class _LiveRoomViewState extends ConsumerState<_LiveRoomBody> {
                           Positioned(
                             right: 0,
                             bottom: 0,
-                            width: 90,
-                            height: 360,
+                            width: 130,
+                            height: 380,
                             child: IgnorePointer(
                               child: _FloatingReactions(
                                 // Svoja srca crtam odmah (lokalno).
@@ -1752,7 +1839,7 @@ class _LiveRoomViewState extends ConsumerState<_LiveRoomBody> {
                                     if (b.at != null)
                                       _FloatUp(
                                         key: ValueKey('burst-${b.id}'),
-                                        emoji: '❤️',
+                                        emoji: b.emoji,
                                         seed: b.id * 7919,
                                         origin: b.at,
                                         onDone: () {
@@ -1821,6 +1908,13 @@ class _LiveRoomViewState extends ConsumerState<_LiveRoomBody> {
                             ]),
                           ),
                         ),
+                      ),
+                    if (!st.isOver)
+                      _QuickReactions(
+                        emojis: _quick,
+                        onReact: canAct ? _react : null,
+                        muted: _muted,
+                        onSound: _toggleSound,
                       ),
                     // Douyin: dolje trgovina (vrećica), chat, srce, dijeljenje.
                     _DouyinBar(
@@ -2548,9 +2642,10 @@ class _TopBar extends ConsumerWidget {
 /// Animiraju se samo nove reakcije (ne i one od prije ulaska u sobu).
 /// Lokalno srce (moj dodir): [at] = mjesto dodira, null = uz desni rub.
 class _Burst {
-  _Burst(this.id, this.at);
+  _Burst(this.id, this.at, this.emoji);
   final int id;
   final Offset? at;
+  final String emoji;
 }
 
 class _FloatingReactions extends StatefulWidget {
@@ -2606,7 +2701,7 @@ class _FloatingReactionsState extends State<_FloatingReactions> {
       for (final b in widget.local)
         _FloatUp(
           key: ValueKey('local-${b.id}'),
-          emoji: '❤️',
+          emoji: b.emoji,
           seed: b.id * 7919,
           onDone: () => widget.onLocalDone?.call(b),
         ),
@@ -2672,14 +2767,23 @@ class _FloatUpState extends State<_FloatUp>
             ),
           );
         }
+        // Nasumičan put: odmak od ruba, širina vijuganja, nagib i veličina
+        // ovise o [seed], pa svaka reakcija leti malo drukčije.
+        final sway = 8.0 + widget.seed % 14;
+        final tilt = ((widget.seed ~/ 7) % 41 - 20) / 100;
         return Positioned(
-          right: 18 + (widget.seed % 24) + math.sin(v * 6 + phase) * 10,
-          bottom: 20 + v * 300,
+          right: 10 + (widget.seed % 64) + math.sin(v * 6 + phase) * sway,
+          bottom: 20 + v * (260 + widget.seed % 90),
           child: Opacity(
             opacity: v < 0.75 ? 1 : (1 - v) / 0.25,
-            child: Transform.scale(
-              scale: 0.6 + 0.6 * math.min(v * 5, 1),
-              child: child,
+            child: Transform.rotate(
+              angle: tilt * math.sin(v * 4 + phase),
+              child: Transform.scale(
+                scale:
+                    (0.6 + 0.6 * math.min(v * 5, 1)) *
+                    (0.8 + (widget.seed % 50) / 100),
+                child: child,
+              ),
             ),
           ),
         );
@@ -3878,6 +3982,101 @@ class _HostControls extends StatelessWidget {
 
 /// Donja traka livea u stilu Douyina: narančasta vrećica (trgovina livea s
 /// brojem predmeta), chat, srce i dijeljenje.
+/// Brze reakcije (🔥 😮 💸 👏 😍) iznad trake + prekidač zvuka.
+class _QuickReactions extends StatelessWidget {
+  const _QuickReactions({
+    required this.emojis,
+    required this.onReact,
+    required this.muted,
+    required this.onSound,
+  });
+
+  final List<String> emojis;
+  final void Function(String)? onReact;
+  final bool muted;
+  final VoidCallback onSound;
+
+  @override
+  Widget build(BuildContext context) => Padding(
+    padding: const EdgeInsets.fromLTRB(10, 0, 10, 2),
+    child: Row(
+      children: [
+        if (onReact != null)
+          for (final e in emojis)
+            Padding(
+              padding: const EdgeInsets.only(right: 6),
+              child: _ReactionChip(
+                key: ValueKey('live-reaction-$e'),
+                emoji: e,
+                onTap: () => onReact!(e),
+              ),
+            ),
+        const Spacer(),
+        IconButton(
+          key: const ValueKey('live-sound'),
+          tooltip: muted ? t('Uključi zvuk') : t('Utišaj zvuk'),
+          visualDensity: VisualDensity.compact,
+          onPressed: onSound,
+          icon: Icon(
+            muted ? Icons.volume_off : Icons.volume_up,
+            color: Colors.white70,
+            size: 22,
+          ),
+        ),
+      ],
+    ),
+  );
+}
+
+/// Emoji gumb koji "poskoči" na dodir.
+class _ReactionChip extends StatefulWidget {
+  const _ReactionChip({super.key, required this.emoji, required this.onTap});
+  final String emoji;
+  final VoidCallback onTap;
+
+  @override
+  State<_ReactionChip> createState() => _ReactionChipState();
+}
+
+class _ReactionChipState extends State<_ReactionChip>
+    with SingleTickerProviderStateMixin {
+  late final _c = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 320),
+  );
+
+  @override
+  void dispose() {
+    _c.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => GestureDetector(
+    onTap: () {
+      _c.forward(from: 0);
+      widget.onTap();
+    },
+    child: AnimatedBuilder(
+      animation: _c,
+      builder: (_, child) => Transform.scale(
+        scale: 1 + 0.35 * math.sin(_c.value * math.pi),
+        child: child,
+      ),
+      child: Container(
+        width: 38,
+        height: 38,
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          color: Colors.white.withValues(alpha: 0.14),
+          shape: BoxShape.circle,
+        ),
+        child: Text(widget.emoji, style: const TextStyle(fontSize: 20)),
+      ),
+    ),
+  );
+}
+
 class _DouyinBar extends StatelessWidget {
   const _DouyinBar({
     required this.controller,

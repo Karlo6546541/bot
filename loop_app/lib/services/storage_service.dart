@@ -734,6 +734,11 @@ class StorageService {
 
   Future<void> setThemeMode(String mode) => _session.put(_themeKey, mode);
 
+  /// Zvuk u liveu utišan (vibracija ostaje).
+  bool get liveMuted => _session.get('liveMuted') == true;
+
+  Future<void> setLiveMuted(bool muted) => _session.put('liveMuted', muted);
+
   /// 'hr' | 'en' (zadano: hrvatski).
   String get lang => _session.get(_langKey) as String? ?? 'hr';
 
