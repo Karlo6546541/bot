@@ -9,13 +9,9 @@ import '../models/app_user.dart';
 import '../providers/app_providers.dart';
 import '../theme/app_theme.dart';
 import '../widgets/trade_actions.dart';
-import '../models/device.dart';
-import '../widgets/category_style.dart';
-import '../widgets/formatters.dart';
 import 'auctions_screen.dart';
-import 'for_you_ranker.dart';
+import 'for_you_feed.dart';
 import 'public_profile_screen.dart';
-import 'categories_screen.dart';
 import 'live_screens.dart';
 import 'search_screen.dart';
 import 'swipe_feed_screen.dart';
@@ -24,7 +20,10 @@ import 'swipe_feed_screen.dart';
 /// tko je uživo sada, što uskoro kreće, aukcije koje završavaju i predmeti
 /// za Kupi odmah. Dodir na karticu otvara swipe feed te skupine.
 class LiveHomeScreen extends ConsumerStatefulWidget {
-  const LiveHomeScreen({super.key});
+  const LiveHomeScreen({super.key, this.visible = true});
+
+  /// Je li tab Početna na ekranu (feed "Za tebe" pušta live samo tada).
+  final bool visible;
 
   @override
   ConsumerState<LiveHomeScreen> createState() => _LiveHomeScreenState();
@@ -130,28 +129,6 @@ class _LiveHomeScreenState extends ConsumerState<LiveHomeScreen> {
           ),
         );
 
-    Widget header(String title, {String? action, VoidCallback? onAction}) =>
-        SliverToBoxAdapter(
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(16, 18, 8, 10),
-            child: Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    title,
-                    style: const TextStyle(
-                      fontSize: 19,
-                      fontWeight: FontWeight.w900,
-                    ),
-                  ),
-                ),
-                if (action != null)
-                  TextButton(onPressed: onAction, child: Text(action)),
-              ],
-            ),
-          ),
-        );
-
     // Računi koje pratiš i njihove objave (liveovi, aukcije, Kupi odmah).
     final following = s.currentUser == null || s.currentUser!.isGuest
         ? const <AppUser>[]
@@ -215,116 +192,8 @@ class _LiveHomeScreenState extends ConsumerState<LiveHomeScreen> {
           );
         }
       case _ForYou():
-        // Hero: najgledaniji live preko cijele širine, ostali u mreži.
-        final byViewers = [...live]
-          ..sort((a, b) => b.live!.viewers.compareTo(a.live!.viewers));
-        if (byViewers.isNotEmpty) {
-          slivers.add(
-            SliverToBoxAdapter(
-              child: _LiveHero(
-                item: byViewers.first,
-                onTap: () => open(byViewers, 0, t('Uživo sada')),
-              ),
-            ),
-          );
-        }
-        slivers.add(
-          SliverToBoxAdapter(
-            child: _CategoryCircles(
-              counts: {
-                for (final i in all)
-                  for (final c in i.categories) c: 1,
-              },
-            ),
-          ),
-        );
-        // Odabrano za tebe (vidi [ForYouRanker]) — bez heroja.
-        final picks =
-            ForYouRanker(
-              s,
-              now: DateTime.now(),
-              recentCategories: ref.read(storageProvider).recentCategories,
-            ).rank([
-              for (final i in all)
-                if (byViewers.isEmpty || i != byViewers.first) i,
-            ], limit: 6);
-        if (picks.isNotEmpty) {
-          slivers.add(header(t('✨ Odabrano za tebe')));
-          final list = [for (final p in picks) p.item];
-          slivers.add(
-            SliverPadding(
-              key: const ValueKey('home-for-you'),
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              sliver: SliverGrid(
-                gridDelegate: const BrowseGridDelegate(),
-                delegate: SliverChildBuilderDelegate(
-                  (_, i) => AuctionBrowseCard(
-                    item: list[i],
-                    viewerId: me,
-                    reason: picks[i].reason,
-                    onTap: () => open(list, i, t('Za tebe')),
-                  ),
-                  childCount: list.length,
-                ),
-              ),
-            ),
-          );
-        }
-        final rest = byViewers.skip(1).toList();
-        if (live.isEmpty || rest.isNotEmpty) {
-          slivers.add(header(t('🔴 Uživo sada')));
-        }
-        // Jedini live je već u heroju — mreža samo za ostale.
-        if (live.isEmpty || rest.isNotEmpty) {
-          slivers.add(
-            live.isEmpty
-                ? SliverToBoxAdapter(
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 16),
-                      child: _EmptyLive(
-                        onGoLive: () => CreateLiveShowScreen.open(context),
-                      ),
-                    ),
-                  )
-                : grid('home-live', rest, t('Uživo sada')),
-          );
-        }
-        if (soon.isNotEmpty) {
-          slivers.add(header(t('📅 Uskoro')));
-          slivers.add(grid('home-soon', soon, t('Uskoro')));
-        }
-        slivers.add(
-          header(
-            t('⏱ Završavaju uskoro'),
-            action: t('Sve aukcije'),
-            onAction: () => setState(() => _filter = const _Timed()),
-          ),
-        );
-        slivers.add(
-          auctions.isEmpty
-              ? SliverToBoxAdapter(
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    child: Text(
-                      t('Trenutno nema aukcija.'),
-                      style: TextStyle(color: LoopColors.textSecondary),
-                    ),
-                  ),
-                )
-              : grid('home-ending', auctions, t('Završavaju uskoro')),
-        );
-        if (buyNow.isNotEmpty) {
-          slivers.add(
-            header(
-              t('🏷️ Kupi odmah'),
-              action: buyNow.length > 6 ? t('Sve') : null,
-              onAction: () => setState(() => _filter = const _BuyNow()),
-            ),
-          );
-          slivers.add(
-            grid('home-buy', buyNow.take(6).toList(), t('Kupi odmah')),
-          );
-        }
+        // Feed preko cijelog ekrana (vidi dolje) — bez mreže.
+        break;
       case _Timed():
         slivers.add(const SliverToBoxAdapter(child: SizedBox(height: 12)));
         slivers.add(
@@ -386,120 +255,134 @@ class _LiveHomeScreenState extends ConsumerState<LiveHomeScreen> {
         );
     }
 
-    return CustomScrollView(
-      slivers: [
-        SliverToBoxAdapter(
+    final Widget search = Padding(
+      padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+      child: Material(
+        color: LoopColors.surface,
+        borderRadius: BorderRadius.circular(999),
+        child: InkWell(
+          key: const ValueKey('home-search'),
+          borderRadius: BorderRadius.circular(999),
+          onTap: () => SearchScreen.open(context),
           child: Padding(
-            padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
-            child: Material(
-              color: LoopColors.surface,
-              borderRadius: BorderRadius.circular(999),
-              child: InkWell(
-                key: const ValueKey('home-search'),
-                borderRadius: BorderRadius.circular(999),
-                onTap: () => SearchScreen.open(context),
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 12,
-                  ),
-                  child: Row(
-                    children: [
-                      Icon(Icons.search, color: LoopColors.textSecondary),
-                      const SizedBox(width: 10),
-                      Expanded(
-                        child: Text(
-                          t('Pretraži liveove, aukcije i prodavače'),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: TextStyle(color: LoopColors.textSecondary),
-                        ),
-                      ),
-                    ],
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            child: Row(
+              children: [
+                Icon(Icons.search, color: LoopColors.textSecondary),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    t('Pretraži liveove, aukcije i prodavače'),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(color: LoopColors.textSecondary),
                   ),
                 ),
-              ),
+              ],
             ),
           ),
         ),
-        // Brzi izbornik: jedna traka preko cijele širine (bez listanja) s
-        // okruglim ikonama u boji svoje vrste; odabrana se ispuni
-        // gradijentom, malo naraste i dobije točkicu ispod.
-        SliverToBoxAdapter(
-          child: Container(
-            margin: const EdgeInsets.fromLTRB(12, 4, 12, 8),
-            padding: const EdgeInsets.fromLTRB(4, 10, 4, 6),
-            decoration: BoxDecoration(
-              color: LoopColors.surface,
-              borderRadius: BorderRadius.circular(24),
-              boxShadow: LoopColors.softShadow,
+      ),
+    );
+
+    // Brzi izbornik: jedna traka preko cijele širine (bez listanja) s
+    // okruglim ikonama u boji svoje vrste; odabrana se ispuni
+    // gradijentom, malo naraste i dobije točkicu ispod.
+    final Widget chips = Container(
+      margin: const EdgeInsets.fromLTRB(12, 4, 12, 8),
+      padding: const EdgeInsets.fromLTRB(4, 10, 4, 6),
+      decoration: BoxDecoration(
+        color: LoopColors.surface,
+        borderRadius: BorderRadius.circular(24),
+        boxShadow: LoopColors.softShadow,
+      ),
+      child: LayoutBuilder(
+        builder: (context, box) => Row(
+          key: const ValueKey('home-cats'),
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _Pill(
+              fontSize: _pillFont(context, box.maxWidth),
+              id: 'for-you',
+              icon: Icons.auto_awesome,
+              label: t('Za tebe'),
+              color: LoopColors.textPrimary,
+              selected: _filter is _ForYou,
+              onTap: () => setState(() => _filter = const _ForYou()),
             ),
-            child: LayoutBuilder(
-              builder: (context, box) => Row(
-                key: const ValueKey('home-cats'),
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _Pill(
-                    fontSize: _pillFont(context, box.maxWidth),
-                    id: 'for-you',
-                    icon: Icons.auto_awesome,
-                    label: t('Za tebe'),
-                    color: LoopColors.textPrimary,
-                    selected: _filter is _ForYou,
-                    onTap: () => setState(() => _filter = const _ForYou()),
-                  ),
-                  _Pill(
-                    fontSize: _pillFont(context, box.maxWidth),
-                    id: 'live',
-                    icon: Icons.sensors,
-                    label: t('Uživo'),
-                    color: LoopColors.live,
-                    badge: live.length,
-                    selected: _filter is _LiveOnly,
-                    onTap: () => setState(() => _filter = const _LiveOnly()),
-                  ),
-                  _Pill(
-                    fontSize: _pillFont(context, box.maxWidth),
-                    id: 'soon',
-                    icon: Icons.event,
-                    label: t('Uskoro'),
-                    color: LoopColors.info,
-                    selected: _filter is _Soon,
-                    onTap: () => setState(() => _filter = const _Soon()),
-                  ),
-                  _Pill(
-                    fontSize: _pillFont(context, box.maxWidth),
-                    id: 'timed',
-                    icon: Icons.gavel,
-                    label: t('Aukcije'),
-                    color: LoopColors.accent,
-                    selected: _filter is _Timed,
-                    onTap: () => setState(() => _filter = const _Timed()),
-                  ),
-                  _Pill(
-                    fontSize: _pillFont(context, box.maxWidth),
-                    id: 'following',
-                    icon: Icons.people_alt,
-                    label: t('Pratim'),
-                    color: const Color(0xFF7C4DFF),
-                    badge: theirs.length,
-                    selected: _filter is _Following,
-                    onTap: () => setState(() => _filter = const _Following()),
-                  ),
-                  _Pill(
-                    fontSize: _pillFont(context, box.maxWidth),
-                    id: 'buy',
-                    icon: Icons.local_offer,
-                    label: t('Kupi odmah'),
-                    color: LoopColors.buyNow,
-                    selected: _filter is _BuyNow,
-                    onTap: () => setState(() => _filter = const _BuyNow()),
-                  ),
-                ],
-              ),
+            _Pill(
+              fontSize: _pillFont(context, box.maxWidth),
+              id: 'live',
+              icon: Icons.sensors,
+              label: t('Uživo'),
+              color: LoopColors.live,
+              badge: live.length,
+              selected: _filter is _LiveOnly,
+              onTap: () => setState(() => _filter = const _LiveOnly()),
+            ),
+            _Pill(
+              fontSize: _pillFont(context, box.maxWidth),
+              id: 'soon',
+              icon: Icons.event,
+              label: t('Uskoro'),
+              color: LoopColors.info,
+              selected: _filter is _Soon,
+              onTap: () => setState(() => _filter = const _Soon()),
+            ),
+            _Pill(
+              fontSize: _pillFont(context, box.maxWidth),
+              id: 'timed',
+              icon: Icons.gavel,
+              label: t('Aukcije'),
+              color: LoopColors.accent,
+              selected: _filter is _Timed,
+              onTap: () => setState(() => _filter = const _Timed()),
+            ),
+            _Pill(
+              fontSize: _pillFont(context, box.maxWidth),
+              id: 'following',
+              icon: Icons.people_alt,
+              label: t('Pratim'),
+              color: const Color(0xFF7C4DFF),
+              badge: theirs.length,
+              selected: _filter is _Following,
+              onTap: () => setState(() => _filter = const _Following()),
+            ),
+            _Pill(
+              fontSize: _pillFont(context, box.maxWidth),
+              id: 'buy',
+              icon: Icons.local_offer,
+              label: t('Kupi odmah'),
+              color: LoopColors.buyNow,
+              selected: _filter is _BuyNow,
+              onTap: () => setState(() => _filter = const _BuyNow()),
+            ),
+          ],
+        ),
+      ),
+    );
+
+    // "Za tebe": TikTok — objave preko cijelog ekrana ispod izbornika,
+    // beskonačno, a redoslijed uči dok listaš (vidi [ForYouFeed]).
+    if (_filter is _ForYou) {
+      return Column(
+        children: [
+          const SizedBox(height: 4),
+          chips,
+          Expanded(
+            child: ForYouFeed(
+              active:
+                  widget.visible && (ModalRoute.of(context)?.isCurrent ?? true),
             ),
           ),
-        ),
+        ],
+      );
+    }
+
+    return CustomScrollView(
+      slivers: [
+        SliverToBoxAdapter(child: search),
+        SliverToBoxAdapter(child: chips),
         if (_showHow && _filter is _ForYou)
           SliverToBoxAdapter(
             child: _HowLoopWorks(
@@ -837,224 +720,6 @@ class _EmptyLive extends StatelessWidget {
       ],
     ),
   );
-}
-
-/// Istaknuti live na vrhu početne: velika slika, UŽIVO, gledatelji i
-/// gumb "Uđi".
-class _LiveHero extends ConsumerWidget {
-  const _LiveHero({required this.item, required this.onTap});
-  final BrowseItem item;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final s = ref.watch(appProvider);
-    final show = item.show!;
-    final live = item.live!;
-    final lot = live.current ?? live.next ?? live.lots.firstOrNull;
-    final device = lot == null ? null : s.deviceById(lot.lot.deviceId);
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
-      child: Material(
-        color: Colors.black,
-        borderRadius: BorderRadius.circular(kRadius + 4),
-        clipBehavior: Clip.antiAlias,
-        child: InkWell(
-          key: const ValueKey('home-hero'),
-          onTap: onTap,
-          child: AspectRatio(
-            aspectRatio: 16 / 11,
-            child: Stack(
-              fit: StackFit.expand,
-              children: [
-                BrowseCardMedia(device: device, cover: show.coverPath),
-                const DecoratedBox(
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: Alignment.topCenter,
-                      end: Alignment.bottomCenter,
-                      colors: [
-                        Colors.black26,
-                        Colors.transparent,
-                        Colors.black87,
-                      ],
-                      stops: [0, 0.4, 1],
-                    ),
-                  ),
-                ),
-                Positioned(
-                  left: 14,
-                  top: 14,
-                  child: Row(
-                    children: [
-                      const LiveBadge(),
-                      const SizedBox(width: 6),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 8,
-                          vertical: 4,
-                        ),
-                        decoration: BoxDecoration(
-                          color: Colors.black54,
-                          borderRadius: BorderRadius.circular(6),
-                        ),
-                        child: Row(
-                          children: [
-                            const Icon(
-                              Icons.visibility,
-                              size: 14,
-                              color: Colors.white,
-                            ),
-                            const SizedBox(width: 4),
-                            Text(
-                              '${live.viewers}',
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontWeight: FontWeight.w900,
-                                fontSize: 12,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                Positioned(
-                  left: 16,
-                  right: 16,
-                  bottom: 14,
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.end,
-                    children: [
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Text(
-                              show.title,
-                              maxLines: 2,
-                              overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontWeight: FontWeight.w900,
-                                fontSize: 20,
-                                height: 1.15,
-                              ),
-                            ),
-                            const SizedBox(height: 2),
-                            Text(
-                              [
-                                show.hostLabel,
-                                if (live.current != null)
-                                  t('Sada: {0}', [
-                                    formatCredits(live.current!.price),
-                                  ]),
-                              ].join(' · '),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(
-                                color: Colors.white70,
-                                fontWeight: FontWeight.w700,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      FilledButton.icon(
-                        style: FilledButton.styleFrom(
-                          backgroundColor: LoopColors.live,
-                          foregroundColor: Colors.white,
-                        ),
-                        onPressed: onTap,
-                        icon: const Icon(Icons.play_arrow_rounded),
-                        label: Text(t('Uđi')),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-/// Red okruglih sličica kategorija — brzi skok na ono što te zanima.
-class _CategoryCircles extends StatelessWidget {
-  const _CategoryCircles({required this.counts});
-
-  /// Kategorije koje imaju barem nešto (idu prve).
-  final Map<DeviceCategory, int> counts;
-
-  static const _popular = [
-    DeviceCategory.tcg,
-    DeviceCategory.sneakers,
-    DeviceCategory.watches,
-    DeviceCategory.phone,
-    DeviceCategory.videoGames,
-    DeviceCategory.console,
-    DeviceCategory.cards,
-    DeviceCategory.figures,
-    DeviceCategory.clothes,
-    DeviceCategory.vinyl,
-    DeviceCategory.coins,
-    DeviceCategory.models,
-    DeviceCategory.camera,
-    DeviceCategory.laptop,
-    // Digitalno: preuzimanje odmah nakon kupnje.
-    DeviceCategory.models3d,
-    DeviceCategory.software,
-    DeviceCategory.ebooks,
-  ];
-
-  @override
-  Widget build(BuildContext context) {
-    final list = [
-      ..._popular.where(counts.containsKey),
-      ..._popular.where((c) => !counts.containsKey(c)),
-    ];
-    return SizedBox(
-      height: 104,
-      child: ListView.separated(
-        key: const ValueKey('home-circles'),
-        scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
-        itemCount: list.length,
-        separatorBuilder: (_, _) => const SizedBox(width: 12),
-        itemBuilder: (context, i) {
-          final c = list[i];
-          return InkWell(
-            key: ValueKey('home-circle-${c.name}'),
-            borderRadius: BorderRadius.circular(40),
-            onTap: () => CategoryItemsScreen.open(context, c),
-            child: SizedBox(
-              width: 66,
-              child: Column(
-                children: [
-                  CategoryArt(category: c, size: 60, circle: true),
-                  const SizedBox(height: 4),
-                  Text(
-                    c.singular,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      fontSize: 11.5,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          );
-        },
-      ),
-    );
-  }
 }
 
 /// Računi koje pratiš (kao priče): krug s avatarom, crveni prsten i

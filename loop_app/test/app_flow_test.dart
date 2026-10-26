@@ -99,13 +99,19 @@ void main() {
       await tester.tap(find.text('Prijavi se'));
       await tester.pumpAndSettle();
 
-      // Početna: poziv na live, tko je uživo i aukcije koje završavaju.
+      // Početna: "Za tebe" je feed preko cijelog ekrana (kao TikTok).
+      expect(find.byKey(const ValueKey('for-you-feed')), findsOneWidget);
+      // Uživo: poziv na live; Aukcije: one koje završavaju.
+      await tester.tap(find.byKey(const ValueKey('home-cat-live')));
+      await tester.pumpAndSettle();
       await reveal(tester, find.byKey(const ValueKey('home-go-live')));
       expect(find.byKey(const ValueKey('home-go-live')), findsOneWidget);
       expect(
         find.text('Nitko trenutno nije uživo — budi prvi!'),
         findsOneWidget,
       );
+      await tester.tap(find.byKey(const ValueKey('home-cat-timed')));
+      await tester.pumpAndSettle();
       await reveal(tester, find.byKey(const ValueKey('home-ending')));
       expect(find.text('Ulaznica – Ultra Europe'), findsWidgets);
       // Nema više Marketa.
@@ -528,6 +534,8 @@ void accountTests() {
     await tester.pumpAndSettle();
     await tester.ensureVisible(find.byKey(const ValueKey('register-submit')));
     await tester.tap(find.byKey(const ValueKey('register-submit')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('home-cat-live')));
     await tester.pumpAndSettle();
     await reveal(tester, find.byKey(const ValueKey('home-go-live')));
     expect(find.byKey(const ValueKey('home-go-live')), findsOneWidget);

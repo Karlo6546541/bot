@@ -36,10 +36,28 @@ class SwipeFeedScreen extends ConsumerStatefulWidget {
     required this.entries,
     this.initialIndex = 0,
     this.title,
+    this.embedded = false,
+    this.active = true,
+    this.onPage,
+    this.reasonOf,
   });
 
   final List<FeedEntry> entries;
   final int initialIndex;
+
+  /// Ugrađeno u početnu ("Za tebe"): bez gumba Natrag i bez zadnje
+  /// stranice — roditelj sam dodaje objave (beskonačan feed).
+  final bool embedded;
+
+  /// Je li feed vidljiv (live se gleda samo tada).
+  final bool active;
+
+  /// Prelazak na drugu objavu: s koje ([from]), koliko se gledala i na
+  /// koju ([to]) — za učenje ukusa u "Za tebe".
+  final void Function(int from, Duration dwell, int to)? onPage;
+
+  /// Razlog preporuke ("Jer pratiš @ana") — oznaka na vrhu objave.
+  final String? Function(FeedEntry)? reasonOf;
 
   /// Naslov na vrhu (zadano "Za tebe").
   final String? title;
@@ -63,6 +81,7 @@ class SwipeFeedScreen extends ConsumerStatefulWidget {
 class _SwipeFeedScreenState extends ConsumerState<SwipeFeedScreen> {
   late final _pages = PageController(initialPage: widget.initialIndex);
   late int _index = widget.initialIndex;
+  DateTime _enteredAt = DateTime.now();
 
   @override
   void initState() {
@@ -89,6 +108,10 @@ class _SwipeFeedScreenState extends ConsumerState<SwipeFeedScreen> {
   Widget build(BuildContext context) {
     final state = ref.watch(appProvider);
     final entries = widget.entries;
+    final embedded = widget.embedded;
+    final reason = _index < entries.length
+        ? widget.reasonOf?.call(entries[_index])
+        : null;
     // Izlazak dok se gleda live: live se gleda dalje u malom prozoru.
     return PopScope(
       onPopInvokedWithResult: (didPop, _) {
@@ -108,8 +131,11 @@ class _SwipeFeedScreenState extends ConsumerState<SwipeFeedScreen> {
                   key: const ValueKey('swipe-feed'),
                   controller: _pages,
                   scrollDirection: Axis.vertical,
-                  itemCount: entries.length + 1,
+                  itemCount: entries.length + (embedded ? 0 : 1),
                   onPageChanged: (i) {
+                    final now = DateTime.now();
+                    widget.onPage?.call(_index, now.difference(_enteredAt), i);
+                    _enteredAt = now;
                     setState(() => _index = i);
                     _seen(i);
                   },
@@ -122,14 +148,45 @@ class _SwipeFeedScreenState extends ConsumerState<SwipeFeedScreen> {
                       return LiveRoomView(
                         key: ValueKey('feed-live-${e.liveId}'),
                         showId: e.liveId!,
-                        active: i == _index,
+                        active: i == _index && widget.active,
                       );
                     }
                     return _PostPage(entry: e, state: state);
                   },
                 ),
+                // Ugrađeno: oznaka zašto je objava predložena.
+                if (embedded &&
+                    reason != null &&
+                    _index < entries.length &&
+                    !entries[_index].isLive)
+                  SafeArea(
+                    child: Align(
+                      alignment: Alignment.topCenter,
+                      child: Container(
+                        key: const ValueKey('feed-reason'),
+                        margin: const EdgeInsets.only(top: 10),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 6,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Colors.black.withValues(alpha: 0.45),
+                          borderRadius: BorderRadius.circular(99),
+                        ),
+                        child: Text(
+                          '✨ $reason',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.w800,
+                            fontSize: 13,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
                 // Gornja traka: natrag, naslov, broj objave (live ima svoju).
-                if (_index >= entries.length || !entries[_index].isLive)
+                if (!embedded &&
+                    (_index >= entries.length || !entries[_index].isLive))
                   SafeArea(
                     child: Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 4),

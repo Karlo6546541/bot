@@ -32,12 +32,16 @@ void main() {
         category: c,
       );
 
-  List<Pick> rank({List<String> recent = const []}) {
+  List<Pick> rank({
+    List<String> recent = const [],
+    Map<DeviceCategory, double> boost = const {},
+  }) {
     final s = AppState.fromStorage(storage);
     return ForYouRanker(
       s,
       now: DateTime.now(),
       recentCategories: recent,
+      boost: boost,
     ).rank(browseItems(s), limit: 50);
   }
 
@@ -101,5 +105,15 @@ void main() {
       (p) => p.item.entry.deviceId ?? p.item.entry.auctionId,
     );
     expect(x.toList(), y.toList());
+  });
+
+  test('feed uči: dugo gledano gore, preskočeno dolje', () async {
+    final a = await add(ana, 'Predmet A', cats[4]);
+    final b = await add(marko, 'Predmet B', cats[5]);
+    var picks = rank(boost: {cats[4]: 4, cats[5]: -3});
+    expect(pos(picks, a.id), lessThan(pos(picks, b.id)));
+    expect(picks[pos(picks, a.id)].reason, contains(cats[4].label));
+    picks = rank(boost: {cats[4]: -3, cats[5]: 4});
+    expect(pos(picks, b.id), lessThan(pos(picks, a.id)));
   });
 }

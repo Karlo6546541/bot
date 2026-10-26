@@ -34,7 +34,20 @@ class Pick {
 ///
 /// Bez prijave (ili bez povijesti) ostaju hitnost, popularnost i novo.
 class ForYouRanker {
-  ForYouRanker(this.s, {required this.now, this.recentCategories = const []});
+  ForYouRanker(
+    this.s, {
+    required this.now,
+    this.recentCategories = const [],
+    this.boost = const {},
+  });
+
+  /// Učenje u stvarnom vremenu (feed "Za tebe"): dugo gledano (+),
+  /// brzo preskočeno (−), po kategoriji, samo za ovu sesiju.
+  final Map<DeviceCategory, double> boost;
+
+  /// Jedinstveni ključ oglasa (live, aukcija ili predmet).
+  static String keyOf(BrowseItem i) =>
+      i.show?.id ?? i.auction?.id ?? i.device?.id ?? '';
 
   final AppState s;
   final DateTime now;
@@ -143,7 +156,7 @@ class ForYouRanker {
   /// Mala dnevna "slučajnost" (0–0,6), ista cijeli dan za isti oglas.
   double _jitter(BrowseItem i) {
     final key =
-        '${_me ?? 'gost'}|${i.show?.id ?? i.auction?.id ?? i.device?.id}|${now.year}-${now.month}-${now.day}';
+        '${_me ?? 'gost'}|${keyOf(i)}|${now.year}-${now.month}-${now.day}';
     var h = 0;
     for (final c in key.codeUnits) {
       h = (h * 31 + c) & 0x7fffffff;
@@ -169,6 +182,24 @@ class ForYouRanker {
       }
       if (best != null) {
         parts.add((4 * bestW / _maxTaste, t('Voliš: {0}', [best.label])));
+      }
+    }
+    // Učenje u sesiji: najjači signal kategorije (pozitivan ili negativan).
+    var penalty = 0.0;
+    if (boost.isNotEmpty) {
+      DeviceCategory? cat;
+      var b = 0.0;
+      for (final c in i.categories) {
+        final v = boost[c] ?? 0;
+        if (v.abs() > b.abs()) {
+          b = v;
+          cat = c;
+        }
+      }
+      if (b > 0 && cat != null) {
+        parts.add((b, t('Gledaš puno: {0}', [cat.label])));
+      } else {
+        penalty = b;
       }
     }
     final title = _title(i);
@@ -229,7 +260,8 @@ class ForYouRanker {
       parts.add((0.8, t('Novo')));
     }
 
-    final total = parts.fold(0.0, (sum, x) => sum + x.$1) + _jitter(i);
+    final total =
+        parts.fold(0.0, (sum, x) => sum + x.$1) + _jitter(i) + penalty;
     final top = parts.isEmpty
         ? t('Za tebe')
         : (parts..sort((x, y) => y.$1.compareTo(x.$1))).first.$2;

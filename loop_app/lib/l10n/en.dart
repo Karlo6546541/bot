@@ -2388,4 +2388,6 @@ const kEn = <String, String>{
   'Završava za {0} min': 'Ends in {0} min',
   'Popularno': 'Popular',
   '✨ Odabrano za tebe': '✨ Picked for you',
+  'Gledaš puno: {0}': 'You watch a lot: {0}',
+  'Još nema objava — svrati uskoro.': 'No posts yet — check back soon.',
 };

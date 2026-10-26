@@ -161,7 +161,7 @@ class _HomeShellState extends ConsumerState<HomeShell> {
       body: IndexedStack(
         index: _index,
         children: [
-          const LiveHomeScreen(),
+          LiveHomeScreen(visible: _index == 0),
           const CategoriesScreen(),
           MyAuctionsView(onBrowse: () => _go(0)),
           const ProfileScreen(),
