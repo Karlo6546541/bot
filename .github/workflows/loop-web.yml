@@ -61,6 +61,56 @@ jobs:
           --dart-define=LIVE_TURN_PASS="$LIVE_TURN_PASS"
           --dart-define=BOXNOW_PARTNER_ID="$BOXNOW_PARTNER_ID"
 
+      # Android aplikacija (APK) za preuzimanje sa stranice:
+      #   .../bot/subhasto.apk        — većina mobitela (64-bit, arm64)
+      #   .../bot/subhasto-32bit.apk  — stariji mobiteli (armeabi-v7a)
+      # Neobavezno (stalni potpis, da se nova verzija instalira preko
+      # stare): tajne ANDROID_KEYSTORE_BASE64, ANDROID_KEYSTORE_PASSWORD,
+      # ANDROID_KEY_ALIAS i ANDROID_KEY_PASSWORD.
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Build Android APK
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
+          LIVE_TURN_URL: ${{ secrets.LIVE_TURN_URL }}
+          LIVE_TURN_USER: ${{ secrets.LIVE_TURN_USER }}
+          LIVE_TURN_PASS: ${{ secrets.LIVE_TURN_PASS }}
+          BOXNOW_PARTNER_ID: ${{ vars.BOXNOW_PARTNER_ID }}
+          KEYSTORE_B64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          if [ -n "$KEYSTORE_B64" ]; then
+            echo "$KEYSTORE_B64" | base64 -d > android/app/upload.jks
+            {
+              echo "storeFile=upload.jks"
+              echo "storePassword=$KEYSTORE_PASSWORD"
+              echo "keyAlias=$KEY_ALIAS"
+              echo "keyPassword=$KEY_PASSWORD"
+            } > android/key.properties
+          fi
+          flutter build apk --release --split-per-abi \
+            --dart-define=SUPABASE_URL="$SUPABASE_URL" \
+            --dart-define=SUPABASE_KEY="$SUPABASE_KEY" \
+            --dart-define=LIVE_TURN_URL="$LIVE_TURN_URL" \
+            --dart-define=LIVE_TURN_USER="$LIVE_TURN_USER" \
+            --dart-define=LIVE_TURN_PASS="$LIVE_TURN_PASS" \
+            --dart-define=BOXNOW_PARTNER_ID="$BOXNOW_PARTNER_ID"
+          out=build/app/outputs/flutter-apk
+          cp "$out/app-arm64-v8a-release.apk" build/web/subhasto.apk
+          cp "$out/app-armeabi-v7a-release.apk" build/web/subhasto-32bit.apk
+          ls -la build/web/*.apk
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: subhasto-apk
+          path: loop_app/build/web/subhasto*.apk
+
       # Spremljena kopija verzije prije pojednostavljenja sučelja:
       # https://<korisnik>.github.io/bot/stara/
       - uses: actions/checkout@v4
