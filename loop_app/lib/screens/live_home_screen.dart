@@ -384,13 +384,21 @@ class _LiveHomeScreenState extends ConsumerState<LiveHomeScreen> {
             ),
           ),
         ),
-        // Brzi izbornik: pet jednakih pločica preko cijele širine (bez
-        // listanja); odabrana se ispuni bojom svoje vrste.
+        // Brzi izbornik: jedna traka preko cijele širine (bez listanja) s
+        // okruglim ikonama u boji svoje vrste; odabrana se ispuni
+        // gradijentom, malo naraste i dobije točkicu ispod.
         SliverToBoxAdapter(
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(10, 4, 10, 6),
+          child: Container(
+            margin: const EdgeInsets.fromLTRB(12, 4, 12, 8),
+            padding: const EdgeInsets.fromLTRB(4, 10, 4, 6),
+            decoration: BoxDecoration(
+              color: LoopColors.surface,
+              borderRadius: BorderRadius.circular(24),
+              boxShadow: LoopColors.softShadow,
+            ),
             child: Row(
               key: const ValueKey('home-cats'),
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 _Pill(
                   id: 'for-you',
@@ -617,71 +625,94 @@ class _Pill extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final onColor = color == LoopColors.textPrimary
-        ? LoopColors.background
-        : Colors.white;
+    final dark = color == LoopColors.textPrimary;
+    // Svjetliji ton iste boje za gradijent odabrane ikone.
+    final light = Color.lerp(color, Colors.white, dark ? 0.25 : 0.3)!;
     return Expanded(
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 2.5),
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 200),
-          curve: Curves.easeOut,
-          decoration: BoxDecoration(
-            color: selected ? color : LoopColors.surface,
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(
-              color: selected ? color : color.withValues(alpha: 0.25),
-              width: 1.5,
-            ),
-            boxShadow: selected
-                ? [
-                    BoxShadow(
-                      color: color.withValues(alpha: 0.35),
-                      blurRadius: 12,
-                      offset: const Offset(0, 4),
+      child: InkWell(
+        key: ValueKey('home-cat-$id'),
+        borderRadius: BorderRadius.circular(18),
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 2),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              AnimatedScale(
+                scale: selected ? 1.08 : 1,
+                duration: const Duration(milliseconds: 220),
+                curve: Curves.easeOutBack,
+                child: Badge(
+                  isLabelVisible: badge > 0,
+                  label: Text('$badge'),
+                  backgroundColor: id == 'live' ? LoopColors.live : color,
+                  textColor: Colors.white,
+                  offset: const Offset(4, -4),
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 220),
+                    curve: Curves.easeOut,
+                    width: 46,
+                    height: 46,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: selected ? null : color.withValues(alpha: 0.12),
+                      gradient: selected
+                          ? LinearGradient(
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                              colors: [light, color],
+                            )
+                          : null,
+                      boxShadow: selected
+                          ? [
+                              BoxShadow(
+                                color: color.withValues(alpha: 0.4),
+                                blurRadius: 12,
+                                offset: const Offset(0, 4),
+                              ),
+                            ]
+                          : null,
                     ),
-                  ]
-                : LoopColors.softShadow,
-          ),
-          child: Material(
-            type: MaterialType.transparency,
-            child: InkWell(
-              key: ValueKey('home-cat-$id'),
-              borderRadius: BorderRadius.circular(16),
-              onTap: onTap,
-              child: Padding(
-                padding: const EdgeInsets.symmetric(vertical: 9),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Badge(
-                      isLabelVisible: badge > 0,
-                      label: Text('$badge'),
-                      backgroundColor: selected ? Colors.white : color,
-                      textColor: selected ? color : Colors.white,
-                      child: Icon(
-                        icon,
-                        size: 22,
-                        color: selected ? onColor : color,
-                      ),
+                    child: Icon(
+                      icon,
+                      size: 22,
+                      color: selected
+                          ? (dark ? LoopColors.background : Colors.white)
+                          : color,
                     ),
-                    const SizedBox(height: 4),
-                    FittedBox(
-                      fit: BoxFit.scaleDown,
-                      child: Text(
-                        label,
-                        maxLines: 1,
-                        style: TextStyle(
-                          color: selected ? onColor : LoopColors.textPrimary,
-                          fontWeight: FontWeight.w900,
-                          fontSize: 12,
-                        ),
-                      ),
-                    ),
-                  ],
+                  ),
                 ),
               ),
-            ),
+              const SizedBox(height: 6),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 2),
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: Text(
+                    label,
+                    maxLines: 1,
+                    style: TextStyle(
+                      color: selected
+                          ? LoopColors.textPrimary
+                          : LoopColors.textSecondary,
+                      fontWeight: selected ? FontWeight.w900 : FontWeight.w700,
+                      fontSize: 12,
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 4),
+              // Oznaka odabranog: točkica u boji vrste.
+              AnimatedContainer(
+                duration: const Duration(milliseconds: 220),
+                width: selected ? 16 : 0,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: color,
+                  borderRadius: BorderRadius.circular(99),
+                ),
+              ),
+            ],
           ),
         ),
       ),
