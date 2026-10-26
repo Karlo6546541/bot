@@ -7,7 +7,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 
 import '../models/delivery.dart';
-import '../models/loop_transaction.dart';
 import '../providers/app_providers.dart';
 import '../services/boxnow/boxnow_demo.dart';
 import '../services/delivery_service.dart';
@@ -832,17 +831,7 @@ class DeliveryNoteScreen extends ConsumerWidget {
         : (seller.name.trim().isNotEmpty ? seller.name.trim() : seller.handle);
     final senderAddress = seller.seller?.address ?? seller.address ?? '';
     final code = d.trackingNumber ?? d.id;
-    final paid = s.transactions
-        // Cijena predmeta — ne zapis plaćene dostave (cijena 0).
-        .where(
-          (x) =>
-              x.deviceId == d.deviceId &&
-              x.buyerId == d.buyerId &&
-              x.type != TransactionType.delivery &&
-              x.price > 0,
-        )
-        .firstOrNull
-        ?.price;
+    final paid = s.itemPaid(d.deviceId, d.buyerId);
     final date = formatDateTime(d.startedAt ?? d.createdAt);
     final rows = <(String, String)>[
       (t('Broj otpremnice'), code),

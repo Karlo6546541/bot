@@ -481,6 +481,19 @@ class AppState {
   List<SwapOffer> get incomingOffers =>
       myOffers.where((o) => o.isPending && o.toId == currentUserId).toList();
 
+  /// Cijena koju je [buyerId] platio za predmet (bez zapisa plaćene
+  /// dostave, koji ima cijenu 0) — za otpremnicu i "Plaćeno" u Kupljeno.
+  double? itemPaid(String deviceId, String? buyerId) => transactions
+      .where(
+        (x) =>
+            x.deviceId == deviceId &&
+            x.buyerId == buyerId &&
+            x.type != TransactionType.delivery &&
+            x.price > 0,
+      )
+      .firstOrNull
+      ?.price;
+
   /// Je li trenutni korisnik kupio digitalni proizvod.
   bool hasPurchased(String deviceId) =>
       currentUserId != null &&

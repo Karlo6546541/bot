@@ -1597,16 +1597,7 @@ class _BoughtTile extends ConsumerWidget {
     final device = digital ?? s.deviceById(d!.deviceId);
     final id = digital?.id ?? d!.deviceId;
     final name = digital?.name ?? d!.deviceName;
-    final paid = s.transactions
-        .where(
-          (t) =>
-              t.deviceId == id &&
-              t.buyerId == s.currentUserId &&
-              t.type != TransactionType.delivery &&
-              t.price > 0,
-        )
-        .firstOrNull
-        ?.price;
+    final paid = s.itemPaid(id, s.currentUserId);
     final (String label, Color color) = digital != null
         ? (t('⬇️ Digitalno'), LoopColors.info)
         : d!.isDelivered(DateTime.now())
