@@ -2322,7 +2322,8 @@ const kEn = <String, String>{
   'Sakrij one koji nisu na prodaji': 'Hide items not for sale',
   'Nije na prodaji ({0})': 'Not for sale ({0})',
   'Zapamćeno iz prošle kupnje': 'Remembered from your last purchase',
-  'Odaberi drugi način dostave ili paketomat': 'Choose another delivery method or locker',
+  'Odaberi drugi način dostave ili paketomat':
+      'Choose another delivery method or locker',
   'Otpremnica': 'Delivery note',
   'OTPREMNICA': 'DELIVERY NOTE',
   'Broj otpremnice': 'Delivery note no.',
@@ -2330,8 +2331,13 @@ const kEn = <String, String>{
   'Pošiljatelj': 'Sender',
   'Način dostave': 'Delivery method',
   'Predmet': 'Item',
-  'Zalijepi otpremnicu na paket ili je priloži unutra. Kod skenira paketomat ili kurir.': 'Stick the delivery note on the parcel or put it inside. The locker or courier scans the code.',
+  'Zalijepi otpremnicu na paket ili je priloži unutra. Kod skenira paketomat ili kurir.':
+      'Stick the delivery note on the parcel or put it inside. The locker or courier scans the code.',
   'Ispiši': 'Print',
   'Otpremnica spremljena: {0}': 'Delivery note saved: {0}',
   'Preuzmi za ispis': 'Download to print',
+  'Otpremnice': 'Delivery notes',
+  'Još nema otpremnica': 'No delivery notes yet',
+  'Kad kupac odabere dostavu, ovdje dobiješ otpremnicu s kodom za paketomat.':
+      'When a buyer chooses delivery, you get a delivery note with the locker code here.',
 };

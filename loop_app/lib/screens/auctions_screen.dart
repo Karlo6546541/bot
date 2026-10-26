@@ -36,6 +36,7 @@ enum AuctionView {
   myBids('Ponude', Icons.back_hand_outlined),
   items('Prodajem', Icons.sell_outlined),
   deliveries('Dostave', Icons.local_shipping_outlined),
+  notes('Otpremnice', Icons.description_outlined),
   lives('Liveovi', Icons.videocam_outlined);
 
   const AuctionView(this._label, this.icon);
@@ -803,6 +804,16 @@ class _MyAuctionsViewState extends ConsumerState<MyAuctionsView> {
     ];
     final waiting =
         toShip.length + bought.where((d) => d.awaitingChoice).length;
+    // Otpremnice: svi paketi koje šaljem (kupac je odabrao dostavu).
+    final notes =
+        [
+          for (final d in s.sellerDeliveries)
+            if (d.method != null && d.method != DeliveryMethod.digital) d,
+        ]..sort(
+          (a, b) => (b.startedAt ?? b.createdAt).compareTo(
+            a.startedAt ?? a.createdAt,
+          ),
+        );
 
     final header = Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -1008,6 +1019,60 @@ class _MyAuctionsViewState extends ConsumerState<MyAuctionsView> {
                       : DeliveryCard(delivery: d),
                 ),
             ],
+            const SizedBox(height: 96),
+          ],
+        ),
+      ],
+      AuctionView.notes when notes.isEmpty => [
+        SliverFillRemaining(
+          hasScrollBody: false,
+          child: EmptyState(
+            icon: Icons.description_outlined,
+            title: t('Još nema otpremnica'),
+            message: t(
+              'Kad kupac odabere dostavu, ovdje dobiješ otpremnicu s kodom za paketomat.',
+            ),
+          ),
+        ),
+      ],
+      AuctionView.notes => [
+        SliverList.list(
+          key: const ValueKey('my-notes-list'),
+          children: [
+            for (final d in notes)
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 0, 16, 10),
+                child: Card(
+                  child: ListTile(
+                    key: ValueKey('note-${d.id}'),
+                    leading: const Icon(Icons.description_outlined),
+                    title: Text(
+                      d.trackingNumber ?? d.id,
+                      style: const TextStyle(
+                        fontWeight: FontWeight.w900,
+                        letterSpacing: 1,
+                      ),
+                    ),
+                    subtitle: Text(
+                      '${d.deviceName}\n${s.userById(d.buyerId)?.handle ?? ''} · ${formatDateTime(d.startedAt ?? d.createdAt)}',
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    isThreeLine: true,
+                    trailing: Text(
+                      d.status(now).label,
+                      style: TextStyle(
+                        color: d.isDelivered(now)
+                            ? LoopColors.buyNow
+                            : LoopColors.accent,
+                        fontWeight: FontWeight.w800,
+                        fontSize: 12,
+                      ),
+                    ),
+                    onTap: () => DeliveryNoteScreen.open(context, d.id),
+                  ),
+                ),
+              ),
             const SizedBox(height: 96),
           ],
         ),
