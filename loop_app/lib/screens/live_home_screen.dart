@@ -433,7 +433,12 @@ class _LiveHomeScreenState extends ConsumerState<LiveHomeScreen> {
                                       Icons.grid_view,
                                       'categories',
                                     ),
-                                    ('my', t('Moje'), Icons.local_activity_outlined, 'my'),
+                                    (
+                                      'my',
+                                      t('Moje'),
+                                      Icons.local_activity_outlined,
+                                      'my',
+                                    ),
                                     (
                                       'live-menu',
                                       t('Uživo'),
@@ -570,11 +575,8 @@ class _LiveHomeScreenState extends ConsumerState<LiveHomeScreen> {
       );
     }
 
-    return CustomScrollView(
+    return Column(children: [chips, Expanded(child: CustomScrollView(
       slivers: [
-        if (_filter is! _ForYou)
-          const SliverToBoxAdapter(child: SizedBox(height: 8)),
-        SliverToBoxAdapter(child: chips),
         if (onLive || onAuctions) SliverToBoxAdapter(child: categoryFilter),
         if (_showHow && _filter is _ForYou)
           SliverToBoxAdapter(
@@ -594,7 +596,7 @@ class _LiveHomeScreenState extends ConsumerState<LiveHomeScreen> {
         ...slivers,
         const SliverToBoxAdapter(child: SizedBox(height: 96)),
       ],
-    );
+    )),]);
   }
 }
 

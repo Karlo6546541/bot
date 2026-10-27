@@ -40,6 +40,8 @@ void main() {
     addTearDown(tester.view.reset);
     await tester.pumpWidget(app());
     await tester.pumpAndSettle();
+    expect(find.byType(NavigationDestination), findsNWidgets(3));
+    expect(find.text('Moje'), findsNothing);
     expect(
       find.byKey(const ValueKey('home-categories-shortcut')),
       findsNothing,
@@ -67,6 +69,18 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.byKey(const ValueKey('home-digital')), findsOneWidget);
     expect(find.byKey(const ValueKey('home-ending')), findsNothing);
+    await tester.tap(find.byKey(const ValueKey('home-filters')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('home-cat-my')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('my-selling')), findsOneWidget);
+    expect(find.byType(NavigationDestination), findsNWidgets(3));
+    await tester.tap(find.text('Profil').last);
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('shell-library-menu')));
+    await tester.pumpAndSettle();
+    expect(find.text('Kategorije'), findsOneWidget);
+    expect(find.text('Moje'), findsOneWidget);
     await tester.pumpWidget(const SizedBox.shrink());
   });
 

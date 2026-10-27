@@ -29,11 +29,15 @@ Finder vScroll() => find
 /// Moje → Prodajem → Predmeti.
 Future<void> openMyItems(WidgetTester tester) async {
   if (find.text('Moje').evaluate().isEmpty) {
-      final menu = find.byKey(const ValueKey('home-filters'));
-      await tester.tap(menu.evaluate().isNotEmpty ? menu : find.byKey(const ValueKey('shell-library-menu')));
-      await tester.pumpAndSettle();
-    }
-    await tester.tap(find.text('Moje').last);
+    final menu = find.byKey(const ValueKey('home-filters'));
+    await tester.tap(
+      menu.evaluate().isNotEmpty
+          ? menu
+          : find.byKey(const ValueKey('shell-library-menu')),
+    );
+    await tester.pumpAndSettle();
+  }
+  await tester.tap(find.text('Moje').last);
   await tester.pumpAndSettle();
   await tester.tap(find.byKey(const ValueKey('my-selling')));
   await tester.pumpAndSettle();
@@ -158,11 +162,15 @@ void main() {
 
       // Moje → Kupljeno (prvo), pa Ponude.
       if (find.text('Moje').evaluate().isEmpty) {
-      final menu = find.byKey(const ValueKey('home-filters'));
-      await tester.tap(menu.evaluate().isNotEmpty ? menu : find.byKey(const ValueKey('shell-library-menu')));
-      await tester.pumpAndSettle();
-    }
-    await tester.tap(find.text('Moje').last);
+        final menu = find.byKey(const ValueKey('home-filters'));
+        await tester.tap(
+          menu.evaluate().isNotEmpty
+              ? menu
+              : find.byKey(const ValueKey('shell-library-menu')),
+        );
+        await tester.pumpAndSettle();
+      }
+      await tester.tap(find.text('Moje').last);
       await tester.pumpAndSettle();
       await tester.tap(find.byKey(const ValueKey('my-bought')));
       await tester.pumpAndSettle();
@@ -463,6 +471,8 @@ void main() {
     await tester.pumpAndSettle();
 
     // Engleski zapis eura (zarada u Moje → Prodajem).
+    await tester.tap(find.byKey(const ValueKey('home-filters')));
+    await tester.pumpAndSettle();
     await tester.tap(find.text('Mine').last);
     await tester.pumpAndSettle();
     await tester.tap(find.byKey(const ValueKey('my-selling')));
@@ -991,11 +1001,15 @@ void logoTests() {
 
       // Moje → logo → natrag na početnu.
       if (find.text('Moje').evaluate().isEmpty) {
-      final menu = find.byKey(const ValueKey('home-filters'));
-      await tester.tap(menu.evaluate().isNotEmpty ? menu : find.byKey(const ValueKey('shell-library-menu')));
-      await tester.pumpAndSettle();
-    }
-    await tester.tap(find.text('Moje').last);
+        final menu = find.byKey(const ValueKey('home-filters'));
+        await tester.tap(
+          menu.evaluate().isNotEmpty
+              ? menu
+              : find.byKey(const ValueKey('shell-library-menu')),
+        );
+        await tester.pumpAndSettle();
+      }
+      await tester.tap(find.text('Moje').last);
       await tester.pumpAndSettle();
       expect(find.byKey(const ValueKey('home-search')), findsNothing);
       await tester.tap(find.byKey(const ValueKey('logo-home')));
@@ -1147,7 +1161,11 @@ void logoTests() {
     await tester.pumpAndSettle();
     if (find.text('Kategorije').evaluate().isEmpty) {
       final menu = find.byKey(const ValueKey('home-filters'));
-      await tester.tap(menu.evaluate().isNotEmpty ? menu : find.byKey(const ValueKey('shell-library-menu')));
+      await tester.tap(
+        menu.evaluate().isNotEmpty
+            ? menu
+            : find.byKey(const ValueKey('shell-library-menu')),
+      );
       await tester.pumpAndSettle();
     }
     await tester.tap(find.text('Kategorije').last);

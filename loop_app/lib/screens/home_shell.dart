@@ -123,11 +123,19 @@ class _HomeShellState extends ConsumerState<HomeShell> {
 
     return AdaptiveShell(
       immersiveNavigation: _index == 0 && _feedSelected,
-      destinations: isDesktop ? _destinations : [_destinations[0], _destinations[2], _destinations[4]],
+      destinations: isDesktop
+          ? _destinations
+          : [_destinations[0], _destinations[2], _destinations[4]],
       selectedIndex: isDesktop ? _navIndex(_index) : (_index == 3 ? 2 : 0),
-      onSelect: isDesktop ? _onNav : (nav) {
-        if (nav == 1) { showCreateSheet(context); } else { _go(nav == 2 ? 3 : 0); }
-      },
+      onSelect: isDesktop
+          ? _onNav
+          : (nav) {
+              if (nav == 1) {
+                showCreateSheet(context);
+              } else {
+                _go(nav == 2 ? 3 : 0);
+              }
+            },
       railHeader: Padding(
         padding: const EdgeInsets.symmetric(vertical: 20),
         child: LoopLogo(size: 22, onTap: _goHome),
