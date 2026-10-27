@@ -156,6 +156,15 @@ class _SwipeFeedScreenState extends ConsumerState<SwipeFeedScreen>
   @override
   void didUpdateWidget(covariant SwipeFeedScreen oldWidget) {
     super.didUpdateWidget(oldWidget);
+    final oldEntry = _index < oldWidget.entries.length ? oldWidget.entries[_index] : null;
+    final newEntry = _index < widget.entries.length ? widget.entries[_index] : null;
+    if ((oldEntry == null ? null : _key(oldEntry)) !=
+        (newEntry == null ? null : _key(newEntry))) {
+      final dwell = _watch.take();
+      if (oldEntry != null && dwell > Duration.zero) {
+        oldWidget.onWatch?.call(oldEntry, dwell);
+      }
+    }
     _visibility();
     if (_visible) _scheduleView();
   }
@@ -521,13 +530,11 @@ class _PostPageState extends ConsumerState<_PostPage> {
     return Stack(
       fit: StackFit.expand,
       children: [
-        GestureDetector(
+        _Media(
           key: const ValueKey('post-media'),
+          device: d,
           onTap: openDetails,
-          onDoubleTap: isMine || auction != null
-              ? null
-              : () => _doubleTapLike(d),
-          child: _Media(device: d),
+          onDoubleTap: isMine || auction != null ? null : () => _doubleTapLike(d),
         ),
         const IgnorePointer(
           child: DecoratedBox(
@@ -607,8 +614,10 @@ class _PostPageState extends ConsumerState<_PostPage> {
 /// i uske ili široke fotografije izgledaju dobro. Bez fotografije —
 /// ilustracija kategorije.
 class _Media extends StatefulWidget {
-  const _Media({required this.device});
+  const _Media({super.key, required this.device, required this.onTap, this.onDoubleTap});
   final Device device;
+  final VoidCallback onTap;
+  final VoidCallback? onDoubleTap;
 
   @override
   State<_Media> createState() => _MediaState();
@@ -633,7 +642,9 @@ class _MediaState extends State<_Media> {
         child: Icon(d.category.icon, size: 140, color: Colors.white24),
       ),
     );
-    if (d.imagePaths.isEmpty) return illustration;
+    if (d.imagePaths.isEmpty) {
+      return GestureDetector(onTap: widget.onTap, onDoubleTap: widget.onDoubleTap, child: illustration);
+    }
     final current = _photo.clamp(0, d.imagePaths.length - 1);
     return Stack(
       fit: StackFit.expand,
@@ -654,11 +665,13 @@ class _MediaState extends State<_Media> {
             allowImplicitScrolling: true,
             itemCount: d.imagePaths.length,
             onPageChanged: (i) => setState(() => _photo = i),
-            itemBuilder: (_, i) => LocalPhoto(
-              path: d.imagePaths[i],
-              fit: BoxFit.contain,
-              cacheWidth: 1080,
-              fallback: illustration,
+            itemBuilder: (_, i) => GestureDetector(
+              onTap: widget.onTap,
+              onDoubleTap: widget.onDoubleTap,
+              child: LocalPhoto(
+                path: d.imagePaths[i], fit: BoxFit.contain,
+                cacheWidth: 1080, fallback: illustration,
+              ),
             ),
           ),
         ),

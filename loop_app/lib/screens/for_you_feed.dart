@@ -244,7 +244,7 @@ class _ForYouFeedState extends ConsumerState<ForYouFeed> {
         exclude: {for (final p in _picks) ForYouRanker.keyOf(p.item)},
       );
       // Add new content without changing the visible entry.
-      if (fresh.isNotEmpty && _index < _picks.length) {
+      if (fresh.isNotEmpty && (_picks.isEmpty || _index < _picks.length)) {
         setState(() => _picks.addAll(fresh));
       }
     });

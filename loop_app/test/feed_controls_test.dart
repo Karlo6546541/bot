@@ -8,6 +8,7 @@ import 'package:loop_app/providers/app_providers.dart';
 import 'package:loop_app/providers/app_state.dart';
 import 'package:loop_app/screens/auctions_screen.dart';
 import 'package:loop_app/screens/for_you_ranker.dart';
+import 'package:loop_app/screens/for_you_feed.dart';
 import 'package:loop_app/screens/swipe_feed_screen.dart';
 import 'package:loop_app/services/feed_preferences.dart';
 import 'package:loop_app/services/feed_watch_time.dart';
@@ -170,6 +171,36 @@ void main() {
       after.score(BrowseItem.item(phone)).$1,
       greaterThan(before.score(BrowseItem.item(phone)).$1),
     );
+  });
+
+  testWidgets('an initially empty feed receives synced listings and can hide them', (tester) async {
+    final prefs = FeedPreferences();
+    for (final i in browseItems(AppState.fromStorage(storage))) {
+      prefs.hide(ForYouRanker.keyOf(i));
+    }
+    await storage.saveFeedPreferences(SeedData.testUserId, prefs);
+    await tester.pumpWidget(ProviderScope(
+      overrides: [storageProvider.overrideWithValue(storage), tickIntervalProvider.overrideWithValue(null)],
+      child: MaterialApp(navigatorObservers: [feedRouteObserver],
+        home: const Scaffold(body: ForYouFeed(active: true))),
+    ));
+    await tester.pumpAndSettle();
+    expect(tester.widget<SwipeFeedScreen>(find.byType(SwipeFeedScreen)).entries, isEmpty);
+    final d = await tester.runAsync(() => TradeService(storage).addDevice(
+      userId: SeedData.anaUserId, name: 'Arrived after sync', model: 'New',
+      condition: DeviceCondition.good, price: 25, category: DeviceCategory.phone,
+    ));
+    final container = ProviderScope.containerOf(tester.element(find.byType(ForYouFeed)));
+    await container.read(appProvider.notifier).toggleFollow(SeedData.anaUserId);
+    await tester.pumpAndSettle();
+    expect(tester.widget<SwipeFeedScreen>(find.byType(SwipeFeedScreen)).entries.single.deviceId, d!.id);
+    await tester.tap(find.byKey(const ValueKey('feed-more')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Sakrij oglas'));
+    await tester.pumpAndSettle();
+    expect(storage.feedPreferences(SeedData.testUserId).hidden, contains(d.id));
+    expect(tester.widget<SwipeFeedScreen>(find.byType(SwipeFeedScreen)).entries, isEmpty);
+    await tester.pumpWidget(const SizedBox.shrink());
   });
 
   testWidgets('horizontal gallery, zoom and details keep the current listing', (
