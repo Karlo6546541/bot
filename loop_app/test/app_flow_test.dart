@@ -196,22 +196,29 @@ void main() {
     await tester.tap(find.text('Prijavi se'));
     await tester.pumpAndSettle();
 
-    // Prodajem: samo ono što je na prodaji; ostalo skriveno ispod.
+    // Prodajem: svi moji predmeti, filtri po stanju (spremljeno, Kupi
+    // odmah, aukcija, live).
     await openMyItems(tester);
     expect(find.text('Vrijednost kroz vrijeme'), findsNothing);
-    final selling = find.byType(DeviceCard).evaluate().length;
-    final idle = find.byKey(const ValueKey('my-items-idle'));
-    if (idle.evaluate().isNotEmpty) {
-      await tester.ensureVisible(idle);
+    final all = find.byType(DeviceCard).evaluate().length;
+    expect(all, greaterThan(0));
+    await tester.tap(find.byKey(const ValueKey('my-items-draft')));
+    await tester.pumpAndSettle();
+    final drafts = find.byType(DeviceCard).evaluate().length;
+    expect(drafts, lessThanOrEqualTo(all));
+    if (drafts > 0) expect(find.text('💾 Spremljeno'), findsWidgets);
+    await tester.tap(find.byKey(const ValueKey('my-items-auction')));
+    await tester.pumpAndSettle();
+    expect(find.text('💾 Spremljeno'), findsNothing);
+
+    // Dostave: Stiže meni / Šaljem / Dostavljeno su odvojeni.
+    await tester.tap(find.byKey(const ValueKey('my-deliveries')));
+    await tester.pumpAndSettle();
+    if (find.byKey(const ValueKey('my-ship-filter')).evaluate().isNotEmpty) {
+      await tester.tap(find.byKey(const ValueKey('ship-delivered')));
       await tester.pumpAndSettle();
-      await tester.tap(idle);
-      await tester.pumpAndSettle();
-      expect(
-        find.byType(DeviceCard).evaluate().length,
-        greaterThanOrEqualTo(selling),
-      );
+      expect(find.text('Ništa ti trenutno ne stiže.'), findsNothing);
     }
-    expect(selling + idle.evaluate().length, greaterThan(0));
   });
 
   testWidgets('aukcija: ponuda, vodstvo, zaključan obrazac', (tester) async {

@@ -10,13 +10,13 @@ import '../widgets/device_card.dart';
 import '../widgets/empty_state.dart';
 import '../widgets/feed.dart';
 import '../widgets/formatters.dart';
-import '../widgets/trade_actions.dart';
 import 'auction_detail_screen.dart';
 import 'seller_screens.dart';
 import 'deliveries_screen.dart';
 import 'add_device_screen.dart';
 import 'device_detail_screen.dart';
 import '../l10n/tr.dart';
+import '../services/live_service.dart';
 
 /// Početna: stanje, dostave u tijeku, priče, objave i trgovine.
 /// Moji predmeti (grafikon, raspodjela, popis) su na [MyItemsScreen].
@@ -118,45 +118,130 @@ class MyItemsView extends ConsumerStatefulWidget {
   ConsumerState<MyItemsView> createState() => _MyItemsViewState();
 }
 
+/// Gdje je moj predmet: spremljen (čeka prodaju), Kupi odmah, na aukciji
+/// ili u liveu.
+enum ItemStatus {
+  draft('💾 Spremljeno'),
+  buyNow('🏷️ Kupi odmah'),
+  auction('⏱ Na aukciji'),
+  live('🔴 U liveu');
+
+  const ItemStatus(this._label);
+  final String _label;
+  String get label => t(_label);
+}
+
 class _MyItemsViewState extends ConsumerState<MyItemsView> {
-  /// Predmeti koji nisu na prodaji (skice) — skriveni dok se ne otvore.
-  bool _showIdle = false;
+  /// Filter stanja (`null` = sve).
+  ItemStatus? _filter;
 
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(appProvider);
+    final storage = ref.read(storageProvider);
     final user = state.currentUser;
     if (user == null) return const SizedBox.shrink();
-    final mine = state.myDevices;
-    bool selling(Device d) =>
-        d.isListed || state.activeAuctionFor(d.id) != null;
+    ItemStatus statusOf(Device d) => state.activeAuctionFor(d.id) != null
+        ? ItemStatus.auction
+        : LiveService.isLocked(storage, d.id)
+        ? ItemStatus.live
+        : d.isListed
+        ? ItemStatus.buyNow
+        : ItemStatus.draft;
     // Kupljeno: Kupi odmah, osvojeno na aukciji ili u liveu (ima pošiljku).
     final boughtIds = {for (final x in state.myDeliveries) x.deviceId};
     bool bought(Device d) =>
         d.ownerId != user.id ||
         boughtIds.contains(d.id) ||
         state.hasPurchased(d.id);
-    // Kupljene stvari su portfolio u "Kupujem → Kupljeno"; ovdje samo
-    // ako ih je korisnik sam ponovno stavio na prodaju.
-    final own = mine.where((d) => !bought(d) || selling(d)).toList();
-    // Prodajem = samo ono što je stvarno na prodaji (Kupi odmah, aukcija).
-    final onSale = own.where(selling).toList();
-    final idle = own.where((d) => !selling(d)).toList();
-    final list = _showIdle ? [...onSale, ...idle] : onSale;
+    // Kupljene stvari su portfolio u "Kupljeno"; ovdje samo ako ih je
+    // korisnik sam ponovno stavio na prodaju.
+    final own = [
+      for (final d in state.myDevices)
+        if (d.ownerId == user.id &&
+            (!bought(d) || statusOf(d) != ItemStatus.draft))
+          d,
+    ];
+    final counts = {
+      for (final st in ItemStatus.values)
+        st: own.where((d) => statusOf(d) == st).length,
+    };
+    final list = _filter == null
+        ? own
+        : own.where((d) => statusOf(d) == _filter).toList();
+
+    Widget chip(ItemStatus? st, String label, int n) => Padding(
+      padding: const EdgeInsets.only(right: 6),
+      child: ChoiceChip(
+        key: ValueKey('my-items-${st?.name ?? 'all'}'),
+        label: Text('$label ($n)'),
+        selected: _filter == st,
+        onSelected: (_) => setState(() => _filter = st),
+      ),
+    );
+
     return CustomScrollView(
       slivers: [
+        SliverToBoxAdapter(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                // Objašnjenje u jednoj rečenici + novi predmet.
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        t(
+                          'Spremljeni predmeti čekaju — stavi ih na Kupi odmah, aukciju ili u live.',
+                        ),
+                        style: TextStyle(
+                          color: LoopColors.textSecondary,
+                          fontSize: 13,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    FilledButton.tonalIcon(
+                      key: const ValueKey('my-items-new'),
+                      onPressed: () => AddDeviceScreen.open(context),
+                      icon: const Icon(Icons.add, size: 18),
+                      label: Text(t('Novi predmet')),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: Row(
+                    children: [
+                      chip(null, t('Sve'), own.length),
+                      for (final st in ItemStatus.values)
+                        chip(st, st.label, counts[st]!),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
         if (list.isEmpty)
           SliverFillRemaining(
             hasScrollBody: false,
             child: EmptyState(
               icon: Icons.inventory_2_outlined,
-              title: t('Još ništa ne prodaješ'),
-              message: t('Objavi predmet za Kupi odmah, aukciju ili live.'),
+              title: own.isEmpty
+                  ? t('Još ništa ne prodaješ')
+                  : t('Ovdje trenutno nema predmeta'),
+              message: t(
+                'Dodaj predmet — spremi ga, pa ga stavi na Kupi odmah, aukciju ili u live.',
+              ),
               action: FilledButton.icon(
                 key: const ValueKey('my-items-add-empty'),
                 onPressed: () => AddDeviceScreen.open(context),
                 icon: const Icon(Icons.add),
-                label: Text(t('Objavi')),
+                label: Text(t('Novi predmet')),
               ),
             ),
           )
@@ -164,64 +249,33 @@ class _MyItemsViewState extends ConsumerState<MyItemsView> {
           DeviceGrid(
             devices: list,
             itemBuilder: (context, d) {
-              // Kupljeni digitalni proizvod: samo preuzimanje.
-              if (d.ownerId != user.id) {
-                return DeviceCard(
-                  device: d,
-                  actionLabel: t('Preuzmi'),
-                  actionIcon: Icons.download,
-                  onAction: () => downloadDigital(context, ref, d),
-                  onTap: () => DeviceDetailScreen.open(context, d),
-                  sellerView: true,
-                  showPrice: false,
-                  badge: t('✓ Kupljeno'),
-                );
-              }
+              final st = statusOf(d);
               final auction = state.activeAuctionFor(d.id);
-              // Jedan gumb: na aukciji → aukcija, inače detalji (tamo su
-              // Kupi odmah, Aukcija i Live).
+              // Jedan gumb po stanju: spremljeno → Prodaj (Kupi odmah,
+              // aukcija ili live na detaljima), aukcija → aukcija.
               return DeviceCard(
                 device: d,
-                actionLabel: auction != null
-                    ? t('Na aukciji')
-                    : d.isListed
-                    ? t('Detalji')
-                    : t('Prodaj'),
-                actionIcon: auction != null
-                    ? Icons.gavel
-                    : d.isListed
-                    ? Icons.info_outline
-                    : Icons.sell_outlined,
+                actionLabel: switch (st) {
+                  ItemStatus.draft => t('Prodaj'),
+                  ItemStatus.auction => t('Aukcija'),
+                  ItemStatus.live => t('U liveu'),
+                  ItemStatus.buyNow => t('Detalji'),
+                },
+                actionIcon: switch (st) {
+                  ItemStatus.draft => Icons.sell_outlined,
+                  ItemStatus.auction => Icons.gavel,
+                  ItemStatus.live => Icons.videocam,
+                  ItemStatus.buyNow => Icons.info_outline,
+                },
                 onAction: auction != null
                     ? () => AuctionDetailScreen.open(context, auction.id)
                     : () => DeviceDetailScreen.open(context, d),
                 onTap: () => DeviceDetailScreen.open(context, d),
                 sellerView: true,
-                showPrice: auction != null || d.isListed,
-                badge: auction != null
-                    ? t('⏱ Na aukciji')
-                    : d.isListed
-                    ? t('🏷️ Na prodaji')
-                    : bought(d)
-                    ? t('✓ Kupljeno')
-                    : null,
+                showPrice: st != ItemStatus.draft,
+                badge: st.label,
               );
             },
-          ),
-        if (idle.isNotEmpty)
-          SliverToBoxAdapter(
-            child: Center(
-              child: TextButton.icon(
-                key: const ValueKey('my-items-idle'),
-                onPressed: () => setState(() => _showIdle = !_showIdle),
-                icon: Icon(_showIdle ? Icons.expand_less : Icons.expand_more),
-                label: Text(
-                  _showIdle
-                      ? t('Sakrij one koji nisu na prodaji')
-                      : t('Nije na prodaji ({0})', ['${idle.length}']),
-                ),
-              ),
-            ),
           ),
         const SliverToBoxAdapter(child: SizedBox(height: 96)),
       ],

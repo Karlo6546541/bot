@@ -2391,4 +2391,31 @@ const kEn = <String, String>{
   'Gledaš puno: {0}': 'You watch a lot: {0}',
   'Još nema objava — svrati uskoro.': 'No posts yet — check back soon.',
   'Preuzmi Android aplikaciju': 'Download the Android app',
+  'Dodaj predmet — spremi ga, pa ga stavi na Kupi odmah, aukciju ili u live.':
+      'Add an item — save it, then put it on Buy now, an auction or a live.',
+  'Dodirni predmet da ga staviš u live i upiši početnu cijenu. Predmete možeš dodavati i tijekom livea.':
+      'Tap an item to add it to the live and enter a starting price. You can also add items during the live.',
+  'Dostavljeno ({0})': 'Delivered ({0})',
+  'Još nema dostavljenih paketa.': 'No delivered parcels yet.',
+  'Kupi odmah · {0}': 'Buy now · {0}',
+  'Nemaš paketa za poslati.': 'You have no parcels to send.',
+  'Nemaš spremljenih predmeta. Dodaj "Novi predmet" — spremit će se u Moje → Prodajem.':
+      'You have no saved items. Add a "New item" — it is saved in Mine → Selling.',
+  'Ništa ti trenutno ne stiže.': 'Nothing is on its way to you.',
+  'Ovdje trenutno nema predmeta': 'No items here right now',
+  'Spremljeni predmeti čekaju — stavi ih na Kupi odmah, aukciju ili u live.':
+      'Saved items are waiting — put them on Buy now, an auction or a live.',
+  'Spremljeno · dodirni za live': 'Saved · tap to add to live',
+  'Stiže meni ({0})': 'Coming to me ({0})',
+  'U liveu': 'In a live',
+  'U liveu kao #{0} · upiši početnu cijenu':
+      'In the live as #{0} · enter a starting price',
+  'Šaljem ({0})': 'Sending ({0})',
+  '🏷️ Na Kupi odmah ({0}) — dok traje live, skidaju se s prodaje':
+      '🏷️ On Buy now ({0}) — taken off sale while the live runs',
+  '💾 Spremljeni predmeti ({0})': '💾 Saved items ({0})',
+  '📥 Na putu do tebe': '📥 On the way to you',
+  '📦 Stiglo — potvrdi primitak': '📦 Arrived — confirm receipt',
+  '💾 Spremljeno': '💾 Saved',
+  '🔴 U liveu': '🔴 In a live',
 };

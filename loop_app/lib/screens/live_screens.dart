@@ -329,10 +329,40 @@ class _CreateLiveShowScreenState extends ConsumerState<CreateLiveShowScreen> {
   @override
   Widget build(BuildContext context) {
     final s = ref.watch(appProvider);
+    final storage = ref.read(storageProvider);
+    final me = s.currentUserId;
+    // Moji predmeti koje mogu staviti u live: spremljeni (nisu na prodaji)
+    // i oni na Kupi odmah (skidaju se s prodaje dok traje live). Na
+    // aukciji ili u drugom liveu — ne.
     final eligible = s.myDevices
-        .where((d) => !d.isDigital && s.activeAuctionFor(d.id) == null)
+        .where(
+          (d) =>
+              d.ownerId == me &&
+              !d.isDigital &&
+              s.activeAuctionFor(d.id) == null &&
+              !LiveService.isLocked(storage, d.id),
+        )
         .toList();
+    final drafts = [
+      for (final d in eligible)
+        if (!d.isListed) d,
+    ];
+    final listed = [
+      for (final d in eligible)
+        if (d.isListed) d,
+    ];
     final bold = const TextStyle(fontWeight: FontWeight.w800, fontSize: 15);
+    Widget group(String title) => Padding(
+      padding: const EdgeInsets.fromLTRB(4, 10, 4, 6),
+      child: Text(
+        title,
+        style: TextStyle(
+          fontWeight: FontWeight.w800,
+          fontSize: 13,
+          color: LoopColors.textSecondary,
+        ),
+      ),
+    );
     const gap = SizedBox(height: 18);
 
     return Scaffold(
@@ -473,12 +503,37 @@ class _CreateLiveShowScreenState extends ConsumerState<CreateLiveShowScreen> {
               ),
               Text(
                 t(
-                  'Neobavezno: odaberi predmete i početnu cijenu. Predmete možeš dodavati i tijekom livea.',
+                  'Dodirni predmet da ga staviš u live i upiši početnu cijenu. Predmete možeš dodavati i tijekom livea.',
                 ),
                 style: TextStyle(color: LoopColors.textSecondary, fontSize: 13),
               ),
-              const SizedBox(height: 8),
-              for (final d in eligible)
+              if (eligible.isEmpty)
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  child: Text(
+                    t(
+                      'Nemaš spremljenih predmeta. Dodaj "Novi predmet" — spremit će se u Moje → Prodajem.',
+                    ),
+                    style: TextStyle(color: LoopColors.textSecondary),
+                  ),
+                ),
+              if (drafts.isNotEmpty)
+                group(t('💾 Spremljeni predmeti ({0})', ['${drafts.length}'])),
+              for (final d in drafts)
+                _LotChoice(
+                  device: d,
+                  order: _selected.indexOf(d.id) + 1,
+                  price: _prices[d.id],
+                  onTap: () => _toggle(d),
+                ),
+              if (listed.isNotEmpty)
+                group(
+                  t(
+                    '🏷️ Na Kupi odmah ({0}) — dok traje live, skidaju se s prodaje',
+                    ['${listed.length}'],
+                  ),
+                ),
+              for (final d in listed)
                 _LotChoice(
                   device: d,
                   order: _selected.indexOf(d.id) + 1,
@@ -770,9 +825,16 @@ class _LotChoice extends StatelessWidget {
                                 ),
                               ),
                               Text(
-                                t('Vrijednost {0}', [
-                                  formatCredits(device.price),
-                                ]),
+                                selected
+                                    ? t(
+                                        'U liveu kao #{0} · upiši početnu cijenu',
+                                        ['$order'],
+                                      )
+                                    : device.isListed
+                                    ? t('Kupi odmah · {0}', [
+                                        formatCredits(device.price),
+                                      ])
+                                    : t('Spremljeno · dodirni za live'),
                                 style: TextStyle(
                                   color: LoopColors.textSecondary,
                                   fontSize: 12,

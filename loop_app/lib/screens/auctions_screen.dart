@@ -780,6 +780,10 @@ class _MyAuctionsViewState extends ConsumerState<MyAuctionsView> {
   /// Najprije ono što je kupljeno (i čeka odabir dostave).
   AuctionView _view = AuctionView.bought;
 
+  /// Dostave: Stiže meni / Šaljem / Dostavljeno (`null` = prvo koje ima
+  /// nešto za napraviti).
+  _Ship? _ship;
+
   @override
   Widget build(BuildContext context) {
     final s = ref.watch(appProvider);
@@ -817,20 +821,45 @@ class _MyAuctionsViewState extends ConsumerState<MyAuctionsView> {
     // Dostave: što šaljem i što stiže meni, na jednom mjestu.
     final toShip = s.toShip;
     final now = DateTime.now();
+    // Stiže meni = još na putu; Dostavljeno = stiglo (čeka potvrdu ili
+    // je potvrđeno) i poslani paketi koji su stigli kupcu.
     final incoming = [
       for (final d in bought)
         if (d.method != DeliveryMethod.digital &&
             !d.awaitingChoice &&
-            d.confirmedAt == null)
+            d.confirmedAt == null &&
+            !d.isDelivered(now))
+          d,
+    ];
+    final toConfirm = [
+      for (final d in bought)
+        if (d.method != null &&
+            d.method != DeliveryMethod.digital &&
+            d.confirmedAt == null &&
+            d.isDelivered(now))
           d,
     ];
     final doneDeliveries = [
+      ...toConfirm,
       for (final d in [...bought, ...s.sellerDeliveries])
         if (d.method != null &&
             d.method != DeliveryMethod.digital &&
             (d.confirmedAt != null || (d.sellerId == me && d.isDelivered(now))))
           d,
     ];
+    final choose = [
+      for (final d in bought)
+        if (d.awaitingChoice) d,
+    ];
+    final ship =
+        _ship ??
+        (toShip.isNotEmpty
+            ? _Ship.sending
+            : choose.isNotEmpty || incoming.isNotEmpty
+            ? _Ship.incoming
+            : toConfirm.isNotEmpty
+            ? _Ship.delivered
+            : _Ship.incoming);
     final waiting =
         toShip.length + bought.where((d) => d.awaitingChoice).length;
     final pins = PickupPinsScreen.waiting(s.myDeliveries, now);
@@ -1061,43 +1090,103 @@ class _MyAuctionsViewState extends ConsumerState<MyAuctionsView> {
           ),
         ],
       AuctionView.deliveries => [
+        SliverToBoxAdapter(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 10),
+            child: SingleChildScrollView(
+              key: const ValueKey('my-ship-filter'),
+              scrollDirection: Axis.horizontal,
+              child: Row(
+                children: [
+                  for (final (v, label, n) in [
+                    (
+                      _Ship.incoming,
+                      t('Stiže meni ({0})', [
+                        '${choose.length + incoming.length}',
+                      ]),
+                      choose.length + incoming.length,
+                    ),
+                    (
+                      _Ship.sending,
+                      t('Šaljem ({0})', ['${toShip.length}']),
+                      toShip.length,
+                    ),
+                    (
+                      _Ship.delivered,
+                      t('Dostavljeno ({0})', ['${doneDeliveries.length}']),
+                      doneDeliveries.length,
+                    ),
+                  ])
+                    Padding(
+                      padding: const EdgeInsets.only(right: 6),
+                      child: ChoiceChip(
+                        key: ValueKey('ship-${v.name}'),
+                        label: Text(label),
+                        avatar: n > 0 && v != _Ship.delivered
+                            ? Icon(
+                                Icons.circle,
+                                size: 10,
+                                color: LoopColors.accent,
+                              )
+                            : null,
+                        selected: ship == v,
+                        onSelected: (_) => setState(() => _ship = v),
+                      ),
+                    ),
+                ],
+              ),
+            ),
+          ),
+        ),
         SliverList.list(
           key: const ValueKey('my-deliveries-list'),
           children: [
-            if (bought.any((d) => d.awaitingChoice)) ...[
-              section(t('⏳ Odaberi dostavu')),
-              for (final d in bought)
-                if (d.awaitingChoice)
+            if (ship == _Ship.incoming) ...[
+              if (choose.isNotEmpty) ...[
+                section(t('⏳ Odaberi dostavu')),
+                for (final d in choose)
                   Padding(
                     padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
                     child: DeliveryCard(delivery: d),
                   ),
-            ],
-            if (toShip.isNotEmpty) ...[
-              section(t('📤 Za poslati ({0})', ['${toShip.length}'])),
-              for (final d in toShip)
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
-                  child: _ToShipCard(delivery: d),
-                ),
-            ],
-            if (incoming.isNotEmpty) ...[
-              section(t('📥 Stiže meni')),
+              ],
+              if (incoming.isNotEmpty) section(t('📥 Na putu do tebe')),
               for (final d in incoming)
                 Padding(
                   padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
                   child: DeliveryCard(delivery: d),
                 ),
+              if (choose.isEmpty && incoming.isEmpty)
+                _ShipEmpty(t('Ništa ti trenutno ne stiže.')),
             ],
-            if (doneDeliveries.isNotEmpty) ...[
-              section(t('✓ Završeno')),
-              for (final d in doneDeliveries)
+            if (ship == _Ship.sending) ...[
+              for (final d in toShip)
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+                  child: _ToShipCard(delivery: d),
+                ),
+              if (toShip.isEmpty) _ShipEmpty(t('Nemaš paketa za poslati.')),
+            ],
+            if (ship == _Ship.delivered) ...[
+              if (toConfirm.isNotEmpty) ...[
+                section(t('📦 Stiglo — potvrdi primitak')),
+                for (final d in toConfirm)
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+                    child: DeliveryCard(delivery: d),
+                  ),
+              ],
+              if (doneDeliveries.length > toConfirm.length)
+                section(t('✓ Završeno')),
+              for (final d in doneDeliveries.skip(toConfirm.length))
                 Padding(
                   padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
                   child: d.sellerId == me
                       ? _ToShipCard(delivery: d)
                       : DeliveryCard(delivery: d),
                 ),
+              if (doneDeliveries.isEmpty)
+                _ShipEmpty(t('Još nema dostavljenih paketa.')),
             ],
             const SizedBox(height: 96),
           ],
@@ -1142,6 +1231,24 @@ class _MyAuctionsViewState extends ConsumerState<MyAuctionsView> {
       ],
     );
   }
+}
+
+/// Dostave u "Moje": što stiže meni, što šaljem i što je dostavljeno.
+enum _Ship { incoming, sending, delivered }
+
+class _ShipEmpty extends StatelessWidget {
+  const _ShipEmpty(this.text);
+  final String text;
+
+  @override
+  Widget build(BuildContext context) => Padding(
+    padding: const EdgeInsets.all(32),
+    child: Text(
+      text,
+      textAlign: TextAlign.center,
+      style: TextStyle(color: LoopColors.textSecondary),
+    ),
+  );
 }
 
 /// Kartica u "Moje" (pet jednakih, bez listanja).
