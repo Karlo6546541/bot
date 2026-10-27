@@ -23,7 +23,6 @@ import '../widgets/shop_widgets.dart';
 import '../widgets/user_avatar.dart';
 import '../models/device.dart';
 import '../widgets/item_image.dart';
-import '../widgets/category_style.dart';
 import '../widgets/formatters.dart';
 import '../widgets/create_sheet.dart';
 import 'device_detail_screen.dart';
