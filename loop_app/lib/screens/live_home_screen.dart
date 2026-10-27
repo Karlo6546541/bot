@@ -22,7 +22,8 @@ import 'swipe_feed_screen.dart';
 /// tko je uživo sada, što uskoro kreće, aukcije koje završavaju i predmeti
 /// za Kupi odmah. Dodir na karticu otvara swipe feed te skupine.
 class LiveHomeScreen extends ConsumerStatefulWidget {
-  const LiveHomeScreen({super.key, this.visible = true});
+  const LiveHomeScreen({super.key, this.visible = true, this.onImmersiveChanged});
+  final ValueChanged<bool>? onImmersiveChanged;
 
   /// Je li tab Početna na ekranu (feed "Za tebe" pušta live samo tada).
   final bool visible;
@@ -61,6 +62,10 @@ class _Following extends _Filter {
 }
 
 class _LiveHomeScreenState extends ConsumerState<LiveHomeScreen> {
+  void _select(_Filter filter) {
+    setState(() => _filter = filter);
+    widget.onImmersiveChanged?.call(filter is _ForYou);
+  }
   Timer? _timer;
   _Filter _filter = const _ForYou();
   bool _hideCheckout = false;
@@ -272,7 +277,7 @@ class _LiveHomeScreenState extends ConsumerState<LiveHomeScreen> {
                 padding: const EdgeInsets.symmetric(horizontal: 2),
                 minimumSize: const Size(44, 48),
               ),
-              onPressed: () => setState(() => _filter = filter),
+              onPressed: () => _select(filter),
               child: Text(
                 label,
                 maxLines: 1,
@@ -360,7 +365,7 @@ class _LiveHomeScreenState extends ConsumerState<LiveHomeScreen> {
                       ),
                     );
                     if (picked != null && mounted) {
-                      setState(() => _filter = picked);
+                      _select(picked);
                     }
                   },
                   icon: const Icon(Icons.tune),

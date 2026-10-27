@@ -274,6 +274,11 @@ void main() {
     );
     await tester.pumpAndSettle();
     expect(find.text('1/2'), findsOneWidget);
+    // Product copy must stay below the photograph, including after gallery swipes.
+    final media = tester.getRect(find.byKey(const ValueKey('post-media')));
+    final info = tester.getRect(find.byKey(const ValueKey('post-info-panel')));
+    expect(media.bottom, lessThanOrEqualTo(info.top));
+    expect(media.height, greaterThan(150));
     await tester.drag(
       find.byKey(const ValueKey('post-gallery')),
       const Offset(-350, 0),

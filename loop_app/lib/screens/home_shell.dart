@@ -29,6 +29,7 @@ class HomeShell extends ConsumerStatefulWidget {
 }
 
 class _HomeShellState extends ConsumerState<HomeShell> {
+  bool _feedSelected = true;
   int get _index => ref.watch(homeTabProvider);
 
   void _go(int i) => ref.read(homeTabProvider.notifier).select(i);
@@ -121,6 +122,7 @@ class _HomeShellState extends ConsumerState<HomeShell> {
     final phone = width < 600;
 
     return AdaptiveShell(
+      immersiveNavigation: _index == 0 && _feedSelected,
       destinations: _destinations,
       selectedIndex: _navIndex(_index),
       onSelect: _onNav,
@@ -163,7 +165,9 @@ class _HomeShellState extends ConsumerState<HomeShell> {
       body: IndexedStack(
         index: _index,
         children: [
-          LiveHomeScreen(visible: _index == 0),
+          LiveHomeScreen(visible: _index == 0, onImmersiveChanged: (value) {
+            setState(() => _feedSelected = value);
+          }),
           const CategoriesScreen(),
           MyAuctionsView(onBrowse: () => _go(0)),
           const ProfileScreen(),

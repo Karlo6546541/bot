@@ -23,17 +23,17 @@ class ShellDestination {
   /// Radnja (npr. "+ Objavi"), a ne kartica: istaknuti okrugli gumb.
   final bool action;
 
-  Widget iconWidget(BuildContext context, {bool selected = false}) {
-    if (!action) return Icon(selected ? selectedIcon : icon);
+  Widget iconWidget(BuildContext context, {bool selected = false, bool compact = false}) {
+    if (!action) return Icon(selected ? selectedIcon : icon, size: compact ? 20 : null);
     return Container(
       key: const ValueKey('nav-create'),
-      width: 44,
-      height: 32,
+      width: compact ? 34 : 44,
+      height: compact ? 26 : 32,
       decoration: BoxDecoration(
         color: Theme.of(context).colorScheme.primary,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(compact ? 8 : 12),
       ),
-      child: Icon(icon, color: Colors.white),
+      child: Icon(icon, color: Colors.white, size: compact ? 18 : null),
     );
   }
 }
@@ -50,6 +50,7 @@ class AdaptiveShell extends StatelessWidget {
     this.appBar,
     this.floatingActionButton,
     this.railHeader,
+    this.immersiveNavigation = false,
   });
 
   final List<ShellDestination> destinations;
@@ -59,6 +60,24 @@ class AdaptiveShell extends StatelessWidget {
   final PreferredSizeWidget? appBar;
   final Widget? floatingActionButton;
   final Widget? railHeader;
+  final bool immersiveNavigation;
+
+  Widget _navigation(BuildContext context, {bool compact = false}) => NavigationBar(
+    key: ValueKey(compact ? 'feed-navigation' : 'main-navigation'),
+    height: compact ? 54 : null,
+    backgroundColor: compact ? const Color(0xFF0C0D10) : null,
+    surfaceTintColor: compact ? Colors.transparent : null,
+    indicatorColor: compact ? Colors.transparent : null,
+    selectedIndex: selectedIndex,
+    onDestinationSelected: onSelect,
+    destinations: [
+      for (final d in destinations) NavigationDestination(
+        icon: d.iconWidget(context, compact: compact),
+        selectedIcon: d.iconWidget(context, selected: true, compact: compact),
+        label: d.label,
+      ),
+    ],
+  );
 
   @override
   Widget build(BuildContext context) {
@@ -70,18 +89,21 @@ class AdaptiveShell extends StatelessWidget {
         appBar: appBar,
         body: SafeArea(top: false, child: body),
         floatingActionButton: floatingActionButton,
-        bottomNavigationBar: NavigationBar(
-          selectedIndex: selectedIndex,
-          onDestinationSelected: onSelect,
-          destinations: [
-            for (final d in destinations)
-              NavigationDestination(
-                icon: d.iconWidget(context),
-                selectedIcon: d.iconWidget(context, selected: true),
-                label: d.label,
-              ),
-          ],
-        ),
+        bottomNavigationBar: immersiveNavigation
+          ? Theme(
+              data: Theme.of(context).copyWith(navigationBarTheme: NavigationBarThemeData(
+                labelTextStyle: WidgetStateProperty.resolveWith((states) => TextStyle(
+                  fontFamily: kFontFamily, fontSize: 10,
+                  fontWeight: states.contains(WidgetState.selected) ? FontWeight.w700 : FontWeight.w500,
+                  color: states.contains(WidgetState.selected) ? const Color(0xFFE9E9ED) : const Color(0xFF92939D),
+                )),
+                iconTheme: WidgetStateProperty.resolveWith((states) => IconThemeData(
+                  color: states.contains(WidgetState.selected) ? const Color(0xFFE9E9ED) : const Color(0xFF92939D),
+                )),
+              )),
+              child: _navigation(context, compact: true),
+            )
+          : _navigation(context),
       );
     }
 
