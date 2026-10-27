@@ -46,7 +46,7 @@ const {chromium} = require('/tmp/feed-browser/node_modules/playwright');
         await page.mouse.click(width - 22, 24);
         await page.waitForTimeout(400);
         console.log('FEED_SCREENSHOT:browse-menu:' + (await page.screenshot({type: 'jpeg', quality: 75})).toString('base64'));
-        // Sheet rows: Categories, Live, Digital, Soon, Auctions, Buy now.
+        // Sheet rows: Categories, My, Live, Digital, Soon, Auctions, Buy now.
         await page.mouse.click(100, height - 224);
         await page.waitForTimeout(500);
         console.log('FEED_SCREENSHOT:digital-shopping:' + (await page.screenshot({type: 'jpeg', quality: 75})).toString('base64'));

@@ -433,6 +433,7 @@ class _LiveHomeScreenState extends ConsumerState<LiveHomeScreen> {
                                       Icons.grid_view,
                                       'categories',
                                     ),
+                                    ('my', t('Moje'), Icons.local_activity_outlined, 'my'),
                                     (
                                       'live-menu',
                                       t('Uživo'),
@@ -486,6 +487,8 @@ class _LiveHomeScreenState extends ConsumerState<LiveHomeScreen> {
                     if (!mounted || !context.mounted) return;
                     if (picked == 'categories') {
                       await CategoriesScreen.open(context);
+                    } else if (picked == 'my') {
+                      ref.read(homeTabProvider.notifier).select(2);
                     } else if (picked is _Filter) {
                       _select(picked);
                     }

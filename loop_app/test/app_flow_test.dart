@@ -28,7 +28,12 @@ Finder vScroll() => find
 
 /// Moje → Prodajem → Predmeti.
 Future<void> openMyItems(WidgetTester tester) async {
-  await tester.tap(find.text('Moje').last);
+  if (find.text('Moje').evaluate().isEmpty) {
+      final menu = find.byKey(const ValueKey('home-filters'));
+      await tester.tap(menu.evaluate().isNotEmpty ? menu : find.byKey(const ValueKey('shell-library-menu')));
+      await tester.pumpAndSettle();
+    }
+    await tester.tap(find.text('Moje').last);
   await tester.pumpAndSettle();
   await tester.tap(find.byKey(const ValueKey('my-selling')));
   await tester.pumpAndSettle();
@@ -152,7 +157,12 @@ void main() {
       await tester.pumpAndSettle();
 
       // Moje → Kupljeno (prvo), pa Ponude.
-      await tester.tap(find.text('Moje').last);
+      if (find.text('Moje').evaluate().isEmpty) {
+      final menu = find.byKey(const ValueKey('home-filters'));
+      await tester.tap(menu.evaluate().isNotEmpty ? menu : find.byKey(const ValueKey('shell-library-menu')));
+      await tester.pumpAndSettle();
+    }
+    await tester.tap(find.text('Moje').last);
       await tester.pumpAndSettle();
       await tester.tap(find.byKey(const ValueKey('my-bought')));
       await tester.pumpAndSettle();
@@ -980,7 +990,12 @@ void logoTests() {
       expect(find.byKey(const ValueKey('home-search')), findsOneWidget);
 
       // Moje → logo → natrag na početnu.
-      await tester.tap(find.text('Moje').last);
+      if (find.text('Moje').evaluate().isEmpty) {
+      final menu = find.byKey(const ValueKey('home-filters'));
+      await tester.tap(menu.evaluate().isNotEmpty ? menu : find.byKey(const ValueKey('shell-library-menu')));
+      await tester.pumpAndSettle();
+    }
+    await tester.tap(find.text('Moje').last);
       await tester.pumpAndSettle();
       expect(find.byKey(const ValueKey('home-search')), findsNothing);
       await tester.tap(find.byKey(const ValueKey('logo-home')));
@@ -1130,6 +1145,11 @@ void logoTests() {
     await tester.ensureVisible(find.text('Prijavi se'));
     await tester.tap(find.text('Prijavi se'));
     await tester.pumpAndSettle();
+    if (find.text('Kategorije').evaluate().isEmpty) {
+      final menu = find.byKey(const ValueKey('home-filters'));
+      await tester.tap(menu.evaluate().isNotEmpty ? menu : find.byKey(const ValueKey('shell-library-menu')));
+      await tester.pumpAndSettle();
+    }
     await tester.tap(find.text('Kategorije').last);
     await tester.pumpAndSettle();
     expect(find.byKey(const ValueKey('categories')), findsOneWidget);
