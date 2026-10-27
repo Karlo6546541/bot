@@ -385,7 +385,7 @@ class _AccountPostTile extends ConsumerWidget {
                           : PopupMenuButton<String>(
                               key: ValueKey('profile-post-menu-${d.id}'),
                               tooltip: t('Detalji'),
-                              constraints: const BoxConstraints.tightFor(width: 36, height: 36),
+                              iconSize: 20,
                               padding: EdgeInsets.zero,
                               icon: const Icon(Icons.more_horiz),
                               onSelected: (value) async {
