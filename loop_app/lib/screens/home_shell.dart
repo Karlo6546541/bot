@@ -123,9 +123,19 @@ class _HomeShellState extends ConsumerState<HomeShell> {
 
     return AdaptiveShell(
       immersiveNavigation: _index == 0 && _feedSelected,
-      destinations: _destinations,
-      selectedIndex: _navIndex(_index),
-      onSelect: _onNav,
+      destinations: isDesktop
+          ? _destinations
+          : [_destinations[0], _destinations[2], _destinations[4]],
+      selectedIndex: isDesktop ? _navIndex(_index) : (_index == 3 ? 2 : 0),
+      onSelect: isDesktop
+          ? _onNav
+          : (nav) {
+              if (nav == 1) {
+                showCreateSheet(context);
+              } else {
+                _go(nav == 2 ? 3 : 0);
+              }
+            },
       railHeader: Padding(
         padding: const EdgeInsets.symmetric(vertical: 20),
         child: LoopLogo(size: 22, onTap: _goHome),
@@ -152,6 +162,16 @@ class _HomeShellState extends ConsumerState<HomeShell> {
                     icon: const Icon(Icons.search),
                     onPressed: () => SearchScreen.open(context),
                   ),
+                PopupMenuButton<int>(
+                  key: const ValueKey('shell-library-menu'),
+                  tooltip: t('Filteri'),
+                  icon: const Icon(Icons.tune),
+                  onSelected: _go,
+                  itemBuilder: (_) => [
+                    PopupMenuItem(value: 1, child: Text(t('Kategorije'))),
+                    PopupMenuItem(value: 2, child: Text(t('Moje'))),
+                  ],
+                ),
                 const MessagesButton(),
                 const NotificationBell(),
                 if (!phone) ...[
