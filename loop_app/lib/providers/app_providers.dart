@@ -904,6 +904,7 @@ class AppController extends Notifier<AppState> {
     DeliveryMethod method,
     String? destination,
   ) async {
+    try {
     await ref
         .read(deliveryServiceProvider)
         .choose(
@@ -912,7 +913,9 @@ class AppController extends Notifier<AppState> {
           method: method,
           destination: destination,
         );
-    _refresh();
+    } finally {
+      _refresh();
+    }
   }
 
   /// Trgovci iz starijih verzija: objavi javnu oznaku trgovca (jednom).
