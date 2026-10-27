@@ -191,6 +191,10 @@ class _CreateLiveShowScreenState extends ConsumerState<CreateLiveShowScreen> {
 
   /// Odabrani predmeti redom kojim će se licitirati.
   final _selected = <String>[];
+
+  /// Predmeti ovog livea (brzo dodani ili "items on screen") — spremaju se
+  /// tek kad live krene.
+  final _drafts = <_DraftLot>[];
   final _prices = <String, TextEditingController>{};
   int _secs = 30;
 
@@ -247,6 +251,63 @@ class _CreateLiveShowScreenState extends ConsumerState<CreateLiveShowScreen> {
     _prices.putIfAbsent(d.id, () => TextEditingController(text: '1'));
   });
 
+  int get _free => _maxLots - _selected.length - _drafts.length;
+
+  Future<void> _addQuick() async {
+    if (_free <= 0) {
+      setState(
+        () =>
+            _error = t('Live može imati najviše {0} predmeta.', ['$_maxLots']),
+      );
+      return;
+    }
+    final lot = await showModalBottomSheet<_DraftLot>(
+      context: context,
+      showDragHandle: true,
+      isScrollControlled: true,
+      constraints: const BoxConstraints(maxWidth: 520),
+      builder: (_) => const _QuickLotSheet(),
+    );
+    if (lot != null && mounted) {
+      setState(() {
+        _error = null;
+        _drafts.add(lot);
+      });
+    }
+  }
+
+  Future<void> _addOnScreen() async {
+    if (_free <= 0) {
+      setState(
+        () =>
+            _error = t('Live može imati najviše {0} predmeta.', ['$_maxLots']),
+      );
+      return;
+    }
+    // Nastavi brojanje od zadnjeg "#broja".
+    var next = 1;
+    for (final l in _drafts.reversed) {
+      final m = RegExp(r'#(\d+)$').firstMatch(l.name);
+      if (m != null) {
+        next = int.parse(m.group(1)!) + 1;
+        break;
+      }
+    }
+    final lots = await showModalBottomSheet<List<_DraftLot>>(
+      context: context,
+      showDragHandle: true,
+      isScrollControlled: true,
+      constraints: const BoxConstraints(maxWidth: 520),
+      builder: (_) => _OnScreenSheet(start: next, max: _free),
+    );
+    if (lots != null && mounted) {
+      setState(() {
+        _error = null;
+        _drafts.addAll(lots);
+      });
+    }
+  }
+
   Future<void> _pickCover() async {
     try {
       final paths = await ref.read(imageStoreProvider).pick(limit: 1);
@@ -298,20 +359,38 @@ class _CreateLiveShowScreenState extends ConsumerState<CreateLiveShowScreen> {
       items.add((id, price));
     }
     LiveShow? created;
+    final app = ref.read(appProvider.notifier);
     final ok = await runWithLoading(
       context,
-      () async => created = await ref
-          .read(appProvider.notifier)
-          .createLiveShow(
-            title: _title.text,
-            items: items,
-            lotSeconds: _secs,
-            startsAt: _startsAt,
-            video: _video,
-            coverPath: _cover,
-            category: _category,
-            relistUnsold: _relist,
-          ),
+      () async => created = await app.createLiveShow(
+        title: _title.text,
+        items: [
+          ...items,
+          // Predmeti ovog livea: tek sad se spremaju (redom).
+          for (final l in _drafts)
+            (
+              (await app.addDevice(
+                name: l.name,
+                model: '',
+                condition: DeviceCondition.good,
+                price: l.price,
+                category:
+                    _category ??
+                    suggestCategory(l.name) ??
+                    DeviceCategory.other,
+                imagePaths: [?l.photo],
+                listOnMarket: false,
+              )).id,
+              l.price,
+            ),
+        ],
+        lotSeconds: _secs,
+        startsAt: _startsAt,
+        video: _video,
+        coverPath: _cover,
+        category: _category,
+        relistUnsold: _relist,
+      ),
       // Bez obavijesti: soba se odmah otvara (obavijest bi prekrila gumbe
       // na dnu sobe).
       successMessage: null,
@@ -327,40 +406,7 @@ class _CreateLiveShowScreenState extends ConsumerState<CreateLiveShowScreen> {
   @override
   Widget build(BuildContext context) {
     final s = ref.watch(appProvider);
-    final storage = ref.read(storageProvider);
-    final me = s.currentUserId;
-    // Moji predmeti koje mogu staviti u live: spremljeni (nisu na prodaji)
-    // i oni na Kupi odmah (skidaju se s prodaje dok traje live). Na
-    // aukciji ili u drugom liveu — ne.
-    final eligible = s.myDevices
-        .where(
-          (d) =>
-              d.ownerId == me &&
-              !d.isDigital &&
-              s.activeAuctionFor(d.id) == null &&
-              !LiveService.isLocked(storage, d.id),
-        )
-        .toList();
-    final drafts = [
-      for (final d in eligible)
-        if (!d.isListed) d,
-    ];
-    final listed = [
-      for (final d in eligible)
-        if (d.isListed) d,
-    ];
     final bold = const TextStyle(fontWeight: FontWeight.w800, fontSize: 15);
-    Widget group(String title) => Padding(
-      padding: const EdgeInsets.fromLTRB(4, 10, 4, 6),
-      child: Text(
-        title,
-        style: TextStyle(
-          fontWeight: FontWeight.w800,
-          fontSize: 13,
-          color: LoopColors.textSecondary,
-        ),
-      ),
-    );
     const gap = SizedBox(height: 18);
 
     return Scaffold(
@@ -479,64 +525,61 @@ class _CreateLiveShowScreenState extends ConsumerState<CreateLiveShowScreen> {
                   ),
                 ),
               gap,
-              // 3. Predmeti (neobavezno).
-              Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      t('Predmeti ({0}/{1})', [
-                        '${_selected.length}',
-                        '$_maxLots',
-                      ]),
-                      style: bold,
-                    ),
-                  ),
-                  TextButton.icon(
-                    key: const ValueKey('live-new-item'),
-                    onPressed: () => AddDeviceScreen.open(context),
-                    icon: const Icon(Icons.add, size: 18),
-                    label: Text(t('Novi predmet')),
-                  ),
-                ],
+              // 3. Predmeti ovog livea: brzo dodaj (sa slikom) ili
+              //    "items on screen" (#150, #151… bez slike).
+              Text(
+                t('Predmeti u ovom liveu ({0}/{1})', [
+                  '${_selected.length + _drafts.length}',
+                  '$_maxLots',
+                ]),
+                style: bold,
               ),
+              const SizedBox(height: 4),
               Text(
                 t(
-                  'Dodirni predmet da ga staviš u live i upiši početnu cijenu. Predmete možeš dodavati i tijekom livea.',
+                  'Dodaj predmete samo za ovaj live. Licitiraju se redom — nakon svake prodaje dolazi sljedeći.',
                 ),
                 style: TextStyle(color: LoopColors.textSecondary, fontSize: 13),
               ),
-              if (eligible.isEmpty)
-                Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 12),
-                  child: Text(
-                    t(
-                      'Nemaš spremljenih predmeta. Dodaj "Novi predmet" — spremit će se u Moje → Prodajem.',
+              const SizedBox(height: 10),
+              Row(
+                children: [
+                  Expanded(
+                    child: _AddLotButton(
+                      key: const ValueKey('live-quick-item'),
+                      icon: Icons.add_a_photo_outlined,
+                      title: t('Brzo dodaj'),
+                      subtitle: t('Predmet sa slikom'),
+                      onTap: _addQuick,
                     ),
-                    style: TextStyle(color: LoopColors.textSecondary),
                   ),
-                ),
-              if (drafts.isNotEmpty)
-                group(t('💾 Spremljeni predmeti ({0})', ['${drafts.length}'])),
-              for (final d in drafts)
-                _LotChoice(
-                  device: d,
-                  order: _selected.indexOf(d.id) + 1,
-                  price: _prices[d.id],
-                  onTap: () => _toggle(d),
-                ),
-              if (listed.isNotEmpty)
-                group(
-                  t(
-                    '🏷️ Na Kupi odmah ({0}) — dok traje live, skidaju se s prodaje',
-                    ['${listed.length}'],
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: _AddLotButton(
+                      key: const ValueKey('live-on-screen'),
+                      icon: Icons.tag,
+                      title: t('Items on screen'),
+                      subtitle: t('#150, #151… do 50'),
+                      onTap: _addOnScreen,
+                    ),
                   ),
-                ),
-              for (final d in listed)
-                _LotChoice(
-                  device: d,
-                  order: _selected.indexOf(d.id) + 1,
-                  price: _prices[d.id],
-                  onTap: () => _toggle(d),
+                ],
+              ),
+              const SizedBox(height: 10),
+              for (final id in _selected)
+                if (s.deviceById(id) case final d?)
+                  _LotChoice(
+                    device: d,
+                    order: _selected.indexOf(id) + 1,
+                    price: _prices[id],
+                    onTap: () => _toggle(d),
+                  ),
+              for (final (i, l) in _drafts.indexed)
+                _DraftRow(
+                  key: ValueKey('live-draft-$i'),
+                  lot: l,
+                  order: _selected.length + i + 1,
+                  onRemove: () => setState(() => _drafts.removeAt(i)),
                 ),
               const SizedBox(height: 8),
               // 4. Postavke.
@@ -744,6 +787,444 @@ class _CoverPicker extends StatelessWidget {
                   ],
                 ),
         ),
+      ),
+    );
+  }
+}
+
+/// Predmet ovog livea prije spremanja.
+class _DraftLot {
+  const _DraftLot(this.name, this.price, {this.photo, this.onScreen = false});
+  final String name;
+  final double price;
+  final String? photo;
+
+  /// "Item on screen": bez slike, s rednim brojem (#150).
+  final bool onScreen;
+}
+
+/// Veliki gumb za dodavanje predmeta u live.
+class _AddLotButton extends StatelessWidget {
+  const _AddLotButton({
+    super.key,
+    required this.icon,
+    required this.title,
+    required this.subtitle,
+    required this.onTap,
+  });
+  final IconData icon;
+  final String title;
+  final String subtitle;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) => Material(
+    color: LoopColors.surface,
+    borderRadius: BorderRadius.circular(kRadius),
+    child: InkWell(
+      borderRadius: BorderRadius.circular(kRadius),
+      onTap: onTap,
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: Row(
+          children: [
+            CircleAvatar(
+              radius: 20,
+              backgroundColor: kLiveRed.withValues(alpha: 0.12),
+              child: Icon(icon, color: kLiveRed, size: 20),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(fontWeight: FontWeight.w900),
+                  ),
+                  Text(
+                    subtitle,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      color: LoopColors.textSecondary,
+                      fontSize: 12,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    ),
+  );
+}
+
+/// Redak predmeta ovog livea (prije spremanja).
+class _DraftRow extends StatelessWidget {
+  const _DraftRow({
+    super.key,
+    required this.lot,
+    required this.order,
+    required this.onRemove,
+  });
+  final _DraftLot lot;
+  final int order;
+  final VoidCallback onRemove;
+
+  @override
+  Widget build(BuildContext context) {
+    final number = RegExp(r'#(\d+)$').firstMatch(lot.name)?.group(1);
+    final thumb = SizedBox.square(
+      dimension: 44,
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(10),
+        child: lot.photo != null
+            ? LocalPhoto(
+                path: lot.photo!,
+                cacheWidth: 120,
+                fallback: Container(color: LoopColors.peach),
+              )
+            : Container(
+                color: const Color(0xFF17120F),
+                alignment: Alignment.center,
+                child: Text(
+                  '#${number ?? order}',
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w900,
+                    fontSize: 12,
+                  ),
+                ),
+              ),
+      ),
+    );
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Material(
+        color: LoopColors.surface,
+        borderRadius: BorderRadius.circular(kRadius),
+        child: ListTile(
+          leading: thumb,
+          title: Text(
+            lot.name,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(fontWeight: FontWeight.w800),
+          ),
+          subtitle: Text(
+            '${lot.onScreen ? t('Item on screen') : t('Predmet sa slikom')} · ${t('od {0}', [formatCredits(lot.price)])}',
+          ),
+          trailing: IconButton(
+            tooltip: t('Ukloni'),
+            onPressed: onRemove,
+            icon: const Icon(Icons.close),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Brzo dodavanje predmeta u novi live: slika, naziv, početna cijena.
+class _QuickLotSheet extends ConsumerStatefulWidget {
+  const _QuickLotSheet();
+
+  @override
+  ConsumerState<_QuickLotSheet> createState() => _QuickLotSheetState();
+}
+
+class _QuickLotSheetState extends ConsumerState<_QuickLotSheet> {
+  final _name = TextEditingController();
+  final _price = TextEditingController(text: '1');
+  String? _photo;
+
+  @override
+  void dispose() {
+    _name.dispose();
+    _price.dispose();
+    super.dispose();
+  }
+
+  Future<void> _pick() async {
+    try {
+      final paths = await ref.read(imageStoreProvider).pick(limit: 1);
+      if (paths.isNotEmpty && mounted) setState(() => _photo = paths.first);
+    } catch (e) {
+      showLoopSnackBar(
+        t('Fotografiju nije moguće učitati: {0}', [e]),
+        error: true,
+      );
+    }
+  }
+
+  void _submit() {
+    final name = _name.text.trim();
+    final price = double.tryParse(_price.text.trim().replaceAll(',', '.'));
+    if (name.isEmpty || price == null || price < 1) {
+      showLoopSnackBar(t('Upiši naziv i cijenu (barem 1 €).'), error: true);
+      return;
+    }
+    Navigator.pop(context, _DraftLot(name, price, photo: _photo));
+  }
+
+  @override
+  Widget build(BuildContext context) => Padding(
+    padding: EdgeInsets.fromLTRB(
+      20,
+      0,
+      20,
+      16 + MediaQuery.viewInsetsOf(context).bottom,
+    ),
+    child: Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Text(
+          t('⚡ Brzo dodaj predmet'),
+          style: const TextStyle(fontSize: 19, fontWeight: FontWeight.w900),
+        ),
+        const SizedBox(height: 12),
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            InkWell(
+              key: const ValueKey('quick-lot-photo'),
+              borderRadius: BorderRadius.circular(14),
+              onTap: _pick,
+              child: Container(
+                width: 92,
+                height: 92,
+                clipBehavior: Clip.antiAlias,
+                decoration: BoxDecoration(
+                  color: LoopColors.surface,
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(color: LoopColors.peach, width: 1.5),
+                ),
+                child: _photo != null
+                    ? LocalPhoto(
+                        path: _photo!,
+                        cacheWidth: 240,
+                        fallback: const SizedBox.shrink(),
+                      )
+                    : Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            Icons.add_a_photo_outlined,
+                            color: LoopColors.textSecondary,
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            t('Slika'),
+                            style: TextStyle(
+                              color: LoopColors.textSecondary,
+                              fontSize: 12,
+                            ),
+                          ),
+                        ],
+                      ),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                children: [
+                  TextField(
+                    key: const ValueKey('quick-lot-name'),
+                    controller: _name,
+                    autofocus: true,
+                    textCapitalization: TextCapitalization.sentences,
+                    decoration: InputDecoration(labelText: t('Naziv')),
+                  ),
+                  const SizedBox(height: 10),
+                  TextField(
+                    key: const ValueKey('quick-lot-price'),
+                    controller: _price,
+                    keyboardType: const TextInputType.numberWithOptions(
+                      decimal: true,
+                    ),
+                    decoration: InputDecoration(
+                      labelText: t('Početna cijena'),
+                      suffixText: '€',
+                    ),
+                    onSubmitted: (_) => _submit(),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 14),
+        FilledButton(
+          key: const ValueKey('quick-lot-confirm'),
+          style: FilledButton.styleFrom(minimumSize: const Size.fromHeight(50)),
+          onPressed: _submit,
+          child: Text(t('Dodaj u live')),
+        ),
+      ],
+    ),
+  );
+}
+
+/// "Items on screen" (kao Whatnot): niz predmeta bez slike s rednim
+/// brojem — #150, #151… Prodaje se redom, pa se nakon svake prodaje na
+/// ekranu pojavi sljedeći broj.
+class _OnScreenSheet extends StatefulWidget {
+  const _OnScreenSheet({required this.start, required this.max});
+  final int start;
+  final int max;
+
+  @override
+  State<_OnScreenSheet> createState() => _OnScreenSheetState();
+}
+
+class _OnScreenSheetState extends State<_OnScreenSheet> {
+  late final _name = TextEditingController(text: t('Predmet'));
+  late final _from = TextEditingController(text: '${widget.start}');
+  late final _count = TextEditingController(
+    text: '${widget.max < 10 ? widget.max : 10}',
+  );
+  final _price = TextEditingController(text: '1');
+
+  @override
+  void dispose() {
+    for (final c in [_name, _from, _count, _price]) {
+      c.dispose();
+    }
+    super.dispose();
+  }
+
+  void _submit() {
+    final name = _name.text.trim();
+    final from = int.tryParse(_from.text.trim());
+    final count = int.tryParse(_count.text.trim());
+    final price = double.tryParse(_price.text.trim().replaceAll(',', '.'));
+    if (name.isEmpty ||
+        from == null ||
+        from < 0 ||
+        count == null ||
+        count < 1 ||
+        price == null ||
+        price < 1) {
+      showLoopSnackBar(
+        t('Upiši naziv, broj, količinu i cijenu (barem 1 €).'),
+        error: true,
+      );
+      return;
+    }
+    if (count > widget.max) {
+      showLoopSnackBar(
+        t('Stane još najviše {0} predmeta.', ['${widget.max}']),
+        error: true,
+      );
+      return;
+    }
+    Navigator.pop(context, [
+      for (var i = 0; i < count; i++)
+        _DraftLot('$name #${from + i}', price, onScreen: true),
+    ]);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final from = int.tryParse(_from.text) ?? widget.start;
+    final count = int.tryParse(_count.text) ?? 0;
+    return Padding(
+      padding: EdgeInsets.fromLTRB(
+        20,
+        0,
+        20,
+        16 + MediaQuery.viewInsetsOf(context).bottom,
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text(
+            t('🔢 Items on screen'),
+            style: const TextStyle(fontSize: 19, fontWeight: FontWeight.w900),
+          ),
+          Text(
+            t(
+              'Predmeti bez slike — pokazuješ ih na kameri. Nakon svake prodaje na ekranu se pojavi sljedeći broj.',
+            ),
+            style: TextStyle(color: LoopColors.textSecondary, fontSize: 13),
+          ),
+          const SizedBox(height: 12),
+          TextField(
+            key: const ValueKey('on-screen-name'),
+            controller: _name,
+            decoration: InputDecoration(labelText: t('Naziv')),
+            onChanged: (_) => setState(() {}),
+          ),
+          const SizedBox(height: 10),
+          Row(
+            children: [
+              Expanded(
+                child: TextField(
+                  key: const ValueKey('on-screen-from'),
+                  controller: _from,
+                  keyboardType: TextInputType.number,
+                  decoration: InputDecoration(
+                    labelText: t('Od broja'),
+                    prefixText: '#',
+                  ),
+                  onChanged: (_) => setState(() {}),
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: TextField(
+                  key: const ValueKey('on-screen-count'),
+                  controller: _count,
+                  keyboardType: TextInputType.number,
+                  decoration: InputDecoration(
+                    labelText: t('Koliko (do {0})', ['${widget.max}']),
+                  ),
+                  onChanged: (_) => setState(() {}),
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: TextField(
+                  key: const ValueKey('on-screen-price'),
+                  controller: _price,
+                  keyboardType: const TextInputType.numberWithOptions(
+                    decimal: true,
+                  ),
+                  decoration: InputDecoration(
+                    labelText: t('Početna'),
+                    suffixText: '€',
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          if (count > 0)
+            Text(
+              t('{0} #{1} … #{2}', [
+                _name.text.trim(),
+                '$from',
+                '${from + count - 1}',
+              ]),
+              textAlign: TextAlign.center,
+              style: const TextStyle(fontWeight: FontWeight.w800),
+            ),
+          const SizedBox(height: 12),
+          FilledButton(
+            key: const ValueKey('on-screen-confirm'),
+            style: FilledButton.styleFrom(
+              minimumSize: const Size.fromHeight(50),
+            ),
+            onPressed: _submit,
+            child: Text(t('Dodaj u live')),
+          ),
+        ],
       ),
     );
   }
@@ -3033,6 +3514,12 @@ class _QuickAddSheet extends StatefulWidget {
 }
 
 class _QuickAddSheetState extends State<_QuickAddSheet> {
+  /// "Item on screen": sljedeći broj (Predmet #150 → Predmet #151).
+  static String _nextName(String name) {
+    final m = RegExp(r'^(.*#)(\d+)$').firstMatch(name);
+    return m == null ? name : '${m.group(1)}${int.parse(m.group(2)!) + 1}';
+  }
+
   final _name = TextEditingController();
   final _price = TextEditingController(text: '1');
 
@@ -3100,13 +3587,13 @@ class _QuickAddSheetState extends State<_QuickAddSheet> {
               child: TextButton.icon(
                 key: const ValueKey('quick-repeat'),
                 onPressed: () => setState(() {
-                  _name.text = last.$1;
+                  _name.text = _nextName(last.$1);
                   _price.text = last.$2 == last.$2.roundToDouble()
                       ? '${last.$2.toInt()}'
                       : '${last.$2}';
                 }),
                 icon: const Icon(Icons.replay, size: 18),
-                label: Text(t('Ponovi zadnji: {0}', [last.$1])),
+                label: Text(t('Ponovi zadnji: {0}', [_nextName(last.$1)])),
               ),
             ),
           const SizedBox(height: 10),
@@ -4147,6 +4634,10 @@ class _DouyinBar extends StatelessWidget {
 
   /// Novčanik uz srce i dijeljenje (gledatelji).
   final bool showWallet;
+
+  /// Pisanje u chatu (kao Whatnot): polje preko cijele širine s "Aa",
+  /// bez vrećice, srca i dijeljenja.
+  bool get composing => focusNode.hasFocus;
   final TextEditingController controller;
   final FocusNode focusNode;
   final Future<void> Function(String) onSend;
@@ -4159,38 +4650,40 @@ class _DouyinBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Padding(
-    padding: const EdgeInsets.fromLTRB(10, 4, 6, 6),
+    padding: EdgeInsets.fromLTRB(10, 4, composing ? 10 : 6, 6),
     child: Row(
       children: [
-        Material(
-          color: Colors.transparent,
-          child: InkWell(
-            key: const ValueKey('live-queue'),
-            borderRadius: BorderRadius.circular(10),
-            onTap: onBag,
-            child: Ink(
-              width: 40,
-              height: 40,
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(10),
-                color: const Color(0xCC202127),
-              ),
-              child: Center(
-                child: Badge(
-                  isLabelVisible: bagCount > 0,
-                  label: Text('$bagCount'),
-                  backgroundColor: kLiveRed,
-                  child: const Icon(
-                    Icons.shopping_bag,
-                    color: Colors.white,
-                    size: 24,
+        if (!composing) ...[
+          Material(
+            color: Colors.transparent,
+            child: InkWell(
+              key: const ValueKey('live-queue'),
+              borderRadius: BorderRadius.circular(10),
+              onTap: onBag,
+              child: Ink(
+                width: 40,
+                height: 40,
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(10),
+                  color: const Color(0xCC202127),
+                ),
+                child: Center(
+                  child: Badge(
+                    isLabelVisible: bagCount > 0,
+                    label: Text('$bagCount'),
+                    backgroundColor: kLiveRed,
+                    child: const Icon(
+                      Icons.shopping_bag,
+                      color: Colors.white,
+                      size: 24,
+                    ),
                   ),
                 ),
               ),
             ),
           ),
-        ),
-        const SizedBox(width: 8),
+          const SizedBox(width: 8),
+        ],
         Expanded(
           child: showChat
               ? TextField(
@@ -4209,6 +4702,26 @@ class _DouyinBar extends StatelessWidget {
                     hintStyle: const TextStyle(color: Colors.white70),
                     filled: true,
                     fillColor: const Color(0xA6202127),
+                    // Pisanje: "Aa" lijevo, kao na Whatnotu.
+                    prefixIcon: composing
+                        ? Padding(
+                            padding: const EdgeInsets.all(6),
+                            child: CircleAvatar(
+                              radius: 16,
+                              backgroundColor: Colors.white.withValues(
+                                alpha: 0.18,
+                              ),
+                              child: const Text(
+                                'Aa',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.w800,
+                                  fontSize: 13,
+                                ),
+                              ),
+                            ),
+                          )
+                        : null,
                     contentPadding: const EdgeInsets.symmetric(
                       horizontal: 12,
                       vertical: 10,
@@ -4239,7 +4752,7 @@ class _DouyinBar extends StatelessWidget {
                 )
               : const SizedBox.shrink(),
         ),
-        if (onHeart != null)
+        if (onHeart != null && !composing)
           IconButton(
             key: const ValueKey('live-react-0'),
             tooltip: t('Srce'),
@@ -4268,17 +4781,18 @@ class _DouyinBar extends StatelessWidget {
                     ),
             ),
           ),
-        if (showWallet)
+        if (showWallet && !composing)
           const Padding(
             padding: EdgeInsets.symmetric(horizontal: 2),
             child: WalletChip(dark: true),
           ),
-        IconButton(
-          key: const ValueKey('live-share'),
-          tooltip: t('Podijeli'),
-          onPressed: onShare,
-          icon: const Icon(Icons.ios_share, color: Colors.white, size: 22),
-        ),
+        if (!composing)
+          IconButton(
+            key: const ValueKey('live-share'),
+            tooltip: t('Podijeli'),
+            onPressed: onShare,
+            icon: const Icon(Icons.ios_share, color: Colors.white, size: 22),
+          ),
       ],
     ),
   );

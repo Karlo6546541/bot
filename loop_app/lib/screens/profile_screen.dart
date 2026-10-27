@@ -124,8 +124,13 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                                   vertical: 10,
                                 ),
                                 minimumSize: const Size(0, 42),
-                                textStyle: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
-                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                textStyle: const TextStyle(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
                               ),
                               onPressed: () => EditProfileScreen.open(context),
                               icon: const Icon(Icons.edit_outlined, size: 17),
@@ -142,8 +147,13 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                                   vertical: 10,
                                 ),
                                 minimumSize: const Size(0, 42),
-                                textStyle: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
-                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                textStyle: const TextStyle(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
                               ),
                               onPressed: () {
                                 setState(() => _liked = false);
@@ -361,33 +371,44 @@ class _AccountPostTile extends ConsumerWidget {
                             fallback: ItemIllustration(category: d.category),
                           ),
                         ),
+                  // Okrugli prozirni gumb (srce ili izbornik) kao na
+                  // Instagramu — ne prekriva sliku.
                   Positioned(
                     top: 6,
                     right: 6,
-                    child: Material(
-                      color: LoopColors.surface.withValues(alpha: 0.9),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                    child: Container(
+                      width: 32,
+                      height: 32,
+                      decoration: BoxDecoration(
+                        color: Colors.black.withValues(alpha: 0.32),
+                        shape: BoxShape.circle,
+                      ),
                       child: likedSection
                           ? IconButton(
                               key: ValueKey('profile-unlike-${d.id}'),
                               tooltip: t('Ukloni iz favorita'),
-                              constraints: const BoxConstraints.tightFor(width: 36, height: 36),
                               padding: EdgeInsets.zero,
                               visualDensity: VisualDensity.compact,
                               onPressed: () =>
                                   toggleFavorite(ref, d, context: context),
                               icon: const Icon(
-                                Icons.favorite,
-                                color: Color(0xFFE5486F),
+                                Icons.favorite_rounded,
+                                color: Color(0xFFFF4D6D),
                                 size: 18,
+                                shadows: [
+                                  Shadow(blurRadius: 4, color: Colors.black38),
+                                ],
                               ),
                             )
                           : PopupMenuButton<String>(
                               key: ValueKey('profile-post-menu-${d.id}'),
                               tooltip: t('Detalji'),
-                              iconSize: 20,
+                              iconSize: 18,
                               padding: EdgeInsets.zero,
-                              icon: const Icon(Icons.more_horiz),
+                              icon: const Icon(
+                                Icons.more_horiz,
+                                color: Colors.white,
+                              ),
                               onSelected: (value) async {
                                 if (value == 'delete') {
                                   await _delete(context, ref);

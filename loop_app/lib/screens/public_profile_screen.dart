@@ -596,17 +596,60 @@ class ProfileHeader extends ConsumerWidget {
         ),
       ),
     );
-    Widget camera(VoidCallback onTap, Key key, String tip) => Material(
-      color: Colors.white,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-      child: IconButton(
-        key: key,
-        tooltip: tip,
-        constraints: const BoxConstraints.tightFor(width: 32, height: 32),
-        padding: EdgeInsets.zero,
-        visualDensity: VisualDensity.compact,
-        icon: const Icon(Icons.photo_camera_outlined, color: Color(0xFF332820), size: 17),
-        onPressed: onTap,
+    // Naslovna: prozirna tamna pilula s ikonom i natpisom.
+    Widget coverButton(VoidCallback onTap) => Material(
+      color: Colors.black.withValues(alpha: 0.38),
+      shape: const StadiumBorder(),
+      child: InkWell(
+        key: const ValueKey('edit-cover'),
+        customBorder: const StadiumBorder(),
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(
+                Icons.photo_camera_rounded,
+                color: Colors.white,
+                size: 16,
+              ),
+              const SizedBox(width: 5),
+              Text(
+                t('Naslovna'),
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w800,
+                  fontSize: 12,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+    // Profilna: mali okrugli gumb u boji s bijelim rubom.
+    Widget avatarButton(VoidCallback onTap) => Tooltip(
+      message: t('Promijeni profilnu sliku'),
+      child: Material(
+        color: LoopColors.accent,
+        shape: CircleBorder(
+          side: BorderSide(color: LoopColors.surface, width: 2.5),
+        ),
+        elevation: 2,
+        child: InkWell(
+          key: const ValueKey('edit-avatar'),
+          customBorder: const CircleBorder(),
+          onTap: onTap,
+          child: const Padding(
+            padding: EdgeInsets.all(6),
+            child: Icon(
+              Icons.photo_camera_rounded,
+              color: Colors.white,
+              size: 15,
+            ),
+          ),
+        ),
       ),
     );
     return Card(
@@ -633,12 +676,13 @@ class ProfileHeader extends ConsumerWidget {
                 ),
                 if (editable)
                   Positioned(
-                    top: 8,
-                    right: 8,
-                    child: camera(
-                      () => _photoMenu(context, ref, cover: true),
-                      const ValueKey('edit-cover'),
-                      t('Promijeni naslovnu sliku'),
+                    top: 10,
+                    right: 10,
+                    child: Tooltip(
+                      message: t('Promijeni naslovnu sliku'),
+                      child: coverButton(
+                        () => _photoMenu(context, ref, cover: true),
+                      ),
                     ),
                   ),
                 Positioned(
@@ -660,12 +704,10 @@ class ProfileHeader extends ConsumerWidget {
                       ),
                       if (editable)
                         Positioned(
-                          right: -6,
-                          bottom: -2,
-                          child: camera(
+                          right: -2,
+                          bottom: 2,
+                          child: avatarButton(
                             () => _photoMenu(context, ref, cover: false),
-                            const ValueKey('edit-avatar'),
-                            t('Promijeni profilnu sliku'),
                           ),
                         ),
                     ],

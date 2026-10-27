@@ -705,15 +705,13 @@ void main() {
       final storage = StorageService();
       final hub = FakeHub();
       late String bobShow;
-      late List<Device> mine;
       await tester.runAsync(() async {
         await storage.init(inMemory: true);
         final trade = TradeService(storage);
         final theirs = await addItem(trade, bob, 'Gramofon');
-        mine = [
-          await addItem(trade, host, 'Game Boy'),
-          await addItem(trade, host, 'Walkman'),
-        ];
+        // Spremljeni predmeti domaćina (za "Dodaj predmet" usred livea).
+        await addItem(trade, host, 'Game Boy');
+        await addItem(trade, host, 'Walkman');
         bobShow = (await LiveService(storage).create(
           hostId: bob,
           title: 'Vinili i gramofoni',
@@ -876,19 +874,33 @@ void main() {
         find.byKey(const ValueKey('live-title')),
         'Retro večer',
       );
-      for (final d in mine) {
-        await tester.scrollUntilVisible(
-          find.byKey(ValueKey('live-item-${d.id}')),
-          100,
-          scrollable: find.byType(Scrollable).first,
-        );
-        await tester.tap(find.byKey(ValueKey('live-item-${d.id}')));
-        await tester.pumpAndSettle();
-      }
+      // Predmeti samo za ovaj live: brzo dodaj (sa slikom) i "items on
+      // screen" (#150, #151 — bez slike).
+      await tester.tap(find.byKey(const ValueKey('live-quick-item')));
+      await tester.pumpAndSettle();
       await tester.enterText(
-        find.byKey(ValueKey('live-price-${mine.last.id}')),
+        find.byKey(const ValueKey('quick-lot-name')),
+        'Game Boy Color',
+      );
+      await tester.tap(find.byKey(const ValueKey('quick-lot-confirm')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('live-on-screen')));
+      await tester.pumpAndSettle();
+      await tester.enterText(
+        find.byKey(const ValueKey('on-screen-from')),
+        '150',
+      );
+      await tester.enterText(
+        find.byKey(const ValueKey('on-screen-count')),
+        '2',
+      );
+      await tester.enterText(
+        find.byKey(const ValueKey('on-screen-price')),
         '5',
       );
+      await tester.tap(find.byKey(const ValueKey('on-screen-confirm')));
+      await tester.pumpAndSettle();
+      expect(find.text('Predmet #151'), findsOneWidget);
       // Zatvori tipkovnicu (fokusirano polje inače vraća pomak na sebe).
       FocusManager.instance.primaryFocus?.unfocus();
       await tester.pumpAndSettle();
@@ -919,7 +931,10 @@ void main() {
       final show = storage.liveShows.firstWhere((s) => s.hostId == host);
       expect(show.title, 'Retro večer');
       expect(show.lotSeconds, 45);
-      expect(show.lots.map((l) => l.deviceId), [for (final d in mine) d.id]);
+      expect(
+        [for (final l in show.lots) storage.deviceById(l.deviceId)!.name],
+        ['Game Boy Color', 'Predmet #150', 'Predmet #151'],
+      );
       expect(show.lots.last.startPrice, 5);
       expect(show.video, isTrue);
       // Domaćin sam pokreće licitaciju.
@@ -939,7 +954,7 @@ void main() {
       await tester.pumpAndSettle();
       await tester.tap(find.byKey(const ValueKey('live-add-confirm')));
       await tester.pumpAndSettle();
-      expect(storage.liveShowById(show.id)!.lots, hasLength(3));
+      expect(storage.liveShowById(show.id)!.lots, hasLength(4));
       // ⚡ Brzo dodaj: samo naziv i cijena, predmet ide u Moje predmete.
       await tester.tap(find.byKey(const ValueKey('live-quick-add')));
       await tester.pumpAndSettle();
@@ -951,7 +966,7 @@ void main() {
       await tester.tap(find.byKey(const ValueKey('quick-add-confirm')));
       await tester.pumpAndSettle();
       final lots = storage.liveShowById(show.id)!.lots;
-      expect(lots, hasLength(4));
+      expect(lots, hasLength(5));
       expect(lots.last.deviceName, 'Pokemon Charizard');
       expect(lots.last.startPrice, 7);
       expect(
