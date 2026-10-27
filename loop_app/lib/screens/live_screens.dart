@@ -1356,6 +1356,7 @@ class _LiveRoomViewState extends ConsumerState<_LiveRoomBody> {
     try {
       await _app.liveChat(widget.showId, text);
       _chat.clear();
+      _chatFocus.unfocus();
     } on TradeException catch (e) {
       showLoopSnackBar(e.message, error: true);
     }
