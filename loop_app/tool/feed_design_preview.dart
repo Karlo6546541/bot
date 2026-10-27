@@ -3,6 +3,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:loop_app/app.dart';
 import 'package:loop_app/models/device.dart';
+import 'package:loop_app/models/delivery.dart';
+import 'package:loop_app/services/delivery_service.dart';
+import 'package:loop_app/services/boxnow/boxnow.dart';
 import 'package:loop_app/providers/app_providers.dart';
 import 'package:loop_app/providers/app_state.dart';
 import 'package:loop_app/screens/auctions_screen.dart';
@@ -66,6 +69,39 @@ Future<void> main() async {
   await lives.startLot(SeedData.markoUserId, previewLive.id);
   await lives.chat(SeedData.anaUserId, previewLive.id, 'Prvi put sam tu 👋');
   await storage.saveSession(userId: SeedData.testUserId);
+  // Exercise BOX NOW on the release web runtime, including a duplicate confirm.
+  final shipping = DeliveryService(storage);
+  const locker = BoxNowLocker(
+    id: '1234',
+    address: 'Ilica 1',
+    postalCode: '10000',
+    name: 'BOX NOW Ilica',
+  );
+  final pending = await shipping.createPending(
+    id: 'preview-boxnow-0',
+    userId: SeedData.testUserId,
+    deviceId: liveItem.id,
+    deviceName: liveItem.name,
+    sellerId: SeedData.markoUserId,
+  );
+  final selected = await shipping.choose(
+    userId: SeedData.testUserId,
+    deliveryId: pending.id,
+    method: DeliveryMethod.parcelLocker,
+    destination: locker.destination,
+  );
+  final repeated = await shipping.choose(
+    userId: SeedData.testUserId,
+    deliveryId: pending.id,
+    method: DeliveryMethod.parcelLocker,
+    destination: locker.destination,
+  );
+  if (selected.pickupPin == null ||
+      selected.dropOffPin == null ||
+      selected.trackingNumber != repeated.trackingNumber) {
+    throw StateError('BOX NOW release-web delivery verification failed');
+  }
+
   final prefs = FeedPreferences();
   for (final i in browseItems(AppState.fromStorage(storage))) {
     if (!samples.contains(i.device?.id)) prefs.hide(ForYouRanker.keyOf(i));

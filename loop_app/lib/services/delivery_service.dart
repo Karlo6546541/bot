@@ -27,6 +27,7 @@ class DeliveryService {
   final StorageService _storage;
   final _uuid = const Uuid();
   final _random = Random();
+  final _choices = <String, Future<Delivery>>{};
 
   /// Dostupni načini dostave za predmet.
   static List<DeliveryMethod> methodsFor(Device d) =>
@@ -151,12 +152,45 @@ class DeliveryService {
     String? destination,
     DateTime? now,
   }) async {
+    final key = '$userId/${liveParcel(deliveryId) ?? deliveryId}';
+    final pending = _choices[key];
+    if (pending != null) {
+      await pending;
+      final result = _storage.deliveryById(deliveryId);
+      if (result != null &&
+          result.buyerId == userId &&
+          !result.awaitingChoice) {
+        return result;
+      }
+    }
+    final task = _choose(
+      userId: userId,
+      deliveryId: deliveryId,
+      method: method,
+      destination: destination,
+      now: now,
+    );
+    _choices[key] = task;
+    try {
+      return await task;
+    } finally {
+      if (identical(_choices[key], task)) _choices.remove(key);
+    }
+  }
+
+  Future<Delivery> _choose({
+    required String userId,
+    required String deliveryId,
+    required DeliveryMethod method,
+    String? destination,
+    DateTime? now,
+  }) async {
     final d = _storage.deliveryById(deliveryId);
     if (d == null || d.buyerId != userId) {
       throw TradeException(t('Pošiljka ne postoji.'));
     }
     if (!d.awaitingChoice) {
-      throw TradeException(t('Dostava je već odabrana.'));
+      return d;
     }
     final parcel = liveParcel(d.id);
     if (parcel == null) {
