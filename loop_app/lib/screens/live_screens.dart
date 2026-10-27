@@ -128,35 +128,18 @@ class _ViewersChip extends StatelessWidget {
   final int count;
 
   @override
-  Widget build(BuildContext context) => Container(
-    key: const ValueKey('live-viewers'),
-    padding: const EdgeInsets.fromLTRB(3, 3, 10, 3),
-    decoration: BoxDecoration(
-      color: Colors.black45,
-      borderRadius: BorderRadius.circular(99),
-    ),
-    child: Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Container(
-          width: 24,
-          height: 24,
-          decoration: const BoxDecoration(
-            color: kLiveRed,
-            shape: BoxShape.circle,
-          ),
-          child: const Icon(Icons.graphic_eq, size: 15, color: Colors.white),
-        ),
-        const SizedBox(width: 6),
-        Text(
-          '$count',
-          style: const TextStyle(
-            color: Colors.white,
-            fontWeight: FontWeight.w900,
-            fontSize: 15,
-          ),
-        ),
-      ],
+  Widget build(BuildContext context) => Tooltip(
+    message: '$count',
+    child: Container(
+      key: const ValueKey('live-viewers'),
+      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 5),
+      decoration: BoxDecoration(color: Colors.black38, borderRadius: BorderRadius.circular(8)),
+      child: Row(mainAxisSize: MainAxisSize.min, children: [
+        const Icon(Icons.visibility_outlined, size: 13, color: Colors.white70),
+        const SizedBox(width: 4),
+        Text(count >= 1000 ? '${(count / 1000).toStringAsFixed(1)}k' : '$count',
+          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 11)),
+      ]),
     ),
   );
 }
@@ -2086,13 +2069,13 @@ class _LiveRoomViewState extends ConsumerState<_LiveRoomBody> {
       return FilledButton(
         key: const ValueKey('live-awaiting'),
         style: FilledButton.styleFrom(
-          disabledBackgroundColor: Colors.white24,
+          disabledBackgroundColor: const Color(0xCC202127),
           disabledForegroundColor: Colors.white70,
-          minimumSize: const Size.fromHeight(52),
+          minimumSize: const Size.fromHeight(44),
           textStyle: const TextStyle(
             fontFamily: kFontFamily,
-            fontWeight: FontWeight.w900,
-            fontSize: 17,
+            fontWeight: FontWeight.w600,
+            fontSize: 13,
           ),
         ),
         onPressed: null,
@@ -2520,120 +2503,55 @@ class _TopBar extends ConsumerWidget {
     final me = s.currentUserId;
     final following = s.isFollowing(show.hostId);
     final rating = s.ratingOf(show.hostId);
-    final meta = [
-      rating.count > 0 ? '★ ${rating.average.toStringAsFixed(1)}' : t('★ Novo'),
-      t('🚚 {0} d.', ['${DeliveryMethod.courier.realDays}']),
-    ].join(' · ');
+    final meta = rating.count > 0 ? '★ ${rating.average.toStringAsFixed(1)}' : t('★ Novo');
     return Padding(
-      padding: const EdgeInsets.fromLTRB(12, 6, 4, 0),
-      child: Row(
-        children: [
-          GestureDetector(
-            onTap: () => PublicProfileScreen.open(context, show.hostId),
-            child: UserAvatar(user: host, size: 44),
-          ),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  hostName,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.w900,
-                    fontSize: 16,
-                    shadows: _shadow,
-                  ),
-                ),
-                Row(
-                  children: [
-                    Flexible(
-                      child: Text(
-                        '$meta · ',
-                        key: const ValueKey('live-host-meta'),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 12,
-                          fontWeight: FontWeight.w700,
-                          shadows: _shadow,
-                        ),
-                      ),
-                    ),
-                    Flexible(
-                      child: Text(
-                        show.title,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          color: Colors.white70,
-                          fontSize: 12,
-                          shadows: _shadow,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ],
+      key: const ValueKey('live-compact-header'),
+      padding: const EdgeInsets.fromLTRB(10, 2, 2, 2),
+      child: Row(children: [
+        GestureDetector(
+          onTap: () => PublicProfileScreen.open(context, show.hostId),
+          child: UserAvatar(user: host, size: 30),
+        ),
+        const SizedBox(width: 7),
+        Expanded(child: GestureDetector(
+          onTap: () => PublicProfileScreen.open(context, show.hostId),
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisSize: MainAxisSize.min, children: [
+            Text(hostName, maxLines: 1, overflow: TextOverflow.ellipsis,
+              style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 13, shadows: _shadow)),
+            Text('$meta · ${show.title}', key: const ValueKey('live-host-meta'), maxLines: 1, overflow: TextOverflow.ellipsis,
+              style: const TextStyle(color: Colors.white70, fontSize: 10, shadows: _shadow)),
+          ]),
+        )),
+        if (me != null && me != show.hostId && !following) ...[
+          const SizedBox(width: 6),
+          FilledButton(
+            key: const ValueKey('live-follow'),
+            style: FilledButton.styleFrom(
+              backgroundColor: Colors.white.withValues(alpha: 0.16), foregroundColor: Colors.white,
+              minimumSize: const Size(48, 30), visualDensity: VisualDensity.compact,
+              padding: const EdgeInsets.symmetric(horizontal: 10),
+              textStyle: const TextStyle(fontFamily: kFontFamily, fontSize: 11, fontWeight: FontWeight.w600),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
             ),
-          ),
-          if (me != null && me != show.hostId && !following) ...[
-            const SizedBox(width: 6),
-            FilledButton(
-              key: const ValueKey('live-follow'),
-              style: FilledButton.styleFrom(
-                backgroundColor: LoopColors.accent,
-                foregroundColor: Colors.white,
-                visualDensity: VisualDensity.compact,
-                padding: const EdgeInsets.symmetric(horizontal: 14),
-                textStyle: const TextStyle(
-                  fontFamily: kFontFamily,
-                  fontWeight: FontWeight.w900,
-                ),
-              ),
-              onPressed: () async {
-                if (blockGuest(context)) return;
-                await ref.read(appProvider.notifier).toggleFollow(show.hostId);
-                showLoopSnackBar(t('Pratiš {0}', [hostName]));
-              },
-              child: Text(t('Prati')),
-            ),
-          ],
-          const SizedBox(width: 8),
-          if (state.isLive)
-            _ViewersChip(state.viewers)
-          else
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-              decoration: BoxDecoration(
-                color: Colors.black54,
-                borderRadius: BorderRadius.circular(6),
-              ),
-              child: Text(
-                state.isScheduled ? t('ZAKAZANO') : t('ZAVRŠENO'),
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.w900,
-                  fontSize: 12,
-                ),
-              ),
-            ),
-          IconButton(
-            key: const ValueKey('live-close'),
-            tooltip: t('Zatvori'),
-            onPressed: () => Navigator.maybePop(context),
-            icon: const Icon(
-              Icons.keyboard_arrow_down,
-              color: Colors.white,
-              size: 30,
-            ),
+            onPressed: () async {
+              if (blockGuest(context)) return;
+              await ref.read(appProvider.notifier).toggleFollow(show.hostId);
+              showLoopSnackBar(t('Pratiš {0}', [hostName]));
+            },
+            child: Text(t('Prati')),
           ),
         ],
-      ),
+        const SizedBox(width: 6),
+        if (state.isLive) _ViewersChip(state.viewers)
+        else Text(state.isScheduled ? t('ZAKAZANO') : t('ZAVRŠENO'),
+          style: const TextStyle(color: Colors.white70, fontSize: 10, fontWeight: FontWeight.w600)),
+        IconButton(
+          key: const ValueKey('live-close'), tooltip: t('Zatvori'),
+          visualDensity: VisualDensity.compact,
+          onPressed: () => Navigator.maybePop(context),
+          icon: const Icon(Icons.keyboard_arrow_down, color: Colors.white, size: 24),
+        ),
+      ]),
     );
   }
 }
@@ -3202,8 +3120,8 @@ class _LotCard extends StatelessWidget {
       margin: const EdgeInsets.fromLTRB(10, 2, 10, 0),
       padding: const EdgeInsets.fromLTRB(10, 8, 10, 8),
       decoration: BoxDecoration(
-        color: Colors.black.withValues(alpha: 0.55),
-        borderRadius: BorderRadius.circular(20),
+        color: const Color(0xE6131419),
+        borderRadius: BorderRadius.circular(12),
         border: Border.all(color: Colors.white12),
       ),
       child: Column(
@@ -3212,7 +3130,7 @@ class _LotCard extends StatelessWidget {
           Row(
             children: [
               if (leader != null) ...[
-                UserAvatar(user: leaderUser, size: 22),
+                UserAvatar(user: leaderUser, size: 18),
                 const SizedBox(width: 6),
               ],
               Flexible(
@@ -3232,7 +3150,7 @@ class _LotCard extends StatelessWidget {
                   style: const TextStyle(
                     color: Colors.white,
                     fontWeight: FontWeight.w900,
-                    fontSize: 15,
+                    fontSize: 13,
                     shadows: _shadow,
                   ),
                 ),
@@ -3246,10 +3164,10 @@ class _LotCard extends StatelessWidget {
               ClipRRect(
                 borderRadius: BorderRadius.circular(10),
                 child: d != null
-                    ? ItemThumb(device: d, size: 54)
+                    ? ItemThumb(device: d, size: 44)
                     : Container(
-                        width: 54,
-                        height: 54,
+                        width: 44,
+                        height: 44,
                         color: Colors.white12,
                         child: const Icon(Icons.inventory_2_outlined),
                       ),
@@ -3266,7 +3184,7 @@ class _LotCard extends StatelessWidget {
                       style: const TextStyle(
                         color: Colors.white,
                         fontWeight: FontWeight.w900,
-                        fontSize: 15,
+                        fontSize: 13,
                         height: 1.15,
                         shadows: _shadow,
                       ),
@@ -3281,7 +3199,7 @@ class _LotCard extends StatelessWidget {
                               overflow: TextOverflow.ellipsis,
                               style: const TextStyle(
                                 color: Colors.white70,
-                                fontSize: 12,
+                                fontSize: 11,
                                 shadows: _shadow,
                               ),
                             ),
@@ -3326,7 +3244,7 @@ class _LotCard extends StatelessWidget {
                         style: const TextStyle(
                           color: Colors.white,
                           fontWeight: FontWeight.w900,
-                          fontSize: 30,
+                          fontSize: 25,
                           height: 1.05,
                           shadows: _shadow,
                         ),
@@ -3338,7 +3256,7 @@ class _LotCard extends StatelessWidget {
                       t('💎 procjena {0}', [formatCredits(value)]),
                       style: const TextStyle(
                         color: Colors.white70,
-                        fontSize: 12,
+                        fontSize: 11,
                         shadows: _shadow,
                       ),
                     ),
@@ -3352,7 +3270,7 @@ class _LotCard extends StatelessWidget {
                       style: TextStyle(
                         color: leader == null ? Colors.white70 : kLiveRed,
                         fontWeight: FontWeight.w900,
-                        fontSize: 17,
+                        fontSize: 11,
                         shadows: _shadow,
                       ),
                     )
@@ -4067,11 +3985,7 @@ class _ReactionChipState extends State<_ReactionChip>
         width: 38,
         height: 38,
         alignment: Alignment.center,
-        decoration: BoxDecoration(
-          color: Colors.white.withValues(alpha: 0.14),
-          shape: BoxShape.circle,
-        ),
-        child: Text(widget.emoji, style: const TextStyle(fontSize: 20)),
+        child: Text(widget.emoji, style: const TextStyle(fontSize: 20, shadows: [Shadow(blurRadius: 5, color: Colors.black54)])),
       ),
     ),
   );
@@ -4110,21 +4024,14 @@ class _DouyinBar extends StatelessWidget {
           color: Colors.transparent,
           child: InkWell(
             key: const ValueKey('live-queue'),
-            borderRadius: BorderRadius.circular(14),
+            borderRadius: BorderRadius.circular(10),
             onTap: onBag,
             child: Ink(
-              width: 46,
-              height: 46,
+              width: 40,
+              height: 40,
               decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(14),
-                gradient: const LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: [Color(0xFFFFA24C), kBidOrange],
-                ),
-                boxShadow: const [
-                  BoxShadow(blurRadius: 10, color: Colors.black38),
-                ],
+                borderRadius: BorderRadius.circular(10),
+                color: const Color(0xCC202127),
               ),
               child: Center(
                 child: Badge(
@@ -4157,15 +4064,17 @@ class _DouyinBar extends StatelessWidget {
                     hintText: t('Reci nešto…'),
                     hintStyle: const TextStyle(color: Colors.white70),
                     filled: true,
-                    fillColor: Colors.white.withValues(alpha: 0.14),
+                    fillColor: const Color(0xA6202127),
                     contentPadding: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 12,
+                      horizontal: 12,
+                      vertical: 10,
                     ),
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(99),
                       borderSide: BorderSide.none,
                     ),
+                    enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(99), borderSide: BorderSide.none),
+                    focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(99), borderSide: const BorderSide(color: Colors.white38)),
                     suffixIcon: IconButton(
                       key: const ValueKey('live-send'),
                       tooltip: t('Pošalji'),
@@ -4199,13 +4108,13 @@ class _DouyinBar extends StatelessWidget {
                       Icons.favorite,
                       key: ValueKey('liked'),
                       color: Color(0xFFFF4D6D),
-                      size: 28,
+                      size: 24,
                     )
                   : const Icon(
                       Icons.favorite_border,
                       key: ValueKey('not-liked'),
                       color: Colors.white,
-                      size: 28,
+                      size: 24,
                     ),
             ),
           ),
@@ -4218,7 +4127,7 @@ class _DouyinBar extends StatelessWidget {
           key: const ValueKey('live-share'),
           tooltip: t('Podijeli'),
           onPressed: onShare,
-          icon: const Icon(Icons.ios_share, color: Colors.white, size: 26),
+          icon: const Icon(Icons.ios_share, color: Colors.white, size: 22),
         ),
       ],
     ),

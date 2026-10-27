@@ -38,8 +38,15 @@ Future<void> main() async {
     samples.add(sample.id);
   }
   final lives = LiveService(storage);
-  await lives.create(
+  final liveItem = await trade.addDevice(
+    userId: SeedData.markoUserId, name: 'Game Boy Pocket', model: 'srebrni',
+    condition: DeviceCondition.good, price: 55, category: DeviceCategory.console,
+    imagePaths: const ['https://upload.wikimedia.org/wikipedia/commons/5/5d/Sony-PSP-1000-Body.png'],
+  );
+  final previewLive = await lives.create(
     hostId: SeedData.markoUserId,
+    items: [(liveItem.id, 21)], lotSeconds: 60,
+    coverPath: 'https://upload.wikimedia.org/wikipedia/commons/5/5d/Sony-PSP-1000-Body.png',
     title: 'Konzole uživo',
     category: DeviceCategory.console.name,
   );
@@ -48,6 +55,8 @@ Future<void> main() async {
     title: 'Knjige uživo',
     category: DeviceCategory.books.name,
   );
+  await lives.startLot(SeedData.markoUserId, previewLive.id);
+  await lives.chat(SeedData.anaUserId, previewLive.id, 'Prvi put sam tu 👋');
   await storage.saveSession(userId: SeedData.testUserId);
   final prefs = FeedPreferences();
   for (final i in browseItems(AppState.fromStorage(storage))) {

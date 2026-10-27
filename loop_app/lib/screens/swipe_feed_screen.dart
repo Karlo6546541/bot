@@ -1247,13 +1247,8 @@ class _ActionRail extends ConsumerWidget {
             ])
           : t('{0} za {1} na Subhastu', [d.name, formatCredits(d.shownPrice)]),
     );
-    return Container(
+    return SizedBox(
       width: 48,
-      padding: const EdgeInsets.symmetric(vertical: 4),
-      decoration: BoxDecoration(
-        color: Colors.black.withValues(alpha: 0.5),
-        borderRadius: BorderRadius.circular(16),
-      ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -1324,7 +1319,7 @@ class _RailButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    Widget i = Icon(icon, color: color, size: 23);
+    Widget i = Icon(icon, color: color, size: 23, shadows: _shadow);
     if (mirror) i = Transform.flip(flipX: true, child: i);
     return SizedBox(
       height: 54,
@@ -1342,6 +1337,7 @@ class _RailButton extends StatelessWidget {
               overflow: TextOverflow.ellipsis,
               style: const TextStyle(
                 color: Color(0xFFCDCED6),
+                shadows: _shadow,
                 fontSize: 9,
                 fontWeight: FontWeight.w500,
               ),

@@ -64,6 +64,10 @@ class _BuyNow extends _Filter {
   const _BuyNow();
 }
 
+class _Digital extends _Filter {
+  const _Digital();
+}
+
 class _Following extends _Filter {
   const _Following();
 }
@@ -130,6 +134,7 @@ class _LiveHomeScreenState extends ConsumerState<LiveHomeScreen> {
         )
         .toList();
     final buyNow = all.where((i) => i.isBuyNow).toList();
+    final digital = buyNow.where((i) => i.device?.isDigital ?? false).toList();
 
     void open(List<BrowseItem> list, int i, String title) {
       // Signal za "Za tebe": što otvaraš (samo na ovom uređaju).
@@ -257,6 +262,14 @@ class _LiveHomeScreenState extends ConsumerState<LiveHomeScreen> {
                 )
               : grid('home-ending', auctions, t('Aukcije')),
         );
+      case _Digital():
+        slivers.add(SliverToBoxAdapter(child: Padding(
+          padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+          child: Text(t('Digitalne kupnje'), style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w700)),
+        )));
+        slivers.add(digital.isEmpty
+          ? SliverToBoxAdapter(child: Padding(padding: const EdgeInsets.all(16), child: Text(t('Trenutno nema digitalnih proizvoda.'))))
+          : grid('home-digital', digital, t('Digitalne kupnje')));
       case _BuyNow():
         slivers.add(const SliverToBoxAdapter(child: SizedBox(height: 12)));
         slivers.add(
@@ -383,14 +396,17 @@ class _LiveHomeScreenState extends ConsumerState<LiveHomeScreen> {
                   tooltip: t('Filteri'),
                   color: foreground,
                   onPressed: () async {
-                    final picked = await showModalBottomSheet<_Filter>(
+                    final picked = await showModalBottomSheet<Object>(
                       context: context,
                       showDragHandle: true,
                       builder: (ctx) => SafeArea(
                         child: Column(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            for (final (id, label, icon, value) in [
+                            for (final (id, label, icon, value) in <(String, String, IconData, Object)>[
+                              ('categories', t('Kategorije'), Icons.grid_view, 'categories'),
+                              ('live-menu', t('Uživo'), Icons.videocam_outlined, const _LiveOnly()),
+                              ('digital', t('Digitalne kupnje'), Icons.download_outlined, const _Digital()),
                               ('soon', t('Uskoro'), Icons.event, const _Soon()),
                               (
                                 'timed',
@@ -420,7 +436,10 @@ class _LiveHomeScreenState extends ConsumerState<LiveHomeScreen> {
                         ),
                       ),
                     );
-                    if (picked != null && mounted) {
+                    if (!mounted) return;
+                    if (picked == 'categories') {
+                      await CategoriesScreen.open(context);
+                    } else if (picked is _Filter) {
                       _select(picked);
                     }
                   },
@@ -468,97 +487,15 @@ class _LiveHomeScreenState extends ConsumerState<LiveHomeScreen> {
       });
     }
 
-    final quickAccess = ColoredBox(
-      color: immersive ? Colors.black : LoopColors.background,
-      child: Center(
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 520),
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(12, 0, 12, 6),
-            child: Row(
-              children: [
-                Expanded(
-                  child: Align(
-                    alignment: Alignment.centerLeft,
-                    child: ActionChip(
-                      key: ValueKey(
-                        onLive
-                            ? 'live-category-filter'
-                            : onAuctions
-                            ? 'auction-category-filter'
-                            : 'home-categories-shortcut',
-                      ),
-                      avatar: Icon(
-                        onLive || onAuctions
-                            ? Icons.filter_list
-                            : Icons.grid_view,
-                        size: 15,
-                        color: foreground.withValues(alpha: 0.75),
-                      ),
-                      label: Text(
-                        selectedCategory?.label ??
-                            (onLive || onAuctions
-                                ? t('Sve kategorije')
-                                : t('Kategorije')),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                      onPressed: categories,
-                      visualDensity: VisualDensity.compact,
-                      materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                      backgroundColor: immersive
-                          ? const Color(0xFF18191F)
-                          : LoopColors.surface,
-                      side: BorderSide(
-                        color: immersive
-                            ? const Color(0xFF30313A)
-                            : LoopColors.surfaceHover,
-                      ),
-                      labelStyle: TextStyle(
-                        color: foreground.withValues(alpha: 0.8),
-                        fontSize: 11,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 8),
-                ActionChip(
-                  key: const ValueKey('home-auctions-shortcut'),
-                  avatar: Icon(
-                    Icons.gavel,
-                    size: 15,
-                    color: onAuctions
-                        ? LoopColors.accent
-                        : foreground.withValues(alpha: 0.75),
-                  ),
-                  label: Text(t('Aukcije')),
-                  onPressed: () => _select(const _Timed()),
-                  visualDensity: VisualDensity.compact,
-                  materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                  backgroundColor: immersive
-                      ? const Color(0xFF18191F)
-                      : LoopColors.surface,
-                  side: BorderSide(
-                    color: onAuctions
-                        ? LoopColors.accent
-                        : immersive
-                        ? const Color(0xFF30313A)
-                        : LoopColors.surfaceHover,
-                  ),
-                  labelStyle: TextStyle(
-                    color: onAuctions
-                        ? LoopColors.accent
-                        : foreground.withValues(alpha: 0.8),
-                    fontSize: 11,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
+    final categoryFilter = Padding(
+      padding: const EdgeInsets.fromLTRB(16, 4, 16, 0),
+      child: Align(alignment: Alignment.centerLeft, child: ActionChip(
+        key: ValueKey(onLive ? 'live-category-filter' : 'auction-category-filter'),
+        avatar: const Icon(Icons.filter_list, size: 16),
+        label: Text(selectedCategory?.label ?? t('Sve kategorije')),
+        onPressed: categories,
+        visualDensity: VisualDensity.compact,
+      )),
     );
 
     // "Za tebe": TikTok — objave preko cijelog ekrana ispod izbornika,
@@ -567,7 +504,6 @@ class _LiveHomeScreenState extends ConsumerState<LiveHomeScreen> {
       return Column(
         children: [
           chips,
-          quickAccess,
           Expanded(
             child: ForYouFeed(
               key: ValueKey('recommendations:${s.currentUserId}'),
@@ -584,7 +520,7 @@ class _LiveHomeScreenState extends ConsumerState<LiveHomeScreen> {
         if (_filter is! _ForYou)
           const SliverToBoxAdapter(child: SizedBox(height: 8)),
         SliverToBoxAdapter(child: chips),
-        SliverToBoxAdapter(child: quickAccess),
+        if (onLive || onAuctions) SliverToBoxAdapter(child: categoryFilter),
         if (_showHow && _filter is _ForYou)
           SliverToBoxAdapter(
             child: _HowLoopWorks(

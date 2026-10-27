@@ -43,13 +43,25 @@ const {chromium} = require('/tmp/feed-browser/node_modules/playwright');
           return {count: values.length, p95ms: values[Math.floor(values.length * 0.95)], maxms: values.at(-1)};
         });
         console.log('FEED_SCROLL_FRAMES:' + JSON.stringify(frames));
-        // Coordinates address the fixed header in this isolated 390 px fixture.
-        await page.mouse.click(width - 60, 64);
+        await page.mouse.click(width - 22, 24);
+        await page.waitForTimeout(400);
+        console.log('FEED_SCREENSHOT:browse-menu:' + (await page.screenshot({type: 'jpeg', quality: 75})).toString('base64'));
+        // Sheet rows: Categories, Live, Digital, Soon, Auctions, Buy now.
+        await page.mouse.click(100, height - 184);
         await page.waitForTimeout(500);
         console.log('FEED_SCREENSHOT:auctions:' + (await page.screenshot({type: 'jpeg', quality: 75})).toString('base64'));
         await page.mouse.click((width - 96) * 5 / 6, 32);
         await page.waitForTimeout(500);
         console.log('FEED_SCREENSHOT:live-browse:' + (await page.screenshot({type: 'jpeg', quality: 75})).toString('base64'));
+        await page.mouse.click(90, 200);
+        await page.waitForTimeout(1000);
+        console.log('FEED_SCREENSHOT:live-room:' + (await page.screenshot({type: 'jpeg', quality: 75})).toString('base64'));
+        await page.setViewportSize({width: 320, height: 600});
+        await page.waitForTimeout(500);
+        console.log('FEED_SCREENSHOT:live-room-short:' + (await page.screenshot({type: 'jpeg', quality: 75})).toString('base64'));
+        await page.setViewportSize({width, height});
+        await page.mouse.click(width - 22, 20);
+        await page.waitForTimeout(500);
         await page.mouse.click(80, 72);
         await page.waitForTimeout(500);
         console.log('FEED_SCREENSHOT:live-category-picker:' + (await page.screenshot({type: 'jpeg', quality: 75})).toString('base64'));
