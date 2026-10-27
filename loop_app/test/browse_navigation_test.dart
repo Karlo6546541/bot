@@ -32,7 +32,7 @@ void main() {
     child: const LoopApp(),
   );
 
-  testWidgets('categories and auctions open directly from the feed', (
+  testWidgets('browse menu opens categories, auctions and digital shopping', (
     tester,
   ) async {
     tester.view.physicalSize = const Size(390, 844);
@@ -40,18 +40,33 @@ void main() {
     addTearDown(tester.view.reset);
     await tester.pumpWidget(app());
     await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const ValueKey('home-categories-shortcut')));
+    expect(
+      find.byKey(const ValueKey('home-categories-shortcut')),
+      findsNothing,
+    );
+    expect(find.byKey(const ValueKey('home-auctions-shortcut')), findsNothing);
+    await tester.tap(find.byKey(const ValueKey('home-filters')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('home-cat-categories')));
     await tester.pumpAndSettle();
     expect(find.byKey(const ValueKey('categories')), findsOneWidget);
     await tester.tap(find.byTooltip('Natrag'));
     await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const ValueKey('home-auctions-shortcut')));
+    await tester.tap(find.byKey(const ValueKey('home-filters')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('home-cat-timed')));
     await tester.pumpAndSettle();
     expect(find.byKey(const ValueKey('home-ending')), findsOneWidget);
     expect(
       find.byKey(const ValueKey('auction-category-filter')),
       findsOneWidget,
     );
+    await tester.tap(find.byKey(const ValueKey('home-filters')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('home-cat-digital')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('home-digital')), findsOneWidget);
+    expect(find.byKey(const ValueKey('home-ending')), findsNothing);
     await tester.pumpWidget(const SizedBox.shrink());
   });
 
@@ -93,6 +108,15 @@ void main() {
     await tester.tap(find.byKey(const ValueKey('live-category-all')));
     await tester.pumpAndSettle();
     expect(find.byKey(ValueKey('browse-live-${ids[1]}')), findsOneWidget);
+    tester.view.physicalSize = const Size(320, 600);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(ValueKey('browse-live-${ids[0]}')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('live-compact-header')), findsOneWidget);
+    expect(find.byKey(const ValueKey('live-chat')), findsOneWidget);
+    expect(tester.takeException(), isNull);
     await tester.pumpWidget(const SizedBox.shrink());
   });
 
