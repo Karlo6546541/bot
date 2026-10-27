@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart' show listEquals;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../l10n/tr.dart';
@@ -33,6 +34,14 @@ class _ForYouFeedState extends ConsumerState<ForYouFeed> {
   int _index = 0;
   int _generation = 0;
   bool _allowSeen = false;
+  bool _scrolling = false;
+  bool _rankingDirty = false;
+  bool _inventoryDirty = false;
+  bool _pendingSave = false;
+  bool _disposed = false;
+  Timer? _queueTimer;
+  Timer? _saveTimer;
+  final _pendingCategories = <String>[];
 
   static String _entryKey(FeedEntry e) =>
       e.liveId ?? e.auctionId ?? e.deviceId ?? '';
@@ -66,8 +75,90 @@ class _ForYouFeedState extends ConsumerState<ForYouFeed> {
     _picks.addAll(_ranked());
   }
 
-  void _save() =>
+  void _save() {
+    _pendingSave = true;
+    _saveTimer?.cancel();
+    if (_disposed) {
+      _flushStorage();
+      return;
+    }
+    if (!_scrolling) {
+      _saveTimer = Timer(const Duration(milliseconds: 300), _flushStorage);
+    }
+  }
+
+  void _flushStorage() {
+    _saveTimer?.cancel();
+    if (!_storage.isOpen) return;
+    if (_pendingSave) {
+      _pendingSave = false;
       unawaited(_storage.saveFeedPreferences(_userId, _preferences));
+    }
+    if (_pendingCategories.isNotEmpty) {
+      final recent = _pendingCategories.toList();
+      _pendingCategories.clear();
+      unawaited(_storage.addRecentCategories(recent));
+    }
+  }
+
+  @override
+  void dispose() {
+    _disposed = true;
+    _queueTimer?.cancel();
+    _saveTimer?.cancel();
+    _flushStorage();
+    super.dispose();
+  }
+
+  @override
+  void didUpdateWidget(covariant ForYouFeed oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.active) _scheduleQueue();
+  }
+
+  void _onScrollState(bool scrolling) {
+    _scrolling = scrolling;
+    _queueTimer?.cancel();
+    _saveTimer?.cancel();
+    if (!scrolling) {
+      if (_pendingSave) _save();
+      _scheduleQueue();
+    }
+  }
+
+  void _scheduleQueue() {
+    _queueTimer?.cancel();
+    if (_disposed || _scrolling || !widget.active) return;
+    if (!_rankingDirty && !_inventoryDirty && _picks.length - _index > 12) {
+      return;
+    }
+    _queueTimer = Timer(const Duration(milliseconds: 100), _refreshQueue);
+  }
+
+  void _refreshQueue() {
+    if (!mounted || _scrolling || !widget.active) return;
+    // Freeze the current entry and the next two already being decoded.
+    final keep = (_index + 3).clamp(0, _picks.length);
+    final kept = _picks.sublist(0, keep);
+    final rest = _ranked(
+      exclude: {for (final p in kept) ForYouRanker.keyOf(p.item)},
+    );
+    _rankingDirty = false;
+    _inventoryDirty = false;
+    if (kept.length == _picks.length && rest.isEmpty) return;
+    setState(() {
+      _picks
+        ..clear()
+        ..addAll(kept)
+        ..addAll(rest);
+      if (_index > 60) {
+        final trim = _index - 10;
+        _picks.removeRange(0, trim);
+        _index -= trim;
+        _generation++;
+      }
+    });
+  }
 
   BrowseItem? _item(FeedEntry entry) {
     final key = _entryKey(entry);
@@ -98,15 +189,15 @@ class _ForYouFeedState extends ConsumerState<ForYouFeed> {
         : 0;
     final delta = weight(total) - weight(before);
     if (delta > 0 && !_preferences.hidden.contains(key)) {
+      _rankingDirty = true;
       for (final c in item.categories) {
         _boost[c] = ((_boost[c] ?? 0) + delta).clamp(-4, 6).toDouble();
       }
       if (before <= 4000) {
-        unawaited(
-          _storage.addRecentCategories([
-            for (final c in item.categories) c.name,
-          ]),
-        );
+        _pendingCategories.addAll([for (final c in item.categories) c.name]);
+        if (_pendingCategories.length > 30) {
+          _pendingCategories.removeRange(0, _pendingCategories.length - 30);
+        }
         final d = item.device;
         if (d != null) _preferences.learnModel(d.model, d.condition.name);
       }
@@ -118,34 +209,20 @@ class _ForYouFeedState extends ConsumerState<ForYouFeed> {
     final d = _item(entry)?.device;
     if (d != null) {
       _preferences.learnModel(d.model, d.condition.name);
+      _rankingDirty = true;
       _save();
     }
   }
 
   void _onPage(int from, Duration dwell, int to) {
-    if (!mounted) return;
+    // Page changes happen while a drag is still animating. Never rank or
+    // rebuild the queue here; ScrollEnd schedules that work after settling.
     _index = to;
-    // Freeze current and next, then rerank a small upcoming batch.
-    final keep = (to + 2).clamp(0, _picks.length);
-    final kept = _picks.sublist(0, keep);
-    final rest = _ranked(
-      exclude: {for (final p in kept) ForYouRanker.keyOf(p.item)},
-    );
-    setState(() {
-      _picks
-        ..clear()
-        ..addAll(kept)
-        ..addAll(rest);
-      if (_index > 60) {
-        final trim = _index - 10;
-        _picks.removeRange(0, trim);
-        _index -= trim;
-        _generation++;
-      }
-    });
+    _scheduleQueue();
   }
 
   void _restart({bool replay = false}) {
+    _queueTimer?.cancel();
     setState(() {
       _allowSeen = replay;
       _shown.clear();
@@ -159,6 +236,7 @@ class _ForYouFeedState extends ConsumerState<ForYouFeed> {
   }
 
   void _feedback(FeedEntry entry, FeedFeedback action) {
+    _queueTimer?.cancel();
     if (action == FeedFeedback.settings) {
       unawaited(_controls());
       return;
@@ -179,6 +257,7 @@ class _ForYouFeedState extends ConsumerState<ForYouFeed> {
       _preferences.hide(_entryKey(entry));
     }
     _save();
+    _flushStorage();
     // Keep previously viewed entries out when replacing the hidden page.
     setState(() {
       for (final p in _picks.take(_index + 1)) {
@@ -233,21 +312,34 @@ class _ForYouFeedState extends ConsumerState<ForYouFeed> {
       _preferences.less.clear();
       _boost.clear();
       _save();
+      _flushStorage();
       _restart();
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    ref.listen(appProvider, (_, _) {
-      if (_picks.length - _index > 12) return;
-      final fresh = _ranked(
-        exclude: {for (final p in _picks) ForYouRanker.keyOf(p.item)},
-      );
-      // Add new content without changing the visible entry.
-      if (fresh.isNotEmpty && (_picks.isEmpty || _index < _picks.length)) {
-        setState(() => _picks.addAll(fresh));
-      }
+    ref.listen(appProvider, (previous, next) {
+      // View counters alone must not reorder an actively scrolling feed.
+      _inventoryDirty =
+          _inventoryDirty ||
+          previous == null ||
+          previous.devices.length != next.devices.length ||
+          previous.auctions.length != next.auctions.length ||
+          previous.liveShows.length != next.liveShows.length;
+      _rankingDirty =
+          _rankingDirty ||
+          previous == null ||
+          previous.transactions.length != next.transactions.length ||
+          !listEquals(
+            previous.currentUser?.favorites,
+            next.currentUser?.favorites,
+          ) ||
+          !listEquals(
+            previous.currentUser?.following,
+            next.currentUser?.following,
+          );
+      if (_inventoryDirty || _rankingDirty) _scheduleQueue();
     });
     final end = ColoredBox(
       color: Colors.black,
@@ -309,6 +401,7 @@ class _ForYouFeedState extends ConsumerState<ForYouFeed> {
         embedded: true,
         active: widget.active,
         onPage: _onPage,
+        onScrollState: _onScrollState,
         onWatch: _watch,
         onDetails: _details,
         onFeedback: _feedback,

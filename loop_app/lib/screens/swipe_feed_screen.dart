@@ -45,6 +45,7 @@ class SwipeFeedScreen extends ConsumerStatefulWidget {
     this.embedded = false,
     this.active = true,
     this.onPage,
+    this.onScrollState,
     this.reasonOf,
     this.onWatch,
     this.onDetails,
@@ -69,6 +70,7 @@ class SwipeFeedScreen extends ConsumerStatefulWidget {
   /// Prelazak na drugu objavu: s koje ([from]), koliko se gledala i na
   /// koju ([to]) — za učenje ukusa u "Za tebe".
   final void Function(int from, Duration dwell, int to)? onPage;
+  final ValueChanged<bool>? onScrollState;
 
   /// Razlog preporuke ("Jer pratiš @ana") — oznaka na vrhu objave.
   final String? Function(FeedEntry)? reasonOf;
@@ -103,6 +105,55 @@ class _SwipeFeedScreenState extends ConsumerState<SwipeFeedScreen>
   bool _routeVisible = true;
   bool _foreground = true;
   bool _visible = false;
+  bool _scrolling = false;
+  Timer? _preloadTimer;
+  final _preloaded = <String>{};
+
+  bool _onScroll(ScrollNotification notification) {
+    if (notification.depth != 0 || notification.metrics.axis != Axis.vertical) {
+      return false;
+    }
+    if (notification is ScrollStartNotification) {
+      _scrolling = true;
+      _viewTimer?.cancel();
+      _preloadTimer?.cancel();
+      _watch.setVisible(false);
+      _flushWatch();
+      widget.onScrollState?.call(true);
+    } else if (notification is ScrollEndNotification) {
+      _scrolling = false;
+      _watch.setVisible(_visible);
+      widget.onScrollState?.call(false);
+      if (_visible) {
+        _scheduleView();
+        _schedulePreload();
+      }
+    }
+    return false;
+  }
+
+  void _schedulePreload() {
+    _preloadTimer?.cancel();
+    if (!_visible || _scrolling) return;
+    _preloadTimer = Timer(const Duration(milliseconds: 50), () {
+      if (!mounted || !_visible || _scrolling) return;
+      final state = ref.read(appProvider);
+      for (final entry in widget.entries.skip(_index + 1).take(2)) {
+        if (entry.isLive) continue;
+        final id =
+            entry.deviceId ?? state.auctionById(entry.auctionId!)?.deviceId;
+        final d = id == null ? null : state.deviceById(id);
+        if (d == null || d.imagePaths.isEmpty) continue;
+        final path = d.imagePaths.first;
+        if (!_preloaded.add(path)) continue;
+        if (_preloaded.length > 12) _preloaded.remove(_preloaded.first);
+        final provider = LocalPhoto.providerFor(path, cacheWidth: 1080);
+        if (provider != null) {
+          unawaited(precacheImage(provider, context, onError: (_, _) {}));
+        }
+      }
+    });
+  }
 
   String _key(FeedEntry e) => e.liveId ?? e.auctionId ?? e.deviceId ?? '';
 
@@ -115,19 +166,21 @@ class _SwipeFeedScreenState extends ConsumerState<SwipeFeedScreen>
 
   void _visibility() {
     final visible = widget.active && _routeVisible && _foreground;
-    _watch.setVisible(visible);
+    _watch.setVisible(visible && !_scrolling);
     if (!visible) {
       _viewTimer?.cancel();
+      _preloadTimer?.cancel();
       if (_visible) _flushWatch();
     } else if (!_visible) {
       _scheduleView();
     }
     _visible = visible;
+    if (visible && !_scrolling) _schedulePreload();
   }
 
   void _scheduleView() {
     _viewTimer?.cancel();
-    if (_index >= widget.entries.length) return;
+    if (_scrolling || _index >= widget.entries.length) return;
     final entry = widget.entries[_index];
     _viewTimer = Timer(const Duration(seconds: 1), () {
       if (mounted &&
@@ -203,6 +256,7 @@ class _SwipeFeedScreenState extends ConsumerState<SwipeFeedScreen>
     _watch.setVisible(false);
     _flushWatch();
     _viewTimer?.cancel();
+    _preloadTimer?.cancel();
     feedRouteObserver.unsubscribe(this);
     WidgetsBinding.instance.removeObserver(this);
     _pages.dispose();
@@ -241,43 +295,49 @@ class _SwipeFeedScreenState extends ConsumerState<SwipeFeedScreen>
             constraints: const BoxConstraints(maxWidth: 520),
             child: Stack(
               children: [
-                PageView.builder(
-                  key: const ValueKey('swipe-feed'),
-                  controller: _pages,
-                  scrollDirection: Axis.vertical,
-                  itemCount:
-                      entries.length +
-                      (widget.endPage != null || !embedded ? 1 : 0),
-                  onPageChanged: (i) {
-                    final dwell = _watch.take();
-                    if (_index < entries.length && dwell > Duration.zero) {
-                      widget.onWatch?.call(entries[_index], dwell);
-                    }
-                    final from = _index;
-                    setState(() => _index = i);
-                    widget.onPage?.call(from, dwell, i);
-                    if (_visible) _scheduleView();
-                  },
-                  itemBuilder: (context, i) {
-                    if (i == entries.length) {
-                      return widget.endPage ??
-                          _EndPage(onBack: () => Navigator.pop(context));
-                    }
-                    final e = entries[i];
-                    if (e.isLive) {
-                      return LiveRoomView(
-                        key: ValueKey('feed-live-${e.liveId}'),
-                        showId: e.liveId!,
-                        active: i == _index && _visible,
+                NotificationListener<ScrollNotification>(
+                  onNotification: _onScroll,
+                  child: PageView.builder(
+                    key: const ValueKey('swipe-feed'),
+                    scrollBehavior: const AnyDeviceDragBehavior(),
+                    controller: _pages,
+                    scrollDirection: Axis.vertical,
+                    itemCount:
+                        entries.length +
+                        (widget.endPage != null || !embedded ? 1 : 0),
+                    onPageChanged: (i) {
+                      final dwell = _watch.take();
+                      if (_index < entries.length && dwell > Duration.zero) {
+                        widget.onWatch?.call(entries[_index], dwell);
+                      }
+                      final from = _index;
+                      setState(() => _index = i);
+                      widget.onPage?.call(from, dwell, i);
+                      if (_visible) _scheduleView();
+                    },
+                    itemBuilder: (context, i) {
+                      if (i == entries.length) {
+                        return widget.endPage ??
+                            _EndPage(onBack: () => Navigator.pop(context));
+                      }
+                      final e = entries[i];
+                      if (e.isLive) {
+                        return LiveRoomView(
+                          key: ValueKey('feed-live-${e.liveId}'),
+                          showId: e.liveId!,
+                          active: i == _index && _visible,
+                        );
+                      }
+                      return RepaintBoundary(
+                        key: ValueKey('post-${_key(e)}'),
+                        child: _PostPage(
+                          entry: e,
+                          state: state,
+                          onDetails: () => widget.onDetails?.call(e),
+                        ),
                       );
-                    }
-                    return _PostPage(
-                      key: ValueKey('post-${_key(e)}'),
-                      entry: e,
-                      state: state,
-                      onDetails: () => widget.onDetails?.call(e),
-                    );
-                  },
+                    },
+                  ),
                 ),
                 // Ugrađeno: oznaka zašto je objava predložena.
                 if (embedded &&
@@ -490,12 +550,7 @@ class _BoughtPage extends StatelessWidget {
 /// Jedna objava: slika preko cijelog ekrana, a dolje opis (lijevo) i
 /// stupac akcija (desno) jedan pokraj drugoga — nikad se ne preklapaju.
 class _PostPage extends ConsumerStatefulWidget {
-  const _PostPage({
-    super.key,
-    required this.entry,
-    required this.state,
-    this.onDetails,
-  });
+  const _PostPage({required this.entry, required this.state, this.onDetails});
   final VoidCallback? onDetails;
   final FeedEntry entry;
   final AppState state;

@@ -471,7 +471,14 @@ class AuctionBrowseCard extends ConsumerWidget {
       );
     } else {
       topLeft = pill(
-        AuctionCountdown(endsAt: a.endsAt, showIcon: false, style: pillText),
+        FittedBox(
+          fit: BoxFit.scaleDown,
+          child: AuctionCountdown(
+            endsAt: a.endsAt,
+            showIcon: false,
+            style: pillText,
+          ),
+        ),
         LoopColors.accent,
       );
     }

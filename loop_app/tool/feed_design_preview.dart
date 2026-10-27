@@ -8,6 +8,7 @@ import 'package:loop_app/providers/app_state.dart';
 import 'package:loop_app/screens/auctions_screen.dart';
 import 'package:loop_app/screens/for_you_ranker.dart';
 import 'package:loop_app/services/feed_preferences.dart';
+import 'package:loop_app/services/live_service.dart';
 import 'package:loop_app/services/seed_data.dart';
 import 'package:loop_app/services/storage_service.dart';
 import 'package:loop_app/services/trade_service.dart';
@@ -19,23 +20,38 @@ Future<void> main() async {
   final trade = TradeService(storage);
   await trade.assignPlatformItems();
   await trade.autoListPortfolios();
-  final sample = await trade.addDevice(
-    userId: SeedData.anaUserId,
-    name: 'Sony PSP',
-    model: '3004, crna',
-    condition: DeviceCondition.good,
-    price: 69,
-    category: DeviceCategory.console,
-    description: 'Nova baterija, 4GB kartica. Ispravan i spreman za igranje.',
-    // Public product reference from Wikimedia Commons, loaded only by this fixture.
-    imagePaths: const [
-      'https://upload.wikimedia.org/wikipedia/commons/5/5d/Sony-PSP-1000-Body.png',
-    ],
+  final samples = <String>{};
+  for (var index = 0; index < 8; index++) {
+    final sample = await trade.addDevice(
+      userId: SeedData.anaUserId,
+      name: 'Sony PSP',
+      model: '3004, crna',
+      condition: DeviceCondition.good,
+      price: 69,
+      category: DeviceCategory.console,
+      description: 'Nova baterija, 4GB kartica. Ispravan i spreman za igranje.',
+      // Public product reference from Wikimedia Commons, loaded only by this fixture.
+      imagePaths: const [
+        'https://upload.wikimedia.org/wikipedia/commons/5/5d/Sony-PSP-1000-Body.png',
+      ],
+    );
+    samples.add(sample.id);
+  }
+  final lives = LiveService(storage);
+  await lives.create(
+    hostId: SeedData.markoUserId,
+    title: 'Konzole uživo',
+    category: DeviceCategory.console.name,
+  );
+  await lives.create(
+    hostId: SeedData.demoUserId,
+    title: 'Knjige uživo',
+    category: DeviceCategory.books.name,
   );
   await storage.saveSession(userId: SeedData.testUserId);
   final prefs = FeedPreferences();
   for (final i in browseItems(AppState.fromStorage(storage))) {
-    if (i.device?.id != sample.id) prefs.hide(ForYouRanker.keyOf(i));
+    if (!samples.contains(i.device?.id)) prefs.hide(ForYouRanker.keyOf(i));
   }
   await storage.saveFeedPreferences(SeedData.testUserId, prefs);
   runApp(
