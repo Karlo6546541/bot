@@ -575,28 +575,36 @@ class _LiveHomeScreenState extends ConsumerState<LiveHomeScreen> {
       );
     }
 
-    return Column(children: [chips, Expanded(child: CustomScrollView(
-      slivers: [
-        if (onLive || onAuctions) SliverToBoxAdapter(child: categoryFilter),
-        if (_showHow && _filter is _ForYou)
-          SliverToBoxAdapter(
-            child: _HowLoopWorks(
-              onClose: () => setState(() => _showHow = false),
-            ),
+    return Column(
+      children: [
+        chips,
+        Expanded(
+          child: CustomScrollView(
+            slivers: [
+              if (onLive || onAuctions)
+                SliverToBoxAdapter(child: categoryFilter),
+              if (_showHow && _filter is _ForYou)
+                SliverToBoxAdapter(
+                  child: _HowLoopWorks(
+                    onClose: () => setState(() => _showHow = false),
+                  ),
+                ),
+              if (!_hideCheckout &&
+                  s.currentUser != null &&
+                  !s.currentUser!.isGuest &&
+                  !s.currentUser!.checkoutReady)
+                SliverToBoxAdapter(
+                  child: _CheckoutBanner(
+                    onClose: () => setState(() => _hideCheckout = true),
+                  ),
+                ),
+              ...slivers,
+              const SliverToBoxAdapter(child: SizedBox(height: 96)),
+            ],
           ),
-        if (!_hideCheckout &&
-            s.currentUser != null &&
-            !s.currentUser!.isGuest &&
-            !s.currentUser!.checkoutReady)
-          SliverToBoxAdapter(
-            child: _CheckoutBanner(
-              onClose: () => setState(() => _hideCheckout = true),
-            ),
-          ),
-        ...slivers,
-        const SliverToBoxAdapter(child: SizedBox(height: 96)),
+        ),
       ],
-    )),]);
+    );
   }
 }
 

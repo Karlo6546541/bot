@@ -48,7 +48,11 @@ void main() {
     // Moje → Prodajem → Predmeti → detalji predmeta.
     if (find.text('Moje').evaluate().isEmpty) {
       final menu = find.byKey(const ValueKey('home-filters'));
-      await tester.tap(menu.evaluate().isNotEmpty ? menu : find.byKey(const ValueKey('shell-library-menu')));
+      await tester.tap(
+        menu.evaluate().isNotEmpty
+            ? menu
+            : find.byKey(const ValueKey('shell-library-menu')),
+      );
       await tester.pumpAndSettle();
     }
     await tester.tap(find.text('Moje').last);
