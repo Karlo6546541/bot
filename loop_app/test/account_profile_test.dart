@@ -105,6 +105,8 @@ void main() {
     'owner can start a post and delete their own item from its menu',
     (tester) async {
       await open(tester);
+      await tester.tap(find.byKey(const ValueKey('profile-liked-tab')));
+      await tester.pumpAndSettle();
       await tester.tap(find.byKey(const ValueKey('profile-create')));
       await tester.pumpAndSettle();
       expect(find.text('Što želiš pokrenuti?'), findsOneWidget);

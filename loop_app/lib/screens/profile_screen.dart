@@ -23,6 +23,7 @@ import '../widgets/shop_widgets.dart';
 import '../widgets/user_avatar.dart';
 import '../models/device.dart';
 import '../widgets/item_image.dart';
+import '../widgets/category_style.dart';
 import '../widgets/formatters.dart';
 import '../widgets/create_sheet.dart';
 import 'device_detail_screen.dart';
@@ -127,7 +128,10 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                           Expanded(
                             child: FilledButton.icon(
                               key: const ValueKey('profile-create'),
-                              onPressed: () => showCreateSheet(context),
+                              onPressed: () {
+                                setState(() => _liked = false);
+                                showCreateSheet(context);
+                              },
                               icon: const Icon(Icons.add, size: 19),
                               label: Text(t('Dodaj objavu')),
                             ),
@@ -329,7 +333,17 @@ class _AccountPostTile extends ConsumerWidget {
               child: Stack(
                 fit: StackFit.expand,
                 children: [
-                  ItemThumb(device: d, size: 280),
+                  d.imagePaths.isEmpty
+                      ? ItemIllustration(category: d.category)
+                      : ColoredBox(
+                          color: LoopColors.background,
+                          child: LocalPhoto(
+                            path: d.imagePaths.first,
+                            fit: BoxFit.contain,
+                            cacheWidth: 720,
+                            fallback: ItemIllustration(category: d.category),
+                          ),
+                        ),
                   Positioned(
                     top: 3,
                     right: 3,
@@ -459,8 +473,7 @@ class _ProfileSettingsView extends ConsumerWidget {
                     ),
                   ],
                 ),
-                // Profil je samo za račun i postavke — kupnje i prodaja su
-                // u kartici Moje.
+                // Račun i postavke odvojeni su od objava na profilu.
                 if (user.isGuest)
                   const _GuestCard()
                 else ...[
@@ -779,60 +792,9 @@ class _ShopCard extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final state = ref.watch(appProvider);
-    Widget stat(String value, String label, VoidCallback onTap, String key) =>
-        Expanded(
-          child: InkWell(
-            key: ValueKey(key),
-            onTap: onTap,
-            child: Padding(
-              padding: const EdgeInsets.symmetric(vertical: 12),
-              child: Column(
-                children: [
-                  Text(
-                    value,
-                    style: const TextStyle(
-                      fontSize: 22,
-                      fontWeight: FontWeight.w900,
-                    ),
-                  ),
-                  Text(
-                    label,
-                    style: TextStyle(
-                      color: LoopColors.textSecondary,
-                      fontSize: 12,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        );
     return Card(
       child: Column(
         children: [
-          Row(
-            children: [
-              stat(
-                '${state.followersOf(user.id)}',
-                t('pratitelja'),
-                () => FollowListScreen.open(context, user.id),
-                'my-followers',
-              ),
-              stat(
-                '${state.followingListOf(user.id).length}',
-                t('pratim'),
-                () => FollowListScreen.open(context, user.id, following: true),
-                'my-following',
-              ),
-              stat(
-                '${state.salesCountOf(user.id)}',
-                t('prodaja'),
-                () => SalesListScreen.open(context, user.id),
-                'my-sales',
-              ),
-            ],
-          ),
-          const Divider(height: 1),
           _NavTile(
             key: const ValueKey('seller-info'),
             icon: Icons.badge_outlined,
