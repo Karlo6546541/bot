@@ -173,35 +173,76 @@ void main() {
     );
   });
 
-  testWidgets('an initially empty feed receives synced listings and can hide them', (tester) async {
-    final prefs = FeedPreferences();
-    for (final i in browseItems(AppState.fromStorage(storage))) {
-      prefs.hide(ForYouRanker.keyOf(i));
-    }
-    await storage.saveFeedPreferences(SeedData.testUserId, prefs);
-    await tester.pumpWidget(ProviderScope(
-      overrides: [storageProvider.overrideWithValue(storage), tickIntervalProvider.overrideWithValue(null)],
-      child: MaterialApp(navigatorObservers: [feedRouteObserver],
-        home: const Scaffold(body: ForYouFeed(active: true))),
-    ));
-    await tester.pumpAndSettle();
-    expect(tester.widget<SwipeFeedScreen>(find.byType(SwipeFeedScreen)).entries, isEmpty);
-    final d = await tester.runAsync(() => TradeService(storage).addDevice(
-      userId: SeedData.anaUserId, name: 'Arrived after sync', model: 'New',
-      condition: DeviceCondition.good, price: 25, category: DeviceCategory.phone,
-    ));
-    final container = ProviderScope.containerOf(tester.element(find.byType(ForYouFeed)));
-    await container.read(appProvider.notifier).toggleFollow(SeedData.anaUserId);
-    await tester.pumpAndSettle();
-    expect(tester.widget<SwipeFeedScreen>(find.byType(SwipeFeedScreen)).entries.single.deviceId, d!.id);
-    await tester.tap(find.byKey(const ValueKey('feed-more')));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('Sakrij oglas'));
-    await tester.pumpAndSettle();
-    expect(storage.feedPreferences(SeedData.testUserId).hidden, contains(d.id));
-    expect(tester.widget<SwipeFeedScreen>(find.byType(SwipeFeedScreen)).entries, isEmpty);
-    await tester.pumpWidget(const SizedBox.shrink());
-  });
+  testWidgets(
+    'an initially empty feed receives synced listings and can hide them',
+    (tester) async {
+      await tester.runAsync(() async {
+        final trade = TradeService(storage);
+        await trade.assignPlatformItems();
+        await trade.autoListPortfolios();
+      });
+      final prefs = FeedPreferences();
+      for (final i in browseItems(AppState.fromStorage(storage))) {
+        prefs.hide(ForYouRanker.keyOf(i));
+      }
+      await storage.saveFeedPreferences(SeedData.testUserId, prefs);
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            storageProvider.overrideWithValue(storage),
+            tickIntervalProvider.overrideWithValue(null),
+          ],
+          child: MaterialApp(
+            navigatorObservers: [feedRouteObserver],
+            home: const Scaffold(body: ForYouFeed(active: true)),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(
+        tester.widget<SwipeFeedScreen>(find.byType(SwipeFeedScreen)).entries,
+        isEmpty,
+      );
+      final d = await tester.runAsync(
+        () => TradeService(storage).addDevice(
+          userId: SeedData.anaUserId,
+          name: 'Arrived after sync',
+          model: 'New',
+          condition: DeviceCondition.good,
+          price: 25,
+          category: DeviceCategory.phone,
+        ),
+      );
+      final container = ProviderScope.containerOf(
+        tester.element(find.byType(ForYouFeed)),
+      );
+      await container
+          .read(appProvider.notifier)
+          .toggleFollow(SeedData.anaUserId);
+      await tester.pumpAndSettle();
+      expect(
+        tester
+            .widget<SwipeFeedScreen>(find.byType(SwipeFeedScreen))
+            .entries
+            .single
+            .deviceId,
+        d!.id,
+      );
+      await tester.tap(find.byKey(const ValueKey('feed-more')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Sakrij oglas'));
+      await tester.pumpAndSettle();
+      expect(
+        storage.feedPreferences(SeedData.testUserId).hidden,
+        contains(d.id),
+      );
+      expect(
+        tester.widget<SwipeFeedScreen>(find.byType(SwipeFeedScreen)).entries,
+        isEmpty,
+      );
+      await tester.pumpWidget(const SizedBox.shrink());
+    },
+  );
 
   testWidgets('horizontal gallery, zoom and details keep the current listing', (
     tester,

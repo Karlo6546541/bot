@@ -156,8 +156,12 @@ class _SwipeFeedScreenState extends ConsumerState<SwipeFeedScreen>
   @override
   void didUpdateWidget(covariant SwipeFeedScreen oldWidget) {
     super.didUpdateWidget(oldWidget);
-    final oldEntry = _index < oldWidget.entries.length ? oldWidget.entries[_index] : null;
-    final newEntry = _index < widget.entries.length ? widget.entries[_index] : null;
+    final oldEntry = _index < oldWidget.entries.length
+        ? oldWidget.entries[_index]
+        : null;
+    final newEntry = _index < widget.entries.length
+        ? widget.entries[_index]
+        : null;
     if ((oldEntry == null ? null : _key(oldEntry)) !=
         (newEntry == null ? null : _key(newEntry))) {
       final dwell = _watch.take();
@@ -340,7 +344,10 @@ class _SwipeFeedScreenState extends ConsumerState<SwipeFeedScreen>
                             value: FeedFeedback.seller,
                             child: Text(t('Sakrij prodavača')),
                           ),
-                          PopupMenuItem(value: FeedFeedback.settings, child: Text(t('Uredi preporuke'))),
+                          PopupMenuItem(
+                            value: FeedFeedback.settings,
+                            child: Text(t('Uredi preporuke')),
+                          ),
                         ],
                       ),
                     ),
@@ -534,7 +541,9 @@ class _PostPageState extends ConsumerState<_PostPage> {
           key: const ValueKey('post-media'),
           device: d,
           onTap: openDetails,
-          onDoubleTap: isMine || auction != null ? null : () => _doubleTapLike(d),
+          onDoubleTap: isMine || auction != null
+              ? null
+              : () => _doubleTapLike(d),
         ),
         const IgnorePointer(
           child: DecoratedBox(
@@ -614,7 +623,12 @@ class _PostPageState extends ConsumerState<_PostPage> {
 /// i uske ili široke fotografije izgledaju dobro. Bez fotografije —
 /// ilustracija kategorije.
 class _Media extends StatefulWidget {
-  const _Media({super.key, required this.device, required this.onTap, this.onDoubleTap});
+  const _Media({
+    super.key,
+    required this.device,
+    required this.onTap,
+    this.onDoubleTap,
+  });
   final Device device;
   final VoidCallback onTap;
   final VoidCallback? onDoubleTap;
@@ -643,7 +657,11 @@ class _MediaState extends State<_Media> {
       ),
     );
     if (d.imagePaths.isEmpty) {
-      return GestureDetector(onTap: widget.onTap, onDoubleTap: widget.onDoubleTap, child: illustration);
+      return GestureDetector(
+        onTap: widget.onTap,
+        onDoubleTap: widget.onDoubleTap,
+        child: illustration,
+      );
     }
     final current = _photo.clamp(0, d.imagePaths.length - 1);
     return Stack(
@@ -669,8 +687,10 @@ class _MediaState extends State<_Media> {
               onTap: widget.onTap,
               onDoubleTap: widget.onDoubleTap,
               child: LocalPhoto(
-                path: d.imagePaths[i], fit: BoxFit.contain,
-                cacheWidth: 1080, fallback: illustration,
+                path: d.imagePaths[i],
+                fit: BoxFit.contain,
+                cacheWidth: 1080,
+                fallback: illustration,
               ),
             ),
           ),

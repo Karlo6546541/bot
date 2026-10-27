@@ -79,6 +79,7 @@ class _ForYouFeedState extends ConsumerState<ForYouFeed> {
 
   /// Called on pause, route coverage and swipe, using only visible time.
   void _watch(FeedEntry entry, Duration dwell) {
+    if (!_storage.isOpen) return;
     final item = _item(entry);
     if (item == null || dwell <= Duration.zero) return;
     final key = _entryKey(entry);

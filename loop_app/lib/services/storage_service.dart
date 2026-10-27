@@ -726,6 +726,8 @@ class StorageService {
 
   // ----------------------------------------------------------------- sesija
 
+  bool get isOpen => _session.isOpen;
+
   String? get currentUserId => _session.get(_currentUserKey) as String?;
 
   bool get isAdmin => _session.get(_isAdminKey) == true;

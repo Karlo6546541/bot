@@ -373,7 +373,8 @@ class _LiveHomeScreenState extends ConsumerState<LiveHomeScreen> {
 
     return CustomScrollView(
       slivers: [
-        if (_filter is! _ForYou) const SliverToBoxAdapter(child: SizedBox(height: 8)),
+        if (_filter is! _ForYou)
+          const SliverToBoxAdapter(child: SizedBox(height: 8)),
         SliverToBoxAdapter(child: chips),
         if (_showHow && _filter is _ForYou)
           SliverToBoxAdapter(
