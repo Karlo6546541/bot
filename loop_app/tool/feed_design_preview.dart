@@ -18,6 +18,7 @@ import 'package:loop_app/services/storage_service.dart';
 import 'package:loop_app/services/trade_service.dart';
 
 SemanticsHandle? previewSemanticsHandle;
+
 class _ProfilePreviewTab extends HomeTab {
   @override
   int build() => 3;
@@ -26,7 +27,9 @@ class _ProfilePreviewTab extends HomeTab {
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   final profilePreview = Uri.base.queryParameters['preview'] == 'profile';
-  if (profilePreview) previewSemanticsHandle = SemanticsBinding.instance.ensureSemantics();
+  if (profilePreview) {
+    previewSemanticsHandle = SemanticsBinding.instance.ensureSemantics();
+  }
   final storage = StorageService();
   await storage.init();
   final trade = TradeService(storage);
@@ -120,7 +123,8 @@ Future<void> main() async {
   runApp(
     ProviderScope(
       overrides: [
-        if (profilePreview) homeTabProvider.overrideWith(_ProfilePreviewTab.new),
+        if (profilePreview)
+          homeTabProvider.overrideWith(_ProfilePreviewTab.new),
         storageProvider.overrideWithValue(storage),
         tickIntervalProvider.overrideWithValue(null),
       ],

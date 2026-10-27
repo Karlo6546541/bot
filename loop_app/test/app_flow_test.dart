@@ -20,7 +20,11 @@ Future<void> reveal(WidgetTester tester, Finder finder) async {
 }
 
 Future<void> openProfileSettings(WidgetTester tester) async {
-  if (find.byKey(const ValueKey('profile-settings-close')).evaluate().isNotEmpty) return;
+  if (find
+      .byKey(const ValueKey('profile-settings-close'))
+      .evaluate()
+      .isNotEmpty)
+    return;
   final gear = find.byKey(const ValueKey('profile-settings'));
   await tester.scrollUntilVisible(gear, -300, scrollable: vScroll());
   await tester.tap(gear);
