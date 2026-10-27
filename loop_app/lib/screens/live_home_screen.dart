@@ -399,8 +399,10 @@ class _LiveHomeScreenState extends ConsumerState<LiveHomeScreen> {
                     final picked = await showModalBottomSheet<Object>(
                       context: context,
                       showDragHandle: true,
+                      isScrollControlled: true,
+                      constraints: BoxConstraints(maxHeight: MediaQuery.sizeOf(context).height * 0.85),
                       builder: (ctx) => SafeArea(
-                        child: Column(
+                        child: SingleChildScrollView(child: Column(
                           mainAxisSize: MainAxisSize.min,
                           children: [
                             for (final (id, label, icon, value) in <(String, String, IconData, Object)>[
@@ -433,7 +435,7 @@ class _LiveHomeScreenState extends ConsumerState<LiveHomeScreen> {
                               children: [MessagesButton(), NotificationBell()],
                             ),
                           ],
-                        ),
+                        )),
                       ),
                     );
                     if (!mounted) return;

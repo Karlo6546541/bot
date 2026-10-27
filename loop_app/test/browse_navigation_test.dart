@@ -105,6 +105,15 @@ void main() {
     await tester.tap(find.byKey(const ValueKey('live-category-all')));
     await tester.pumpAndSettle();
     expect(find.byKey(ValueKey('browse-live-${ids[1]}')), findsOneWidget);
+    tester.view.physicalSize = const Size(320, 600);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(ValueKey('browse-live-${ids[0]}')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('live-compact-header')), findsOneWidget);
+    expect(find.byKey(const ValueKey('live-chat')), findsOneWidget);
+    expect(tester.takeException(), isNull);
     await tester.pumpWidget(const SizedBox.shrink());
   });
 
