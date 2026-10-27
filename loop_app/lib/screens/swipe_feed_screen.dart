@@ -550,11 +550,7 @@ class _BoughtPage extends StatelessWidget {
 /// Jedna objava: slika preko cijelog ekrana, a dolje opis (lijevo) i
 /// stupac akcija (desno) jedan pokraj drugoga — nikad se ne preklapaju.
 class _PostPage extends ConsumerStatefulWidget {
-  const _PostPage({
-    required this.entry,
-    required this.state,
-    this.onDetails,
-  });
+  const _PostPage({required this.entry, required this.state, this.onDetails});
   final VoidCallback? onDetails;
   final FeedEntry entry;
   final AppState state;

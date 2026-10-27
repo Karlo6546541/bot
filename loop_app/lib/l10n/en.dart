@@ -2,6 +2,7 @@
 // Generirano iz popisa tekstova; nadopuni ručno kad dodaješ nove.
 
 const kEn = <String, String>{
+  'Sve kategorije': 'All categories',
   'Kategorije uživo': 'Live categories',
   'Kategorije aukcija': 'Auction categories',
   'Trenutno nema liveova u ovoj kategoriji.':
