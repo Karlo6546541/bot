@@ -106,6 +106,15 @@ jobs:
           cp "$out/app-armeabi-v7a-release.apk" build/web/subhasto-32bit.apk
           ls -la build/web/*.apk
 
+      - name: Verify release JNI preferences method
+        shell: bash
+        run: |
+          analyzer=$(find "$ANDROID_HOME/cmdline-tools" -type f -name apkanalyzer | head -n 1)
+          test -n "$analyzer"
+          "$analyzer" dex code --class io.flutter.plugins.sharedpreferences.SharedPreferencesApiRegistrar \
+            build/web/subhasto.apk > /tmp/preferences-release-code.txt
+          python3 ../scripts/verify-preferences-jni.py /tmp/preferences-release-code.txt
+
       - uses: actions/upload-artifact@v4
         with:
           name: subhasto-apk
