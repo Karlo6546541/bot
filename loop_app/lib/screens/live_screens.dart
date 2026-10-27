@@ -876,6 +876,11 @@ class _LiveRoomViewState extends ConsumerState<_LiveRoomBody> {
   DateTime _joinedAt = DateTime.now();
   DateTime _beatAt = DateTime.now();
   final _chat = TextEditingController();
+  late final _chatFocus = FocusNode()..addListener(_chatFocusChanged);
+  void _chatFocusChanged() {
+    if (mounted) setState(() {});
+  }
+
   bool _busy = false;
 
   /// Video: domaćin šalje kameru, gledatelj prima (samo dok je soba
@@ -1260,6 +1265,7 @@ class _LiveRoomViewState extends ConsumerState<_LiveRoomBody> {
     _timer?.cancel();
     _broadcaster?.stop();
     _watcher?.stop();
+    _chatFocus.dispose();
     _chat.dispose();
     super.dispose();
   }
@@ -1350,6 +1356,7 @@ class _LiveRoomViewState extends ConsumerState<_LiveRoomBody> {
     try {
       await _app.liveChat(widget.showId, text);
       _chat.clear();
+      _chatFocus.unfocus();
     } on TradeException catch (e) {
       showLoopSnackBar(e.message, error: true);
     }
@@ -1424,6 +1431,7 @@ class _LiveRoomViewState extends ConsumerState<_LiveRoomBody> {
   @override
   Widget build(BuildContext context) {
     final s = ref.watch(appProvider);
+    final composing = _chatFocus.hasFocus;
     final show = s.liveShowById(widget.showId);
     if (show == null) {
       return SafeArea(
@@ -1907,7 +1915,7 @@ class _LiveRoomViewState extends ConsumerState<_LiveRoomBody> {
                           ),
                         ),
                       ),
-                    if (!st.isOver)
+                    if (!st.isOver && !composing)
                       _QuickReactions(
                         emojis: _quick,
                         onReact: canAct ? _react : null,
@@ -1917,6 +1925,7 @@ class _LiveRoomViewState extends ConsumerState<_LiveRoomBody> {
                     // Douyin: dolje trgovina (vrećica), chat, srce, dijeljenje.
                     _DouyinBar(
                       controller: _chat,
+                      focusNode: _chatFocus,
                       onSend: _send,
                       showChat: canAct && !st.isOver,
                       bagCount:
@@ -1935,7 +1944,7 @@ class _LiveRoomViewState extends ConsumerState<_LiveRoomBody> {
                         text: t('Gledaj "{0}" uživo na Subhastu', [show.title]),
                       ),
                     ),
-                    if (cur != null)
+                    if (!composing && cur != null)
                       _LotCard(
                         lot: cur,
                         device: s.deviceById(cur.lot.deviceId),
@@ -1946,7 +1955,7 @@ class _LiveRoomViewState extends ConsumerState<_LiveRoomBody> {
                         leaderUser: s.userById(cur.leader?.userId),
                         isHost: isHost,
                       )
-                    else if (done != null && !st.isOver)
+                    else if (!composing && done != null && !st.isOver)
                       _LotCard(
                         lot: done,
                         device: s.deviceById(done.lot.deviceId),
@@ -1957,10 +1966,11 @@ class _LiveRoomViewState extends ConsumerState<_LiveRoomBody> {
                         leaderUser: s.userById(done.leader?.userId),
                         result: true,
                       ),
-                    Padding(
-                      padding: const EdgeInsets.fromLTRB(12, 10, 12, 0),
-                      child: _actions(show, st, cur, isHost, canAct, me?.id),
-                    ),
+                    if (!composing)
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(12, 10, 12, 0),
+                        child: _actions(show, st, cur, isHost, canAct, me?.id),
+                      ),
                     const SizedBox(height: 8),
                   ],
                 ),
@@ -2236,6 +2246,7 @@ class _LiveRoomViewState extends ConsumerState<_LiveRoomBody> {
         String? error;
         return StatefulBuilder(
           builder: (ctx, setD) => AlertDialog(
+            scrollable: true,
             title: Text(t('Tvoja ponuda')),
             content: Column(
               mainAxisSize: MainAxisSize.min,
@@ -3420,10 +3431,7 @@ class _ChatFeed extends ConsumerWidget {
               padding: const EdgeInsets.only(bottom: 3),
               child: Container(
                 padding: const EdgeInsets.fromLTRB(3, 2, 8, 3),
-                decoration: BoxDecoration(
-                  color: Colors.black.withValues(alpha: 0.30),
-                  borderRadius: BorderRadius.circular(16),
-                ),
+
                 child: _FeedLine(
                   event: e,
                   user: s.userById(e.userId),
@@ -4064,6 +4072,7 @@ class _ReactionChipState extends State<_ReactionChip>
 class _DouyinBar extends StatelessWidget {
   const _DouyinBar({
     required this.controller,
+    required this.focusNode,
     required this.onSend,
     required this.showChat,
     required this.bagCount,
@@ -4077,6 +4086,7 @@ class _DouyinBar extends StatelessWidget {
   /// Novčanik uz srce i dijeljenje (gledatelji).
   final bool showWallet;
   final TextEditingController controller;
+  final FocusNode focusNode;
   final Future<void> Function(String) onSend;
   final bool showChat;
   final int bagCount;
@@ -4124,6 +4134,8 @@ class _DouyinBar extends StatelessWidget {
               ? TextField(
                   key: const ValueKey('live-chat'),
                   controller: controller,
+                  focusNode: focusNode,
+                  scrollPadding: const EdgeInsets.all(12),
                   maxLength: LiveEvent.maxText,
                   style: const TextStyle(color: Colors.white),
                   textInputAction: TextInputAction.send,

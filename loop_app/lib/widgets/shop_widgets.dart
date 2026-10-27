@@ -561,15 +561,11 @@ Future<double?> _amountDialog(
   required double max,
 }) => showDialog<double>(
   context: context,
-  builder: (ctx) => MediaQuery.removeViewInsets(
-    context: ctx,
-    removeBottom: true,
-    child: _AmountDialog(
-      title: title,
-      message: message,
-      suggestion: suggestion,
-      max: max,
-    ),
+  builder: (ctx) => _AmountDialog(
+    title: title,
+    message: message,
+    suggestion: suggestion,
+    max: max,
   ),
 );
 
