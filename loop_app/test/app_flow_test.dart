@@ -912,7 +912,7 @@ void chatTests() {
 
     // Marko pita prodavatelja (pretraga → profil → Poruka).
     await login('@marko');
-    await tester.tap(find.byKey(const ValueKey('open-search')));
+    await tester.tap(find.byKey(const ValueKey('home-search')));
     await tester.pumpAndSettle();
     await tester.enterText(find.byType(TextField).first, 'demo');
     await tester.pumpAndSettle();

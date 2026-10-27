@@ -290,7 +290,9 @@ class _LiveHomeScreenState extends ConsumerState<LiveHomeScreen> {
       color: immersive ? Colors.black : LoopColors.background,
       child: SafeArea(
         bottom: false,
-        child: Row(
+        child: Center(heightFactor: 1, child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 520),
+          child: Row(
           key: const ValueKey('home-cats'),
           children: [
             tab(
@@ -350,7 +352,7 @@ class _LiveHomeScreenState extends ConsumerState<LiveHomeScreen> {
               icon: const Icon(Icons.tune),
             ),
           ],
-        ),
+        ))),
       ),
     );
 

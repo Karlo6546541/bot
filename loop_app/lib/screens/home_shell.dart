@@ -143,7 +143,7 @@ class _HomeShellState extends ConsumerState<HomeShell> {
                     ),
               actions: [
                 // Početna već ima traku za pretragu.
-                if (_index != 0 || isDesktop)
+                if (_index != 0)
                   IconButton(
                     key: const ValueKey('open-search'),
                     tooltip: t('Pretraži objave i račune'),
