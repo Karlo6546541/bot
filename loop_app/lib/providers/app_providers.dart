@@ -905,14 +905,14 @@ class AppController extends Notifier<AppState> {
     String? destination,
   ) async {
     try {
-    await ref
-        .read(deliveryServiceProvider)
-        .choose(
-          userId: _requireUserId(),
-          deliveryId: deliveryId,
-          method: method,
-          destination: destination,
-        );
+      await ref
+          .read(deliveryServiceProvider)
+          .choose(
+            userId: _requireUserId(),
+            deliveryId: deliveryId,
+            method: method,
+            destination: destination,
+          );
     } finally {
       _refresh();
     }

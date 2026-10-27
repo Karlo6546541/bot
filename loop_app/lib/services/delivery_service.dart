@@ -157,9 +157,17 @@ class DeliveryService {
     if (pending != null) {
       await pending;
       final result = _storage.deliveryById(deliveryId);
-      if (result != null && result.buyerId == userId && !result.awaitingChoice) return result;
+      if (result != null && result.buyerId == userId && !result.awaitingChoice) {
+        return result;
+      }
     }
-    final task = _choose(userId: userId, deliveryId: deliveryId, method: method, destination: destination, now: now);
+    final task = _choose(
+      userId: userId,
+      deliveryId: deliveryId,
+      method: method,
+      destination: destination,
+      now: now,
+    );
     _choices[key] = task;
     try {
       return await task;

@@ -137,7 +137,11 @@ class StorageService {
 
   Future<void> _repairRecordIds() async {
     for (final entry in _tables.entries) {
-      if (entry.key == _historyBox || entry.key == _sellersBox || entry.key == _viewsBox) continue;
+      if (entry.key == _historyBox ||
+          entry.key == _sellersBox ||
+          entry.key == _viewsBox) {
+        continue;
+      }
       for (final key in entry.value.keys.toList()) {
         if (key is! String) continue;
         final raw = entry.value.get(key);
@@ -740,7 +744,10 @@ class StorageService {
     for (final t in syncedTables.where(data.containsKey)) {
       final box = _tables[t]!;
       await box.clear();
-      await box.putAll({for (final entry in data[t]!.entries) entry.key: _rowData(t, entry.key, entry.value)});
+      await box.putAll({
+        for (final entry in data[t]!.entries)
+          entry.key: _rowData(t, entry.key, entry.value),
+      });
     }
   }
 

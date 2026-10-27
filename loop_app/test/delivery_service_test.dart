@@ -1,6 +1,8 @@
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:loop_app/providers/app_providers.dart';
 import 'package:hive/hive.dart';
 import 'package:loop_app/models/app_notification.dart';
 import 'package:loop_app/models/delivery.dart';
@@ -228,41 +230,112 @@ void main() {
     expect(chosen.method, DeliveryMethod.parcelLocker);
     expect(chosen.cost, 3);
   });
-  test('legacy notification without payload id is repaired before delivery choice', () async {
-    final note = AppNotification(id: 'legacy-note', userId: SeedData.anaUserId,
-      kind: NotificationKind.shipReady, createdAt: DateTime.now());
-    await Hive.box<Map>('notifications').put(note.id, note.toMap()..remove('id'));
-    await Hive.close();
-    await storage.init(path: dir.path);
-    final d = await deliveries.createPending(userId: demo, deviceId: 'seed-1',
-      deviceName: 'Camera', sellerId: SeedData.anaUserId);
-    await deliveries.choose(userId: demo, deliveryId: d.id, method: DeliveryMethod.courier,
-      destination: 'Ilica 1, Zagreb');
-    expect(storage.notifications.any((n) => n.id == note.id), isTrue);
-    expect(AppState.fromStorage(storage).deliveries.single.method, DeliveryMethod.courier);
-  });
+  test(
+    'legacy notification without payload id is repaired before delivery choice',
+    () async {
+      final note = AppNotification(
+        id: 'legacy-note',
+        userId: SeedData.anaUserId,
+        kind: NotificationKind.shipReady,
+        createdAt: DateTime.now(),
+      );
+      await Hive.box<Map>(
+        'notifications',
+      ).put(note.id, note.toMap()..remove('id'));
+      await Hive.close();
+      await storage.init(path: dir.path);
+      final d = await deliveries.createPending(
+        userId: demo,
+        deviceId: 'seed-1',
+        deviceName: 'Camera',
+        sellerId: SeedData.anaUserId,
+      );
+      await deliveries.choose(
+        userId: demo,
+        deliveryId: d.id,
+        method: DeliveryMethod.courier,
+        destination: 'Ilica 1, Zagreb',
+      );
+      expect(storage.notifications.any((n) => n.id == note.id), isTrue);
+      expect(
+        AppState.fromStorage(storage).deliveries.single.method,
+        DeliveryMethod.courier,
+      );
+    },
+  );
 
   test('remote row key restores a missing delivery payload id', () async {
-    final d = await deliveries.createPending(userId: demo, deviceId: 'seed-1', deviceName: 'Camera');
+    final d = await deliveries.createPending(
+      userId: demo,
+      deviceId: 'seed-1',
+      deviceName: 'Camera',
+    );
     final raw = d.toMap()..remove('id');
     await storage.applyRemote('deliveries', d.id, raw);
     expect(storage.deliveryById(d.id)!.id, d.id);
-    await storage.replaceAllFromRemote({'deliveries': {d.id: raw}});
+    await storage.replaceAllFromRemote({
+      'deliveries': {d.id: raw},
+    });
     expect(storage.deliveries.single.id, d.id);
   });
 
   test('concurrent live choices and retries charge one parcel once', () async {
-    final a = await deliveries.createPending(id: 'live-choice-0', userId: demo, deviceId: 'seed-1', deviceName: 'A');
-    final b = await deliveries.createPending(id: 'live-choice-1', userId: demo, deviceId: 'seed-2', deviceName: 'B');
+    final a = await deliveries.createPending(
+      id: 'live-choice-0',
+      userId: demo,
+      deviceId: 'seed-1',
+      deviceName: 'A',
+    );
+    final b = await deliveries.createPending(
+      id: 'live-choice-1',
+      userId: demo,
+      deviceId: 'seed-2',
+      deviceName: 'B',
+    );
     await Future.wait([
-      deliveries.choose(userId: demo, deliveryId: a.id, method: DeliveryMethod.courier, destination: 'Ilica 1, Zagreb'),
-      deliveries.choose(userId: demo, deliveryId: b.id, method: DeliveryMethod.courier, destination: 'Ilica 1, Zagreb'),
+      deliveries.choose(
+        userId: demo,
+        deliveryId: a.id,
+        method: DeliveryMethod.courier,
+        destination: 'Ilica 1, Zagreb',
+      ),
+      deliveries.choose(
+        userId: demo,
+        deliveryId: b.id,
+        method: DeliveryMethod.courier,
+        destination: 'Ilica 1, Zagreb',
+      ),
     ]);
-    final retry = await deliveries.choose(userId: demo, deliveryId: a.id,
-      method: DeliveryMethod.parcelLocker, destination: kDemoLockers.first);
+    final retry = await deliveries.choose(
+      userId: demo,
+      deliveryId: a.id,
+      method: DeliveryMethod.parcelLocker,
+      destination: kDemoLockers.first,
+    );
     expect(retry.method, DeliveryMethod.courier);
-    expect(storage.transactions.where((t) => t.type == TransactionType.delivery), hasLength(1));
+    expect(
+      storage.transactions.where((t) => t.type == TransactionType.delivery),
+      hasLength(1),
+    );
     expect(storage.deliveries.fold<double>(0, (sum, d) => sum + d.cost), 6);
+  });
+  test('controller refreshes a persisted delivery even after a write callback fails', () async {
+    await storage.saveSession(userId: demo);
+    final d = await deliveries.createPending(userId: demo, deviceId: 'seed-1', deviceName: 'Camera');
+    final container = ProviderContainer(overrides: [
+      storageProvider.overrideWithValue(storage),
+      tickIntervalProvider.overrideWithValue(null),
+    ]);
+    addTearDown(container.dispose);
+    final controller = container.read(appProvider.notifier);
+    storage.onLocalChange = (table, id, data) {
+      if (table == 'deliveries' && id == d.id && data?['method'] != null) {
+        throw StateError('Simulated failure after the delivery was stored');
+      }
+    };
+    await expectLater(controller.chooseDelivery(d.id, DeliveryMethod.courier, 'Ilica 1, Zagreb'), throwsStateError);
+    expect(container.read(appProvider).deliveries.single.awaitingChoice, isFalse);
+    storage.onLocalChange = null;
   });
 
 }
