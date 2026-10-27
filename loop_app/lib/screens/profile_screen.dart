@@ -119,7 +119,9 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                             child: OutlinedButton.icon(
                               key: const ValueKey('profile-edit'),
                               style: OutlinedButton.styleFrom(
-                                padding: const EdgeInsets.symmetric(horizontal: 8),
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 8,
+                                ),
                               ),
                               onPressed: () => EditProfileScreen.open(context),
                               icon: const Icon(Icons.edit_outlined, size: 17),
@@ -131,7 +133,9 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                             child: FilledButton.icon(
                               key: const ValueKey('profile-create'),
                               style: FilledButton.styleFrom(
-                                padding: const EdgeInsets.symmetric(horizontal: 8),
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 8,
+                                ),
                               ),
                               onPressed: () {
                                 setState(() => _liked = false);
