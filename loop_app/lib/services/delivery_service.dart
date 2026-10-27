@@ -157,7 +157,9 @@ class DeliveryService {
     if (pending != null) {
       await pending;
       final result = _storage.deliveryById(deliveryId);
-      if (result != null && result.buyerId == userId && !result.awaitingChoice) {
+      if (result != null &&
+          result.buyerId == userId &&
+          !result.awaitingChoice) {
         return result;
       }
     }

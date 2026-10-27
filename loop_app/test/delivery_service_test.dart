@@ -253,13 +253,13 @@ void main() {
       await deliveries.choose(
         userId: demo,
         deliveryId: d.id,
-        method: DeliveryMethod.courier,
-        destination: 'Ilica 1, Zagreb',
+        method: DeliveryMethod.parcelLocker,
+        destination: kDemoLockers.first,
       );
       expect(storage.notifications.any((n) => n.id == note.id), isTrue);
       expect(
         AppState.fromStorage(storage).deliveries.single.method,
-        DeliveryMethod.courier,
+        DeliveryMethod.parcelLocker,
       );
     },
   );
@@ -296,46 +296,64 @@ void main() {
       deliveries.choose(
         userId: demo,
         deliveryId: a.id,
-        method: DeliveryMethod.courier,
-        destination: 'Ilica 1, Zagreb',
+        method: DeliveryMethod.parcelLocker,
+        destination: kDemoLockers.first,
       ),
       deliveries.choose(
         userId: demo,
         deliveryId: b.id,
-        method: DeliveryMethod.courier,
-        destination: 'Ilica 1, Zagreb',
+        method: DeliveryMethod.parcelLocker,
+        destination: kDemoLockers.first,
       ),
     ]);
     final retry = await deliveries.choose(
       userId: demo,
       deliveryId: a.id,
-      method: DeliveryMethod.parcelLocker,
-      destination: kDemoLockers.first,
+      method: DeliveryMethod.courier,
+      destination: 'Ilica 1, Zagreb',
     );
-    expect(retry.method, DeliveryMethod.courier);
+    expect(retry.method, DeliveryMethod.parcelLocker);
     expect(
       storage.transactions.where((t) => t.type == TransactionType.delivery),
       hasLength(1),
     );
-    expect(storage.deliveries.fold<double>(0, (sum, d) => sum + d.cost), 6);
+    expect(storage.deliveries.fold<double>(0, (sum, d) => sum + d.cost), 3);
   });
-  test('controller refreshes a persisted delivery even after a write callback fails', () async {
-    await storage.saveSession(userId: demo);
-    final d = await deliveries.createPending(userId: demo, deviceId: 'seed-1', deviceName: 'Camera');
-    final container = ProviderContainer(overrides: [
-      storageProvider.overrideWithValue(storage),
-      tickIntervalProvider.overrideWithValue(null),
-    ]);
-    addTearDown(container.dispose);
-    final controller = container.read(appProvider.notifier);
-    storage.onLocalChange = (table, id, data) {
-      if (table == 'deliveries' && id == d.id && data?['method'] != null) {
-        throw StateError('Simulated failure after the delivery was stored');
-      }
-    };
-    await expectLater(controller.chooseDelivery(d.id, DeliveryMethod.courier, 'Ilica 1, Zagreb'), throwsStateError);
-    expect(container.read(appProvider).deliveries.single.awaitingChoice, isFalse);
-    storage.onLocalChange = null;
-  });
-
+  test(
+    'controller refreshes a persisted delivery even after a write callback fails',
+    () async {
+      await storage.saveSession(userId: demo);
+      final d = await deliveries.createPending(
+        userId: demo,
+        deviceId: 'seed-1',
+        deviceName: 'Camera',
+      );
+      final container = ProviderContainer(
+        overrides: [
+          storageProvider.overrideWithValue(storage),
+          tickIntervalProvider.overrideWithValue(null),
+        ],
+      );
+      addTearDown(container.dispose);
+      final controller = container.read(appProvider.notifier);
+      storage.onLocalChange = (table, id, data) {
+        if (table == 'deliveries' && id == d.id && data?['method'] != null) {
+          throw StateError('Simulated failure after the delivery was stored');
+        }
+      };
+      await expectLater(
+        controller.chooseDelivery(
+          d.id,
+          DeliveryMethod.parcelLocker,
+          kDemoLockers.first,
+        ),
+        throwsStateError,
+      );
+      expect(
+        container.read(appProvider).deliveries.single.awaitingChoice,
+        isFalse,
+      );
+      storage.onLocalChange = null;
+    },
+  );
 }
