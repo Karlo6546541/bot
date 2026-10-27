@@ -50,7 +50,9 @@ class _ForYouFeedState extends ConsumerState<ForYouFeed> {
       for (final i in browseItems(s))
         if (!exclude.contains(ForYouRanker.keyOf(i)) &&
             !_shown.contains(ForYouRanker.keyOf(i)) &&
-            (_allowSeen || !_preferences.seenRecently(ForYouRanker.keyOf(i), now))) i,
+            (_allowSeen ||
+                !_preferences.seenRecently(ForYouRanker.keyOf(i), now)))
+          i,
     ], limit: 40);
   }
 
@@ -64,9 +66,8 @@ class _ForYouFeedState extends ConsumerState<ForYouFeed> {
     _picks.addAll(_ranked());
   }
 
-  void _save() => unawaited(
-    _storage.saveFeedPreferences(_userId, _preferences),
-  );
+  void _save() =>
+      unawaited(_storage.saveFeedPreferences(_userId, _preferences));
 
   BrowseItem? _item(FeedEntry entry) {
     final key = _entryKey(entry);
@@ -89,16 +90,22 @@ class _ForYouFeedState extends ConsumerState<ForYouFeed> {
       _shown.add(key);
       _preferences.recordSeen(key, DateTime.now());
     }
-    double weight(int ms) => ms > 10000 ? 3 : ms > 4000 ? 1.5 : 0;
+    double weight(int ms) => ms > 10000
+        ? 3
+        : ms > 4000
+        ? 1.5
+        : 0;
     final delta = weight(total) - weight(before);
     if (delta > 0 && !_preferences.hidden.contains(key)) {
       for (final c in item.categories) {
         _boost[c] = ((_boost[c] ?? 0) + delta).clamp(-4, 6).toDouble();
       }
       if (before <= 4000) {
-        unawaited(_storage.addRecentCategories([
-          for (final c in item.categories) c.name,
-        ]));
+        unawaited(
+          _storage.addRecentCategories([
+            for (final c in item.categories) c.name,
+          ]),
+        );
         final d = item.device;
         if (d != null) _preferences.learnModel(d.model, d.condition.name);
       }
@@ -120,11 +127,14 @@ class _ForYouFeedState extends ConsumerState<ForYouFeed> {
     // Freeze current and next, then rerank a small upcoming batch.
     final keep = (to + 2).clamp(0, _picks.length);
     final kept = _picks.sublist(0, keep);
-    final rest = _ranked(exclude: {
-      for (final p in kept) ForYouRanker.keyOf(p.item),
-    });
+    final rest = _ranked(
+      exclude: {for (final p in kept) ForYouRanker.keyOf(p.item)},
+    );
     setState(() {
-      _picks..clear()..addAll(kept)..addAll(rest);
+      _picks
+        ..clear()
+        ..addAll(kept)
+        ..addAll(rest);
       if (_index > 60) {
         final trim = _index - 10;
         _picks.removeRange(0, trim);
@@ -141,17 +151,24 @@ class _ForYouFeedState extends ConsumerState<ForYouFeed> {
       _watched.clear();
       _index = 0;
       _generation++;
-      _picks..clear()..addAll(_ranked());
+      _picks
+        ..clear()
+        ..addAll(_ranked());
     });
   }
 
   void _feedback(FeedEntry entry, FeedFeedback action) {
+    if (action == FeedFeedback.settings) {
+      unawaited(_controls());
+      return;
+    }
     final i = _item(entry);
     if (i == null) return;
     if (action == FeedFeedback.less) {
       for (final c in i.categories) {
-        _preferences.less[c.name] =
-            ((_preferences.less[c.name] ?? 0) + 3).clamp(0, 12).toDouble();
+        _preferences.less[c.name] = ((_preferences.less[c.name] ?? 0) + 3)
+            .clamp(0, 12)
+            .toDouble();
       }
       _preferences.hide(_entryKey(entry));
     } else if (action == FeedFeedback.seller) {
@@ -168,7 +185,9 @@ class _ForYouFeedState extends ConsumerState<ForYouFeed> {
       }
       _index = 0;
       _generation++;
-      _picks..clear()..addAll(_ranked());
+      _picks
+        ..clear()
+        ..addAll(_ranked());
     });
   }
 
@@ -176,21 +195,36 @@ class _ForYouFeedState extends ConsumerState<ForYouFeed> {
     final reset = await showModalBottomSheet<bool>(
       context: context,
       showDragHandle: true,
-      builder: (ctx) => SafeArea(child: Padding(
-        padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
-        child: Column(mainAxisSize: MainAxisSize.min, children: [
-          Text(t('Tvoje preporuke'), style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w800)),
-          const SizedBox(height: 12),
-          Text(t('Skriveno: {0} oglasa i {1} prodavača. Postavke se spremaju samo na ovom uređaju.',
-            [_preferences.hidden.length, _preferences.sellers.length])),
-          const SizedBox(height: 16),
-          OutlinedButton(
-            key: const ValueKey('feed-reset-preferences'),
-            onPressed: () => Navigator.pop(ctx, true),
-            child: Text(t('Vrati skrivene i poništi „Manje ovakvog”')),
+      builder: (ctx) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                t('Tvoje preporuke'),
+                style: const TextStyle(
+                  fontSize: 22,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+              const SizedBox(height: 12),
+              Text(
+                t(
+                  'Skriveno: {0} oglasa i {1} prodavača. Postavke se spremaju samo na ovom uređaju.',
+                  [_preferences.hidden.length, _preferences.sellers.length],
+                ),
+              ),
+              const SizedBox(height: 16),
+              OutlinedButton(
+                key: const ValueKey('feed-reset-preferences'),
+                onPressed: () => Navigator.pop(ctx, true),
+                child: Text(t('Vrati skrivene i poništi „Manje ovakvog”')),
+              ),
+            ],
           ),
-        ]),
-      )),
+        ),
+      ),
     );
     if (reset == true && mounted) {
       _preferences.hidden.clear();
@@ -206,9 +240,9 @@ class _ForYouFeedState extends ConsumerState<ForYouFeed> {
   Widget build(BuildContext context) {
     ref.listen(appProvider, (_, _) {
       if (_picks.length - _index > 12) return;
-      final fresh = _ranked(exclude: {
-        for (final p in _picks) ForYouRanker.keyOf(p.item),
-      });
+      final fresh = _ranked(
+        exclude: {for (final p in _picks) ForYouRanker.keyOf(p.item)},
+      );
       // Add new content without changing the visible entry.
       if (fresh.isNotEmpty && _index < _picks.length) {
         setState(() => _picks.addAll(fresh));
@@ -216,24 +250,54 @@ class _ForYouFeedState extends ConsumerState<ForYouFeed> {
     });
     final end = ColoredBox(
       color: Colors.black,
-      child: Center(child: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(mainAxisSize: MainAxisSize.min, children: [
-          const Icon(Icons.check_circle_outline, color: Colors.white, size: 48),
-          const SizedBox(height: 16),
-          Text(t('Sve novo si pogledao'), textAlign: TextAlign.center,
-            style: const TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.w800)),
-          const SizedBox(height: 8),
-          Text(t('Provjeri nove oglase ili ponovno pogledaj dostupne.'),
-            textAlign: TextAlign.center, style: const TextStyle(color: Colors.white70)),
-          const SizedBox(height: 20),
-          FilledButton(onPressed: () => _restart(), child: Text(t('Provjeri novo'))),
-          TextButton(onPressed: () => _restart(replay: true), child: Text(t('Pogledaj ponovno'))),
-          TextButton(onPressed: _controls, child: Text(t('Uredi preporuke'))),
-        ]),
-      )),
+      child: Center(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(
+                Icons.check_circle_outline,
+                color: Colors.white,
+                size: 48,
+              ),
+              const SizedBox(height: 16),
+              Text(
+                t('Sve novo si pogledao'),
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 24,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                t('Provjeri nove oglase ili ponovno pogledaj dostupne.'),
+                textAlign: TextAlign.center,
+                style: const TextStyle(color: Colors.white70),
+              ),
+              const SizedBox(height: 20),
+              FilledButton(
+                onPressed: () => _restart(),
+                child: Text(t('Provjeri novo')),
+              ),
+              TextButton(
+                onPressed: () => _restart(replay: true),
+                child: Text(t('Pogledaj ponovno')),
+              ),
+              TextButton(
+                onPressed: _controls,
+                child: Text(t('Uredi preporuke')),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
-    final reasons = {for (final p in _picks) ForYouRanker.keyOf(p.item): p.reason};
+    final reasons = {
+      for (final p in _picks) ForYouRanker.keyOf(p.item): p.reason,
+    };
     return KeyedSubtree(
       key: ValueKey(_generation),
       child: SwipeFeedScreen(

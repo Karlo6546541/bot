@@ -1148,4 +1148,3 @@ void logoTests() {
 class SellerInfoScreenFinder {
   static Finder get title => find.byKey(const ValueKey('seller-save'));
 }
-

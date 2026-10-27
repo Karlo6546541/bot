@@ -17,6 +17,10 @@ import 'package:loop_app/services/trade_service.dart';
 import 'package:loop_app/widgets/feed.dart' show FeedEntry;
 import 'package:loop_app/widgets/photo_viewer.dart';
 
+const _png =
+    'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAA'
+    'DUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==';
+
 void main() {
   test('covered routes, other tabs and background time are excluded', () {
     var now = DateTime(2026, 10, 27);
@@ -40,20 +44,23 @@ void main() {
   });
   tearDown(() => Hive.close());
 
-  test('hidden sellers and listings survive reload and stay account scoped', () async {
-    final prefs = FeedPreferences()
-      ..hide('listing')
-      ..hideSeller(SeedData.anaUserId);
-    await storage.saveFeedPreferences(SeedData.testUserId, prefs);
-    final restored = storage.feedPreferences(SeedData.testUserId);
-    expect(restored.hidden, contains('listing'));
-    expect(restored.sellers, contains(SeedData.anaUserId));
-    expect(storage.feedPreferences(SeedData.demoUserId).hidden, isEmpty);
-    expect(storage.feedPreferences(null).sellers, isEmpty);
-    await storage.addRecentCategories(['phones']);
-    await storage.saveSession(userId: SeedData.demoUserId);
-    expect(storage.recentCategories, isEmpty);
-  });
+  test(
+    'hidden sellers and listings survive reload and stay account scoped',
+    () async {
+      final prefs = FeedPreferences()
+        ..hide('listing')
+        ..hideSeller(SeedData.anaUserId);
+      await storage.saveFeedPreferences(SeedData.testUserId, prefs);
+      final restored = storage.feedPreferences(SeedData.testUserId);
+      expect(restored.hidden, contains('listing'));
+      expect(restored.sellers, contains(SeedData.anaUserId));
+      expect(storage.feedPreferences(SeedData.demoUserId).hidden, isEmpty);
+      expect(storage.feedPreferences(null).sellers, isEmpty);
+      await storage.addRecentCategories(['phones']);
+      await storage.saveSession(userId: SeedData.demoUserId);
+      expect(storage.recentCategories, isEmpty);
+    },
+  );
 
   test('seen history has a cooldown and bounded storage', () {
     final prefs = FeedPreferences();
@@ -64,72 +71,141 @@ void main() {
     final restored = FeedPreferences.fromMap(prefs.toMap());
     expect(restored.seen.length, 500);
     expect(restored.seenRecently('item-599', now), isTrue);
-    expect(restored.seenRecently('item-599', now.add(const Duration(hours: 25))), isFalse);
+    expect(
+      restored.seenRecently('item-599', now.add(const Duration(hours: 25))),
+      isFalse,
+    );
     expect(restored.seen.containsKey('item-0'), isFalse);
   });
 
-  test('explicit controls exclude listings and override positive category signals', () {
-    final state = AppState.fromStorage(storage);
-    final all = browseItems(state);
-    final target = all.firstWhere((i) => i.device != null && i.device!.ownerId != SeedData.testUserId);
-    final key = ForYouRanker.keyOf(target);
-    final prefs = FeedPreferences()..hide(key);
-    final ranker = ForYouRanker(state, now: DateTime.now(), preferences: prefs,
-      boost: {for (final c in target.categories) c: 6});
-    expect(ranker.rank(all, limit: 100).map((p) => ForYouRanker.keyOf(p.item)), isNot(contains(key)));
-    prefs.hidden.clear();
-    final seller = target.device!.ownerId;
-    if (seller != null) {
-      prefs.hideSeller(seller);
-      expect(ranker.rank(all, limit: 100).any((p) =>
-        (p.item.show?.hostId ?? p.item.auction?.sellerId ?? p.item.device?.ownerId) == seller), isFalse);
-    }
-  });
+  test(
+    'explicit controls exclude listings and override positive category signals',
+    () {
+      final state = AppState.fromStorage(storage);
+      final all = browseItems(state);
+      final target = all.firstWhere(
+        (i) => i.device != null && i.device!.ownerId != SeedData.testUserId,
+      );
+      final key = ForYouRanker.keyOf(target);
+      final prefs = FeedPreferences()..hide(key);
+      final ranker = ForYouRanker(
+        state,
+        now: DateTime.now(),
+        preferences: prefs,
+        boost: {for (final c in target.categories) c: 6},
+      );
+      expect(
+        ranker.rank(all, limit: 100).map((p) => ForYouRanker.keyOf(p.item)),
+        isNot(contains(key)),
+      );
+      prefs.hidden.clear();
+      final seller = target.device!.ownerId;
+      if (seller != null) {
+        prefs.hideSeller(seller);
+        expect(
+          ranker
+              .rank(all, limit: 100)
+              .any(
+                (p) =>
+                    (p.item.show?.hostId ??
+                        p.item.auction?.sellerId ??
+                        p.item.device?.ownerId) ==
+                    seller,
+              ),
+          isFalse,
+        );
+      }
+    },
+  );
 
   test('an expensive purchase does not set the budget of another category', () {
     final now = DateTime(2026, 10, 27);
     final me = SeedData.testUserId;
-    final cats = DeviceCategory.values.where((c) => c.section != ItemSection.digital).take(2).toList();
+    final cats = DeviceCategory.values
+        .where((c) => c.section != ItemSection.digital)
+        .take(2)
+        .toList();
     Device item(String id, DeviceCategory c) => Device(
-      id: id, name: id, model: '', condition: DeviceCondition.good,
-      price: 900, category: c, createdAt: now,
-      ownerId: SeedData.anaUserId, listPrice: 900, listedAt: now,
+      id: id,
+      name: id,
+      model: '',
+      condition: DeviceCondition.good,
+      price: 900,
+      category: c,
+      createdAt: now,
+      ownerId: SeedData.anaUserId,
+      listPrice: 900,
+      listedAt: now,
     );
     final phone = item('expensive-item', cats[0]);
     final other = item('unrelated-category', cats[1]);
-    final tx = LoopTransaction(id: 'purchase', type: TransactionType.buy,
-      userId: me, deviceId: phone.id, deviceName: phone.name,
-      price: 900, fee: 0, amount: 900, buyerId: me,
-      buyerLabel: 'Buyer', sellerLabel: 'Seller', createdAt: now);
+    final tx = LoopTransaction(
+      id: 'purchase',
+      type: TransactionType.buy,
+      userId: me,
+      deviceId: phone.id,
+      deviceName: phone.name,
+      price: 900,
+      fee: 0,
+      amount: 900,
+      buyerId: me,
+      buyerLabel: 'Buyer',
+      sellerLabel: 'Seller',
+      createdAt: now,
+    );
     AppState state(List<LoopTransaction> txs) => AppState(
-      users: storage.users, devices: [phone, other], transactions: txs,
-      currentUserId: me, isAdmin: false,
+      users: storage.users,
+      devices: [phone, other],
+      transactions: txs,
+      currentUserId: me,
+      isAdmin: false,
     );
     final before = ForYouRanker(state([]), now: now);
     final after = ForYouRanker(state([tx]), now: now);
-    expect(after.score(BrowseItem.item(other)).$1, before.score(BrowseItem.item(other)).$1);
-    expect(after.score(BrowseItem.item(phone)).$1, greaterThan(before.score(BrowseItem.item(phone)).$1));
+    expect(
+      after.score(BrowseItem.item(other)).$1,
+      before.score(BrowseItem.item(other)).$1,
+    );
+    expect(
+      after.score(BrowseItem.item(phone)).$1,
+      greaterThan(before.score(BrowseItem.item(phone)).$1),
+    );
   });
 
-  testWidgets('horizontal gallery, zoom and details keep the current listing', (tester) async {
+  testWidgets('horizontal gallery, zoom and details keep the current listing', (
+    tester,
+  ) async {
     tester.view.physicalSize = const Size(400, 860);
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.reset);
     final d = await TradeService(storage).addDevice(
-      userId: SeedData.anaUserId, name: 'Gallery product', model: 'Test model',
-      condition: DeviceCondition.good, price: 40, category: DeviceCategory.values.first,
-      // Missing local files intentionally use the image fallback.
-      imagePaths: const ['/missing-a.jpg', '/missing-b.jpg'],
+      userId: SeedData.anaUserId,
+      name: 'Gallery product',
+      model: 'Test model',
+      condition: DeviceCondition.good,
+      price: 40,
+      category: DeviceCategory.values.first,
+      // Two gallery pages use an in-memory PNG, without file I/O.
+      imagePaths: const [_png, _png],
     );
-    await tester.pumpWidget(ProviderScope(
-      overrides: [storageProvider.overrideWithValue(storage), tickIntervalProvider.overrideWithValue(null)],
-      child: MaterialApp(navigatorObservers: [feedRouteObserver], home: SwipeFeedScreen(
-        entries: [FeedEntry.item(d.id)],
-      )),
-    ));
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          storageProvider.overrideWithValue(storage),
+          tickIntervalProvider.overrideWithValue(null),
+        ],
+        child: MaterialApp(
+          navigatorObservers: [feedRouteObserver],
+          home: SwipeFeedScreen(entries: [FeedEntry.item(d.id)]),
+        ),
+      ),
+    );
     await tester.pumpAndSettle();
     expect(find.text('1/2'), findsOneWidget);
-    await tester.drag(find.byKey(const ValueKey('post-gallery')), const Offset(-350, 0));
+    await tester.drag(
+      find.byKey(const ValueKey('post-gallery')),
+      const Offset(-350, 0),
+    );
     await tester.pumpAndSettle();
     expect(find.text('2/2'), findsOneWidget);
     await tester.tap(find.byKey(const ValueKey('post-zoom')));

@@ -71,8 +71,9 @@ class FeedPreferences {
       models[key] = ((models[key] ?? 0) + 0.5).clamp(0, 2).toDouble();
       if (models.length > 50) models.remove(models.keys.first);
     }
-    conditions[condition] =
-        ((conditions[condition] ?? 0) + 0.1).clamp(0, 0.5).toDouble();
+    conditions[condition] = ((conditions[condition] ?? 0) + 0.1)
+        .clamp(0, 0.5)
+        .toDouble();
   }
 
   Map<String, dynamic> toMap() => {

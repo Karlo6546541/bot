@@ -21,7 +21,8 @@ class FeedWatchTime {
 
   Duration take() {
     final at = _now();
-    final value = _elapsed +
+    final value =
+        _elapsed +
         (_started == null ? Duration.zero : at.difference(_started!));
     _elapsed = Duration.zero;
     if (_started != null) _started = at;

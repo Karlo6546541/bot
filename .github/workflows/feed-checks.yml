@@ -38,10 +38,20 @@ jobs:
           set +e
           flutter test --reporter expanded > /tmp/feed-tests.log 2>&1
           result=$?
-          tail -n 100 /tmp/feed-tests.log
+          awk '/EXCEPTION CAUGHT/{remaining=85} remaining>0{print;remaining--}' /tmp/feed-tests.log
+          tail -n 20 /tmp/feed-tests.log
           exit "$result"
       - name: Build web
         run: flutter build web --release --base-href /bot/ --no-web-resources-cdn
+      - name: Browser previews
+        run: |
+          npm install --prefix /tmp/feed-browser playwright@1.55.0
+          mkdir -p /tmp/feed-preview
+          ln -s "$PWD/build/web" /tmp/feed-preview/bot
+          python3 -m http.server 8765 --directory /tmp/feed-preview > /tmp/feed-server.log 2>&1 &
+          server_pid=$!
+          trap 'kill "$server_pid"' EXIT
+          node ../scripts/feed-preview.cjs
       - uses: actions/upload-artifact@v4
         if: always()
         with:

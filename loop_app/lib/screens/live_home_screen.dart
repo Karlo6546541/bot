@@ -257,102 +257,101 @@ class _LiveHomeScreenState extends ConsumerState<LiveHomeScreen> {
         );
     }
 
-    final Widget search = Padding(
-      padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
-      child: Material(
-        color: LoopColors.surface,
-        borderRadius: BorderRadius.circular(999),
-        child: InkWell(
-          key: const ValueKey('home-search'),
-          borderRadius: BorderRadius.circular(999),
-          onTap: () => SearchScreen.open(context),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            child: Row(
-              children: [
-                Icon(Icons.search, color: LoopColors.textSecondary),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: Text(
-                    t('Pretraži liveove, aukcije i prodavače'),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(color: LoopColors.textSecondary),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-
     final immersive = _filter is _ForYou;
     final foreground = immersive ? Colors.white : LoopColors.textPrimary;
-    Widget tab(String id, String label, _Filter filter, bool selected) => Expanded(
-      child: Semantics(
-        selected: selected,
-        child: TextButton(
-          key: ValueKey('home-cat-$id'),
-          style: TextButton.styleFrom(
-            foregroundColor: foreground.withValues(alpha: selected ? 1 : 0.65),
-            padding: const EdgeInsets.symmetric(horizontal: 2),
-            minimumSize: const Size(44, 48),
+    Widget tab(String id, String label, _Filter filter, bool selected) =>
+        Expanded(
+          child: Semantics(
+            selected: selected,
+            child: TextButton(
+              key: ValueKey('home-cat-$id'),
+              style: TextButton.styleFrom(
+                foregroundColor: foreground.withValues(
+                  alpha: selected ? 1 : 0.65,
+                ),
+                padding: const EdgeInsets.symmetric(horizontal: 2),
+                minimumSize: const Size(44, 48),
+              ),
+              onPressed: () => setState(() => _filter = filter),
+              child: Text(
+                label,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  fontSize: 15,
+                  fontWeight: selected ? FontWeight.w900 : FontWeight.w600,
+                  decoration: selected ? TextDecoration.underline : null,
+                ),
+              ),
+            ),
           ),
-          onPressed: () => setState(() => _filter = filter),
-          child: Text(label, maxLines: 1, overflow: TextOverflow.ellipsis,
-            style: TextStyle(fontSize: 15, fontWeight: selected ? FontWeight.w900 : FontWeight.w600,
-              decoration: selected ? TextDecoration.underline : null)),
-        ),
-      ),
-    );
+        );
     final chips = ColoredBox(
       color: immersive ? Colors.black : LoopColors.background,
-      child: SafeArea(bottom: false, child: Row(
-        key: const ValueKey('home-cats'),
-        children: [
-          tab('following', t('Pratim'), const _Following(), _filter is _Following),
-          tab('for-you', t('Za tebe'), const _ForYou(), immersive),
-          tab('live', t('Uživo'), const _LiveOnly(), _filter is _LiveOnly),
-          IconButton(
-            key: const ValueKey('home-search'),
-            tooltip: t('Pretraži objave i račune'),
-            color: foreground,
-            onPressed: () => SearchScreen.open(context),
-            icon: const Icon(Icons.search),
-          ),
-          IconButton(
-            key: const ValueKey('home-filters'),
-            tooltip: t('Filteri'),
-            color: foreground,
-            onPressed: () async {
-              final picked = await showModalBottomSheet<_Filter>(
-                context: context,
-                showDragHandle: true,
-                builder: (ctx) => SafeArea(child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    for (final (id, label, icon, value) in [
-                      ('soon', t('Uskoro'), Icons.event, const _Soon()),
-                      ('timed', t('Aukcije'), Icons.gavel, const _Timed()),
-                      ('buy', t('Kupi odmah'), Icons.shopping_bag_outlined, const _BuyNow()),
-                    ]) ListTile(
-                      key: ValueKey('home-cat-$id'),
-                      leading: Icon(icon), title: Text(label),
-                      onTap: () => Navigator.pop(ctx, value),
+      child: SafeArea(
+        bottom: false,
+        child: Row(
+          key: const ValueKey('home-cats'),
+          children: [
+            tab(
+              'following',
+              t('Pratim'),
+              const _Following(),
+              _filter is _Following,
+            ),
+            tab('for-you', t('Za tebe'), const _ForYou(), immersive),
+            tab('live', t('Uživo'), const _LiveOnly(), _filter is _LiveOnly),
+            IconButton(
+              key: const ValueKey('home-search'),
+              tooltip: t('Pretraži objave i račune'),
+              color: foreground,
+              onPressed: () => SearchScreen.open(context),
+              icon: const Icon(Icons.search),
+            ),
+            IconButton(
+              key: const ValueKey('home-filters'),
+              tooltip: t('Filteri'),
+              color: foreground,
+              onPressed: () async {
+                final picked = await showModalBottomSheet<_Filter>(
+                  context: context,
+                  showDragHandle: true,
+                  builder: (ctx) => SafeArea(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        for (final (id, label, icon, value) in [
+                          ('soon', t('Uskoro'), Icons.event, const _Soon()),
+                          ('timed', t('Aukcije'), Icons.gavel, const _Timed()),
+                          (
+                            'buy',
+                            t('Kupi odmah'),
+                            Icons.shopping_bag_outlined,
+                            const _BuyNow(),
+                          ),
+                        ])
+                          ListTile(
+                            key: ValueKey('home-cat-$id'),
+                            leading: Icon(icon),
+                            title: Text(label),
+                            onTap: () => Navigator.pop(ctx, value),
+                          ),
+                        const Divider(),
+                        const Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [MessagesButton(), NotificationBell()],
+                        ),
+                      ],
                     ),
-                    const Divider(),
-                    const Row(mainAxisAlignment: MainAxisAlignment.center,
-                      children: [MessagesButton(), NotificationBell()]),
-                  ],
-                )),
-              );
-              if (picked != null && mounted) setState(() => _filter = picked);
-            },
-            icon: const Icon(Icons.tune),
-          ),
-        ],
-      )),
+                  ),
+                );
+                if (picked != null && mounted) setState(() => _filter = picked);
+              },
+              icon: const Icon(Icons.tune),
+            ),
+          ],
+        ),
+      ),
     );
 
     // "Za tebe": TikTok — objave preko cijelog ekrana ispod izbornika,
@@ -374,7 +373,7 @@ class _LiveHomeScreenState extends ConsumerState<LiveHomeScreen> {
 
     return CustomScrollView(
       slivers: [
-        SliverToBoxAdapter(child: search),
+        if (_filter is! _ForYou) const SliverToBoxAdapter(child: SizedBox(height: 8)),
         SliverToBoxAdapter(child: chips),
         if (_showHow && _filter is _ForYou)
           SliverToBoxAdapter(
@@ -666,4 +665,3 @@ class _FollowingRow extends StatelessWidget {
     );
   }
 }
-

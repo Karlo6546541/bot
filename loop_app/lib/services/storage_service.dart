@@ -739,7 +739,8 @@ class StorageService {
   /// signal za "Za tebe". Samo na ovom uređaju.
   List<String> get recentCategories =>
       (_session.get('recentCategories:${currentUserId ?? 'guest'}') as List?)
-          ?.cast<String>() ?? const [];
+          ?.cast<String>() ??
+      const [];
 
   Future<void> addRecentCategories(Iterable<String> names) {
     final list = [...recentCategories, ...names];
@@ -787,4 +788,3 @@ class StorageService {
     await _session.put(_isAdminKey, isAdmin);
   }
 }
-

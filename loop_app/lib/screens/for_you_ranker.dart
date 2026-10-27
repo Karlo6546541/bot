@@ -135,8 +135,11 @@ class ForYouRanker {
     if (me == null) return <DeviceCategory, double>{};
     for (final tx in s.transactions) {
       final c = s.deviceById(tx.deviceId)?.category;
-      if (tx.buyerId == me && c != null && tx.price > 0 &&
-          tx.type != TransactionType.delivery && tx.type != TransactionType.payout) {
+      if (tx.buyerId == me &&
+          c != null &&
+          tx.price > 0 &&
+          tx.type != TransactionType.delivery &&
+          tx.type != TransactionType.payout) {
         (prices[c] ??= []).add(tx.price);
       }
     }
@@ -221,9 +224,14 @@ class ForYouRanker {
       penalty -= preferences.less[c.name] ?? 0;
     }
     final title = _title(i);
-    final modelMatch = preferences.models.entries.where((e) => title.contains(e.key));
+    final modelMatch = preferences.models.entries.where(
+      (e) => title.contains(e.key),
+    );
     if (modelMatch.isNotEmpty) {
-      parts.add((modelMatch.map((e) => e.value).reduce(math.max), t('Slično onome što gledaš')));
+      parts.add((
+        modelMatch.map((e) => e.value).reduce(math.max),
+        t('Slično onome što gledaš'),
+      ));
     }
     final condition = preferences.conditions[i.device?.condition.name];
     if (condition != null && condition > 0) {
@@ -309,16 +317,23 @@ class ForYouRanker {
       Pick? best;
       var bestScore = double.negativeInfinity;
       final window = out.skip(math.max(0, out.length - 4)).toList();
-      final diverse = pool.where((p) => window.where(
-        (o) => _sellerOf(o.item) == _sellerOf(p.item),
-      ).length < 2).toList();
+      final diverse = pool
+          .where(
+            (p) =>
+                window
+                    .where((o) => _sellerOf(o.item) == _sellerOf(p.item))
+                    .length <
+                2,
+          )
+          .toList();
       var candidates = diverse.isEmpty ? pool : diverse;
       // One slot in five can surface a new, little-seen listing.
       if (out.length % 5 == 4) {
         final fresh = candidates.where((p) {
           final d = p.item.device;
           final at = d?.listedAt;
-          return d != null && at != null &&
+          return d != null &&
+              at != null &&
               now.difference(at) < const Duration(days: 7) &&
               s.viewsOf(d.id) < 10;
         }).toList();
@@ -347,4 +362,3 @@ class ForYouRanker {
     return out;
   }
 }
-

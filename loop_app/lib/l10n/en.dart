@@ -5,10 +5,13 @@ const kEn = <String, String>{
   'Slično onome što gledaš': 'Similar to what you view',
   'Stanje koje te zanima': 'A condition you are interested in',
   'Tvoje preporuke': 'Your recommendations',
-  'Skriveno: {0} oglasa i {1} prodavača. Postavke se spremaju samo na ovom uređaju.': 'Hidden: {0} listings and {1} sellers. Preferences are saved only on this device.',
-  'Vrati skrivene i poništi „Manje ovakvog”': 'Restore hidden items and reset “Less like this”',
+  'Skriveno: {0} oglasa i {1} prodavača. Postavke se spremaju samo na ovom uređaju.':
+      'Hidden: {0} listings and {1} sellers. Preferences are saved only on this device.',
+  'Vrati skrivene i poništi „Manje ovakvog”':
+      'Restore hidden items and reset “Less like this”',
   'Sve novo si pogledao': 'You are all caught up',
-  'Provjeri nove oglase ili ponovno pogledaj dostupne.': 'Check for new listings or view available listings again.',
+  'Provjeri nove oglase ili ponovno pogledaj dostupne.':
+      'Check for new listings or view available listings again.',
   'Provjeri novo': 'Check for new listings',
   'Pogledaj ponovno': 'View again',
   'Uredi preporuke': 'Manage recommendations',
@@ -2407,4 +2410,3 @@ const kEn = <String, String>{
   'Još nema objava — svrati uskoro.': 'No posts yet — check back soon.',
   'Preuzmi Android aplikaciju': 'Download the Android app',
 };
-
