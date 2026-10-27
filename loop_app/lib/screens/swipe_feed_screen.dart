@@ -1,4 +1,4 @@
-import 'dart:ui' show ImageFilter;
+import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -10,6 +10,10 @@ import '../models/device.dart';
 import '../providers/app_providers.dart';
 import '../providers/app_state.dart';
 import '../services/fee.dart';
+import '../services/delivery_service.dart';
+import '../services/feed_watch_time.dart';
+import '../models/delivery.dart';
+import '../widgets/photo_viewer.dart';
 import '../theme/app_theme.dart';
 import '../utils/formatters.dart';
 import '../widgets/auction_widgets.dart';
@@ -27,6 +31,8 @@ import 'device_detail_screen.dart';
 import 'live_screens.dart';
 import 'public_profile_screen.dart';
 
+enum FeedFeedback { less, hide, seller, settings }
+
 /// Objave preko cijelog ekrana koje se listaju gore/dolje (kao TikTok).
 /// Oglas: lajk, ponudi cijenu, podijeli, kupi. Aukcija: licitiraj,
 /// zvono, odbrojavanje. Live aukcija: cijela soba uživo.
@@ -39,9 +45,18 @@ class SwipeFeedScreen extends ConsumerStatefulWidget {
     this.embedded = false,
     this.active = true,
     this.onPage,
+    this.onScrollState,
     this.reasonOf,
+    this.onWatch,
+    this.onDetails,
+    this.onFeedback,
+    this.endPage,
   });
 
+  final void Function(FeedEntry entry, Duration visibleTime)? onWatch;
+  final void Function(FeedEntry entry)? onDetails;
+  final void Function(FeedEntry entry, FeedFeedback action)? onFeedback;
+  final Widget? endPage;
   final List<FeedEntry> entries;
   final int initialIndex;
 
@@ -55,6 +70,7 @@ class SwipeFeedScreen extends ConsumerStatefulWidget {
   /// Prelazak na drugu objavu: s koje ([from]), koliko se gledala i na
   /// koju ([to]) — za učenje ukusa u "Za tebe".
   final void Function(int from, Duration dwell, int to)? onPage;
+  final ValueChanged<bool>? onScrollState;
 
   /// Razlog preporuke ("Jer pratiš @ana") — oznaka na vrhu objave.
   final String? Function(FeedEntry)? reasonOf;
@@ -78,19 +94,171 @@ class SwipeFeedScreen extends ConsumerStatefulWidget {
   ConsumerState<SwipeFeedScreen> createState() => _SwipeFeedScreenState();
 }
 
-class _SwipeFeedScreenState extends ConsumerState<SwipeFeedScreen> {
+class _SwipeFeedScreenState extends ConsumerState<SwipeFeedScreen>
+    with WidgetsBindingObserver, RouteAware {
   late final _pages = PageController(initialPage: widget.initialIndex);
   late int _index = widget.initialIndex;
-  DateTime _enteredAt = DateTime.now();
+  final _watch = FeedWatchTime();
+  final _recorded = <String>{};
+  Timer? _viewTimer;
+  ModalRoute<dynamic>? _route;
+  bool _routeVisible = true;
+  bool _foreground = true;
+  bool _visible = false;
+  bool _scrolling = false;
+  Timer? _preloadTimer;
+  final _preloaded = <String>{};
+
+  bool _onScroll(ScrollNotification notification) {
+    if (notification.depth != 0 || notification.metrics.axis != Axis.vertical) {
+      return false;
+    }
+    if (notification is ScrollStartNotification) {
+      _scrolling = true;
+      _viewTimer?.cancel();
+      _preloadTimer?.cancel();
+      _watch.setVisible(false);
+      _flushWatch();
+      widget.onScrollState?.call(true);
+    } else if (notification is ScrollEndNotification) {
+      _scrolling = false;
+      _watch.setVisible(_visible);
+      widget.onScrollState?.call(false);
+      if (_visible) {
+        _scheduleView();
+        _schedulePreload();
+      }
+    }
+    return false;
+  }
+
+  void _schedulePreload() {
+    _preloadTimer?.cancel();
+    if (!_visible || _scrolling) return;
+    _preloadTimer = Timer(const Duration(milliseconds: 50), () {
+      if (!mounted || !_visible || _scrolling) return;
+      final state = ref.read(appProvider);
+      for (final entry in widget.entries.skip(_index + 1).take(2)) {
+        if (entry.isLive) continue;
+        final id =
+            entry.deviceId ?? state.auctionById(entry.auctionId!)?.deviceId;
+        final d = id == null ? null : state.deviceById(id);
+        if (d == null || d.imagePaths.isEmpty) continue;
+        final path = d.imagePaths.first;
+        if (!_preloaded.add(path)) continue;
+        if (_preloaded.length > 12) _preloaded.remove(_preloaded.first);
+        final provider = LocalPhoto.providerFor(path, cacheWidth: 1080);
+        if (provider != null) {
+          unawaited(precacheImage(provider, context, onError: (_, _) {}));
+        }
+      }
+    });
+  }
+
+  String _key(FeedEntry e) => e.liveId ?? e.auctionId ?? e.deviceId ?? '';
+
+  void _flushWatch() {
+    final dwell = _watch.take();
+    if (_index < widget.entries.length && dwell > Duration.zero) {
+      widget.onWatch?.call(widget.entries[_index], dwell);
+    }
+  }
+
+  void _visibility() {
+    final visible = widget.active && _routeVisible && _foreground;
+    _watch.setVisible(visible && !_scrolling);
+    if (!visible) {
+      _viewTimer?.cancel();
+      _preloadTimer?.cancel();
+      if (_visible) _flushWatch();
+    } else if (!_visible) {
+      _scheduleView();
+    }
+    _visible = visible;
+    if (visible && !_scrolling) _schedulePreload();
+  }
+
+  void _scheduleView() {
+    _viewTimer?.cancel();
+    if (_scrolling || _index >= widget.entries.length) return;
+    final entry = widget.entries[_index];
+    _viewTimer = Timer(const Duration(seconds: 1), () {
+      if (mounted &&
+          _visible &&
+          _index < widget.entries.length &&
+          _key(widget.entries[_index]) == _key(entry)) {
+        _seen(_index);
+      }
+    });
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final route = ModalRoute.of(context);
+    if (route != _route) {
+      feedRouteObserver.unsubscribe(this);
+      _route = route;
+      if (route != null) feedRouteObserver.subscribe(this, route);
+    }
+    _routeVisible = route?.isCurrent ?? true;
+    _visibility();
+  }
+
+  @override
+  void didUpdateWidget(covariant SwipeFeedScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    final oldEntry = _index < oldWidget.entries.length
+        ? oldWidget.entries[_index]
+        : null;
+    final newEntry = _index < widget.entries.length
+        ? widget.entries[_index]
+        : null;
+    if ((oldEntry == null ? null : _key(oldEntry)) !=
+        (newEntry == null ? null : _key(newEntry))) {
+      final dwell = _watch.take();
+      if (oldEntry != null && dwell > Duration.zero) {
+        oldWidget.onWatch?.call(oldEntry, dwell);
+      }
+    }
+    _visibility();
+    if (_visible) _scheduleView();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    setState(() => _foreground = state == AppLifecycleState.resumed);
+    _visibility();
+  }
+
+  @override
+  void didPushNext() {
+    setState(() => _routeVisible = false);
+    _visibility();
+  }
+
+  @override
+  void didPopNext() {
+    setState(() => _routeVisible = true);
+    _visibility();
+  }
 
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) => _seen(_index));
+    WidgetsBinding.instance.addObserver(this);
+    final lifecycle = WidgetsBinding.instance.lifecycleState;
+    _foreground = lifecycle == null || lifecycle == AppLifecycleState.resumed;
   }
 
   @override
   void dispose() {
+    _watch.setVisible(false);
+    _flushWatch();
+    _viewTimer?.cancel();
+    _preloadTimer?.cancel();
+    feedRouteObserver.unsubscribe(this);
+    WidgetsBinding.instance.removeObserver(this);
     _pages.dispose();
     super.dispose();
   }
@@ -98,7 +266,7 @@ class _SwipeFeedScreenState extends ConsumerState<SwipeFeedScreen> {
   void _seen(int i) {
     if (i >= widget.entries.length) return;
     final e = widget.entries[i];
-    if (e.isLive) return;
+    if (e.isLive || !_recorded.add(_key(e))) return;
     final state = ref.read(appProvider);
     final id = e.deviceId ?? state.auctionById(e.auctionId!)?.deviceId;
     if (id != null) ref.read(appProvider.notifier).recordView(id);
@@ -127,32 +295,49 @@ class _SwipeFeedScreenState extends ConsumerState<SwipeFeedScreen> {
             constraints: const BoxConstraints(maxWidth: 520),
             child: Stack(
               children: [
-                PageView.builder(
-                  key: const ValueKey('swipe-feed'),
-                  controller: _pages,
-                  scrollDirection: Axis.vertical,
-                  itemCount: entries.length + (embedded ? 0 : 1),
-                  onPageChanged: (i) {
-                    final now = DateTime.now();
-                    widget.onPage?.call(_index, now.difference(_enteredAt), i);
-                    _enteredAt = now;
-                    setState(() => _index = i);
-                    _seen(i);
-                  },
-                  itemBuilder: (context, i) {
-                    if (i == entries.length) {
-                      return _EndPage(onBack: () => Navigator.pop(context));
-                    }
-                    final e = entries[i];
-                    if (e.isLive) {
-                      return LiveRoomView(
-                        key: ValueKey('feed-live-${e.liveId}'),
-                        showId: e.liveId!,
-                        active: i == _index && widget.active,
+                NotificationListener<ScrollNotification>(
+                  onNotification: _onScroll,
+                  child: PageView.builder(
+                    key: const ValueKey('swipe-feed'),
+                    scrollBehavior: const AnyDeviceDragBehavior(),
+                    controller: _pages,
+                    scrollDirection: Axis.vertical,
+                    itemCount:
+                        entries.length +
+                        (widget.endPage != null || !embedded ? 1 : 0),
+                    onPageChanged: (i) {
+                      final dwell = _watch.take();
+                      if (_index < entries.length && dwell > Duration.zero) {
+                        widget.onWatch?.call(entries[_index], dwell);
+                      }
+                      final from = _index;
+                      setState(() => _index = i);
+                      widget.onPage?.call(from, dwell, i);
+                      if (_visible) _scheduleView();
+                    },
+                    itemBuilder: (context, i) {
+                      if (i == entries.length) {
+                        return widget.endPage ??
+                            _EndPage(onBack: () => Navigator.pop(context));
+                      }
+                      final e = entries[i];
+                      if (e.isLive) {
+                        return LiveRoomView(
+                          key: ValueKey('feed-live-${e.liveId}'),
+                          showId: e.liveId!,
+                          active: i == _index && _visible,
+                        );
+                      }
+                      return RepaintBoundary(
+                        key: ValueKey('post-${_key(e)}'),
+                        child: _PostPage(
+                          entry: e,
+                          state: state,
+                          onDetails: () => widget.onDetails?.call(e),
+                        ),
                       );
-                    }
-                    return _PostPage(entry: e, state: state);
-                  },
+                    },
+                  ),
                 ),
                 // Ugrađeno: oznaka zašto je objava predložena.
                 if (embedded &&
@@ -161,26 +346,84 @@ class _SwipeFeedScreenState extends ConsumerState<SwipeFeedScreen> {
                     !entries[_index].isLive)
                   SafeArea(
                     child: Align(
-                      alignment: Alignment.topCenter,
+                      alignment: Alignment.topLeft,
                       child: Container(
                         key: const ValueKey('feed-reason'),
-                        margin: const EdgeInsets.only(top: 10),
+                        margin: const EdgeInsets.only(
+                          top: 10,
+                          left: 14,
+                          right: 58,
+                        ),
                         padding: const EdgeInsets.symmetric(
-                          horizontal: 12,
-                          vertical: 6,
+                          horizontal: 10,
+                          vertical: 5,
                         ),
                         decoration: BoxDecoration(
                           color: Colors.black.withValues(alpha: 0.45),
                           borderRadius: BorderRadius.circular(99),
                         ),
                         child: Text(
-                          '✨ $reason',
+                          reason,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                           style: const TextStyle(
                             color: Colors.white,
-                            fontWeight: FontWeight.w800,
-                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                            fontSize: 11,
                           ),
                         ),
+                      ),
+                    ),
+                  ),
+                if (widget.onFeedback != null && _index < entries.length)
+                  Positioned(
+                    right: 4,
+                    top: entries[_index].isLive ? 62 : 0,
+                    child: SafeArea(
+                      child: PopupMenuButton<FeedFeedback>(
+                        key: const ValueKey('feed-more'),
+                        tooltip: t('Uredi preporuke'),
+                        icon: const Icon(
+                          Icons.more_horiz,
+                          color: Colors.white,
+                          shadows: _shadow,
+                        ),
+                        onSelected: (action) =>
+                            widget.onFeedback!(entries[_index], action),
+                        itemBuilder: (_) => [
+                          PopupMenuItem(
+                            value: FeedFeedback.less,
+                            child: Text(t('Manje ovakvog')),
+                          ),
+                          PopupMenuItem(
+                            value: FeedFeedback.hide,
+                            child: Text(t('Sakrij oglas')),
+                          ),
+                          PopupMenuItem(
+                            value: FeedFeedback.seller,
+                            enabled: entries[_index].isLive
+                                ? state
+                                          .liveShowById(entries[_index].liveId!)
+                                          ?.hostId !=
+                                      null
+                                : entries[_index].isAuction
+                                ? state
+                                          .auctionById(
+                                            entries[_index].auctionId!,
+                                          )
+                                          ?.sellerId !=
+                                      null
+                                : state
+                                          .deviceById(entries[_index].deviceId!)
+                                          ?.ownerId !=
+                                      null,
+                            child: Text(t('Sakrij prodavača')),
+                          ),
+                          PopupMenuItem(
+                            value: FeedFeedback.settings,
+                            child: Text(t('Uredi preporuke')),
+                          ),
+                        ],
                       ),
                     ),
                   ),
@@ -307,7 +550,8 @@ class _BoughtPage extends StatelessWidget {
 /// Jedna objava: slika preko cijelog ekrana, a dolje opis (lijevo) i
 /// stupac akcija (desno) jedan pokraj drugoga — nikad se ne preklapaju.
 class _PostPage extends ConsumerStatefulWidget {
-  const _PostPage({required this.entry, required this.state});
+  const _PostPage({required this.entry, required this.state, this.onDetails});
+  final VoidCallback? onDetails;
   final FeedEntry entry;
   final AppState state;
 
@@ -355,89 +599,80 @@ class _PostPageState extends ConsumerState<_PostPage> {
     final owner = state.userById(auction?.sellerId ?? d.ownerId);
     final me = state.currentUser;
     final isMine = owner != null && owner.id == me?.id;
-    void openDetails() => auction != null
-        ? AuctionDetailScreen.open(context, auction.id)
-        : DeviceDetailScreen.open(context, d);
+    void openDetails() {
+      widget.onDetails?.call();
+      _showPostDetails(context, ref, d, auction);
+    }
 
-    return Stack(
-      fit: StackFit.expand,
+    return Column(
       children: [
-        GestureDetector(
-          key: const ValueKey('post-media'),
-          onTap: openDetails,
-          onDoubleTap: isMine || auction != null
-              ? null
-              : () => _doubleTapLike(d),
-          child: _Media(device: d),
-        ),
-        const IgnorePointer(
-          child: DecoratedBox(
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-                colors: [
-                  Colors.black45,
-                  Colors.transparent,
-                  Colors.transparent,
-                  Colors.black87,
-                ],
-                stops: [0, 0.18, 0.5, 1],
+        Expanded(
+          child: Stack(
+            fit: StackFit.expand,
+            children: [
+              _Media(
+                key: const ValueKey('post-media'),
+                device: d,
+                onTap: openDetails,
+                onDoubleTap: isMine || auction != null
+                    ? null
+                    : () => _doubleTapLike(d),
               ),
-            ),
-          ),
-        ),
-        IgnorePointer(
-          child: Center(
-            child: AnimatedScale(
-              scale: _heart ? 1 : 0,
-              duration: const Duration(milliseconds: 200),
-              child: const Icon(
-                Icons.favorite,
-                color: Color(0xFFFF2D55),
-                size: 110,
-                shadows: _shadow,
-              ),
-            ),
-          ),
-        ),
-        // Oznaka u kutu: aukcija / popust / istaknuto.
-        Positioned(
-          top: MediaQuery.paddingOf(context).top + 56,
-          left: 14,
-          child: _CornerBadge(device: d, auction: auction, state: state),
-        ),
-        Positioned(
-          left: 0,
-          right: 0,
-          bottom: 0,
-          child: SafeArea(
-            top: false,
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(14, 0, 8, 16),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                  Expanded(
-                    child: _Info(
-                      device: d,
-                      auction: auction,
-                      state: state,
-                      isMine: isMine,
-                      onDetails: openDetails,
+              const IgnorePointer(
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: [
+                        Colors.black38,
+                        Colors.transparent,
+                        Colors.transparent,
+                      ],
+                      stops: [0, 0.22, 1],
                     ),
                   ),
-                  const SizedBox(width: 8),
-                  _ActionRail(
-                    device: d,
-                    auction: auction,
-                    state: state,
-                    isMine: isMine,
-                  ),
-                ],
+                ),
               ),
-            ),
+              IgnorePointer(
+                child: Center(
+                  child: AnimatedScale(
+                    scale: _heart ? 1 : 0,
+                    duration: const Duration(milliseconds: 200),
+                    child: const Icon(
+                      Icons.favorite,
+                      color: Color(0xFFFF2D55),
+                      size: 100,
+                      shadows: _shadow,
+                    ),
+                  ),
+                ),
+              ),
+              Positioned(
+                top: MediaQuery.paddingOf(context).top + 48,
+                left: 14,
+                right: 80,
+                child: _CornerBadge(device: d, auction: auction, state: state),
+              ),
+              Positioned(
+                right: 10,
+                bottom: 12,
+                child: _ActionRail(
+                  device: d,
+                  auction: auction,
+                  state: state,
+                  isMine: isMine,
+                ),
+              ),
+            ],
           ),
+        ),
+        _Info(
+          device: d,
+          auction: auction,
+          state: state,
+          isMine: isMine,
+          onDetails: openDetails,
         ),
       ],
     );
@@ -447,13 +682,27 @@ class _PostPageState extends ConsumerState<_PostPage> {
 /// Fotografija preko cijelog ekrana: zamućena pozadina + cijela slika, pa
 /// i uske ili široke fotografije izgledaju dobro. Bez fotografije —
 /// ilustracija kategorije.
-class _Media extends StatelessWidget {
-  const _Media({required this.device});
+class _Media extends StatefulWidget {
+  const _Media({
+    super.key,
+    required this.device,
+    required this.onTap,
+    this.onDoubleTap,
+  });
   final Device device;
+  final VoidCallback onTap;
+  final VoidCallback? onDoubleTap;
+
+  @override
+  State<_Media> createState() => _MediaState();
+}
+
+class _MediaState extends State<_Media> {
+  int _photo = 0;
 
   @override
   Widget build(BuildContext context) {
-    final d = device;
+    final d = widget.device;
     final c = d.category.color;
     final illustration = DecoratedBox(
       decoration: BoxDecoration(
@@ -467,25 +716,78 @@ class _Media extends StatelessWidget {
         child: Icon(d.category.icon, size: 140, color: Colors.white24),
       ),
     );
-    if (d.imagePaths.isEmpty) return illustration;
-    final path = d.imagePaths.first;
+    if (d.imagePaths.isEmpty) {
+      return GestureDetector(
+        onTap: widget.onTap,
+        onDoubleTap: widget.onDoubleTap,
+        child: illustration,
+      );
+    }
+    final current = _photo.clamp(0, d.imagePaths.length - 1);
     return Stack(
       fit: StackFit.expand,
       children: [
-        ImageFiltered(
-          imageFilter: ImageFilter.blur(sigmaX: 24, sigmaY: 24),
-          child: LocalPhoto(
-            path: path,
-            cacheWidth: 200,
-            fallback: illustration,
+        const ColoredBox(color: Color(0xFF090A0D)),
+        ScrollConfiguration(
+          behavior: const AnyDeviceDragBehavior(),
+          child: PageView.builder(
+            key: const ValueKey('post-gallery'),
+            allowImplicitScrolling: true,
+            itemCount: d.imagePaths.length,
+            onPageChanged: (i) => setState(() => _photo = i),
+            itemBuilder: (_, i) => GestureDetector(
+              onTap: widget.onTap,
+              onDoubleTap: widget.onDoubleTap,
+              child: LocalPhoto(
+                path: d.imagePaths[i],
+                fit: BoxFit.contain,
+                cacheWidth: 1080,
+                fallback: illustration,
+              ),
+            ),
           ),
         ),
-        const ColoredBox(color: Colors.black26),
-        LocalPhoto(
-          path: path,
-          fit: BoxFit.contain,
-          cacheWidth: 1080,
-          fallback: illustration,
+        Positioned(
+          right: 10,
+          top: 56,
+          child: SafeArea(
+            child: Column(
+              children: [
+                if (d.imagePaths.length > 1)
+                  Container(
+                    key: const ValueKey('post-photo-count'),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 4,
+                    ),
+                    decoration: BoxDecoration(
+                      color: Colors.black54,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Text(
+                      '${current + 1}/${d.imagePaths.length}',
+                      style: const TextStyle(color: Colors.white),
+                    ),
+                  ),
+                IconButton(
+                  key: const ValueKey('post-zoom'),
+                  tooltip: t('Povećaj fotografiju'),
+                  style: IconButton.styleFrom(
+                    backgroundColor: Colors.black45,
+                    minimumSize: const Size(36, 36),
+                    padding: const EdgeInsets.all(6),
+                  ),
+                  icon: const Icon(
+                    Icons.zoom_in,
+                    size: 20,
+                    color: Color(0xFFDDDEE5),
+                  ),
+                  onPressed: () =>
+                      PhotoViewer.open(context, d.imagePaths, initial: current),
+                ),
+              ],
+            ),
+          ),
         ),
       ],
     );
@@ -505,49 +807,51 @@ class _CornerBadge extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final a = auction;
-    if (a != null) {
-      return _Pill(
-        color: LoopColors.accent,
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(t('🔨 AUKCIJA'), style: _pillText),
-            const SizedBox(width: 8),
-            AuctionCountdown(
-              endsAt: a.endsAt,
-              showIcon: false,
+    return Wrap(
+      spacing: 6,
+      runSpacing: 6,
+      children: [
+        if (state.isPromotedItem(device))
+          _Pill(
+            color: const Color(0xFFFFC233),
+            child: Text(
+              t('Sponzorirano'),
+              style: _pillText.copyWith(color: Colors.black87),
+            ),
+          ),
+        if (a != null)
+          _Pill(
+            color: LoopColors.accent,
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(t('🔨 AUKCIJA'), style: _pillText),
+                const SizedBox(width: 8),
+                AuctionCountdown(
+                  endsAt: a.endsAt,
+                  showIcon: false,
+                  style: _pillText,
+                ),
+              ],
+            ),
+          )
+        else if (device.hasDiscount)
+          _Pill(
+            color: const Color(0xFFFF2D55),
+            child: Text(
+              t('−{0}% popust', ['${device.discountPercent}']),
               style: _pillText,
             ),
-          ],
-        ),
-      );
-    }
-    if (device.hasDiscount) {
-      return _Pill(
-        color: const Color(0xFFFF2D55),
-        child: Text(
-          t('−{0}% popust', ['${device.discountPercent}']),
-          style: _pillText,
-        ),
-      );
-    }
-    if (state.isPromotedItem(device)) {
-      return _Pill(
-        color: const Color(0xFFFFC233),
-        child: Text(
-          t('Sponzorirano'),
-          style: _pillText.copyWith(color: Colors.black87),
-        ),
-      );
-    }
-    return const SizedBox.shrink();
+          ),
+      ],
+    );
   }
 }
 
 const _pillText = TextStyle(
   color: Colors.white,
-  fontWeight: FontWeight.w900,
-  fontSize: 13,
+  fontWeight: FontWeight.w700,
+  fontSize: 11,
 );
 
 class _Pill extends StatelessWidget {
@@ -557,13 +861,22 @@ class _Pill extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Container(
-    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
     decoration: BoxDecoration(
       color: color,
       borderRadius: BorderRadius.circular(99),
     ),
     child: child,
   );
+}
+
+String _shippingLabel(Device d) {
+  final methods = DeliveryService.methodsFor(d);
+  final shipped = methods.where((m) => m != DeliveryMethod.pickup).toList()
+    ..sort((a, b) => a.cost.compareTo(b.cost));
+  if (shipped.isEmpty) return t('Osobno preuzimanje');
+  if (shipped.first == DeliveryMethod.digital) return t('Digitalna dostava');
+  return t('Dostava od {0}', [formatCredits(shipped.first.cost)]);
 }
 
 /// Opis objave: trgovina (+ Prati), naziv, opis, cijena i glavni gumb.
@@ -616,136 +929,188 @@ class _Info extends ConsumerWidget {
             : Icons.shopping_bag_outlined,
         label: d.isDigital && state.hasPurchased(d.id)
             ? t('Preuzmi')
-            : t('Kupi · {0}', [formatCredits(price)]),
+            : t('Kupi odmah'),
         onTap: () => confirmAndBuy(context, ref, d),
         color: LoopColors.buyNow,
       );
     }
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        if (owner != null)
-          Row(
-            children: [
-              GestureDetector(
-                onTap: () => PublicProfileScreen.open(context, owner.id),
-                child: UserAvatar(user: owner, size: 34),
-              ),
-              const SizedBox(width: 8),
-              Flexible(
-                child: GestureDetector(
-                  onTap: () => PublicProfileScreen.open(context, owner.id),
-                  child: Text(
-                    owner.shopTitle,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.w900,
-                      fontSize: 15,
-                      shadows: _shadow,
-                    ),
-                  ),
-                ),
-              ),
-              if (!isMine && !state.isFollowing(owner.id)) ...[
-                const SizedBox(width: 8),
-                _FollowPill(userId: owner.id, handle: owner.handle),
-              ],
-            ],
-          ),
-        const SizedBox(height: 8),
-        // Dodir na naziv/opis otvara cijeli opis i detalje.
-        GestureDetector(
-          key: const ValueKey('post-description'),
-          behavior: HitTestBehavior.opaque,
-          onTap: () => _showPostDetails(context, ref, d, a),
+    final rating = owner == null ? null : state.ratingOf(owner.id);
+    return DecoratedBox(
+      key: const ValueKey('post-info-panel'),
+      decoration: const BoxDecoration(
+        color: Color(0xFF131419),
+        border: Border(top: BorderSide(color: Color(0xFF25262D))),
+      ),
+      child: SafeArea(
+        top: false,
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(14, 10, 14, 12),
           child: Column(
+            mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                d.model.isEmpty ? d.name : '${d.name} · ${d.model}',
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.w800,
-                  fontSize: 16,
-                  shadows: _shadow,
+              if (owner != null) ...[
+                Row(
+                  children: [
+                    GestureDetector(
+                      onTap: () => PublicProfileScreen.open(context, owner.id),
+                      child: UserAvatar(user: owner, size: 26),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: GestureDetector(
+                        onTap: () =>
+                            PublicProfileScreen.open(context, owner.id),
+                        child: Text(
+                          owner.shopTitle,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            color: Color(0xFFB3B4BF),
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                    ),
+                    if (rating != null && rating.count > 0) ...[
+                      const SizedBox(width: 6),
+                      Text(
+                        '★ ${rating.average.toStringAsFixed(1)}',
+                        style: const TextStyle(
+                          color: Color(0xFFA1A2AD),
+                          fontSize: 11,
+                        ),
+                      ),
+                    ],
+                    if (!isMine && !state.isFollowing(owner.id)) ...[
+                      const SizedBox(width: 10),
+                      _FollowPill(userId: owner.id, handle: owner.handle),
+                    ],
+                  ],
                 ),
-              ),
-              if (d.description.isNotEmpty) ...[
-                const SizedBox(height: 2),
-                Text(
-                  d.description,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    color: Colors.white70,
-                    shadows: _shadow,
-                  ),
-                ),
+                const SizedBox(height: 8),
               ],
-              const SizedBox(height: 2),
-              Text(
-                t('Opis i detalji ›'),
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.w800,
-                  fontSize: 13,
-                  shadows: _shadow,
+              GestureDetector(
+                key: const ValueKey('post-description'),
+                behavior: HitTestBehavior.opaque,
+                onTap: onDetails,
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            d.model.isEmpty ? d.name : '${d.name} · ${d.model}',
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              color: Color(0xFFE9E9EF),
+                              fontSize: 16,
+                              height: 1.2,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                          if (d.description.isNotEmpty) ...[
+                            const SizedBox(height: 4),
+                            Text(
+                              d.description,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                color: Color(0xFF9B9CA8),
+                                fontSize: 12,
+                                height: 1.3,
+                              ),
+                            ),
+                          ],
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    ConstrainedBox(
+                      constraints: const BoxConstraints(maxWidth: 110),
+                      child: a != null
+                          ? Text(
+                              formatCredits(a.currentPrice),
+                              style: const TextStyle(
+                                color: Color(0xFFE9E9EF),
+                                fontSize: 22,
+                                height: 1.1,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            )
+                          : PriceTag(
+                              device: d,
+                              price: isMine ? d.askPrice : price,
+                              basePrice: d.shownBasePrice,
+                              fontSize: 22,
+                              color: const Color(0xFFE9E9EF),
+                            ),
+                    ),
+                  ],
                 ),
               ),
+              const SizedBox(height: 5),
+              Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      a != null
+                          ? t('{0} ponuda', ['${a.bids.length}'])
+                          : d.isDigital
+                          ? t('Digitalna dostava')
+                          : '${d.condition.label} · ${_shippingLabel(d)}',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        color: Color(0xFF92939F),
+                        fontSize: 11,
+                      ),
+                    ),
+                  ),
+                  IconButton(
+                    tooltip: t('Zaštita kupca'),
+                    onPressed: () => BuyerProtectionBadge.explain(context),
+                    padding: EdgeInsets.zero,
+                    visualDensity: VisualDensity.compact,
+                    constraints: const BoxConstraints.tightFor(
+                      width: 28,
+                      height: 28,
+                    ),
+                    icon: const Icon(
+                      Icons.verified_user_outlined,
+                      size: 15,
+                      color: Color(0xFF75AD91),
+                    ),
+                  ),
+                  TextButton(
+                    key: const ValueKey('post-details-link'),
+                    onPressed: onDetails,
+                    style: TextButton.styleFrom(
+                      foregroundColor: const Color(0xFFB3B4BF),
+                      padding: const EdgeInsets.only(left: 4),
+                      minimumSize: const Size(0, 28),
+                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      textStyle: const TextStyle(
+                        fontFamily: kFontFamily,
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    child: Text(t('Detalji ›')),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 6),
+              primary,
             ],
           ),
         ),
-        const SizedBox(height: 8),
-        if (a != null)
-          Text(
-            a.bids.isEmpty
-                ? t('Početna cijena {0}', [formatCredits(a.currentPrice)])
-                : t('Trenutno {0} · {1} ponuda', [
-                    formatCredits(a.currentPrice),
-                    '${a.bids.length}',
-                  ]),
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 20,
-              fontWeight: FontWeight.w900,
-              shadows: _shadow,
-            ),
-          )
-        // Cijena je na gumbu "Kupi"; ovdje samo popust (prekrižena cijena).
-        else if (!isMine && price < d.shownBasePrice)
-          PriceTag(
-            device: d,
-            price: price,
-            basePrice: d.shownBasePrice,
-            fontSize: 22,
-            color: Colors.white,
-          )
-        else if (isMine)
-          PriceTag(
-            device: d,
-            price: d.askPrice,
-            fontSize: 22,
-            color: Colors.white,
-          ),
-        const SizedBox(height: 8),
-        const Wrap(
-          spacing: 6,
-          crossAxisAlignment: WrapCrossAlignment.center,
-          runSpacing: 4,
-          children: [
-            BuyerProtectionBadge(dark: true, compact: true),
-            WalletChip(dark: true),
-          ],
-        ),
-        const SizedBox(height: 8),
-        primary,
-      ],
+      ),
     );
   }
 }
@@ -770,8 +1135,8 @@ class _MainButton extends StatelessWidget {
     final child = Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Icon(icon, size: 20),
-        const SizedBox(width: 8),
+        Icon(icon, size: 18),
+        const SizedBox(width: 6),
         Flexible(
           child: Text(label, maxLines: 1, overflow: TextOverflow.ellipsis),
         ),
@@ -779,13 +1144,22 @@ class _MainButton extends StatelessWidget {
     );
     return SizedBox(
       width: double.infinity,
-      height: 48,
+      height: 42,
       child: outlined
           ? OutlinedButton(
               onPressed: onTap,
               style: OutlinedButton.styleFrom(
-                foregroundColor: Colors.white,
-                side: const BorderSide(color: Colors.white70),
+                foregroundColor: const Color(0xFFE9E9EF),
+                minimumSize: const Size(0, 42),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                textStyle: const TextStyle(
+                  fontFamily: kFontFamily,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w700,
+                ),
+                side: const BorderSide(color: Color(0xFF555661)),
               ),
               child: child,
             )
@@ -795,7 +1169,16 @@ class _MainButton extends StatelessWidget {
                   ? null
                   : FilledButton.styleFrom(
                       backgroundColor: color,
-                      foregroundColor: Colors.white,
+                      foregroundColor: const Color(0xFFF0F0F3),
+                      minimumSize: const Size(0, 42),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      textStyle: const TextStyle(
+                        fontFamily: kFontFamily,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w700,
+                      ),
                     ),
               child: child,
             ),
@@ -810,8 +1193,8 @@ class _FollowPill extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) => Material(
-    color: Colors.white,
-    borderRadius: BorderRadius.circular(99),
+    color: const Color(0xFF24252D),
+    borderRadius: BorderRadius.circular(8),
     child: InkWell(
       key: const ValueKey('post-follow'),
       borderRadius: BorderRadius.circular(99),
@@ -821,12 +1204,13 @@ class _FollowPill extends ConsumerWidget {
         showLoopSnackBar(t('Pratiš {0}', [handle]));
       },
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
         child: Text(
           t('Prati'),
           style: const TextStyle(
-            color: Colors.black,
-            fontWeight: FontWeight.w900,
+            color: Color(0xFFCACBD4),
+            fontSize: 11,
+            fontWeight: FontWeight.w600,
           ),
         ),
       ),
@@ -864,7 +1248,7 @@ class _ActionRail extends ConsumerWidget {
           : t('{0} za {1} na Subhastu', [d.name, formatCredits(d.shownPrice)]),
     );
     return SizedBox(
-      width: 64,
+      width: 48,
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -912,11 +1296,6 @@ class _ActionRail extends ConsumerWidget {
             label: t('Podijeli'),
             onTap: share,
           ),
-          _RailButton(
-            icon: Icons.play_arrow_rounded,
-            label: '${state.viewsOf(d.id)}',
-            onTap: null,
-          ),
         ],
       ),
     );
@@ -940,26 +1319,27 @@ class _RailButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    Widget i = Icon(icon, color: color, size: 32, shadows: _shadow);
+    Widget i = Icon(icon, color: color, size: 23, shadows: _shadow);
     if (mirror) i = Transform.flip(flipX: true, child: i);
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 14),
+    return SizedBox(
+      height: 54,
       child: InkResponse(
         onTap: onTap,
         radius: 30,
         child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
             i,
-            const SizedBox(height: 2),
+            const SizedBox(height: 3),
             Text(
               label,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               style: const TextStyle(
-                color: Colors.white,
-                fontSize: 12,
-                fontWeight: FontWeight.w700,
+                color: Color(0xFFCDCED6),
                 shadows: _shadow,
+                fontSize: 9,
+                fontWeight: FontWeight.w500,
               ),
             ),
           ],

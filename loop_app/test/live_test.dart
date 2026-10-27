@@ -750,7 +750,13 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.byKey(const ValueKey('swipe-feed')), findsOneWidget);
       expect(find.byKey(const ValueKey('live-lot')), findsOneWidget);
-      expect(find.text('Vinili i gramofoni'), findsOneWidget);
+      expect(
+        find.descendant(
+          of: find.byKey(const ValueKey('live-compact-header')),
+          matching: find.textContaining('Vinili i gramofoni'),
+        ),
+        findsOneWidget,
+      );
       expect(find.byKey(const ValueKey('live-end')), findsNothing);
       // Video: gledatelj se javlja domaćinu i čeka sliku s kamere.
       expect(hub.sent.first['type'], 'hello');
@@ -1199,6 +1205,8 @@ void main() {
       await tester.pumpAndSettle();
 
       // Početna: i predmeti za Kupi odmah (izbornik je bez listanja).
+      await tester.tap(find.byKey(const ValueKey('home-filters')));
+      await tester.pumpAndSettle();
       await tester.ensureVisible(find.byKey(const ValueKey('home-cat-buy')));
       await tester.pumpAndSettle();
       await tester.tap(find.byKey(const ValueKey('home-cat-buy')));

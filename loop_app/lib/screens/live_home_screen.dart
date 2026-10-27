@@ -6,6 +6,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../l10n/tr.dart';
 import '../widgets/user_avatar.dart';
 import '../models/app_user.dart';
+import '../models/device.dart';
+import '../widgets/browse_category_picker.dart';
+import 'categories_screen.dart';
 import '../providers/app_providers.dart';
 import '../theme/app_theme.dart';
 import '../widgets/trade_actions.dart';
@@ -14,13 +17,20 @@ import 'for_you_feed.dart';
 import 'public_profile_screen.dart';
 import 'live_screens.dart';
 import 'search_screen.dart';
+import 'messages_screen.dart';
+import 'notifications_screen.dart';
 import 'swipe_feed_screen.dart';
 
 /// Početna kao Whatnot: pretraga, kategorije kao "pilule" i mreža kartica —
 /// tko je uživo sada, što uskoro kreće, aukcije koje završavaju i predmeti
 /// za Kupi odmah. Dodir na karticu otvara swipe feed te skupine.
 class LiveHomeScreen extends ConsumerStatefulWidget {
-  const LiveHomeScreen({super.key, this.visible = true});
+  const LiveHomeScreen({
+    super.key,
+    this.visible = true,
+    this.onImmersiveChanged,
+  });
+  final ValueChanged<bool>? onImmersiveChanged;
 
   /// Je li tab Početna na ekranu (feed "Za tebe" pušta live samo tada).
   final bool visible;
@@ -54,14 +64,25 @@ class _BuyNow extends _Filter {
   const _BuyNow();
 }
 
+class _Digital extends _Filter {
+  const _Digital();
+}
+
 class _Following extends _Filter {
   const _Following();
 }
 
 class _LiveHomeScreenState extends ConsumerState<LiveHomeScreen> {
+  void _select(_Filter filter) {
+    setState(() => _filter = filter);
+    widget.onImmersiveChanged?.call(filter is _ForYou);
+  }
+
   Timer? _timer;
   _Filter _filter = const _ForYou();
   bool _hideCheckout = false;
+  DeviceCategory? _liveCategory;
+  DeviceCategory? _auctionCategory;
 
   /// "Kako Subhasto radi" vidi se samo pri prvom otvaranju — odmah se bilježi
   /// kao viđeno, a do kraja ove sesije ostaje (dok ga ne zatvoriš).
@@ -78,7 +99,10 @@ class _LiveHomeScreenState extends ConsumerState<LiveHomeScreen> {
     // Liveovi počinju i završavaju sami (domaćin dođe ili ode).
     if (ref.read(tickIntervalProvider) != null) {
       _timer = Timer.periodic(const Duration(seconds: 5), (_) {
-        if (mounted) setState(() {});
+        // The swipe feed manages its own queue. Avoid rebuilding it every 5 s.
+        if (mounted && widget.visible && _filter is! _ForYou) {
+          setState(() {});
+        }
       });
     }
   }
@@ -93,11 +117,24 @@ class _LiveHomeScreenState extends ConsumerState<LiveHomeScreen> {
   Widget build(BuildContext context) {
     final s = ref.watch(appProvider);
     final me = s.currentUserId ?? '';
-    final all = browseItems(s);
-    final live = all.where((i) => i.live?.isLive ?? false).toList();
+    final all = _filter is _ForYou ? const <BrowseItem>[] : browseItems(s);
+    final allLive = all.where((i) => i.live?.isLive ?? false).toList();
+    final live = allLive
+        .where(
+          (i) => _liveCategory == null || i.categories.contains(_liveCategory),
+        )
+        .toList();
     final soon = all.where((i) => i.live?.isScheduled ?? false).toList();
-    final auctions = all.where((i) => i.auction != null).toList();
+    final allAuctions = all.where((i) => i.auction != null).toList();
+    final auctions = allAuctions
+        .where(
+          (i) =>
+              _auctionCategory == null ||
+              i.categories.contains(_auctionCategory),
+        )
+        .toList();
     final buyNow = all.where((i) => i.isBuyNow).toList();
+    final digital = buyNow.where((i) => i.device?.isDigital ?? false).toList();
 
     void open(List<BrowseItem> list, int i, String title) {
       // Signal za "Za tebe": što otvaraš (samo na ovom uređaju).
@@ -130,7 +167,10 @@ class _LiveHomeScreenState extends ConsumerState<LiveHomeScreen> {
         );
 
     // Računi koje pratiš i njihove objave (liveovi, aukcije, Kupi odmah).
-    final following = s.currentUser == null || s.currentUser!.isGuest
+    final following =
+        _filter is! _Following ||
+            s.currentUser == null ||
+            s.currentUser!.isGuest
         ? const <AppUser>[]
         : s.followingListOf(me);
     final followIds = {for (final u in following) u.id};
@@ -171,7 +211,7 @@ class _LiveHomeScreenState extends ConsumerState<LiveHomeScreen> {
             SliverToBoxAdapter(
               child: _FollowingRow(
                 users: following,
-                liveBy: {for (final i in live) i.show!.hostId: i},
+                liveBy: {for (final i in allLive) i.show!.hostId: i},
                 onLive: (i) => open([i], 0, t('Uživo')),
               ),
             ),
@@ -195,7 +235,20 @@ class _LiveHomeScreenState extends ConsumerState<LiveHomeScreen> {
         // Feed preko cijelog ekrana (vidi dolje) — bez mreže.
         break;
       case _Timed():
-        slivers.add(const SliverToBoxAdapter(child: SizedBox(height: 12)));
+        slivers.add(
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 10),
+              child: Text(
+                t('Aukcije'),
+                style: const TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ),
+          ),
+        );
         slivers.add(
           auctions.isEmpty
               ? SliverToBoxAdapter(
@@ -208,6 +261,31 @@ class _LiveHomeScreenState extends ConsumerState<LiveHomeScreen> {
                   ),
                 )
               : grid('home-ending', auctions, t('Aukcije')),
+        );
+      case _Digital():
+        slivers.add(
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+              child: Text(
+                t('Digitalne kupnje'),
+                style: const TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ),
+          ),
+        );
+        slivers.add(
+          digital.isEmpty
+              ? SliverToBoxAdapter(
+                  child: Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Text(t('Trenutno nema digitalnih proizvoda.')),
+                  ),
+                )
+              : grid('home-digital', digital, t('Digitalne kupnje')),
         );
       case _BuyNow():
         slivers.add(const SliverToBoxAdapter(child: SizedBox(height: 12)));
@@ -231,9 +309,24 @@ class _LiveHomeScreenState extends ConsumerState<LiveHomeScreen> {
               ? SliverToBoxAdapter(
                   child: Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 16),
-                    child: _EmptyLive(
-                      onGoLive: () => CreateLiveShowScreen.open(context),
-                    ),
+                    child: _liveCategory == null
+                        ? _EmptyLive(
+                            onGoLive: () => CreateLiveShowScreen.open(context),
+                          )
+                        : Column(
+                            children: [
+                              const SizedBox(height: 20),
+                              Text(
+                                t('Trenutno nema liveova u ovoj kategoriji.'),
+                                textAlign: TextAlign.center,
+                              ),
+                              TextButton(
+                                onPressed: () =>
+                                    setState(() => _liveCategory = null),
+                                child: Text(t('Sve kategorije')),
+                              ),
+                            ],
+                          ),
                   ),
                 )
               : grid('home-live', live, t('Uživo sada')),
@@ -255,28 +348,157 @@ class _LiveHomeScreenState extends ConsumerState<LiveHomeScreen> {
         );
     }
 
-    final Widget search = Padding(
-      padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
-      child: Material(
-        color: LoopColors.surface,
-        borderRadius: BorderRadius.circular(999),
-        child: InkWell(
-          key: const ValueKey('home-search'),
-          borderRadius: BorderRadius.circular(999),
-          onTap: () => SearchScreen.open(context),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+    final immersive = _filter is _ForYou;
+    final foreground = immersive ? Colors.white : LoopColors.textPrimary;
+    Widget tab(String id, String label, _Filter filter, bool selected) =>
+        Expanded(
+          child: Semantics(
+            selected: selected,
+            child: TextButton(
+              key: ValueKey('home-cat-$id'),
+              style: TextButton.styleFrom(
+                foregroundColor: foreground.withValues(
+                  alpha: selected ? 1 : 0.65,
+                ),
+                padding: const EdgeInsets.symmetric(horizontal: 2),
+                minimumSize: const Size(44, 48),
+              ),
+              onPressed: () => _select(filter),
+              child: Text(
+                label,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
+                  decoration: selected ? TextDecoration.underline : null,
+                ),
+              ),
+            ),
+          ),
+        );
+    final chips = ColoredBox(
+      color: immersive ? Colors.black : LoopColors.background,
+      child: SafeArea(
+        bottom: false,
+        child: Center(
+          heightFactor: 1,
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 520),
             child: Row(
+              key: const ValueKey('home-cats'),
               children: [
-                Icon(Icons.search, color: LoopColors.textSecondary),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: Text(
-                    t('Pretraži liveove, aukcije i prodavače'),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(color: LoopColors.textSecondary),
-                  ),
+                tab(
+                  'following',
+                  t('Pratim'),
+                  const _Following(),
+                  _filter is _Following,
+                ),
+                tab('for-you', t('Za tebe'), const _ForYou(), immersive),
+                tab(
+                  'live',
+                  t('Uživo'),
+                  const _LiveOnly(),
+                  _filter is _LiveOnly,
+                ),
+                IconButton(
+                  key: const ValueKey('home-search'),
+                  tooltip: t('Pretraži objave i račune'),
+                  color: foreground,
+                  onPressed: () => SearchScreen.open(context),
+                  icon: const Icon(Icons.search),
+                ),
+                IconButton(
+                  key: const ValueKey('home-filters'),
+                  tooltip: t('Filteri'),
+                  color: foreground,
+                  onPressed: () async {
+                    final picked = await showModalBottomSheet<Object>(
+                      context: context,
+                      showDragHandle: true,
+                      isScrollControlled: true,
+                      constraints: BoxConstraints(
+                        maxHeight: MediaQuery.sizeOf(context).height * 0.85,
+                      ),
+                      builder: (ctx) => SafeArea(
+                        child: SingleChildScrollView(
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              for (final (id, label, icon, value)
+                                  in <(String, String, IconData, Object)>[
+                                    (
+                                      'categories',
+                                      t('Kategorije'),
+                                      Icons.grid_view,
+                                      'categories',
+                                    ),
+                                    (
+                                      'my',
+                                      t('Moje'),
+                                      Icons.local_activity_outlined,
+                                      'my',
+                                    ),
+                                    (
+                                      'live-menu',
+                                      t('Uživo'),
+                                      Icons.videocam_outlined,
+                                      const _LiveOnly(),
+                                    ),
+                                    (
+                                      'digital',
+                                      t('Digitalne kupnje'),
+                                      Icons.download_outlined,
+                                      const _Digital(),
+                                    ),
+                                    (
+                                      'soon',
+                                      t('Uskoro'),
+                                      Icons.event,
+                                      const _Soon(),
+                                    ),
+                                    (
+                                      'timed',
+                                      t('Aukcije'),
+                                      Icons.gavel,
+                                      const _Timed(),
+                                    ),
+                                    (
+                                      'buy',
+                                      t('Kupi odmah'),
+                                      Icons.shopping_bag_outlined,
+                                      const _BuyNow(),
+                                    ),
+                                  ])
+                                ListTile(
+                                  key: ValueKey('home-cat-$id'),
+                                  leading: Icon(icon),
+                                  title: Text(label),
+                                  onTap: () => Navigator.pop(ctx, value),
+                                ),
+                              const Divider(),
+                              const Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  MessagesButton(),
+                                  NotificationBell(),
+                                ],
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    );
+                    if (!mounted || !context.mounted) return;
+                    if (picked == 'categories') {
+                      await CategoriesScreen.open(context);
+                    } else if (picked == 'my') {
+                      ref.read(homeTabProvider.notifier).select(2);
+                    } else if (picked is _Filter) {
+                      _select(picked);
+                    }
+                  },
+                  icon: const Icon(Icons.tune),
                 ),
               ],
             ),
@@ -285,79 +507,53 @@ class _LiveHomeScreenState extends ConsumerState<LiveHomeScreen> {
       ),
     );
 
-    // Brzi izbornik: jedna traka preko cijele širine (bez listanja) s
-    // okruglim ikonama u boji svoje vrste; odabrana se ispuni
-    // gradijentom, malo naraste i dobije točkicu ispod.
-    final Widget chips = Container(
-      margin: const EdgeInsets.fromLTRB(12, 4, 12, 8),
-      padding: const EdgeInsets.fromLTRB(4, 10, 4, 6),
-      decoration: BoxDecoration(
-        color: LoopColors.surface,
-        borderRadius: BorderRadius.circular(24),
-        boxShadow: LoopColors.softShadow,
-      ),
-      child: LayoutBuilder(
-        builder: (context, box) => Row(
-          key: const ValueKey('home-cats'),
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            _Pill(
-              fontSize: _pillFont(context, box.maxWidth),
-              id: 'for-you',
-              icon: Icons.auto_awesome,
-              label: t('Za tebe'),
-              color: LoopColors.textPrimary,
-              selected: _filter is _ForYou,
-              onTap: () => setState(() => _filter = const _ForYou()),
-            ),
-            _Pill(
-              fontSize: _pillFont(context, box.maxWidth),
-              id: 'live',
-              icon: Icons.sensors,
-              label: t('Uživo'),
-              color: LoopColors.live,
-              badge: live.length,
-              selected: _filter is _LiveOnly,
-              onTap: () => setState(() => _filter = const _LiveOnly()),
-            ),
-            _Pill(
-              fontSize: _pillFont(context, box.maxWidth),
-              id: 'soon',
-              icon: Icons.event,
-              label: t('Uskoro'),
-              color: LoopColors.info,
-              selected: _filter is _Soon,
-              onTap: () => setState(() => _filter = const _Soon()),
-            ),
-            _Pill(
-              fontSize: _pillFont(context, box.maxWidth),
-              id: 'timed',
-              icon: Icons.gavel,
-              label: t('Aukcije'),
-              color: LoopColors.accent,
-              selected: _filter is _Timed,
-              onTap: () => setState(() => _filter = const _Timed()),
-            ),
-            _Pill(
-              fontSize: _pillFont(context, box.maxWidth),
-              id: 'following',
-              icon: Icons.people_alt,
-              label: t('Pratim'),
-              color: const Color(0xFF7C4DFF),
-              badge: theirs.length,
-              selected: _filter is _Following,
-              onTap: () => setState(() => _filter = const _Following()),
-            ),
-            _Pill(
-              fontSize: _pillFont(context, box.maxWidth),
-              id: 'buy',
-              icon: Icons.local_offer,
-              label: t('Kupi odmah'),
-              color: LoopColors.buyNow,
-              selected: _filter is _BuyNow,
-              onTap: () => setState(() => _filter = const _BuyNow()),
-            ),
-          ],
+    final onLive = _filter is _LiveOnly;
+    final onAuctions = _filter is _Timed;
+    final selectedCategory = onLive
+        ? _liveCategory
+        : onAuctions
+        ? _auctionCategory
+        : null;
+    Future<void> categories() async {
+      if (!onLive && !onAuctions) {
+        await CategoriesScreen.open(context);
+        return;
+      }
+      final counts = <DeviceCategory, int>{};
+      for (final item in onLive ? allLive : allAuctions) {
+        for (final c in item.categories) {
+          counts[c] = (counts[c] ?? 0) + 1;
+        }
+      }
+      final picked = await pickBrowseCategory(
+        context,
+        title: onLive ? t('Kategorije uživo') : t('Kategorije aukcija'),
+        keyPrefix: onLive ? 'live-category' : 'auction-category',
+        counts: counts,
+        selected: selectedCategory,
+      );
+      if (picked == null || !mounted) return;
+      setState(() {
+        if (onLive) {
+          _liveCategory = picked.category;
+        } else {
+          _auctionCategory = picked.category;
+        }
+      });
+    }
+
+    final categoryFilter = Padding(
+      padding: const EdgeInsets.fromLTRB(16, 4, 16, 0),
+      child: Align(
+        alignment: Alignment.centerLeft,
+        child: ActionChip(
+          key: ValueKey(
+            onLive ? 'live-category-filter' : 'auction-category-filter',
+          ),
+          avatar: const Icon(Icons.filter_list, size: 16),
+          label: Text(selectedCategory?.label ?? t('Sve kategorije')),
+          onPressed: categories,
+          visualDensity: VisualDensity.compact,
         ),
       ),
     );
@@ -367,10 +563,10 @@ class _LiveHomeScreenState extends ConsumerState<LiveHomeScreen> {
     if (_filter is _ForYou) {
       return Column(
         children: [
-          const SizedBox(height: 4),
           chips,
           Expanded(
             child: ForYouFeed(
+              key: ValueKey('recommendations:${s.currentUserId}'),
               active:
                   widget.visible && (ModalRoute.of(context)?.isCurrent ?? true),
             ),
@@ -379,27 +575,34 @@ class _LiveHomeScreenState extends ConsumerState<LiveHomeScreen> {
       );
     }
 
-    return CustomScrollView(
-      slivers: [
-        SliverToBoxAdapter(child: search),
-        SliverToBoxAdapter(child: chips),
-        if (_showHow && _filter is _ForYou)
-          SliverToBoxAdapter(
-            child: _HowLoopWorks(
-              onClose: () => setState(() => _showHow = false),
-            ),
+    return Column(
+      children: [
+        chips,
+        Expanded(
+          child: CustomScrollView(
+            slivers: [
+              if (onLive || onAuctions)
+                SliverToBoxAdapter(child: categoryFilter),
+              if (_showHow && _filter is _ForYou)
+                SliverToBoxAdapter(
+                  child: _HowLoopWorks(
+                    onClose: () => setState(() => _showHow = false),
+                  ),
+                ),
+              if (!_hideCheckout &&
+                  s.currentUser != null &&
+                  !s.currentUser!.isGuest &&
+                  !s.currentUser!.checkoutReady)
+                SliverToBoxAdapter(
+                  child: _CheckoutBanner(
+                    onClose: () => setState(() => _hideCheckout = true),
+                  ),
+                ),
+              ...slivers,
+              const SliverToBoxAdapter(child: SizedBox(height: 96)),
+            ],
           ),
-        if (!_hideCheckout &&
-            s.currentUser != null &&
-            !s.currentUser!.isGuest &&
-            !s.currentUser!.checkoutReady)
-          SliverToBoxAdapter(
-            child: _CheckoutBanner(
-              onClose: () => setState(() => _hideCheckout = true),
-            ),
-          ),
-        ...slivers,
-        const SliverToBoxAdapter(child: SizedBox(height: 96)),
+        ),
       ],
     );
   }
@@ -521,158 +724,6 @@ class _CheckoutBanner extends ConsumerWidget {
                 ),
               ],
             ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-/// Kategorija kao "pilula" (kao na Whatnotu); odabrana je ispunjena.
-/// Natpisi brzog izbornika — ista veličina za sve, koliko stane najduži.
-const _pillLabels = [
-  'Za tebe',
-  'Uživo',
-  'Uskoro',
-  'Aukcije',
-  'Pratim',
-  'Kupi odmah',
-];
-const _pillStyle = TextStyle(fontWeight: FontWeight.w800, fontSize: 12);
-
-double _pillFont(BuildContext context, double width) {
-  final slot = width / _pillLabels.length - 4;
-  var widest = 0.0;
-  for (final l in _pillLabels) {
-    final tp = TextPainter(
-      text: TextSpan(
-        text: t(l),
-        style: DefaultTextStyle.of(context).style.merge(_pillStyle),
-      ),
-      textDirection: TextDirection.ltr,
-      textScaler: MediaQuery.textScalerOf(context),
-      maxLines: 1,
-    )..layout();
-    if (tp.width > widest) widest = tp.width;
-  }
-  return widest <= slot ? 12 : (12 * slot / widest).clamp(9.0, 12.0);
-}
-
-class _Pill extends StatelessWidget {
-  const _Pill({
-    required this.fontSize,
-    required this.id,
-    required this.icon,
-    required this.label,
-    required this.color,
-    required this.selected,
-    required this.onTap,
-    this.badge = 0,
-  });
-
-  final String id;
-  final IconData icon;
-  final String label;
-
-  /// Zajednička veličina natpisa (vidi [_pillFont]).
-  final double fontSize;
-
-  /// Boja vrste (crvena = uživo, zelena = Kupi odmah…).
-  final Color color;
-  final bool selected;
-  final VoidCallback onTap;
-
-  /// Broj (npr. koliko je liveova uživo) u kutu ikone.
-  final int badge;
-
-  @override
-  Widget build(BuildContext context) {
-    final dark = color == LoopColors.textPrimary;
-    // Svjetliji ton iste boje za gradijent odabrane ikone.
-    final light = Color.lerp(color, Colors.white, dark ? 0.25 : 0.3)!;
-    return Expanded(
-      child: InkWell(
-        key: ValueKey('home-cat-$id'),
-        borderRadius: BorderRadius.circular(18),
-        onTap: onTap,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 2),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              AnimatedScale(
-                scale: selected ? 1.08 : 1,
-                duration: const Duration(milliseconds: 220),
-                curve: Curves.easeOutBack,
-                child: Badge(
-                  isLabelVisible: badge > 0,
-                  label: Text('$badge'),
-                  backgroundColor: id == 'live' ? LoopColors.live : color,
-                  textColor: Colors.white,
-                  offset: const Offset(4, -4),
-                  child: AnimatedContainer(
-                    duration: const Duration(milliseconds: 220),
-                    curve: Curves.easeOut,
-                    width: 46,
-                    height: 46,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: selected ? null : color.withValues(alpha: 0.12),
-                      gradient: selected
-                          ? LinearGradient(
-                              begin: Alignment.topLeft,
-                              end: Alignment.bottomRight,
-                              colors: [light, color],
-                            )
-                          : null,
-                      boxShadow: selected
-                          ? [
-                              BoxShadow(
-                                color: color.withValues(alpha: 0.4),
-                                blurRadius: 12,
-                                offset: const Offset(0, 4),
-                              ),
-                            ]
-                          : null,
-                    ),
-                    child: Icon(
-                      icon,
-                      size: 22,
-                      color: selected
-                          ? (dark ? LoopColors.background : Colors.white)
-                          : color,
-                    ),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 6),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 2),
-                child: Text(
-                  label,
-                  maxLines: 1,
-                  softWrap: false,
-                  overflow: TextOverflow.visible,
-                  style: _pillStyle.copyWith(
-                    fontSize: fontSize,
-                    color: selected
-                        ? LoopColors.textPrimary
-                        : LoopColors.textSecondary,
-                  ),
-                ),
-              ),
-              const SizedBox(height: 4),
-              // Oznaka odabranog: točkica u boji vrste.
-              AnimatedContainer(
-                duration: const Duration(milliseconds: 220),
-                width: selected ? 16 : 0,
-                height: 4,
-                decoration: BoxDecoration(
-                  color: color,
-                  borderRadius: BorderRadius.circular(99),
-                ),
-              ),
-            ],
           ),
         ),
       ),

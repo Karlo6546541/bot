@@ -29,9 +29,13 @@ class HomeShell extends ConsumerStatefulWidget {
 }
 
 class _HomeShellState extends ConsumerState<HomeShell> {
+  bool _feedSelected = true;
   int get _index => ref.watch(homeTabProvider);
 
-  void _go(int i) => ref.read(homeTabProvider.notifier).select(i);
+  void _go(int i) {
+    if (i != 3) ref.read(profileSettingsProvider.notifier).setOpen(false);
+    ref.read(homeTabProvider.notifier).select(i);
+  }
 
   /// Logo vodi na početnu: zatvara otvorene ekrane i bira Portfolio.
   void _goHome() {
@@ -121,47 +125,75 @@ class _HomeShellState extends ConsumerState<HomeShell> {
     final phone = width < 600;
 
     return AdaptiveShell(
-      destinations: _destinations,
-      selectedIndex: _navIndex(_index),
-      onSelect: _onNav,
+      immersiveNavigation: _index == 0 && _feedSelected,
+      destinations: isDesktop
+          ? _destinations
+          : [_destinations[0], _destinations[2], _destinations[4]],
+      selectedIndex: isDesktop ? _navIndex(_index) : (_index == 3 ? 2 : 0),
+      onSelect: isDesktop
+          ? _onNav
+          : (nav) {
+              if (nav == 1) {
+                showCreateSheet(context);
+              } else {
+                _go(nav == 2 ? 3 : 0);
+              }
+            },
       railHeader: Padding(
         padding: const EdgeInsets.symmetric(vertical: 20),
         child: LoopLogo(size: 22, onTap: _goHome),
       ),
-      appBar: AppBar(
-        // Jednostavna traka: logo lijevo, desno samo pretraga, poruke,
-        // obavijesti i stanje (jezik je u Profilu → Postavke).
-        titleSpacing: phone ? 8 : null,
-        title: isDesktop
-            ? Text(_destinations[_navIndex(_index)].label)
-            : FittedBox(
-                fit: BoxFit.scaleDown,
-                alignment: Alignment.centerLeft,
-                child: LoopLogo(size: 20, onTap: _goHome),
-              ),
-        actions: [
-          // Početna već ima traku za pretragu.
-          if (_index != 0 || isDesktop)
-            IconButton(
-              key: const ValueKey('open-search'),
-              tooltip: t('Pretraži objave i račune'),
-              icon: const Icon(Icons.search),
-              onPressed: () => SearchScreen.open(context),
+      appBar: _index == 0 && phone
+          ? null
+          : AppBar(
+              // Jednostavna traka: logo lijevo, desno samo pretraga, poruke,
+              // obavijesti i stanje (jezik je u Profilu → Postavke).
+              titleSpacing: phone ? 8 : null,
+              title: isDesktop
+                  ? Text(_destinations[_navIndex(_index)].label)
+                  : FittedBox(
+                      fit: BoxFit.scaleDown,
+                      alignment: Alignment.centerLeft,
+                      child: LoopLogo(size: 20, onTap: _goHome),
+                    ),
+              actions: [
+                // Početna već ima traku za pretragu.
+                if (_index != 0)
+                  IconButton(
+                    key: const ValueKey('open-search'),
+                    tooltip: t('Pretraži objave i račune'),
+                    icon: const Icon(Icons.search),
+                    onPressed: () => SearchScreen.open(context),
+                  ),
+                PopupMenuButton<int>(
+                  key: const ValueKey('shell-library-menu'),
+                  tooltip: t('Filteri'),
+                  icon: const Icon(Icons.tune),
+                  onSelected: _go,
+                  itemBuilder: (_) => [
+                    PopupMenuItem(value: 1, child: Text(t('Kategorije'))),
+                    PopupMenuItem(value: 2, child: Text(t('Moje'))),
+                  ],
+                ),
+                const MessagesButton(),
+                const NotificationBell(),
+                if (!phone) ...[
+                  const LanguageButton(compact: true),
+                  const SizedBox(width: 6),
+                ],
+                SizedBox(width: phone ? 8 : 12),
+              ],
             ),
-          const MessagesButton(),
-          const NotificationBell(),
-          if (!phone) ...[
-            const LanguageButton(compact: true),
-            const SizedBox(width: 6),
-          ],
-          SizedBox(width: phone ? 8 : 12),
-        ],
-      ),
       // IndexedStack čuva stanje (npr. odabranu kategoriju) pri promjeni taba.
       body: IndexedStack(
         index: _index,
         children: [
-          LiveHomeScreen(visible: _index == 0),
+          LiveHomeScreen(
+            visible: _index == 0,
+            onImmersiveChanged: (value) {
+              setState(() => _feedSelected = value);
+            },
+          ),
           const CategoriesScreen(),
           MyAuctionsView(onBrowse: () => _go(0)),
           const ProfileScreen(),

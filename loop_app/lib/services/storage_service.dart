@@ -17,6 +17,7 @@ import '../models/device.dart';
 import '../models/loop_transaction.dart';
 import '../models/portfolio_point.dart';
 import 'seed_data.dart';
+import 'feed_preferences.dart';
 import 'username_rules.dart';
 
 /// Lokalna pohrana na Hive-u. Svaki entitet je spremljen kao obična mapa
@@ -127,6 +128,29 @@ class StorageService {
   late Box<Map> _sellers;
   late Box<Map> _liveShows;
   late Box<Map> _liveEvents;
+
+  // The table key is authoritative; older remote payloads may omit `id`.
+  static Map<String, dynamic> _rowData(String table, String id, Map data) =>
+      table == _historyBox || table == _sellersBox || table == _viewsBox
+      ? Map<String, dynamic>.from(data)
+      : {...Map<String, dynamic>.from(data), 'id': id};
+
+  Future<void> _repairRecordIds() async {
+    for (final entry in _tables.entries) {
+      if (entry.key == _historyBox ||
+          entry.key == _sellersBox ||
+          entry.key == _viewsBox) {
+        continue;
+      }
+      for (final key in entry.value.keys.toList()) {
+        if (key is! String) continue;
+        final raw = entry.value.get(key);
+        if (raw != null && raw['id'] != key) {
+          await entry.value.put(key, _rowData(entry.key, key, raw));
+        }
+      }
+    }
+  }
 
   /// Poziva se nakon svake lokalne promjene (za sinkronizaciju s online
   /// bazom). `data == null` znači brisanje.
@@ -241,6 +265,7 @@ class StorageService {
     _liveShows = await Hive.openBox<Map>(_liveShowsBox, bytes: bytes);
     _liveEvents = await Hive.openBox<Map>(_liveEventsBox, bytes: bytes);
 
+    await _repairRecordIds();
     if (!seed) return;
     if (_session.get(_seededKey) != true) {
       await _seed();
@@ -707,7 +732,7 @@ class StorageService {
     if (data == null) {
       await box.delete(id);
     } else {
-      await box.put(id, data);
+      await box.put(id, _rowData(table, id, data));
     }
   }
 
@@ -719,11 +744,16 @@ class StorageService {
     for (final t in syncedTables.where(data.containsKey)) {
       final box = _tables[t]!;
       await box.clear();
-      await box.putAll(data[t]!);
+      await box.putAll({
+        for (final entry in data[t]!.entries)
+          entry.key: _rowData(t, entry.key, entry.value),
+      });
     }
   }
 
   // ----------------------------------------------------------------- sesija
+
+  bool get isOpen => _session.isOpen;
 
   String? get currentUserId => _session.get(_currentUserKey) as String?;
 
@@ -737,15 +767,24 @@ class StorageService {
   /// Kategorije nedavno otvorenih oglasa (najnovije zadnje, najviše 30) —
   /// signal za "Za tebe". Samo na ovom uređaju.
   List<String> get recentCategories =>
-      (_session.get('recentCategories') as List?)?.cast<String>() ?? const [];
+      (_session.get('recentCategories:${currentUserId ?? 'guest'}') as List?)
+          ?.cast<String>() ??
+      const [];
 
   Future<void> addRecentCategories(Iterable<String> names) {
     final list = [...recentCategories, ...names];
     return _session.put(
-      'recentCategories',
+      'recentCategories:${currentUserId ?? 'guest'}',
       list.length > 30 ? list.sublist(list.length - 30) : list,
     );
   }
+
+  FeedPreferences feedPreferences(String? userId) => FeedPreferences.fromMap(
+    _session.get('feedPreferences:${userId ?? 'guest'}') as Map?,
+  );
+
+  Future<void> saveFeedPreferences(String? userId, FeedPreferences value) =>
+      _session.put('feedPreferences:${userId ?? 'guest'}', value.toMap());
 
   /// Zvuk u liveu utišan (vibracija ostaje).
   bool get liveMuted => _session.get('liveMuted') == true;

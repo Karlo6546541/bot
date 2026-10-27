@@ -904,15 +904,18 @@ class AppController extends Notifier<AppState> {
     DeliveryMethod method,
     String? destination,
   ) async {
-    await ref
-        .read(deliveryServiceProvider)
-        .choose(
-          userId: _requireUserId(),
-          deliveryId: deliveryId,
-          method: method,
-          destination: destination,
-        );
-    _refresh();
+    try {
+      await ref
+          .read(deliveryServiceProvider)
+          .choose(
+            userId: _requireUserId(),
+            deliveryId: deliveryId,
+            method: method,
+            destination: destination,
+          );
+    } finally {
+      _refresh();
+    }
   }
 
   /// Trgovci iz starijih verzija: objavi javnu oznaku trgovca (jednom).

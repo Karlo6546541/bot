@@ -2,6 +2,37 @@
 // Generirano iz popisa tekstova; nadopuni ručno kad dodaješ nove.
 
 const kEn = <String, String>{
+  'Dodaj objavu': 'Add post',
+  'Još nema lajkanih oglasa.': 'No liked listings yet.',
+  'Tvoje objave prikazat će se ovdje.': 'Your posts will appear here.',
+  'Sve kategorije': 'All categories',
+  'Digitalne kupnje': 'Digital shopping',
+  'Trenutno nema digitalnih proizvoda.':
+      'No digital products available right now.',
+  'Kategorije uživo': 'Live categories',
+  'Kategorije aukcija': 'Auction categories',
+  'Trenutno nema liveova u ovoj kategoriji.':
+      'There are no live streams in this category right now.',
+
+  'Detalji ›': 'Details ›',
+  'Slično onome što gledaš': 'Similar to what you view',
+  'Stanje koje te zanima': 'A condition you are interested in',
+  'Tvoje preporuke': 'Your recommendations',
+  'Skriveno: {0} oglasa i {1} prodavača. Postavke se spremaju samo na ovom uređaju.':
+      'Hidden: {0} listings and {1} sellers. Preferences are saved only on this device.',
+  'Vrati skrivene i poništi „Manje ovakvog”':
+      'Restore hidden items and reset “Less like this”',
+  'Sve novo si pogledao': 'You are all caught up',
+  'Provjeri nove oglase ili ponovno pogledaj dostupne.':
+      'Check for new listings or view available listings again.',
+  'Provjeri novo': 'Check for new listings',
+  'Pogledaj ponovno': 'View again',
+  'Uredi preporuke': 'Manage recommendations',
+  'Manje ovakvog': 'Less like this',
+  'Sakrij oglas': 'Hide listing',
+  'Sakrij prodavača': 'Hide seller',
+  'Povećaj fotografiju': 'Zoom photo',
+  'Dostava od {0}': 'Shipping from {0}',
   'Isprobaj demo račun': 'Try demo account',
   'Mogu kupiti': 'I can afford',
   'Poništi filtre': 'Clear filters',

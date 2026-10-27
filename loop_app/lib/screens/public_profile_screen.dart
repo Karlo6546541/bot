@@ -509,6 +509,7 @@ class ProfileHeader extends ConsumerWidget {
     this.trailing,
     this.rating,
     this.editable = false,
+    this.compact = false,
   });
 
   final AppUser user;
@@ -519,6 +520,7 @@ class ProfileHeader extends ConsumerWidget {
 
   /// Vlastiti profil: gumbi za promjenu naslovne i profilne slike.
   final bool editable;
+  final bool compact;
 
   Future<void> _photoMenu(
     BuildContext context,
@@ -595,13 +597,15 @@ class ProfileHeader extends ConsumerWidget {
       ),
     );
     Widget camera(VoidCallback onTap, Key key, String tip) => Material(
-      color: Colors.black54,
-      shape: const CircleBorder(),
+      color: Colors.white,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
       child: IconButton(
         key: key,
         tooltip: tip,
+        constraints: const BoxConstraints.tightFor(width: 32, height: 32),
+        padding: EdgeInsets.zero,
         visualDensity: VisualDensity.compact,
-        icon: const Icon(Icons.photo_camera, color: Colors.white, size: 18),
+        icon: const Icon(Icons.photo_camera_outlined, color: Color(0xFF332820), size: 17),
         onPressed: onTap,
       ),
     );
@@ -611,7 +615,7 @@ class ProfileHeader extends ConsumerWidget {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           SizedBox(
-            height: 184,
+            height: compact ? 132 : 184,
             child: Stack(
               clipBehavior: Clip.none,
               children: [
@@ -652,7 +656,7 @@ class ProfileHeader extends ConsumerWidget {
                           ),
                         ),
                         // Bez priča (uklonjene radi jednostavnosti).
-                        child: UserAvatar(user: user, size: 76),
+                        child: UserAvatar(user: user, size: compact ? 60 : 76),
                       ),
                       if (editable)
                         Positioned(

@@ -5,6 +5,7 @@ import '../models/device.dart';
 import '../models/live_show.dart';
 import '../models/loop_transaction.dart';
 import '../providers/app_state.dart';
+import '../services/feed_preferences.dart';
 import '../widgets/formatters.dart';
 import 'auctions_screen.dart';
 
@@ -39,7 +40,10 @@ class ForYouRanker {
     required this.now,
     this.recentCategories = const [],
     this.boost = const {},
-  });
+    FeedPreferences? preferences,
+  }) : preferences = preferences ?? FeedPreferences();
+
+  final FeedPreferences preferences;
 
   /// Učenje u stvarnom vremenu (feed "Za tebe"): dugo gledano (+),
   /// brzo preskočeno (−), po kategoriji, samo za ovu sesiju.
@@ -51,6 +55,19 @@ class ForYouRanker {
 
   final AppState s;
   final DateTime now;
+
+  // Build indexes once per batch instead of scanning users/devices per candidate.
+  late final _devicesById = {for (final d in s.devices) d.id: d};
+  late final _showsById = {for (final show in s.liveShows) show.id: show};
+  late final Map<String, int> _likeCounts = () {
+    final counts = <String, int>{};
+    for (final user in s.users) {
+      for (final id in user.favorites.toSet()) {
+        counts[id] = (counts[id] ?? 0) + 1;
+      }
+    }
+    return counts;
+  }();
 
   /// Kategorije oglasa koje si nedavno otvorio (najnovije zadnje).
   final List<String> recentCategories;
@@ -68,7 +85,6 @@ class ForYouRanker {
   late final Map<DeviceCategory, double> taste = () {
     final me = _me;
     final w = <DeviceCategory, double>{};
-    if (me == null) return w;
     void add(DeviceCategory? c, double v) {
       if (c != null) w[c] = (w[c] ?? 0) + v;
     }
@@ -77,23 +93,23 @@ class ForYouRanker {
       if (t.buyerId == me &&
           t.type != TransactionType.delivery &&
           t.type != TransactionType.payout) {
-        add(s.deviceById(t.deviceId)?.category, 5 * _decay(t.createdAt));
+        add(_devicesById[t.deviceId]?.category, 5 * _decay(t.createdAt));
       }
     }
     for (final a in s.auctions) {
       final mine = a.bids.where((b) => b.userId == me);
       if (mine.isNotEmpty) {
-        add(s.deviceById(a.deviceId)?.category, 4 * _decay(mine.last.time));
+        add(_devicesById[a.deviceId]?.category, 4 * _decay(mine.last.time));
       }
     }
     for (final e in s.liveEvents) {
       if (e.userId != me || e.type != LiveEventType.bid) continue;
-      final show = s.liveShowById(e.showId);
+      final show = _showsById[e.showId];
       if (show == null || e.lot >= show.lots.length) continue;
-      add(s.deviceById(show.lots[e.lot].deviceId)?.category, 3 * _decay(e.at));
+      add(_devicesById[show.lots[e.lot].deviceId]?.category, 3 * _decay(e.at));
     }
-    for (final id in s.currentUser?.favorites ?? const <String>[]) {
-      add(s.deviceById(id)?.category, 3);
+    for (final id in me == null ? const <String>[] : s.currentUser!.favorites) {
+      add(_devicesById[id]?.category, 3);
     }
     for (final q in s.searchHistory.take(10)) {
       final term = q.toLowerCase();
@@ -125,17 +141,32 @@ class ForYouRanker {
   };
 
   /// Srednja cijena koju plaćam ili nudim (null = nema povijesti).
-  late final double? _usualPrice = () {
+  /// Budget is learned separately for each product category.
+  late final Map<DeviceCategory, double> _usualPrices = () {
     final me = _me;
-    if (me == null) return null;
-    final prices = <double>[
-      for (final t in s.transactions)
-        if (t.buyerId == me && t.price > 0) t.price,
-      for (final a in s.auctions)
-        for (final b in a.bids)
-          if (b.userId == me) b.amount,
-    ]..sort();
-    return prices.isEmpty ? null : prices[prices.length ~/ 2];
+    final prices = <DeviceCategory, List<double>>{};
+    if (me == null) return <DeviceCategory, double>{};
+    for (final tx in s.transactions) {
+      final c = _devicesById[tx.deviceId]?.category;
+      if (tx.buyerId == me &&
+          c != null &&
+          tx.price > 0 &&
+          tx.type != TransactionType.delivery &&
+          tx.type != TransactionType.payout) {
+        (prices[c] ??= []).add(tx.price);
+      }
+    }
+    for (final a in s.auctions) {
+      final c = _devicesById[a.deviceId]?.category;
+      final bids = a.bids.where((b) => b.userId == me);
+      if (c != null && bids.isNotEmpty) {
+        (prices[c] ??= []).add(bids.last.amount);
+      }
+    }
+    return {
+      for (final e in prices.entries)
+        e.key: (e.value..sort())[e.value.length ~/ 2],
+    };
   }();
 
   late final List<String> _terms = [
@@ -202,7 +233,23 @@ class ForYouRanker {
         penalty = b;
       }
     }
+    for (final c in i.categories) {
+      penalty -= preferences.less[c.name] ?? 0;
+    }
     final title = _title(i);
+    final modelMatch = preferences.models.entries.where(
+      (e) => title.contains(e.key),
+    );
+    if (modelMatch.isNotEmpty) {
+      parts.add((
+        modelMatch.map((e) => e.value).reduce(math.max),
+        t('Slično onome što gledaš'),
+      ));
+    }
+    final condition = preferences.conditions[i.device?.condition.name];
+    if (condition != null && condition > 0) {
+      parts.add((condition, t('Stanje koje te zanima')));
+    }
     for (final term in _terms) {
       if (title.contains(term)) {
         parts.add((1.5, t('Tražio si "{0}"', [term])));
@@ -219,7 +266,7 @@ class ForYouRanker {
 
     // 3. Cijena.
     final p = _price(i);
-    final usual = _usualPrice;
+    final usual = i.device == null ? null : _usualPrices[i.device!.category];
     if (p != null && usual != null && p >= usual * 0.4 && p <= usual * 2.5) {
       parts.add((1, t('U tvom budžetu')));
     }
@@ -248,7 +295,7 @@ class ForYouRanker {
     final id = i.device?.id ?? a?.deviceId;
     final pop =
         (live?.viewers ?? 0) * 2 +
-        (id == null ? 0 : s.viewsOf(id) + s.likesOf(id) * 2) +
+        (id == null ? 0 : s.viewsOf(id) + (_likeCounts[id] ?? 0) * 2) +
         (a?.bids.length ?? 0) * 3;
     if (pop > 0) {
       parts.add((0.6 * math.log(1 + pop), t('Popularno')));
@@ -273,14 +320,39 @@ class ForYouRanker {
   List<Pick> rank(List<BrowseItem> items, {int limit = 8}) {
     final pool = <Pick>[
       for (final i in items)
-        if (_sellerOf(i) != _me || _me == null)
+        if ((_sellerOf(i) != _me || _me == null) &&
+            !preferences.hidden.contains(keyOf(i)) &&
+            !preferences.sellers.contains(_sellerOf(i)))
           if (score(i) case (final sc, final why)) Pick(i, why, sc),
     ];
     final out = <Pick>[];
     while (pool.isNotEmpty && out.length < limit) {
       Pick? best;
       var bestScore = double.negativeInfinity;
-      for (final c in pool) {
+      final window = out.skip(math.max(0, out.length - 4)).toList();
+      final diverse = pool
+          .where(
+            (p) =>
+                window
+                    .where((o) => _sellerOf(o.item) == _sellerOf(p.item))
+                    .length <
+                2,
+          )
+          .toList();
+      var candidates = diverse.isEmpty ? pool : diverse;
+      // One slot in five can surface a new, little-seen listing.
+      if (out.length % 5 == 4) {
+        final fresh = candidates.where((p) {
+          final d = p.item.device;
+          final at = d?.listedAt;
+          return d != null &&
+              at != null &&
+              now.difference(at) < const Duration(days: 7) &&
+              s.viewsOf(d.id) < 10;
+        }).toList();
+        if (fresh.isNotEmpty) candidates = fresh;
+      }
+      for (final c in candidates) {
         var sc = c.score;
         final recent = out.length < 2 ? out : out.sublist(out.length - 2);
         if (recent.any((o) => _sellerOf(o.item) == _sellerOf(c.item))) {
