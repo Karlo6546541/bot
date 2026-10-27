@@ -96,7 +96,8 @@ Future<void> main() async {
     method: DeliveryMethod.parcelLocker,
     destination: locker.destination,
   );
-  if (selected.pickupPin == null || selected.dropOffPin == null ||
+  if (selected.pickupPin == null ||
+      selected.dropOffPin == null ||
       selected.trackingNumber != repeated.trackingNumber) {
     throw StateError('BOX NOW release-web delivery verification failed');
   }
