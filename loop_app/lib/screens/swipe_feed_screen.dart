@@ -343,10 +343,21 @@ class _SwipeFeedScreenState extends ConsumerState<SwipeFeedScreen>
                           PopupMenuItem(
                             value: FeedFeedback.seller,
                             enabled: entries[_index].isLive
-                              ? state.liveShowById(entries[_index].liveId!)?.hostId != null
-                              : entries[_index].isAuction
-                                ? state.auctionById(entries[_index].auctionId!)?.sellerId != null
-                                : state.deviceById(entries[_index].deviceId!)?.ownerId != null,
+                                ? state
+                                          .liveShowById(entries[_index].liveId!)
+                                          ?.hostId !=
+                                      null
+                                : entries[_index].isAuction
+                                ? state
+                                          .auctionById(
+                                            entries[_index].auctionId!,
+                                          )
+                                          ?.sellerId !=
+                                      null
+                                : state
+                                          .deviceById(entries[_index].deviceId!)
+                                          ?.ownerId !=
+                                      null,
                             child: Text(t('Sakrij prodavača')),
                           ),
                           PopupMenuItem(
@@ -756,23 +767,44 @@ class _CornerBadge extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final a = auction;
-    return Wrap(spacing: 6, runSpacing: 6, children: [
-      if (state.isPromotedItem(device)) _Pill(
-        color: const Color(0xFFFFC233),
-        child: Text(t('Sponzorirano'), style: _pillText.copyWith(color: Colors.black87)),
-      ),
-      if (a != null) _Pill(
-        color: LoopColors.accent,
-        child: Row(mainAxisSize: MainAxisSize.min, children: [
-          Text(t('🔨 AUKCIJA'), style: _pillText),
-          const SizedBox(width: 8),
-          AuctionCountdown(endsAt: a.endsAt, showIcon: false, style: _pillText),
-        ]),
-      ) else if (device.hasDiscount) _Pill(
-        color: const Color(0xFFFF2D55),
-        child: Text(t('−{0}% popust', ['${device.discountPercent}']), style: _pillText),
-      ),
-    ]);
+    return Wrap(
+      spacing: 6,
+      runSpacing: 6,
+      children: [
+        if (state.isPromotedItem(device))
+          _Pill(
+            color: const Color(0xFFFFC233),
+            child: Text(
+              t('Sponzorirano'),
+              style: _pillText.copyWith(color: Colors.black87),
+            ),
+          ),
+        if (a != null)
+          _Pill(
+            color: LoopColors.accent,
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(t('🔨 AUKCIJA'), style: _pillText),
+                const SizedBox(width: 8),
+                AuctionCountdown(
+                  endsAt: a.endsAt,
+                  showIcon: false,
+                  style: _pillText,
+                ),
+              ],
+            ),
+          )
+        else if (device.hasDiscount)
+          _Pill(
+            color: const Color(0xFFFF2D55),
+            child: Text(
+              t('−{0}% popust', ['${device.discountPercent}']),
+              style: _pillText,
+            ),
+          ),
+      ],
+    );
   }
 }
 

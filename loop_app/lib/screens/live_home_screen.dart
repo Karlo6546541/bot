@@ -290,69 +290,85 @@ class _LiveHomeScreenState extends ConsumerState<LiveHomeScreen> {
       color: immersive ? Colors.black : LoopColors.background,
       child: SafeArea(
         bottom: false,
-        child: Center(heightFactor: 1, child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 520),
-          child: Row(
-          key: const ValueKey('home-cats'),
-          children: [
-            tab(
-              'following',
-              t('Pratim'),
-              const _Following(),
-              _filter is _Following,
-            ),
-            tab('for-you', t('Za tebe'), const _ForYou(), immersive),
-            tab('live', t('Uživo'), const _LiveOnly(), _filter is _LiveOnly),
-            IconButton(
-              key: const ValueKey('home-search'),
-              tooltip: t('Pretraži objave i račune'),
-              color: foreground,
-              onPressed: () => SearchScreen.open(context),
-              icon: const Icon(Icons.search),
-            ),
-            IconButton(
-              key: const ValueKey('home-filters'),
-              tooltip: t('Filteri'),
-              color: foreground,
-              onPressed: () async {
-                final picked = await showModalBottomSheet<_Filter>(
-                  context: context,
-                  showDragHandle: true,
-                  builder: (ctx) => SafeArea(
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        for (final (id, label, icon, value) in [
-                          ('soon', t('Uskoro'), Icons.event, const _Soon()),
-                          ('timed', t('Aukcije'), Icons.gavel, const _Timed()),
-                          (
-                            'buy',
-                            t('Kupi odmah'),
-                            Icons.shopping_bag_outlined,
-                            const _BuyNow(),
-                          ),
-                        ])
-                          ListTile(
-                            key: ValueKey('home-cat-$id'),
-                            leading: Icon(icon),
-                            title: Text(label),
-                            onTap: () => Navigator.pop(ctx, value),
-                          ),
-                        const Divider(),
-                        const Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [MessagesButton(), NotificationBell()],
+        child: Center(
+          heightFactor: 1,
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 520),
+            child: Row(
+              key: const ValueKey('home-cats'),
+              children: [
+                tab(
+                  'following',
+                  t('Pratim'),
+                  const _Following(),
+                  _filter is _Following,
+                ),
+                tab('for-you', t('Za tebe'), const _ForYou(), immersive),
+                tab(
+                  'live',
+                  t('Uživo'),
+                  const _LiveOnly(),
+                  _filter is _LiveOnly,
+                ),
+                IconButton(
+                  key: const ValueKey('home-search'),
+                  tooltip: t('Pretraži objave i račune'),
+                  color: foreground,
+                  onPressed: () => SearchScreen.open(context),
+                  icon: const Icon(Icons.search),
+                ),
+                IconButton(
+                  key: const ValueKey('home-filters'),
+                  tooltip: t('Filteri'),
+                  color: foreground,
+                  onPressed: () async {
+                    final picked = await showModalBottomSheet<_Filter>(
+                      context: context,
+                      showDragHandle: true,
+                      builder: (ctx) => SafeArea(
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            for (final (id, label, icon, value) in [
+                              ('soon', t('Uskoro'), Icons.event, const _Soon()),
+                              (
+                                'timed',
+                                t('Aukcije'),
+                                Icons.gavel,
+                                const _Timed(),
+                              ),
+                              (
+                                'buy',
+                                t('Kupi odmah'),
+                                Icons.shopping_bag_outlined,
+                                const _BuyNow(),
+                              ),
+                            ])
+                              ListTile(
+                                key: ValueKey('home-cat-$id'),
+                                leading: Icon(icon),
+                                title: Text(label),
+                                onTap: () => Navigator.pop(ctx, value),
+                              ),
+                            const Divider(),
+                            const Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [MessagesButton(), NotificationBell()],
+                            ),
+                          ],
                         ),
-                      ],
-                    ),
-                  ),
-                );
-                if (picked != null && mounted) setState(() => _filter = picked);
-              },
-              icon: const Icon(Icons.tune),
+                      ),
+                    );
+                    if (picked != null && mounted) {
+                      setState(() => _filter = picked);
+                    }
+                  },
+                  icon: const Icon(Icons.tune),
+                ),
+              ],
             ),
-          ],
-        ))),
+          ),
+        ),
       ),
     );
 
