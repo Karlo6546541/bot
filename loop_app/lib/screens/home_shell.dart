@@ -32,7 +32,10 @@ class _HomeShellState extends ConsumerState<HomeShell> {
   bool _feedSelected = true;
   int get _index => ref.watch(homeTabProvider);
 
-  void _go(int i) => ref.read(homeTabProvider.notifier).select(i);
+  void _go(int i) {
+    if (i != 3) ref.read(profileSettingsProvider.notifier).setOpen(false);
+    ref.read(homeTabProvider.notifier).select(i);
+  }
 
   /// Logo vodi na početnu: zatvara otvorene ekrane i bira Portfolio.
   void _goHome() {

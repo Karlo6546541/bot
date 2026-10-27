@@ -2,6 +2,9 @@
 // Generirano iz popisa tekstova; nadopuni ručno kad dodaješ nove.
 
 const kEn = <String, String>{
+  'Dodaj objavu': 'Add post',
+  'Još nema lajkanih oglasa.': 'No liked listings yet.',
+  'Tvoje objave prikazat će se ovdje.': 'Your posts will appear here.',
   'Sve kategorije': 'All categories',
   'Digitalne kupnje': 'Digital shopping',
   'Trenutno nema digitalnih proizvoda.':

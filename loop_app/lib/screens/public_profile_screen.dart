@@ -509,6 +509,7 @@ class ProfileHeader extends ConsumerWidget {
     this.trailing,
     this.rating,
     this.editable = false,
+    this.compact = false,
   });
 
   final AppUser user;
@@ -519,6 +520,7 @@ class ProfileHeader extends ConsumerWidget {
 
   /// Vlastiti profil: gumbi za promjenu naslovne i profilne slike.
   final bool editable;
+  final bool compact;
 
   Future<void> _photoMenu(
     BuildContext context,
@@ -611,7 +613,7 @@ class ProfileHeader extends ConsumerWidget {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           SizedBox(
-            height: 184,
+            height: compact ? 132 : 184,
             child: Stack(
               clipBehavior: Clip.none,
               children: [
@@ -652,7 +654,7 @@ class ProfileHeader extends ConsumerWidget {
                           ),
                         ),
                         // Bez priča (uklonjene radi jednostavnosti).
-                        child: UserAvatar(user: user, size: 76),
+                        child: UserAvatar(user: user, size: compact ? 60 : 76),
                       ),
                       if (editable)
                         Positioned(

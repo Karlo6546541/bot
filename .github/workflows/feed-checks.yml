@@ -27,7 +27,7 @@ jobs:
       - run: flutter pub get --enforce-lockfile
       - name: Format changed Dart files
         run: |
-          dart format lib/services/delivery_service.dart lib/providers/app_providers.dart test/delivery_service_test.dart test/photo_viewer_test.dart lib/widgets/shop_widgets.dart lib/screens/live_screens.dart lib/screens/auctions_screen.dart lib/widgets/browse_category_picker.dart lib/widgets/item_image.dart lib/screens/categories_screen.dart test/browse_navigation_test.dart tool/feed_design_preview.dart lib/widgets/adaptive_shell.dart lib/app.dart lib/screens/for_you_feed.dart lib/screens/for_you_ranker.dart lib/screens/home_shell.dart lib/screens/live_home_screen.dart lib/screens/swipe_feed_screen.dart lib/services/feed_preferences.dart lib/services/feed_watch_time.dart lib/services/storage_service.dart lib/l10n/en.dart test/feed_controls_test.dart test/app_flow_test.dart test/shop_flow_test.dart test/live_test.dart
+          dart format lib/screens/profile_screen.dart lib/screens/public_profile_screen.dart test/account_profile_test.dart lib/services/delivery_service.dart lib/providers/app_providers.dart test/delivery_service_test.dart test/photo_viewer_test.dart lib/widgets/shop_widgets.dart lib/screens/live_screens.dart lib/screens/auctions_screen.dart lib/widgets/browse_category_picker.dart lib/widgets/item_image.dart lib/screens/categories_screen.dart test/browse_navigation_test.dart tool/feed_design_preview.dart lib/widgets/adaptive_shell.dart lib/app.dart lib/screens/for_you_feed.dart lib/screens/for_you_ranker.dart lib/screens/home_shell.dart lib/screens/live_home_screen.dart lib/screens/swipe_feed_screen.dart lib/services/feed_preferences.dart lib/services/feed_watch_time.dart lib/services/storage_service.dart lib/l10n/en.dart test/feed_controls_test.dart test/app_flow_test.dart test/shop_flow_test.dart test/live_test.dart
           git diff --no-color > /tmp/feed-format.patch
       - name: Formatting patch
         run: cat /tmp/feed-format.patch
@@ -54,6 +54,7 @@ jobs:
           server_pid=$!
           trap 'kill "$server_pid"' EXIT
           node ../scripts/feed-preview.cjs
+          node ../scripts/profile-preview.cjs
       - uses: actions/upload-artifact@v4
         if: always()
         with:
