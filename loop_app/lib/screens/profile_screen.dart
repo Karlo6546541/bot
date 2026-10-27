@@ -120,8 +120,12 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                               key: const ValueKey('profile-edit'),
                               style: OutlinedButton.styleFrom(
                                 padding: const EdgeInsets.symmetric(
-                                  horizontal: 8,
+                                  horizontal: 10,
+                                  vertical: 10,
                                 ),
+                                minimumSize: const Size(0, 42),
+                                textStyle: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                               ),
                               onPressed: () => EditProfileScreen.open(context),
                               icon: const Icon(Icons.edit_outlined, size: 17),
@@ -134,8 +138,12 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                               key: const ValueKey('profile-create'),
                               style: FilledButton.styleFrom(
                                 padding: const EdgeInsets.symmetric(
-                                  horizontal: 8,
+                                  horizontal: 10,
+                                  vertical: 10,
                                 ),
+                                minimumSize: const Size(0, 42),
+                                textStyle: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                               ),
                               onPressed: () {
                                 setState(() => _liked = false);
@@ -354,26 +362,31 @@ class _AccountPostTile extends ConsumerWidget {
                           ),
                         ),
                   Positioned(
-                    top: 3,
-                    right: 3,
+                    top: 6,
+                    right: 6,
                     child: Material(
                       color: LoopColors.surface.withValues(alpha: 0.9),
-                      shape: const CircleBorder(),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                       child: likedSection
                           ? IconButton(
                               key: ValueKey('profile-unlike-${d.id}'),
                               tooltip: t('Ukloni iz favorita'),
+                              constraints: const BoxConstraints.tightFor(width: 36, height: 36),
+                              padding: EdgeInsets.zero,
+                              visualDensity: VisualDensity.compact,
                               onPressed: () =>
                                   toggleFavorite(ref, d, context: context),
                               icon: const Icon(
                                 Icons.favorite,
                                 color: Color(0xFFE5486F),
-                                size: 20,
+                                size: 18,
                               ),
                             )
                           : PopupMenuButton<String>(
                               key: ValueKey('profile-post-menu-${d.id}'),
                               tooltip: t('Detalji'),
+                              constraints: const BoxConstraints.tightFor(width: 36, height: 36),
+                              padding: EdgeInsets.zero,
                               icon: const Icon(Icons.more_horiz),
                               onSelected: (value) async {
                                 if (value == 'delete') {

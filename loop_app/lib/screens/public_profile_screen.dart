@@ -597,13 +597,15 @@ class ProfileHeader extends ConsumerWidget {
       ),
     );
     Widget camera(VoidCallback onTap, Key key, String tip) => Material(
-      color: Colors.black54,
-      shape: const CircleBorder(),
+      color: Colors.white,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
       child: IconButton(
         key: key,
         tooltip: tip,
+        constraints: const BoxConstraints.tightFor(width: 32, height: 32),
+        padding: EdgeInsets.zero,
         visualDensity: VisualDensity.compact,
-        icon: const Icon(Icons.photo_camera, color: Colors.white, size: 18),
+        icon: const Icon(Icons.photo_camera_outlined, color: Color(0xFF332820), size: 17),
         onPressed: onTap,
       ),
     );
