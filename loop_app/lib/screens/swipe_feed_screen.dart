@@ -132,7 +132,9 @@ class _SwipeFeedScreenState extends ConsumerState<SwipeFeedScreen>
     final entry = widget.entries[_index];
     _viewTimer = Timer(const Duration(seconds: 1), () {
       if (mounted && _visible && _index < widget.entries.length &&
-          _key(widget.entries[_index]) == _key(entry)) _seen(_index);
+          _key(widget.entries[_index]) == _key(entry)) {
+        _seen(_index);
+      }
     });
   }
 
@@ -603,6 +605,7 @@ class _MediaState extends State<_Media> {
         behavior: const AnyDeviceDragBehavior(),
         child: PageView.builder(
           key: const ValueKey('post-gallery'),
+          allowImplicitScrolling: true,
           itemCount: d.imagePaths.length,
           onPageChanged: (i) => setState(() => _photo = i),
           itemBuilder: (_, i) => LocalPhoto(
@@ -797,9 +800,9 @@ class _Info extends ConsumerWidget {
               ],
             ],
           ),
-        if (owner != null && state.ratingOf(owner.id) != null && state.ratingOf(owner.id)!.count > 0) Padding(
+        if (owner != null && state.ratingOf(owner.id).count > 0) Padding(
             padding: const EdgeInsets.only(top: 4),
-            child: Text('★ ${state.ratingOf(owner.id)!.average.toStringAsFixed(1)} · ${state.ratingOf(owner.id)!.count}',
+            child: Text('★ ${state.ratingOf(owner.id).average.toStringAsFixed(1)} · ${state.ratingOf(owner.id).count}',
               style: const TextStyle(color: Colors.white70, fontSize: 12)),
           ),
         const SizedBox(height: 8),

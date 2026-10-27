@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hive/hive.dart';
 import 'package:loop_app/models/device.dart';
+import 'package:loop_app/models/loop_transaction.dart';
 import 'package:loop_app/providers/app_providers.dart';
 import 'package:loop_app/providers/app_state.dart';
 import 'package:loop_app/screens/auctions_screen.dart';
@@ -83,6 +84,31 @@ void main() {
       expect(ranker.rank(all, limit: 100).any((p) =>
         (p.item.show?.hostId ?? p.item.auction?.sellerId ?? p.item.device?.ownerId) == seller), isFalse);
     }
+  });
+
+  test('an expensive purchase does not set the budget of another category', () {
+    final now = DateTime(2026, 10, 27);
+    final me = SeedData.testUserId;
+    final cats = DeviceCategory.values.where((c) => c.section != ItemSection.digital).take(2).toList();
+    Device item(String id, DeviceCategory c) => Device(
+      id: id, name: id, model: '', condition: DeviceCondition.good,
+      price: 900, category: c, createdAt: now,
+      ownerId: SeedData.anaUserId, listPrice: 900, listedAt: now,
+    );
+    final phone = item('expensive-item', cats[0]);
+    final other = item('unrelated-category', cats[1]);
+    final tx = LoopTransaction(id: 'purchase', type: TransactionType.buy,
+      userId: me, deviceId: phone.id, deviceName: phone.name,
+      price: 900, fee: 0, amount: 900, buyerId: me,
+      buyerLabel: 'Buyer', sellerLabel: 'Seller', createdAt: now);
+    AppState state(List<LoopTransaction> txs) => AppState(
+      users: storage.users, devices: [phone, other], transactions: txs,
+      currentUserId: me, isAdmin: false,
+    );
+    final before = ForYouRanker(state([]), now: now);
+    final after = ForYouRanker(state([tx]), now: now);
+    expect(after.score(BrowseItem.item(other)).$1, before.score(BrowseItem.item(other)).$1);
+    expect(after.score(BrowseItem.item(phone)).$1, greaterThan(before.score(BrowseItem.item(phone)).$1));
   });
 
   testWidgets('horizontal gallery, zoom and details keep the current listing', (tester) async {

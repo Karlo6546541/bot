@@ -84,7 +84,8 @@ class _ForYouFeedState extends ConsumerState<ForYouFeed> {
     final before = _watched[key] ?? 0;
     final total = before + dwell.inMilliseconds;
     _watched[key] = total;
-    if (total >= 800) {
+    if (_watched.length > 500) _watched.remove(_watched.keys.first);
+    if (total > 0) {
       _shown.add(key);
       _preferences.recordSeen(key, DateTime.now());
     }
@@ -204,6 +205,7 @@ class _ForYouFeedState extends ConsumerState<ForYouFeed> {
   @override
   Widget build(BuildContext context) {
     ref.listen(appProvider, (_, _) {
+      if (_picks.length - _index > 12) return;
       final fresh = _ranked(exclude: {
         for (final p in _picks) ForYouRanker.keyOf(p.item),
       });

@@ -14,6 +14,8 @@ import 'for_you_feed.dart';
 import 'public_profile_screen.dart';
 import 'live_screens.dart';
 import 'search_screen.dart';
+import 'messages_screen.dart';
+import 'notifications_screen.dart';
 import 'swipe_feed_screen.dart';
 
 /// Početna kao Whatnot: pretraga, kategorije kao "pilule" i mreža kartica —
@@ -339,6 +341,9 @@ class _LiveHomeScreenState extends ConsumerState<LiveHomeScreen> {
                       leading: Icon(icon), title: Text(label),
                       onTap: () => Navigator.pop(ctx, value),
                     ),
+                    const Divider(),
+                    const Row(mainAxisAlignment: MainAxisAlignment.center,
+                      children: [MessagesButton(), NotificationBell()]),
                   ],
                 )),
               );
