@@ -19,6 +19,14 @@ Future<void> reveal(WidgetTester tester, Finder finder) async {
   await tester.pumpAndSettle();
 }
 
+Future<void> openProfileSettings(WidgetTester tester) async {
+  if (find.byKey(const ValueKey('profile-settings-close')).evaluate().isNotEmpty) return;
+  final gear = find.byKey(const ValueKey('profile-settings'));
+  await tester.scrollUntilVisible(gear, -300, scrollable: vScroll());
+  await tester.tap(gear);
+  await tester.pumpAndSettle();
+}
+
 /// Prvi okomiti popis na ekranu (vodoravni redovi filtara se preskaču).
 Finder vScroll() => find
     .byWidgetPredicate(
@@ -63,6 +71,7 @@ Future<void> openAuctionsPill(WidgetTester tester) async {
 Future<void> openActivity(WidgetTester tester) async {
   await tester.tap(find.text('Profil').last);
   await tester.pumpAndSettle();
+  await openProfileSettings(tester);
   await reveal(tester, find.byKey(const ValueKey('open-activity')));
   await tester.tap(find.byKey(const ValueKey('open-activity')));
   await tester.pumpAndSettle();
@@ -314,6 +323,7 @@ void main() {
     // Tamna tema iz Profila: sučelje se ponovno izgradi bez grešaka.
     await tester.tap(find.text('Profil').last);
     await tester.pumpAndSettle();
+    await openProfileSettings(tester);
     await tester.scrollUntilVisible(
       find.text('Tamna'),
       200,
@@ -393,6 +403,7 @@ void main() {
     // Podaci prodavatelja (za Kupi odmah i isplatu) — iz Profila.
     await tester.tap(find.text('Profil').last);
     await tester.pumpAndSettle();
+    await openProfileSettings(tester);
     await reveal(tester, find.byKey(const ValueKey('seller-info')));
     await tester.tap(find.byKey(const ValueKey('seller-info')));
     await tester.pumpAndSettle();
@@ -430,6 +441,7 @@ void main() {
     // Profil → Pravno → svi dokumenti.
     await tester.tap(find.text('Profil').last);
     await tester.pumpAndSettle();
+    await openProfileSettings(tester);
     await reveal(tester, find.byKey(const ValueKey('open-legal')));
     await tester.tap(find.byKey(const ValueKey('open-legal')));
     await tester.pumpAndSettle();
@@ -481,6 +493,7 @@ void main() {
     await tester.tap(find.text('Profile').last);
     await tester.pumpAndSettle();
     expect(find.text('Edit profile'), findsOneWidget);
+    await openProfileSettings(tester);
     await tester.scrollUntilVisible(
       find.text('Language / Jezik'),
       200,
@@ -491,6 +504,7 @@ void main() {
 
     // Natrag na hrvatski iz Profila.
     // Donja navigacija prekriva dno — skrolaj dok gumb nije iznad nje.
+    await openProfileSettings(tester);
     await tester.scrollUntilVisible(
       find.text('Reset demo data'),
       200,
@@ -501,6 +515,7 @@ void main() {
     await tester.pumpAndSettle();
     // Promjena jezika ponovno gradi sučelje; ostaje na Profilu.
     expect(find.text('Profil'), findsWidgets);
+    await openProfileSettings(tester);
     await tester.scrollUntilVisible(
       find.text('Jezik / Language'),
       200,
@@ -570,6 +585,7 @@ void accountTests() {
     await tester.tap(find.text('Profil').last);
     await tester.pumpAndSettle();
     expect(find.text('@novi_korisnik'), findsWidgets);
+    await openProfileSettings(tester);
     await tester.scrollUntilVisible(
       find.text('Odjavi se'),
       200,
@@ -733,6 +749,7 @@ void deletionTests() {
     await tester.pumpAndSettle();
     await tester.tap(find.text('Profil').last);
     await tester.pumpAndSettle();
+    await openProfileSettings(tester);
     await tester.scrollUntilVisible(
       find.text('Obriši račun'),
       200,
@@ -795,6 +812,7 @@ void communityTests() {
     Future<void> logout() async {
       await tester.tap(find.text('Profil').last);
       await tester.pumpAndSettle();
+      await openProfileSettings(tester);
       await tester.scrollUntilVisible(
         find.text('Odjavi se'),
         200,
@@ -915,6 +933,7 @@ void chatTests() {
     Future<void> logout() async {
       await tester.tap(find.text('Profil').last);
       await tester.pumpAndSettle();
+      await openProfileSettings(tester);
       await tester.scrollUntilVisible(
         find.text('Odjavi se'),
         200,
@@ -1092,6 +1111,7 @@ void logoTests() {
     await tester.pumpAndSettle();
     await tester.tap(find.text('Profil').last);
     await tester.pumpAndSettle();
+    await openProfileSettings(tester);
     await reveal(tester, find.byKey(const ValueKey('seller-info')));
     await tester.tap(find.byKey(const ValueKey('seller-info')));
     await tester.pumpAndSettle();

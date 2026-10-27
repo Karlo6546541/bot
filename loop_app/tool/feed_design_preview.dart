@@ -1,5 +1,6 @@
 // Isolated screenshot fixture. Production continues to start at lib/main.dart.
 import 'package:flutter/material.dart';
+import 'package:flutter/semantics.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:loop_app/app.dart';
 import 'package:loop_app/models/device.dart';
@@ -16,8 +17,16 @@ import 'package:loop_app/services/seed_data.dart';
 import 'package:loop_app/services/storage_service.dart';
 import 'package:loop_app/services/trade_service.dart';
 
+SemanticsHandle? previewSemanticsHandle;
+class _ProfilePreviewTab extends HomeTab {
+  @override
+  int build() => 3;
+}
+
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  final profilePreview = Uri.base.queryParameters['preview'] == 'profile';
+  if (profilePreview) previewSemanticsHandle = SemanticsBinding.instance.ensureSemantics();
   final storage = StorageService();
   await storage.init();
   final trade = TradeService(storage);
@@ -26,7 +35,7 @@ Future<void> main() async {
   final samples = <String>{};
   for (var index = 0; index < 8; index++) {
     final sample = await trade.addDevice(
-      userId: SeedData.anaUserId,
+      userId: index < 2 ? SeedData.testUserId : SeedData.anaUserId,
       name: 'Sony PSP',
       model: '3004, crna',
       condition: DeviceCondition.good,
@@ -69,6 +78,7 @@ Future<void> main() async {
   await lives.startLot(SeedData.markoUserId, previewLive.id);
   await lives.chat(SeedData.anaUserId, previewLive.id, 'Prvi put sam tu 👋');
   await storage.saveSession(userId: SeedData.testUserId);
+  await trade.toggleFavorite(SeedData.testUserId, samples.last);
   // Exercise BOX NOW on the release web runtime, including a duplicate confirm.
   final shipping = DeliveryService(storage);
   const locker = BoxNowLocker(
@@ -110,6 +120,7 @@ Future<void> main() async {
   runApp(
     ProviderScope(
       overrides: [
+        if (profilePreview) homeTabProvider.overrideWith(_ProfilePreviewTab.new),
         storageProvider.overrideWithValue(storage),
         tickIntervalProvider.overrideWithValue(null),
       ],

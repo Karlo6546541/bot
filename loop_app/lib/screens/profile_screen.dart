@@ -21,9 +21,198 @@ import 'public_profile_screen.dart';
 import 'shop_screens.dart';
 import '../widgets/shop_widgets.dart';
 import '../widgets/user_avatar.dart';
+import '../models/device.dart';
+import '../widgets/item_image.dart';
+import '../widgets/formatters.dart';
+import '../widgets/create_sheet.dart';
+import 'device_detail_screen.dart';
+import 'live_screens.dart';
 
-class ProfileScreen extends ConsumerWidget {
+/// Profile content is separate from account settings.
+final profileSettingsProvider = NotifierProvider<ProfileSettingsController, bool>(ProfileSettingsController.new);
+class ProfileSettingsController extends Notifier<bool> {
+  @override
+  bool build() => false;
+  void setOpen(bool value) => state = value;
+}
+
+class ProfileScreen extends ConsumerStatefulWidget {
   const ProfileScreen({super.key});
+  @override
+  ConsumerState<ProfileScreen> createState() => _ProfileScreenState();
+}
+
+class _ProfileScreenState extends ConsumerState<ProfileScreen> {
+  bool _liked = false;
+
+  @override
+  Widget build(BuildContext context) {
+    if (ref.watch(profileSettingsProvider)) return const _ProfileSettingsView();
+    final state = ref.watch(appProvider);
+    final user = state.currentUser;
+    if (user == null) return const SizedBox.shrink();
+    final items = _liked
+        ? state.devices.where((d) => state.isFavorite(d.id)).toList()
+        : state.myDevices;
+    final lives = state.activeLives.where((e) => e.$1.hostId == user.id).toList();
+    return Align(
+      alignment: Alignment.topCenter,
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 720),
+        child: CustomScrollView(
+          key: const ValueKey('account-profile'),
+          slivers: [
+            SliverPadding(padding: const EdgeInsets.fromLTRB(12, 8, 12, 0), sliver: SliverToBoxAdapter(
+              child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+                if (user.isGuest) ...[
+                  Align(alignment: Alignment.centerRight, child: _settingsButton()),
+                  const _GuestCard(),
+                ] else ...[
+                  ProfileHeader(user: user, editable: true, compact: true, trailing: _settingsButton()),
+                  Row(children: [
+                    _stat('${state.followersOf(user.id)}', t('pratitelja'), 'my-followers',
+                      () => FollowListScreen.open(context, user.id)),
+                    _stat('${state.followingListOf(user.id).length}', t('pratim'), 'my-following',
+                      () => FollowListScreen.open(context, user.id, following: true)),
+                    _stat('${state.salesCountOf(user.id)}', t('prodaja'), 'my-sales',
+                      () => SalesListScreen.open(context, user.id)),
+                  ]),
+                  Row(children: [
+                    Expanded(child: OutlinedButton.icon(
+                      key: const ValueKey('profile-edit'),
+                      onPressed: () => EditProfileScreen.open(context),
+                      icon: const Icon(Icons.edit_outlined, size: 17), label: Text(t('Uredi profil')))),
+                    const SizedBox(width: 8),
+                    Expanded(child: FilledButton.icon(
+                      key: const ValueKey('profile-create'),
+                      onPressed: () => showCreateSheet(context),
+                      icon: const Icon(Icons.add, size: 19), label: Text(t('Dodaj objavu')))),
+                  ]),
+                ],
+                const SizedBox(height: 14),
+                Row(children: [
+                  Expanded(child: _tab(false, Icons.grid_on_outlined, t('Objave'))),
+                  Expanded(child: _tab(true, Icons.favorite_border, t('Sviđa mi se'))),
+                ]),
+                const Divider(height: 1),
+                if (!_liked && !user.isGuest)
+                  for (final (show, live) in lives)
+                    ListTile(key: ValueKey('account-live-${show.id}'),
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 4),
+                      leading: const Icon(Icons.videocam_outlined),
+                      title: Text(show.title, maxLines: 1, overflow: TextOverflow.ellipsis),
+                      subtitle: Text(live.isLive ? t('Uživo sada') : t('Uskoro')),
+                      trailing: const Icon(Icons.chevron_right),
+                      onTap: () => LiveRoomScreen.open(context, show.id)),
+              ]),
+            )),
+            if (items.isEmpty)
+              SliverToBoxAdapter(child: Padding(padding: const EdgeInsets.all(28), child: Column(children: [
+                Icon(_liked ? Icons.favorite_border : Icons.grid_on_outlined, size: 36, color: LoopColors.textSecondary),
+                const SizedBox(height: 12),
+                Text(_liked ? t('Još nema lajkanih oglasa.') : t('Tvoje objave prikazat će se ovdje.'), textAlign: TextAlign.center),
+              ])))
+            else
+              SliverPadding(padding: const EdgeInsets.all(12), sliver: SliverLayoutBuilder(
+                builder: (context, constraints) => SliverGrid(
+                  gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: constraints.crossAxisExtent >= 600 ? 3 : 2,
+                    mainAxisExtent: constraints.crossAxisExtent / (constraints.crossAxisExtent >= 600 ? 3 : 2) + 90,
+                    mainAxisSpacing: 10, crossAxisSpacing: 10),
+                  delegate: SliverChildBuilderDelegate((context, i) => _AccountPostTile(
+                    device: items[i], mine: items[i].ownerId == user.id,
+                    likedSection: _liked), childCount: items.length),
+                ),
+              )),
+            const SliverToBoxAdapter(child: SizedBox(height: 24)),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _settingsButton() => IconButton(
+    key: const ValueKey('profile-settings'), tooltip: t('Postavke'),
+    onPressed: () => ref.read(profileSettingsProvider.notifier).setOpen(true),
+    icon: const Icon(Icons.settings_outlined),
+  );
+
+  Widget _stat(String value, String label, String key, VoidCallback onTap) => Expanded(
+    child: TextButton(key: ValueKey(key), onPressed: onTap,
+      child: Column(children: [Text(value, style: TextStyle(color: LoopColors.textPrimary, fontSize: 20, fontWeight: FontWeight.w700)),
+        Text(label, style: TextStyle(color: LoopColors.textSecondary, fontSize: 11))])),
+  );
+
+  Widget _tab(bool liked, IconData icon, String label) => TextButton.icon(
+    key: ValueKey(liked ? 'profile-liked-tab' : 'profile-posts-tab'),
+    style: TextButton.styleFrom(foregroundColor: _liked == liked ? LoopColors.accent : LoopColors.textSecondary),
+    onPressed: () => setState(() => _liked = liked),
+    icon: Icon(icon, size: 18), label: Text(label, maxLines: 1),
+  );
+}
+
+class _AccountPostTile extends ConsumerWidget {
+  const _AccountPostTile({required this.device, required this.mine, required this.likedSection});
+  final Device device;
+  final bool mine;
+  final bool likedSection;
+
+  Future<void> _delete(BuildContext context, WidgetRef ref) async {
+    final ok = await confirmDialog(context, title: t('Obrisati predmet?'),
+      message: t('"{0}" bit će trajno uklonjen iz tvog portfolija{1}. Ovo se ne može poništiti.',
+        [device.name, device.isListed ? t(' i iz prodaje') : '']),
+      confirmLabel: t('Obriši'), destructive: true);
+    if (!ok || !context.mounted) return;
+    await runWithLoading(context, () => ref.read(appProvider.notifier).deleteMyDevice(device.id),
+      successMessage: t('Predmet obrisan'));
+  }
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final state = ref.watch(appProvider);
+    final d = device;
+    final auction = state.activeAuctions.where((a) => a.deviceId == d.id).firstOrNull;
+    return Material(
+      key: ValueKey('account-post-${d.id}'), color: LoopColors.surface,
+      borderRadius: BorderRadius.circular(12), clipBehavior: Clip.antiAlias,
+      child: InkWell(onTap: () => DeviceDetailScreen.open(context, d), child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          AspectRatio(aspectRatio: 1, child: Stack(fit: StackFit.expand, children: [
+            ItemThumb(device: d, size: 280),
+            Positioned(top: 3, right: 3, child: Material(color: LoopColors.surface.withValues(alpha: 0.9), shape: const CircleBorder(),
+              child: likedSection
+                ? IconButton(key: ValueKey('profile-unlike-${d.id}'), tooltip: t('Ukloni iz favorita'),
+                    onPressed: () => toggleFavorite(ref, d, context: context),
+                    icon: const Icon(Icons.favorite, color: Color(0xFFE5486F), size: 20))
+                : PopupMenuButton<String>(key: ValueKey('profile-post-menu-${d.id}'),
+                    tooltip: t('Detalji'), icon: const Icon(Icons.more_horiz),
+                    onSelected: (value) async {
+                      if (value == 'delete') { await _delete(context, ref); }
+                      else { await DeviceDetailScreen.open(context, d); }
+                    },
+                    itemBuilder: (_) => [
+                      PopupMenuItem(value: 'details', child: Text(t('Detalji'))),
+                      if (mine) PopupMenuItem(value: 'delete', child: Text(t('Obriši predmet'))),
+                    ]),
+            )),
+          ])),
+          Padding(padding: const EdgeInsets.fromLTRB(9, 8, 9, 0), child: Text('${d.name} ${d.model}'.trim(),
+            maxLines: 2, overflow: TextOverflow.ellipsis, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13, height: 1.2))),
+          Padding(padding: const EdgeInsets.fromLTRB(9, 4, 9, 0), child: Text(
+            formatCredits(auction?.currentPrice ?? (mine ? d.askPrice : state.priceForMe(d))),
+            style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14))),
+          Padding(padding: const EdgeInsets.fromLTRB(9, 2, 9, 0), child: Text(
+            auction != null ? t('Aukcija') : d.isListed ? t('Kupi odmah') : t('Nije na prodaji'),
+            maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(color: LoopColors.textSecondary, fontSize: 11))),
+        ],
+      )),
+    );
+  }
+}
+
+class _ProfileSettingsView extends ConsumerWidget {
+  const _ProfileSettingsView();
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -40,11 +229,12 @@ class ProfileScreen extends ConsumerWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                // Gost nema profil — dovoljna je kartica za prijavu.
-                if (!user.isGuest) ...[
-                  ProfileHeader(user: user, editable: true),
-                  const SizedBox(height: 12),
-                ],
+                Row(children: [
+                  IconButton(key: const ValueKey('profile-settings-close'), tooltip: t('Natrag'),
+                    onPressed: () => ref.read(profileSettingsProvider.notifier).setOpen(false),
+                    icon: const Icon(Icons.arrow_back)),
+                  Text(t('Postavke'), style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w700)),
+                ]),
                 // Profil je samo za račun i postavke — kupnje i prodaja su
                 // u kartici Moje.
                 if (user.isGuest)
@@ -145,7 +335,10 @@ class ProfileScreen extends ConsumerWidget {
                 ],
                 if (!user.isGuest) ...[
                   OutlinedButton.icon(
-                    onPressed: () => ref.read(appProvider.notifier).logout(),
+                    onPressed: () {
+                      ref.read(profileSettingsProvider.notifier).setOpen(false);
+                      ref.read(appProvider.notifier).logout();
+                    },
                     icon: const Icon(Icons.logout),
                     label: Text(t('Odjavi se')),
                   ),
