@@ -263,13 +263,30 @@ class _LiveHomeScreenState extends ConsumerState<LiveHomeScreen> {
               : grid('home-ending', auctions, t('Aukcije')),
         );
       case _Digital():
-        slivers.add(SliverToBoxAdapter(child: Padding(
-          padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-          child: Text(t('Digitalne kupnje'), style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w700)),
-        )));
-        slivers.add(digital.isEmpty
-          ? SliverToBoxAdapter(child: Padding(padding: const EdgeInsets.all(16), child: Text(t('Trenutno nema digitalnih proizvoda.'))))
-          : grid('home-digital', digital, t('Digitalne kupnje')));
+        slivers.add(
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+              child: Text(
+                t('Digitalne kupnje'),
+                style: const TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ),
+          ),
+        );
+        slivers.add(
+          digital.isEmpty
+              ? SliverToBoxAdapter(
+                  child: Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Text(t('Trenutno nema digitalnih proizvoda.')),
+                  ),
+                )
+              : grid('home-digital', digital, t('Digitalne kupnje')),
+        );
       case _BuyNow():
         slivers.add(const SliverToBoxAdapter(child: SizedBox(height: 12)));
         slivers.add(
@@ -400,45 +417,73 @@ class _LiveHomeScreenState extends ConsumerState<LiveHomeScreen> {
                       context: context,
                       showDragHandle: true,
                       isScrollControlled: true,
-                      constraints: BoxConstraints(maxHeight: MediaQuery.sizeOf(context).height * 0.85),
+                      constraints: BoxConstraints(
+                        maxHeight: MediaQuery.sizeOf(context).height * 0.85,
+                      ),
                       builder: (ctx) => SafeArea(
-                        child: SingleChildScrollView(child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            for (final (id, label, icon, value) in <(String, String, IconData, Object)>[
-                              ('categories', t('Kategorije'), Icons.grid_view, 'categories'),
-                              ('live-menu', t('Uživo'), Icons.videocam_outlined, const _LiveOnly()),
-                              ('digital', t('Digitalne kupnje'), Icons.download_outlined, const _Digital()),
-                              ('soon', t('Uskoro'), Icons.event, const _Soon()),
-                              (
-                                'timed',
-                                t('Aukcije'),
-                                Icons.gavel,
-                                const _Timed(),
+                        child: SingleChildScrollView(
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              for (final (id, label, icon, value)
+                                  in <(String, String, IconData, Object)>[
+                                    (
+                                      'categories',
+                                      t('Kategorije'),
+                                      Icons.grid_view,
+                                      'categories',
+                                    ),
+                                    (
+                                      'live-menu',
+                                      t('Uživo'),
+                                      Icons.videocam_outlined,
+                                      const _LiveOnly(),
+                                    ),
+                                    (
+                                      'digital',
+                                      t('Digitalne kupnje'),
+                                      Icons.download_outlined,
+                                      const _Digital(),
+                                    ),
+                                    (
+                                      'soon',
+                                      t('Uskoro'),
+                                      Icons.event,
+                                      const _Soon(),
+                                    ),
+                                    (
+                                      'timed',
+                                      t('Aukcije'),
+                                      Icons.gavel,
+                                      const _Timed(),
+                                    ),
+                                    (
+                                      'buy',
+                                      t('Kupi odmah'),
+                                      Icons.shopping_bag_outlined,
+                                      const _BuyNow(),
+                                    ),
+                                  ])
+                                ListTile(
+                                  key: ValueKey('home-cat-$id'),
+                                  leading: Icon(icon),
+                                  title: Text(label),
+                                  onTap: () => Navigator.pop(ctx, value),
+                                ),
+                              const Divider(),
+                              const Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  MessagesButton(),
+                                  NotificationBell(),
+                                ],
                               ),
-                              (
-                                'buy',
-                                t('Kupi odmah'),
-                                Icons.shopping_bag_outlined,
-                                const _BuyNow(),
-                              ),
-                            ])
-                              ListTile(
-                                key: ValueKey('home-cat-$id'),
-                                leading: Icon(icon),
-                                title: Text(label),
-                                onTap: () => Navigator.pop(ctx, value),
-                              ),
-                            const Divider(),
-                            const Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [MessagesButton(), NotificationBell()],
-                            ),
-                          ],
-                        )),
+                            ],
+                          ),
+                        ),
                       ),
                     );
-                    if (!mounted) return;
+                    if (!mounted || !context.mounted) return;
                     if (picked == 'categories') {
                       await CategoriesScreen.open(context);
                     } else if (picked is _Filter) {
@@ -491,13 +536,18 @@ class _LiveHomeScreenState extends ConsumerState<LiveHomeScreen> {
 
     final categoryFilter = Padding(
       padding: const EdgeInsets.fromLTRB(16, 4, 16, 0),
-      child: Align(alignment: Alignment.centerLeft, child: ActionChip(
-        key: ValueKey(onLive ? 'live-category-filter' : 'auction-category-filter'),
-        avatar: const Icon(Icons.filter_list, size: 16),
-        label: Text(selectedCategory?.label ?? t('Sve kategorije')),
-        onPressed: categories,
-        visualDensity: VisualDensity.compact,
-      )),
+      child: Align(
+        alignment: Alignment.centerLeft,
+        child: ActionChip(
+          key: ValueKey(
+            onLive ? 'live-category-filter' : 'auction-category-filter',
+          ),
+          avatar: const Icon(Icons.filter_list, size: 16),
+          label: Text(selectedCategory?.label ?? t('Sve kategorije')),
+          onPressed: categories,
+          visualDensity: VisualDensity.compact,
+        ),
+      ),
     );
 
     // "Za tebe": TikTok — objave preko cijelog ekrana ispod izbornika,

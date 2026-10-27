@@ -8,7 +8,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../l10n/tr.dart';
 import '../widgets/trust_widgets.dart';
 import '../models/app_user.dart';
-import '../models/delivery.dart';
 import '../models/device.dart';
 import '../models/live_show.dart';
 import '../providers/app_providers.dart';
@@ -133,13 +132,29 @@ class _ViewersChip extends StatelessWidget {
     child: Container(
       key: const ValueKey('live-viewers'),
       padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 5),
-      decoration: BoxDecoration(color: Colors.black38, borderRadius: BorderRadius.circular(8)),
-      child: Row(mainAxisSize: MainAxisSize.min, children: [
-        const Icon(Icons.visibility_outlined, size: 13, color: Colors.white70),
-        const SizedBox(width: 4),
-        Text(count >= 1000 ? '${(count / 1000).toStringAsFixed(1)}k' : '$count',
-          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 11)),
-      ]),
+      decoration: BoxDecoration(
+        color: Colors.black38,
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Icon(
+            Icons.visibility_outlined,
+            size: 13,
+            color: Colors.white70,
+          ),
+          const SizedBox(width: 4),
+          Text(
+            count >= 1000 ? '${(count / 1000).toStringAsFixed(1)}k' : '$count',
+            style: const TextStyle(
+              color: Colors.white,
+              fontWeight: FontWeight.w600,
+              fontSize: 11,
+            ),
+          ),
+        ],
+      ),
     ),
   );
 }
@@ -2503,55 +2518,104 @@ class _TopBar extends ConsumerWidget {
     final me = s.currentUserId;
     final following = s.isFollowing(show.hostId);
     final rating = s.ratingOf(show.hostId);
-    final meta = rating.count > 0 ? '★ ${rating.average.toStringAsFixed(1)}' : t('★ Novo');
+    final meta = rating.count > 0
+        ? '★ ${rating.average.toStringAsFixed(1)}'
+        : t('★ Novo');
     return Padding(
       key: const ValueKey('live-compact-header'),
       padding: const EdgeInsets.fromLTRB(10, 2, 2, 2),
-      child: Row(children: [
-        GestureDetector(
-          onTap: () => PublicProfileScreen.open(context, show.hostId),
-          child: UserAvatar(user: host, size: 30),
-        ),
-        const SizedBox(width: 7),
-        Expanded(child: GestureDetector(
-          onTap: () => PublicProfileScreen.open(context, show.hostId),
-          child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisSize: MainAxisSize.min, children: [
-            Text(hostName, maxLines: 1, overflow: TextOverflow.ellipsis,
-              style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 13, shadows: _shadow)),
-            Text('$meta · ${show.title}', key: const ValueKey('live-host-meta'), maxLines: 1, overflow: TextOverflow.ellipsis,
-              style: const TextStyle(color: Colors.white70, fontSize: 10, shadows: _shadow)),
-          ]),
-        )),
-        if (me != null && me != show.hostId && !following) ...[
-          const SizedBox(width: 6),
-          FilledButton(
-            key: const ValueKey('live-follow'),
-            style: FilledButton.styleFrom(
-              backgroundColor: Colors.white.withValues(alpha: 0.16), foregroundColor: Colors.white,
-              minimumSize: const Size(48, 30), visualDensity: VisualDensity.compact,
-              padding: const EdgeInsets.symmetric(horizontal: 10),
-              textStyle: const TextStyle(fontFamily: kFontFamily, fontSize: 11, fontWeight: FontWeight.w600),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+      child: Row(
+        children: [
+          GestureDetector(
+            onTap: () => PublicProfileScreen.open(context, show.hostId),
+            child: UserAvatar(user: host, size: 30),
+          ),
+          const SizedBox(width: 7),
+          Expanded(
+            child: GestureDetector(
+              onTap: () => PublicProfileScreen.open(context, show.hostId),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    hostName,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w700,
+                      fontSize: 13,
+                      shadows: _shadow,
+                    ),
+                  ),
+                  Text(
+                    '$meta · ${show.title}',
+                    key: const ValueKey('live-host-meta'),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      color: Colors.white70,
+                      fontSize: 10,
+                      shadows: _shadow,
+                    ),
+                  ),
+                ],
+              ),
             ),
-            onPressed: () async {
-              if (blockGuest(context)) return;
-              await ref.read(appProvider.notifier).toggleFollow(show.hostId);
-              showLoopSnackBar(t('Pratiš {0}', [hostName]));
-            },
-            child: Text(t('Prati')),
+          ),
+          if (me != null && me != show.hostId && !following) ...[
+            const SizedBox(width: 6),
+            FilledButton(
+              key: const ValueKey('live-follow'),
+              style: FilledButton.styleFrom(
+                backgroundColor: Colors.white.withValues(alpha: 0.16),
+                foregroundColor: Colors.white,
+                minimumSize: const Size(48, 30),
+                visualDensity: VisualDensity.compact,
+                padding: const EdgeInsets.symmetric(horizontal: 10),
+                textStyle: const TextStyle(
+                  fontFamily: kFontFamily,
+                  fontSize: 11,
+                  fontWeight: FontWeight.w600,
+                ),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+              ),
+              onPressed: () async {
+                if (blockGuest(context)) return;
+                await ref.read(appProvider.notifier).toggleFollow(show.hostId);
+                showLoopSnackBar(t('Pratiš {0}', [hostName]));
+              },
+              child: Text(t('Prati')),
+            ),
+          ],
+          const SizedBox(width: 6),
+          if (state.isLive)
+            _ViewersChip(state.viewers)
+          else
+            Text(
+              state.isScheduled ? t('ZAKAZANO') : t('ZAVRŠENO'),
+              style: const TextStyle(
+                color: Colors.white70,
+                fontSize: 10,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          IconButton(
+            key: const ValueKey('live-close'),
+            tooltip: t('Zatvori'),
+            visualDensity: VisualDensity.compact,
+            onPressed: () => Navigator.maybePop(context),
+            icon: const Icon(
+              Icons.keyboard_arrow_down,
+              color: Colors.white,
+              size: 24,
+            ),
           ),
         ],
-        const SizedBox(width: 6),
-        if (state.isLive) _ViewersChip(state.viewers)
-        else Text(state.isScheduled ? t('ZAKAZANO') : t('ZAVRŠENO'),
-          style: const TextStyle(color: Colors.white70, fontSize: 10, fontWeight: FontWeight.w600)),
-        IconButton(
-          key: const ValueKey('live-close'), tooltip: t('Zatvori'),
-          visualDensity: VisualDensity.compact,
-          onPressed: () => Navigator.maybePop(context),
-          icon: const Icon(Icons.keyboard_arrow_down, color: Colors.white, size: 24),
-        ),
-      ]),
+      ),
     );
   }
 }
@@ -3985,7 +4049,13 @@ class _ReactionChipState extends State<_ReactionChip>
         width: 38,
         height: 38,
         alignment: Alignment.center,
-        child: Text(widget.emoji, style: const TextStyle(fontSize: 20, shadows: [Shadow(blurRadius: 5, color: Colors.black54)])),
+        child: Text(
+          widget.emoji,
+          style: const TextStyle(
+            fontSize: 20,
+            shadows: [Shadow(blurRadius: 5, color: Colors.black54)],
+          ),
+        ),
       ),
     ),
   );
@@ -4073,8 +4143,14 @@ class _DouyinBar extends StatelessWidget {
                       borderRadius: BorderRadius.circular(99),
                       borderSide: BorderSide.none,
                     ),
-                    enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(99), borderSide: BorderSide.none),
-                    focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(99), borderSide: const BorderSide(color: Colors.white38)),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(99),
+                      borderSide: BorderSide.none,
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(99),
+                      borderSide: const BorderSide(color: Colors.white38),
+                    ),
                     suffixIcon: IconButton(
                       key: const ValueKey('live-send'),
                       tooltip: t('Pošalji'),

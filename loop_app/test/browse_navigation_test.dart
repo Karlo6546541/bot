@@ -40,7 +40,10 @@ void main() {
     addTearDown(tester.view.reset);
     await tester.pumpWidget(app());
     await tester.pumpAndSettle();
-    expect(find.byKey(const ValueKey('home-categories-shortcut')), findsNothing);
+    expect(
+      find.byKey(const ValueKey('home-categories-shortcut')),
+      findsNothing,
+    );
     expect(find.byKey(const ValueKey('home-auctions-shortcut')), findsNothing);
     await tester.tap(find.byKey(const ValueKey('home-filters')));
     await tester.pumpAndSettle();

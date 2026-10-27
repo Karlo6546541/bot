@@ -4,7 +4,8 @@
 const kEn = <String, String>{
   'Sve kategorije': 'All categories',
   'Digitalne kupnje': 'Digital shopping',
-  'Trenutno nema digitalnih proizvoda.': 'No digital products available right now.',
+  'Trenutno nema digitalnih proizvoda.':
+      'No digital products available right now.',
   'Kategorije uživo': 'Live categories',
   'Kategorije aukcija': 'Auction categories',
   'Trenutno nema liveova u ovoj kategoriji.':
