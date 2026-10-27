@@ -128,7 +128,7 @@ class _HomeShellState extends ConsumerState<HomeShell> {
         padding: const EdgeInsets.symmetric(vertical: 20),
         child: LoopLogo(size: 22, onTap: _goHome),
       ),
-      appBar: AppBar(
+      appBar: _index == 0 && phone ? null : AppBar(
         // Jednostavna traka: logo lijevo, desno samo pretraga, poruke,
         // obavijesti i stanje (jezik je u Profilu → Postavke).
         titleSpacing: phone ? 8 : null,
@@ -170,3 +170,4 @@ class _HomeShellState extends ConsumerState<HomeShell> {
     );
   }
 }
+

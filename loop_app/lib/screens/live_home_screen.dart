@@ -285,81 +285,69 @@ class _LiveHomeScreenState extends ConsumerState<LiveHomeScreen> {
       ),
     );
 
-    // Brzi izbornik: jedna traka preko cijele širine (bez listanja) s
-    // okruglim ikonama u boji svoje vrste; odabrana se ispuni
-    // gradijentom, malo naraste i dobije točkicu ispod.
-    final Widget chips = Container(
-      margin: const EdgeInsets.fromLTRB(12, 4, 12, 8),
-      padding: const EdgeInsets.fromLTRB(4, 10, 4, 6),
-      decoration: BoxDecoration(
-        color: LoopColors.surface,
-        borderRadius: BorderRadius.circular(24),
-        boxShadow: LoopColors.softShadow,
-      ),
-      child: LayoutBuilder(
-        builder: (context, box) => Row(
-          key: const ValueKey('home-cats'),
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            _Pill(
-              fontSize: _pillFont(context, box.maxWidth),
-              id: 'for-you',
-              icon: Icons.auto_awesome,
-              label: t('Za tebe'),
-              color: LoopColors.textPrimary,
-              selected: _filter is _ForYou,
-              onTap: () => setState(() => _filter = const _ForYou()),
-            ),
-            _Pill(
-              fontSize: _pillFont(context, box.maxWidth),
-              id: 'live',
-              icon: Icons.sensors,
-              label: t('Uživo'),
-              color: LoopColors.live,
-              badge: live.length,
-              selected: _filter is _LiveOnly,
-              onTap: () => setState(() => _filter = const _LiveOnly()),
-            ),
-            _Pill(
-              fontSize: _pillFont(context, box.maxWidth),
-              id: 'soon',
-              icon: Icons.event,
-              label: t('Uskoro'),
-              color: LoopColors.info,
-              selected: _filter is _Soon,
-              onTap: () => setState(() => _filter = const _Soon()),
-            ),
-            _Pill(
-              fontSize: _pillFont(context, box.maxWidth),
-              id: 'timed',
-              icon: Icons.gavel,
-              label: t('Aukcije'),
-              color: LoopColors.accent,
-              selected: _filter is _Timed,
-              onTap: () => setState(() => _filter = const _Timed()),
-            ),
-            _Pill(
-              fontSize: _pillFont(context, box.maxWidth),
-              id: 'following',
-              icon: Icons.people_alt,
-              label: t('Pratim'),
-              color: const Color(0xFF7C4DFF),
-              badge: theirs.length,
-              selected: _filter is _Following,
-              onTap: () => setState(() => _filter = const _Following()),
-            ),
-            _Pill(
-              fontSize: _pillFont(context, box.maxWidth),
-              id: 'buy',
-              icon: Icons.local_offer,
-              label: t('Kupi odmah'),
-              color: LoopColors.buyNow,
-              selected: _filter is _BuyNow,
-              onTap: () => setState(() => _filter = const _BuyNow()),
-            ),
-          ],
+    final immersive = _filter is _ForYou;
+    final foreground = immersive ? Colors.white : LoopColors.textPrimary;
+    Widget tab(String id, String label, _Filter filter, bool selected) => Expanded(
+      child: Semantics(
+        selected: selected,
+        child: TextButton(
+          key: ValueKey('home-cat-$id'),
+          style: TextButton.styleFrom(
+            foregroundColor: foreground.withValues(alpha: selected ? 1 : 0.65),
+            padding: const EdgeInsets.symmetric(horizontal: 2),
+            minimumSize: const Size(44, 48),
+          ),
+          onPressed: () => setState(() => _filter = filter),
+          child: Text(label, maxLines: 1, overflow: TextOverflow.ellipsis,
+            style: TextStyle(fontSize: 15, fontWeight: selected ? FontWeight.w900 : FontWeight.w600,
+              decoration: selected ? TextDecoration.underline : null)),
         ),
       ),
+    );
+    final chips = ColoredBox(
+      color: immersive ? Colors.black : LoopColors.background,
+      child: SafeArea(bottom: false, child: Row(
+        key: const ValueKey('home-cats'),
+        children: [
+          tab('following', t('Pratim'), const _Following(), _filter is _Following),
+          tab('for-you', t('Za tebe'), const _ForYou(), immersive),
+          tab('live', t('Uživo'), const _LiveOnly(), _filter is _LiveOnly),
+          IconButton(
+            key: const ValueKey('home-search'),
+            tooltip: t('Pretraži objave i račune'),
+            color: foreground,
+            onPressed: () => SearchScreen.open(context),
+            icon: const Icon(Icons.search),
+          ),
+          IconButton(
+            key: const ValueKey('home-filters'),
+            tooltip: t('Filteri'),
+            color: foreground,
+            onPressed: () async {
+              final picked = await showModalBottomSheet<_Filter>(
+                context: context,
+                showDragHandle: true,
+                builder: (ctx) => SafeArea(child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    for (final (id, label, icon, value) in [
+                      ('soon', t('Uskoro'), Icons.event, const _Soon()),
+                      ('timed', t('Aukcije'), Icons.gavel, const _Timed()),
+                      ('buy', t('Kupi odmah'), Icons.shopping_bag_outlined, const _BuyNow()),
+                    ]) ListTile(
+                      key: ValueKey('home-cat-$id'),
+                      leading: Icon(icon), title: Text(label),
+                      onTap: () => Navigator.pop(ctx, value),
+                    ),
+                  ],
+                )),
+              );
+              if (picked != null && mounted) setState(() => _filter = picked);
+            },
+            icon: const Icon(Icons.tune),
+          ),
+        ],
+      )),
     );
 
     // "Za tebe": TikTok — objave preko cijelog ekrana ispod izbornika,
@@ -367,10 +355,10 @@ class _LiveHomeScreenState extends ConsumerState<LiveHomeScreen> {
     if (_filter is _ForYou) {
       return Column(
         children: [
-          const SizedBox(height: 4),
           chips,
           Expanded(
             child: ForYouFeed(
+              key: ValueKey('recommendations:${s.currentUserId}'),
               active:
                   widget.visible && (ModalRoute.of(context)?.isCurrent ?? true),
             ),
@@ -528,158 +516,6 @@ class _CheckoutBanner extends ConsumerWidget {
   }
 }
 
-/// Kategorija kao "pilula" (kao na Whatnotu); odabrana je ispunjena.
-/// Natpisi brzog izbornika — ista veličina za sve, koliko stane najduži.
-const _pillLabels = [
-  'Za tebe',
-  'Uživo',
-  'Uskoro',
-  'Aukcije',
-  'Pratim',
-  'Kupi odmah',
-];
-const _pillStyle = TextStyle(fontWeight: FontWeight.w800, fontSize: 12);
-
-double _pillFont(BuildContext context, double width) {
-  final slot = width / _pillLabels.length - 4;
-  var widest = 0.0;
-  for (final l in _pillLabels) {
-    final tp = TextPainter(
-      text: TextSpan(
-        text: t(l),
-        style: DefaultTextStyle.of(context).style.merge(_pillStyle),
-      ),
-      textDirection: TextDirection.ltr,
-      textScaler: MediaQuery.textScalerOf(context),
-      maxLines: 1,
-    )..layout();
-    if (tp.width > widest) widest = tp.width;
-  }
-  return widest <= slot ? 12 : (12 * slot / widest).clamp(9.0, 12.0);
-}
-
-class _Pill extends StatelessWidget {
-  const _Pill({
-    required this.fontSize,
-    required this.id,
-    required this.icon,
-    required this.label,
-    required this.color,
-    required this.selected,
-    required this.onTap,
-    this.badge = 0,
-  });
-
-  final String id;
-  final IconData icon;
-  final String label;
-
-  /// Zajednička veličina natpisa (vidi [_pillFont]).
-  final double fontSize;
-
-  /// Boja vrste (crvena = uživo, zelena = Kupi odmah…).
-  final Color color;
-  final bool selected;
-  final VoidCallback onTap;
-
-  /// Broj (npr. koliko je liveova uživo) u kutu ikone.
-  final int badge;
-
-  @override
-  Widget build(BuildContext context) {
-    final dark = color == LoopColors.textPrimary;
-    // Svjetliji ton iste boje za gradijent odabrane ikone.
-    final light = Color.lerp(color, Colors.white, dark ? 0.25 : 0.3)!;
-    return Expanded(
-      child: InkWell(
-        key: ValueKey('home-cat-$id'),
-        borderRadius: BorderRadius.circular(18),
-        onTap: onTap,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 2),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              AnimatedScale(
-                scale: selected ? 1.08 : 1,
-                duration: const Duration(milliseconds: 220),
-                curve: Curves.easeOutBack,
-                child: Badge(
-                  isLabelVisible: badge > 0,
-                  label: Text('$badge'),
-                  backgroundColor: id == 'live' ? LoopColors.live : color,
-                  textColor: Colors.white,
-                  offset: const Offset(4, -4),
-                  child: AnimatedContainer(
-                    duration: const Duration(milliseconds: 220),
-                    curve: Curves.easeOut,
-                    width: 46,
-                    height: 46,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: selected ? null : color.withValues(alpha: 0.12),
-                      gradient: selected
-                          ? LinearGradient(
-                              begin: Alignment.topLeft,
-                              end: Alignment.bottomRight,
-                              colors: [light, color],
-                            )
-                          : null,
-                      boxShadow: selected
-                          ? [
-                              BoxShadow(
-                                color: color.withValues(alpha: 0.4),
-                                blurRadius: 12,
-                                offset: const Offset(0, 4),
-                              ),
-                            ]
-                          : null,
-                    ),
-                    child: Icon(
-                      icon,
-                      size: 22,
-                      color: selected
-                          ? (dark ? LoopColors.background : Colors.white)
-                          : color,
-                    ),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 6),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 2),
-                child: Text(
-                  label,
-                  maxLines: 1,
-                  softWrap: false,
-                  overflow: TextOverflow.visible,
-                  style: _pillStyle.copyWith(
-                    fontSize: fontSize,
-                    color: selected
-                        ? LoopColors.textPrimary
-                        : LoopColors.textSecondary,
-                  ),
-                ),
-              ),
-              const SizedBox(height: 4),
-              // Oznaka odabranog: točkica u boji vrste.
-              AnimatedContainer(
-                duration: const Duration(milliseconds: 220),
-                width: selected ? 16 : 0,
-                height: 4,
-                decoration: BoxDecoration(
-                  color: color,
-                  borderRadius: BorderRadius.circular(99),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
 class _EmptyLive extends StatelessWidget {
   const _EmptyLive({required this.onGoLive});
   final VoidCallback onGoLive;
@@ -825,3 +661,4 @@ class _FollowingRow extends StatelessWidget {
     );
   }
 }
+

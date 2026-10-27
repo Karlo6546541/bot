@@ -42,6 +42,8 @@ Future<void> openAuctionsPill(WidgetTester tester) async {
     -300,
     scrollable: vScroll(),
   );
+  await tester.tap(find.byKey(const ValueKey('home-filters')));
+  await tester.pumpAndSettle();
   await tester.ensureVisible(find.byKey(const ValueKey('home-cat-timed')));
   await tester.pumpAndSettle();
   await tester.tap(find.byKey(const ValueKey('home-cat-timed')));
@@ -62,6 +64,8 @@ Future<void> openAuction(WidgetTester tester, String name) async {
   await tester.tap(find.text(name));
   await tester.pumpAndSettle();
   await tester.tap(find.byKey(const ValueKey('post-media')));
+  await tester.pumpAndSettle();
+  await tester.tap(find.text('Otvori cijeli oglas'));
   await tester.pumpAndSettle();
 }
 
@@ -110,6 +114,8 @@ void main() {
         find.text('Nitko trenutno nije uživo — budi prvi!'),
         findsOneWidget,
       );
+      await tester.tap(find.byKey(const ValueKey('home-filters')));
+      await tester.pumpAndSettle();
       await tester.tap(find.byKey(const ValueKey('home-cat-timed')));
       await tester.pumpAndSettle();
       await reveal(tester, find.byKey(const ValueKey('home-ending')));
@@ -1142,3 +1148,4 @@ void logoTests() {
 class SellerInfoScreenFinder {
   static Finder get title => find.byKey(const ValueKey('seller-save'));
 }
+

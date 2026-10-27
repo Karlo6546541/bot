@@ -9,6 +9,7 @@ import 'screens/account_screens.dart';
 import 'screens/home_shell.dart';
 import 'screens/login_screen.dart';
 import 'theme/app_theme.dart';
+import 'services/feed_watch_time.dart';
 import 'widgets/countdown.dart';
 import 'widgets/mini_live.dart';
 import 'widgets/trade_actions.dart';
@@ -89,6 +90,7 @@ class LoopApp extends ConsumerWidget {
       debugShowCheckedModeBanner: false,
       scaffoldMessengerKey: rootMessengerKey,
       navigatorKey: navigatorKeyFor((brightness, lang)),
+      navigatorObservers: [feedRouteObserver],
       // Mali prozor s liveom lebdi iznad svih ekrana.
       builder: (context, child) =>
           Stack(children: [?child, const MiniLiveOverlay()]),
@@ -98,3 +100,4 @@ class LoopApp extends ConsumerWidget {
     );
   }
 }
+
