@@ -1,0 +1,61 @@
+name: Subhasto UX and feed checks
+on:
+  push:
+    branches: [improve/subhasto-ux-feed-20261027]
+  pull_request:
+    branches: [claude/beautiful-newton-sftcyd]
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: feed-checks-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: loop_app
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          flutter-version: '3.47.7'
+          cache: true
+      - run: flutter pub get --enforce-lockfile
+      - name: Format changed Dart files
+        run: |
+          dart format lib/app.dart lib/screens/for_you_feed.dart lib/screens/for_you_ranker.dart lib/screens/home_shell.dart lib/screens/live_home_screen.dart lib/screens/swipe_feed_screen.dart lib/services/feed_preferences.dart lib/services/feed_watch_time.dart lib/services/storage_service.dart lib/l10n/en.dart test/feed_controls_test.dart test/app_flow_test.dart test/shop_flow_test.dart test/live_test.dart
+          git diff --no-color > /tmp/feed-format.patch
+      - name: Formatting patch
+        run: cat /tmp/feed-format.patch
+      - name: Analyze
+        run: flutter analyze
+      - name: Test
+        run: |
+          set +e
+          flutter test --reporter expanded > /tmp/feed-tests.log 2>&1
+          result=$?
+          awk '/EXCEPTION CAUGHT/{remaining=85} remaining>0{print;remaining--}' /tmp/feed-tests.log
+          tail -n 20 /tmp/feed-tests.log
+          exit "$result"
+      - name: Build web
+        run: flutter build web --release --base-href /bot/ --no-web-resources-cdn
+      - name: Browser previews
+        run: |
+          npm install --prefix /tmp/feed-browser playwright@1.55.0
+          mkdir -p /tmp/feed-preview
+          ln -s "$PWD/build/web" /tmp/feed-preview/bot
+          python3 -m http.server 8765 --directory /tmp/feed-preview > /tmp/feed-server.log 2>&1 &
+          server_pid=$!
+          trap 'kill "$server_pid"' EXIT
+          node ../scripts/feed-preview.cjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: feed-validation
+          path: |
+            /tmp/feed-format.patch
+            /tmp/feed-tests.log

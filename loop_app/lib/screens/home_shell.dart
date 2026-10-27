@@ -128,35 +128,37 @@ class _HomeShellState extends ConsumerState<HomeShell> {
         padding: const EdgeInsets.symmetric(vertical: 20),
         child: LoopLogo(size: 22, onTap: _goHome),
       ),
-      appBar: AppBar(
-        // Jednostavna traka: logo lijevo, desno samo pretraga, poruke,
-        // obavijesti i stanje (jezik je u Profilu → Postavke).
-        titleSpacing: phone ? 8 : null,
-        title: isDesktop
-            ? Text(_destinations[_navIndex(_index)].label)
-            : FittedBox(
-                fit: BoxFit.scaleDown,
-                alignment: Alignment.centerLeft,
-                child: LoopLogo(size: 20, onTap: _goHome),
-              ),
-        actions: [
-          // Početna već ima traku za pretragu.
-          if (_index != 0 || isDesktop)
-            IconButton(
-              key: const ValueKey('open-search'),
-              tooltip: t('Pretraži objave i račune'),
-              icon: const Icon(Icons.search),
-              onPressed: () => SearchScreen.open(context),
+      appBar: _index == 0 && phone
+          ? null
+          : AppBar(
+              // Jednostavna traka: logo lijevo, desno samo pretraga, poruke,
+              // obavijesti i stanje (jezik je u Profilu → Postavke).
+              titleSpacing: phone ? 8 : null,
+              title: isDesktop
+                  ? Text(_destinations[_navIndex(_index)].label)
+                  : FittedBox(
+                      fit: BoxFit.scaleDown,
+                      alignment: Alignment.centerLeft,
+                      child: LoopLogo(size: 20, onTap: _goHome),
+                    ),
+              actions: [
+                // Početna već ima traku za pretragu.
+                if (_index != 0)
+                  IconButton(
+                    key: const ValueKey('open-search'),
+                    tooltip: t('Pretraži objave i račune'),
+                    icon: const Icon(Icons.search),
+                    onPressed: () => SearchScreen.open(context),
+                  ),
+                const MessagesButton(),
+                const NotificationBell(),
+                if (!phone) ...[
+                  const LanguageButton(compact: true),
+                  const SizedBox(width: 6),
+                ],
+                SizedBox(width: phone ? 8 : 12),
+              ],
             ),
-          const MessagesButton(),
-          const NotificationBell(),
-          if (!phone) ...[
-            const LanguageButton(compact: true),
-            const SizedBox(width: 6),
-          ],
-          SizedBox(width: phone ? 8 : 12),
-        ],
-      ),
       // IndexedStack čuva stanje (npr. odabranu kategoriju) pri promjeni taba.
       body: IndexedStack(
         index: _index,

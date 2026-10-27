@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:ui' show ImageFilter;
 
 import 'package:flutter/material.dart';
@@ -10,6 +11,10 @@ import '../models/device.dart';
 import '../providers/app_providers.dart';
 import '../providers/app_state.dart';
 import '../services/fee.dart';
+import '../services/delivery_service.dart';
+import '../services/feed_watch_time.dart';
+import '../models/delivery.dart';
+import '../widgets/photo_viewer.dart';
 import '../theme/app_theme.dart';
 import '../utils/formatters.dart';
 import '../widgets/auction_widgets.dart';
@@ -27,6 +32,8 @@ import 'device_detail_screen.dart';
 import 'live_screens.dart';
 import 'public_profile_screen.dart';
 
+enum FeedFeedback { less, hide, seller, settings }
+
 /// Objave preko cijelog ekrana koje se listaju gore/dolje (kao TikTok).
 /// Oglas: lajk, ponudi cijenu, podijeli, kupi. Aukcija: licitiraj,
 /// zvono, odbrojavanje. Live aukcija: cijela soba uživo.
@@ -40,8 +47,16 @@ class SwipeFeedScreen extends ConsumerStatefulWidget {
     this.active = true,
     this.onPage,
     this.reasonOf,
+    this.onWatch,
+    this.onDetails,
+    this.onFeedback,
+    this.endPage,
   });
 
+  final void Function(FeedEntry entry, Duration visibleTime)? onWatch;
+  final void Function(FeedEntry entry)? onDetails;
+  final void Function(FeedEntry entry, FeedFeedback action)? onFeedback;
+  final Widget? endPage;
   final List<FeedEntry> entries;
   final int initialIndex;
 
@@ -78,19 +93,119 @@ class SwipeFeedScreen extends ConsumerStatefulWidget {
   ConsumerState<SwipeFeedScreen> createState() => _SwipeFeedScreenState();
 }
 
-class _SwipeFeedScreenState extends ConsumerState<SwipeFeedScreen> {
+class _SwipeFeedScreenState extends ConsumerState<SwipeFeedScreen>
+    with WidgetsBindingObserver, RouteAware {
   late final _pages = PageController(initialPage: widget.initialIndex);
   late int _index = widget.initialIndex;
-  DateTime _enteredAt = DateTime.now();
+  final _watch = FeedWatchTime();
+  final _recorded = <String>{};
+  Timer? _viewTimer;
+  ModalRoute<dynamic>? _route;
+  bool _routeVisible = true;
+  bool _foreground = true;
+  bool _visible = false;
+
+  String _key(FeedEntry e) => e.liveId ?? e.auctionId ?? e.deviceId ?? '';
+
+  void _flushWatch() {
+    final dwell = _watch.take();
+    if (_index < widget.entries.length && dwell > Duration.zero) {
+      widget.onWatch?.call(widget.entries[_index], dwell);
+    }
+  }
+
+  void _visibility() {
+    final visible = widget.active && _routeVisible && _foreground;
+    _watch.setVisible(visible);
+    if (!visible) {
+      _viewTimer?.cancel();
+      if (_visible) _flushWatch();
+    } else if (!_visible) {
+      _scheduleView();
+    }
+    _visible = visible;
+  }
+
+  void _scheduleView() {
+    _viewTimer?.cancel();
+    if (_index >= widget.entries.length) return;
+    final entry = widget.entries[_index];
+    _viewTimer = Timer(const Duration(seconds: 1), () {
+      if (mounted &&
+          _visible &&
+          _index < widget.entries.length &&
+          _key(widget.entries[_index]) == _key(entry)) {
+        _seen(_index);
+      }
+    });
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final route = ModalRoute.of(context);
+    if (route != _route) {
+      feedRouteObserver.unsubscribe(this);
+      _route = route;
+      if (route != null) feedRouteObserver.subscribe(this, route);
+    }
+    _routeVisible = route?.isCurrent ?? true;
+    _visibility();
+  }
+
+  @override
+  void didUpdateWidget(covariant SwipeFeedScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    final oldEntry = _index < oldWidget.entries.length
+        ? oldWidget.entries[_index]
+        : null;
+    final newEntry = _index < widget.entries.length
+        ? widget.entries[_index]
+        : null;
+    if ((oldEntry == null ? null : _key(oldEntry)) !=
+        (newEntry == null ? null : _key(newEntry))) {
+      final dwell = _watch.take();
+      if (oldEntry != null && dwell > Duration.zero) {
+        oldWidget.onWatch?.call(oldEntry, dwell);
+      }
+    }
+    _visibility();
+    if (_visible) _scheduleView();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    setState(() => _foreground = state == AppLifecycleState.resumed);
+    _visibility();
+  }
+
+  @override
+  void didPushNext() {
+    setState(() => _routeVisible = false);
+    _visibility();
+  }
+
+  @override
+  void didPopNext() {
+    setState(() => _routeVisible = true);
+    _visibility();
+  }
 
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) => _seen(_index));
+    WidgetsBinding.instance.addObserver(this);
+    final lifecycle = WidgetsBinding.instance.lifecycleState;
+    _foreground = lifecycle == null || lifecycle == AppLifecycleState.resumed;
   }
 
   @override
   void dispose() {
+    _watch.setVisible(false);
+    _flushWatch();
+    _viewTimer?.cancel();
+    feedRouteObserver.unsubscribe(this);
+    WidgetsBinding.instance.removeObserver(this);
     _pages.dispose();
     super.dispose();
   }
@@ -98,7 +213,7 @@ class _SwipeFeedScreenState extends ConsumerState<SwipeFeedScreen> {
   void _seen(int i) {
     if (i >= widget.entries.length) return;
     final e = widget.entries[i];
-    if (e.isLive) return;
+    if (e.isLive || !_recorded.add(_key(e))) return;
     final state = ref.read(appProvider);
     final id = e.deviceId ?? state.auctionById(e.auctionId!)?.deviceId;
     if (id != null) ref.read(appProvider.notifier).recordView(id);
@@ -131,27 +246,38 @@ class _SwipeFeedScreenState extends ConsumerState<SwipeFeedScreen> {
                   key: const ValueKey('swipe-feed'),
                   controller: _pages,
                   scrollDirection: Axis.vertical,
-                  itemCount: entries.length + (embedded ? 0 : 1),
+                  itemCount:
+                      entries.length +
+                      (widget.endPage != null || !embedded ? 1 : 0),
                   onPageChanged: (i) {
-                    final now = DateTime.now();
-                    widget.onPage?.call(_index, now.difference(_enteredAt), i);
-                    _enteredAt = now;
+                    final dwell = _watch.take();
+                    if (_index < entries.length && dwell > Duration.zero) {
+                      widget.onWatch?.call(entries[_index], dwell);
+                    }
+                    final from = _index;
                     setState(() => _index = i);
-                    _seen(i);
+                    widget.onPage?.call(from, dwell, i);
+                    if (_visible) _scheduleView();
                   },
                   itemBuilder: (context, i) {
                     if (i == entries.length) {
-                      return _EndPage(onBack: () => Navigator.pop(context));
+                      return widget.endPage ??
+                          _EndPage(onBack: () => Navigator.pop(context));
                     }
                     final e = entries[i];
                     if (e.isLive) {
                       return LiveRoomView(
                         key: ValueKey('feed-live-${e.liveId}'),
                         showId: e.liveId!,
-                        active: i == _index && widget.active,
+                        active: i == _index && _visible,
                       );
                     }
-                    return _PostPage(entry: e, state: state);
+                    return _PostPage(
+                      key: ValueKey('post-${_key(e)}'),
+                      entry: e,
+                      state: state,
+                      onDetails: () => widget.onDetails?.call(e),
+                    );
                   },
                 ),
                 // Ugrađeno: oznaka zašto je objava predložena.
@@ -161,10 +287,14 @@ class _SwipeFeedScreenState extends ConsumerState<SwipeFeedScreen> {
                     !entries[_index].isLive)
                   SafeArea(
                     child: Align(
-                      alignment: Alignment.topCenter,
+                      alignment: Alignment.topLeft,
                       child: Container(
                         key: const ValueKey('feed-reason'),
-                        margin: const EdgeInsets.only(top: 10),
+                        margin: const EdgeInsets.only(
+                          top: 10,
+                          left: 14,
+                          right: 58,
+                        ),
                         padding: const EdgeInsets.symmetric(
                           horizontal: 12,
                           vertical: 6,
@@ -174,13 +304,67 @@ class _SwipeFeedScreenState extends ConsumerState<SwipeFeedScreen> {
                           borderRadius: BorderRadius.circular(99),
                         ),
                         child: Text(
-                          '✨ $reason',
+                          reason,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                           style: const TextStyle(
                             color: Colors.white,
                             fontWeight: FontWeight.w800,
                             fontSize: 13,
                           ),
                         ),
+                      ),
+                    ),
+                  ),
+                if (widget.onFeedback != null && _index < entries.length)
+                  Positioned(
+                    right: 4,
+                    top: entries[_index].isLive ? 62 : 0,
+                    child: SafeArea(
+                      child: PopupMenuButton<FeedFeedback>(
+                        key: const ValueKey('feed-more'),
+                        tooltip: t('Uredi preporuke'),
+                        icon: const Icon(
+                          Icons.more_horiz,
+                          color: Colors.white,
+                          shadows: _shadow,
+                        ),
+                        onSelected: (action) =>
+                            widget.onFeedback!(entries[_index], action),
+                        itemBuilder: (_) => [
+                          PopupMenuItem(
+                            value: FeedFeedback.less,
+                            child: Text(t('Manje ovakvog')),
+                          ),
+                          PopupMenuItem(
+                            value: FeedFeedback.hide,
+                            child: Text(t('Sakrij oglas')),
+                          ),
+                          PopupMenuItem(
+                            value: FeedFeedback.seller,
+                            enabled: entries[_index].isLive
+                                ? state
+                                          .liveShowById(entries[_index].liveId!)
+                                          ?.hostId !=
+                                      null
+                                : entries[_index].isAuction
+                                ? state
+                                          .auctionById(
+                                            entries[_index].auctionId!,
+                                          )
+                                          ?.sellerId !=
+                                      null
+                                : state
+                                          .deviceById(entries[_index].deviceId!)
+                                          ?.ownerId !=
+                                      null,
+                            child: Text(t('Sakrij prodavača')),
+                          ),
+                          PopupMenuItem(
+                            value: FeedFeedback.settings,
+                            child: Text(t('Uredi preporuke')),
+                          ),
+                        ],
                       ),
                     ),
                   ),
@@ -307,7 +491,13 @@ class _BoughtPage extends StatelessWidget {
 /// Jedna objava: slika preko cijelog ekrana, a dolje opis (lijevo) i
 /// stupac akcija (desno) jedan pokraj drugoga — nikad se ne preklapaju.
 class _PostPage extends ConsumerStatefulWidget {
-  const _PostPage({required this.entry, required this.state});
+  const _PostPage({
+    super.key,
+    required this.entry,
+    required this.state,
+    this.onDetails,
+  });
+  final VoidCallback? onDetails;
   final FeedEntry entry;
   final AppState state;
 
@@ -355,20 +545,21 @@ class _PostPageState extends ConsumerState<_PostPage> {
     final owner = state.userById(auction?.sellerId ?? d.ownerId);
     final me = state.currentUser;
     final isMine = owner != null && owner.id == me?.id;
-    void openDetails() => auction != null
-        ? AuctionDetailScreen.open(context, auction.id)
-        : DeviceDetailScreen.open(context, d);
+    void openDetails() {
+      widget.onDetails?.call();
+      _showPostDetails(context, ref, d, auction);
+    }
 
     return Stack(
       fit: StackFit.expand,
       children: [
-        GestureDetector(
+        _Media(
           key: const ValueKey('post-media'),
+          device: d,
           onTap: openDetails,
           onDoubleTap: isMine || auction != null
               ? null
               : () => _doubleTapLike(d),
-          child: _Media(device: d),
         ),
         const IgnorePointer(
           child: DecoratedBox(
@@ -405,6 +596,7 @@ class _PostPageState extends ConsumerState<_PostPage> {
         Positioned(
           top: MediaQuery.paddingOf(context).top + 56,
           left: 14,
+          right: 80,
           child: _CornerBadge(device: d, auction: auction, state: state),
         ),
         Positioned(
@@ -447,13 +639,27 @@ class _PostPageState extends ConsumerState<_PostPage> {
 /// Fotografija preko cijelog ekrana: zamućena pozadina + cijela slika, pa
 /// i uske ili široke fotografije izgledaju dobro. Bez fotografije —
 /// ilustracija kategorije.
-class _Media extends StatelessWidget {
-  const _Media({required this.device});
+class _Media extends StatefulWidget {
+  const _Media({
+    super.key,
+    required this.device,
+    required this.onTap,
+    this.onDoubleTap,
+  });
   final Device device;
+  final VoidCallback onTap;
+  final VoidCallback? onDoubleTap;
+
+  @override
+  State<_Media> createState() => _MediaState();
+}
+
+class _MediaState extends State<_Media> {
+  int _photo = 0;
 
   @override
   Widget build(BuildContext context) {
-    final d = device;
+    final d = widget.device;
     final c = d.category.color;
     final illustration = DecoratedBox(
       decoration: BoxDecoration(
@@ -467,25 +673,81 @@ class _Media extends StatelessWidget {
         child: Icon(d.category.icon, size: 140, color: Colors.white24),
       ),
     );
-    if (d.imagePaths.isEmpty) return illustration;
-    final path = d.imagePaths.first;
+    if (d.imagePaths.isEmpty) {
+      return GestureDetector(
+        onTap: widget.onTap,
+        onDoubleTap: widget.onDoubleTap,
+        child: illustration,
+      );
+    }
+    final current = _photo.clamp(0, d.imagePaths.length - 1);
     return Stack(
       fit: StackFit.expand,
       children: [
         ImageFiltered(
           imageFilter: ImageFilter.blur(sigmaX: 24, sigmaY: 24),
           child: LocalPhoto(
-            path: path,
+            path: d.imagePaths[current],
             cacheWidth: 200,
             fallback: illustration,
           ),
         ),
         const ColoredBox(color: Colors.black26),
-        LocalPhoto(
-          path: path,
-          fit: BoxFit.contain,
-          cacheWidth: 1080,
-          fallback: illustration,
+        ScrollConfiguration(
+          behavior: const AnyDeviceDragBehavior(),
+          child: PageView.builder(
+            key: const ValueKey('post-gallery'),
+            allowImplicitScrolling: true,
+            itemCount: d.imagePaths.length,
+            onPageChanged: (i) => setState(() => _photo = i),
+            itemBuilder: (_, i) => GestureDetector(
+              onTap: widget.onTap,
+              onDoubleTap: widget.onDoubleTap,
+              child: LocalPhoto(
+                path: d.imagePaths[i],
+                fit: BoxFit.contain,
+                cacheWidth: 1080,
+                fallback: illustration,
+              ),
+            ),
+          ),
+        ),
+        Positioned(
+          right: 10,
+          top: 56,
+          child: SafeArea(
+            child: Column(
+              children: [
+                if (d.imagePaths.length > 1)
+                  Container(
+                    key: const ValueKey('post-photo-count'),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 4,
+                    ),
+                    decoration: BoxDecoration(
+                      color: Colors.black54,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Text(
+                      '${current + 1}/${d.imagePaths.length}',
+                      style: const TextStyle(color: Colors.white),
+                    ),
+                  ),
+                IconButton(
+                  key: const ValueKey('post-zoom'),
+                  tooltip: t('Povećaj fotografiju'),
+                  icon: const Icon(
+                    Icons.zoom_in,
+                    color: Colors.white,
+                    shadows: _shadow,
+                  ),
+                  onPressed: () =>
+                      PhotoViewer.open(context, d.imagePaths, initial: current),
+                ),
+              ],
+            ),
+          ),
         ),
       ],
     );
@@ -505,42 +767,44 @@ class _CornerBadge extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final a = auction;
-    if (a != null) {
-      return _Pill(
-        color: LoopColors.accent,
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(t('🔨 AUKCIJA'), style: _pillText),
-            const SizedBox(width: 8),
-            AuctionCountdown(
-              endsAt: a.endsAt,
-              showIcon: false,
+    return Wrap(
+      spacing: 6,
+      runSpacing: 6,
+      children: [
+        if (state.isPromotedItem(device))
+          _Pill(
+            color: const Color(0xFFFFC233),
+            child: Text(
+              t('Sponzorirano'),
+              style: _pillText.copyWith(color: Colors.black87),
+            ),
+          ),
+        if (a != null)
+          _Pill(
+            color: LoopColors.accent,
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(t('🔨 AUKCIJA'), style: _pillText),
+                const SizedBox(width: 8),
+                AuctionCountdown(
+                  endsAt: a.endsAt,
+                  showIcon: false,
+                  style: _pillText,
+                ),
+              ],
+            ),
+          )
+        else if (device.hasDiscount)
+          _Pill(
+            color: const Color(0xFFFF2D55),
+            child: Text(
+              t('−{0}% popust', ['${device.discountPercent}']),
               style: _pillText,
             ),
-          ],
-        ),
-      );
-    }
-    if (device.hasDiscount) {
-      return _Pill(
-        color: const Color(0xFFFF2D55),
-        child: Text(
-          t('−{0}% popust', ['${device.discountPercent}']),
-          style: _pillText,
-        ),
-      );
-    }
-    if (state.isPromotedItem(device)) {
-      return _Pill(
-        color: const Color(0xFFFFC233),
-        child: Text(
-          t('Sponzorirano'),
-          style: _pillText.copyWith(color: Colors.black87),
-        ),
-      );
-    }
-    return const SizedBox.shrink();
+          ),
+      ],
+    );
   }
 }
 
@@ -564,6 +828,15 @@ class _Pill extends StatelessWidget {
     ),
     child: child,
   );
+}
+
+String _shippingLabel(Device d) {
+  final methods = DeliveryService.methodsFor(d);
+  final shipped = methods.where((m) => m != DeliveryMethod.pickup).toList()
+    ..sort((a, b) => a.cost.compareTo(b.cost));
+  if (shipped.isEmpty) return t('Osobno preuzimanje');
+  if (shipped.first == DeliveryMethod.digital) return t('Digitalna dostava');
+  return t('Dostava od {0}', [formatCredits(shipped.first.cost)]);
 }
 
 /// Opis objave: trgovina (+ Prati), naziv, opis, cijena i glavni gumb.
@@ -656,12 +929,20 @@ class _Info extends ConsumerWidget {
               ],
             ],
           ),
+        if (owner != null && state.ratingOf(owner.id).count > 0)
+          Padding(
+            padding: const EdgeInsets.only(top: 4),
+            child: Text(
+              '★ ${state.ratingOf(owner.id).average.toStringAsFixed(1)} · ${state.ratingOf(owner.id).count}',
+              style: const TextStyle(color: Colors.white70, fontSize: 12),
+            ),
+          ),
         const SizedBox(height: 8),
         // Dodir na naziv/opis otvara cijeli opis i detalje.
         GestureDetector(
           key: const ValueKey('post-description'),
           behavior: HitTestBehavior.opaque,
-          onTap: () => _showPostDetails(context, ref, d, a),
+          onTap: onDetails,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -680,7 +961,7 @@ class _Info extends ConsumerWidget {
                 const SizedBox(height: 2),
                 Text(
                   d.description,
-                  maxLines: 2,
+                  maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: const TextStyle(
                     color: Colors.white70,
@@ -717,8 +998,8 @@ class _Info extends ConsumerWidget {
               shadows: _shadow,
             ),
           )
-        // Cijena je na gumbu "Kupi"; ovdje samo popust (prekrižena cijena).
-        else if (!isMine && price < d.shownBasePrice)
+        // Price remains visible independently of the purchase action.
+        else if (!isMine)
           PriceTag(
             device: d,
             price: price,
@@ -734,15 +1015,20 @@ class _Info extends ConsumerWidget {
             color: Colors.white,
           ),
         const SizedBox(height: 8),
-        const Wrap(
-          spacing: 6,
-          crossAxisAlignment: WrapCrossAlignment.center,
-          runSpacing: 4,
-          children: [
-            BuyerProtectionBadge(dark: true, compact: true),
-            WalletChip(dark: true),
-          ],
+        Text(
+          d.isDigital
+              ? t('Digitalna dostava')
+              : '${d.condition.label} · ${_shippingLabel(d)}',
+          maxLines: 2,
+          overflow: TextOverflow.ellipsis,
+          style: const TextStyle(
+            color: Colors.white70,
+            fontSize: 12,
+            shadows: _shadow,
+          ),
         ),
+        const SizedBox(height: 6),
+        const BuyerProtectionBadge(dark: true, compact: true),
         const SizedBox(height: 8),
         primary,
       ],
@@ -911,11 +1197,6 @@ class _ActionRail extends ConsumerWidget {
             mirror: true,
             label: t('Podijeli'),
             onTap: share,
-          ),
-          _RailButton(
-            icon: Icons.play_arrow_rounded,
-            label: '${state.viewsOf(d.id)}',
-            onTap: null,
           ),
         ],
       ),

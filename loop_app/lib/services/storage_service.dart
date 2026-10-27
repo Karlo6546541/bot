@@ -17,6 +17,7 @@ import '../models/device.dart';
 import '../models/loop_transaction.dart';
 import '../models/portfolio_point.dart';
 import 'seed_data.dart';
+import 'feed_preferences.dart';
 import 'username_rules.dart';
 
 /// Lokalna pohrana na Hive-u. Svaki entitet je spremljen kao obična mapa
@@ -725,6 +726,8 @@ class StorageService {
 
   // ----------------------------------------------------------------- sesija
 
+  bool get isOpen => _session.isOpen;
+
   String? get currentUserId => _session.get(_currentUserKey) as String?;
 
   bool get isAdmin => _session.get(_isAdminKey) == true;
@@ -737,15 +740,24 @@ class StorageService {
   /// Kategorije nedavno otvorenih oglasa (najnovije zadnje, najviše 30) —
   /// signal za "Za tebe". Samo na ovom uređaju.
   List<String> get recentCategories =>
-      (_session.get('recentCategories') as List?)?.cast<String>() ?? const [];
+      (_session.get('recentCategories:${currentUserId ?? 'guest'}') as List?)
+          ?.cast<String>() ??
+      const [];
 
   Future<void> addRecentCategories(Iterable<String> names) {
     final list = [...recentCategories, ...names];
     return _session.put(
-      'recentCategories',
+      'recentCategories:${currentUserId ?? 'guest'}',
       list.length > 30 ? list.sublist(list.length - 30) : list,
     );
   }
+
+  FeedPreferences feedPreferences(String? userId) => FeedPreferences.fromMap(
+    _session.get('feedPreferences:${userId ?? 'guest'}') as Map?,
+  );
+
+  Future<void> saveFeedPreferences(String? userId, FeedPreferences value) =>
+      _session.put('feedPreferences:${userId ?? 'guest'}', value.toMap());
 
   /// Zvuk u liveu utišan (vibracija ostaje).
   bool get liveMuted => _session.get('liveMuted') == true;

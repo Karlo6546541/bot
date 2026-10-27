@@ -1199,6 +1199,8 @@ void main() {
       await tester.pumpAndSettle();
 
       // Početna: i predmeti za Kupi odmah (izbornik je bez listanja).
+      await tester.tap(find.byKey(const ValueKey('home-filters')));
+      await tester.pumpAndSettle();
       await tester.ensureVisible(find.byKey(const ValueKey('home-cat-buy')));
       await tester.pumpAndSettle();
       await tester.tap(find.byKey(const ValueKey('home-cat-buy')));
