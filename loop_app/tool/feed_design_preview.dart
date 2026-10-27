@@ -1,0 +1,50 @@
+// Isolated screenshot fixture. Production continues to start at lib/main.dart.
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:loop_app/app.dart';
+import 'package:loop_app/models/device.dart';
+import 'package:loop_app/providers/app_providers.dart';
+import 'package:loop_app/providers/app_state.dart';
+import 'package:loop_app/screens/auctions_screen.dart';
+import 'package:loop_app/screens/for_you_ranker.dart';
+import 'package:loop_app/services/feed_preferences.dart';
+import 'package:loop_app/services/seed_data.dart';
+import 'package:loop_app/services/storage_service.dart';
+import 'package:loop_app/services/trade_service.dart';
+
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  final storage = StorageService();
+  await storage.init();
+  final trade = TradeService(storage);
+  await trade.assignPlatformItems();
+  await trade.autoListPortfolios();
+  final sample = await trade.addDevice(
+    userId: SeedData.anaUserId,
+    name: 'Sony PSP',
+    model: '3004, crna',
+    condition: DeviceCondition.good,
+    price: 69,
+    category: DeviceCategory.console,
+    description: 'Nova baterija, 4GB kartica. Ispravan i spreman za igranje.',
+    // Public product reference from Wikimedia Commons, loaded only by this fixture.
+    imagePaths: const [
+      'https://upload.wikimedia.org/wikipedia/commons/5/5d/Sony-PSP-1000-Body.png',
+    ],
+  );
+  await storage.saveSession(userId: SeedData.testUserId);
+  final prefs = FeedPreferences();
+  for (final i in browseItems(AppState.fromStorage(storage))) {
+    if (i.device?.id != sample.id) prefs.hide(ForYouRanker.keyOf(i));
+  }
+  await storage.saveFeedPreferences(SeedData.testUserId, prefs);
+  runApp(
+    ProviderScope(
+      overrides: [
+        storageProvider.overrideWithValue(storage),
+        tickIntervalProvider.overrideWithValue(null),
+      ],
+      child: const LoopApp(),
+    ),
+  );
+}

@@ -2,6 +2,7 @@
 // Generirano iz popisa tekstova; nadopuni ručno kad dodaješ nove.
 
 const kEn = <String, String>{
+  'Detalji ›': 'Details ›',
   'Slično onome što gledaš': 'Similar to what you view',
   'Stanje koje te zanima': 'A condition you are interested in',
   'Tvoje preporuke': 'Your recommendations',

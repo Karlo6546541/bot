@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:ui' show ImageFilter;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -296,8 +295,8 @@ class _SwipeFeedScreenState extends ConsumerState<SwipeFeedScreen>
                           right: 58,
                         ),
                         padding: const EdgeInsets.symmetric(
-                          horizontal: 12,
-                          vertical: 6,
+                          horizontal: 10,
+                          vertical: 5,
                         ),
                         decoration: BoxDecoration(
                           color: Colors.black.withValues(alpha: 0.45),
@@ -309,8 +308,8 @@ class _SwipeFeedScreenState extends ConsumerState<SwipeFeedScreen>
                           overflow: TextOverflow.ellipsis,
                           style: const TextStyle(
                             color: Colors.white,
-                            fontWeight: FontWeight.w800,
-                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                            fontSize: 11,
                           ),
                         ),
                       ),
@@ -550,86 +549,75 @@ class _PostPageState extends ConsumerState<_PostPage> {
       _showPostDetails(context, ref, d, auction);
     }
 
-    return Stack(
-      fit: StackFit.expand,
+    return Column(
       children: [
-        _Media(
-          key: const ValueKey('post-media'),
-          device: d,
-          onTap: openDetails,
-          onDoubleTap: isMine || auction != null
-              ? null
-              : () => _doubleTapLike(d),
-        ),
-        const IgnorePointer(
-          child: DecoratedBox(
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-                colors: [
-                  Colors.black45,
-                  Colors.transparent,
-                  Colors.transparent,
-                  Colors.black87,
-                ],
-                stops: [0, 0.18, 0.5, 1],
+        Expanded(
+          child: Stack(
+            fit: StackFit.expand,
+            children: [
+              _Media(
+                key: const ValueKey('post-media'),
+                device: d,
+                onTap: openDetails,
+                onDoubleTap: isMine || auction != null
+                    ? null
+                    : () => _doubleTapLike(d),
               ),
-            ),
-          ),
-        ),
-        IgnorePointer(
-          child: Center(
-            child: AnimatedScale(
-              scale: _heart ? 1 : 0,
-              duration: const Duration(milliseconds: 200),
-              child: const Icon(
-                Icons.favorite,
-                color: Color(0xFFFF2D55),
-                size: 110,
-                shadows: _shadow,
-              ),
-            ),
-          ),
-        ),
-        // Oznaka u kutu: aukcija / popust / istaknuto.
-        Positioned(
-          top: MediaQuery.paddingOf(context).top + 56,
-          left: 14,
-          right: 80,
-          child: _CornerBadge(device: d, auction: auction, state: state),
-        ),
-        Positioned(
-          left: 0,
-          right: 0,
-          bottom: 0,
-          child: SafeArea(
-            top: false,
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(14, 0, 8, 16),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                  Expanded(
-                    child: _Info(
-                      device: d,
-                      auction: auction,
-                      state: state,
-                      isMine: isMine,
-                      onDetails: openDetails,
+              const IgnorePointer(
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: [
+                        Colors.black38,
+                        Colors.transparent,
+                        Colors.transparent,
+                      ],
+                      stops: [0, 0.22, 1],
                     ),
                   ),
-                  const SizedBox(width: 8),
-                  _ActionRail(
-                    device: d,
-                    auction: auction,
-                    state: state,
-                    isMine: isMine,
-                  ),
-                ],
+                ),
               ),
-            ),
+              IgnorePointer(
+                child: Center(
+                  child: AnimatedScale(
+                    scale: _heart ? 1 : 0,
+                    duration: const Duration(milliseconds: 200),
+                    child: const Icon(
+                      Icons.favorite,
+                      color: Color(0xFFFF2D55),
+                      size: 100,
+                      shadows: _shadow,
+                    ),
+                  ),
+                ),
+              ),
+              Positioned(
+                top: MediaQuery.paddingOf(context).top + 48,
+                left: 14,
+                right: 80,
+                child: _CornerBadge(device: d, auction: auction, state: state),
+              ),
+              Positioned(
+                right: 10,
+                bottom: 12,
+                child: _ActionRail(
+                  device: d,
+                  auction: auction,
+                  state: state,
+                  isMine: isMine,
+                ),
+              ),
+            ],
           ),
+        ),
+        _Info(
+          device: d,
+          auction: auction,
+          state: state,
+          isMine: isMine,
+          onDetails: openDetails,
         ),
       ],
     );
@@ -684,15 +672,7 @@ class _MediaState extends State<_Media> {
     return Stack(
       fit: StackFit.expand,
       children: [
-        ImageFiltered(
-          imageFilter: ImageFilter.blur(sigmaX: 24, sigmaY: 24),
-          child: LocalPhoto(
-            path: d.imagePaths[current],
-            cacheWidth: 200,
-            fallback: illustration,
-          ),
-        ),
-        const ColoredBox(color: Colors.black26),
+        const ColoredBox(color: Color(0xFF090A0D)),
         ScrollConfiguration(
           behavior: const AnyDeviceDragBehavior(),
           child: PageView.builder(
@@ -737,10 +717,15 @@ class _MediaState extends State<_Media> {
                 IconButton(
                   key: const ValueKey('post-zoom'),
                   tooltip: t('Povećaj fotografiju'),
+                  style: IconButton.styleFrom(
+                    backgroundColor: Colors.black45,
+                    minimumSize: const Size(36, 36),
+                    padding: const EdgeInsets.all(6),
+                  ),
                   icon: const Icon(
                     Icons.zoom_in,
-                    color: Colors.white,
-                    shadows: _shadow,
+                    size: 20,
+                    color: Color(0xFFDDDEE5),
                   ),
                   onPressed: () =>
                       PhotoViewer.open(context, d.imagePaths, initial: current),
@@ -810,8 +795,8 @@ class _CornerBadge extends StatelessWidget {
 
 const _pillText = TextStyle(
   color: Colors.white,
-  fontWeight: FontWeight.w900,
-  fontSize: 13,
+  fontWeight: FontWeight.w700,
+  fontSize: 11,
 );
 
 class _Pill extends StatelessWidget {
@@ -821,7 +806,7 @@ class _Pill extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Container(
-    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
     decoration: BoxDecoration(
       color: color,
       borderRadius: BorderRadius.circular(99),
@@ -889,149 +874,188 @@ class _Info extends ConsumerWidget {
             : Icons.shopping_bag_outlined,
         label: d.isDigital && state.hasPurchased(d.id)
             ? t('Preuzmi')
-            : t('Kupi · {0}', [formatCredits(price)]),
+            : t('Kupi odmah'),
         onTap: () => confirmAndBuy(context, ref, d),
         color: LoopColors.buyNow,
       );
     }
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        if (owner != null)
-          Row(
-            children: [
-              GestureDetector(
-                onTap: () => PublicProfileScreen.open(context, owner.id),
-                child: UserAvatar(user: owner, size: 34),
-              ),
-              const SizedBox(width: 8),
-              Flexible(
-                child: GestureDetector(
-                  onTap: () => PublicProfileScreen.open(context, owner.id),
-                  child: Text(
-                    owner.shopTitle,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.w900,
-                      fontSize: 15,
-                      shadows: _shadow,
-                    ),
-                  ),
-                ),
-              ),
-              if (!isMine && !state.isFollowing(owner.id)) ...[
-                const SizedBox(width: 8),
-                _FollowPill(userId: owner.id, handle: owner.handle),
-              ],
-            ],
-          ),
-        if (owner != null && state.ratingOf(owner.id).count > 0)
-          Padding(
-            padding: const EdgeInsets.only(top: 4),
-            child: Text(
-              '★ ${state.ratingOf(owner.id).average.toStringAsFixed(1)} · ${state.ratingOf(owner.id).count}',
-              style: const TextStyle(color: Colors.white70, fontSize: 12),
-            ),
-          ),
-        const SizedBox(height: 8),
-        // Dodir na naziv/opis otvara cijeli opis i detalje.
-        GestureDetector(
-          key: const ValueKey('post-description'),
-          behavior: HitTestBehavior.opaque,
-          onTap: onDetails,
+    final rating = owner == null ? null : state.ratingOf(owner.id);
+    return DecoratedBox(
+      key: const ValueKey('post-info-panel'),
+      decoration: const BoxDecoration(
+        color: Color(0xFF131419),
+        border: Border(top: BorderSide(color: Color(0xFF25262D))),
+      ),
+      child: SafeArea(
+        top: false,
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(14, 10, 14, 12),
           child: Column(
+            mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                d.model.isEmpty ? d.name : '${d.name} · ${d.model}',
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.w800,
-                  fontSize: 16,
-                  shadows: _shadow,
+              if (owner != null) ...[
+                Row(
+                  children: [
+                    GestureDetector(
+                      onTap: () => PublicProfileScreen.open(context, owner.id),
+                      child: UserAvatar(user: owner, size: 26),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: GestureDetector(
+                        onTap: () =>
+                            PublicProfileScreen.open(context, owner.id),
+                        child: Text(
+                          owner.shopTitle,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            color: Color(0xFFB3B4BF),
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                    ),
+                    if (rating != null && rating.count > 0) ...[
+                      const SizedBox(width: 6),
+                      Text(
+                        '★ ${rating.average.toStringAsFixed(1)}',
+                        style: const TextStyle(
+                          color: Color(0xFFA1A2AD),
+                          fontSize: 11,
+                        ),
+                      ),
+                    ],
+                    if (!isMine && !state.isFollowing(owner.id)) ...[
+                      const SizedBox(width: 10),
+                      _FollowPill(userId: owner.id, handle: owner.handle),
+                    ],
+                  ],
                 ),
-              ),
-              if (d.description.isNotEmpty) ...[
-                const SizedBox(height: 2),
-                Text(
-                  d.description,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    color: Colors.white70,
-                    shadows: _shadow,
-                  ),
-                ),
+                const SizedBox(height: 8),
               ],
-              const SizedBox(height: 2),
-              Text(
-                t('Opis i detalji ›'),
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.w800,
-                  fontSize: 13,
-                  shadows: _shadow,
+              GestureDetector(
+                key: const ValueKey('post-description'),
+                behavior: HitTestBehavior.opaque,
+                onTap: onDetails,
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            d.model.isEmpty ? d.name : '${d.name} · ${d.model}',
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              color: Color(0xFFE9E9EF),
+                              fontSize: 16,
+                              height: 1.2,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                          if (d.description.isNotEmpty) ...[
+                            const SizedBox(height: 4),
+                            Text(
+                              d.description,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                color: Color(0xFF9B9CA8),
+                                fontSize: 12,
+                                height: 1.3,
+                              ),
+                            ),
+                          ],
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    ConstrainedBox(
+                      constraints: const BoxConstraints(maxWidth: 110),
+                      child: a != null
+                          ? Text(
+                              formatCredits(a.currentPrice),
+                              style: const TextStyle(
+                                color: Color(0xFFE9E9EF),
+                                fontSize: 22,
+                                height: 1.1,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            )
+                          : PriceTag(
+                              device: d,
+                              price: isMine ? d.askPrice : price,
+                              basePrice: d.shownBasePrice,
+                              fontSize: 22,
+                              color: const Color(0xFFE9E9EF),
+                            ),
+                    ),
+                  ],
                 ),
               ),
+              const SizedBox(height: 5),
+              Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      a != null
+                          ? t('{0} ponuda', ['${a.bids.length}'])
+                          : d.isDigital
+                          ? t('Digitalna dostava')
+                          : '${d.condition.label} · ${_shippingLabel(d)}',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        color: Color(0xFF92939F),
+                        fontSize: 11,
+                      ),
+                    ),
+                  ),
+                  IconButton(
+                    tooltip: t('Zaštita kupca'),
+                    onPressed: () => BuyerProtectionBadge.explain(context),
+                    padding: EdgeInsets.zero,
+                    visualDensity: VisualDensity.compact,
+                    constraints: const BoxConstraints.tightFor(
+                      width: 28,
+                      height: 28,
+                    ),
+                    icon: const Icon(
+                      Icons.verified_user_outlined,
+                      size: 15,
+                      color: Color(0xFF75AD91),
+                    ),
+                  ),
+                  TextButton(
+                    key: const ValueKey('post-details-link'),
+                    onPressed: onDetails,
+                    style: TextButton.styleFrom(
+                      foregroundColor: const Color(0xFFB3B4BF),
+                      padding: const EdgeInsets.only(left: 4),
+                      minimumSize: const Size(0, 28),
+                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      textStyle: const TextStyle(
+                        fontFamily: kFontFamily,
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    child: Text(t('Detalji ›')),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 6),
+              primary,
             ],
           ),
         ),
-        const SizedBox(height: 8),
-        if (a != null)
-          Text(
-            a.bids.isEmpty
-                ? t('Početna cijena {0}', [formatCredits(a.currentPrice)])
-                : t('Trenutno {0} · {1} ponuda', [
-                    formatCredits(a.currentPrice),
-                    '${a.bids.length}',
-                  ]),
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 20,
-              fontWeight: FontWeight.w900,
-              shadows: _shadow,
-            ),
-          )
-        // Price remains visible independently of the purchase action.
-        else if (!isMine)
-          PriceTag(
-            device: d,
-            price: price,
-            basePrice: d.shownBasePrice,
-            fontSize: 22,
-            color: Colors.white,
-          )
-        else if (isMine)
-          PriceTag(
-            device: d,
-            price: d.askPrice,
-            fontSize: 22,
-            color: Colors.white,
-          ),
-        const SizedBox(height: 8),
-        Text(
-          d.isDigital
-              ? t('Digitalna dostava')
-              : '${d.condition.label} · ${_shippingLabel(d)}',
-          maxLines: 2,
-          overflow: TextOverflow.ellipsis,
-          style: const TextStyle(
-            color: Colors.white70,
-            fontSize: 12,
-            shadows: _shadow,
-          ),
-        ),
-        const SizedBox(height: 6),
-        const BuyerProtectionBadge(dark: true, compact: true),
-        const SizedBox(height: 8),
-        primary,
-      ],
+      ),
     );
   }
 }
@@ -1056,8 +1080,8 @@ class _MainButton extends StatelessWidget {
     final child = Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Icon(icon, size: 20),
-        const SizedBox(width: 8),
+        Icon(icon, size: 18),
+        const SizedBox(width: 6),
         Flexible(
           child: Text(label, maxLines: 1, overflow: TextOverflow.ellipsis),
         ),
@@ -1065,13 +1089,22 @@ class _MainButton extends StatelessWidget {
     );
     return SizedBox(
       width: double.infinity,
-      height: 48,
+      height: 42,
       child: outlined
           ? OutlinedButton(
               onPressed: onTap,
               style: OutlinedButton.styleFrom(
-                foregroundColor: Colors.white,
-                side: const BorderSide(color: Colors.white70),
+                foregroundColor: const Color(0xFFE9E9EF),
+                minimumSize: const Size(0, 42),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                textStyle: const TextStyle(
+                  fontFamily: kFontFamily,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w700,
+                ),
+                side: const BorderSide(color: Color(0xFF555661)),
               ),
               child: child,
             )
@@ -1081,7 +1114,16 @@ class _MainButton extends StatelessWidget {
                   ? null
                   : FilledButton.styleFrom(
                       backgroundColor: color,
-                      foregroundColor: Colors.white,
+                      foregroundColor: const Color(0xFFF0F0F3),
+                      minimumSize: const Size(0, 42),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      textStyle: const TextStyle(
+                        fontFamily: kFontFamily,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w700,
+                      ),
                     ),
               child: child,
             ),
@@ -1096,8 +1138,8 @@ class _FollowPill extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) => Material(
-    color: Colors.white,
-    borderRadius: BorderRadius.circular(99),
+    color: const Color(0xFF24252D),
+    borderRadius: BorderRadius.circular(8),
     child: InkWell(
       key: const ValueKey('post-follow'),
       borderRadius: BorderRadius.circular(99),
@@ -1107,12 +1149,13 @@ class _FollowPill extends ConsumerWidget {
         showLoopSnackBar(t('Pratiš {0}', [handle]));
       },
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
         child: Text(
           t('Prati'),
           style: const TextStyle(
-            color: Colors.black,
-            fontWeight: FontWeight.w900,
+            color: Color(0xFFCACBD4),
+            fontSize: 11,
+            fontWeight: FontWeight.w600,
           ),
         ),
       ),
@@ -1149,8 +1192,13 @@ class _ActionRail extends ConsumerWidget {
             ])
           : t('{0} za {1} na Subhastu', [d.name, formatCredits(d.shownPrice)]),
     );
-    return SizedBox(
-      width: 64,
+    return Container(
+      width: 48,
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      decoration: BoxDecoration(
+        color: Colors.black.withValues(alpha: 0.5),
+        borderRadius: BorderRadius.circular(16),
+      ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -1221,26 +1269,26 @@ class _RailButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    Widget i = Icon(icon, color: color, size: 32, shadows: _shadow);
+    Widget i = Icon(icon, color: color, size: 23);
     if (mirror) i = Transform.flip(flipX: true, child: i);
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 14),
+    return SizedBox(
+      height: 54,
       child: InkResponse(
         onTap: onTap,
         radius: 30,
         child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
             i,
-            const SizedBox(height: 2),
+            const SizedBox(height: 3),
             Text(
               label,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               style: const TextStyle(
-                color: Colors.white,
-                fontSize: 12,
-                fontWeight: FontWeight.w700,
-                shadows: _shadow,
+                color: Color(0xFFCDCED6),
+                fontSize: 9,
+                fontWeight: FontWeight.w500,
               ),
             ),
           ],

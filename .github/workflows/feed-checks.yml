@@ -1,7 +1,7 @@
 name: Subhasto UX and feed checks
 on:
   push:
-    branches: [improve/subhasto-ux-feed-20261027]
+    branches: ['improve/subhasto-*']
   pull_request:
     branches: [claude/beautiful-newton-sftcyd]
   workflow_dispatch:
@@ -27,7 +27,7 @@ jobs:
       - run: flutter pub get --enforce-lockfile
       - name: Format changed Dart files
         run: |
-          dart format lib/app.dart lib/screens/for_you_feed.dart lib/screens/for_you_ranker.dart lib/screens/home_shell.dart lib/screens/live_home_screen.dart lib/screens/swipe_feed_screen.dart lib/services/feed_preferences.dart lib/services/feed_watch_time.dart lib/services/storage_service.dart lib/l10n/en.dart test/feed_controls_test.dart test/app_flow_test.dart test/shop_flow_test.dart test/live_test.dart
+          dart format tool/feed_design_preview.dart lib/widgets/adaptive_shell.dart lib/app.dart lib/screens/for_you_feed.dart lib/screens/for_you_ranker.dart lib/screens/home_shell.dart lib/screens/live_home_screen.dart lib/screens/swipe_feed_screen.dart lib/services/feed_preferences.dart lib/services/feed_watch_time.dart lib/services/storage_service.dart lib/l10n/en.dart test/feed_controls_test.dart test/app_flow_test.dart test/shop_flow_test.dart test/live_test.dart
           git diff --no-color > /tmp/feed-format.patch
       - name: Formatting patch
         run: cat /tmp/feed-format.patch
@@ -43,6 +43,8 @@ jobs:
           exit "$result"
       - name: Build web
         run: flutter build web --release --base-href /bot/ --no-web-resources-cdn
+      - name: Build isolated product preview
+        run: flutter build web --release --target=tool/feed_design_preview.dart --base-href /bot/ --no-web-resources-cdn
       - name: Browser previews
         run: |
           npm install --prefix /tmp/feed-browser playwright@1.55.0
