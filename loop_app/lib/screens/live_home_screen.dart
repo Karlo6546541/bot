@@ -6,6 +6,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../l10n/tr.dart';
 import '../widgets/user_avatar.dart';
 import '../models/app_user.dart';
+import '../models/device.dart';
+import '../widgets/browse_category_picker.dart';
+import 'categories_screen.dart';
 import '../providers/app_providers.dart';
 import '../theme/app_theme.dart';
 import '../widgets/trade_actions.dart';
@@ -74,6 +77,8 @@ class _LiveHomeScreenState extends ConsumerState<LiveHomeScreen> {
   Timer? _timer;
   _Filter _filter = const _ForYou();
   bool _hideCheckout = false;
+  DeviceCategory? _liveCategory;
+  DeviceCategory? _auctionCategory;
 
   /// "Kako Subhasto radi" vidi se samo pri prvom otvaranju — odmah se bilježi
   /// kao viđeno, a do kraja ove sesije ostaje (dok ga ne zatvoriš).
@@ -90,7 +95,8 @@ class _LiveHomeScreenState extends ConsumerState<LiveHomeScreen> {
     // Liveovi počinju i završavaju sami (domaćin dođe ili ode).
     if (ref.read(tickIntervalProvider) != null) {
       _timer = Timer.periodic(const Duration(seconds: 5), (_) {
-        if (mounted) setState(() {});
+        // The swipe feed manages its own queue. Avoid rebuilding it every 5 s.
+        if (mounted && widget.visible && _filter is! _ForYou) { setState(() {}); }
       });
     }
   }
@@ -105,10 +111,12 @@ class _LiveHomeScreenState extends ConsumerState<LiveHomeScreen> {
   Widget build(BuildContext context) {
     final s = ref.watch(appProvider);
     final me = s.currentUserId ?? '';
-    final all = browseItems(s);
-    final live = all.where((i) => i.live?.isLive ?? false).toList();
+    final all = _filter is _ForYou ? const <BrowseItem>[] : browseItems(s);
+    final allLive = all.where((i) => i.live?.isLive ?? false).toList();
+    final live = allLive.where((i) => _liveCategory == null || i.categories.contains(_liveCategory)).toList();
     final soon = all.where((i) => i.live?.isScheduled ?? false).toList();
-    final auctions = all.where((i) => i.auction != null).toList();
+    final allAuctions = all.where((i) => i.auction != null).toList();
+    final auctions = allAuctions.where((i) => _auctionCategory == null || i.categories.contains(_auctionCategory)).toList();
     final buyNow = all.where((i) => i.isBuyNow).toList();
 
     void open(List<BrowseItem> list, int i, String title) {
@@ -142,7 +150,7 @@ class _LiveHomeScreenState extends ConsumerState<LiveHomeScreen> {
         );
 
     // Računi koje pratiš i njihove objave (liveovi, aukcije, Kupi odmah).
-    final following = s.currentUser == null || s.currentUser!.isGuest
+    final following = _filter is! _Following || s.currentUser == null || s.currentUser!.isGuest
         ? const <AppUser>[]
         : s.followingListOf(me);
     final followIds = {for (final u in following) u.id};
@@ -183,7 +191,7 @@ class _LiveHomeScreenState extends ConsumerState<LiveHomeScreen> {
             SliverToBoxAdapter(
               child: _FollowingRow(
                 users: following,
-                liveBy: {for (final i in live) i.show!.hostId: i},
+                liveBy: {for (final i in allLive) i.show!.hostId: i},
                 onLive: (i) => open([i], 0, t('Uživo')),
               ),
             ),
@@ -207,7 +215,10 @@ class _LiveHomeScreenState extends ConsumerState<LiveHomeScreen> {
         // Feed preko cijelog ekrana (vidi dolje) — bez mreže.
         break;
       case _Timed():
-        slivers.add(const SliverToBoxAdapter(child: SizedBox(height: 12)));
+        slivers.add(SliverToBoxAdapter(child: Padding(
+          padding: const EdgeInsets.fromLTRB(16, 12, 16, 10),
+          child: Text(t('Aukcije'), style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w700)),
+        )));
         slivers.add(
           auctions.isEmpty
               ? SliverToBoxAdapter(
@@ -243,9 +254,13 @@ class _LiveHomeScreenState extends ConsumerState<LiveHomeScreen> {
               ? SliverToBoxAdapter(
                   child: Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 16),
-                    child: _EmptyLive(
-                      onGoLive: () => CreateLiveShowScreen.open(context),
-                    ),
+                    child: _liveCategory == null
+                      ? _EmptyLive(onGoLive: () => CreateLiveShowScreen.open(context))
+                      : Column(children: [
+                          const SizedBox(height: 20),
+                          Text(t('Trenutno nema liveova u ovoj kategoriji.'), textAlign: TextAlign.center),
+                          TextButton(onPressed: () => setState(() => _liveCategory = null), child: Text(t('Sve kategorije'))),
+                        ]),
                   ),
                 )
               : grid('home-live', live, t('Uživo sada')),
@@ -382,12 +397,74 @@ class _LiveHomeScreenState extends ConsumerState<LiveHomeScreen> {
       ),
     );
 
+    final onLive = _filter is _LiveOnly;
+    final onAuctions = _filter is _Timed;
+    final selectedCategory = onLive ? _liveCategory : onAuctions ? _auctionCategory : null;
+    Future<void> categories() async {
+      if (!onLive && !onAuctions) {
+        await CategoriesScreen.open(context);
+        return;
+      }
+      final counts = <DeviceCategory, int>{};
+      for (final item in onLive ? allLive : allAuctions) {
+        for (final c in item.categories) { counts[c] = (counts[c] ?? 0) + 1; }
+      }
+      final picked = await pickBrowseCategory(context,
+        title: onLive ? t('Kategorije uživo') : t('Kategorije aukcija'),
+        keyPrefix: onLive ? 'live-category' : 'auction-category',
+        counts: counts, selected: selectedCategory,
+      );
+      if (picked == null || !mounted) return;
+      setState(() {
+        if (onLive) { _liveCategory = picked.category; }
+        else { _auctionCategory = picked.category; }
+      });
+    }
+    final quickAccess = ColoredBox(
+      color: immersive ? Colors.black : LoopColors.background,
+      child: Center(child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 520),
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(12, 0, 12, 6),
+          child: Row(children: [
+            Expanded(child: Align(alignment: Alignment.centerLeft,
+              child: ActionChip(
+                key: ValueKey(onLive ? 'live-category-filter' : onAuctions ? 'auction-category-filter' : 'home-categories-shortcut'),
+                avatar: Icon(onLive || onAuctions ? Icons.filter_list : Icons.grid_view, size: 15, color: foreground.withValues(alpha: 0.75)),
+                label: Text(selectedCategory?.label ?? (onLive || onAuctions ? t('Sve kategorije') : t('Kategorije')),
+                  maxLines: 1, overflow: TextOverflow.ellipsis),
+                onPressed: categories,
+                visualDensity: VisualDensity.compact,
+                materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                backgroundColor: immersive ? const Color(0xFF18191F) : LoopColors.surface,
+                side: BorderSide(color: immersive ? const Color(0xFF30313A) : LoopColors.surfaceHover),
+                labelStyle: TextStyle(color: foreground.withValues(alpha: 0.8), fontSize: 11, fontWeight: FontWeight.w600),
+              ),
+            )),
+            const SizedBox(width: 8),
+            ActionChip(
+              key: const ValueKey('home-auctions-shortcut'),
+              avatar: Icon(Icons.gavel, size: 15, color: onAuctions ? LoopColors.accent : foreground.withValues(alpha: 0.75)),
+              label: Text(t('Aukcije')),
+              onPressed: () => _select(const _Timed()),
+              visualDensity: VisualDensity.compact,
+              materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              backgroundColor: immersive ? const Color(0xFF18191F) : LoopColors.surface,
+              side: BorderSide(color: onAuctions ? LoopColors.accent : immersive ? const Color(0xFF30313A) : LoopColors.surfaceHover),
+              labelStyle: TextStyle(color: onAuctions ? LoopColors.accent : foreground.withValues(alpha: 0.8), fontSize: 11, fontWeight: FontWeight.w600),
+            ),
+          ]),
+        ),
+      )),
+    );
+
     // "Za tebe": TikTok — objave preko cijelog ekrana ispod izbornika,
     // beskonačno, a redoslijed uči dok listaš (vidi [ForYouFeed]).
     if (_filter is _ForYou) {
       return Column(
         children: [
           chips,
+          quickAccess,
           Expanded(
             child: ForYouFeed(
               key: ValueKey('recommendations:${s.currentUserId}'),
@@ -404,6 +481,7 @@ class _LiveHomeScreenState extends ConsumerState<LiveHomeScreen> {
         if (_filter is! _ForYou)
           const SliverToBoxAdapter(child: SizedBox(height: 8)),
         SliverToBoxAdapter(child: chips),
+        SliverToBoxAdapter(child: quickAccess),
         if (_showHow && _filter is _ForYou)
           SliverToBoxAdapter(
             child: _HowLoopWorks(

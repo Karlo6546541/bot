@@ -2,6 +2,10 @@
 // Generirano iz popisa tekstova; nadopuni ručno kad dodaješ nove.
 
 const kEn = <String, String>{
+  'Kategorije uživo': 'Live categories',
+  'Kategorije aukcija': 'Auction categories',
+  'Trenutno nema liveova u ovoj kategoriji.': 'There are no live streams in this category right now.',
+
   'Detalji ›': 'Details ›',
   'Slično onome što gledaš': 'Similar to what you view',
   'Stanje koje te zanima': 'A condition you are interested in',

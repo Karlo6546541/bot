@@ -15,6 +15,13 @@ import 'swipe_feed_screen.dart';
 class CategoriesScreen extends ConsumerWidget {
   const CategoriesScreen({super.key});
 
+  static Future<void> open(BuildContext context) => Navigator.of(context).push(
+    MaterialPageRoute<void>(builder: (_) => Scaffold(
+      appBar: AppBar(title: Text(t('Kategorije'))),
+      body: const CategoriesScreen(),
+    )),
+  );
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final s = ref.watch(appProvider);

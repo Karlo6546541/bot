@@ -26,42 +26,31 @@ class LocalPhoto extends StatelessWidget {
   final int? cacheWidth;
   final BoxFit fit;
 
-  @override
-  Widget build(BuildContext context) {
-    Widget onError(BuildContext _, Object _, StackTrace? _) => fallback;
+  /// Shared cache keys for visible images and feed preloading.
+  static ImageProvider<Object>? providerFor(String path, {int? cacheWidth}) {
+    final ImageProvider<Object> provider;
     switch (PhotoSource.of(path)) {
       case PhotoSource.network:
-        // Online baza (Supabase Storage).
-        return Image.network(
-          path,
-          fit: fit,
-          cacheWidth: cacheWidth,
-          gaplessPlayback: true,
-          errorBuilder: onError,
-          loadingBuilder: (context, child, progress) =>
-              progress == null ? child : fallback,
-        );
+        provider = NetworkImage(path);
       case PhotoSource.data:
-        // Web bez baze: slika spremljena u pregledniku.
         final bytes = _decodeDataUrl(path);
-        if (bytes == null) return fallback;
-        return Image.memory(
-          bytes,
-          fit: fit,
-          cacheWidth: cacheWidth,
-          gaplessPlayback: true,
-          errorBuilder: onError,
-        );
+        if (bytes == null) return null;
+        provider = MemoryImage(bytes);
       case PhotoSource.file:
-        if (kIsWeb) return fallback;
-        return Image.file(
-          File(path),
-          fit: fit,
-          cacheWidth: cacheWidth,
-          gaplessPlayback: true,
-          errorBuilder: onError,
-        );
+        if (kIsWeb) return null;
+        provider = FileImage(File(path));
     }
+    return ResizeImage.resizeIfNeeded(cacheWidth, null, provider);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final provider = providerFor(path, cacheWidth: cacheWidth);
+    if (provider == null) return fallback;
+    return Image(image: provider, fit: fit, gaplessPlayback: true,
+      errorBuilder: (_, _, _) => fallback,
+      loadingBuilder: (_, child, progress) => progress == null ? child : fallback,
+    );
   }
 
   /// Dekodirane data: URL slike pamte se, da se ne dekodiraju pri svakom

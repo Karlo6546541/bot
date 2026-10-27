@@ -56,6 +56,19 @@ class ForYouRanker {
   final AppState s;
   final DateTime now;
 
+  // Build indexes once per batch instead of scanning users/devices per candidate.
+  late final _devicesById = {for (final d in s.devices) d.id: d};
+  late final _showsById = {for (final show in s.liveShows) show.id: show};
+  late final Map<String, int> _likeCounts = () {
+    final counts = <String, int>{};
+    for (final user in s.users) {
+      for (final id in user.favorites.toSet()) {
+        counts[id] = (counts[id] ?? 0) + 1;
+      }
+    }
+    return counts;
+  }();
+
   /// Kategorije oglasa koje si nedavno otvorio (najnovije zadnje).
   final List<String> recentCategories;
 
@@ -80,23 +93,23 @@ class ForYouRanker {
       if (t.buyerId == me &&
           t.type != TransactionType.delivery &&
           t.type != TransactionType.payout) {
-        add(s.deviceById(t.deviceId)?.category, 5 * _decay(t.createdAt));
+        add(_devicesById[t.deviceId]?.category, 5 * _decay(t.createdAt));
       }
     }
     for (final a in s.auctions) {
       final mine = a.bids.where((b) => b.userId == me);
       if (mine.isNotEmpty) {
-        add(s.deviceById(a.deviceId)?.category, 4 * _decay(mine.last.time));
+        add(_devicesById[a.deviceId]?.category, 4 * _decay(mine.last.time));
       }
     }
     for (final e in s.liveEvents) {
       if (e.userId != me || e.type != LiveEventType.bid) continue;
-      final show = s.liveShowById(e.showId);
+      final show = _showsById[e.showId];
       if (show == null || e.lot >= show.lots.length) continue;
-      add(s.deviceById(show.lots[e.lot].deviceId)?.category, 3 * _decay(e.at));
+      add(_devicesById[show.lots[e.lot].deviceId]?.category, 3 * _decay(e.at));
     }
     for (final id in me == null ? const <String>[] : s.currentUser!.favorites) {
-      add(s.deviceById(id)?.category, 3);
+      add(_devicesById[id]?.category, 3);
     }
     for (final q in s.searchHistory.take(10)) {
       final term = q.toLowerCase();
@@ -134,7 +147,7 @@ class ForYouRanker {
     final prices = <DeviceCategory, List<double>>{};
     if (me == null) return <DeviceCategory, double>{};
     for (final tx in s.transactions) {
-      final c = s.deviceById(tx.deviceId)?.category;
+      final c = _devicesById[tx.deviceId]?.category;
       if (tx.buyerId == me &&
           c != null &&
           tx.price > 0 &&
@@ -144,7 +157,7 @@ class ForYouRanker {
       }
     }
     for (final a in s.auctions) {
-      final c = s.deviceById(a.deviceId)?.category;
+      final c = _devicesById[a.deviceId]?.category;
       final bids = a.bids.where((b) => b.userId == me);
       if (c != null && bids.isNotEmpty) {
         (prices[c] ??= []).add(bids.last.amount);
@@ -282,7 +295,7 @@ class ForYouRanker {
     final id = i.device?.id ?? a?.deviceId;
     final pop =
         (live?.viewers ?? 0) * 2 +
-        (id == null ? 0 : s.viewsOf(id) + s.likesOf(id) * 2) +
+        (id == null ? 0 : s.viewsOf(id) + (_likeCounts[id] ?? 0) * 2) +
         (a?.bids.length ?? 0) * 3;
     if (pop > 0) {
       parts.add((0.6 * math.log(1 + pop), t('Popularno')));
