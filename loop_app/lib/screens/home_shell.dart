@@ -165,9 +165,12 @@ class _HomeShellState extends ConsumerState<HomeShell> {
       body: IndexedStack(
         index: _index,
         children: [
-          LiveHomeScreen(visible: _index == 0, onImmersiveChanged: (value) {
-            setState(() => _feedSelected = value);
-          }),
+          LiveHomeScreen(
+            visible: _index == 0,
+            onImmersiveChanged: (value) {
+              setState(() => _feedSelected = value);
+            },
+          ),
           const CategoriesScreen(),
           MyAuctionsView(onBrowse: () => _go(0)),
           const ProfileScreen(),

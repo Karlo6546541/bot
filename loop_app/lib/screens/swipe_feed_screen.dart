@@ -551,36 +551,74 @@ class _PostPageState extends ConsumerState<_PostPage> {
 
     return Column(
       children: [
-        Expanded(child: Stack(
-          fit: StackFit.expand,
-          children: [
-            _Media(
-              key: const ValueKey('post-media'),
-              device: d, onTap: openDetails,
-              onDoubleTap: isMine || auction != null ? null : () => _doubleTapLike(d),
-            ),
-            const IgnorePointer(child: DecoratedBox(
-              decoration: BoxDecoration(gradient: LinearGradient(
-                begin: Alignment.topCenter, end: Alignment.bottomCenter,
-                colors: [Colors.black38, Colors.transparent, Colors.transparent],
-                stops: [0, 0.22, 1],
-              )),
-            )),
-            IgnorePointer(child: Center(child: AnimatedScale(
-              scale: _heart ? 1 : 0,
-              duration: const Duration(milliseconds: 200),
-              child: const Icon(Icons.favorite, color: Color(0xFFFF2D55), size: 100, shadows: _shadow),
-            ))),
-            Positioned(
-              top: MediaQuery.paddingOf(context).top + 48,
-              left: 14, right: 80,
-              child: _CornerBadge(device: d, auction: auction, state: state),
-            ),
-            Positioned(right: 10, bottom: 12,
-              child: _ActionRail(device: d, auction: auction, state: state, isMine: isMine)),
-          ],
-        )),
-        _Info(device: d, auction: auction, state: state, isMine: isMine, onDetails: openDetails),
+        Expanded(
+          child: Stack(
+            fit: StackFit.expand,
+            children: [
+              _Media(
+                key: const ValueKey('post-media'),
+                device: d,
+                onTap: openDetails,
+                onDoubleTap: isMine || auction != null
+                    ? null
+                    : () => _doubleTapLike(d),
+              ),
+              const IgnorePointer(
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: [
+                        Colors.black38,
+                        Colors.transparent,
+                        Colors.transparent,
+                      ],
+                      stops: [0, 0.22, 1],
+                    ),
+                  ),
+                ),
+              ),
+              IgnorePointer(
+                child: Center(
+                  child: AnimatedScale(
+                    scale: _heart ? 1 : 0,
+                    duration: const Duration(milliseconds: 200),
+                    child: const Icon(
+                      Icons.favorite,
+                      color: Color(0xFFFF2D55),
+                      size: 100,
+                      shadows: _shadow,
+                    ),
+                  ),
+                ),
+              ),
+              Positioned(
+                top: MediaQuery.paddingOf(context).top + 48,
+                left: 14,
+                right: 80,
+                child: _CornerBadge(device: d, auction: auction, state: state),
+              ),
+              Positioned(
+                right: 10,
+                bottom: 12,
+                child: _ActionRail(
+                  device: d,
+                  auction: auction,
+                  state: state,
+                  isMine: isMine,
+                ),
+              ),
+            ],
+          ),
+        ),
+        _Info(
+          device: d,
+          auction: auction,
+          state: state,
+          isMine: isMine,
+          onDetails: openDetails,
+        ),
       ],
     );
   }
@@ -679,8 +717,11 @@ class _MediaState extends State<_Media> {
                 IconButton(
                   key: const ValueKey('post-zoom'),
                   tooltip: t('Povećaj fotografiju'),
-                  style: IconButton.styleFrom(backgroundColor: Colors.black45,
-                    minimumSize: const Size(36, 36), padding: const EdgeInsets.all(6)),
+                  style: IconButton.styleFrom(
+                    backgroundColor: Colors.black45,
+                    minimumSize: const Size(36, 36),
+                    padding: const EdgeInsets.all(6),
+                  ),
                   icon: const Icon(
                     Icons.zoom_in,
                     size: 20,
@@ -846,90 +887,175 @@ class _Info extends ConsumerWidget {
         color: Color(0xFF131419),
         border: Border(top: BorderSide(color: Color(0xFF25262D))),
       ),
-      child: SafeArea(top: false, child: Padding(
-        padding: const EdgeInsets.fromLTRB(14, 10, 14, 12),
-        child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            if (owner != null) ...[
-              Row(children: [
-                GestureDetector(
-                  onTap: () => PublicProfileScreen.open(context, owner.id),
-                  child: UserAvatar(user: owner, size: 26),
-                ),
-                const SizedBox(width: 8),
-                Expanded(child: GestureDetector(
-                  onTap: () => PublicProfileScreen.open(context, owner.id),
-                  child: Text(owner.shopTitle, maxLines: 1, overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(color: Color(0xFFB3B4BF), fontSize: 12, fontWeight: FontWeight.w600)),
-                )),
-                if (rating != null && rating.count > 0) ...[
-                  const SizedBox(width: 6),
-                  Text('★ ${rating.average.toStringAsFixed(1)}',
-                    style: const TextStyle(color: Color(0xFFA1A2AD), fontSize: 11)),
-                ],
-                if (!isMine && !state.isFollowing(owner.id)) ...[
-                  const SizedBox(width: 10),
-                  _FollowPill(userId: owner.id, handle: owner.handle),
-                ],
-              ]),
-              const SizedBox(height: 8),
-            ],
-            GestureDetector(
-              key: const ValueKey('post-description'),
-              behavior: HitTestBehavior.opaque,
-              onTap: onDetails,
-              child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  Text(d.model.isEmpty ? d.name : '${d.name} · ${d.model}',
-                    maxLines: 2, overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(color: Color(0xFFE9E9EF), fontSize: 16, height: 1.2, fontWeight: FontWeight.w700)),
-                  if (d.description.isNotEmpty) ...[
-                    const SizedBox(height: 4),
-                    Text(d.description, maxLines: 1, overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(color: Color(0xFF9B9CA8), fontSize: 12, height: 1.3)),
+      child: SafeArea(
+        top: false,
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(14, 10, 14, 12),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              if (owner != null) ...[
+                Row(
+                  children: [
+                    GestureDetector(
+                      onTap: () => PublicProfileScreen.open(context, owner.id),
+                      child: UserAvatar(user: owner, size: 26),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: GestureDetector(
+                        onTap: () =>
+                            PublicProfileScreen.open(context, owner.id),
+                        child: Text(
+                          owner.shopTitle,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            color: Color(0xFFB3B4BF),
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                    ),
+                    if (rating != null && rating.count > 0) ...[
+                      const SizedBox(width: 6),
+                      Text(
+                        '★ ${rating.average.toStringAsFixed(1)}',
+                        style: const TextStyle(
+                          color: Color(0xFFA1A2AD),
+                          fontSize: 11,
+                        ),
+                      ),
+                    ],
+                    if (!isMine && !state.isFollowing(owner.id)) ...[
+                      const SizedBox(width: 10),
+                      _FollowPill(userId: owner.id, handle: owner.handle),
+                    ],
                   ],
-                ])),
-                const SizedBox(width: 12),
-                ConstrainedBox(constraints: const BoxConstraints(maxWidth: 110),
-                  child: a != null
-                    ? Text(formatCredits(a.currentPrice),
-                        style: const TextStyle(color: Color(0xFFE9E9EF), fontSize: 22, height: 1.1, fontWeight: FontWeight.w700))
-                    : PriceTag(device: d, price: isMine ? d.askPrice : price,
-                        basePrice: d.shownBasePrice, fontSize: 22, color: const Color(0xFFE9E9EF)),
                 ),
-              ]),
-            ),
-            const SizedBox(height: 5),
-            Row(children: [
-              Expanded(child: Text(
-                a != null
-                  ? t('{0} ponuda', ['${a.bids.length}'])
-                  : d.isDigital ? t('Digitalna dostava') : '${d.condition.label} · ${_shippingLabel(d)}',
-                maxLines: 1, overflow: TextOverflow.ellipsis,
-                style: const TextStyle(color: Color(0xFF92939F), fontSize: 11),
-              )),
-              IconButton(
-                tooltip: t('Zaštita kupca'),
-                onPressed: () => BuyerProtectionBadge.explain(context),
-                padding: EdgeInsets.zero, visualDensity: VisualDensity.compact,
-                constraints: const BoxConstraints.tightFor(width: 28, height: 28),
-                icon: const Icon(Icons.verified_user_outlined, size: 15, color: Color(0xFF75AD91)),
+                const SizedBox(height: 8),
+              ],
+              GestureDetector(
+                key: const ValueKey('post-description'),
+                behavior: HitTestBehavior.opaque,
+                onTap: onDetails,
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            d.model.isEmpty ? d.name : '${d.name} · ${d.model}',
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              color: Color(0xFFE9E9EF),
+                              fontSize: 16,
+                              height: 1.2,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                          if (d.description.isNotEmpty) ...[
+                            const SizedBox(height: 4),
+                            Text(
+                              d.description,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                color: Color(0xFF9B9CA8),
+                                fontSize: 12,
+                                height: 1.3,
+                              ),
+                            ),
+                          ],
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    ConstrainedBox(
+                      constraints: const BoxConstraints(maxWidth: 110),
+                      child: a != null
+                          ? Text(
+                              formatCredits(a.currentPrice),
+                              style: const TextStyle(
+                                color: Color(0xFFE9E9EF),
+                                fontSize: 22,
+                                height: 1.1,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            )
+                          : PriceTag(
+                              device: d,
+                              price: isMine ? d.askPrice : price,
+                              basePrice: d.shownBasePrice,
+                              fontSize: 22,
+                              color: const Color(0xFFE9E9EF),
+                            ),
+                    ),
+                  ],
+                ),
               ),
-              TextButton(
-                key: const ValueKey('post-details-link'),
-                onPressed: onDetails,
-                style: TextButton.styleFrom(foregroundColor: const Color(0xFFB3B4BF),
-                  padding: const EdgeInsets.only(left: 4), minimumSize: const Size(0, 28),
-                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                  textStyle: const TextStyle(fontFamily: kFontFamily, fontSize: 11, fontWeight: FontWeight.w600)),
-                child: Text(t('Detalji ›')),
+              const SizedBox(height: 5),
+              Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      a != null
+                          ? t('{0} ponuda', ['${a.bids.length}'])
+                          : d.isDigital
+                          ? t('Digitalna dostava')
+                          : '${d.condition.label} · ${_shippingLabel(d)}',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        color: Color(0xFF92939F),
+                        fontSize: 11,
+                      ),
+                    ),
+                  ),
+                  IconButton(
+                    tooltip: t('Zaštita kupca'),
+                    onPressed: () => BuyerProtectionBadge.explain(context),
+                    padding: EdgeInsets.zero,
+                    visualDensity: VisualDensity.compact,
+                    constraints: const BoxConstraints.tightFor(
+                      width: 28,
+                      height: 28,
+                    ),
+                    icon: const Icon(
+                      Icons.verified_user_outlined,
+                      size: 15,
+                      color: Color(0xFF75AD91),
+                    ),
+                  ),
+                  TextButton(
+                    key: const ValueKey('post-details-link'),
+                    onPressed: onDetails,
+                    style: TextButton.styleFrom(
+                      foregroundColor: const Color(0xFFB3B4BF),
+                      padding: const EdgeInsets.only(left: 4),
+                      minimumSize: const Size(0, 28),
+                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      textStyle: const TextStyle(
+                        fontFamily: kFontFamily,
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    child: Text(t('Detalji ›')),
+                  ),
+                ],
               ),
-            ]),
-            const SizedBox(height: 6),
-            primary,
-          ],
+              const SizedBox(height: 6),
+              primary,
+            ],
+          ),
         ),
-      )),
+      ),
     );
   }
 }
@@ -970,8 +1096,14 @@ class _MainButton extends StatelessWidget {
               style: OutlinedButton.styleFrom(
                 foregroundColor: const Color(0xFFE9E9EF),
                 minimumSize: const Size(0, 42),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                textStyle: const TextStyle(fontFamily: kFontFamily, fontSize: 14, fontWeight: FontWeight.w700),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                textStyle: const TextStyle(
+                  fontFamily: kFontFamily,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w700,
+                ),
                 side: const BorderSide(color: Color(0xFF555661)),
               ),
               child: child,
@@ -984,8 +1116,14 @@ class _MainButton extends StatelessWidget {
                       backgroundColor: color,
                       foregroundColor: const Color(0xFFF0F0F3),
                       minimumSize: const Size(0, 42),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                      textStyle: const TextStyle(fontFamily: kFontFamily, fontSize: 14, fontWeight: FontWeight.w700),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      textStyle: const TextStyle(
+                        fontFamily: kFontFamily,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w700,
+                      ),
                     ),
               child: child,
             ),
@@ -1057,7 +1195,10 @@ class _ActionRail extends ConsumerWidget {
     return Container(
       width: 48,
       padding: const EdgeInsets.symmetric(vertical: 4),
-      decoration: BoxDecoration(color: Colors.black.withValues(alpha: 0.5), borderRadius: BorderRadius.circular(16)),
+      decoration: BoxDecoration(
+        color: Colors.black.withValues(alpha: 0.5),
+        borderRadius: BorderRadius.circular(16),
+      ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [

@@ -21,11 +21,16 @@ Future<void> main() async {
   await trade.autoListPortfolios();
   final sample = await trade.addDevice(
     userId: SeedData.anaUserId,
-    name: 'Sony PSP', model: '3004, crna',
-    condition: DeviceCondition.good, price: 69, category: DeviceCategory.console,
+    name: 'Sony PSP',
+    model: '3004, crna',
+    condition: DeviceCondition.good,
+    price: 69,
+    category: DeviceCategory.console,
     description: 'Nova baterija, 4GB kartica. Ispravan i spreman za igranje.',
     // Public product reference from Wikimedia Commons, loaded only by this fixture.
-    imagePaths: const ['https://upload.wikimedia.org/wikipedia/commons/5/5d/Sony-PSP-1000-Body.png'],
+    imagePaths: const [
+      'https://upload.wikimedia.org/wikipedia/commons/5/5d/Sony-PSP-1000-Body.png',
+    ],
   );
   await storage.saveSession(userId: SeedData.testUserId);
   final prefs = FeedPreferences();
@@ -33,8 +38,13 @@ Future<void> main() async {
     if (i.device?.id != sample.id) prefs.hide(ForYouRanker.keyOf(i));
   }
   await storage.saveFeedPreferences(SeedData.testUserId, prefs);
-  runApp(ProviderScope(overrides: [
-    storageProvider.overrideWithValue(storage),
-    tickIntervalProvider.overrideWithValue(null),
-  ], child: const LoopApp()));
+  runApp(
+    ProviderScope(
+      overrides: [
+        storageProvider.overrideWithValue(storage),
+        tickIntervalProvider.overrideWithValue(null),
+      ],
+      child: const LoopApp(),
+    ),
+  );
 }

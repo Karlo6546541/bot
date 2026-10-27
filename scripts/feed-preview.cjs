@@ -8,7 +8,7 @@ const {chromium} = require('/tmp/feed-browser/node_modules/playwright');
   });
   try {
     for (const [name, width, height] of [
-      ['mobile-320', 320, 740], ['mobile-390', 390, 844], ['desktop', 1440, 1000],
+      ['mobile-320', 320, 740], ['mobile-390', 390, 844], ['mobile-short', 390, 600], ['desktop', 1440, 1000],
     ]) {
       const context = await browser.newContext({viewport: {width, height}});
       const page = await context.newPage();
