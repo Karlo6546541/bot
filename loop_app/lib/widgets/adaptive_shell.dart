@@ -101,34 +101,32 @@ class AdaptiveShell extends StatelessWidget {
         appBar: appBar,
         body: SafeArea(top: false, child: body),
         floatingActionButton: floatingActionButton,
-        bottomNavigationBar: immersiveNavigation
-            ? Theme(
-                data: Theme.of(context).copyWith(
-                  navigationBarTheme: NavigationBarThemeData(
-                    labelTextStyle: WidgetStateProperty.resolveWith(
-                      (states) => TextStyle(
-                        fontFamily: kFontFamily,
-                        fontSize: 10,
-                        fontWeight: states.contains(WidgetState.selected)
-                            ? FontWeight.w700
-                            : FontWeight.w500,
-                        color: states.contains(WidgetState.selected)
-                            ? const Color(0xFFE9E9ED)
-                            : const Color(0xFF92939D),
-                      ),
-                    ),
-                    iconTheme: WidgetStateProperty.resolveWith(
-                      (states) => IconThemeData(
-                        color: states.contains(WidgetState.selected)
-                            ? const Color(0xFFE9E9ED)
-                            : const Color(0xFF92939D),
-                      ),
-                    ),
-                  ),
+        bottomNavigationBar: Theme(
+          data: Theme.of(context).copyWith(
+            navigationBarTheme: NavigationBarThemeData(
+              labelTextStyle: WidgetStateProperty.resolveWith(
+                (states) => TextStyle(
+                  fontFamily: kFontFamily,
+                  fontSize: 10,
+                  fontWeight: states.contains(WidgetState.selected)
+                      ? FontWeight.w700
+                      : FontWeight.w500,
+                  color: states.contains(WidgetState.selected)
+                      ? const Color(0xFFE9E9ED)
+                      : const Color(0xFF92939D),
                 ),
-                child: _navigation(context, compact: true),
-              )
-            : _navigation(context),
+              ),
+              iconTheme: WidgetStateProperty.resolveWith(
+                (states) => IconThemeData(
+                  color: states.contains(WidgetState.selected)
+                      ? const Color(0xFFE9E9ED)
+                      : const Color(0xFF92939D),
+                ),
+              ),
+            ),
+          ),
+          child: _navigation(context, compact: true),
+        ),
       );
     }
 
