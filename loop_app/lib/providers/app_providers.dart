@@ -1265,6 +1265,7 @@ class AppController extends Notifier<AppState> {
     String? coverPath,
     DeviceCategory? category,
     bool relistUnsold = true,
+    List<String?>? names,
   }) async {
     // Testno: bez podataka prodavatelja (traže se tek za isplatu).
     final show = await _live.create(
@@ -1277,6 +1278,7 @@ class AppController extends Notifier<AppState> {
       coverPath: coverPath,
       category: category?.name,
       relistUnsold: relistUnsold,
+      names: names,
     );
     _refresh();
     return show;

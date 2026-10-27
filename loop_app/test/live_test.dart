@@ -361,6 +361,48 @@ void main() {
       await live.bid(bob, id, 1, now: at(3));
     });
 
+    test(
+      'items on screen: jedan predmet, brojevi #150… prodaju se komad po komad',
+      () async {
+        final d = await trade.addDevice(
+          userId: host,
+          name: 'Predmet',
+          model: '',
+          condition: DeviceCondition.good,
+          price: 1,
+          category: DeviceCategory.values.firstWhere(
+            (c) => c.section != ItemSection.digital,
+          ),
+          listOnMarket: false,
+          quantity: 2,
+        );
+        final show = await live.create(
+          hostId: host,
+          title: 'Brojevi',
+          items: [(d.id, 1.0), (d.id, 1.0)],
+          names: ['Predmet #150', 'Predmet #151'],
+          startsAt: t0,
+          now: t0,
+        );
+        expect(
+          [for (final l in show.lots) l.deviceName],
+          ['Predmet #150', 'Predmet #151'],
+        );
+        await live.startLot(host, show.id, index: 0, now: t0);
+        await live.bid(bob, show.id, 3, now: at(5));
+        expect(await live.settleDue(userId: bob, now: at(40)), 1);
+        // Kupac ima jedan komad, domaćinu ostaje isti predmet s 1 komadom.
+        final mine = storage.devices.where((x) => x.ownerId == bob).toList();
+        expect(mine.where((x) => x.name == 'Predmet'), hasLength(1));
+        expect(storage.deviceById(d.id)!.ownerId, host);
+        expect(storage.deviceById(d.id)!.quantity, 1);
+        expect(
+          storage.deliveryById('live-${show.id}-0')!.deviceName,
+          'Predmet #150',
+        );
+      },
+    );
+
     test('svaka ponuda dodaje 2 s na sat', () async {
       final id = await start();
       await live.bid(bob, id, 2, now: at(25));
@@ -900,7 +942,7 @@ void main() {
       );
       await tester.tap(find.byKey(const ValueKey('on-screen-confirm')));
       await tester.pumpAndSettle();
-      expect(find.text('Predmet #151'), findsOneWidget);
+      expect(find.text('Predmet #150–#151'), findsOneWidget);
       // Zatvori tipkovnicu (fokusirano polje inače vraća pomak na sebe).
       FocusManager.instance.primaryFocus?.unfocus();
       await tester.pumpAndSettle();
@@ -932,9 +974,12 @@ void main() {
       expect(show.title, 'Retro večer');
       expect(show.lotSeconds, 45);
       expect(
-        [for (final l in show.lots) storage.deviceById(l.deviceId)!.name],
+        [for (final l in show.lots) l.deviceName],
         ['Game Boy Color', 'Predmet #150', 'Predmet #151'],
       );
+      // Items on screen je jedan predmet s 2 komada (ne dva predmeta).
+      expect(show.lots[1].deviceId, show.lots[2].deviceId);
+      expect(storage.deviceById(show.lots[1].deviceId)!.quantity, 2);
       expect(show.lots.last.startPrice, 5);
       expect(show.video, isTrue);
       // Domaćin sam pokreće licitaciju.

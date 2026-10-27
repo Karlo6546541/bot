@@ -284,26 +284,25 @@ class _CreateLiveShowScreenState extends ConsumerState<CreateLiveShowScreen> {
       );
       return;
     }
-    // Nastavi brojanje od zadnjeg "#broja".
+    // Nastavi brojanje od zadnjeg niza.
     var next = 1;
     for (final l in _drafts.reversed) {
-      final m = RegExp(r'#(\d+)$').firstMatch(l.name);
-      if (m != null) {
-        next = int.parse(m.group(1)!) + 1;
+      if (l.last case final last?) {
+        next = last + 1;
         break;
       }
     }
-    final lots = await showModalBottomSheet<List<_DraftLot>>(
+    final lot = await showModalBottomSheet<_DraftLot>(
       context: context,
       showDragHandle: true,
       isScrollControlled: true,
       constraints: const BoxConstraints(maxWidth: 520),
-      builder: (_) => _OnScreenSheet(start: next, max: _free),
+      builder: (_) => _OnScreenSheet(start: next),
     );
-    if (lots != null && mounted) {
+    if (lot != null && mounted) {
       setState(() {
         _error = null;
-        _drafts.addAll(lots);
+        _drafts.add(lot);
       });
     }
   }
@@ -362,35 +361,41 @@ class _CreateLiveShowScreenState extends ConsumerState<CreateLiveShowScreen> {
     final app = ref.read(appProvider.notifier);
     final ok = await runWithLoading(
       context,
-      () async => created = await app.createLiveShow(
-        title: _title.text,
-        items: [
-          ...items,
-          // Predmeti ovog livea: tek sad se spremaju (redom).
-          for (final l in _drafts)
-            (
-              (await app.addDevice(
-                name: l.name,
-                model: '',
-                condition: DeviceCondition.good,
-                price: l.price,
-                category:
-                    _category ??
-                    suggestCategory(l.name) ??
-                    DeviceCategory.other,
-                imagePaths: [?l.photo],
-                listOnMarket: false,
-              )).id,
-              l.price,
-            ),
-        ],
-        lotSeconds: _secs,
-        startsAt: _startsAt,
-        video: _video,
-        coverPath: _cover,
-        category: _category,
-        relistUnsold: _relist,
-      ),
+      () async {
+        // Predmeti ovog livea: tek sad se spremaju (redom). Items on
+        // screen = jedan predmet s više komada; svaki broj je jedna
+        // licitacija (#150, #151…).
+        final all = [...items];
+        final names = <String?>[for (final _ in items) null];
+        for (final l in _drafts) {
+          final d = await app.addDevice(
+            name: l.name,
+            model: '',
+            condition: DeviceCondition.good,
+            price: l.price,
+            category:
+                _category ?? suggestCategory(l.name) ?? DeviceCategory.other,
+            imagePaths: [?l.photo],
+            listOnMarket: false,
+            quantity: l.count,
+          );
+          for (var k = 0; k < l.count; k++) {
+            all.add((d.id, l.price));
+            names.add(l.onScreen ? '${l.name} #${l.from! + k}' : null);
+          }
+        }
+        created = await app.createLiveShow(
+          title: _title.text,
+          items: all,
+          names: names,
+          lotSeconds: _secs,
+          startsAt: _startsAt,
+          video: _video,
+          coverPath: _cover,
+          category: _category,
+          relistUnsold: _relist,
+        );
+      },
       // Bez obavijesti: soba se odmah otvara (obavijest bi prekrila gumbe
       // na dnu sobe).
       successMessage: null,
@@ -559,7 +564,7 @@ class _CreateLiveShowScreenState extends ConsumerState<CreateLiveShowScreen> {
                       key: const ValueKey('live-on-screen'),
                       icon: Icons.tag,
                       title: t('Items on screen'),
-                      subtitle: t('#150, #151… do 50'),
+                      subtitle: t('#150, #151… kao 1 predmet'),
                       onTap: _addOnScreen,
                     ),
                   ),
@@ -794,13 +799,25 @@ class _CoverPicker extends StatelessWidget {
 
 /// Predmet ovog livea prije spremanja.
 class _DraftLot {
-  const _DraftLot(this.name, this.price, {this.photo, this.onScreen = false});
+  const _DraftLot(
+    this.name,
+    this.price, {
+    this.photo,
+    this.from,
+    this.count = 1,
+  });
   final String name;
   final double price;
   final String? photo;
 
-  /// "Item on screen": bez slike, s rednim brojem (#150).
-  final bool onScreen;
+  /// "Items on screen": jedan predmet s [count] komada, brojevi od
+  /// [from] (#150, #151…). `null` = obični predmet.
+  final int? from;
+  final int count;
+  bool get onScreen => from != null;
+
+  /// Zadnji broj u nizu (za nastavak brojanja).
+  int? get last => from == null ? null : from! + count - 1;
 }
 
 /// Veliki gumb za dodavanje predmeta u live.
@@ -877,7 +894,7 @@ class _DraftRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final number = RegExp(r'#(\d+)$').firstMatch(lot.name)?.group(1);
+    final number = lot.from;
     final thumb = SizedBox.square(
       dimension: 44,
       child: ClipRRect(
@@ -910,13 +927,18 @@ class _DraftRow extends StatelessWidget {
         child: ListTile(
           leading: thumb,
           title: Text(
-            lot.name,
+            lot.onScreen ? '${lot.name} #${lot.from}–#${lot.last}' : lot.name,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
             style: const TextStyle(fontWeight: FontWeight.w800),
           ),
           subtitle: Text(
-            '${lot.onScreen ? t('Item on screen') : t('Predmet sa slikom')} · ${t('od {0}', [formatCredits(lot.price)])}',
+            lot.onScreen
+                ? t('Items on screen · {0} brojeva · od {1}', [
+                    '${lot.count}',
+                    formatCredits(lot.price),
+                  ])
+                : '${t('Predmet sa slikom')} · ${t('od {0}', [formatCredits(lot.price)])}',
           ),
           trailing: IconButton(
             tooltip: t('Ukloni'),
@@ -1074,9 +1096,11 @@ class _QuickLotSheetState extends ConsumerState<_QuickLotSheet> {
 /// brojem — #150, #151… Prodaje se redom, pa se nakon svake prodaje na
 /// ekranu pojavi sljedeći broj.
 class _OnScreenSheet extends StatefulWidget {
-  const _OnScreenSheet({required this.start, required this.max});
+  const _OnScreenSheet({required this.start});
   final int start;
-  final int max;
+
+  /// Najviše brojeva u jednom nizu (svejedno je jedan predmet).
+  static const max = 200;
 
   @override
   State<_OnScreenSheet> createState() => _OnScreenSheetState();
@@ -1085,9 +1109,7 @@ class _OnScreenSheet extends StatefulWidget {
 class _OnScreenSheetState extends State<_OnScreenSheet> {
   late final _name = TextEditingController(text: t('Predmet'));
   late final _from = TextEditingController(text: '${widget.start}');
-  late final _count = TextEditingController(
-    text: '${widget.max < 10 ? widget.max : 10}',
-  );
+  late final _count = TextEditingController(text: '10');
   final _price = TextEditingController(text: '1');
 
   @override
@@ -1116,17 +1138,14 @@ class _OnScreenSheetState extends State<_OnScreenSheet> {
       );
       return;
     }
-    if (count > widget.max) {
+    if (count > _OnScreenSheet.max) {
       showLoopSnackBar(
-        t('Stane još najviše {0} predmeta.', ['${widget.max}']),
+        t('Najviše {0} brojeva u nizu.', ['${_OnScreenSheet.max}']),
         error: true,
       );
       return;
     }
-    Navigator.pop(context, [
-      for (var i = 0; i < count; i++)
-        _DraftLot('$name #${from + i}', price, onScreen: true),
-    ]);
+    Navigator.pop(context, _DraftLot(name, price, from: from, count: count));
   }
 
   @override
@@ -1150,7 +1169,7 @@ class _OnScreenSheetState extends State<_OnScreenSheet> {
           ),
           Text(
             t(
-              'Predmeti bez slike — pokazuješ ih na kameri. Nakon svake prodaje na ekranu se pojavi sljedeći broj.',
+              'Jedan predmet s brojevima, bez slike — pokazuješ ih na kameri. Nakon svake prodaje na ekranu se pojavi sljedeći broj.',
             ),
             style: TextStyle(color: LoopColors.textSecondary, fontSize: 13),
           ),
@@ -1183,7 +1202,7 @@ class _OnScreenSheetState extends State<_OnScreenSheet> {
                   controller: _count,
                   keyboardType: TextInputType.number,
                   decoration: InputDecoration(
-                    labelText: t('Koliko (do {0})', ['${widget.max}']),
+                    labelText: t('Koliko (do {0})', ['${_OnScreenSheet.max}']),
                   ),
                   onChanged: (_) => setState(() {}),
                 ),

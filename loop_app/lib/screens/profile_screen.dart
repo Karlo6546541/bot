@@ -345,10 +345,19 @@ class _AccountPostTile extends ConsumerWidget {
     final auction = state.activeAuctions
         .where((a) => a.deviceId == d.id)
         .firstOrNull;
+    // Kartica: lagani rub i sjena da se vidi okvir; slika ispunjava
+    // cijeli kvadrat (bez praznih rubova).
     return Material(
       key: ValueKey('account-post-${d.id}'),
       color: LoopColors.surface,
-      borderRadius: BorderRadius.circular(12),
+      elevation: 1.5,
+      shadowColor: Colors.black26,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(14),
+        side: BorderSide(
+          color: LoopColors.textSecondary.withValues(alpha: 0.14),
+        ),
+      ),
       clipBehavior: Clip.antiAlias,
       child: InkWell(
         onTap: () => DeviceDetailScreen.open(context, d),
@@ -362,14 +371,11 @@ class _AccountPostTile extends ConsumerWidget {
                 children: [
                   d.imagePaths.isEmpty
                       ? ItemIllustration(category: d.category)
-                      : ColoredBox(
-                          color: LoopColors.background,
-                          child: LocalPhoto(
-                            path: d.imagePaths.first,
-                            fit: BoxFit.contain,
-                            cacheWidth: 720,
-                            fallback: ItemIllustration(category: d.category),
-                          ),
+                      : LocalPhoto(
+                          path: d.imagePaths.first,
+                          fit: BoxFit.cover,
+                          cacheWidth: 720,
+                          fallback: ItemIllustration(category: d.category),
                         ),
                   // Okrugli prozirni gumb (srce ili izbornik) kao na
                   // Instagramu — ne prekriva sliku.

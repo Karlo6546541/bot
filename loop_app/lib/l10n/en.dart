@@ -2451,18 +2451,27 @@ const kEn = <String, String>{
   '🔴 U liveu': '🔴 In a live',
   '#150, #151… do 50': '#150, #151… up to 50',
   'Brzo dodaj': 'Quick add',
-  'Dodaj predmete samo za ovaj live. Licitiraju se redom — nakon svake prodaje dolazi sljedeći.': 'Add items just for this live. They are auctioned in order — after each sale the next one comes up.',
+  'Dodaj predmete samo za ovaj live. Licitiraju se redom — nakon svake prodaje dolazi sljedeći.':
+      'Add items just for this live. They are auctioned in order — after each sale the next one comes up.',
   'Item on screen': 'Item on screen',
   'Items on screen': 'Items on screen',
   'Koliko (do {0})': 'How many (up to {0})',
   'Naslovna': 'Cover',
   'Od broja': 'From number',
   'Predmet sa slikom': 'Item with photo',
-  'Predmeti bez slike — pokazuješ ih na kameri. Nakon svake prodaje na ekranu se pojavi sljedeći broj.': 'Items without a photo — you show them on camera. After each sale the next number appears on screen.',
+  'Predmeti bez slike — pokazuješ ih na kameri. Nakon svake prodaje na ekranu se pojavi sljedeći broj.':
+      'Items without a photo — you show them on camera. After each sale the next number appears on screen.',
   'Predmeti u ovom liveu ({0}/{1})': 'Items in this live ({0}/{1})',
   'Stane još najviše {0} predmeta.': 'At most {0} more items fit.',
-  'Upiši naziv, broj, količinu i cijenu (barem 1 €).': 'Enter a name, number, quantity and price (at least €1).',
+  'Upiši naziv, broj, količinu i cijenu (barem 1 €).':
+      'Enter a name, number, quantity and price (at least €1).',
   '{0} #{1} … #{2}': '{0} #{1} … #{2}',
   '⚡ Brzo dodaj predmet': '⚡ Quick add item',
   '🔢 Items on screen': '🔢 Items on screen',
+  '#150, #151… kao 1 predmet': '#150, #151… as 1 item',
+  'Items on screen · {0} brojeva · od {1}':
+      'Items on screen · {0} numbers · from {1}',
+  'Jedan predmet s brojevima, bez slike — pokazuješ ih na kameri. Nakon svake prodaje na ekranu se pojavi sljedeći broj.':
+      'One item with numbers, no photo — you show them on camera. After each sale the next number appears on screen.',
+  'Najviše {0} brojeva u nizu.': 'At most {0} numbers in a run.',
 };

@@ -483,6 +483,7 @@ class LiveService {
     String? coverPath,
     String? category,
     bool relistUnsold = true,
+    List<String?>? names,
   }) async {
     final at = now ?? DateTime.now();
     final host = _storage.userById(hostId);
@@ -496,8 +497,10 @@ class LiveService {
         t('Naslov može imati najviše {0} znakova.', ['${LiveShow.maxTitle}']),
       );
     }
+    // "Items on screen" (isti predmet s više komada, #150, #151…) broji se
+    // kao jedan predmet.
     final maxLots = _maxLots(hostId);
-    if (items.length > maxLots) {
+    if ({for (final (id, _) in items) id}.length > maxLots) {
       throw TradeException(
         t('Live može imati najviše {0} predmeta.', ['$maxLots']),
       );
@@ -519,9 +522,21 @@ class LiveService {
     }
 
     final lots = <LiveLot>[];
-    for (final (id, price) in items) {
-      if (lots.any((l) => l.deviceId == id)) continue;
-      lots.add(await _prepareLot(hostId, id, price, at));
+    for (final (i, (id, price)) in items.indexed) {
+      // Isti predmet više puta samo ako ima toliko komada (items on screen).
+      final used = lots.where((l) => l.deviceId == id).length;
+      if (used >= (_storage.deviceById(id)?.quantity ?? 1)) continue;
+      final lot = await _prepareLot(hostId, id, price, at);
+      final name = names != null && i < names.length ? names[i] : null;
+      lots.add(
+        name == null
+            ? lot
+            : LiveLot(
+                deviceId: lot.deviceId,
+                deviceName: name,
+                startPrice: lot.startPrice,
+              ),
+      );
     }
     final later = start.isAfter(at.add(const Duration(minutes: 1)));
     final show = LiveShow(
@@ -1001,7 +1016,10 @@ class LiveService {
     if (host?.seller == null ||
         d == null ||
         d.ownerId != show.hostId ||
-        d.isListed) {
+        d.isListed ||
+        // Items on screen: neprodani brojevi ostaju u predmetu (bez Kupi
+        // odmah za cijelu zalihu).
+        show.lots.where((x) => x.deviceId == d.id).length > 1) {
       return;
     }
     try {
@@ -1050,7 +1068,16 @@ class LiveService {
     );
     final claimed = await _storage.claimTransaction(sale);
     if (!claimed) return;
-    await _storage.putDevice(device.withOwner(winner.id));
+    // Items on screen (više komada): kupac dobiva jedan komad, domaćinu
+    // ostaje jedan predmet s komadom manje.
+    var bought = device;
+    if (device.quantity > 1) {
+      bought = device.unitFor(winner.id, 'unit-$txId', at);
+      await _storage.putDevice(bought);
+      await _storage.putDevice(device.withQuantity(device.quantity - 1));
+    } else {
+      await _storage.putDevice(device.withOwner(winner.id));
+    }
     await Earnings(_storage).credit(sale);
     await _storage.recordSnapshot(seller.id, now: at);
     await _storage.recordSnapshot(winner.id, now: at);
@@ -1078,7 +1105,7 @@ class LiveService {
     await DeliveryService(_storage).createPending(
       id: txId,
       userId: winner.id,
-      deviceId: device.id,
+      deviceId: bought.id,
       deviceName: l.lot.deviceName,
       sellerId: seller.id,
       now: at,

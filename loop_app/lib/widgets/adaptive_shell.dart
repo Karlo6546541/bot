@@ -29,17 +29,17 @@ class ShellDestination {
     bool compact = false,
   }) {
     if (!action) {
-      return Icon(selected ? selectedIcon : icon, size: compact ? 20 : null);
+      return Icon(selected ? selectedIcon : icon, size: compact ? 25 : null);
     }
     return Container(
       key: const ValueKey('nav-create'),
-      width: compact ? 34 : 44,
-      height: compact ? 26 : 32,
+      width: compact ? 44 : 44,
+      height: compact ? 32 : 32,
       decoration: BoxDecoration(
         color: Theme.of(context).colorScheme.primary,
         borderRadius: BorderRadius.circular(compact ? 8 : 12),
       ),
-      child: Icon(icon, color: Colors.white, size: compact ? 18 : null),
+      child: Icon(icon, color: Colors.white, size: compact ? 22 : null),
     );
   }
 }
@@ -71,8 +71,13 @@ class AdaptiveShell extends StatelessWidget {
   Widget _navigation(BuildContext context, {bool compact = false}) =>
       NavigationBar(
         key: ValueKey(compact ? 'feed-navigation' : 'main-navigation'),
-        height: compact ? 54 : null,
-        backgroundColor: compact ? const Color(0xFF0C0D10) : null,
+        // Mobitel: samo ikone (bez natpisa) na tamnosivoj traci — ugodnije
+        // za oči od crne.
+        height: compact ? 56 : null,
+        labelBehavior: compact
+            ? NavigationDestinationLabelBehavior.alwaysHide
+            : null,
+        backgroundColor: compact ? const Color(0xFF26272C) : null,
         surfaceTintColor: compact ? Colors.transparent : null,
         indicatorColor: compact ? Colors.transparent : null,
         selectedIndex: selectedIndex,
