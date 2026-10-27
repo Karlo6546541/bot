@@ -120,7 +120,10 @@ void main() {
     tester.view.viewInsets = const FakeViewPadding(bottom: 280);
     await tester.pumpAndSettle();
     expect(find.byKey(const ValueKey('live-reaction-🔥')), findsNothing);
-    expect(tester.getBottomLeft(find.byKey(const ValueKey('live-chat'))).dy, lessThanOrEqualTo(320));
+    expect(
+      tester.getBottomLeft(find.byKey(const ValueKey('live-chat'))).dy,
+      lessThanOrEqualTo(320),
+    );
     expect(tester.takeException(), isNull);
     await tester.pumpWidget(const SizedBox.shrink());
   });

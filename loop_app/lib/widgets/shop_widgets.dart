@@ -562,10 +562,10 @@ Future<double?> _amountDialog(
 }) => showDialog<double>(
   context: context,
   builder: (ctx) => _AmountDialog(
-      title: title,
-      message: message,
-      suggestion: suggestion,
-      max: max,
+    title: title,
+    message: message,
+    suggestion: suggestion,
+    max: max,
   ),
 );
 

@@ -880,6 +880,7 @@ class _LiveRoomViewState extends ConsumerState<_LiveRoomBody> {
   void _chatFocusChanged() {
     if (mounted) setState(() {});
   }
+
   bool _busy = false;
 
   /// Video: domaćin šalje kameru, gledatelj prima (samo dok je soba
@@ -1964,10 +1965,11 @@ class _LiveRoomViewState extends ConsumerState<_LiveRoomBody> {
                         leaderUser: s.userById(done.leader?.userId),
                         result: true,
                       ),
-                    if (!composing) Padding(
-                      padding: const EdgeInsets.fromLTRB(12, 10, 12, 0),
-                      child: _actions(show, st, cur, isHost, canAct, me?.id),
-                    ),
+                    if (!composing)
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(12, 10, 12, 0),
+                        child: _actions(show, st, cur, isHost, canAct, me?.id),
+                      ),
                     const SizedBox(height: 8),
                   ],
                 ),
@@ -3579,7 +3581,6 @@ class _AddLotSheetState extends ConsumerState<_AddLotSheet> {
   @override
   Widget build(BuildContext context) {
     final s = ref.watch(appProvider);
-    final composing = _chatFocus.hasFocus;
     final show = s.liveShowById(widget.showId);
     final inShow = {...?show?.lots.map((l) => l.deviceId)};
     final eligible = s.myDevices
