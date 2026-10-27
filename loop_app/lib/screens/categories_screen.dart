@@ -16,10 +16,12 @@ class CategoriesScreen extends ConsumerWidget {
   const CategoriesScreen({super.key});
 
   static Future<void> open(BuildContext context) => Navigator.of(context).push(
-    MaterialPageRoute<void>(builder: (_) => Scaffold(
-      appBar: AppBar(title: Text(t('Kategorije'))),
-      body: const CategoriesScreen(),
-    )),
+    MaterialPageRoute<void>(
+      builder: (_) => Scaffold(
+        appBar: AppBar(title: Text(t('Kategorije'))),
+        body: const CategoriesScreen(),
+      ),
+    ),
   );
 
   @override

@@ -4,7 +4,8 @@
 const kEn = <String, String>{
   'Kategorije uživo': 'Live categories',
   'Kategorije aukcija': 'Auction categories',
-  'Trenutno nema liveova u ovoj kategoriji.': 'There are no live streams in this category right now.',
+  'Trenutno nema liveova u ovoj kategoriji.':
+      'There are no live streams in this category right now.',
 
   'Detalji ›': 'Details ›',
   'Slično onome što gledaš': 'Similar to what you view',

@@ -22,24 +22,32 @@ Future<void> main() async {
   await trade.autoListPortfolios();
   final samples = <String>{};
   for (var index = 0; index < 8; index++) {
-  final sample = await trade.addDevice(
-    userId: SeedData.anaUserId,
-    name: 'Sony PSP',
-    model: '3004, crna',
-    condition: DeviceCondition.good,
-    price: 69,
-    category: DeviceCategory.console,
-    description: 'Nova baterija, 4GB kartica. Ispravan i spreman za igranje.',
-    // Public product reference from Wikimedia Commons, loaded only by this fixture.
-    imagePaths: const [
-      'https://upload.wikimedia.org/wikipedia/commons/5/5d/Sony-PSP-1000-Body.png',
-    ],
-  );
+    final sample = await trade.addDevice(
+      userId: SeedData.anaUserId,
+      name: 'Sony PSP',
+      model: '3004, crna',
+      condition: DeviceCondition.good,
+      price: 69,
+      category: DeviceCategory.console,
+      description: 'Nova baterija, 4GB kartica. Ispravan i spreman za igranje.',
+      // Public product reference from Wikimedia Commons, loaded only by this fixture.
+      imagePaths: const [
+        'https://upload.wikimedia.org/wikipedia/commons/5/5d/Sony-PSP-1000-Body.png',
+      ],
+    );
     samples.add(sample.id);
   }
   final lives = LiveService(storage);
-  await lives.create(hostId: SeedData.markoUserId, title: 'Konzole uživo', category: DeviceCategory.console.name);
-  await lives.create(hostId: SeedData.demoUserId, title: 'Knjige uživo', category: DeviceCategory.books.name);
+  await lives.create(
+    hostId: SeedData.markoUserId,
+    title: 'Konzole uživo',
+    category: DeviceCategory.console.name,
+  );
+  await lives.create(
+    hostId: SeedData.demoUserId,
+    title: 'Knjige uživo',
+    category: DeviceCategory.books.name,
+  );
   await storage.saveSession(userId: SeedData.testUserId);
   final prefs = FeedPreferences();
   for (final i in browseItems(AppState.fromStorage(storage))) {

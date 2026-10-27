@@ -78,7 +78,10 @@ class _ForYouFeedState extends ConsumerState<ForYouFeed> {
   void _save() {
     _pendingSave = true;
     _saveTimer?.cancel();
-    if (_disposed) { _flushStorage(); return; }
+    if (_disposed) {
+      _flushStorage();
+      return;
+    }
     if (!_scrolling) {
       _saveTimer = Timer(const Duration(milliseconds: 300), _flushStorage);
     }
@@ -126,7 +129,9 @@ class _ForYouFeedState extends ConsumerState<ForYouFeed> {
   void _scheduleQueue() {
     _queueTimer?.cancel();
     if (_disposed || _scrolling || !widget.active) return;
-    if (!_rankingDirty && !_inventoryDirty && _picks.length - _index > 12) return;
+    if (!_rankingDirty && !_inventoryDirty && _picks.length - _index > 12) {
+      return;
+    }
     _queueTimer = Timer(const Duration(milliseconds: 100), _refreshQueue);
   }
 
@@ -135,14 +140,17 @@ class _ForYouFeedState extends ConsumerState<ForYouFeed> {
     // Freeze the current entry and the next two already being decoded.
     final keep = (_index + 3).clamp(0, _picks.length);
     final kept = _picks.sublist(0, keep);
-    final rest = _ranked(exclude: {
-      for (final p in kept) ForYouRanker.keyOf(p.item),
-    });
+    final rest = _ranked(
+      exclude: {for (final p in kept) ForYouRanker.keyOf(p.item)},
+    );
     _rankingDirty = false;
     _inventoryDirty = false;
     if (kept.length == _picks.length && rest.isEmpty) return;
     setState(() {
-      _picks..clear()..addAll(kept)..addAll(rest);
+      _picks
+        ..clear()
+        ..addAll(kept)
+        ..addAll(rest);
       if (_index > 60) {
         final trim = _index - 10;
         _picks.removeRange(0, trim);
@@ -187,7 +195,9 @@ class _ForYouFeedState extends ConsumerState<ForYouFeed> {
       }
       if (before <= 4000) {
         _pendingCategories.addAll([for (final c in item.categories) c.name]);
-        if (_pendingCategories.length > 30) _pendingCategories.removeRange(0, _pendingCategories.length - 30);
+        if (_pendingCategories.length > 30) {
+          _pendingCategories.removeRange(0, _pendingCategories.length - 30);
+        }
         final d = item.device;
         if (d != null) _preferences.learnModel(d.model, d.condition.name);
       }
@@ -311,14 +321,24 @@ class _ForYouFeedState extends ConsumerState<ForYouFeed> {
   Widget build(BuildContext context) {
     ref.listen(appProvider, (previous, next) {
       // View counters alone must not reorder an actively scrolling feed.
-      _inventoryDirty = _inventoryDirty || previous == null ||
+      _inventoryDirty =
+          _inventoryDirty ||
+          previous == null ||
           previous.devices.length != next.devices.length ||
           previous.auctions.length != next.auctions.length ||
           previous.liveShows.length != next.liveShows.length;
-      _rankingDirty = _rankingDirty || previous == null ||
+      _rankingDirty =
+          _rankingDirty ||
+          previous == null ||
           previous.transactions.length != next.transactions.length ||
-          !listEquals(previous.currentUser?.favorites, next.currentUser?.favorites) ||
-          !listEquals(previous.currentUser?.following, next.currentUser?.following);
+          !listEquals(
+            previous.currentUser?.favorites,
+            next.currentUser?.favorites,
+          ) ||
+          !listEquals(
+            previous.currentUser?.following,
+            next.currentUser?.following,
+          );
       if (_inventoryDirty || _rankingDirty) _scheduleQueue();
     });
     final end = ColoredBox(

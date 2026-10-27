@@ -24,12 +24,17 @@ void main() {
   });
   tearDown(() => Hive.close());
 
-  Widget app() => ProviderScope(overrides: [
-    storageProvider.overrideWithValue(storage),
-    tickIntervalProvider.overrideWithValue(null),
-  ], child: const LoopApp());
+  Widget app() => ProviderScope(
+    overrides: [
+      storageProvider.overrideWithValue(storage),
+      tickIntervalProvider.overrideWithValue(null),
+    ],
+    child: const LoopApp(),
+  );
 
-  testWidgets('categories and auctions open directly from the feed', (tester) async {
+  testWidgets('categories and auctions open directly from the feed', (
+    tester,
+  ) async {
     tester.view.physicalSize = const Size(390, 844);
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.reset);
@@ -43,17 +48,28 @@ void main() {
     await tester.tap(find.byKey(const ValueKey('home-auctions-shortcut')));
     await tester.pumpAndSettle();
     expect(find.byKey(const ValueKey('home-ending')), findsOneWidget);
-    expect(find.byKey(const ValueKey('auction-category-filter')), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('auction-category-filter')),
+      findsOneWidget,
+    );
     await tester.pumpWidget(const SizedBox.shrink());
   });
 
-  testWidgets('live category selection filters only live streams and clears', (tester) async {
+  testWidgets('live category selection filters only live streams and clears', (
+    tester,
+  ) async {
     final ids = await tester.runAsync(() async {
       final live = LiveService(storage);
-      final a = await live.create(hostId: SeedData.anaUserId,
-        title: 'Konzole uživo', category: DeviceCategory.console.name);
-      final b = await live.create(hostId: SeedData.markoUserId,
-        title: 'Knjige uživo', category: DeviceCategory.books.name);
+      final a = await live.create(
+        hostId: SeedData.anaUserId,
+        title: 'Konzole uživo',
+        category: DeviceCategory.console.name,
+      );
+      final b = await live.create(
+        hostId: SeedData.markoUserId,
+        title: 'Knjige uživo',
+        category: DeviceCategory.books.name,
+      );
       return [a.id, b.id];
     });
     await tester.pumpWidget(app());
@@ -64,7 +80,9 @@ void main() {
     expect(find.byKey(ValueKey('browse-live-${ids[1]}')), findsOneWidget);
     await tester.tap(find.byKey(const ValueKey('live-category-filter')));
     await tester.pumpAndSettle();
-    await tester.ensureVisible(find.byKey(const ValueKey('live-category-console')));
+    await tester.ensureVisible(
+      find.byKey(const ValueKey('live-category-console')),
+    );
     await tester.tap(find.byKey(const ValueKey('live-category-console')));
     await tester.pumpAndSettle();
     expect(find.byKey(ValueKey('browse-live-${ids[0]}')), findsOneWidget);
@@ -78,32 +96,46 @@ void main() {
     await tester.pumpWidget(const SizedBox.shrink());
   });
 
-  testWidgets('feed keeps its queue and controller stable during a drag and sync', (tester) async {
-    await tester.pumpWidget(app());
-    await tester.pumpAndSettle();
-    final feed = find.byType(ForYouFeed);
-    final swipe = find.byKey(const ValueKey('for-you-feed'));
-    final initial = tester.widget<SwipeFeedScreen>(swipe).entries;
-    final pages = find.byKey(const ValueKey('swipe-feed'));
-    final controller = tester.widget<PageView>(pages).controller;
-    final point = tester.getCenter(pages);
-    final gesture = await tester.startGesture(point);
-    await gesture.moveBy(const Offset(0, -120));
-    await tester.pump(const Duration(milliseconds: 16));
-    await tester.runAsync(() => TradeService(storage).addDevice(
-      userId: SeedData.anaUserId, name: 'Novi sinkronizirani oglas', model: '',
-      condition: DeviceCondition.good, price: 35, category: DeviceCategory.console,
-    ));
-    final container = ProviderScope.containerOf(tester.element(feed));
-    await container.read(appProvider.notifier).toggleFollow(SeedData.anaUserId);
-    await tester.pump(const Duration(milliseconds: 200));
-    expect(tester.widget<SwipeFeedScreen>(swipe).entries.length, initial.length);
-    expect(tester.widget<PageView>(pages).controller, same(controller));
-    await gesture.moveBy(const Offset(0, -350));
-    await gesture.up();
-    await tester.pumpAndSettle();
-    expect(tester.widget<PageView>(pages).controller, same(controller));
-    expect(tester.takeException(), isNull);
-    await tester.pumpWidget(const SizedBox.shrink());
-  });
+  testWidgets(
+    'feed keeps its queue and controller stable during a drag and sync',
+    (tester) async {
+      await tester.pumpWidget(app());
+      await tester.pumpAndSettle();
+      final feed = find.byType(ForYouFeed);
+      final swipe = find.byKey(const ValueKey('for-you-feed'));
+      final initial = tester.widget<SwipeFeedScreen>(swipe).entries;
+      final pages = find.byKey(const ValueKey('swipe-feed'));
+      final controller = tester.widget<PageView>(pages).controller;
+      final point = tester.getCenter(pages);
+      final gesture = await tester.startGesture(point);
+      await gesture.moveBy(const Offset(0, -120));
+      await tester.pump(const Duration(milliseconds: 16));
+      await tester.runAsync(
+        () => TradeService(storage).addDevice(
+          userId: SeedData.anaUserId,
+          name: 'Novi sinkronizirani oglas',
+          model: '',
+          condition: DeviceCondition.good,
+          price: 35,
+          category: DeviceCategory.console,
+        ),
+      );
+      final container = ProviderScope.containerOf(tester.element(feed));
+      await container
+          .read(appProvider.notifier)
+          .toggleFollow(SeedData.anaUserId);
+      await tester.pump(const Duration(milliseconds: 200));
+      expect(
+        tester.widget<SwipeFeedScreen>(swipe).entries.length,
+        initial.length,
+      );
+      expect(tester.widget<PageView>(pages).controller, same(controller));
+      await gesture.moveBy(const Offset(0, -350));
+      await gesture.up();
+      await tester.pumpAndSettle();
+      expect(tester.widget<PageView>(pages).controller, same(controller));
+      expect(tester.takeException(), isNull);
+      await tester.pumpWidget(const SizedBox.shrink());
+    },
+  );
 }

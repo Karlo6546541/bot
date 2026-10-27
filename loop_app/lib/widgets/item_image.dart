@@ -47,9 +47,13 @@ class LocalPhoto extends StatelessWidget {
   Widget build(BuildContext context) {
     final provider = providerFor(path, cacheWidth: cacheWidth);
     if (provider == null) return fallback;
-    return Image(image: provider, fit: fit, gaplessPlayback: true,
+    return Image(
+      image: provider,
+      fit: fit,
+      gaplessPlayback: true,
       errorBuilder: (_, _, _) => fallback,
-      loadingBuilder: (_, child, progress) => progress == null ? child : fallback,
+      loadingBuilder: (_, child, progress) =>
+          progress == null ? child : fallback,
     );
   }
 

@@ -110,7 +110,9 @@ class _SwipeFeedScreenState extends ConsumerState<SwipeFeedScreen>
   final _preloaded = <String>{};
 
   bool _onScroll(ScrollNotification notification) {
-    if (notification.depth != 0 || notification.metrics.axis != Axis.vertical) return false;
+    if (notification.depth != 0 || notification.metrics.axis != Axis.vertical) {
+      return false;
+    }
     if (notification is ScrollStartNotification) {
       _scrolling = true;
       _viewTimer?.cancel();
@@ -138,7 +140,8 @@ class _SwipeFeedScreenState extends ConsumerState<SwipeFeedScreen>
       final state = ref.read(appProvider);
       for (final entry in widget.entries.skip(_index + 1).take(2)) {
         if (entry.isLive) continue;
-        final id = entry.deviceId ?? state.auctionById(entry.auctionId!)?.deviceId;
+        final id =
+            entry.deviceId ?? state.auctionById(entry.auctionId!)?.deviceId;
         final d = id == null ? null : state.deviceById(id);
         if (d == null || d.imagePaths.isEmpty) continue;
         final path = d.imagePaths.first;
@@ -295,45 +298,46 @@ class _SwipeFeedScreenState extends ConsumerState<SwipeFeedScreen>
                 NotificationListener<ScrollNotification>(
                   onNotification: _onScroll,
                   child: PageView.builder(
-                  key: const ValueKey('swipe-feed'),
-                  scrollBehavior: const AnyDeviceDragBehavior(),
-                  controller: _pages,
-                  scrollDirection: Axis.vertical,
-                  itemCount:
-                      entries.length +
-                      (widget.endPage != null || !embedded ? 1 : 0),
-                  onPageChanged: (i) {
-                    final dwell = _watch.take();
-                    if (_index < entries.length && dwell > Duration.zero) {
-                      widget.onWatch?.call(entries[_index], dwell);
-                    }
-                    final from = _index;
-                    setState(() => _index = i);
-                    widget.onPage?.call(from, dwell, i);
-                    if (_visible) _scheduleView();
-                  },
-                  itemBuilder: (context, i) {
-                    if (i == entries.length) {
-                      return widget.endPage ??
-                          _EndPage(onBack: () => Navigator.pop(context));
-                    }
-                    final e = entries[i];
-                    if (e.isLive) {
-                      return LiveRoomView(
-                        key: ValueKey('feed-live-${e.liveId}'),
-                        showId: e.liveId!,
-                        active: i == _index && _visible,
+                    key: const ValueKey('swipe-feed'),
+                    scrollBehavior: const AnyDeviceDragBehavior(),
+                    controller: _pages,
+                    scrollDirection: Axis.vertical,
+                    itemCount:
+                        entries.length +
+                        (widget.endPage != null || !embedded ? 1 : 0),
+                    onPageChanged: (i) {
+                      final dwell = _watch.take();
+                      if (_index < entries.length && dwell > Duration.zero) {
+                        widget.onWatch?.call(entries[_index], dwell);
+                      }
+                      final from = _index;
+                      setState(() => _index = i);
+                      widget.onPage?.call(from, dwell, i);
+                      if (_visible) _scheduleView();
+                    },
+                    itemBuilder: (context, i) {
+                      if (i == entries.length) {
+                        return widget.endPage ??
+                            _EndPage(onBack: () => Navigator.pop(context));
+                      }
+                      final e = entries[i];
+                      if (e.isLive) {
+                        return LiveRoomView(
+                          key: ValueKey('feed-live-${e.liveId}'),
+                          showId: e.liveId!,
+                          active: i == _index && _visible,
+                        );
+                      }
+                      return RepaintBoundary(
+                        key: ValueKey('post-${_key(e)}'),
+                        child: _PostPage(
+                          entry: e,
+                          state: state,
+                          onDetails: () => widget.onDetails?.call(e),
+                        ),
                       );
-                    }
-                    return RepaintBoundary(
-                      key: ValueKey('post-${_key(e)}'),
-                      child: _PostPage(
-                        entry: e, state: state,
-                        onDetails: () => widget.onDetails?.call(e),
-                      ),
-                    );
-                  },
-                ),
+                    },
+                  ),
                 ),
                 // Ugrađeno: oznaka zašto je objava predložena.
                 if (embedded &&
@@ -547,7 +551,6 @@ class _BoughtPage extends StatelessWidget {
 /// stupac akcija (desno) jedan pokraj drugoga — nikad se ne preklapaju.
 class _PostPage extends ConsumerStatefulWidget {
   const _PostPage({
-    super.key,
     required this.entry,
     required this.state,
     this.onDetails,
