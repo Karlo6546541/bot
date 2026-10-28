@@ -66,3 +66,44 @@ migration, account creation, video deployment or existing-user migration has bee
 `npm ci && npm test` in this directory runs the migration in embedded Postgres (PGlite).
 Checks cover anonymous room/chat reads, guest write denial, direct-write denial, host ownership, bid increments, idempotency, mute/ban,
 chat rate limit, RLS, server expiry, and one award. This is not a multi-session load test.
+
+## Commerce migration (002)
+
+Apply `002_commerce.sql` after `001_live.sql`. It adds product stock, reservations,
+private buyer/seller orders, auction-award checkout, follows, favorites, shipping
+selection, tracking, delivery confirmation and in-app notifications. Flutter API:
+`CommerceBackend`. These tables are intentionally not mirrored to the legacy Hive
+order store; UI migration must choose one authoritative backend for each order.
+
+Lifecycle: reserve stock → select shipping → verified payment event → paid → seller
+ships → buyer confirms delivery. Unpaid cancellation restores stock exactly once.
+An unpaid reservation currently has no automatic TTL: deploy an expiry worker before
+exposing public checkout, otherwise abandoned reservations can exhaust inventory.
+Shipping selection stores a request, not a purchased BOX NOW label. Carrier API calls,
+label generation, tracking webhooks and address validation remain separate work.
+
+`commerce_record_payment` is executable only by `service_role` (trusted worker). It is
+not a public webhook endpoint: the provider integration must verify signature, amount,
+currency, merchant identity and replay protection before calling it. Never call it
+from the app or use it to simulate real payments. Refunds, chargebacks, seller KYC,
+connected-account payouts, reconciliation and tax reporting are not implemented here.
+Payment rows are private; shipping destinations are visible only to order parties.
+
+## Delivery status of the whole system
+
+| Area | Implemented here | Still required before activation |
+|---|---|---|
+| Login | Existing Supabase Auth in deployed app | Exercise real user registration/reset/redirects |
+| Live/video | Host-scoped LiveKit token function | LiveKit project, media controller, deployment and device test |
+| Chat/moderation | Durable messages, guest reads, mute/ban, RLS | Wire existing UI, disconnect banned media participants |
+| Auctions | Locked bids, expiry validation, idempotent award | Trusted scheduled settlement and load tests |
+| Catalog/orders | Stock, reserve/cancel, award checkout RPC | Wire screens, reservation expiry and product media |
+| Social | Authenticated follow/favorite RPC | Migrate existing profile/feed state |
+| Notifications | Private order notifications | Realtime UI subscription and push provider |
+| Shipping | Private shipping selection and tracking | BOX NOW/other carrier credentials and label APIs |
+| Money | Trusted payment-event boundary | Payment provider, verified webhook, refunds and payouts |
+| Trust/support | Existing app reports/legal UI | Staff roles, case queue, audits and retention policies |
+
+No claim is made that all Whatnot functionality is implemented or that these migrations
+have been applied to the user's project. This branch contains the tested backend core
+and adapters. Real service credentials and deployment/integration are outstanding.
