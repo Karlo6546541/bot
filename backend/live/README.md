@@ -15,7 +15,7 @@ is deliberately pending deployment of the real services. Do not label the demo a
   paginate chat by ID (50 per page), deduplicate IDs, and preserve request UUIDs on retry.
 - LiveKit SFU: host uploads a single stream; SFU distributes it to viewers. Chat and
   bids must not use transient LiveKit data messages as their source of truth.
-- `live-token`: verifies Supabase JWT and room access, issues a five-minute room-scoped
+- `live-token`: verifies Supabase JWT when supplied and room access, issues a five-minute room-scoped
   token. Only the database room host can publish. Keys remain in Edge Function secrets.
 
 ## Deployment
@@ -27,7 +27,9 @@ is deliberately pending deployment of the real services. Do not label the demo a
    It creates separate tables and does not modify or secure the older demo schema.
    Never run the permissive legacy schema as a production trading backend.
 3. Copy `functions/live-token` into the Supabase project's functions directory and deploy
-   with gateway JWT verification enabled. Set secrets `LIVEKIT_API_KEY`,
+   with gateway JWT verification disabled for this one public viewer endpoint
+   (`[functions.live-token] verify_jwt = false`). It verifies user tokens itself; guests
+   receive subscribe-only media tokens and have SELECT-only database access. Set secrets `LIVEKIT_API_KEY`,
    `LIVEKIT_API_SECRET`, `LIVEKIT_URL` (`wss://…`) and `APP_ORIGIN`
    (`https://karlo6546541.github.io`). Supabase supplies its URL and anon key.
 4. Build the app with public `SUPABASE_URL` and `SUPABASE_KEY`. Never embed a service-role
@@ -62,5 +64,5 @@ migration, account creation, video deployment or existing-user migration has bee
 ## Local database checks
 
 `npm ci && npm test` in this directory runs the migration in embedded Postgres (PGlite).
-Checks cover direct-write denial, host ownership, bid increments, idempotency, mute/ban,
+Checks cover anonymous room/chat reads, guest write denial, direct-write denial, host ownership, bid increments, idempotency, mute/ban,
 chat rate limit, RLS, server expiry, and one award. This is not a multi-session load test.

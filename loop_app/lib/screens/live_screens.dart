@@ -1452,6 +1452,11 @@ class _LiveRoomViewState extends ConsumerState<_LiveRoomBody> {
   /// Brza reakcija: 2–4 emojija na nasumičnim mjestima (veličina, nagib,
   /// put), ostalima se šalje jedna (najviše jedna u 1,2 s).
   void _react(String emoji) {
+    final user = ref.read(appProvider).currentUser;
+    if (user == null || user.isGuest) {
+      blockGuest(context);
+      return;
+    }
     LiveSound.pop();
     _burst(emoji, 2 + _rnd.nextInt(3));
     final me = ref.read(appProvider).currentUser;

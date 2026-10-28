@@ -42,7 +42,7 @@ create table public.live_awards (
 );
 create function public.live_can_join(p_room uuid) returns boolean
 language sql stable security definer set search_path=public as $$
- select auth.uid() is not null and exists(select 1 from live_rooms where id=p_room)
+ select exists(select 1 from live_rooms where id=p_room)
  and not exists(select 1 from live_moderation where room_id=p_room and user_id=auth.uid() and banned)
 $$;
 create function public.live_is_host(p_room uuid) returns boolean
@@ -57,9 +57,10 @@ do $$ declare t text; begin
  execute format('grant select on public.%I to authenticated',t);
  end loop;
 end $$;
-create policy rooms_read on public.live_rooms for select to authenticated using(public.live_can_join(id));
-create policy lots_read on public.live_lots for select to authenticated using(public.live_can_join(room_id));
-create policy chat_read on public.live_messages for select to authenticated using(public.live_can_join(room_id));
+grant select on public.live_rooms, public.live_lots, public.live_messages to anon;
+create policy rooms_read on public.live_rooms for select to anon, authenticated using(public.live_can_join(id));
+create policy lots_read on public.live_lots for select to anon, authenticated using(public.live_can_join(room_id));
+create policy chat_read on public.live_messages for select to anon, authenticated using(public.live_can_join(room_id));
 create policy moderation_read on public.live_moderation for select to authenticated using(user_id=auth.uid() or public.live_is_host(room_id));
 create policy bids_read on public.live_bids for select to authenticated using(exists(select 1 from public.live_lots where id=lot_id and public.live_can_join(room_id)));
 create policy awards_read on public.live_awards for select to authenticated using(buyer_id=auth.uid() or exists(select 1 from public.live_lots where id=lot_id and public.live_is_host(room_id)));
@@ -96,6 +97,7 @@ language plpgsql security definer set search_path=public as $$ declare r live_lo
 end $$;
 create function public.live_send_message(p_room uuid,p_body text,p_request uuid) returns public.live_messages
 language plpgsql security definer set search_path=public as $$ declare r live_messages; begin
+ if auth.uid() is null then raise exception 'AUTH_REQUIRED'; end if;
  if not live_can_join(p_room) then raise exception 'ACCESS_DENIED'; end if;
  -- Serialize per user, across tabs, to enforce rate limiting and retries.
  perform pg_advisory_xact_lock(hashtextextended(auth.uid()::text,0));
@@ -128,7 +130,7 @@ end $$;
 create function public.live_finish_lot(p_lot uuid) returns public.live_lots
 language plpgsql security definer set search_path=public as $$ declare l live_lots; rid uuid; begin
  select room_id into rid from live_lots where id=p_lot;
- if not live_can_join(rid) then raise exception 'ACCESS_DENIED'; end if;
+ if auth.uid() is null or not live_can_join(rid) then raise exception 'ACCESS_DENIED'; end if;
  perform 1 from live_rooms where id=rid for update;
  select * into l from live_lots where id=p_lot for update;
  if l.status in ('sold','unsold') then return l; end if;
@@ -160,4 +162,5 @@ do $$ declare t text; begin
  execute format('alter publication supabase_realtime add table public.%I',t); end if;
  end loop;
 end $$;
+grant execute on function public.live_can_join(uuid) to anon;
 commit;
