@@ -1,6 +1,7 @@
 import 'boxnow_stub.dart'
     if (dart.library.js_interop) 'boxnow_web.dart'
     as impl;
+import '../../l10n/tr.dart';
 import 'lockers.dart';
 
 export 'lockers.dart';
@@ -94,7 +95,8 @@ class BoxNow {
 
   /// Otvara kartu; završava kad kupac odabere paketomat (ili kad se karta
   /// ne može učitati). Ako kupac samo zatvori kartu, ne završava.
-  static Future<BoxNowPick> pick() => impl.boxNowPick(partnerId, scriptUrl);
+  static Future<BoxNowPick> pick() =>
+      impl.boxNowPick(partnerId, scriptUrl, Tr.lang.name);
 }
 
 /// Karte paketomata za sve mreže.

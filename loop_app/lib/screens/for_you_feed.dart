@@ -135,8 +135,40 @@ class _ForYouFeedState extends ConsumerState<ForYouFeed> {
     _queueTimer = Timer(const Duration(milliseconds: 100), _refreshQueue);
   }
 
+  /// Objava je još dostupna (oglas u prodaji, aukcija/live traje).
+  bool _available(Pick p) {
+    final s = ref.read(appProvider);
+    final i = p.item;
+    if (i.show != null) {
+      final show = s.liveShowById(i.show!.id);
+      return show != null && !s.liveStateOf(show, DateTime.now()).isOver;
+    }
+    if (i.auction != null) {
+      return s.auctionById(i.auction!.id)?.isActive ?? false;
+    }
+    return s.deviceById(i.device!.id)?.isForSale ?? false;
+  }
+
   void _refreshQueue() {
     if (!mounted || _scrolling || !widget.active) return;
+    // Prodano, završeno ili obrisano (npr. podaci iz baze stigli nakon
+    // otvaranja) izlazi iz reda — i trenutna objava, da se ne zaglavi na
+    // "Oglas više nije dostupan".
+    final gone = [
+      for (var i = _index; i < _picks.length; i++)
+        // Live koji gledam ostaje (sažetak) dok ne povučem dalje.
+        if (!_available(_picks[i]) &&
+            !(i == _index && _picks[i].item.show != null))
+          i,
+    ];
+    if (gone.isNotEmpty) {
+      setState(() {
+        for (final i in gone.reversed) {
+          _picks.removeAt(i);
+        }
+        _generation++;
+      });
+    }
     // Freeze the current entry and the next two already being decoded.
     final keep = (_index + 3).clamp(0, _picks.length);
     final kept = _picks.sublist(0, keep);
@@ -339,6 +371,12 @@ class _ForYouFeedState extends ConsumerState<ForYouFeed> {
             previous.currentUser?.following,
             next.currentUser?.following,
           );
+      // Trenutna objava više nije dostupna (prodana, završena).
+      if (_index < _picks.length &&
+          _picks[_index].item.show == null &&
+          !_available(_picks[_index])) {
+        _inventoryDirty = true;
+      }
       if (_inventoryDirty || _rankingDirty) _scheduleQueue();
     });
     final end = ColoredBox(

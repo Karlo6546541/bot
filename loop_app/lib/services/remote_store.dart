@@ -65,18 +65,36 @@ class SupabaseRemoteStore implements RemoteStore {
   /// `null` ako tablica još ne postoji u bazi.
   Future<Map<String, Map<String, dynamic>>?> _pull(String t) async {
     // Baza vraća najviše 1000 redaka po upitu — čitaj po stranicama da se
-    // ništa ne izgubi (npr. velika tablica live događaja).
+    // ništa ne izgubi (npr. velika tablica live događaja). Prva stranica
+    // javlja ukupan broj, a ostale se čitaju istovremeno: redom bi velika
+    // tablica na sporoj mreži trajala predugo i cijelo učitavanje bi
+    // propalo (prazan feed).
     const page = 1000;
     final rows = <Map<String, dynamic>>[];
+    PostgrestTransformBuilder<PostgrestList> range(int from) => _client
+        .from(tableName(t))
+        .select('id, data')
+        .order('id')
+        .range(from, from + page - 1);
     try {
-      for (var from = 0; ; from += page) {
-        final chunk = await _client
-            .from(tableName(t))
-            .select('id, data')
-            .order('id')
-            .range(from, from + page - 1);
+      final first = await range(0).count(CountOption.exact);
+      rows.addAll(first.data);
+      var from = page;
+      if (first.data.length == page && first.count > page) {
+        final chunks = await Future.wait([
+          for (; from < first.count; from += page) range(from),
+        ]);
+        for (final c in chunks) {
+          rows.addAll(c);
+        }
+      }
+      // Ako je u međuvremenu nešto dodano (ili broj nije poznat): dalje redom.
+      var last = rows.length >= from ? page : 0;
+      while (last == page) {
+        final chunk = await range(from);
         rows.addAll(chunk);
-        if (chunk.length < page) break;
+        last = chunk.length;
+        from += page;
       }
     } on PostgrestException catch (e) {
       if (e.code == '42P01' ||

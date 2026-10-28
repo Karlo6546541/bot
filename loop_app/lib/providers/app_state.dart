@@ -209,7 +209,13 @@ class AppState {
       if (a.$2.isLive != b.$2.isLive) return a.$2.isLive ? -1 : 1;
       return a.$1.startsAt.compareTo(b.$1.startsAt);
     });
-    return out;
+    // Jedan domaćin = jedan live (npr. dvaput stisnut "Kreni" s dva
+    // uređaja): prikazuje se samo prvi, inače bi se isti live vidio dvaput.
+    final hosts = <String>{};
+    return [
+      for (final e in out)
+        if (hosts.add(e.$1.hostId)) e,
+    ];
   }
 
   /// Aktivne priče grupirane po trgovini: prvo moje, zatim nepogledane

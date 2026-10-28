@@ -538,7 +538,7 @@ class PostTile extends StatelessWidget {
                         Expanded(
                           child: Text(
                             live != null
-                                ? itemsLabel(live.lots.length)
+                                ? state.liveStateOf(live).cardLabel
                                 : formatCredits(
                                     auction?.currentPrice ?? d!.shownPrice,
                                   ),

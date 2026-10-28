@@ -214,6 +214,9 @@ ThemeData buildLoopTheme({Color? accent}) {
       shape: const StadiumBorder(),
     ),
     inputDecorationTheme: InputDecorationTheme(
+      // Pomoćni tekst i greške se lome u više redova (ne režu se).
+      helperMaxLines: 3,
+      errorMaxLines: 3,
       filled: true,
       fillColor: LoopColors.surface,
       labelStyle: TextStyle(color: LoopColors.textSecondary),

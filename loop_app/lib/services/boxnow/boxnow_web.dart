@@ -87,8 +87,11 @@ web.HTMLElement _ensureElements() {
   return button;
 }
 
-void _configure(String partnerId) {
+void _configure(String partnerId, String language) {
   final config = JSObject()
+    // Jezik karte = jezik aplikacije (inače je karta na engleskom).
+    ..['language'] = language.toJS
+    ..['lang'] = language.toJS
     ..['parentElement'] = '#boxnowmap'.toJS
     ..['type'] = 'popup'.toJS
     ..['autoclose'] = true.toJS
@@ -118,10 +121,14 @@ Future<void> _load(String scriptUrl) {
   return done.future.timeout(const Duration(seconds: 10));
 }
 
-Future<BoxNowPick> boxNowPick(String partnerId, String scriptUrl) async {
+Future<BoxNowPick> boxNowPick(
+  String partnerId,
+  String scriptUrl,
+  String language,
+) async {
   _listen();
   final button = _ensureElements();
-  _configure(partnerId);
+  _configure(partnerId, language);
   // Prethodno otvaranje (zatvoreno bez odabira) više ne čeka.
   final old = _pending;
   if (old != null && !old.isCompleted) old.complete(const BoxNowClosed());

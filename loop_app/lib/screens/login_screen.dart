@@ -480,7 +480,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       : Column(
                           children: [
                             if (_overlay)
-                              _ReasonBanner(widget.reason!)
+                              _ReasonBanner(widget.reason!, register: _register)
                             else
                               const _WelcomeHero(compact: true),
                             const SizedBox(height: 24),
@@ -838,8 +838,11 @@ class _ForgotPasswordDialogState extends ConsumerState<_ForgotPasswordDialog> {
 
 /// Zašto se traži prijava (gost je htio kupiti, licitirati, prodati…).
 class _ReasonBanner extends StatelessWidget {
-  const _ReasonBanner(this.reason);
+  const _ReasonBanner(this.reason, {required this.register});
   final String reason;
+
+  /// Naslov prati odabrani način (Prijava / Registracija).
+  final bool register;
 
   @override
   Widget build(BuildContext context) {
@@ -849,7 +852,7 @@ class _ReasonBanner extends StatelessWidget {
         const LoopLogo(size: 30),
         const SizedBox(height: 14),
         Text(
-          t('Napravi besplatan račun'),
+          register ? t('Napravi besplatan račun') : t('Prijavi se na Subhasto'),
           textAlign: TextAlign.center,
           style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w900),
         ),

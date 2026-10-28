@@ -433,9 +433,15 @@ void main() {
         final offset = int.tryParse(q['offset'] ?? '') ?? 0;
         final limit = (int.tryParse(q['limit'] ?? '') ?? 1000).clamp(0, 1000);
         final page = rows.skip(offset).take(limit).toList();
-        r.response
-          ..headers.contentType = ContentType.json
-          ..write(jsonEncode(page));
+        r.response.headers.contentType = ContentType.json;
+        // Kao PostgREST: ukupan broj redaka uz "Prefer: count=exact".
+        if (r.headers.value('prefer')?.contains('count=exact') ?? false) {
+          r.response.headers.set(
+            'content-range',
+            '$offset-${offset + page.length - 1}/${rows.length}',
+          );
+        }
+        r.response.write(jsonEncode(page));
         r.response.close();
       });
       final client = SupabaseClient(

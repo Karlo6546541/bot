@@ -486,9 +486,7 @@ class AuctionBrowseCard extends ConsumerWidget {
 
     final String price;
     if (live != null) {
-      price = live.current != null
-          ? t('Sada: {0}', [formatCredits(live.current!.price)])
-          : itemsLabel(show!.lots.length);
+      price = live.cardLabel;
     } else if (a != null) {
       price = formatCredits(a.currentPrice);
     } else {

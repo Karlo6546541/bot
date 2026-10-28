@@ -157,6 +157,18 @@ class LiveState {
   bool get canStart => isLive && current == null && show.endedAt == null;
 
   int get soldCount => lots.where((l) => l.status == LotStatus.sold).length;
+
+  /// Kratki opis za karticu livea: što se licitira ili što je na redu.
+  String get cardLabel {
+    final c = current;
+    if (c != null) return t('Sada: {0}', [formatCredits(c.price)]);
+    final n = next;
+    if (n != null && !isScheduled) {
+      return t('Sljedeće: {0}', [n.lot.deviceName]);
+    }
+    if (isScheduled || lots.isEmpty) return itemsLabel(lots.length);
+    return t('Prodano {0} od {1}', ['$soldCount', '${lots.length}']);
+  }
 }
 
 /// Live aukcije: objava, domaćin pokreće predmete, ulazak, chat, ponude i
