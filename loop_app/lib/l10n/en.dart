@@ -2540,4 +2540,33 @@ const kEn = <String, String>{
       'For local carriers and shown on your listings',
   'međunarodno': 'international',
   'Hrvatska': 'Croatia',
+  'Centar': 'Centre',
+  'Glavni kolodvor': 'Main station',
+  'Grad, adresa ili broj paketomata': 'City, address or locker number',
+  'Kad paket stigne u tvoj paketomat (BOX NOW, GLS ili DPD), ovdje dobiješ PIN za otvaranje pretinca.':
+      'When the parcel reaches your locker (BOX NOW, GLS or DPD), you get the PIN to open the compartment here.',
+  'Kurir na adresu. Paketomat (BOX NOW, GLS, DPD) biraš pri svakoj kupnji.':
+      'Courier to your address. You choose a parcel locker (BOX NOW, GLS, DPD) with each purchase.',
+  'Na bilo kojem BOX NOW paketomatu odaberi "Pošalji paket" i upiši PIN.':
+      'At any BOX NOW locker choose "Send parcel" and enter the PIN.',
+  'Na bilo kojem DPD Pickup paketomatu odaberi "Pošalji paket" i upiši PIN — ili paket predaj u DPD Pickup točki.':
+      'At any DPD Pickup locker choose "Send parcel" and enter the PIN — or drop the parcel off at a DPD Pickup point.',
+  'Na bilo kojem GLS paketomatu odaberi "Predaja paketa" i upiši PIN — ili paket predaj u GLS ParcelShopu.':
+      'At any GLS locker choose "Drop off parcel" and enter the PIN — or drop the parcel off at a GLS ParcelShop.',
+  'Nema paketomata za tu pretragu.': 'No lockers match that search.',
+  'Odaberi najbliži {0} paketomat na karti.':
+      'Choose the nearest {0} locker on the map.',
+  'Popis': 'List',
+  'Pošiljka prijavljena u {0}': 'Shipment registered with {0}',
+  'Trgovački centar': 'Shopping centre',
+  '{0} broj pošiljke': '{0} parcel number',
+  '{0} karta se nije otvorila — odaberi paketomat s popisa.':
+      'The {0} map didn\'t open — choose a locker from the list.',
+  '{0} paketomati': '{0} lockers',
+  '{0} · kodovi i PIN-ovi za paketomate': '{0} · codes and PINs for lockers',
+  '{0}: u transportu': '{0}: in transit',
+  '📦 Pošalji "{0}" kupcu {1}.\n{2} pošiljka {3} · paketomat: {4}\nPIN za predaju: {5}\n{6}':
+      '📦 Send "{0}" to buyer {1}.\n{2} parcel {3} · locker: {4}\nDrop-off PIN: {5}\n{6}',
+  'GLS paketomat': 'GLS locker',
+  'DPD Pickup paketomat': 'DPD Pickup locker',
 };

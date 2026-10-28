@@ -1,15 +1,21 @@
 import 'boxnow_stub.dart'
     if (dart.library.js_interop) 'boxnow_web.dart'
     as impl;
+import 'lockers.dart';
 
-/// BOX NOW paketomat odabran na karti.
+export 'lockers.dart';
+
+/// Paketomat (BOX NOW, GLS ili DPD) odabran na karti ili s popisa.
 class BoxNowLocker {
   const BoxNowLocker({
     required this.id,
     required this.address,
     this.postalCode = '',
     this.name = '',
+    this.network = LockerNetwork.boxNow,
   });
+
+  final LockerNetwork network;
 
   /// ID paketomata (`boxnowLockerId`) — treba ga BOX NOW Partner API pri
   /// izradi pošiljke (`destination.locationId`).
@@ -18,20 +24,27 @@ class BoxNowLocker {
   final String postalCode;
   final String name;
 
-  static const _prefix = 'BOX NOW #';
+  /// Opis bez broja: "Konzum Ilica, Ilica 1, 10000".
+  String get place => [
+    if (name.isNotEmpty) name,
+    address,
+    if (postalCode.isNotEmpty) postalCode,
+  ].join(', ');
 
-  /// Zapis u pošiljci: "BOX NOW #1234 · Ilica 1, 10000".
-  String get destination =>
-      '$_prefix$id · ${[if (name.isNotEmpty) name, address, if (postalCode.isNotEmpty) postalCode].join(', ')}';
+  /// Zapis u pošiljci: "BOX NOW #1234 · Ilica 1, 10000" (ili "GLS #…").
+  String get destination => '${network.prefix}$id · $place';
 
-  /// Čita paketomat iz zapisa u pošiljci (null ako nije BOX NOW).
+  /// Čita paketomat iz zapisa u pošiljci (null ako nije paketomat s
+  /// kartom).
   static BoxNowLocker? parse(String? destination) {
     final d = destination?.trim() ?? '';
-    if (!d.startsWith(_prefix)) return null;
-    final rest = d.substring(_prefix.length);
+    final n = LockerNetwork.ofDestination(d);
+    if (n == null) return null;
+    final rest = d.substring(n.prefix.length);
     final sep = rest.indexOf(' · ');
     if (sep <= 0 || sep + 3 >= rest.length) return null;
     return BoxNowLocker(
+      network: n,
       id: rest.substring(0, sep),
       address: rest.substring(sep + 3),
     );
@@ -82,4 +95,64 @@ class BoxNow {
   /// Otvara kartu; završava kad kupac odabere paketomat (ili kad se karta
   /// ne može učitati). Ako kupac samo zatvori kartu, ne završava.
   static Future<BoxNowPick> pick() => impl.boxNowPick(partnerId, scriptUrl);
+}
+
+/// Karte paketomata za sve mreže.
+///
+/// - BOX NOW: službeni widget ([BoxNow]).
+/// - GLS: službena karta `gls-dpm` (web komponenta s GLS poslužitelja
+///   države, npr. map.gls-croatia.com), samo paketomati
+///   (`filter-type="parcel-locker"`). Adresa se može zamijeniti s
+///   `--dart-define=GLS_WIDGET_JS=...`.
+/// - DPD: karta DPD Pickup točaka u iframeu (`--dart-define=DPD_WIDGET_URL=...`,
+///   URL daje DPD partneru); odabir stiže porukom (`postMessage`).
+/// Bez karte (APK, nepoznata država) bira se s popisa paketomata.
+/// Izrada pošiljke (MyGLS API, DPD API, BOX NOW Partner API) traži tajne
+/// ključeve pa ide na poslužitelj; u demo verziji broj i PIN-ovi su
+/// simulirani.
+class LockerMaps {
+  const LockerMaps._();
+
+  static const glsScript = String.fromEnvironment('GLS_WIDGET_JS');
+  static const dpdUrl = String.fromEnvironment('DPD_WIDGET_URL');
+
+  /// GLS poslužitelji karte po državi.
+  static const _glsHosts = {
+    'HR': 'map.gls-croatia.com',
+    'SI': 'map.gls-slovenia.com',
+    'HU': 'map.gls-hungary.com',
+    'CZ': 'map.gls-czech.com',
+    'SK': 'map.gls-slovakia.sk',
+    'RO': 'map.gls-romania.ro',
+  };
+
+  static String? _glsScriptFor(String country) {
+    if (glsScript.isNotEmpty) return glsScript;
+    final host = _glsHosts[country];
+    return host == null ? null : 'https://$host/widget/gls-dpm.js';
+  }
+
+  /// Ima li mreža kartu za tu državu (i je li ovo preglednik).
+  static bool available(LockerNetwork n, String country) {
+    if (!impl.boxNowAvailable) return false;
+    return switch (n) {
+      LockerNetwork.boxNow => country == 'HR' || country == 'GR',
+      LockerNetwork.gls => _glsScriptFor(country) != null,
+      LockerNetwork.dpd => dpdUrl.isNotEmpty,
+    };
+  }
+
+  static Future<BoxNowPick> pick(LockerNetwork n, String country) {
+    if (!available(n, country)) {
+      return Future.value(const BoxNowUnavailable());
+    }
+    return switch (n) {
+      LockerNetwork.boxNow => BoxNow.pick(),
+      LockerNetwork.gls => impl.glsPick(
+        _glsScriptFor(country)!,
+        country.toLowerCase(),
+      ),
+      LockerNetwork.dpd => impl.dpdPick(dpdUrl, country),
+    };
+  }
 }

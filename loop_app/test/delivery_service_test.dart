@@ -449,4 +449,64 @@ void main() {
       intl.cost + ParcelSize.bulky.extra * 2,
     );
   });
+
+  test('GLS i DPD paketomati: popis, zapis, broj pošiljke i PIN-ovi', () async {
+    final phone = storage.deviceById('seed-1')!;
+    final opts = DeliveryService.optionsFor(phone, from: 'HR', to: 'HR');
+    final gls = opts.firstWhere((o) => o.id == 'hr-gls-locker');
+    final dpd = opts.firstWhere((o) => o.id == 'hr-dpd-locker');
+    expect(LockerNetwork.ofCarrier(gls.carrier), LockerNetwork.gls);
+    expect(LockerNetwork.ofCarrier(dpd.carrier), LockerNetwork.dpd);
+    // I u drugim državama (npr. Slovenija).
+    final si = DeliveryService.optionsFor(phone, from: 'SI', to: 'SI');
+    expect(
+      si.map((o) => o.id),
+      containsAll(['si-gls-locker', 'si-dpd-locker']),
+    );
+
+    final locker = demoLockers(LockerNetwork.gls, 'HR').first;
+    expect(locker.destination, startsWith('GLS #'));
+    final back = BoxNowLocker.parse(locker.destination)!;
+    expect(back.network, LockerNetwork.gls);
+    expect(back.id, locker.id);
+    // Paketomat mora biti iz mreže odabranog dostavljača.
+    expect(
+      DeliveryService.validate(
+        DeliveryMethod.parcelLocker,
+        locker.destination,
+        carrier: gls.carrier,
+      ),
+      isNull,
+    );
+    expect(
+      DeliveryService.validate(
+        DeliveryMethod.parcelLocker,
+        locker.destination,
+        carrier: dpd.carrier,
+      ),
+      isNotNull,
+    );
+
+    final d = await deliveries.createForPurchase(
+      userId: demo,
+      device: phone,
+      method: DeliveryMethod.parcelLocker,
+      destination: locker.destination,
+      carrier: gls.carrier,
+    );
+    expect(d.carrier, 'GLS paketomat');
+    expect(BoxNowDemo.network(d), LockerNetwork.gls);
+    expect(BoxNowDemo.parcelId(d), hasLength(11));
+    expect(BoxNowDemo.dropOffPin(d), matches(RegExp(r'^\d{6}$')));
+    expect(BoxNowDemo.events(d, DateTime.now()).first.$1, contains('GLS'));
+    final dpdDelivery = d.copyWith(
+      destination: demoLockers(LockerNetwork.dpd, 'HR').first.destination,
+    );
+    expect(BoxNowDemo.parcelId(dpdDelivery), hasLength(14));
+    // Zapis bez oznake mreže: odlučuje dostavljač pošiljke.
+    expect(
+      BoxNowDemo.network(d.copyWith(destination: kDemoLockers.first)),
+      LockerNetwork.gls,
+    );
+  });
 }

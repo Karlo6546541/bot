@@ -150,26 +150,58 @@ class _DeliveryPickerState extends State<DeliveryPicker> {
   }
 
   late final _address = TextEditingController(text: widget.savedAddress);
-  String _locker = kDemoLockers.first;
 
-  /// BOX NOW karta (web); ako se ne učita, bira se s popisa.
-  BoxNowLocker? _boxNow;
-  bool _mapFailed = !BoxNow.available;
+  /// Mreža paketomata odabrane opcije (BOX NOW, GLS, DPD) ili null.
+  LockerNetwork? get _network {
+    final o = _option;
+    if (o == null || !o.method.needsLocker) return null;
+    return o.carrier == null
+        ? LockerNetwork.boxNow
+        : LockerNetwork.ofCarrier(o.carrier);
+  }
+
+  /// Država kupca (za kartu i popis paketomata).
+  String get _to => _option?.to?.code ?? 'HR';
+
+  /// Paketomat s karte ili popisa (vrijedi samo za svoju mrežu).
+  BoxNowLocker? _picked;
+
+  /// Mreže čija se karta nije učitala — za njih se bira s popisa.
+  final _mapFailed = <LockerNetwork>{};
+
+  bool get _hasMap {
+    final n = _network;
+    return n != null && !_mapFailed.contains(n) && LockerMaps.available(n, _to);
+  }
+
+  /// Odabrani paketomat; bez karte prvi s popisa (kao dosad).
+  BoxNowLocker? get _locker {
+    final n = _network;
+    if (n == null) return null;
+    final p = _picked;
+    if (p != null && p.network == n) return p;
+    if (_hasMap) return null;
+    return demoLockers(n, _to).firstOrNull;
+  }
 
   /// Karta se otvara preko aplikacije; ako je kupac zatvori bez odabira,
   /// gumb ostaje dostupan (novo otvaranje zamjenjuje staro).
   Future<void> _pickOnMap() async {
-    final r = await BoxNow.pick();
+    final n = _network;
+    if (n == null) return;
+    final r = await LockerMaps.pick(n, _to);
     if (!mounted) return;
     setState(() {
       switch (r) {
         case BoxNowPicked(:final locker):
-          _boxNow = locker;
+          _picked = locker;
         case BoxNowUnavailable():
           // Karta se nije učitala — bira se s popisa.
-          _mapFailed = true;
+          _mapFailed.add(n);
           showLoopSnackBar(
-            t('BOX NOW karta se nije otvorila — odaberi paketomat s popisa.'),
+            t('{0} karta se nije otvorila — odaberi paketomat s popisa.', [
+              n.brand,
+            ]),
           );
         case BoxNowClosed():
           break;
@@ -177,6 +209,28 @@ class _DeliveryPickerState extends State<DeliveryPicker> {
     });
     _emit();
   }
+
+  /// Popis paketomata s pretragom (i u APK-u, gdje nema karte).
+  Future<void> _pickFromList() async {
+    final n = _network;
+    if (n == null) return;
+    final l = await showModalBottomSheet<BoxNowLocker>(
+      context: context,
+      isScrollControlled: true,
+      showDragHandle: true,
+      builder: (_) => LockerListSheet(
+        network: n,
+        lockers: demoLockers(n, _to),
+        selected: _locker,
+      ),
+    );
+    if (l == null || !mounted) return;
+    setState(() => _picked = l);
+    _emit();
+  }
+
+  static LockerNetwork? _networkOf(DeliveryOption o) =>
+      LockerNetwork.ofCarrier(o.carrier);
 
   double _cost(DeliveryOption o) => o.carrier != null
       ? DeliveryService.carrierCost(o.carrier!, widget.size)
@@ -201,11 +255,9 @@ class _DeliveryPickerState extends State<DeliveryPicker> {
   /// Država za dostavu u EU.
   String? _country;
 
-  /// Paketomat drugog dostavljača (ne BOX NOW): upisuje se mjesto.
+  /// Paketomat bez karte (InPost, Foxpost…): upisuje se mjesto.
   bool get _otherLocker =>
-      _option?.carrier != null &&
-      _option!.carrier!.kind == CarrierKind.locker &&
-      _option!.carrier!.id != 'hr-boxnow';
+      _option?.carrier?.kind == CarrierKind.locker && _network == null;
   final _lockerText = TextEditingController();
 
   String? get _destination => switch (_method) {
@@ -216,7 +268,7 @@ class _DeliveryPickerState extends State<DeliveryPicker> {
       _country == null ? _address.text : '${_address.text.trim()}, $_country',
     DeliveryMethod.parcelLocker when _otherLocker => _lockerText.text,
     final m? when m.needsAddress => _address.text,
-    final m? when m.needsLocker => _mapFailed ? _locker : _boxNow?.destination,
+    final m? when m.needsLocker => _locker?.destination,
     _ => null,
   };
 
@@ -339,10 +391,16 @@ class _DeliveryPickerState extends State<DeliveryPicker> {
                         width: 40,
                         height: 40,
                         decoration: BoxDecoration(
-                          color: LoopColors.mint,
+                          color: switch (_networkOf(m)) {
+                            final n? => Color(n.color),
+                            null => LoopColors.mint,
+                          },
                           borderRadius: BorderRadius.circular(12),
                         ),
-                        child: Icon(optionIcon(m)),
+                        child: Icon(
+                          optionIcon(m),
+                          color: _networkOf(m) == null ? null : Colors.white,
+                        ),
                       ),
                       const SizedBox(width: 12),
                       Expanded(
@@ -447,40 +505,13 @@ class _DeliveryPickerState extends State<DeliveryPicker> {
             onChanged: (_) => _emit(),
           ),
         ],
-        if ((_method?.needsLocker ?? false) &&
-            !_mapFailed &&
-            !_otherLocker) ...[
+        if (_network case final n?) ...[
           const SizedBox(height: 4),
-          _BoxNowTile(locker: _boxNow, onPick: _pickOnMap),
-          Align(
-            alignment: Alignment.centerLeft,
-            child: TextButton(
-              key: const ValueKey('boxnow-list'),
-              onPressed: () {
-                setState(() => _mapFailed = true);
-                _emit();
-              },
-              child: Text(t('Karta ne radi? Odaberi s popisa')),
-            ),
-          ),
-        ],
-        if ((_method?.needsLocker ?? false) && _mapFailed && !_otherLocker) ...[
-          const SizedBox(height: 4),
-          DropdownButtonFormField<String>(
-            initialValue: _locker,
-            isExpanded: true,
-            decoration: InputDecoration(
-              labelText: t('Paketomat'),
-              prefixIcon: Icon(Icons.place_outlined),
-            ),
-            items: [
-              for (final l in kDemoLockers)
-                DropdownMenuItem(value: l, child: Text(l)),
-            ],
-            onChanged: (v) {
-              setState(() => _locker = v!);
-              _emit();
-            },
+          LockerTile(
+            network: n,
+            locker: _locker,
+            onMap: _hasMap ? _pickOnMap : null,
+            onList: _pickFromList,
           ),
         ],
       ],
@@ -488,66 +519,207 @@ class _DeliveryPickerState extends State<DeliveryPicker> {
   }
 }
 
-/// Odabrani BOX NOW paketomat + gumb koji otvara kartu.
-class _BoxNowTile extends StatelessWidget {
-  const _BoxNowTile({required this.locker, required this.onPick});
+/// Odabrani paketomat (BOX NOW, GLS, DPD) + gumbi za kartu i popis.
+class LockerTile extends StatelessWidget {
+  const LockerTile({
+    super.key,
+    required this.network,
+    required this.locker,
+    required this.onMap,
+    required this.onList,
+  });
 
+  final LockerNetwork network;
   final BoxNowLocker? locker;
-  final VoidCallback onPick;
+
+  /// Null: karta nije dostupna (bira se s popisa).
+  final VoidCallback? onMap;
+  final VoidCallback onList;
 
   @override
   Widget build(BuildContext context) {
     final l = locker;
+    final color = Color(network.color);
     return Container(
+      key: const ValueKey('locker-tile'),
       padding: const EdgeInsets.fromLTRB(12, 10, 8, 10),
       decoration: BoxDecoration(
         color: LoopColors.surface,
         borderRadius: BorderRadius.circular(kRadius),
-        border: Border.all(color: LoopColors.surfaceHover, width: 1.5),
+        border: Border.all(color: color.withValues(alpha: 0.6), width: 1.5),
       ),
-      child: Row(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Container(
-            width: 40,
-            height: 40,
-            decoration: BoxDecoration(
-              color: const Color(0xFF6CD04E),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: const Icon(Icons.place, color: Colors.white),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  l == null ? t('Paketomat nije odabran') : 'BOX NOW #${l.id}',
-                  style: const TextStyle(fontWeight: FontWeight.w800),
+          Row(
+            children: [
+              Container(
+                width: 40,
+                height: 40,
+                decoration: BoxDecoration(
+                  color: color,
+                  borderRadius: BorderRadius.circular(12),
                 ),
-                Text(
-                  l == null
-                      ? t('Odaberi najbliži BOX NOW paketomat na karti.')
-                      : [
-                          if (l.name.isNotEmpty) l.name,
-                          l.address,
-                          if (l.postalCode.isNotEmpty) l.postalCode,
-                        ].join(', '),
-                  style: TextStyle(
-                    color: LoopColors.textSecondary,
-                    fontSize: 12,
+                child: const Icon(Icons.place, color: Colors.white),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      l == null
+                          ? t('Paketomat nije odabran')
+                          : '${network.brand} #${l.id}',
+                      style: const TextStyle(fontWeight: FontWeight.w800),
+                    ),
+                    Text(
+                      l == null
+                          ? t('Odaberi najbliži {0} paketomat na karti.', [
+                              network.brand,
+                            ])
+                          : l.place,
+                      style: TextStyle(
+                        color: LoopColors.textSecondary,
+                        fontSize: 12,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              if (onMap != null) ...[
+                Expanded(
+                  child: FilledButton.tonalIcon(
+                    key: const ValueKey('boxnow-pick'),
+                    onPressed: onMap,
+                    icon: const Icon(Icons.map_outlined, size: 18),
+                    label: Text(t('Karta')),
                   ),
                 ),
+                const SizedBox(width: 8),
               ],
-            ),
-          ),
-          const SizedBox(width: 8),
-          FilledButton.tonal(
-            key: const ValueKey('boxnow-pick'),
-            onPressed: onPick,
-            child: Text(l == null ? t('Karta') : t('Promijeni')),
+              Expanded(
+                child: OutlinedButton.icon(
+                  key: const ValueKey('boxnow-list'),
+                  onPressed: onList,
+                  icon: const Icon(Icons.list, size: 18),
+                  label: Text(l == null ? t('Popis') : t('Promijeni')),
+                ),
+              ),
+            ],
           ),
         ],
+      ),
+    );
+  }
+}
+
+/// Popis paketomata mreže s pretragom (grad, adresa, broj).
+class LockerListSheet extends StatefulWidget {
+  const LockerListSheet({
+    super.key,
+    required this.network,
+    required this.lockers,
+    this.selected,
+  });
+
+  final LockerNetwork network;
+  final List<BoxNowLocker> lockers;
+  final BoxNowLocker? selected;
+
+  @override
+  State<LockerListSheet> createState() => _LockerListSheetState();
+}
+
+class _LockerListSheetState extends State<LockerListSheet> {
+  String _q = '';
+
+  @override
+  Widget build(BuildContext context) {
+    final q = _q.trim().toLowerCase();
+    final list = [
+      for (final l in widget.lockers)
+        if (q.isEmpty || '${l.id} ${l.place}'.toLowerCase().contains(q)) l,
+    ];
+    final color = Color(widget.network.color);
+    return SafeArea(
+      child: Padding(
+        padding: EdgeInsets.fromLTRB(
+          16,
+          0,
+          16,
+          16 + MediaQuery.viewInsetsOf(context).bottom,
+        ),
+        child: ConstrainedBox(
+          constraints: BoxConstraints(
+            maxHeight: MediaQuery.sizeOf(context).height * 0.7,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text(
+                t('{0} paketomati', [widget.network.brand]),
+                style: const TextStyle(
+                  fontWeight: FontWeight.w900,
+                  fontSize: 18,
+                ),
+              ),
+              const SizedBox(height: 10),
+              TextField(
+                key: const ValueKey('locker-search'),
+                decoration: InputDecoration(
+                  hintText: t('Grad, adresa ili broj paketomata'),
+                  prefixIcon: const Icon(Icons.search),
+                ),
+                onChanged: (v) => setState(() => _q = v),
+              ),
+              const SizedBox(height: 8),
+              Flexible(
+                child: list.isEmpty
+                    ? Padding(
+                        padding: const EdgeInsets.all(24),
+                        child: Text(
+                          t('Nema paketomata za tu pretragu.'),
+                          textAlign: TextAlign.center,
+                        ),
+                      )
+                    : ListView(
+                        shrinkWrap: true,
+                        children: [
+                          for (final l in list)
+                            ListTile(
+                              key: ValueKey('locker-${l.id}'),
+                              leading: CircleAvatar(
+                                backgroundColor: color,
+                                foregroundColor: Colors.white,
+                                child: const Icon(Icons.place, size: 20),
+                              ),
+                              title: Text(
+                                l.name.isEmpty ? '#${l.id}' : l.name,
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.w800,
+                                ),
+                              ),
+                              subtitle: Text(
+                                '#${l.id} · ${[l.address, if (l.postalCode.isNotEmpty) l.postalCode].join(', ')}',
+                              ),
+                              trailing: widget.selected?.id == l.id
+                                  ? Icon(Icons.check_circle, color: color)
+                                  : null,
+                              onTap: () => Navigator.of(context).pop(l),
+                            ),
+                        ],
+                      ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }

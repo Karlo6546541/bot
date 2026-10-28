@@ -454,7 +454,7 @@ class DeliveryDetailScreen extends ConsumerWidget {
             const SizedBox(height: 16),
             ShippingLabel(delivery: d),
           ],
-          // BOX NOW (demo): broj pošiljke, PIN-ovi i praćenje.
+          // Paketomat (BOX NOW, GLS, DPD — demo): broj, PIN-ovi i praćenje.
           if (d.method == DeliveryMethod.parcelLocker) ...[
             const SizedBox(height: 16),
             BoxNowCard(delivery: d, seller: d.sellerId == s.currentUserId),
@@ -798,9 +798,7 @@ class ShippingLabel extends ConsumerWidget {
             const SizedBox(height: 12),
             Text(
               locker
-                  ? t(
-                      'Na bilo kojem BOX NOW paketomatu odaberi "Pošalji paket" i skeniraj QR (ili upiši kod) — paket ide u paketomat kupca.',
-                    )
+                  ? BoxNowDemo.network(d).dropOffHint
                   : t(
                       'Pokaži QR kuriru ili ispiši etiketu i zalijepi je na paket.',
                     ),
@@ -872,7 +870,10 @@ class DeliveryNoteScreen extends ConsumerWidget {
       (t('Predmet'), '1 × ${d.deviceName}'),
       if (paid != null) (t('Vrijednost'), formatCredits(paid)),
       if (d.method == DeliveryMethod.parcelLocker) ...[
-        (t('BOX NOW broj pošiljke'), BoxNowDemo.parcelId(d)),
+        (
+          t('{0} broj pošiljke', [BoxNowDemo.network(d).brand]),
+          BoxNowDemo.parcelId(d),
+        ),
         (t('PIN za predaju'), BoxNowDemo.dropOffPin(d)),
       ],
     ];
@@ -1000,18 +1001,19 @@ td{border-bottom:1px solid #ddd;padding:8px 4px;vertical-align:top}td:first-chil
   }
 }
 
-/// BOX NOW (demo): broj pošiljke, PIN za predaju (prodavač) ili PIN za
-/// preuzimanje (kupac, kad paket stigne) i praćenje kao u BOX NOW-u.
+/// Paketomat (demo): broj pošiljke, PIN za predaju (prodavač) ili PIN za
+/// preuzimanje (kupac, kad paket stigne) i praćenje kao kod dostavljača
+/// (BOX NOW, GLS, DPD).
 class BoxNowCard extends StatelessWidget {
   const BoxNowCard({super.key, required this.delivery, required this.seller});
   final Delivery delivery;
   final bool seller;
 
-  static const _green = Color(0xFF6BBE45);
-
   @override
   Widget build(BuildContext context) {
     final d = delivery;
+    final network = BoxNowDemo.network(d);
+    final green = Color(network.color);
     final now = DateTime.now();
     final idx = d.stepIndex(now);
     final inLocker =
@@ -1022,9 +1024,9 @@ class BoxNowCard extends StatelessWidget {
       margin: const EdgeInsets.only(top: 10),
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
       decoration: BoxDecoration(
-        color: _green.withValues(alpha: 0.12),
+        color: green.withValues(alpha: 0.12),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: _green),
+        border: Border.all(color: green),
       ),
       child: Row(
         children: [
@@ -1060,11 +1062,11 @@ class BoxNowCard extends StatelessWidget {
                     vertical: 3,
                   ),
                   decoration: BoxDecoration(
-                    color: _green,
+                    color: green,
                     borderRadius: BorderRadius.circular(6),
                   ),
-                  child: const Text(
-                    'BOX NOW',
+                  child: Text(
+                    network.brand,
                     style: TextStyle(
                       color: Colors.white,
                       fontWeight: FontWeight.w900,
@@ -1116,7 +1118,7 @@ class BoxNowCard extends StatelessWidget {
                     Icon(
                       done ? Icons.check_circle : Icons.radio_button_unchecked,
                       size: 18,
-                      color: done ? _green : LoopColors.textSecondary,
+                      color: done ? green : LoopColors.textSecondary,
                     ),
                     const SizedBox(width: 8),
                     Expanded(
@@ -1147,7 +1149,7 @@ class BoxNowCard extends StatelessWidget {
 }
 
 /// Otpremnice (zasebna kategorija u Moje): svi paketi koje šaljem, s
-/// BOX NOW brojem i stanjem; dodir otvara otpremnicu.
+/// brojem pošiljke i stanjem; dodir otvara otpremnicu.
 class DeliveryNotesScreen extends ConsumerWidget {
   const DeliveryNotesScreen({super.key});
 
@@ -1201,7 +1203,7 @@ class DeliveryNotesScreen extends ConsumerWidget {
                             s.userById(d.buyerId)?.handle ?? '',
                             formatDateTime(d.startedAt ?? d.createdAt),
                             if (d.method == DeliveryMethod.parcelLocker)
-                              'BOX NOW ${BoxNowDemo.parcelId(d)}',
+                              '${BoxNowDemo.network(d).brand} ${BoxNowDemo.parcelId(d)}',
                           ].join(' · '),
                         ].join('\n'),
                         maxLines: 2,
@@ -1227,7 +1229,7 @@ class DeliveryNotesScreen extends ConsumerWidget {
   }
 }
 
-/// PIN za preuzimanje iz BOX NOW paketomata (kupac) — veliko i jasno.
+/// PIN za preuzimanje iz paketomata (kupac) — veliko i jasno.
 class PickupPinBox extends StatelessWidget {
   const PickupPinBox({super.key, required this.delivery});
   final Delivery delivery;
@@ -1236,13 +1238,14 @@ class PickupPinBox extends StatelessWidget {
   Widget build(BuildContext context) {
     final d = delivery;
     final pin = BoxNowDemo.pickupPin(d);
+    final green = Color(BoxNowDemo.network(d).color);
     return Container(
       key: ValueKey('pickup-pin-${d.id}'),
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: BoxNowCard._green.withValues(alpha: 0.12),
+        color: green.withValues(alpha: 0.12),
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: BoxNowCard._green, width: 1.5),
+        border: Border.all(color: green, width: 1.5),
       ),
       child: Row(
         children: [
@@ -1302,7 +1305,7 @@ class PickupPinBox extends StatelessWidget {
 }
 
 /// PIN-ovi za preuzimanje (zasebna kategorija u Moje): svi paketi koji
-/// kupca čekaju u BOX NOW paketomatima.
+/// kupca čekaju u paketomatima.
 class PickupPinsScreen extends ConsumerWidget {
   const PickupPinsScreen({super.key});
 
@@ -1330,7 +1333,7 @@ class PickupPinsScreen extends ConsumerWidget {
               icon: Icons.markunread_mailbox_outlined,
               title: t('Nema paketa u paketomatu'),
               message: t(
-                'Kad paket stigne u tvoj BOX NOW paketomat, ovdje dobiješ PIN za otvaranje pretinca.',
+                'Kad paket stigne u tvoj paketomat (BOX NOW, GLS ili DPD), ovdje dobiješ PIN za otvaranje pretinca.',
               ),
             )
           : ListView(

@@ -335,7 +335,7 @@ class _WalletSheet extends ConsumerWidget {
                   ? t('Dodaj adresu za dostavu')
                   : address,
               subtitle: t(
-                'Kurir na adresu. BOX NOW paketomat biraš pri svakoj kupnji.',
+                'Kurir na adresu. Paketomat (BOX NOW, GLS, DPD) biraš pri svakoj kupnji.',
               ),
               done: address != null && address.isNotEmpty,
               onTap: () => _editAddress(context, ref),

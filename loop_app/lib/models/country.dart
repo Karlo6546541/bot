@@ -74,6 +74,20 @@ List<Carrier> _std(
   Carrier('$code-gls', 'GLS', CarrierKind.courier, base, '1–2'),
   Carrier('$code-dpd', 'DPD', CarrierKind.courier, base + 0.5, '1–2'),
   Carrier('$code-post', post, CarrierKind.post, base - 1, '2–4'),
+  Carrier(
+    '$code-gls-locker',
+    'GLS paketomat',
+    CarrierKind.locker,
+    base - 1.5,
+    '1–2',
+  ),
+  Carrier(
+    '$code-dpd-locker',
+    'DPD Pickup paketomat',
+    CarrierKind.locker,
+    base - 1.5,
+    '1–3',
+  ),
   ...extra,
 ];
 
@@ -82,6 +96,20 @@ const _hr = 'HR';
 final kCountries = <Country>[
   Country(_hr, 'Hrvatska', '🇭🇷', 45.8, 16.0, [
     const Carrier('hr-boxnow', 'BOX NOW', CarrierKind.locker, 3, '1–2'),
+    const Carrier(
+      'hr-gls-locker',
+      'GLS paketomat',
+      CarrierKind.locker,
+      3.5,
+      '1–2',
+    ),
+    const Carrier(
+      'hr-dpd-locker',
+      'DPD Pickup paketomat',
+      CarrierKind.locker,
+      3.5,
+      '1–3',
+    ),
     const Carrier('hr-gls', 'GLS', CarrierKind.courier, 5, '1–2'),
     const Carrier('hr-dpd', 'DPD', CarrierKind.courier, 5.5, '1–2'),
     const Carrier(

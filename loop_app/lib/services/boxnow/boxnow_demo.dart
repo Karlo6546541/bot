@@ -1,7 +1,7 @@
-import '../../l10n/tr.dart';
 import '../../models/delivery.dart';
+import 'lockers.dart';
 
-/// Demo BOX NOW integracija (bez pravog API-ja): pošiljka dobiva BOX NOW
+/// Demo integracija paketomata (BOX NOW, GLS, DPD) (bez pravog API-ja): pošiljka dobiva BOX NOW
 /// broj (javni, iz ID-ja pošiljke), nasumičan PIN za predaju (prodavač) i
 /// PIN za preuzimanje (kupac), a praćenje prati korake pošiljke. S pravim
 /// partnerskim API-jem ove vrijednosti vraća BOX NOW.
@@ -27,8 +27,15 @@ class BoxNowDemo {
     return p;
   }
 
-  /// BOX NOW broj pošiljke (10 znamenki).
-  static String parcelId(Delivery d) => '92${_digits(d.id, 1, 8)}';
+  /// Mreža paketomata pošiljke.
+  static LockerNetwork network(Delivery d) => LockerNetwork.ofDelivery(d);
+
+  /// Broj pošiljke u formatu mreže: BOX NOW 10 znamenki, GLS 11, DPD 14.
+  static String parcelId(Delivery d) => switch (network(d)) {
+    LockerNetwork.boxNow => '92${_digits(d.id, 1, 8)}',
+    LockerNetwork.gls => '5${_digits(d.id, 4, 9)}${_digits(d.id, 5, 1)}',
+    LockerNetwork.dpd => '0${_digits(d.id, 6, 7)}${_digits(d.id, 7, 6)}',
+  };
 
   /// PIN koji prodavač upiše na paketomatu kad predaje paket (nasumičan,
   /// spremljen uz pošiljku; stare pošiljke bez PIN-a imaju zamjenski).
@@ -37,16 +44,10 @@ class BoxNowDemo {
   /// PIN kojim kupac otvara pretinac (vidi ga kad paket stigne).
   static String pickupPin(Delivery d) => d.pickupPin ?? _digits(d.id, 3, 6);
 
-  /// Praćenje u stilu BOX NOW-a: (opis, kada, gotovo).
+  /// Praćenje kao u aplikaciji dostavljača: (opis, kada, gotovo).
   static List<(String, DateTime?, bool)> events(Delivery d, DateTime now) {
     final cur = d.stepIndex(now);
-    final labels = [
-      t('Pošiljka prijavljena u BOX NOW'),
-      t('Prodavač predao paket u paketomat'),
-      t('BOX NOW: u transportu'),
-      t('Stiglo u paketomat kupca'),
-      t('Kupac preuzeo paket'),
-    ];
+    final labels = network(d).eventLabels;
     return [
       for (var i = 0; i < labels.length && i < d.steps.length; i++)
         (

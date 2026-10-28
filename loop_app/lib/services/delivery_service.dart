@@ -127,9 +127,17 @@ class DeliveryService {
     Carrier? carrier,
   }) {
     final dest = destination?.trim() ?? '';
-    // Paketomat drugog dostavljača (Foxpost, InPost…): upisano mjesto.
-    if (m.needsLocker && carrier != null && carrier.id != 'hr-boxnow') {
+    // Paketomat bez karte (Foxpost, InPost…): upisano mjesto.
+    final network = LockerNetwork.ofCarrier(carrier);
+    if (m.needsLocker && carrier != null && network == null) {
       return dest.length < 3 ? t('Odaberi paketomat.') : null;
+    }
+    // BOX NOW / GLS / DPD: paketomat te mreže (s karte ili popisa).
+    if (m.needsLocker &&
+        network != null &&
+        BoxNowLocker.parse(dest)?.network != network &&
+        !(network == LockerNetwork.boxNow && kDemoLockers.contains(dest))) {
+      return t('Odaberi paketomat.');
     }
     if (m == DeliveryMethod.europe && euCountryOf(dest) == null) {
       return t('Odaberi državu EU za dostavu.');

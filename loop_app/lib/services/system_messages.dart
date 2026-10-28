@@ -21,13 +21,15 @@ class SystemMessages {
       createdAt: d.startedAt ?? d.createdAt,
       text: m == DeliveryMethod.parcelLocker
           ? t(
-              '📦 Pošalji "{0}" kupcu {1}.\nBOX NOW pošiljka {2} · paketomat: {3}\nPIN za predaju: {4}\nNa bilo kojem BOX NOW paketomatu odaberi "Pošalji paket" i upiši PIN.',
+              '📦 Pošalji "{0}" kupcu {1}.\n{2} pošiljka {3} · paketomat: {4}\nPIN za predaju: {5}\n{6}',
               [
                 d.deviceName,
                 buyerLabel,
+                BoxNowDemo.network(d).brand,
                 BoxNowDemo.parcelId(d),
                 d.destination ?? '',
                 BoxNowDemo.dropOffPin(d),
+                BoxNowDemo.network(d).dropOffHint,
               ],
             )
           : t(

@@ -974,7 +974,9 @@ class _MyAuctionsViewState extends ConsumerState<MyAuctionsView> {
                   style: const TextStyle(fontWeight: FontWeight.w900),
                 ),
                 subtitle: Text(
-                  t('{0} · kodovi i PIN-ovi za BOX NOW', ['${notes.length}']),
+                  t('{0} · kodovi i PIN-ovi za paketomate', [
+                    '${notes.length}',
+                  ]),
                 ),
                 trailing: const Icon(Icons.chevron_right),
                 onTap: () => DeliveryNotesScreen.open(context),
