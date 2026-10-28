@@ -27,6 +27,7 @@ import '../services/swap_service.dart';
 import '../models/report.dart';
 import '../services/delivery_service.dart';
 import '../services/earnings.dart';
+import '../models/country.dart';
 import '../models/delivery.dart';
 import '../services/file_store.dart';
 import '../services/image_store.dart';
@@ -232,14 +233,19 @@ class AppController extends Notifier<AppState> {
     required String password,
     required String username,
     String referral = '',
-  }) async => _apply(
-    await _accounts.register(
-      email: email,
-      password: password,
-      username: username,
-      referral: referral,
-    ),
-  );
+    String country = 'HR',
+  }) async {
+    // Država se primijeni kad je račun prijavljen (i nakon potvrde e-maila).
+    await _storage.setPendingCountry(country);
+    return _apply(
+      await _accounts.register(
+        email: email,
+        password: password,
+        username: username,
+        referral: referral,
+      ),
+    );
+  }
 
   Future<void> signInWithGoogle() =>
       ref.read(authBackendProvider).signInWithGoogle();
@@ -260,6 +266,14 @@ class AppController extends Notifier<AppState> {
 
   Future<SignInResult> _apply(SignInResult result) async {
     if (result is SignedIn) {
+      final pending = _storage.pendingCountry;
+      if (pending != null) {
+        final u = _storage.userById(result.user.id);
+        if (u != null && u.country != pending) {
+          await _storage.putUser(u.copyWith(country: pending));
+        }
+        await _storage.setPendingCountry(null);
+      }
       await _trade.ensureHistory(result.user.id);
       await _storage.saveSession(userId: result.user.id);
       // Promjene koje su čekale prijavu odmah idu u online bazu.
@@ -373,6 +387,14 @@ class AppController extends Notifier<AppState> {
       bio: bio,
       city: city,
     );
+    _refresh();
+  }
+
+  /// Država računa (lokalni dostavljači i zastavica).
+  Future<void> setCountry(String code) async {
+    final u = _storage.userById(_requireUserId());
+    if (u == null || u.country == code) return;
+    await _storage.putUser(u.copyWith(country: code));
     _refresh();
   }
 
@@ -882,6 +904,7 @@ class AppController extends Notifier<AppState> {
     String deviceId, {
     DeliveryMethod method = DeliveryMethod.pickup,
     String? destination,
+    Carrier? carrier,
   }) async {
     final userId = _requireUserId();
     final device = state.deviceById(deviceId);
@@ -892,7 +915,11 @@ class AppController extends Notifier<AppState> {
       _refresh();
       return tx;
     }
-    final error = DeliveryService.validate(method, destination);
+    final error = DeliveryService.validate(
+      method,
+      destination,
+      carrier: carrier,
+    );
     if (error != null) throw TradeException(error);
     // Predmet i dostavu kupac plaća karticom (pružatelj plaćanja).
     final tx = await _trade.buy(userId: userId, deviceId: deviceId);
@@ -906,6 +933,7 @@ class AppController extends Notifier<AppState> {
           method: method,
           destination: destination,
           sellerId: tx.sellerId,
+          carrier: carrier,
         );
     _refresh();
     return tx;
@@ -915,8 +943,9 @@ class AppController extends Notifier<AppState> {
   Future<void> chooseDelivery(
     String deliveryId,
     DeliveryMethod method,
-    String? destination,
-  ) async {
+    String? destination, {
+    Carrier? carrier,
+  }) async {
     try {
       await ref
           .read(deliveryServiceProvider)
@@ -925,6 +954,7 @@ class AppController extends Notifier<AppState> {
             deliveryId: deliveryId,
             method: method,
             destination: destination,
+            carrier: carrier,
           );
     } finally {
       _refresh();

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../models/country.dart';
 import '../models/delivery.dart';
 import '../services/boxnow/boxnow.dart';
 import '../services/delivery_service.dart';
@@ -10,9 +11,21 @@ import '../l10n/tr.dart';
 
 /// Odabrana dostava (način + odredište).
 class DeliveryChoice {
-  const DeliveryChoice(this.method, this.destination);
+  const DeliveryChoice(
+    this.method,
+    this.destination, {
+    this.carrier,
+    this.savedCarrier,
+  });
   final DeliveryMethod method;
   final String? destination;
+
+  /// Odabrani dostavljač (GLS, DPD, pošta…), ako ga ima.
+  final Carrier? carrier;
+
+  /// Zapamćeni dostavljač (id) — iz [saved].
+  String? get carrierId => carrier?.id ?? savedCarrier;
+  final String? savedCarrier;
 
   /// Zapamćeni odabir korisnika ([AppUser.lastDelivery]) ili null.
   static DeliveryChoice? saved(String? raw) {
@@ -22,10 +35,27 @@ class DeliveryChoice {
         .where((x) => x.name == raw.substring(0, i))
         .firstOrNull;
     if (m == null) return null;
-    final dest = raw.substring(i + 1);
-    return DeliveryChoice(m, dest.isEmpty ? null : dest);
+    // "način|odredište" ili "način|odredište|dostavljač".
+    final rest = raw.substring(i + 1);
+    final j = rest.lastIndexOf('|');
+    final dest = j < 0 ? rest : rest.substring(0, j);
+    return DeliveryChoice(
+      m,
+      dest.isEmpty ? null : dest,
+      savedCarrier: j < 0 ? null : rest.substring(j + 1),
+    );
   }
 }
+
+/// Ikona izbora (dostavljač ili način).
+IconData optionIcon(DeliveryOption o) => switch (o.carrier?.kind) {
+  CarrierKind.locker => Icons.inventory_2_outlined,
+  CarrierKind.post => Icons.local_post_office_outlined,
+  CarrierKind.express => Icons.bolt,
+  CarrierKind.courier when o.carrier!.international => Icons.public,
+  CarrierKind.courier => Icons.local_shipping_outlined,
+  null => deliveryIcon(o.method),
+};
 
 IconData deliveryIcon(DeliveryMethod m) => switch (m) {
   DeliveryMethod.pickup => Icons.storefront_outlined,
@@ -41,7 +71,8 @@ IconData deliveryIcon(DeliveryMethod m) => switch (m) {
 class DeliveryPicker extends StatefulWidget {
   const DeliveryPicker({
     super.key,
-    required this.methods,
+    this.methods = const [],
+    this.options,
     required this.onChanged,
     this.savedAddress,
     this.saved,
@@ -60,6 +91,9 @@ class DeliveryPicker extends StatefulWidget {
   final VoidCallback? onCleared;
 
   final List<DeliveryMethod> methods;
+
+  /// Izbori s dostavljačima (GLS, DPD…); bez njih samo [methods].
+  final List<DeliveryOption>? options;
   final ValueChanged<DeliveryChoice> onChanged;
 
   /// Zadnja korištena adresa korisnika (predlaže se).
@@ -70,15 +104,29 @@ class DeliveryPicker extends StatefulWidget {
 }
 
 class _DeliveryPickerState extends State<DeliveryPicker> {
+  late final List<DeliveryOption> _opts =
+      widget.options ?? [for (final m in widget.methods) DeliveryOption(m)];
+
   /// Ništa nije unaprijed odabrano — kupac sam bira način dostave (osim
   /// kad postoji samo jedan, npr. digitalna dostava).
-  late DeliveryMethod? _method = widget.methods.length == 1
-      ? widget.methods.first
-      : null;
+  late DeliveryOption? _option = _opts.length == 1 ? _opts.first : null;
+  DeliveryMethod? get _method => _option?.method;
+
+  /// Zapamćena opcija (isti dostavljač ili način kao prošli put).
+  late final DeliveryOption? _savedOption = () {
+    final s = widget.saved;
+    if (s == null) return null;
+    final id = s.carrierId ?? s.method.name;
+    return _opts.where((o) => o.id == id).firstOrNull ??
+        (s.carrierId == null
+            ? _opts
+                  .where((o) => o.carrier == null && o.method == s.method)
+                  .firstOrNull
+            : null);
+  }();
 
   /// Koristi se zapamćeni odabir (dok kupac ne odabere drugi).
-  late bool _useSaved =
-      widget.saved != null && widget.methods.contains(widget.saved!.method);
+  late bool _useSaved = _savedOption != null;
 
   @override
   void initState() {
@@ -86,9 +134,17 @@ class _DeliveryPickerState extends State<DeliveryPicker> {
     if (_useSaved) {
       final s = widget.saved!;
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted) widget.onChanged(s);
+        if (mounted) {
+          widget.onChanged(
+            DeliveryChoice(
+              s.method,
+              s.destination,
+              carrier: _savedOption!.carrier,
+            ),
+          );
+        }
       });
-    } else if (_method != null) {
+    } else if (_option != null) {
       WidgetsBinding.instance.addPostFrameCallback((_) => _emit());
     }
   }
@@ -122,38 +178,55 @@ class _DeliveryPickerState extends State<DeliveryPicker> {
     _emit();
   }
 
-  double _cost(DeliveryMethod m) =>
-      DeliveryService.costFor(m, widget.size, country: _country);
+  double _cost(DeliveryOption o) => o.carrier != null
+      ? DeliveryService.carrierCost(o.carrier!, widget.size)
+      : DeliveryService.costFor(o.method, widget.size, country: _country);
 
   /// Prikazani su i rjeđi načini (ekspres, osobno preuzimanje).
   bool _all = false;
 
   /// Odabran je način koji je inače skriven iza "Više načina dostave".
   bool get _hiddenSelected {
-    final m = _method;
-    return m != null && widget.methods.indexOf(m) >= 2;
+    final o = _option;
+    return o != null && _opts.indexOf(o) >= 2;
   }
 
   @override
   void dispose() {
     _address.dispose();
+    _lockerText.dispose();
     super.dispose();
   }
 
   /// Država za dostavu u EU.
   String? _country;
 
+  /// Paketomat drugog dostavljača (ne BOX NOW): upisuje se mjesto.
+  bool get _otherLocker =>
+      _option?.carrier != null &&
+      _option!.carrier!.kind == CarrierKind.locker &&
+      _option!.carrier!.id != 'hr-boxnow';
+  final _lockerText = TextEditingController();
+
   String? get _destination => switch (_method) {
+    // Međunarodno: država kupca dodaje se na kraj adrese.
+    DeliveryMethod.europe when _option?.to != null =>
+      '${_address.text.trim()}, ${_option!.to!.nameHr}',
     DeliveryMethod.europe =>
       _country == null ? _address.text : '${_address.text.trim()}, $_country',
+    DeliveryMethod.parcelLocker when _otherLocker => _lockerText.text,
     final m? when m.needsAddress => _address.text,
     final m? when m.needsLocker => _mapFailed ? _locker : _boxNow?.destination,
     _ => null,
   };
 
   void _emit() {
-    final m = _method;
-    if (mounted && m != null) widget.onChanged(DeliveryChoice(m, _destination));
+    final o = _option;
+    if (mounted && o != null) {
+      widget.onChanged(
+        DeliveryChoice(o.method, _destination, carrier: o.carrier),
+      );
+    }
   }
 
   @override
@@ -161,7 +234,7 @@ class _DeliveryPickerState extends State<DeliveryPicker> {
     final accent = Theme.of(context).colorScheme.primary;
     if (_useSaved) {
       final saved = widget.saved!;
-      final m = saved.method;
+      final o = _savedOption!;
       return Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
@@ -175,14 +248,14 @@ class _DeliveryPickerState extends State<DeliveryPicker> {
             ),
             child: Row(
               children: [
-                Icon(deliveryIcon(m), color: accent),
+                Icon(optionIcon(o), color: accent),
                 const SizedBox(width: 12),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        m.label,
+                        o.label,
                         style: const TextStyle(fontWeight: FontWeight.w900),
                       ),
                       if (saved.destination != null)
@@ -207,7 +280,7 @@ class _DeliveryPickerState extends State<DeliveryPicker> {
                   ),
                 ),
                 Text(
-                  _cost(m) == 0 ? t('besplatno') : formatCredits(_cost(m)),
+                  _cost(o) == 0 ? t('besplatno') : formatCredits(_cost(o)),
                   style: const TextStyle(fontWeight: FontWeight.w900),
                 ),
               ],
@@ -219,9 +292,7 @@ class _DeliveryPickerState extends State<DeliveryPicker> {
             onPressed: () {
               setState(() {
                 _useSaved = false;
-                _method = widget.methods.length == 1
-                    ? widget.methods.first
-                    : null;
+                _option = _opts.length == 1 ? _opts.first : null;
               });
               widget.onCleared?.call();
               _emit();
@@ -235,11 +306,9 @@ class _DeliveryPickerState extends State<DeliveryPicker> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        for (final m in widget.methods.take(
-          _all || _hiddenSelected ? widget.methods.length : 2,
-        ))
+        for (final m in _opts.take(_all || _hiddenSelected ? _opts.length : 2))
           Padding(
-            key: ValueKey('delivery-${m.name}'),
+            key: ValueKey('delivery-${m.id}'),
             padding: const EdgeInsets.only(bottom: 8),
             child: Material(
               color: LoopColors.surface,
@@ -247,7 +316,7 @@ class _DeliveryPickerState extends State<DeliveryPicker> {
               child: InkWell(
                 borderRadius: BorderRadius.circular(kRadius),
                 onTap: () {
-                  setState(() => _method = m);
+                  setState(() => _option = m);
                   _emit();
                 },
                 child: Container(
@@ -258,8 +327,10 @@ class _DeliveryPickerState extends State<DeliveryPicker> {
                   decoration: BoxDecoration(
                     borderRadius: BorderRadius.circular(kRadius),
                     border: Border.all(
-                      color: _method == m ? accent : LoopColors.surfaceHover,
-                      width: _method == m ? 2 : 1.5,
+                      color: _option?.id == m.id
+                          ? accent
+                          : LoopColors.surfaceHover,
+                      width: _option?.id == m.id ? 2 : 1.5,
                     ),
                   ),
                   child: Row(
@@ -271,7 +342,7 @@ class _DeliveryPickerState extends State<DeliveryPicker> {
                           color: LoopColors.mint,
                           borderRadius: BorderRadius.circular(12),
                         ),
-                        child: Icon(deliveryIcon(m)),
+                        child: Icon(optionIcon(m)),
                       ),
                       const SizedBox(width: 12),
                       Expanded(
@@ -306,7 +377,7 @@ class _DeliveryPickerState extends State<DeliveryPicker> {
               ),
             ),
           ),
-        if (!_all && widget.methods.length > 2 && !_hiddenSelected)
+        if (!_all && _opts.length > 2 && !_hiddenSelected)
           Align(
             alignment: Alignment.centerLeft,
             child: TextButton(
@@ -315,7 +386,15 @@ class _DeliveryPickerState extends State<DeliveryPicker> {
               child: Text(t('Više načina dostave')),
             ),
           ),
-        if (_method == DeliveryMethod.europe) ...[
+        if (_method == DeliveryMethod.europe && _option?.to != null)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 6),
+            child: Text(
+              t('Dostava u: {0}', [_option!.to!.label]),
+              style: const TextStyle(fontWeight: FontWeight.w800),
+            ),
+          ),
+        if (_method == DeliveryMethod.europe && _option?.to == null) ...[
           const SizedBox(height: 4),
           DropdownButtonFormField<String>(
             key: const ValueKey('delivery-country'),
@@ -355,7 +434,22 @@ class _DeliveryPickerState extends State<DeliveryPicker> {
             onChanged: (_) => _emit(),
           ),
         ],
-        if ((_method?.needsLocker ?? false) && !_mapFailed) ...[
+        if (_otherLocker) ...[
+          const SizedBox(height: 4),
+          TextField(
+            key: const ValueKey('delivery-locker-text'),
+            controller: _lockerText,
+            decoration: InputDecoration(
+              labelText: t('Paketomat ({0})', [_option!.carrier!.name]),
+              hintText: t('Adresa ili broj paketomata'),
+              prefixIcon: const Icon(Icons.place_outlined),
+            ),
+            onChanged: (_) => _emit(),
+          ),
+        ],
+        if ((_method?.needsLocker ?? false) &&
+            !_mapFailed &&
+            !_otherLocker) ...[
           const SizedBox(height: 4),
           _BoxNowTile(locker: _boxNow, onPick: _pickOnMap),
           Align(
@@ -370,7 +464,7 @@ class _DeliveryPickerState extends State<DeliveryPicker> {
             ),
           ),
         ],
-        if ((_method?.needsLocker ?? false) && _mapFailed) ...[
+        if ((_method?.needsLocker ?? false) && _mapFailed && !_otherLocker) ...[
           const SizedBox(height: 4),
           DropdownButtonFormField<String>(
             initialValue: _locker,

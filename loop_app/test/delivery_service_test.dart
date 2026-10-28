@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:loop_app/providers/app_providers.dart';
 import 'package:hive/hive.dart';
 import 'package:loop_app/models/app_notification.dart';
+import 'package:loop_app/models/country.dart';
 import 'package:loop_app/models/delivery.dart';
 import 'package:loop_app/models/device.dart';
 import 'package:loop_app/models/loop_transaction.dart';
@@ -422,4 +423,30 @@ void main() {
       storage.onLocalChange = null;
     },
   );
+
+  test('lokalni dostavljači unutar države, međunarodni među državama', () {
+    final phone = storage.deviceById('seed-1')!;
+    final hr = DeliveryService.optionsFor(phone, from: 'HR', to: 'HR');
+    final ids = hr.map((o) => o.id).toList();
+    expect(ids, containsAll(['hr-gls', 'hr-boxnow', 'hr-post']));
+    expect(ids, contains(DeliveryMethod.pickup.name));
+    final de = DeliveryService.optionsFor(phone, from: 'DE', to: 'DE');
+    expect(de.map((o) => o.carrier?.name), containsAll(['DHL', 'Hermes']));
+    // HR → SI je blizu, HR → PT daleko: veća cijena, nema osobnog preuzimanja.
+    final si = DeliveryService.optionsFor(phone, from: 'HR', to: 'SI');
+    final pt = DeliveryService.optionsFor(phone, from: 'HR', to: 'PT');
+    expect(si.every((o) => o.carrier?.international ?? false), isTrue);
+    double gls(List<DeliveryOption> o) =>
+        o.firstWhere((x) => x.id == 'intl-gls').carrier!.cost;
+    expect(gls(si), lessThan(gls(pt)));
+    // Glomazni paket: bez paketomata, međunarodna doplata je dvostruka.
+    final bulky = phone.withParcelSize('bulky');
+    final big = DeliveryService.optionsFor(bulky, from: 'HR', to: 'HR');
+    expect(big.any((o) => o.carrier?.kind == CarrierKind.locker), isFalse);
+    final intl = internationalCarriers(countryOf('HR'), countryOf('SI')).first;
+    expect(
+      DeliveryService.carrierCost(intl, ParcelSize.bulky),
+      intl.cost + ParcelSize.bulky.extra * 2,
+    );
+  });
 }

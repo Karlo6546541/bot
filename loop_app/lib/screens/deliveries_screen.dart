@@ -107,9 +107,18 @@ Future<void> pickDelivery(
   Delivery delivery,
 ) async {
   final device = ref.read(appProvider).deviceById(delivery.deviceId);
-  final methods = device == null
-      ? DeliveryMethod.values.where((m) => m != DeliveryMethod.digital).toList()
-      : DeliveryService.methodsFor(device);
+  final st = ref.read(appProvider);
+  // Prodavač: iz pošiljke (predmet je već kod kupca nakon pobjede).
+  final options = device == null
+      ? [
+          for (final m in DeliveryMethod.values)
+            if (m != DeliveryMethod.digital) DeliveryOption(m),
+        ]
+      : DeliveryService.optionsFor(
+          device,
+          from: st.userById(delivery.sellerId)?.country ?? 'HR',
+          to: st.currentUser?.country ?? 'HR',
+        );
   final choice = await showModalBottomSheet<DeliveryChoice>(
     context: context,
     isScrollControlled: true,
@@ -118,7 +127,7 @@ Future<void> pickDelivery(
     constraints: const BoxConstraints(maxWidth: 560),
     builder: (_) => appThemed(
       _ChooseSheet(
-        methods: methods,
+        options: options,
         size: ParcelSize.fromName(device?.parcelSize),
         savedAddress: ref.read(appProvider).currentUser?.address,
         saved: DeliveryChoice.saved(
@@ -132,7 +141,12 @@ Future<void> pickDelivery(
     context,
     () => ref
         .read(appProvider.notifier)
-        .chooseDelivery(delivery.id, choice.method, choice.destination),
+        .chooseDelivery(
+          delivery.id,
+          choice.method,
+          choice.destination,
+          carrier: choice.carrier,
+        ),
     successMessage: t('Dostava je krenula 🚚'),
   );
 }
@@ -207,7 +221,7 @@ class DeliveryCard extends ConsumerWidget {
                                     : d.fromAuction
                                     ? t('Osvojeno na aukciji · odaberi dostavu')
                                     : t('Zamjena · odaberi dostavu')
-                              : '${m.label}${d.destination != null ? ' · ${d.destination}' : ''}',
+                              : '${d.carrier ?? m.label}${d.destination != null ? ' · ${d.destination}' : ''}',
                           maxLines: 2,
                           overflow: TextOverflow.ellipsis,
                           style: TextStyle(
@@ -423,9 +437,9 @@ class DeliveryDetailScreen extends ConsumerWidget {
                         fontSize: 18,
                       ),
                     ),
-                    if (d.method case final m?)
+                    if (d.method != null)
                       Text(
-                        m.label,
+                        d.serviceLabel,
                         style: TextStyle(color: LoopColors.textSecondary),
                       ),
                   ],
@@ -591,12 +605,12 @@ class _Dot extends StatelessWidget {
 
 class _ChooseSheet extends StatefulWidget {
   const _ChooseSheet({
-    required this.methods,
+    required this.options,
     this.savedAddress,
     this.saved,
     this.size = ParcelSize.small,
   });
-  final List<DeliveryMethod> methods;
+  final List<DeliveryOption> options;
   final ParcelSize size;
   final String? savedAddress;
 
@@ -626,7 +640,7 @@ class _ChooseSheetState extends State<_ChooseSheet> {
             ),
             const SizedBox(height: 12),
             DeliveryPicker(
-              methods: widget.methods,
+              options: widget.options,
               size: widget.size,
               savedAddress: widget.savedAddress,
               saved: widget.saved,
@@ -646,6 +660,7 @@ class _ChooseSheetState extends State<_ChooseSheet> {
                       final err = DeliveryService.validate(
                         _choice!.method,
                         _choice!.destination,
+                        carrier: _choice!.carrier,
                       );
                       if (err != null) {
                         setState(() => _error = err);
@@ -853,7 +868,7 @@ class DeliveryNoteScreen extends ConsumerWidget {
         d.method == DeliveryMethod.parcelLocker ? t('Paketomat') : t('Adresa'),
         d.destination ?? '—',
       ),
-      (t('Način dostave'), d.method?.label ?? '—'),
+      (t('Način dostave'), d.method == null ? '—' : d.serviceLabel),
       (t('Predmet'), '1 × ${d.deviceName}'),
       if (paid != null) (t('Vrijednost'), formatCredits(paid)),
       if (d.method == DeliveryMethod.parcelLocker) ...[

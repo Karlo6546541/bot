@@ -38,6 +38,7 @@ class AppUser {
     this.seller,
     this.trader,
     this.creditedSales,
+    this.country = 'HR',
     this.promotedUntil,
     this.shopName = '',
     this.coverPath,
@@ -116,6 +117,9 @@ class AppUser {
   /// zaradu — nedostajuća prodaja se jednostavno ponovno uračuna.
   /// `null` = stariji račun (još nije pokrenuto praćenje).
   final List<String>? creditedSales;
+
+  /// Država računa (kod, npr. 'HR') — lokalni dostavljači i zastavica.
+  final String country;
 
   /// Trgovac (obrt, tvrtka) — po privatnim podacima (vlasnik) ili javnoj
   /// oznaci (svi ostali korisnici).
@@ -204,6 +208,7 @@ class AppUser {
     TraderPublic? trader,
     bool clearTrader = false,
     List<String>? creditedSales,
+    String? country,
     DateTime? promotedUntil,
     String? shopName,
     String? coverPath,
@@ -238,6 +243,7 @@ class AppUser {
     seller: seller ?? this.seller,
     trader: clearTrader ? null : trader ?? this.trader,
     creditedSales: creditedSales ?? this.creditedSales,
+    country: country ?? this.country,
     promotedUntil: promotedUntil ?? this.promotedUntil,
     shopName: shopName ?? this.shopName,
     coverPath: clearCover ? null : coverPath ?? this.coverPath,
@@ -271,6 +277,7 @@ class AppUser {
     if (seller != null) 'seller': seller!.toMap(),
     if (trader != null) 'trader': trader!.toMap(),
     if (creditedSales != null) 'creditedSales': creditedSales,
+    if (country != 'HR') 'country': country,
     'promotedUntil': promotedUntil?.toIso8601String(),
     'shopName': shopName,
     'coverPath': coverPath,
@@ -310,6 +317,7 @@ class AppUser {
         (map['mutedNotifications'] as List?)?.cast<String>() ?? const [],
     trader: TraderPublic.fromMap(map['trader']),
     creditedSales: (map['creditedSales'] as List?)?.cast<String>(),
+    country: map['country'] as String? ?? 'HR',
     seller: map['seller'] is Map
         ? SellerInfo.fromMap(map['seller'] as Map)
         : null,

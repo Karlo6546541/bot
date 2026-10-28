@@ -8,6 +8,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../l10n/tr.dart';
 import '../widgets/trust_widgets.dart';
 import '../models/app_user.dart';
+import '../models/country.dart';
 import '../models/device.dart';
 import '../models/live_show.dart';
 import '../providers/app_providers.dart';
@@ -3095,7 +3096,10 @@ class _TopBar extends ConsumerWidget {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Text(
-                    hostName,
+                    // Zastavica države domaćina.
+                    host == null
+                        ? hostName
+                        : '${countryOf(host!.country).flag} $hostName',
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: const TextStyle(

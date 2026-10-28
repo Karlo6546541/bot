@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import '../widgets/country_widgets.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -668,6 +669,13 @@ class AuctionBrowseCard extends ConsumerWidget {
                     children: [
                       UserAvatar(user: seller, size: 16),
                       const SizedBox(width: 5),
+                      if (seller != null) ...[
+                        CountryBadge(
+                          code: seller.country,
+                          style: const TextStyle(fontSize: 12),
+                        ),
+                        const SizedBox(width: 4),
+                      ],
                       Expanded(
                         child: Text(
                           seller?.handle ??
@@ -1679,7 +1687,7 @@ class _ToShipCard extends ConsumerWidget {
                       ]),
                     ),
                     Text(
-                      '${d.method?.label ?? ''}'
+                      '${d.method == null ? '' : d.serviceLabel}'
                       '${d.destination != null ? ' · ${d.destination}' : ''}',
                       style: TextStyle(
                         color: LoopColors.textSecondary,

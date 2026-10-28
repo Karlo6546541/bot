@@ -2,6 +2,7 @@ import 'dart:math';
 
 import 'package:uuid/uuid.dart';
 
+import '../models/country.dart';
 import '../models/delivery.dart';
 import '../models/device.dart';
 import '../models/loop_transaction.dart';
@@ -46,6 +47,68 @@ class DeliveryService {
     ];
   }
 
+  /// Način dostave za dostavljača.
+  static DeliveryMethod methodOf(Carrier c) => c.international
+      ? DeliveryMethod.europe
+      : switch (c.kind) {
+          CarrierKind.locker => DeliveryMethod.parcelLocker,
+          CarrierKind.express => DeliveryMethod.express,
+          CarrierKind.courier || CarrierKind.post => DeliveryMethod.courier,
+        };
+
+  /// Cijena dostavljača za veličinu paketa (međunarodno doplata dvostruka).
+  static double carrierCost(Carrier c, ParcelSize size) =>
+      c.cost + size.extra * (c.international ? 2 : 1);
+
+  /// Ponuda dostave prema državi prodavača ([from]) i kupca ([to]):
+  /// u istoj državi lokalni dostavljači (GLS, DPD, pošta, paketomat…),
+  /// inače međunarodno (cijena prema udaljenosti) — plus osobno preuzimanje.
+  static List<DeliveryOption> optionsFor(
+    Device d, {
+    required String from,
+    required String to,
+  }) {
+    if (d.section == ItemSection.activities) {
+      return const [DeliveryOption(DeliveryMethod.digital)];
+    }
+    final size = ParcelSize.fromName(d.parcelSize);
+    final src = countryOf(from);
+    final dst = countryOf(to);
+    final carriers = src.code == dst.code
+        ? src.carriers
+        : internationalCarriers(src, dst);
+    bool fits(Carrier c) => switch (c.kind) {
+      CarrierKind.locker => size.index <= ParcelSize.medium.index,
+      CarrierKind.express => size != ParcelSize.bulky,
+      _ => true,
+    };
+    final list =
+        [
+          for (final c in carriers)
+            if (fits(c)) DeliveryOption(methodOf(c), carrier: c, to: dst),
+        ]..sort(
+          (a, b) => carrierCost(
+            a.carrier!,
+            size,
+          ).compareTo(carrierCost(b.carrier!, size)),
+        );
+    // Kurir prvi (kao na Whatnotu), zatim ostalo po cijeni.
+    final courier = list.indexWhere(
+      (o) => o.carrier!.kind == CarrierKind.courier,
+    );
+    if (courier > 0) list.insert(0, list.removeAt(courier));
+    return [
+      ...list,
+      if (src.code == dst.code) const DeliveryOption(DeliveryMethod.pickup),
+    ];
+  }
+
+  /// Cijena opcije za veličinu paketa.
+  static double optionCost(DeliveryOption o, ParcelSize size) =>
+      o.carrier != null
+      ? carrierCost(o.carrier!, size)
+      : costFor(o.method, size);
+
   /// Cijena dostave za način i veličinu paketa (u EU doplata dvostruka).
   static double costFor(DeliveryMethod m, ParcelSize size, {String? country}) {
     if (m.cost == 0) return 0;
@@ -58,8 +121,16 @@ class DeliveryService {
   }
 
   /// Provjera odredišta prije plaćanja.
-  static String? validate(DeliveryMethod m, String? destination) {
+  static String? validate(
+    DeliveryMethod m,
+    String? destination, {
+    Carrier? carrier,
+  }) {
     final dest = destination?.trim() ?? '';
+    // Paketomat drugog dostavljača (Foxpost, InPost…): upisano mjesto.
+    if (m.needsLocker && carrier != null && carrier.id != 'hr-boxnow') {
+      return dest.length < 3 ? t('Odaberi paketomat.') : null;
+    }
     if (m == DeliveryMethod.europe && euCountryOf(dest) == null) {
       return t('Odaberi državu EU za dostavu.');
     }
@@ -94,6 +165,7 @@ class DeliveryService {
     String? destination,
     String? sellerId,
     DateTime? now,
+    Carrier? carrier,
   }) async {
     final d = Delivery(
       id: _uuid.v4(),
@@ -103,7 +175,7 @@ class DeliveryService {
       createdAt: now ?? DateTime.now(),
       sellerId: sellerId,
     );
-    return _start(d, userId, method, destination, now: now);
+    return _start(d, userId, method, destination, now: now, carrier: carrier);
   }
 
   /// Pošiljka koja čeka odabir (osvojena aukcija).
@@ -170,6 +242,7 @@ class DeliveryService {
     required DeliveryMethod method,
     String? destination,
     DateTime? now,
+    Carrier? carrier,
   }) async {
     final key = '$userId/${liveParcel(deliveryId) ?? deliveryId}';
     final pending = _choices[key];
@@ -188,6 +261,7 @@ class DeliveryService {
       method: method,
       destination: destination,
       now: now,
+      carrier: carrier,
     );
     _choices[key] = task;
     try {
@@ -203,6 +277,7 @@ class DeliveryService {
     required DeliveryMethod method,
     String? destination,
     DateTime? now,
+    Carrier? carrier,
   }) async {
     final d = _storage.deliveryById(deliveryId);
     if (d == null || d.buyerId != userId) {
@@ -213,7 +288,7 @@ class DeliveryService {
     }
     final parcel = liveParcel(d.id);
     if (parcel == null) {
-      return _start(d, userId, method, destination, now: now);
+      return _start(d, userId, method, destination, now: now, carrier: carrier);
     }
     final same = [
       for (final x in _storage.deliveries)
@@ -231,6 +306,7 @@ class DeliveryService {
         destination,
         now: now,
         free: paid,
+        carrier: carrier,
       );
       paid = paid || started.cost > 0;
       first ??= started;
@@ -245,9 +321,10 @@ class DeliveryService {
     String? destination, {
     DateTime? now,
     bool free = false,
+    Carrier? carrier,
   }) async {
     final at = now ?? DateTime.now();
-    final error = validate(method, destination);
+    final error = validate(method, destination, carrier: carrier);
     if (error != null) throw TradeException(error);
     final user = _storage.userById(userId);
     if (user == null) throw TradeException(t('Korisnik ne postoji.'));
@@ -259,7 +336,7 @@ class DeliveryService {
         // Zapamti odabir za sljedeću kupnju (osim digitalne dostave).
         lastDelivery: method == DeliveryMethod.digital
             ? null
-            : '${method.name}|${dest ?? ''}',
+            : '${method.name}|${dest ?? ''}${carrier == null ? '' : '|${carrier.id}'}',
       ),
     );
     final size = ParcelSize.fromName(
@@ -267,6 +344,8 @@ class DeliveryService {
     );
     final cost = free
         ? 0.0
+        : carrier != null
+        ? carrierCost(carrier, size)
         : costFor(method, size, country: euCountryOf(destination));
     final started = d.copyWith(
       method: method,
@@ -277,6 +356,7 @@ class DeliveryService {
       // BOX NOW: nasumični PIN-ovi (sigurni generator), ne iz broja pošiljke.
       dropOffPin: method == DeliveryMethod.parcelLocker ? _pin() : null,
       pickupPin: method == DeliveryMethod.parcelLocker ? _pin() : null,
+      carrier: carrier?.name,
     );
     await _storage.putDelivery(started);
     // Prodavač dobiva kod za paketomat / etiketu (ime i adresa kupca).
@@ -382,4 +462,18 @@ class DeliveryService {
     }
     await _storage.putDelivery(d.copyWith(confirmedAt: at));
   }
+}
+
+/// Jedan izbor dostave: način + (neobavezno) dostavljač i država odredišta.
+class DeliveryOption {
+  const DeliveryOption(this.method, {this.carrier, this.to});
+  final DeliveryMethod method;
+  final Carrier? carrier;
+
+  /// Država kupca (za međunarodnu dostavu dodaje se na adresu).
+  final Country? to;
+
+  String get id => carrier?.id ?? method.name;
+  String get label => carrier?.name ?? method.label;
+  String get subtitle => carrier?.subtitle ?? method.subtitle;
 }

@@ -16,7 +16,9 @@ import '../models/device.dart';
 import '../models/loop_transaction.dart';
 import '../models/portfolio_point.dart';
 import '../models/live_show.dart';
+import '../models/country.dart';
 import '../services/chat_service.dart';
+import '../services/delivery_service.dart';
 import '../services/live_service.dart';
 import '../services/system_messages.dart';
 import '../services/seed_data.dart';
@@ -480,6 +482,22 @@ class AppState {
   /// Ponude koje čekaju MOJ odgovor.
   List<SwapOffer> get incomingOffers =>
       myOffers.where((o) => o.isPending && o.toId == currentUserId).toList();
+
+  /// Izbori dostave za predmet: prema državi prodavača i moje države.
+  List<DeliveryOption> deliveryOptionsFor(Device d) =>
+      DeliveryService.optionsFor(
+        d,
+        from: userById(d.ownerId)?.country ?? 'HR',
+        to: currentUser?.country ?? 'HR',
+      );
+
+  /// Cijena paketa (prodavač → kupac) kroz odabranog dostavljača.
+  double deliveryCostOf(DeliveryMethod m, Carrier? c, Device? d) {
+    final size = ParcelSize.fromName(d?.parcelSize);
+    return c != null
+        ? DeliveryService.carrierCost(c, size)
+        : DeliveryService.costFor(m, size);
+  }
 
   /// Cijena koju je [buyerId] platio za predmet (bez zapisa plaćene
   /// dostave, koji ima cijenu 0) — za otpremnicu i "Plaćeno" u Kupljeno.

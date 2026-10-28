@@ -540,11 +540,20 @@ Future<bool> confirmAndBuy(
   // Gumb kupnje nestaje čim predmet ode (npr. objava u swipe feedu), pa
   // slavlje ide preko navigatora, ne preko gumba.
   final nav = Navigator.of(context, rootNavigator: true).context;
+  // ref se ne smije koristiti nakon kupnje (gumb tada nestaje).
+  final shipping = ref
+      .read(appProvider)
+      .deliveryCostOf(picked.method, picked.carrier, device);
   final ok = await runWithLoading(
     context,
     () => ref
         .read(appProvider.notifier)
-        .buy(device.id, method: picked.method, destination: picked.destination),
+        .buy(
+          device.id,
+          method: picked.method,
+          destination: picked.destination,
+          carrier: picked.carrier,
+        ),
     successMessage: null,
   );
   if (ok && nav.mounted) {
@@ -553,7 +562,7 @@ Future<bool> confirmAndBuy(
       title: t('Kupljeno! 🎉'),
       subtitle: t('Paket pratiš u Moje → Kupljeno'),
       device: device,
-      amount: buyTotal(price) + picked.method.cost,
+      amount: buyTotal(price) + shipping,
     );
   }
   return ok;
@@ -587,7 +596,11 @@ class _CheckoutSheetState extends ConsumerState<_CheckoutSheet> {
       appProvider.select((s) => s.currentUser?.paymentCard),
     );
     final d = widget.device;
-    final shipping = _choice?.method.cost ?? 0;
+    final shipping = _choice == null
+        ? 0.0
+        : ref
+              .read(appProvider)
+              .deliveryCostOf(_choice!.method, _choice!.carrier, widget.device);
     final price = widget.price;
     final total = buyTotal(price) + shipping;
 
@@ -638,7 +651,7 @@ class _CheckoutSheetState extends ConsumerState<_CheckoutSheet> {
             SizedBox(height: 8),
             Consumer(
               builder: (context, ref, _) => DeliveryPicker(
-                methods: DeliveryService.methodsFor(d),
+                options: ref.read(appProvider).deliveryOptionsFor(d),
                 size: ParcelSize.fromName(d.parcelSize),
                 savedAddress: ref.read(appProvider).currentUser?.address,
                 saved: DeliveryChoice.saved(
@@ -741,6 +754,7 @@ class _CheckoutSheetState extends ConsumerState<_CheckoutSheet> {
                       final err = DeliveryService.validate(
                         _choice!.method,
                         _choice!.destination,
+                        carrier: _choice!.carrier,
                       );
                       if (err != null) {
                         setState(() => _error = err);

@@ -1116,7 +1116,7 @@ void logoTests() {
     final pay = find.byKey(const ValueKey('checkout-pay'));
     expect(find.text('Prvo odaberi način dostave'), findsOneWidget);
     expect(tester.widget<ButtonStyleButton>(pay).onPressed, isNull);
-    await tester.tap(find.byKey(const ValueKey('delivery-courier')));
+    await tester.tap(find.byKey(const ValueKey('delivery-hr-gls')));
     await tester.pumpAndSettle();
     expect(tester.widget<ButtonStyleButton>(pay).onPressed, isNotNull);
     // Kartica i adresa demo računa koriste se automatski.

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../widgets/country_widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../widgets/trust_widgets.dart';
@@ -782,6 +783,15 @@ class ProfileHeader extends ConsumerWidget {
                       ),
                     ),
                     ?sellerKind,
+                    CountryBadge(
+                      key: const ValueKey('profile-country'),
+                      code: user.country,
+                      withName: true,
+                      style: const TextStyle(
+                        fontWeight: FontWeight.w700,
+                        fontSize: 12,
+                      ),
+                    ),
                   ],
                 ),
                 if (user.traderInfo case final info?) ...[

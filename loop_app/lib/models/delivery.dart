@@ -1,4 +1,5 @@
 import '../l10n/tr.dart';
+import 'country.dart';
 
 /// Način dostave. Cijena je u kreditima; trajanje je u demo verziji
 /// ubrzano (minute umjesto dana) kako bi se statusi mogli vidjeti uživo.
@@ -100,7 +101,9 @@ double euZoneCost(int zone) => switch (zone) {
 /// Država s kraja adrese ("…, Njemačka") ako je u [kEuCountries].
 String? euCountryOf(String? destination) {
   final last = destination?.split(',').last.trim();
-  return last != null && kEuCountries.containsKey(last) ? last : null;
+  if (last == null) return null;
+  if (kEuCountries.containsKey(last) || countryNamed(last) != null) return last;
+  return null;
 }
 
 /// Veličina paketa (bira prodavač pri objavi). Dodaje se na cijenu
@@ -176,7 +179,14 @@ class Delivery {
     this.reviewed = false,
     this.dropOffPin,
     this.pickupPin,
+    this.carrier,
   });
+
+  /// Dostavljač (GLS, DPD, BOX NOW, pošta…), ako je odabran.
+  final String? carrier;
+
+  /// Naziv usluge za prikaz: dostavljač ili način dostave.
+  String get serviceLabel => carrier ?? method?.label ?? '';
 
   final String id;
   final String deviceId;
@@ -299,6 +309,7 @@ class Delivery {
     bool? reviewed,
     String? dropOffPin,
     String? pickupPin,
+    String? carrier,
   }) => Delivery(
     id: id,
     deviceId: deviceId,
@@ -316,6 +327,7 @@ class Delivery {
     reviewed: reviewed ?? this.reviewed,
     dropOffPin: dropOffPin ?? this.dropOffPin,
     pickupPin: pickupPin ?? this.pickupPin,
+    carrier: carrier ?? this.carrier,
   );
 
   Map<String, dynamic> toMap() => {
@@ -335,6 +347,7 @@ class Delivery {
     'reviewed': reviewed,
     'dropOffPin': dropOffPin,
     'pickupPin': pickupPin,
+    if (carrier != null) 'carrier': carrier,
   };
 
   factory Delivery.fromMap(Map<dynamic, dynamic> m) => Delivery(
@@ -360,5 +373,6 @@ class Delivery {
     reviewed: m['reviewed'] as bool? ?? false,
     dropOffPin: m['dropOffPin'] as String?,
     pickupPin: m['pickupPin'] as String?,
+    carrier: m['carrier'] as String?,
   );
 }

@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import '../models/country.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../l10n/tr.dart';
@@ -965,7 +966,7 @@ class _Info extends ConsumerWidget {
                         onTap: () =>
                             PublicProfileScreen.open(context, owner.id),
                         child: Text(
-                          owner.shopTitle,
+                          '${countryOf(owner.country).flag} ${owner.shopTitle}',
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: const TextStyle(

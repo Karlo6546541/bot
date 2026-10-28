@@ -2530,4 +2530,14 @@ const kEn = <String, String>{
   'Država': 'Country',
   'Odaberi državu EU za dostavu.': 'Choose an EU country for delivery.',
   'npr. Hauptstraße 5, 10115 Berlin': 'e.g. Hauptstraße 5, 10115 Berlin',
+  'Adresa ili broj paketomata': 'Address or locker number',
+  'Dostava u: {0}': 'Delivery to: {0}',
+  'Ekspres na adresu': 'Express to address',
+  'Paketomat ({0})': 'Parcel locker ({0})',
+  'Pošta': 'Post',
+  'Pošta na adresu': 'Post to address',
+  'Za lokalne dostavljače i prikaz uz oglase':
+      'For local carriers and shown on your listings',
+  'međunarodno': 'international',
+  'Hrvatska': 'Croatia',
 };

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../widgets/country_widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../l10n/tr.dart';
@@ -245,6 +246,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
   late final _username = TextEditingController(text: _user.username);
   late final _bio = TextEditingController(text: _user.bio);
   late final _city = TextEditingController(text: _user.city ?? '');
+  late String _country = _user.country;
   bool _busy = false;
 
   @override
@@ -261,6 +263,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
     final c = ref.read(appProvider.notifier);
     try {
       await c.updateProfile(name: _name.text, bio: _bio.text, city: _city.text);
+      await c.setCountry(_country);
       await c.changeUsername(_username.text);
       if (mounted) Navigator.pop(context);
       showLoopSnackBar(t('Profil je spremljen'));
@@ -415,6 +418,11 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
                   ),
                 ),
                 const SizedBox(height: 4),
+                CountryField(
+                  value: _country,
+                  onChanged: (v) => setState(() => _country = v),
+                ),
+                const SizedBox(height: 12),
                 TextFormField(
                   controller: _city,
                   decoration: InputDecoration(

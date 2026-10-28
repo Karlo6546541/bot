@@ -1183,7 +1183,7 @@ void main() {
     expect(choose, findsOneWidget);
     await tester.tap(choose);
     await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const ValueKey('delivery-courier')));
+    await tester.tap(find.byKey(const ValueKey('delivery-hr-gls')));
     await tester.pumpAndSettle();
     await tester.ensureVisible(find.text('Potvrdi · 6 €'));
     await tester.runAsync(() => tester.tap(find.text('Potvrdi · 6 €')));

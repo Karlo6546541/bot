@@ -786,6 +786,13 @@ class StorageService {
   Future<void> saveFeedPreferences(String? userId, FeedPreferences value) =>
       _session.put('feedPreferences:${userId ?? 'guest'}', value.toMap());
 
+  /// Država odabrana pri registraciji (dok se račun ne prijavi).
+  String? get pendingCountry => _session.get('pendingCountry') as String?;
+
+  Future<void> setPendingCountry(String? code) => code == null
+      ? _session.delete('pendingCountry')
+      : _session.put('pendingCountry', code);
+
   /// Zvuk u liveu utišan (vibracija ostaje).
   bool get liveMuted => _session.get('liveMuted') == true;
 

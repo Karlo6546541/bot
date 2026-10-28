@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../widgets/country_widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../providers/app_providers.dart';
@@ -46,6 +47,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   final _regPassword = TextEditingController();
   // Gost koji je htio nešto napraviti najčešće još nema račun.
   late bool _register = widget.reason != null;
+
+  /// Država novog računa.
+  String _regCountry = 'HR';
 
   bool get _overlay => widget.reason != null;
   bool _loading = false;
@@ -115,6 +119,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
             email: _regEmail.text,
             password: _regPassword.text,
             username: _regUsername.text,
+            country: _regCountry,
           );
       if (result is NeedsEmailConfirmation && mounted) {
         await showDialog<void>(
@@ -238,6 +243,11 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     ),
     const SizedBox(height: 12),
     UsernameField(controller: _regUsername),
+    const SizedBox(height: 12),
+    CountryField(
+      value: _regCountry,
+      onChanged: (c) => setState(() => _regCountry = c),
+    ),
     const SizedBox(height: 12),
     TextFormField(
       controller: _regPassword,
