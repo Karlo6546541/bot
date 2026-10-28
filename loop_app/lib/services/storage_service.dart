@@ -254,6 +254,27 @@ class StorageService {
   /// [path] i [inMemory] koriste se u testovima; u aplikaciji Hive sam
   /// bira direktorij. [seed] = false (online baza): bez demo podataka —
   /// podaci dolaze samo iz baze, pa se stari demo nikad ne vraća u nju.
+  /// Otvara box; ako čitanje ne uspije (u pregledniku Hive čita ključeve i
+  /// vrijednosti odvojeno — druga kartica ili sinkronizacija u međuvremenu
+  /// doda zapis i brojevi se ne poklope: RangeError), pokuša ponovno, a
+  /// tablice iz online baze na kraju obriše lokalno (ponovno se povuku).
+  Future<Box<T>> _open<T>(String name, Uint8List? bytes) async {
+    Object? last;
+    for (var i = 0; i < 3; i++) {
+      try {
+        return await Hive.openBox<T>(name, bytes: bytes);
+      } catch (e) {
+        last = e;
+        await Future<void>.delayed(Duration(milliseconds: 200 * (i + 1)));
+      }
+    }
+    if (bytes == null && syncedTables.contains(name)) {
+      await Hive.deleteBoxFromDisk(name);
+      return Hive.openBox<T>(name);
+    }
+    throw last!;
+  }
+
   Future<void> init({
     String? path,
     bool inMemory = false,
@@ -266,26 +287,26 @@ class StorageService {
     }
     // `bytes` otvara box samo u memoriji, bez pisanja na disk.
     final bytes = inMemory ? Uint8List(0) : null;
-    _users = await Hive.openBox<Map>(_usersBox, bytes: bytes);
-    _devices = await Hive.openBox<Map>(_devicesBox, bytes: bytes);
-    _transactions = await Hive.openBox<Map>(_transactionsBox, bytes: bytes);
-    _session = await Hive.openBox(_sessionBox, bytes: bytes);
-    _history = await Hive.openBox<Map>(_historyBox, bytes: bytes);
-    _auctions = await Hive.openBox<Map>(_auctionsBox, bytes: bytes);
-    _deliveries = await Hive.openBox<Map>(_deliveriesBox, bytes: bytes);
-    _credentials = await Hive.openBox<Map>(_credentialsBox, bytes: bytes);
-    _files = await Hive.openBox(_filesBox, bytes: bytes);
-    _reviews = await Hive.openBox<Map>(_reviewsBox, bytes: bytes);
-    _notifications = await Hive.openBox<Map>(_notificationsBox, bytes: bytes);
-    _reports = await Hive.openBox<Map>(_reportsBox, bytes: bytes);
-    _messages = await Hive.openBox<Map>(_messagesBox, bytes: bytes);
-    _offers = await Hive.openBox<Map>(_offersBox, bytes: bytes);
-    _bargains = await Hive.openBox<Map>(_bargainsBox, bytes: bytes);
-    _views = await Hive.openBox<Map>(_viewsBox, bytes: bytes);
-    _stories = await Hive.openBox<Map>(_storiesBox, bytes: bytes);
-    _sellers = await Hive.openBox<Map>(_sellersBox, bytes: bytes);
-    _liveShows = await Hive.openBox<Map>(_liveShowsBox, bytes: bytes);
-    _liveEvents = await Hive.openBox<Map>(_liveEventsBox, bytes: bytes);
+    _users = await _open<Map>(_usersBox, bytes);
+    _devices = await _open<Map>(_devicesBox, bytes);
+    _transactions = await _open<Map>(_transactionsBox, bytes);
+    _session = await _open<dynamic>(_sessionBox, bytes);
+    _history = await _open<Map>(_historyBox, bytes);
+    _auctions = await _open<Map>(_auctionsBox, bytes);
+    _deliveries = await _open<Map>(_deliveriesBox, bytes);
+    _credentials = await _open<Map>(_credentialsBox, bytes);
+    _files = await _open<dynamic>(_filesBox, bytes);
+    _reviews = await _open<Map>(_reviewsBox, bytes);
+    _notifications = await _open<Map>(_notificationsBox, bytes);
+    _reports = await _open<Map>(_reportsBox, bytes);
+    _messages = await _open<Map>(_messagesBox, bytes);
+    _offers = await _open<Map>(_offersBox, bytes);
+    _bargains = await _open<Map>(_bargainsBox, bytes);
+    _views = await _open<Map>(_viewsBox, bytes);
+    _stories = await _open<Map>(_storiesBox, bytes);
+    _sellers = await _open<Map>(_sellersBox, bytes);
+    _liveShows = await _open<Map>(_liveShowsBox, bytes);
+    _liveEvents = await _open<Map>(_liveEventsBox, bytes);
 
     await _repairRecordIds();
     if (!seed) return;

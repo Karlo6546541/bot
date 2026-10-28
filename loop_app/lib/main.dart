@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:hive/hive.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'app.dart';
@@ -34,7 +35,17 @@ class _Bootstrap extends StatefulWidget {
 }
 
 class _BootstrapState extends State<_Bootstrap> {
-  late final Future<(StorageService, SyncService?)> _init = _initStorage();
+  late Future<(StorageService, SyncService?)> _init = _initStorage();
+
+  /// Lokalna kopija je oštećena: obriši je i učitaj ponovno (podaci i
+  /// prijava su u online bazi).
+  Future<void> _reset() async {
+    try {
+      await Hive.close();
+      await Hive.deleteFromDisk();
+    } catch (_) {}
+    if (mounted) setState(() => _init = _initStorage());
+  }
 
   Future<(StorageService, SyncService?)> _initStorage() async {
     final storage = StorageService();
@@ -84,9 +95,24 @@ class _BootstrapState extends State<_Bootstrap> {
               body: Center(
                 child: Padding(
                   padding: const EdgeInsets.all(24),
-                  child: Text(
-                    t('Greška pri učitavanju podataka:\n{0}', [snapshot.error]),
-                    textAlign: TextAlign.center,
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        t('Greška pri učitavanju podataka:\n{0}', [
+                          snapshot.error,
+                        ]),
+                        textAlign: TextAlign.center,
+                      ),
+                      const SizedBox(height: 16),
+                      FilledButton(
+                        key: const ValueKey('storage-reset'),
+                        onPressed: _reset,
+                        child: Text(
+                          t('Očisti lokalne podatke i pokušaj ponovno'),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ),

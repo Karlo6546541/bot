@@ -2603,4 +2603,5 @@ const kEn = <String, String>{
       'Your saved payment method is used automatically: when you win an auction or a live, you\'re charged automatically.',
   'Spremljeni predmeti čekaju — stavi ih na aukciju ili u live.':
       'Saved items are waiting — put them on auction or in a live.',
+  'Očisti lokalne podatke i pokušaj ponovno': 'Clear local data and try again',
 };
