@@ -1125,48 +1125,56 @@ class _MyAuctionsViewState extends ConsumerState<MyAuctionsView> {
         SliverToBoxAdapter(
           child: Padding(
             padding: const EdgeInsets.fromLTRB(16, 0, 16, 10),
-            child: SingleChildScrollView(
+            // Tri jednaka gumba u jednom redu (stanu na svaki ekran).
+            child: Row(
               key: const ValueKey('my-ship-filter'),
-              scrollDirection: Axis.horizontal,
-              child: Row(
-                children: [
-                  for (final (v, label, n) in [
-                    (
-                      _Ship.incoming,
-                      t('Stiže meni ({0})', [
-                        '${choose.length + incoming.length}',
-                      ]),
-                      choose.length + incoming.length,
-                    ),
-                    (
-                      _Ship.sending,
-                      t('Šaljem ({0})', ['${toShip.length}']),
-                      toShip.length,
-                    ),
-                    (
-                      _Ship.delivered,
-                      t('Dostavljeno ({0})', ['${doneDeliveries.length}']),
-                      doneDeliveries.length,
-                    ),
-                  ])
-                    Padding(
-                      padding: const EdgeInsets.only(right: 6),
-                      child: ChoiceChip(
-                        key: ValueKey('ship-${v.name}'),
-                        label: Text(label),
-                        avatar: n > 0 && v != _Ship.delivered
-                            ? Icon(
-                                Icons.circle,
-                                size: 10,
-                                color: LoopColors.accent,
-                              )
-                            : null,
-                        selected: ship == v,
-                        onSelected: (_) => setState(() => _ship = v),
+              children: [
+                for (final (v, label, n) in [
+                  (
+                    _Ship.incoming,
+                    t('Stiže meni'),
+                    choose.length + incoming.length,
+                  ),
+                  (_Ship.sending, t('Šaljem'), toShip.length),
+                  (_Ship.delivered, t('Dostavljeno'), doneDeliveries.length),
+                ])
+                  Expanded(
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 3),
+                      child: Material(
+                        color: ship == v
+                            ? LoopColors.textPrimary
+                            : LoopColors.surface,
+                        borderRadius: BorderRadius.circular(99),
+                        child: InkWell(
+                          key: ValueKey('ship-${v.name}'),
+                          borderRadius: BorderRadius.circular(99),
+                          onTap: () => setState(() => _ship = v),
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 6,
+                              vertical: 10,
+                            ),
+                            child: FittedBox(
+                              fit: BoxFit.scaleDown,
+                              child: Text(
+                                '$label ($n)',
+                                maxLines: 1,
+                                style: TextStyle(
+                                  fontWeight: FontWeight.w800,
+                                  fontSize: 13,
+                                  color: ship == v
+                                      ? LoopColors.background
+                                      : LoopColors.textPrimary,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
                       ),
                     ),
-                ],
-              ),
+                  ),
+              ],
             ),
           ),
         ),

@@ -1049,6 +1049,41 @@ void logoTests() {
     });
   }
 
+  testWidgets('natrag: kronološki kroz tabove, pa Početna', (tester) async {
+    tester.view.physicalSize = const Size(400, 860);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    await tester.pumpWidget(await buildApp(tester));
+    await tester.ensureVisible(find.text('Prijavi se'));
+    await tester.tap(find.text('Prijavi se'));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('for-you-feed')), findsOneWidget);
+
+    // Za tebe → Uživo → Pratim (dodirom), zatim natrag dvaput.
+    await tester.tap(find.byKey(const ValueKey('home-cat-live')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('home-cat-following')));
+    await tester.pumpAndSettle();
+    await tester.binding.handlePopRoute();
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('home-go-live')), findsOneWidget);
+    await tester.binding.handlePopRoute();
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('for-you-feed')), findsOneWidget);
+
+    // Swipe lijevo na Uživo pa natrag na Za tebe.
+    await tester.fling(
+      find.byKey(const ValueKey('home-swipe')),
+      const Offset(-300, 0),
+      1500,
+    );
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('home-go-live')), findsOneWidget);
+    await tester.binding.handlePopRoute();
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('for-you-feed')), findsOneWidget);
+  });
+
   testWidgets('Kupi odmah iz swipe feeda: kupljeno, ne "nije dostupan"', (
     tester,
   ) async {

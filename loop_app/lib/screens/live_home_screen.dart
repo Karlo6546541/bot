@@ -42,6 +42,26 @@ class LiveHomeScreen extends ConsumerStatefulWidget {
 /// Filter na početnoj: za tebe, uživo, uskoro ili kategorija.
 sealed class _Filter {
   const _Filter();
+
+  String get id => switch (this) {
+    _ForYou() => 'for-you',
+    _LiveOnly() => 'live',
+    _Soon() => 'soon',
+    _Timed() => 'timed',
+    _BuyNow() => 'buy',
+    _Digital() => 'digital',
+    _Following() => 'following',
+  };
+
+  static _Filter of(String id) => switch (id) {
+    'live' => const _LiveOnly(),
+    'soon' => const _Soon(),
+    'timed' => const _Timed(),
+    'buy' => const _BuyNow(),
+    'digital' => const _Digital(),
+    'following' => const _Following(),
+    _ => const _ForYou(),
+  };
 }
 
 class _ForYou extends _Filter {
@@ -74,12 +94,33 @@ class _Following extends _Filter {
 
 class _LiveHomeScreenState extends ConsumerState<LiveHomeScreen> {
   void _select(_Filter filter) {
-    setState(() => _filter = filter);
+    ref.read(homeFilterProvider.notifier).select(filter.id);
     widget.onImmersiveChanged?.call(filter is _ForYou);
   }
 
   Timer? _timer;
-  _Filter _filter = const _ForYou();
+  _Filter get _filter => _Filter.of(ref.read(homeFilterProvider));
+
+  /// Swipe lijevo/desno između gornjih tabova (kao TikTok): Pratim ·
+  /// Za tebe · Uživo · Pretraga.
+  static const _swipeTabs = ['following', 'for-you', 'live'];
+
+  void _swipe(DragEndDetails d) {
+    final v = d.primaryVelocity ?? 0;
+    if (v.abs() < 350) return;
+    final i = _swipeTabs.indexOf(_filter.id);
+    if (i < 0) {
+      // Ostali prikazi (Aukcije, Kupi odmah…): swipe vraća na Za tebe.
+      _select(const _ForYou());
+      return;
+    }
+    final next = v < 0 ? i + 1 : i - 1;
+    if (next >= _swipeTabs.length) {
+      SearchScreen.open(context);
+    } else if (next >= 0) {
+      _select(_Filter.of(_swipeTabs[next]));
+    }
+  }
 
   /// Digitalne kupnje: prikaz kupljenog (inače "Kupi").
   bool _digitalOwned = false;
@@ -118,6 +159,7 @@ class _LiveHomeScreenState extends ConsumerState<LiveHomeScreen> {
 
   @override
   Widget build(BuildContext context) {
+    ref.watch(homeFilterProvider);
     final s = ref.watch(appProvider);
     final me = s.currentUserId ?? '';
     final all = _filter is _ForYou ? const <BrowseItem>[] : browseItems(s);
@@ -600,10 +642,16 @@ class _LiveHomeScreenState extends ConsumerState<LiveHomeScreen> {
         children: [
           chips,
           Expanded(
-            child: ForYouFeed(
-              key: ValueKey('recommendations:${s.currentUserId}'),
-              active:
-                  widget.visible && (ModalRoute.of(context)?.isCurrent ?? true),
+            child: GestureDetector(
+              key: const ValueKey('home-swipe'),
+              behavior: HitTestBehavior.translucent,
+              onHorizontalDragEnd: _swipe,
+              child: ForYouFeed(
+                key: ValueKey('recommendations:${s.currentUserId}'),
+                active:
+                    widget.visible &&
+                    (ModalRoute.of(context)?.isCurrent ?? true),
+              ),
             ),
           ),
         ],
@@ -614,28 +662,33 @@ class _LiveHomeScreenState extends ConsumerState<LiveHomeScreen> {
       children: [
         chips,
         Expanded(
-          child: CustomScrollView(
-            slivers: [
-              if (onLive || onAuctions)
-                SliverToBoxAdapter(child: categoryFilter),
-              if (_showHow && _filter is _ForYou)
-                SliverToBoxAdapter(
-                  child: _HowLoopWorks(
-                    onClose: () => setState(() => _showHow = false),
+          child: GestureDetector(
+            key: const ValueKey('home-swipe'),
+            behavior: HitTestBehavior.translucent,
+            onHorizontalDragEnd: _swipe,
+            child: CustomScrollView(
+              slivers: [
+                if (onLive || onAuctions)
+                  SliverToBoxAdapter(child: categoryFilter),
+                if (_showHow && _filter is _ForYou)
+                  SliverToBoxAdapter(
+                    child: _HowLoopWorks(
+                      onClose: () => setState(() => _showHow = false),
+                    ),
                   ),
-                ),
-              if (!_hideCheckout &&
-                  s.currentUser != null &&
-                  !s.currentUser!.isGuest &&
-                  !s.currentUser!.checkoutReady)
-                SliverToBoxAdapter(
-                  child: _CheckoutBanner(
-                    onClose: () => setState(() => _hideCheckout = true),
+                if (!_hideCheckout &&
+                    s.currentUser != null &&
+                    !s.currentUser!.isGuest &&
+                    !s.currentUser!.checkoutReady)
+                  SliverToBoxAdapter(
+                    child: _CheckoutBanner(
+                      onClose: () => setState(() => _hideCheckout = true),
+                    ),
                   ),
-                ),
-              ...slivers,
-              const SliverToBoxAdapter(child: SizedBox(height: 96)),
-            ],
+                ...slivers,
+                const SliverToBoxAdapter(child: SizedBox(height: 96)),
+              ],
+            ),
           ),
         ),
       ],

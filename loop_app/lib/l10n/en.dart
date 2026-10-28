@@ -2481,4 +2481,6 @@ const kEn = <String, String>{
   '🚚 Na dostavi · {0}': '🚚 On the way · {0}',
   '🏪 Trgovac': '🏪 Trader',
   '👤 Fizička osoba': '👤 Private seller',
+  'Stiže meni': 'Coming to me',
+  'Šaljem': 'Sending',
 };

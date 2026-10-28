@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../providers/app_providers.dart';
@@ -29,8 +30,49 @@ class HomeShell extends ConsumerStatefulWidget {
 }
 
 class _HomeShellState extends ConsumerState<HomeShell> {
-  bool _feedSelected = true;
   int get _index => ref.watch(homeTabProvider);
+
+  /// Povijest otvaranja (kartica + gornji tab Početne), najnovije zadnje.
+  /// Natrag (tipka ili gesta) vraća kronološki, pa na Početnu (Za tebe),
+  /// a tek onda izlazi iz aplikacije.
+  final _history = <(int, String)>[];
+  bool _restoring = false;
+
+  (int, String) get _current =>
+      (ref.read(homeTabProvider), ref.read(homeFilterProvider));
+
+  void _remember((int, String) previous) {
+    if (_restoring) return;
+    if (_history.isEmpty || _history.last != previous) _history.add(previous);
+    if (_history.length > 50) _history.removeAt(0);
+  }
+
+  void _back() {
+    // Otvorene postavke profila zatvaraju se prve.
+    if (ref.read(profileSettingsProvider)) {
+      ref.read(profileSettingsProvider.notifier).setOpen(false);
+      return;
+    }
+    final now = _current;
+    while (_history.isNotEmpty && _history.last == now) {
+      _history.removeLast();
+    }
+    final (tab, filter) = _history.isNotEmpty
+        ? _history.removeLast()
+        : now == (0, 'for-you')
+        ? (-1, '')
+        : (0, 'for-you');
+    if (tab < 0) {
+      SystemNavigator.pop();
+      return;
+    }
+    _restoring = true;
+    ref.read(homeFilterProvider.notifier).select(filter);
+    ref.read(homeTabProvider.notifier).select(tab);
+    // Promjene vraćanja ne idu natrag u povijest (slušači se mogu javiti
+    // i kasnije, zato tek nakon iscrtavanja).
+    WidgetsBinding.instance.addPostFrameCallback((_) => _restoring = false);
+  }
 
   void _go(int i) {
     if (i != 3) ref.read(profileSettingsProvider.notifier).setOpen(false);
@@ -117,6 +159,13 @@ class _HomeShellState extends ConsumerState<HomeShell> {
 
   @override
   Widget build(BuildContext context) {
+    ref.listen(homeTabProvider, (prev, _) {
+      if (prev != null) _remember((prev, ref.read(homeFilterProvider)));
+    });
+    ref.listen(homeFilterProvider, (prev, _) {
+      if (prev != null) _remember((ref.read(homeTabProvider), prev));
+    });
+    final feedSelected = ref.watch(homeFilterProvider) == 'for-you';
     if (PendingLink.isPending) {
       ref.listen(appProvider, (_, _) => _openPendingLink());
     }
@@ -124,8 +173,8 @@ class _HomeShellState extends ConsumerState<HomeShell> {
     final isDesktop = width >= kDesktopBreakpoint;
     final phone = width < 600;
 
-    return AdaptiveShell(
-      immersiveNavigation: _index == 0 && _feedSelected,
+    final shell = AdaptiveShell(
+      immersiveNavigation: _index == 0 && feedSelected,
       destinations: isDesktop
           ? _destinations
           : [_destinations[0], _destinations[2], _destinations[4]],
@@ -188,17 +237,20 @@ class _HomeShellState extends ConsumerState<HomeShell> {
       body: IndexedStack(
         index: _index,
         children: [
-          LiveHomeScreen(
-            visible: _index == 0,
-            onImmersiveChanged: (value) {
-              setState(() => _feedSelected = value);
-            },
-          ),
+          LiveHomeScreen(visible: _index == 0),
           const CategoriesScreen(),
           MyAuctionsView(onBrowse: () => _go(0)),
           const ProfileScreen(),
         ],
       ),
+    );
+    // Natrag: kronološki kroz otvorene kartice, pa na Početnu, pa izlaz.
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop) _back();
+      },
+      child: shell,
     );
   }
 }

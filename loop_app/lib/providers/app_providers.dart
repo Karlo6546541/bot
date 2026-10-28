@@ -156,6 +156,17 @@ class HomeTab extends Notifier<int> {
   void select(int index) => state = index;
 }
 
+/// Gornji tab na Početnoj: 'for-you', 'following', 'live', 'soon',
+/// 'timed', 'buy', 'digital' (dijeli se s okvirom radi tipke Natrag).
+final homeFilterProvider = NotifierProvider<HomeFilter, String>(HomeFilter.new);
+
+class HomeFilter extends Notifier<String> {
+  @override
+  String build() => 'for-you';
+
+  void select(String id) => state = id;
+}
+
 /// Glavni provider aplikacije: drži [AppState] i izlaže sve akcije.
 final appProvider = NotifierProvider<AppController, AppState>(
   AppController.new,
