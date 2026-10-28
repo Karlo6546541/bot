@@ -80,6 +80,7 @@ class SyncService {
     // Lokalne promjene se bilježe od početka; šalju se kad veza proradi.
     _storage.onLocalChange = _queue;
     _storage.remoteClaim = _claim;
+    _storage.remoteFetch = _fetch;
     _restorePending();
     await _connect();
   }
@@ -148,6 +149,17 @@ class SyncService {
     } catch (_) {
       throw const OfflineClaimException();
     }
+  }
+
+  /// Svježi zapis iz baze; null ako lokalno postoji neposlana promjena
+  /// (lokalni je tada noviji) ili veza ne radi.
+  Future<Map<String, dynamic>?> _fetch(String table, String id) async {
+    if (status != SyncStatus.online ||
+        !_tables.contains(table) ||
+        _pending.containsKey('$table/$id')) {
+      return null;
+    }
+    return _remote.fetch(table, id);
   }
 
   void _scheduleReconnect() {

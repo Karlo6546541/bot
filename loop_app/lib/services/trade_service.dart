@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:uuid/uuid.dart';
 
 import '../models/app_user.dart';
@@ -174,6 +176,14 @@ class TradeService {
     required String deviceId,
     DateTime? now,
   }) async {
+    // Svježe stanje oglasa (zaliha, cijena) i dogovorene cijene iz baze —
+    // drugi kupac ili prodavatelj ih je možda upravo promijenio.
+    await _storage.refreshDevice(deviceId);
+    for (final o in _storage.bargains) {
+      if (o.buyerId == userId && o.deviceId == deviceId) {
+        await _storage.refreshBargain(o.id);
+      }
+    }
     final user = _requireUser(userId);
     final device = _requireDevice(deviceId);
     if (device.ownerId == userId) {
@@ -263,15 +273,24 @@ class TradeService {
     }
 
     var boughtId = device.id;
+    // Komad je zauzet; oglas se mijenja iz svježeg zapisa (drugi kupac ga
+    // je možda u međuvremenu promijenio — zastarjeli upis bi vratio zalihu).
+    if (!device.isDigital) await _storage.refreshDevice(device.id);
+    final fresh = _storage.deviceById(device.id) ?? device;
+    final stillSellers = fresh.ownerId == device.ownerId;
     if (device.hasStock && device.isListed && unitNo > 1) {
       final unit = device.unitFor(userId, _uuid.v4(), at);
       boughtId = unit.id;
       await _storage.putDevice(unit);
       // Preostala zaliha = komadi ispod zauzetog (ne lokalni broj, koji
-      // može biti zastario).
-      await _storage.putDevice(device.withQuantity(unitNo - 1));
+      // može biti zastario), a nikad više od svježeg stanja.
+      if (stillSellers) {
+        await _storage.putDevice(
+          fresh.withQuantity(max(1, min(fresh.quantity, unitNo - 1))),
+        );
+      }
     } else if (!device.isDigital) {
-      await _storage.putDevice(device.withOwner(userId));
+      await _storage.putDevice(fresh.withOwner(userId));
     }
     if (bargain != null) await BargainService(_storage).markUsed(bargain, at);
 

@@ -26,6 +26,10 @@ abstract class RemoteStore {
   /// ga je netko već upisao — npr. drugi kupac je upravo kupio isti komad.
   Future<bool> claim(String table, String id, Map<String, dynamic> data);
 
+  /// Svježi zapis iz baze (null ako ga nema) — prije odluke koja ovisi o
+  /// tuđim promjenama (zaliha, najviša ponuda, prihvaćena ponuda).
+  Future<Map<String, dynamic>?> fetch(String table, String id);
+
   /// Smije li pisati (online baza prima izmjene samo od prijavljenih).
   bool get canWrite;
   Future<void> clearAll(List<String> tables);
@@ -87,6 +91,16 @@ class SupabaseRemoteStore implements RemoteStore {
       for (final r in rows)
         r['id'] as String: Map<String, dynamic>.from(r['data'] as Map),
     };
+  }
+
+  @override
+  Future<Map<String, dynamic>?> fetch(String table, String id) async {
+    final r = await _client
+        .from(tableName(table))
+        .select('data')
+        .eq('id', id)
+        .maybeSingle();
+    return r == null ? null : Map<String, dynamic>.from(r['data'] as Map);
   }
 
   @override

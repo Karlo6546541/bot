@@ -139,84 +139,95 @@ void main() {
     },
   );
 
-  test(
-    'paketomat: preuzimanje se samo potvrdi, prodavač dobiva obavijesti',
-    () async {
-      final start = DateTime(2026, 10, 21, 12);
-      const seller = SeedData.anaUserId;
-      final d = await deliveries.createForPurchase(
-        userId: demo,
-        device: storage.deviceById('seed-1')!,
-        method: DeliveryMethod.parcelLocker,
-        destination: kDemoLockers.first,
-        sellerId: seller,
-        now: start,
-      );
-      // Prodavač dobiva kod za paketomat.
-      expect(
-        storage.notifications.where(
-          (n) => n.userId == seller && n.kind == NotificationKind.shipReady,
-        ),
-        hasLength(1),
-      );
-      expect(d.steps.last, DeliveryStatus.pickedUp);
-      // Još u paketomatu — ništa se ne potvrđuje.
-      expect(await deliveries.autoConfirmPickups(demo, now: start), 0);
-      // Paket u paketomatu → kupac dobiva PIN za preuzimanje (jednom).
-      final arrived = start.add(const Duration(seconds: 150));
-      expect(d.status(arrived), DeliveryStatus.inLocker);
-      expect(await deliveries.autoConfirmPickups(demo, now: arrived), 0);
-      await deliveries.autoConfirmPickups(demo, now: arrived);
-      final pinNotes = storage.notifications.where(
-        (n) => n.userId == demo && n.kind == NotificationKind.parcelArrived,
-      );
-      expect(pinNotes, hasLength(1));
-      expect(pinNotes.single.args.last, BoxNowDemo.pickupPin(d));
-      // PIN-ovi stižu i kao službene poruke od Subhasta.
-      final sys = storage.messages.where((m) => m.senderId == 'subhasto');
-      expect(
-        sys.any(
-          (m) =>
-              m.receiverId == seller &&
-              m.text.contains(BoxNowDemo.dropOffPin(d)),
-        ),
-        isTrue,
-      );
-      expect(
-        sys.any(
-          (m) =>
-              m.receiverId == demo && m.text.contains(BoxNowDemo.pickupPin(d)),
-        ),
-        isTrue,
-      );
-      // PIN-ovi su nasumični (spremljeni uz pošiljku), ne iz broja pošiljke.
-      expect(d.pickupPin, isNotNull);
-      expect(d.dropOffPin, isNotNull);
-      // Kupac preuzeo → automatski potvrđeno (bez gumba).
-      final later = start.add(const Duration(minutes: 10));
-      expect(await deliveries.autoConfirmPickups(demo, now: later), 1);
-      expect(storage.deliveryById(d.id)!.confirmedAt, isNotNull);
-      expect(
-        storage.notifications.where(
-          (n) =>
-              n.userId == seller && n.kind == NotificationKind.parcelPickedUp,
-        ),
-        hasLength(1),
-      );
-      // Samo jednom.
-      expect(await deliveries.autoConfirmPickups(demo, now: later), 0);
+  test('paketomat: preuzimanje PIN-om, prodavač dobiva obavijesti', () async {
+    final start = DateTime(2026, 10, 21, 12);
+    const seller = SeedData.anaUserId;
+    final d = await deliveries.createForPurchase(
+      userId: demo,
+      device: storage.deviceById('seed-1')!,
+      method: DeliveryMethod.parcelLocker,
+      destination: kDemoLockers.first,
+      sellerId: seller,
+      now: start,
+    );
+    // Prodavač dobiva kod za paketomat.
+    expect(
+      storage.notifications.where(
+        (n) => n.userId == seller && n.kind == NotificationKind.shipReady,
+      ),
+      hasLength(1),
+    );
+    expect(d.steps.last, DeliveryStatus.pickedUp);
+    // Još u paketomatu — ništa se ne potvrđuje.
+    expect(await deliveries.autoConfirmPickups(demo, now: start), 0);
+    // Paket u paketomatu → kupac dobiva PIN za preuzimanje (jednom).
+    final arrived = start.add(const Duration(seconds: 150));
+    expect(d.status(arrived), DeliveryStatus.inLocker);
+    expect(await deliveries.autoConfirmPickups(demo, now: arrived), 1);
+    expect(await deliveries.autoConfirmPickups(demo, now: arrived), 0);
+    final pinNotes = storage.notifications.where(
+      (n) => n.userId == demo && n.kind == NotificationKind.parcelArrived,
+    );
+    expect(pinNotes, hasLength(1));
+    expect(pinNotes.single.args.last, BoxNowDemo.pickupPin(d));
+    // PIN-ovi stižu i kao službene poruke od Subhasta.
+    final sys = storage.messages.where((m) => m.senderId == 'subhasto');
+    expect(
+      sys.any(
+        (m) =>
+            m.receiverId == seller && m.text.contains(BoxNowDemo.dropOffPin(d)),
+      ),
+      isTrue,
+    );
+    expect(
+      sys.any(
+        (m) => m.receiverId == demo && m.text.contains(BoxNowDemo.pickupPin(d)),
+      ),
+      isTrue,
+    );
+    // PIN-ovi su nasumični (spremljeni uz pošiljku), ne iz broja pošiljke.
+    expect(d.pickupPin, isNotNull);
+    expect(d.dropOffPin, isNotNull);
+    // Bez PIN-a paket čeka u pretincu (nema automatskog preuzimanja).
+    final later = start.add(const Duration(minutes: 10));
+    expect(await deliveries.autoConfirmPickups(demo, now: later), 0);
+    expect(storage.deliveryById(d.id)!.status(later), DeliveryStatus.inLocker);
+    expect(storage.deliveryById(d.id)!.confirmedAt, isNull);
+    // Pogrešan PIN ne otvara pretinac; tuđi korisnik ne može preuzeti.
+    final wrong = BoxNowDemo.pickupPin(d) == '000000' ? '111111' : '000000';
+    await expectLater(
+      deliveries.pickUp(demo, d.id, wrong, now: later),
+      throwsA(isA<TradeException>()),
+    );
+    await expectLater(
+      deliveries.pickUp(seller, d.id, BoxNowDemo.pickupPin(d), now: later),
+      throwsA(isA<TradeException>()),
+    );
+    await deliveries.pickUp(demo, d.id, BoxNowDemo.pickupPin(d), now: later);
+    expect(storage.deliveryById(d.id)!.confirmedAt, isNotNull);
+    expect(storage.deliveryById(d.id)!.isDelivered(later), isTrue);
+    expect(
+      storage.notifications.where(
+        (n) => n.userId == seller && n.kind == NotificationKind.parcelPickedUp,
+      ),
+      hasLength(1),
+    );
+    // Samo jednom.
+    await expectLater(
+      deliveries.pickUp(demo, d.id, BoxNowDemo.pickupPin(d), now: later),
+      throwsA(isA<TradeException>()),
+    );
 
-      // BOX NOW (demo): stalni broj i PIN-ovi, praćenje do preuzimanja.
-      final done = storage.deliveryById(d.id)!;
-      expect(BoxNowDemo.parcelId(done), hasLength(10));
-      expect(BoxNowDemo.parcelId(done), BoxNowDemo.parcelId(d));
-      expect(BoxNowDemo.dropOffPin(done), matches(RegExp(r'^\d{6}$')));
-      expect(BoxNowDemo.pickupPin(done), matches(RegExp(r'^\d{6}$')));
-      final events = BoxNowDemo.events(done, later);
-      expect(events, hasLength(5));
-      expect(events.every((e) => e.$3), isTrue);
-    },
-  );
+    // BOX NOW (demo): stalni broj i PIN-ovi, praćenje do preuzimanja.
+    final done = storage.deliveryById(d.id)!;
+    expect(BoxNowDemo.parcelId(done), hasLength(10));
+    expect(BoxNowDemo.parcelId(done), BoxNowDemo.parcelId(d));
+    expect(BoxNowDemo.dropOffPin(done), matches(RegExp(r'^\d{6}$')));
+    expect(BoxNowDemo.pickupPin(done), matches(RegExp(r'^\d{6}$')));
+    final events = BoxNowDemo.events(done, later);
+    expect(events, hasLength(5));
+    expect(events.every((e) => e.$3), isTrue);
+  });
 
   test('kurir bez adrese i paketomat bez odabira se odbijaju', () async {
     final phone = storage.deviceById('seed-1')!;

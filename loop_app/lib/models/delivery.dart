@@ -269,6 +269,10 @@ class Delivery {
     if (method == null) return 0;
     if (confirmedAt != null) return steps.length - 1;
     final p = progress(now);
+    // Paketomat: paket čeka u pretincu dok ga kupac ne preuzme PIN-om.
+    if (autoConfirms) {
+      return (p * (steps.length - 1)).floor().clamp(0, steps.length - 2);
+    }
     // Zadnji korak (Dostavljeno) tek kad je vrijeme isteklo.
     if (p >= 1) return steps.length - 1;
     return (p * (steps.length - 1)).floor();
@@ -292,7 +296,8 @@ class Delivery {
   /// Stiglo kupcu (dostavljeno, ili preuzeto iz paketomata).
   bool isDelivered(DateTime now) => stepIndex(now) == steps.length - 1;
 
-  /// Paketomat: kupac preuzima sam — preuzimanje se bilježi automatski.
+  /// Paketomat: kupac preuzima sam, upisom PIN-a na paketomatu
+  /// ([DeliveryService.pickUp]) — tada je primitak potvrđen.
   bool get autoConfirms => method == DeliveryMethod.parcelLocker;
 
   /// Očekivani trenutak isporuke (demo).

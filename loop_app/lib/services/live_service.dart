@@ -448,7 +448,9 @@ class LiveService {
     for (final show in storage.liveShows) {
       final indices = [
         for (var i = 0; i < show.lots.length; i++)
-          if (show.lots[i].deviceId == deviceId && !show.settled.contains(i)) i,
+          if (show.lots[i].deviceId == deviceId &&
+              !lotSettled(storage, show, i))
+            i,
       ];
       if (indices.isEmpty) continue;
       final state = compute(show, storage.liveEventsOf(show.id), at);
@@ -463,6 +465,15 @@ class LiveService {
     }
     return false;
   }
+
+  /// ID zapisa prodaje predmeta [index] (isti na svim uređajima).
+  static String saleId(String showId, int index) => 'live-$showId-$index';
+
+  /// Prodaja predmeta je provedena (zapis prodaje postoji) ili je predmet
+  /// zaključen kod domaćina (npr. vraćen u ponudu).
+  static bool lotSettled(StorageService storage, LiveShow show, int index) =>
+      show.settled.contains(index) ||
+      storage.hasTransaction(saleId(show.id, index));
 
   /// Poruka za predmet zaključan u liveu.
   static String get lockedMessage =>
@@ -926,7 +937,7 @@ class LiveService {
       throw TradeException(t('Trenutno se ništa ne licitira.'));
     }
     final value = roundCredits(amount);
-    if (value > TradeService.maxListPrice) {
+    if (!value.isFinite || value > TradeService.maxListPrice) {
       throw TradeException(
         t('Najveća ponuda je {0}.', [formatCredits(TradeService.maxListPrice)]),
       );
@@ -983,18 +994,29 @@ class LiveService {
         }
       }
       for (final l in state.lots) {
-        if (l.status != LotStatus.sold || settled.contains(l.index)) continue;
+        if (l.status != LotStatus.sold || lotSettled(_storage, show, l.index)) {
+          continue;
+        }
         final winner = l.leader!;
         if (userId != null &&
             userId != show.hostId &&
             userId != winner.userId) {
           continue;
         }
-        await _settleLot(show, l, at);
-        settled.add(l.index);
-        count++;
+        // Jedan predmet ne smije zaustaviti ostale (i druge liveove).
+        try {
+          if (await _settleLot(show, l, at)) count++;
+        } on OfflineClaimException {
+          rethrow;
+        } catch (_) {
+          continue;
+        }
       }
-      if (settled.length != show.settled.length) {
+      // Zapis livea (predmeti, oznake) mijenja samo domaćin — gledatelj
+      // bi ga prepisao zastarjelom kopijom (izgubili bi se dodani predmeti).
+      // Provedena prodaja se prepoznaje po zapisu prodaje.
+      if ((userId == null || userId == show.hostId) &&
+          settled.length != show.settled.length) {
         await _storage.putLiveShow(
           _storage.liveShowById(show.id)!.copyWith(settled: settled.toList()),
         );
@@ -1033,17 +1055,19 @@ class LiveService {
     }
   }
 
-  Future<void> _settleLot(LiveShow show, LotState l, DateTime at) async {
+  /// Provodi prodaju predmeta; `false` ako je već provedena (ili se ne
+  /// može provesti).
+  Future<bool> _settleLot(LiveShow show, LotState l, DateTime at) async {
     final winner = _storage.userById(l.leader!.userId);
     final seller = _storage.userById(show.hostId);
     final device = _storage.deviceById(l.lot.deviceId);
-    final txId = 'live-${show.id}-${l.index}';
+    final txId = saleId(show.id, l.index);
     if (winner == null ||
         seller == null ||
         device == null ||
         device.ownerId != show.hostId ||
-        _storage.transactions.any((t) => t.id == txId)) {
-      return;
+        _storage.hasTransaction(txId)) {
+      return false;
     }
     final price = l.price;
     final fee = auctionCommission(price, l.lot.basePrice);
@@ -1066,8 +1090,8 @@ class LiveService {
       createdAt: l.end!,
       isAuction: true,
     );
-    final claimed = await _storage.claimTransaction(sale);
-    if (!claimed) return;
+    final claimed = await _storage.claimTransaction(sale, strict: true);
+    if (!claimed) return false;
     // Items on screen (više komada): kupac dobiva jedan komad, domaćinu
     // ostaje jedan predmet s komadom manje.
     var bought = device;
@@ -1110,6 +1134,7 @@ class LiveService {
       sellerId: seller.id,
       now: at,
     );
+    return true;
   }
 
   /// Briše događaje (chat, ponude) liveova završenih prije više od 2 dana.

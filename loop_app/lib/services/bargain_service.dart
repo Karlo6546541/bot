@@ -129,6 +129,7 @@ class BargainService {
 
   /// Prodavatelj prihvaća ponudu kupca.
   Future<PriceOffer> accept(String sellerId, String id, {DateTime? now}) async {
+    await _storage.refreshBargain(id);
     final at = now ?? DateTime.now();
     final o = _requireOpen(id, at);
     if (o.sellerId != sellerId || o.status != BargainStatus.pending) {
@@ -157,6 +158,7 @@ class BargainService {
     double amount, {
     DateTime? now,
   }) async {
+    await _storage.refreshBargain(id);
     final at = now ?? DateTime.now();
     final o = _requireOpen(id, at);
     if (o.sellerId != sellerId || o.status != BargainStatus.pending) {
@@ -193,6 +195,7 @@ class BargainService {
     String id, {
     DateTime? now,
   }) async {
+    await _storage.refreshBargain(id);
     final at = now ?? DateTime.now();
     final o = _requireOpen(id, at);
     if (o.buyerId != buyerId || o.status != BargainStatus.countered) {
@@ -216,6 +219,7 @@ class BargainService {
 
   /// Odbijanje: prodavatelj odbija ponudu ili kupac odbija protuponudu.
   Future<PriceOffer> decline(String userId, String id, {DateTime? now}) async {
+    await _storage.refreshBargain(id);
     final at = now ?? DateTime.now();
     final o = _requireOpen(id, at);
     final bySeller = o.sellerId == userId && o.status == BargainStatus.pending;
@@ -237,6 +241,7 @@ class BargainService {
 
   /// Kupac povlači svoju otvorenu ponudu.
   Future<PriceOffer> cancel(String buyerId, String id, {DateTime? now}) async {
+    await _storage.refreshBargain(id);
     final at = now ?? DateTime.now();
     final o = _require(id);
     if (o.buyerId != buyerId ||

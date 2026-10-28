@@ -32,6 +32,12 @@ class SharedRemote implements RemoteStore {
   bool canWrite = true;
 
   @override
+  Future<Map<String, dynamic>?> fetch(String table, String id) async {
+    final d = data[table]?[id];
+    return d == null ? null : jsonDecode(jsonEncode(d)) as Map<String, dynamic>;
+  }
+
+  @override
   Future<bool> claim(String table, String id, Map<String, dynamic> d) async {
     final t = data[table] ??= {};
     if (t.containsKey(id)) return false;
@@ -194,10 +200,9 @@ void main() {
         (t) => t['type'] == 'sell' && t['deviceId'] == d.id,
       );
       expect(sales, hasLength(2));
-      // Istovremeni upisi profila prodavača: jedna zarada se prepisala…
-      expect(remoteCredits(ana), lessThan(anaBefore + 2 * 19));
-      // …a prodavačev uređaj je ponovno uračuna (i nikad dvaput).
-      expect(await Earnings(storage).reconcile(ana), 1);
+      // Zarada se upisuje na svježi profil prodavača — ništa se ne
+      // prepiše, a usklađivanje nema što dodati (i nikad dvaput).
+      expect(remoteCredits(ana), closeTo(anaBefore + 2 * 19, 0.001));
       expect(await Earnings(storage).reconcile(ana), 0);
       await sync.flushNow();
       expect(remoteCredits(ana), closeTo(anaBefore + 2 * 19, 0.001));
@@ -445,6 +450,111 @@ void main() {
       expect(requests.length, 3);
     },
   );
+
+  test(
+    'live: pobjednik sa zastarjelim liveom ne briše predmete koje je domaćin dodao',
+    () async {
+      final t0 = DateTime.now().subtract(const Duration(minutes: 2));
+      final items = [await listed(demo, 100), await listed(demo, 100)];
+      final live = LiveService(storage);
+      final show = await live.create(
+        hostId: demo,
+        title: 'Test',
+        items: [(items[0].id, 1.0)],
+        lotSeconds: 30,
+        startsAt: t0,
+        now: t0,
+      );
+      await live.startLot(demo, show.id, index: 0, now: t0);
+      await live.bid(
+        tester,
+        show.id,
+        3,
+        now: t0.add(const Duration(seconds: 5)),
+      );
+      await sync.flushNow();
+      // Pobjednik je vidio live s jednim predmetom…
+      final stale = snapshot();
+      // …a domaćin je u međuvremenu dodao drugi.
+      await live.addLot(
+        demo,
+        show.id,
+        items[1].id,
+        5,
+        now: t0.add(const Duration(seconds: 50)),
+      );
+      await sync.flushNow();
+      await device(stale);
+      expect(
+        await LiveService(
+          storage,
+        ).settleDue(userId: tester, now: t0.add(const Duration(seconds: 60))),
+        1,
+      );
+      await reload();
+      expect(storage.liveShowById(show.id)!.lots, hasLength(2));
+      expect(storage.deviceById(items[0].id)!.ownerId, tester);
+      expect(
+        remote.data['transactions']!.containsKey('live-${show.id}-0'),
+        isTrue,
+      );
+      expect(
+        remote.data['deliveries']!.containsKey('live-${show.id}-0'),
+        isTrue,
+      );
+    },
+  );
+
+  test(
+    'aukcija: ponuda sa zastarjelim podacima ne briše tuđu višu ponudu',
+    () async {
+      final a = storage.auctions.firstWhere(
+        (x) => x.sellerId != demo && x.sellerId != tester,
+      );
+      final stale = snapshot();
+      // Tester licitira (stvarno stanje u bazi).
+      final high = a.minNextBid + 20;
+      await AuctionService(
+        storage,
+      ).placeBid(userId: tester, auctionId: a.id, amount: high);
+      await sync.flushNow();
+      // Demo nije vidio tu ponudu i nudi manje — dobiva grešku, ne briše je.
+      await device(stale);
+      await expectLater(
+        AuctionService(
+          storage,
+        ).placeBid(userId: demo, auctionId: a.id, amount: a.minNextBid),
+        throwsA(isA<TradeException>()),
+      );
+      await reload();
+      expect(storage.auctionById(a.id)!.highestBid!.userId, tester);
+
+      // Zaključuje uređaj sa zastarjelim podacima: pobjednik je iz baze.
+      await device(stale);
+      final end = a.endsAt.add(const Duration(minutes: 30));
+      await AuctionService(storage).settleExpired(now: end);
+      await reload();
+      expect(
+        remote.data['transactions']!['auction-${a.id}']!['buyerId'],
+        tester,
+      );
+    },
+  );
+
+  test('zadnji komad: drugi kupac ne vraća oglas prodavaču', () async {
+    final d = await listed(ana, 20);
+    final stale = snapshot();
+    await device(stale);
+    await TradeService(storage).buy(userId: demo, deviceId: d.id);
+    await device(stale);
+    await expectLater(
+      TradeService(storage).buy(userId: tester, deviceId: d.id),
+      throwsA(isA<TradeException>()),
+    );
+    await reload();
+    expect(storage.deviceById(d.id)!.ownerId, demo);
+    expect(storage.deviceById(d.id)!.isListed, isFalse);
+  });
 }
 
 /// Baza koja postoji, ali veza ne radi.

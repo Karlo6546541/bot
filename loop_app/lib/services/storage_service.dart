@@ -164,6 +164,28 @@ class StorageService {
   Future<bool?> Function(String table, String id, Map<String, dynamic> data)?
   remoteClaim;
 
+  /// Čitanje svježeg zapisa iz online baze (postavlja sinkronizacija).
+  Future<Map<String, dynamic>?> Function(String table, String id)? remoteFetch;
+
+  /// Osvježi zapis iz baze prije odluke koja ovisi o tuđim promjenama
+  /// (realtime zna kasniti ili propustiti promjenu). Bez veze ostaje
+  /// lokalni zapis.
+  Future<void> refreshRow(String table, String id) async {
+    final f = remoteFetch;
+    if (f == null) return;
+    try {
+      final data = await f(table, id).timeout(const Duration(seconds: 6));
+      if (data != null) await applyRemote(table, id, data);
+    } catch (_) {
+      // Bez mreže: odlučuje lokalni zapis (kupnju ionako štiti claim).
+    }
+  }
+
+  Future<void> refreshDevice(String id) => refreshRow(_devicesBox, id);
+  Future<void> refreshAuction(String id) => refreshRow(_auctionsBox, id);
+  Future<void> refreshBargain(String id) => refreshRow(_bargainsBox, id);
+  Future<void> refreshUser(String id) => refreshRow(_usersBox, id);
+
   /// Upiše transakciju [tx] samo ako takva još ne postoji — lokalno i u
   /// online bazi. Tako se isti komad ne proda dvaput, a aukcija ne
   /// zaključi dvaput (dva uređaja istovremeno).
@@ -412,6 +434,8 @@ class StorageService {
 
   List<Device> get devices =>
       _devices.values.map(Device.fromMap).toList(growable: false);
+
+  bool hasTransaction(String id) => _transactions.containsKey(id);
 
   List<LoopTransaction> get transactions =>
       _transactions.values.map(LoopTransaction.fromMap).toList(growable: false);

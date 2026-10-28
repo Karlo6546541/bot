@@ -269,7 +269,10 @@ class _BidSheetState extends ConsumerState<_BidSheet> {
     key: key,
     controller: c,
     keyboardType: const TextInputType.numberWithOptions(decimal: true),
-    inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'[0-9.,]'))],
+    inputFormatters: [
+      FilteringTextInputFormatter.allow(RegExp(r'[0-9.,]')),
+      LengthLimitingTextInputFormatter(9),
+    ],
     onChanged: (_) => setState(() => _error = null),
     decoration: InputDecoration(labelText: label, suffixText: '€'),
   );

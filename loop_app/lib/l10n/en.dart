@@ -2569,4 +2569,12 @@ const kEn = <String, String>{
       '📦 Send "{0}" to buyer {1}.\n{2} parcel {3} · locker: {4}\nDrop-off PIN: {5}\n{6}',
   'GLS paketomat': 'GLS locker',
   'DPD Pickup paketomat': 'DPD Pickup locker',
+  'Odaberi "Preuzmi paket" i upiši PIN iz poruke.': 'Choose "Collect parcel" and enter the PIN from the message.',
+  'Otvori pretinac': 'Open compartment',
+  'Paket je već preuzet.': 'The parcel has already been collected.',
+  'Paket još nije u paketomatu.': 'The parcel isn\'t in the locker yet.',
+  'Pogrešan PIN — pretinac se nije otvorio.': 'Wrong PIN — the compartment didn\'t open.',
+  'Pretinac je otvoren — paket je preuzet ✅': 'Compartment open — parcel collected ✅',
+  'Preuzmi paket — upiši PIN': 'Collect parcel — enter PIN',
+  '{0} paketomat': '{0} locker',
 };

@@ -401,9 +401,9 @@ class DeliveryService {
     return started;
   }
 
-  /// Paketomat javlja preuzimanje: pošiljke koje je kupac preuzeo sami se
-  /// potvrđuju (bez gumba "Potvrdi primitak"), a prodavač dobiva obavijest.
-  /// Vraća broj potvrđenih.
+  /// Paket stigao u paketomat: kupac dobiva PIN za preuzimanje (jednom).
+  /// Pošiljke potvrđene na drugom uređaju javljaju se prodavaču.
+  /// Vraća broj novih obavijesti.
   Future<int> autoConfirmPickups(String userId, {DateTime? now}) async {
     final at = now ?? DateTime.now();
     var n = 0;
@@ -430,28 +430,42 @@ class DeliveryService {
         now: at,
       );
       await _storage.putMessage(SystemMessages.pickup(d, at: at));
-    }
-    for (final d in _storage.deliveries) {
-      if (!d.autoConfirms ||
-          d.confirmedAt != null ||
-          (d.buyerId != userId && d.sellerId != userId) ||
-          !d.isDelivered(at)) {
-        continue;
-      }
-      final picked = d.stepAt(d.steps.length - 1) ?? at;
-      await _storage.putDelivery(d.copyWith(confirmedAt: picked));
-      if (d.sellerId != null) {
-        await Inbox(_storage).send(
-          d.sellerId,
-          NotificationKind.parcelPickedUp,
-          args: [_storage.userById(d.buyerId)?.handle ?? '', d.deviceName],
-          targetId: d.id,
-          now: at,
-        );
-      }
       n++;
     }
     return n;
+  }
+
+  /// Kupac na paketomatu upisuje PIN i preuzima paket (potvrda primitka).
+  Future<void> pickUp(
+    String userId,
+    String deliveryId,
+    String pin, {
+    DateTime? now,
+  }) async {
+    final at = now ?? DateTime.now();
+    final d = _storage.deliveryById(deliveryId);
+    if (d == null || d.buyerId != userId || !d.autoConfirms) {
+      throw TradeException(t('Pošiljka ne postoji.'));
+    }
+    if (d.confirmedAt != null) {
+      throw TradeException(t('Paket je već preuzet.'));
+    }
+    if (d.status(at) != DeliveryStatus.inLocker) {
+      throw TradeException(t('Paket još nije u paketomatu.'));
+    }
+    if (pin.trim() != BoxNowDemo.pickupPin(d)) {
+      throw TradeException(t('Pogrešan PIN — pretinac se nije otvorio.'));
+    }
+    await _storage.putDelivery(d.copyWith(confirmedAt: at));
+    if (d.sellerId != null) {
+      await Inbox(_storage).send(
+        d.sellerId,
+        NotificationKind.parcelPickedUp,
+        args: [_storage.userById(d.buyerId)?.handle ?? '', d.deviceName],
+        targetId: d.id,
+        now: at,
+      );
+    }
   }
 
   /// Kupac potvrđuje primitak (moguće tek kad je pošiljka isporučena).

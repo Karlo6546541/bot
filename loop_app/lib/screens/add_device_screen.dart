@@ -249,6 +249,7 @@ class _AddDeviceScreenState extends ConsumerState<AddDeviceScreen> {
                       ),
                       inputFormatters: [
                         FilteringTextInputFormatter.allow(RegExp(r'[0-9.,]')),
+                        LengthLimitingTextInputFormatter(9),
                       ],
                       decoration: InputDecoration(
                         labelText: t('Cijena'),

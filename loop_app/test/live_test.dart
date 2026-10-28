@@ -437,7 +437,12 @@ void main() {
       expect(tx.buyerId, bob);
       expect(tx.isAuction, isTrue);
       expect(storage.deliveryById('live-$id-0'), isNotNull);
-      expect(storage.liveShowById(id)!.settled, [0]);
+      // Pobjednik ne prepisuje zapis livea; provedeno = postoji prodaja.
+      expect(storage.liveShowById(id)!.settled, isEmpty);
+      expect(
+        LiveService.lotSettled(storage, storage.liveShowById(id)!, 0),
+        isTrue,
+      );
       expect(
         storage.notifications.any(
           (n) => n.userId == bob && n.kind == NotificationKind.auctionWon,

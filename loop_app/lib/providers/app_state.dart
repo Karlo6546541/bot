@@ -555,6 +555,13 @@ class AppState {
   /// Sve pošiljke, najnovije prvo.
   final List<Delivery> deliveries;
 
+  /// Prodaja predmeta iz livea je provedena (vidi [LiveService.lotSettled]).
+  bool liveLotSettled(LiveShow show, int index) {
+    if (show.settled.contains(index)) return true;
+    final id = LiveService.saleId(show.id, index);
+    return transactions.any((t) => t.id == id);
+  }
+
   List<Delivery> get myDeliveries => currentUserId == null
       ? const []
       : deliveries.where((d) => d.buyerId == currentUserId).toList();

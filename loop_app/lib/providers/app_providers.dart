@@ -988,6 +988,14 @@ class AppController extends Notifier<AppState> {
     if (n > 0) _refresh();
   }
 
+  /// Preuzimanje iz paketomata upisom PIN-a.
+  Future<void> pickUpParcel(String deliveryId, String pin) async {
+    await ref
+        .read(deliveryServiceProvider)
+        .pickUp(_requireUserId(), deliveryId, pin);
+    _refresh();
+  }
+
   Future<void> confirmReceipt(String deliveryId) async {
     await ref
         .read(deliveryServiceProvider)

@@ -30,6 +30,8 @@ class Earnings {
   /// Uračunava prodaju [tx] prodavaču (jednom).
   Future<void> credit(LoopTransaction tx) async {
     final sellerId = tx.userId;
+    // Svježe stanje prodavača (drugi kupac je možda upravo uplatio).
+    await _storage.refreshUser(sellerId);
     final user = _storage.userById(sellerId);
     if (user == null) return;
     // Stariji račun: dosadašnje prodaje su već u stanju — samo se označe.

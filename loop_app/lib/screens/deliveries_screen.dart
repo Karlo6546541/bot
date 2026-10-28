@@ -1230,12 +1230,12 @@ class DeliveryNotesScreen extends ConsumerWidget {
 }
 
 /// PIN za preuzimanje iz paketomata (kupac) — veliko i jasno.
-class PickupPinBox extends StatelessWidget {
+class PickupPinBox extends ConsumerWidget {
   const PickupPinBox({super.key, required this.delivery});
   final Delivery delivery;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final d = delivery;
     final pin = BoxNowDemo.pickupPin(d);
     final green = Color(BoxNowDemo.network(d).color);
@@ -1247,61 +1247,135 @@ class PickupPinBox extends StatelessWidget {
         borderRadius: BorderRadius.circular(14),
         border: Border.all(color: green, width: 1.5),
       ),
-      child: Row(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          const Text('📬', style: TextStyle(fontSize: 26)),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  t('Paket te čeka u paketomatu'),
-                  style: const TextStyle(fontWeight: FontWeight.w900),
-                ),
-                if (d.destination != null)
-                  Text(
-                    d.destination!,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      color: LoopColors.textSecondary,
-                      fontSize: 12,
+          Row(
+            children: [
+              const Text('📬', style: TextStyle(fontSize: 26)),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      t('Paket te čeka u paketomatu'),
+                      style: const TextStyle(fontWeight: FontWeight.w900),
                     ),
-                  ),
-              ],
-            ),
+                    if (d.destination != null)
+                      Text(
+                        d.destination!,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          color: LoopColors.textSecondary,
+                          fontSize: 12,
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+              InkWell(
+                onTap: () {
+                  Clipboard.setData(ClipboardData(text: pin));
+                  showLoopSnackBar(t('PIN kopiran'));
+                },
+                child: Column(
+                  children: [
+                    Text(
+                      t('PIN'),
+                      style: TextStyle(
+                        color: LoopColors.textSecondary,
+                        fontSize: 11,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                    Text(
+                      pin,
+                      style: const TextStyle(
+                        fontWeight: FontWeight.w900,
+                        fontSize: 24,
+                        letterSpacing: 3,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
           ),
-          InkWell(
-            onTap: () {
-              Clipboard.setData(ClipboardData(text: pin));
-              showLoopSnackBar(t('PIN kopiran'));
-            },
-            child: Column(
-              children: [
-                Text(
-                  t('PIN'),
-                  style: TextStyle(
-                    color: LoopColors.textSecondary,
-                    fontSize: 11,
-                    fontWeight: FontWeight.w800,
-                  ),
-                ),
-                Text(
-                  pin,
-                  style: const TextStyle(
-                    fontWeight: FontWeight.w900,
-                    fontSize: 24,
-                    letterSpacing: 3,
-                  ),
-                ),
-              ],
+          const SizedBox(height: 10),
+          FilledButton.icon(
+            key: ValueKey('pickup-open-${d.id}'),
+            style: FilledButton.styleFrom(
+              backgroundColor: green,
+              foregroundColor: Colors.white,
             ),
+            onPressed: () => showPickupDialog(context, ref, d),
+            icon: const Icon(Icons.lock_open),
+            label: Text(t('Preuzmi paket — upiši PIN')),
           ),
         ],
       ),
     );
   }
+}
+
+/// "Zaslon paketomata": kupac upisuje PIN i otvara pretinac.
+Future<void> showPickupDialog(
+  BuildContext context,
+  WidgetRef ref,
+  Delivery d,
+) async {
+  final c = TextEditingController();
+  final ok = await showDialog<bool>(
+    context: context,
+    builder: (ctx) => AlertDialog(
+      title: Text(t('{0} paketomat', [BoxNowDemo.network(d).brand])),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(t('Odaberi "Preuzmi paket" i upiši PIN iz poruke.')),
+          const SizedBox(height: 12),
+          TextField(
+            key: const ValueKey('pickup-pin-field'),
+            controller: c,
+            autofocus: true,
+            keyboardType: TextInputType.number,
+            maxLength: 6,
+            textAlign: TextAlign.center,
+            style: const TextStyle(
+              fontSize: 26,
+              fontWeight: FontWeight.w900,
+              letterSpacing: 6,
+            ),
+            inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+            decoration: InputDecoration(hintText: '••••••', counterText: ''),
+            onSubmitted: (_) => Navigator.of(ctx).pop(true),
+          ),
+        ],
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(ctx).pop(false),
+          child: Text(t('Odustani')),
+        ),
+        FilledButton(
+          key: const ValueKey('pickup-pin-confirm'),
+          onPressed: () => Navigator.of(ctx).pop(true),
+          child: Text(t('Otvori pretinac')),
+        ),
+      ],
+    ),
+  );
+  final pin = c.text;
+  c.dispose();
+  if (ok != true || !context.mounted) return;
+  await runWithLoading(
+    context,
+    () => ref.read(appProvider.notifier).pickUpParcel(d.id, pin),
+    successMessage: t('Pretinac je otvoren — paket je preuzet ✅'),
+  );
 }
 
 /// PIN-ovi za preuzimanje (zasebna kategorija u Moje): svi paketi koji

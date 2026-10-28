@@ -160,6 +160,9 @@ class AuctionService {
     DateTime? now,
   }) async {
     final at = now ?? DateTime.now();
+    // Ponude su u zapisu aukcije: licitira se na svježi zapis, inače bi
+    // zastarjela kopija izbrisala tuđu (višu) ponudu.
+    await _storage.refreshAuction(auctionId);
     final a = _requireAuction(auctionId);
     final user = _storage.userById(userId);
     if (user == null) throw TradeException(t('Korisnik ne postoji.'));
@@ -169,6 +172,16 @@ class AuctionService {
     }
     if (a.sellerId == userId) {
       throw TradeException(t('Ne možeš licitirati na svoju aukciju.'));
+    }
+    // Gornja granica (kao za cijenu oglasa) — npr. ne milijarda eura.
+    for (final v in [amount, ?maxAmount]) {
+      if (!v.isFinite || v > TradeService.maxListPrice) {
+        throw TradeException(
+          t('Najveća ponuda je {0}.', [
+            formatCredits(TradeService.maxListPrice),
+          ]),
+        );
+      }
     }
     // Prodavatelj je blokirao ponuđača.
     if (_storage.userById(a.sellerId)?.blockedIds.contains(userId) ?? false) {
@@ -417,7 +430,14 @@ class AuctionService {
     final at = now ?? DateTime.now();
     final results = <AuctionResult>[];
     for (final a in _storage.auctions) {
-      if (a.isActive && a.isExpired(at)) results.add(await _settle(a, at));
+      if (!a.isActive || !a.isExpired(at)) continue;
+      // Svježi zapis: zadnja ponuda (ili produljenje) mogla je stići s
+      // drugog uređaja — pobjednik se određuje iz baze.
+      await _storage.refreshAuction(a.id);
+      final fresh = _storage.auctionById(a.id) ?? a;
+      if (fresh.isActive && fresh.isExpired(at)) {
+        results.add(await _settle(fresh, at));
+      }
     }
     return results;
   }

@@ -1346,6 +1346,7 @@ class _LotChoice extends StatelessWidget {
                     ),
                     inputFormatters: [
                       FilteringTextInputFormatter.allow(RegExp(r'[0-9.,]')),
+                      LengthLimitingTextInputFormatter(9),
                     ],
                     decoration: InputDecoration(
                       isDense: true,
@@ -1841,7 +1842,7 @@ class _LiveRoomViewState extends ConsumerState<_LiveRoomBody> {
         .any(
           (l) =>
               l.status == LotStatus.sold &&
-              !show.settled.contains(l.index) &&
+              !s.liveLotSettled(show, l.index) &&
               (me == show.hostId || l.leader?.userId == me),
         );
     if (due) _app.settleLive();
@@ -2934,6 +2935,7 @@ Future<double?> showMaxBidDialog(
             keyboardType: const TextInputType.numberWithOptions(decimal: true),
             inputFormatters: [
               FilteringTextInputFormatter.allow(RegExp(r'[0-9.,]')),
+              LengthLimitingTextInputFormatter(9),
             ],
             decoration: InputDecoration(
               suffixText: t('€'),
