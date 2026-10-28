@@ -20,6 +20,90 @@ import 'device_detail_screen.dart';
 import 'live_screens.dart';
 import 'messages_screen.dart';
 import 'public_profile_screen.dart';
+import '../models/delivery.dart';
+
+/// Pošiljka za obavijest o pobjedi (aukcija, live, nagradna igra).
+Delivery? wonDelivery(AppState s, AppNotification n) {
+  if (n.kind != NotificationKind.auctionWon &&
+      n.kind != NotificationKind.giveawayWon) {
+    return null;
+  }
+  final id = n.targetId;
+  final name = n.args.isEmpty ? null : '${n.args.first}';
+  for (final d in s.myDeliveries) {
+    if (id != null && d.id == 'auction-$id') return d;
+  }
+  for (final d in s.myDeliveries) {
+    if (d.deviceName == name &&
+        (id == null || d.id.startsWith('live-$id-') || d.id == 'auction-$id')) {
+      return d;
+    }
+  }
+  return null;
+}
+
+/// Tekst obavijesti o pobjedi bez "Odaberi dostavu." kad je dostava
+/// već odabrana.
+String _wonText(AppNotification n, Delivery? d) => d == null || d.awaitingChoice
+    ? n.text
+    : n.text.replaceFirst(
+        RegExp(r'\s*(Odaberi dostavu|Choose delivery)\.$'),
+        '',
+      );
+
+/// Stanje pošiljke ispod obavijesti o pobjedi.
+class _WonDelivery extends StatelessWidget {
+  const _WonDelivery({required this.delivery});
+  final Delivery delivery;
+
+  @override
+  Widget build(BuildContext context) {
+    final d = delivery;
+    if (d.awaitingChoice) {
+      return Padding(
+        padding: const EdgeInsets.only(top: 8),
+        child: FilledButton.icon(
+          key: ValueKey('notif-choose-${d.id}'),
+          style: FilledButton.styleFrom(
+            minimumSize: const Size(0, 36),
+            visualDensity: VisualDensity.compact,
+          ),
+          onPressed: () => DeliveriesScreen.open(context),
+          icon: const Icon(Icons.local_shipping_outlined, size: 16),
+          label: Text(t('Odaberi dostavu')),
+        ),
+      );
+    }
+    final now = DateTime.now();
+    final done = d.confirmedAt != null || d.isDelivered(now);
+    final color = done ? LoopColors.success : LoopColors.info;
+    return Padding(
+      padding: const EdgeInsets.only(top: 8),
+      child: InkWell(
+        key: ValueKey('notif-delivery-status-${d.id}'),
+        borderRadius: BorderRadius.circular(99),
+        onTap: () => DeliveryDetailScreen.open(context, d.id),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+          decoration: BoxDecoration(
+            color: color.withValues(alpha: 0.14),
+            borderRadius: BorderRadius.circular(99),
+          ),
+          child: Text(
+            done
+                ? t('✓ Dostavljeno')
+                : t('🚚 Na dostavi · {0}', [d.status(now).label]),
+            style: TextStyle(
+              color: color,
+              fontWeight: FontWeight.w800,
+              fontSize: 12,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
 
 /// Obavijesti: filteri po skupinama (aukcije, kupnje, ponude…), dani,
 /// spojene ponovljene obavijesti, kartice aukcija s gumbima "Licitiraj" /
@@ -50,7 +134,12 @@ class NotificationsScreen extends ConsumerStatefulWidget {
           NotificationKind.auctionUnsold:
         if (id != null) await AuctionDetailScreen.open(context, id);
       case NotificationKind.auctionWon || NotificationKind.giveawayWon:
-        await DeliveriesScreen.open(context);
+        final d = wonDelivery(state, n);
+        if (d != null && !d.awaitingChoice) {
+          await DeliveryDetailScreen.open(context, d.id);
+        } else {
+          await DeliveriesScreen.open(context);
+        }
       case NotificationKind.liveStarted:
         if (id != null) await LiveRoomScreen.open(context, id);
       case NotificationKind.shipReady ||
@@ -391,6 +480,7 @@ class _NotificationTile extends ConsumerWidget {
         n.kind.group == NotificationGroup.auctions && n.targetId != null
         ? state.auctionById(n.targetId!)
         : null;
+    final won = wonDelivery(state, n);
     final device = auction != null
         ? state.deviceById(auction.deviceId)
         : n.targetId == null
@@ -476,7 +566,7 @@ class _NotificationTile extends ConsumerWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        n.text,
+                        _wonText(n, won),
                         style: TextStyle(
                           fontWeight: cluster.unread
                               ? FontWeight.w800
@@ -493,7 +583,9 @@ class _NotificationTile extends ConsumerWidget {
                           fontSize: 12,
                         ),
                       ),
-                      if (auction != null)
+                      if (won != null)
+                        _WonDelivery(delivery: won)
+                      else if (auction != null)
                         _AuctionActions(notification: n, auction: auction),
                     ],
                   ),

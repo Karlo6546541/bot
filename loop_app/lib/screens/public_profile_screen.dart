@@ -582,6 +582,30 @@ class ProfileHeader extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final st = ref.watch(appProvider);
+    // Prodavatelj: ima podatke prodavatelja, oglase ili prodaje.
+    final sells =
+        user.seller != null ||
+        user.trader != null ||
+        st.listingsOf(user.id).isNotEmpty ||
+        st.salesCountOf(user.id) > 0;
+    Widget chip(String key, String text, Color color) => Container(
+      key: ValueKey(key),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      decoration: BoxDecoration(
+        color: color,
+        borderRadius: BorderRadius.circular(99),
+      ),
+      child: Text(
+        text,
+        style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 11),
+      ),
+    );
+    final Widget? sellerKind = !sells
+        ? null
+        : user.isTrader
+        ? chip('seller-kind-business', t('🏪 Trgovac'), LoopColors.sky)
+        : chip('seller-kind-private', t('👤 Fizička osoba'), LoopColors.peach);
     final secondary = TextStyle(color: LoopColors.textSecondary, fontSize: 13);
     final cover = user.coverPath;
     final gradient = DecoratedBox(
@@ -739,17 +763,26 @@ class ProfileHeader extends ConsumerWidget {
                       fontWeight: FontWeight.w800,
                     ),
                   ),
-                UserHandle(
-                  user: user,
-                  style: TextStyle(
-                    fontWeight: FontWeight.w700,
-                    color: user.name.isEmpty && user.shopName.isEmpty
-                        ? LoopColors.textPrimary
-                        : LoopColors.textSecondary,
-                    fontSize: user.name.isEmpty && user.shopName.isEmpty
-                        ? 20
-                        : 14,
-                  ),
+                // Uz ime: vrsta prodavatelja (trgovac ili fizička osoba).
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 4,
+                  crossAxisAlignment: WrapCrossAlignment.center,
+                  children: [
+                    UserHandle(
+                      user: user,
+                      style: TextStyle(
+                        fontWeight: FontWeight.w700,
+                        color: user.name.isEmpty && user.shopName.isEmpty
+                            ? LoopColors.textPrimary
+                            : LoopColors.textSecondary,
+                        fontSize: user.name.isEmpty && user.shopName.isEmpty
+                            ? 20
+                            : 14,
+                      ),
+                    ),
+                    ?sellerKind,
+                  ],
                 ),
                 if (user.traderInfo case final info?) ...[
                   const SizedBox(height: 6),

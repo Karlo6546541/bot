@@ -504,8 +504,18 @@ class AuctionBrowseCard extends ConsumerWidget {
     // Kao Vinted/Whatnot: slika 4:5 s oznakama, ispod cijena velikim
     // slovima, naziv i prodavatelj s ocjenom — sve kartice iste visine
     // (vidi [BrowseGridDelegate]).
+    // Okvir kartice kao na profilu: lagani rub i sjena.
     return Material(
-      type: MaterialType.transparency,
+      color: LoopColors.surface,
+      elevation: 1.5,
+      shadowColor: Colors.black26,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(kRadius),
+        side: BorderSide(
+          color: LoopColors.textSecondary.withValues(alpha: 0.14),
+        ),
+      ),
+      clipBehavior: Clip.antiAlias,
       child: InkWell(
         key: ValueKey(
           show != null
@@ -522,7 +532,7 @@ class AuctionBrowseCard extends ConsumerWidget {
             AspectRatio(
               aspectRatio: 4 / 5,
               child: ClipRRect(
-                borderRadius: BorderRadius.circular(kRadius - 4),
+                borderRadius: BorderRadius.zero,
                 child: Stack(
                   fit: StackFit.expand,
                   children: [
@@ -626,51 +636,66 @@ class AuctionBrowseCard extends ConsumerWidget {
                 ),
               ),
             ),
-            const SizedBox(height: 6),
-            Text(
-              price,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: TextStyle(
-                fontWeight: FontWeight.w900,
-                fontSize: 18,
-                height: 1.15,
-                color: a == null && show == null ? LoopColors.buyNow : null,
-              ),
-            ),
-            Text(
-              title,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13),
-            ),
-            const SizedBox(height: 3),
-            Row(
-              children: [
-                UserAvatar(user: seller, size: 16),
-                const SizedBox(width: 5),
-                Expanded(
-                  child: Text(
-                    seller?.handle ?? show?.hostLabel ?? a?.sellerLabel ?? '',
+            Padding(
+              padding: const EdgeInsets.fromLTRB(10, 6, 10, 8),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Text(
+                    price,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: TextStyle(
-                      color: LoopColors.textSecondary,
-                      fontSize: 12,
-                      fontWeight: FontWeight.w700,
+                      fontWeight: FontWeight.w900,
+                      fontSize: 18,
+                      height: 1.15,
+                      color: a == null && show == null
+                          ? LoopColors.buyNow
+                          : null,
                     ),
                   ),
-                ),
-                if (rating.count > 0)
                   Text(
-                    '★ ${rating.average.toStringAsFixed(1)}',
-                    style: TextStyle(
-                      color: LoopColors.textSecondary,
-                      fontSize: 11,
-                      fontWeight: FontWeight.w800,
+                    title,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.w700,
+                      fontSize: 13,
                     ),
                   ),
-              ],
+                  const SizedBox(height: 3),
+                  Row(
+                    children: [
+                      UserAvatar(user: seller, size: 16),
+                      const SizedBox(width: 5),
+                      Expanded(
+                        child: Text(
+                          seller?.handle ??
+                              show?.hostLabel ??
+                              a?.sellerLabel ??
+                              '',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            color: LoopColors.textSecondary,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ),
+                      if (rating.count > 0)
+                        Text(
+                          '★ ${rating.average.toStringAsFixed(1)}',
+                          style: TextStyle(
+                            color: LoopColors.textSecondary,
+                            fontSize: 11,
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                    ],
+                  ),
+                ],
+              ),
             ),
           ],
         ),
@@ -694,7 +719,7 @@ class BrowseGridDelegate extends SliverGridDelegate {
   final double runSpacing;
 
   /// Visina teksta ispod slike (cijena, naziv, prodavatelj).
-  static const textHeight = 76.0;
+  static const textHeight = 90.0;
 
   @override
   SliverGridLayout getLayout(SliverConstraints constraints) {

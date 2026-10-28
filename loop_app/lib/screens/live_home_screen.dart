@@ -80,6 +80,9 @@ class _LiveHomeScreenState extends ConsumerState<LiveHomeScreen> {
 
   Timer? _timer;
   _Filter _filter = const _ForYou();
+
+  /// Digitalne kupnje: prikaz kupljenog (inače "Kupi").
+  bool _digitalOwned = false;
   bool _hideCheckout = false;
   DeviceCategory? _liveCategory;
   DeviceCategory? _auctionCategory;
@@ -263,29 +266,61 @@ class _LiveHomeScreenState extends ConsumerState<LiveHomeScreen> {
               : grid('home-ending', auctions, t('Aukcije')),
         );
       case _Digital():
+        // Digitalno: odvojeno "Kupi" (još nije kupljeno) i "Kupljeno"
+        // (preuzimanje).
+        final boughtIds = {for (final d in s.myDigitalPurchases) d.id};
+        final toBuy = [
+          for (final i in digital)
+            if (!boughtIds.contains(i.device?.id)) i,
+        ];
+        final owned = [
+          for (final d in s.myDigitalPurchases) BrowseItem.item(d),
+        ];
+        final list = _digitalOwned ? owned : toBuy;
         slivers.add(
           SliverToBoxAdapter(
             child: Padding(
-              padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-              child: Text(
-                t('Digitalne kupnje'),
-                style: const TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.w700,
-                ),
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 10),
+              child: Wrap(
+                spacing: 8,
+                children: [
+                  ChoiceChip(
+                    key: const ValueKey('digital-buy'),
+                    avatar: const Icon(Icons.shopping_cart_outlined, size: 18),
+                    label: Text(t('Kupi ({0})', ['${toBuy.length}'])),
+                    selected: !_digitalOwned,
+                    onSelected: (_) => setState(() => _digitalOwned = false),
+                  ),
+                  ChoiceChip(
+                    key: const ValueKey('digital-owned'),
+                    avatar: const Icon(Icons.download_done, size: 18),
+                    label: Text(t('Kupljeno ({0})', ['${owned.length}'])),
+                    selected: _digitalOwned,
+                    onSelected: (_) => setState(() => _digitalOwned = true),
+                  ),
+                ],
               ),
             ),
           ),
         );
         slivers.add(
-          digital.isEmpty
+          list.isEmpty
               ? SliverToBoxAdapter(
                   child: Padding(
                     padding: const EdgeInsets.all(16),
-                    child: Text(t('Trenutno nema digitalnih proizvoda.')),
+                    child: Text(
+                      _digitalOwned
+                          ? t('Još nemaš digitalnih kupnji.')
+                          : t('Trenutno nema digitalnih proizvoda.'),
+                      style: TextStyle(color: LoopColors.textSecondary),
+                    ),
                   ),
                 )
-              : grid('home-digital', digital, t('Digitalne kupnje')),
+              : grid(
+                  _digitalOwned ? 'home-digital-owned' : 'home-digital',
+                  list,
+                  t('Digitalne kupnje'),
+                ),
         );
       case _BuyNow():
         slivers.add(const SliverToBoxAdapter(child: SizedBox(height: 12)));

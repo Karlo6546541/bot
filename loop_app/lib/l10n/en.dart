@@ -2474,4 +2474,11 @@ const kEn = <String, String>{
   'Jedan predmet s brojevima, bez slike — pokazuješ ih na kameri. Nakon svake prodaje na ekranu se pojavi sljedeći broj.':
       'One item with numbers, no photo — you show them on camera. After each sale the next number appears on screen.',
   'Najviše {0} brojeva u nizu.': 'At most {0} numbers in a run.',
+  'Kupi ({0})': 'Buy ({0})',
+  'Kupljeno ({0})': 'Bought ({0})',
+  'Još nemaš digitalnih kupnji.': 'You have no digital purchases yet.',
+  '✓ Dostavljeno': '✓ Delivered',
+  '🚚 Na dostavi · {0}': '🚚 On the way · {0}',
+  '🏪 Trgovac': '🏪 Trader',
+  '👤 Fizička osoba': '👤 Private seller',
 };
