@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../models/delivery.dart' show ParcelSize;
 import '../models/device.dart';
 import '../providers/app_providers.dart';
 import '../services/file_store.dart';
@@ -9,6 +10,7 @@ import '../services/image_store.dart';
 import '../services/trade_service.dart';
 import '../theme/app_theme.dart';
 import '../widgets/category_style.dart';
+import '../widgets/formatters.dart';
 import '../widgets/item_image.dart';
 import '../widgets/photo_viewer.dart';
 import '../widgets/trade_actions.dart';
@@ -57,6 +59,9 @@ class _AddDeviceScreenState extends ConsumerState<AddDeviceScreen> {
   final _quantity = TextEditingController(text: '1');
   final _description = TextEditingController();
   DeviceCondition? _condition = DeviceCondition.good;
+
+  /// Veličina paketa (cijena dostave za kupca).
+  ParcelSize _size = ParcelSize.small;
   ItemSection _section = ItemSection.electronics;
   DeviceCategory? _category;
 
@@ -170,6 +175,7 @@ class _AddDeviceScreenState extends ConsumerState<AddDeviceScreen> {
             listOnMarket: _digital || _listOnMarket,
             quantity: _digital ? 1 : int.tryParse(_quantity.text.trim()) ?? 1,
             file: _digital ? _file : null,
+            parcelSize: _size.name,
           ),
       successMessage: _digital || _listOnMarket
           ? t('Predmet je na prodaji 🏷️')
@@ -439,6 +445,38 @@ class _AddDeviceScreenState extends ConsumerState<AddDeviceScreen> {
                               onChanged: (c) => setState(() => _condition = c),
                               validator: (v) =>
                                   v == null ? t('Odaberi stanje') : null,
+                            ),
+                            gap,
+                            // Veličina paketa: o njoj ovisi cijena dostave
+                            // (i može li u paketomat).
+                            Text(
+                              t('Veličina paketa'),
+                              style: const TextStyle(
+                                fontWeight: FontWeight.w800,
+                              ),
+                            ),
+                            const SizedBox(height: 6),
+                            Wrap(
+                              spacing: 8,
+                              runSpacing: 8,
+                              children: [
+                                for (final z in ParcelSize.values)
+                                  ChoiceChip(
+                                    key: ValueKey('parcel-${z.name}'),
+                                    label: Text(z.label),
+                                    selected: _size == z,
+                                    onSelected: (_) =>
+                                        setState(() => _size = z),
+                                  ),
+                              ],
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              '${_size.hint}${_size.extra > 0 ? ' · ${t('+{0} na dostavu', [formatCredits(_size.extra)])}' : ''}${_size.index > ParcelSize.medium.index ? ' · ${t('bez paketomata')}' : ''}',
+                              style: TextStyle(
+                                color: LoopColors.textSecondary,
+                                fontSize: 12,
+                              ),
                             ),
                             gap,
                             TextFormField(

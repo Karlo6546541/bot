@@ -2483,4 +2483,22 @@ const kEn = <String, String>{
   '👤 Fizička osoba': '👤 Private seller',
   'Stiže meni': 'Coming to me',
   'Šaljem': 'Sending',
+  'Dostava u EU': 'Delivery in the EU',
+  'Kurir na adresu u drugoj državi EU · 4–7 dana':
+      'Courier to an address in another EU country · 4–7 days',
+  'Malo': 'Small',
+  'Srednje': 'Medium',
+  'Veliko': 'Large',
+  'Glomazno': 'Bulky',
+  'do 2 kg · kartice, sat, mobitel': 'up to 2 kg · cards, watch, phone',
+  'do 10 kg · konzola, cipele, knjige': 'up to 10 kg · console, shoes, books',
+  'do 30 kg · gramofon, monitor, kofer':
+      'up to 30 kg · turntable, monitor, suitcase',
+  'preko 30 kg · bicikl, namještaj': 'over 30 kg · bike, furniture',
+  'Veličina paketa': 'Parcel size',
+  '+{0} na dostavu': '+{0} on delivery',
+  'bez paketomata': 'no parcel lockers',
+  'Adresa i država (EU)': 'Address and country (EU)',
+  'npr. Hauptstraße 5, 10115 Berlin, Njemačka':
+      'e.g. Hauptstraße 5, 10115 Berlin, Germany',
 };

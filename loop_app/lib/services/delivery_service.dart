@@ -30,16 +30,27 @@ class DeliveryService {
   final _choices = <String, Future<Delivery>>{};
 
   /// Dostupni načini dostave za predmet.
-  static List<DeliveryMethod> methodsFor(Device d) =>
-      d.section == ItemSection.activities
-      ? const [DeliveryMethod.digital]
-      // Kurir na spremljenu adresu je zadan (kao na Whatnotu).
-      : const [
-          DeliveryMethod.courier,
-          DeliveryMethod.parcelLocker,
-          DeliveryMethod.express,
-          DeliveryMethod.pickup,
-        ];
+  static List<DeliveryMethod> methodsFor(Device d) {
+    if (d.section == ItemSection.activities) {
+      return const [DeliveryMethod.digital];
+    }
+    final size = ParcelSize.fromName(d.parcelSize);
+    // Kurir na spremljenu adresu je zadan (kao na Whatnotu). Paketomat
+    // prima samo male i srednje pakete, ekspres ne vozi glomazno.
+    return [
+      DeliveryMethod.courier,
+      if (size.index <= ParcelSize.medium.index) DeliveryMethod.parcelLocker,
+      DeliveryMethod.europe,
+      if (size != ParcelSize.bulky) DeliveryMethod.express,
+      DeliveryMethod.pickup,
+    ];
+  }
+
+  /// Cijena dostave za način i veličinu paketa (u EU doplata dvostruka).
+  static double costFor(DeliveryMethod m, ParcelSize size) {
+    if (m.cost == 0) return 0;
+    return m.cost + size.extra * (m == DeliveryMethod.europe ? 2 : 1);
+  }
 
   /// Provjera odredišta prije plaćanja.
   static String? validate(DeliveryMethod m, String? destination) {
@@ -243,7 +254,10 @@ class DeliveryService {
             : '${method.name}|${dest ?? ''}',
       ),
     );
-    final cost = free ? 0.0 : method.cost;
+    final size = ParcelSize.fromName(
+      _storage.deviceById(d.deviceId)?.parcelSize,
+    );
+    final cost = free ? 0.0 : costFor(method, size);
     final started = d.copyWith(
       method: method,
       destination: dest,

@@ -835,6 +835,7 @@ class AppController extends Notifier<AppState> {
     bool listOnMarket = true,
     PickedFile? file,
     int quantity = 1,
+    String parcelSize = 'small',
   }) async {
     final userId = _requireUserId();
     if (listOnMarket) _requireSellerInfo();
@@ -865,6 +866,7 @@ class AppController extends Notifier<AppState> {
         description: description,
         listOnMarket: listOnMarket,
         quantity: quantity,
+        parcelSize: parcelSize,
       );
     } catch (_) {
       if (saved != null) await ref.read(fileStoreProvider).delete(saved);

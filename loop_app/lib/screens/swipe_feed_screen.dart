@@ -872,11 +872,13 @@ class _Pill extends StatelessWidget {
 
 String _shippingLabel(Device d) {
   final methods = DeliveryService.methodsFor(d);
+  final size = ParcelSize.fromName(d.parcelSize);
+  double cost(DeliveryMethod m) => DeliveryService.costFor(m, size);
   final shipped = methods.where((m) => m != DeliveryMethod.pickup).toList()
-    ..sort((a, b) => a.cost.compareTo(b.cost));
+    ..sort((a, b) => cost(a).compareTo(cost(b)));
   if (shipped.isEmpty) return t('Osobno preuzimanje');
   if (shipped.first == DeliveryMethod.digital) return t('Digitalna dostava');
-  return t('Dostava od {0}', [formatCredits(shipped.first.cost)]);
+  return t('Dostava od {0}', [formatCredits(cost(shipped.first))]);
 }
 
 /// Opis objave: trgovina (+ Prati), naziv, opis, cijena i glavni gumb.

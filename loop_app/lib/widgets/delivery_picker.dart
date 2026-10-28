@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../models/delivery.dart';
 import '../services/boxnow/boxnow.dart';
+import '../services/delivery_service.dart';
 import 'loop_snackbar.dart';
 import '../theme/app_theme.dart';
 import 'formatters.dart';
@@ -31,6 +32,7 @@ IconData deliveryIcon(DeliveryMethod m) => switch (m) {
   DeliveryMethod.parcelLocker => Icons.inventory_2_outlined,
   DeliveryMethod.courier => Icons.local_shipping_outlined,
   DeliveryMethod.express => Icons.bolt,
+  DeliveryMethod.europe => Icons.public,
   DeliveryMethod.digital => Icons.alternate_email,
 };
 
@@ -44,7 +46,11 @@ class DeliveryPicker extends StatefulWidget {
     this.savedAddress,
     this.saved,
     this.onCleared,
+    this.size = ParcelSize.small,
   });
+
+  /// Veličina paketa — cijena dostave raste s veličinom.
+  final ParcelSize size;
 
   /// Zapamćeni način dostave — prikaže se kao gotov odabir s gumbom
   /// "Odaberi drugi način dostave".
@@ -115,6 +121,8 @@ class _DeliveryPickerState extends State<DeliveryPicker> {
     });
     _emit();
   }
+
+  double _cost(DeliveryMethod m) => DeliveryService.costFor(m, widget.size);
 
   /// Prikazani su i rjeđi načini (ekspres, osobno preuzimanje).
   bool _all = false;
@@ -193,7 +201,7 @@ class _DeliveryPickerState extends State<DeliveryPicker> {
                   ),
                 ),
                 Text(
-                  m.cost == 0 ? t('besplatno') : formatCredits(m.cost),
+                  _cost(m) == 0 ? t('besplatno') : formatCredits(_cost(m)),
                   style: const TextStyle(fontWeight: FontWeight.w900),
                 ),
               ],
@@ -281,7 +289,9 @@ class _DeliveryPickerState extends State<DeliveryPicker> {
                         ),
                       ),
                       Text(
-                        m.cost == 0 ? t('Besplatno') : formatCredits(m.cost),
+                        _cost(m) == 0
+                            ? t('Besplatno')
+                            : formatCredits(_cost(m)),
                         style: const TextStyle(fontWeight: FontWeight.w800),
                       ),
                     ],
@@ -304,8 +314,12 @@ class _DeliveryPickerState extends State<DeliveryPicker> {
           TextField(
             controller: _address,
             decoration: InputDecoration(
-              labelText: t('Adresa za dostavu'),
-              hintText: t('npr. Ilica 1, 10000 Zagreb'),
+              labelText: _method == DeliveryMethod.europe
+                  ? t('Adresa i država (EU)')
+                  : t('Adresa za dostavu'),
+              hintText: _method == DeliveryMethod.europe
+                  ? t('npr. Hauptstraße 5, 10115 Berlin, Njemačka')
+                  : t('npr. Ilica 1, 10000 Zagreb'),
               prefixIcon: Icon(Icons.home_outlined),
             ),
             onChanged: (_) => _emit(),

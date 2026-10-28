@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../models/delivery.dart' show ParcelSize;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../models/app_user.dart';
@@ -638,6 +639,7 @@ class _CheckoutSheetState extends ConsumerState<_CheckoutSheet> {
             Consumer(
               builder: (context, ref, _) => DeliveryPicker(
                 methods: DeliveryService.methodsFor(d),
+                size: ParcelSize.fromName(d.parcelSize),
                 savedAddress: ref.read(appProvider).currentUser?.address,
                 saved: DeliveryChoice.saved(
                   ref.read(appProvider).currentUser?.lastDelivery,

@@ -6,6 +6,7 @@ import 'package:loop_app/providers/app_providers.dart';
 import 'package:hive/hive.dart';
 import 'package:loop_app/models/app_notification.dart';
 import 'package:loop_app/models/delivery.dart';
+import 'package:loop_app/models/device.dart';
 import 'package:loop_app/models/loop_transaction.dart';
 import 'package:loop_app/providers/app_state.dart';
 import 'package:loop_app/services/auction_service.dart';
@@ -41,7 +42,55 @@ void main() {
     );
     expect(DeliveryService.methodsFor(ticket), [DeliveryMethod.digital]);
     final phone = storage.deviceById('seed-1')!;
-    expect(DeliveryService.methodsFor(phone), hasLength(4));
+    expect(DeliveryService.methodsFor(phone), hasLength(5));
+    expect(DeliveryService.methodsFor(phone), contains(DeliveryMethod.europe));
+  });
+
+  test(
+    'veličina paketa: cijena raste, veliko bez paketomata, glomazno bez ekspresa',
+    () {
+      final phone = storage.deviceById('seed-1')!;
+      expect(
+        DeliveryService.costFor(DeliveryMethod.courier, ParcelSize.small),
+        DeliveryMethod.courier.cost,
+      );
+      expect(
+        DeliveryService.costFor(DeliveryMethod.courier, ParcelSize.large),
+        DeliveryMethod.courier.cost + ParcelSize.large.extra,
+      );
+      // EU: dvostruka doplata za veličinu.
+      expect(
+        DeliveryService.costFor(DeliveryMethod.europe, ParcelSize.medium),
+        DeliveryMethod.europe.cost + 2 * ParcelSize.medium.extra,
+      );
+      expect(
+        DeliveryService.costFor(DeliveryMethod.pickup, ParcelSize.bulky),
+        0,
+      );
+      final big = phone.withParcelSize('large');
+      expect(
+        DeliveryService.methodsFor(big),
+        isNot(contains(DeliveryMethod.parcelLocker)),
+      );
+      final bulky = phone.withParcelSize('bulky');
+      expect(
+        DeliveryService.methodsFor(bulky),
+        isNot(contains(DeliveryMethod.express)),
+      );
+      expect(Device.fromMap(bulky.toMap()).parcelSize, 'bulky');
+    },
+  );
+
+  test('dostava u EU naplaćuje veličinu paketa', () async {
+    final phone = storage.deviceById('seed-1')!;
+    await storage.putDevice(phone.withParcelSize('large'));
+    final d = await deliveries.createForPurchase(
+      userId: demo,
+      device: storage.deviceById('seed-1')!,
+      method: DeliveryMethod.europe,
+      destination: 'Hauptstraße 5, 10115 Berlin, Njemačka',
+    );
+    expect(d.cost, DeliveryMethod.europe.cost + 2 * ParcelSize.large.extra);
   });
 
   test(

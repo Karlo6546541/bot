@@ -119,6 +119,7 @@ Future<void> pickDelivery(
     builder: (_) => appThemed(
       _ChooseSheet(
         methods: methods,
+        size: ParcelSize.fromName(device?.parcelSize),
         savedAddress: ref.read(appProvider).currentUser?.address,
         saved: DeliveryChoice.saved(
           ref.read(appProvider).currentUser?.lastDelivery,
@@ -589,8 +590,14 @@ class _Dot extends StatelessWidget {
 }
 
 class _ChooseSheet extends StatefulWidget {
-  const _ChooseSheet({required this.methods, this.savedAddress, this.saved});
+  const _ChooseSheet({
+    required this.methods,
+    this.savedAddress,
+    this.saved,
+    this.size = ParcelSize.small,
+  });
   final List<DeliveryMethod> methods;
+  final ParcelSize size;
   final String? savedAddress;
 
   /// Zapamćeni način dostave iz prošle kupnje.
@@ -620,6 +627,7 @@ class _ChooseSheetState extends State<_ChooseSheet> {
             const SizedBox(height: 12),
             DeliveryPicker(
               methods: widget.methods,
+              size: widget.size,
               savedAddress: widget.savedAddress,
               saved: widget.saved,
               onChanged: (c) => setState(() {

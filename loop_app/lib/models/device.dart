@@ -141,7 +141,11 @@ class Device {
     this.discountPercent = 0,
     this.discountUntil,
     this.priceLog = const [],
+    this.parcelSize = 'small',
   });
+
+  /// Veličina paketa (ime iz [ParcelSize]) — utječe na cijenu dostave.
+  final String parcelSize;
 
   final String id;
   final String name;
@@ -264,6 +268,7 @@ class Device {
     Object? discountUntil = _keep,
     DateTime? createdAt,
     List<PriceLogEntry>? priceLog,
+    String? parcelSize,
   }) => Device(
     id: id ?? this.id,
     name: name,
@@ -285,7 +290,11 @@ class Device {
         ? this.discountUntil
         : discountUntil as DateTime?,
     priceLog: priceLog ?? this.priceLog,
+    parcelSize: parcelSize ?? this.parcelSize,
   );
+
+  /// Ista stvar s drugom veličinom paketa.
+  Device withParcelSize(String size) => _copy(parcelSize: size);
 
   /// Kopija s novim vlasnikom; `null` vraća predmet u Market.
   /// Novi vlasnik poništava objavu, zalihu i popust.
@@ -355,6 +364,7 @@ class Device {
     'discountPercent': discountPercent,
     'discountUntil': discountUntil?.toIso8601String(),
     if (priceLog.isNotEmpty) 'priceLog': [for (final e in priceLog) e.toMap()],
+    if (parcelSize != 'small') 'parcelSize': parcelSize,
   };
 
   factory Device.fromMap(Map<dynamic, dynamic> map) => Device(
@@ -376,6 +386,7 @@ class Device {
     marketChecked: map['marketChecked'] as bool? ?? false,
     file: map['file'] == null ? null : DigitalFile.fromMap(map['file'] as Map),
     quantity: (map['quantity'] as num?)?.toInt() ?? 1,
+    parcelSize: map['parcelSize'] as String? ?? 'small',
     discountPercent: (map['discountPercent'] as num?)?.toInt() ?? 0,
     discountUntil: map['discountUntil'] == null
         ? null

@@ -60,6 +60,7 @@ class TradeService {
     String? id,
     DigitalFile? file,
     int quantity = 1,
+    String parcelSize = 'small',
   }) async {
     final digital = category.section == ItemSection.digital;
     if (quantity < 1 || quantity > Device.maxQuantity) {
@@ -102,6 +103,7 @@ class TradeService {
       marketChecked: true,
       file: file,
       quantity: digital ? 1 : quantity,
+      parcelSize: parcelSize,
     );
     await _storage.putDevice(device);
     await _snapshot(userId);

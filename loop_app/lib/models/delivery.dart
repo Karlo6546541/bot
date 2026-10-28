@@ -19,6 +19,13 @@ enum DeliveryMethod {
   ),
   courier('Kurir na adresu', 'Dostava na kućnu adresu · 2–3 dana', 6, 4, 2),
   express('Ekspresna dostava', 'Kurir isti ili sljedeći dan', 12, 2, 1),
+  europe(
+    'Dostava u EU',
+    'Kurir na adresu u drugoj državi EU · 4–7 dana',
+    14,
+    5,
+    6,
+  ),
   digital('Digitalna dostava', 'Ulaznica/vaučer na e-mail · odmah', 0, 1, 0);
 
   const DeliveryMethod(
@@ -43,12 +50,35 @@ enum DeliveryMethod {
   /// Približno trajanje u stvarnosti (dani) — samo za prikaz.
   final int realDays;
 
-  bool get needsAddress => this == courier || this == express;
+  bool get needsAddress => this == courier || this == express || this == europe;
   bool get needsLocker => this == parcelLocker;
 
   static DeliveryMethod fromName(String? n) => DeliveryMethod.values.firstWhere(
     (m) => m.name == n,
     orElse: () => DeliveryMethod.courier,
+  );
+}
+
+/// Veličina paketa (bira prodavač pri objavi). Dodaje se na cijenu
+/// dostave; paketomat prima samo male i srednje, ekspres ne vozi glomazno.
+enum ParcelSize {
+  small('Malo', 'do 2 kg · kartice, sat, mobitel', 0),
+  medium('Srednje', 'do 10 kg · konzola, cipele, knjige', 3),
+  large('Veliko', 'do 30 kg · gramofon, monitor, kofer', 9),
+  bulky('Glomazno', 'preko 30 kg · bicikl, namještaj', 29);
+
+  const ParcelSize(this._label, this._hint, this.extra);
+  final String _label;
+  String get label => t(_label);
+  final String _hint;
+  String get hint => t(_hint);
+
+  /// Doplata na dostavu (€) u Hrvatskoj; u EU dvostruko.
+  final double extra;
+
+  static ParcelSize fromName(String? n) => ParcelSize.values.firstWhere(
+    (s) => s.name == n,
+    orElse: () => ParcelSize.small,
   );
 }
 
