@@ -1,0 +1,47 @@
+import { PGlite } from '@electric-sql/pglite';
+import { readFileSync } from 'node:fs';
+import assert from 'node:assert/strict';
+const db=new PGlite();
+await db.exec(`create role anon; create role authenticated; create schema auth;
+create table auth.users(id uuid primary key);
+create function auth.uid() returns uuid language sql stable as $$select nullif(current_setting('request.jwt.claim.sub',true),'')::uuid$$;
+grant usage on schema auth to authenticated; grant execute on function auth.uid() to authenticated;
+create publication supabase_realtime;`);
+await db.exec(readFileSync(new URL('../migrations/001_live.sql',import.meta.url),'utf8'));
+const host='00000000-0000-4000-8000-000000000001',buyer='00000000-0000-4000-8000-000000000002',other='00000000-0000-4000-8000-000000000003';
+await db.query('insert into auth.users values ($1),($2),($3)',[host,buyer,other]);
+async function as(id){await db.exec('reset role');await db.query("select set_config('request.jwt.claim.sub',$1,false)",[id]);await db.exec('set role authenticated');}
+async function rpc(sql,args=[]){return (await db.query(sql,args)).rows[0];}
+async function rejects(sql,args,message){await assert.rejects(()=>db.query(sql,args),e=>e.message.includes(message));}
+await as(host);
+const room=(await rpc("select (public.live_create_room('Retro live','Gaming')).id")).id;
+await rpc("select live_set_status($1,'live')",[room]);
+const lot=(await rpc("select (live_add_lot($1,'Console',100,100)).id",[room])).id;
+await rpc('select live_start_lot($1,30)',[lot]);
+await rejects('select live_place_bid($1,100,gen_random_uuid())',[lot],'BID_FORBIDDEN');
+await as(buyer);
+await rejects("select live_set_status($1,'ended')",[room],'HOST_ONLY');
+await rejects("update live_lots set price_cents=1 where id=$1",[lot],'permission denied');
+const req='00000000-0000-4000-8000-000000000010';
+await rpc('select live_place_bid($1,100,$2)',[lot,req]);
+await rpc('select live_place_bid($1,100,$2)',[lot,req]);
+assert.equal((await rpc('select count(*)::int as n from live_bids')).n,1);
+await rejects('select live_place_bid($1,200,$2)',[lot,req],'REQUEST_CONFLICT');
+await rejects('select live_place_bid($1,100,gen_random_uuid())',[lot],'INVALID_AMOUNT');
+const chat='00000000-0000-4000-8000-000000000011';
+await rpc("select live_send_message($1,'hello',$2)",[room,chat]);
+await rpc("select live_send_message($1,'hello',$2)",[room,chat]);
+await rejects("select live_send_message($1,'spam',gen_random_uuid())",[room],'RATE_LIMIT');
+await as(host);await rpc('select live_moderate($1,$2,true,false)',[room,buyer]);
+await as(buyer);await rejects("select live_send_message($1,'muted',gen_random_uuid())",[room],'MUTED');
+await as(host);await rpc('select live_moderate($1,$2,false,true)',[room,other]);
+await as(other);assert.equal((await rpc('select live_can_join($1) as ok',[room])).ok,false);
+assert.equal((await db.query('select * from live_messages')).rows.length,0);
+await as(buyer);await rejects('select live_finish_lot($1)',[lot],'LOT_NOT_ENDED');
+await db.exec('reset role');await db.query("update live_lots set ends_at=now()-interval '1 second' where id=$1",[lot]);
+await as(buyer);await rejects('select live_place_bid($1,200,gen_random_uuid())',[lot],'LOT_CLOSED');
+await rpc('select live_finish_lot($1)',[lot]);await rpc('select live_finish_lot($1)',[lot]);
+assert.equal((await rpc('select count(*)::int as n from live_awards')).n,1);
+await as(host);await rpc("select live_set_status($1,'ended')",[room]);
+console.log('PASS: permissions, ownership, bid increments, retry idempotency, chat rate limit, mute/ban, RLS, server expiry, single award');
+await db.close();
