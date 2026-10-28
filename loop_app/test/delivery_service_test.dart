@@ -58,10 +58,22 @@ void main() {
         DeliveryService.costFor(DeliveryMethod.courier, ParcelSize.large),
         DeliveryMethod.courier.cost + ParcelSize.large.extra,
       );
-      // EU: dvostruka doplata za veličinu.
+      // EU: cijena po zoni države i dvostruka doplata za veličinu.
       expect(
-        DeliveryService.costFor(DeliveryMethod.europe, ParcelSize.medium),
-        DeliveryMethod.europe.cost + 2 * ParcelSize.medium.extra,
+        DeliveryService.costFor(
+          DeliveryMethod.europe,
+          ParcelSize.medium,
+          country: 'Slovenija',
+        ),
+        euZoneCost(1) + 2 * ParcelSize.medium.extra,
+      );
+      expect(
+        DeliveryService.costFor(
+          DeliveryMethod.europe,
+          ParcelSize.small,
+          country: 'Portugal',
+        ),
+        euZoneCost(3),
       );
       expect(
         DeliveryService.costFor(DeliveryMethod.pickup, ParcelSize.bulky),
@@ -90,7 +102,12 @@ void main() {
       method: DeliveryMethod.europe,
       destination: 'Hauptstraße 5, 10115 Berlin, Njemačka',
     );
-    expect(d.cost, DeliveryMethod.europe.cost + 2 * ParcelSize.large.extra);
+    expect(d.cost, euZoneCost(2) + 2 * ParcelSize.large.extra);
+    // Bez države — ne može.
+    expect(
+      DeliveryService.validate(DeliveryMethod.europe, 'Hauptstraße 5, Berlin'),
+      isNotNull,
+    );
   });
 
   test(

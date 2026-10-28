@@ -47,14 +47,22 @@ class DeliveryService {
   }
 
   /// Cijena dostave za način i veličinu paketa (u EU doplata dvostruka).
-  static double costFor(DeliveryMethod m, ParcelSize size) {
+  static double costFor(DeliveryMethod m, ParcelSize size, {String? country}) {
     if (m.cost == 0) return 0;
-    return m.cost + size.extra * (m == DeliveryMethod.europe ? 2 : 1);
+    if (m == DeliveryMethod.europe) {
+      // Zona države (bez odabrane države — najniža, "od").
+      final zone = country == null ? 1 : kEuCountries[country] ?? 3;
+      return euZoneCost(zone) + size.extra * 2;
+    }
+    return m.cost + size.extra;
   }
 
   /// Provjera odredišta prije plaćanja.
   static String? validate(DeliveryMethod m, String? destination) {
     final dest = destination?.trim() ?? '';
+    if (m == DeliveryMethod.europe && euCountryOf(dest) == null) {
+      return t('Odaberi državu EU za dostavu.');
+    }
     if (m.needsAddress && dest.length < 8) {
       return t('Upiši adresu za dostavu (ulica, broj, mjesto).');
     }
@@ -257,7 +265,9 @@ class DeliveryService {
     final size = ParcelSize.fromName(
       _storage.deviceById(d.deviceId)?.parcelSize,
     );
-    final cost = free ? 0.0 : costFor(method, size);
+    final cost = free
+        ? 0.0
+        : costFor(method, size, country: euCountryOf(destination));
     final started = d.copyWith(
       method: method,
       destination: dest,

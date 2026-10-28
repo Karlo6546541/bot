@@ -122,7 +122,8 @@ class _DeliveryPickerState extends State<DeliveryPicker> {
     _emit();
   }
 
-  double _cost(DeliveryMethod m) => DeliveryService.costFor(m, widget.size);
+  double _cost(DeliveryMethod m) =>
+      DeliveryService.costFor(m, widget.size, country: _country);
 
   /// Prikazani su i rjeđi načini (ekspres, osobno preuzimanje).
   bool _all = false;
@@ -139,7 +140,12 @@ class _DeliveryPickerState extends State<DeliveryPicker> {
     super.dispose();
   }
 
+  /// Država za dostavu u EU.
+  String? _country;
+
   String? get _destination => switch (_method) {
+    DeliveryMethod.europe =>
+      _country == null ? _address.text : '${_address.text.trim()}, $_country',
     final m? when m.needsAddress => _address.text,
     final m? when m.needsLocker => _mapFailed ? _locker : _boxNow?.destination,
     _ => null,
@@ -309,16 +315,40 @@ class _DeliveryPickerState extends State<DeliveryPicker> {
               child: Text(t('Više načina dostave')),
             ),
           ),
+        if (_method == DeliveryMethod.europe) ...[
+          const SizedBox(height: 4),
+          DropdownButtonFormField<String>(
+            key: const ValueKey('delivery-country'),
+            initialValue: _country,
+            isExpanded: true,
+            decoration: InputDecoration(
+              labelText: t('Država'),
+              prefixIcon: const Icon(Icons.public),
+            ),
+            items: [
+              for (final e in kEuCountries.entries)
+                DropdownMenuItem(
+                  value: e.key,
+                  child: Text(
+                    '${t(e.key)} · ${formatCredits(DeliveryService.costFor(DeliveryMethod.europe, widget.size, country: e.key))}',
+                  ),
+                ),
+            ],
+            onChanged: (c) {
+              setState(() => _country = c);
+              _emit();
+            },
+          ),
+          const SizedBox(height: 8),
+        ],
         if (_method?.needsAddress ?? false) ...[
           const SizedBox(height: 4),
           TextField(
             controller: _address,
             decoration: InputDecoration(
-              labelText: _method == DeliveryMethod.europe
-                  ? t('Adresa i država (EU)')
-                  : t('Adresa za dostavu'),
+              labelText: t('Adresa za dostavu'),
               hintText: _method == DeliveryMethod.europe
-                  ? t('npr. Hauptstraße 5, 10115 Berlin, Njemačka')
+                  ? t('npr. Hauptstraße 5, 10115 Berlin')
                   : t('npr. Ilica 1, 10000 Zagreb'),
               prefixIcon: Icon(Icons.home_outlined),
             ),

@@ -59,6 +59,50 @@ enum DeliveryMethod {
   );
 }
 
+/// Države EU za dostavu iz Hrvatske i zona cijene: 1 = susjedne,
+/// 2 = srednja Europa, 3 = daleke (otoci, sjever, jug).
+const kEuCountries = <String, int>{
+  'Slovenija': 1,
+  'Mađarska': 1,
+  'Austrija': 1,
+  'Italija': 1,
+  'Njemačka': 2,
+  'Slovačka': 2,
+  'Češka': 2,
+  'Poljska': 2,
+  'Rumunjska': 2,
+  'Bugarska': 2,
+  'Francuska': 2,
+  'Belgija': 2,
+  'Nizozemska': 2,
+  'Luksemburg': 2,
+  'Danska': 2,
+  'Španjolska': 3,
+  'Portugal': 3,
+  'Grčka': 3,
+  'Irska': 3,
+  'Švedska': 3,
+  'Finska': 3,
+  'Estonija': 3,
+  'Latvija': 3,
+  'Litva': 3,
+  'Cipar': 3,
+  'Malta': 3,
+};
+
+/// Cijena dostave u EU po zoni (bez doplate za veličinu).
+double euZoneCost(int zone) => switch (zone) {
+  1 => 10,
+  2 => 14,
+  _ => 19,
+};
+
+/// Država s kraja adrese ("…, Njemačka") ako je u [kEuCountries].
+String? euCountryOf(String? destination) {
+  final last = destination?.split(',').last.trim();
+  return last != null && kEuCountries.containsKey(last) ? last : null;
+}
+
 /// Veličina paketa (bira prodavač pri objavi). Dodaje se na cijenu
 /// dostave; paketomat prima samo male i srednje, ekspres ne vozi glomazno.
 enum ParcelSize {
