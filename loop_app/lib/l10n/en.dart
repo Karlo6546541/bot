@@ -2590,4 +2590,17 @@ const kEn = <String, String>{
   'Taj live više ne postoji.': 'That live no longer exists.',
   'Taj oglas više ne postoji.': 'That listing no longer exists.',
   'Taj račun više ne postoji.': 'That account no longer exists.',
+  'Aukcija ili live — spremi predmet pa odluči':
+      'Auction or live — save the item, then decide',
+  'Dodaj predmet — spremi ga, pa ga stavi na aukciju ili u live.':
+      'Add an item — save it, then put it on auction or in a live.',
+  'Licitiraj uživo.\nOsvoji povoljno.': 'Bid live.\nWin a bargain.',
+  'Live aukcije i aukcije na jednom mjestu — od kartica i tenisica do mobitela i vintage stvari.':
+      'Live auctions and auctions in one place — from cards and sneakers to phones and vintage finds.',
+  'Nije ispunjeno — potrebno za isplatu zarade':
+      'Not filled in — needed to pay out earnings',
+  'Spremljeni način plaćanja koristi se automatski: kad pobijediš na aukciji ili u liveu, naplata ide sama.':
+      'Your saved payment method is used automatically: when you win an auction or a live, you\'re charged automatically.',
+  'Spremljeni predmeti čekaju — stavi ih na aukciju ili u live.':
+      'Saved items are waiting — put them on auction or in a live.',
 };

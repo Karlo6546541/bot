@@ -1269,14 +1269,12 @@ void main() {
       await tester.tap(find.text('Prijavi se'));
       await tester.pumpAndSettle();
 
-      // Početna: i predmeti za Kupi odmah (izbornik je bez listanja).
+      // Početna: Kupi odmah je isključen (nema ga u izborniku).
       await tester.tap(find.byKey(const ValueKey('home-filters')));
       await tester.pumpAndSettle();
-      await tester.ensureVisible(find.byKey(const ValueKey('home-cat-buy')));
+      expect(find.byKey(const ValueKey('home-cat-buy')), findsNothing);
+      await tester.tapAt(const Offset(10, 10));
       await tester.pumpAndSettle();
-      await tester.tap(find.byKey(const ValueKey('home-cat-buy')));
-      await tester.pumpAndSettle();
-      expect(find.byKey(const ValueKey('home-buy')), findsOneWidget);
       await tester.ensureVisible(find.byKey(const ValueKey('home-cat-live')));
       await tester.pumpAndSettle();
       await tester.tap(find.byKey(const ValueKey('home-cat-live')));

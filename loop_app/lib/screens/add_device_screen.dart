@@ -1,3 +1,4 @@
+import '../config/features.dart';
 import 'dart:async';
 
 import 'device_detail_screen.dart';
@@ -90,7 +91,7 @@ class _AddDeviceScreenState extends ConsumerState<AddDeviceScreen> {
   }
 
   /// Kako se predmet prodaje nakon spremanja.
-  SellMode _mode = SellMode.buyNow;
+  SellMode _mode = kBuyNowEnabled ? SellMode.buyNow : SellMode.auction;
   bool get _listOnMarket => _mode == SellMode.buyNow;
 
   /// Datoteka digitalnog proizvoda (3D model, softver…).
@@ -151,7 +152,14 @@ class _AddDeviceScreenState extends ConsumerState<AddDeviceScreen> {
       _categoryManual = d['categoryManual'] == true;
     }
     _mode =
-        SellMode.values.where((m) => m.name == d['mode']).firstOrNull ?? _mode;
+        SellMode.values
+            .where(
+              (m) =>
+                  m.name == d['mode'] &&
+                  (kBuyNowEnabled || m != SellMode.buyNow),
+            )
+            .firstOrNull ??
+        _mode;
     _photos.addAll([for (final p in (d['photos'] as List? ?? [])) '$p']);
     _restoring = false;
   }
@@ -403,18 +411,22 @@ class _AddDeviceScreenState extends ConsumerState<AddDeviceScreen> {
                                   runSpacing: 8,
                                   children: [
                                     for (final sec in ItemSection.values)
-                                      ChoiceChip(
-                                        avatar: Icon(sec.icon, size: 18),
-                                        label: Text(sec.label),
-                                        selected: _section == sec,
-                                        onSelected: (_) {
-                                          setState(() {
-                                            _section = sec;
-                                            _category = null;
-                                          });
-                                          field.didChange(null);
-                                        },
-                                      ),
+                                      // Digitalno se prodaje samo za Kupi
+                                      // odmah (isključeno).
+                                      if (kBuyNowEnabled ||
+                                          sec != ItemSection.digital)
+                                        ChoiceChip(
+                                          avatar: Icon(sec.icon, size: 18),
+                                          label: Text(sec.label),
+                                          selected: _section == sec,
+                                          onSelected: (_) {
+                                            setState(() {
+                                              _section = sec;
+                                              _category = null;
+                                            });
+                                            field.didChange(null);
+                                          },
+                                        ),
                                   ],
                                 ),
                                 const SizedBox(height: 14),
@@ -653,11 +665,12 @@ class _AddDeviceScreenState extends ConsumerState<AddDeviceScreen> {
                         childAspectRatio: 2.3,
                         children: [
                           for (final m in SellMode.values)
-                            _SellModeTile(
-                              mode: m,
-                              selected: _mode == m,
-                              onTap: () => setState(() => _mode = m),
-                            ),
+                            if (kBuyNowEnabled || m != SellMode.buyNow)
+                              _SellModeTile(
+                                mode: m,
+                                selected: _mode == m,
+                                onTap: () => setState(() => _mode = m),
+                              ),
                         ],
                       ),
                     ],

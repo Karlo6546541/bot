@@ -1,3 +1,4 @@
+import '../config/features.dart';
 import 'dart:async';
 
 import 'package:flutter/material.dart';
@@ -57,8 +58,9 @@ sealed class _Filter {
     'live' => const _LiveOnly(),
     'soon' => const _Soon(),
     'timed' => const _Timed(),
-    'buy' => const _BuyNow(),
-    'digital' => const _Digital(),
+    // Kupi odmah je isključen (stare poveznice vode na Za tebe).
+    'buy' when kBuyNowEnabled => const _BuyNow(),
+    'digital' when kBuyNowEnabled => const _Digital(),
     'following' => const _Following(),
     _ => const _ForYou(),
   };
@@ -522,12 +524,13 @@ class _LiveHomeScreenState extends ConsumerState<LiveHomeScreen> {
                                       Icons.videocam_outlined,
                                       const _LiveOnly(),
                                     ),
-                                    (
-                                      'digital',
-                                      t('Digitalne kupnje'),
-                                      Icons.download_outlined,
-                                      const _Digital(),
-                                    ),
+                                    if (kBuyNowEnabled)
+                                      (
+                                        'digital',
+                                        t('Digitalne kupnje'),
+                                        Icons.download_outlined,
+                                        const _Digital(),
+                                      ),
                                     (
                                       'soon',
                                       t('Uskoro'),
@@ -540,12 +543,13 @@ class _LiveHomeScreenState extends ConsumerState<LiveHomeScreen> {
                                       Icons.gavel,
                                       const _Timed(),
                                     ),
-                                    (
-                                      'buy',
-                                      t('Kupi odmah'),
-                                      Icons.shopping_bag_outlined,
-                                      const _BuyNow(),
-                                    ),
+                                    if (kBuyNowEnabled)
+                                      (
+                                        'buy',
+                                        t('Kupi odmah'),
+                                        Icons.shopping_bag_outlined,
+                                        const _BuyNow(),
+                                      ),
                                   ])
                                 ListTile(
                                   key: ValueKey('home-cat-$id'),
@@ -706,7 +710,8 @@ class _HowLoopWorks extends ConsumerWidget {
     final ways = [
       ('🔴', t('Uživo'), t('Licitiraj dok prodavač pokazuje predmet')),
       ('⏱', t('Aukcije'), t('Najviša ponuda kad istekne vrijeme')),
-      ('🛒', t('Kupi odmah'), t('Fiksna cijena, kupnja jednim dodirom')),
+      if (kBuyNowEnabled)
+        ('🛒', t('Kupi odmah'), t('Fiksna cijena, kupnja jednim dodirom')),
     ];
     return Padding(
       key: const ValueKey('home-how'),

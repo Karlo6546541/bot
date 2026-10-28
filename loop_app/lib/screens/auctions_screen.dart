@@ -1,3 +1,4 @@
+import '../config/features.dart';
 import 'dart:async';
 
 import 'package:flutter/material.dart';
@@ -263,15 +264,16 @@ class _AuctionsScreenState extends ConsumerState<AuctionsScreen> {
                   selected: _filter == _timed,
                   onTap: () => setState(() => _filter = _timed),
                 ),
-                _CategoryCard(
-                  id: _buy,
-                  label: t('Kupi odmah'),
-                  icon: Icons.sell_outlined,
-                  color: LoopColors.buyNow,
-                  count: all.where((i) => i.isBuyNow).length,
-                  selected: _filter == _buy,
-                  onTap: () => setState(() => _filter = _buy),
-                ),
+                if (kBuyNowEnabled)
+                  _CategoryCard(
+                    id: _buy,
+                    label: t('Kupi odmah'),
+                    icon: Icons.sell_outlined,
+                    color: LoopColors.buyNow,
+                    count: all.where((i) => i.isBuyNow).length,
+                    selected: _filter == _buy,
+                    onTap: () => setState(() => _filter = _buy),
+                  ),
                 for (final c in cats)
                   _CategoryCard(
                     id: c.name,
@@ -1621,7 +1623,7 @@ String maskEmail(String email) {
 /// aukcije koje najprije završavaju.
 /// Sve kartice za pregled: liveovi (u tijeku pa zakazani), aukcije koje
 /// najprije završavaju i — uz [buyNow] — predmeti za Kupi odmah.
-List<BrowseItem> browseItems(AppState s, {bool buyNow = true}) {
+List<BrowseItem> browseItems(AppState s, {bool buyNow = kBuyNowEnabled}) {
   final now = DateTime.now();
   return [
     for (final (show, live) in s.activeLives)

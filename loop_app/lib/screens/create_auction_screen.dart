@@ -1,3 +1,4 @@
+import '../config/features.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -254,7 +255,8 @@ class _CreateAuctionScreenState extends ConsumerState<CreateAuctionScreen> {
                         ),
                       ),
                       const SizedBox(height: 12),
-                      _CompareCard(device: selected, fee: fee),
+                      if (kBuyNowEnabled)
+                        _CompareCard(device: selected, fee: fee),
                       const SizedBox(height: 16),
                       if (reason != null) ...[
                         Container(
@@ -294,19 +296,21 @@ class _CreateAuctionScreenState extends ConsumerState<CreateAuctionScreen> {
                               : t('Objavi aukciju'),
                         ),
                       ),
-                      const SizedBox(height: 10),
-                      OutlinedButton.icon(
-                        onPressed: () async {
-                          final ok = await showListDialog(
-                            context,
-                            ref,
-                            selected,
-                          );
-                          if (ok && context.mounted) Navigator.pop(context);
-                        },
-                        icon: const Icon(Icons.storefront_outlined),
-                        label: Text(t('Radije prodaj na Kupi odmah')),
-                      ),
+                      if (kBuyNowEnabled) ...[
+                        const SizedBox(height: 10),
+                        OutlinedButton.icon(
+                          onPressed: () async {
+                            final ok = await showListDialog(
+                              context,
+                              ref,
+                              selected,
+                            );
+                            if (ok && context.mounted) Navigator.pop(context);
+                          },
+                          icon: const Icon(Icons.storefront_outlined),
+                          label: Text(t('Radije prodaj na Kupi odmah')),
+                        ),
+                      ],
                     ],
                   ],
                 ),

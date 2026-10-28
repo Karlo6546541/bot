@@ -133,7 +133,7 @@ class _PaymentSheetState extends State<_PaymentSheet> {
             const SizedBox(height: 4),
             Text(
               t(
-                'Spremljeni način plaćanja koristi se automatski: Kupi odmah jednim dodirom, a kad pobijediš na aukciji ili u liveu, naplata ide sama.',
+                'Spremljeni način plaćanja koristi se automatski: kad pobijediš na aukciji ili u liveu, naplata ide sama.',
               ),
               style: TextStyle(color: LoopColors.textSecondary, fontSize: 13),
             ),

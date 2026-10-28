@@ -1,3 +1,4 @@
+import '../config/features.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -194,7 +195,7 @@ class _MyItemsViewState extends ConsumerState<MyItemsView> {
                     Expanded(
                       child: Text(
                         t(
-                          'Spremljeni predmeti čekaju — stavi ih na Kupi odmah, aukciju ili u live.',
+                          'Spremljeni predmeti čekaju — stavi ih na aukciju ili u live.',
                         ),
                         style: TextStyle(
                           color: LoopColors.textSecondary,
@@ -218,7 +219,9 @@ class _MyItemsViewState extends ConsumerState<MyItemsView> {
                     children: [
                       chip(null, t('Sve'), own.length),
                       for (final st in ItemStatus.values)
-                        chip(st, st.label, counts[st]!),
+                        // Stari oglasi za Kupi odmah vide se pod Sve.
+                        if (kBuyNowEnabled || st != ItemStatus.buyNow)
+                          chip(st, st.label, counts[st]!),
                     ],
                   ),
                 ),
@@ -235,7 +238,7 @@ class _MyItemsViewState extends ConsumerState<MyItemsView> {
                   ? t('Još ništa ne prodaješ')
                   : t('Ovdje trenutno nema predmeta'),
               message: t(
-                'Dodaj predmet — spremi ga, pa ga stavi na Kupi odmah, aukciju ili u live.',
+                'Dodaj predmet — spremi ga, pa ga stavi na aukciju ili u live.',
               ),
               action: FilledButton.icon(
                 key: const ValueKey('my-items-add-empty'),

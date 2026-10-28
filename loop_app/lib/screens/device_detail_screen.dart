@@ -1,3 +1,4 @@
+import '../config/features.dart';
 import '../services/app_location/app_location.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -73,6 +74,7 @@ class DeviceDetailScreen extends ConsumerWidget {
     final wide = MediaQuery.sizeOf(context).width >= 900;
     // Gumb "Kupi" uvijek zalijepljen na dnu (mobitel i računalo).
     final buyBar =
+        kBuyNowEnabled &&
         !isMine &&
         auction == null &&
         device.isForSale &&
@@ -385,7 +387,7 @@ class DeviceDetailScreen extends ConsumerWidget {
                 label: Text(t('Pogledaj aukciju')),
               ),
             ] else if (isMine) ...[
-              if (device.isListed) ...[
+              if (device.isListed && kBuyNowEnabled) ...[
                 _ListingInfo(device: device),
                 const SizedBox(height: 10),
                 SellerBargainsCard(device: device),
@@ -476,13 +478,15 @@ class DeviceDetailScreen extends ConsumerWidget {
                       ),
                     ),
                     children: [
-                      OutlinedButton.icon(
-                        key: const ValueKey('item-buy-now'),
-                        onPressed: () => showListDialog(context, ref, device),
-                        icon: const Icon(Icons.sell_outlined),
-                        label: Text(t('Kupi odmah')),
-                      ),
-                      const SizedBox(height: 8),
+                      if (kBuyNowEnabled) ...[
+                        OutlinedButton.icon(
+                          key: const ValueKey('item-buy-now'),
+                          onPressed: () => showListDialog(context, ref, device),
+                          icon: const Icon(Icons.sell_outlined),
+                          label: Text(t('Kupi odmah')),
+                        ),
+                        const SizedBox(height: 8),
+                      ],
                       OutlinedButton.icon(
                         key: const ValueKey('item-auction'),
                         onPressed: () => CreateAuctionScreen.open(
@@ -504,14 +508,30 @@ class DeviceDetailScreen extends ConsumerWidget {
                   ),
                 ),
                 const SizedBox(height: 8),
+                // Stari oglas za Kupi odmah (više se ne nudi): makni ga.
+                if (device.isListed) ...[
+                  OutlinedButton.icon(
+                    key: const ValueKey('unlist'),
+                    onPressed: () => runWithLoading(
+                      context,
+                      () => ref.read(appProvider.notifier).unlist(device.id),
+                      successMessage: t('Maknuto iz prodaje'),
+                    ),
+                    icon: const Icon(Icons.remove_shopping_cart_outlined),
+                    label: Text(t('Makni iz prodaje')),
+                  ),
+                  const SizedBox(height: 10),
+                ],
+                if (kBuyNowEnabled) ...[
+                  FilledButton.icon(
+                    key: const ValueKey('item-buy-now'),
+                    onPressed: () => showListDialog(context, ref, device),
+                    icon: const Icon(Icons.sell_outlined),
+                    label: Text(t('🏷️ Kupi odmah · fiksna cijena')),
+                  ),
+                  const SizedBox(height: 10),
+                ],
                 FilledButton.icon(
-                  key: const ValueKey('item-buy-now'),
-                  onPressed: () => showListDialog(context, ref, device),
-                  icon: const Icon(Icons.sell_outlined),
-                  label: Text(t('🏷️ Kupi odmah · fiksna cijena')),
-                ),
-                const SizedBox(height: 10),
-                OutlinedButton.icon(
                   key: const ValueKey('item-auction'),
                   onPressed: () =>
                       CreateAuctionScreen.open(context, deviceId: device.id),
@@ -525,7 +545,7 @@ class DeviceDetailScreen extends ConsumerWidget {
                   icon: const Icon(Icons.videocam_outlined),
                   label: Text(t('Pokaži u liveu')),
                 ),
-              ] else
+              ] else if (kBuyNowEnabled)
                 FilledButton.icon(
                   onPressed: () => showListDialog(context, ref, device),
                   icon: const Icon(Icons.sell_outlined),
@@ -553,7 +573,7 @@ class DeviceDetailScreen extends ConsumerWidget {
                 icon: const Icon(Icons.gavel),
                 label: Text(t('Licitiraj')),
               ),
-            ] else if (device.isForSale) ...[
+            ] else if (kBuyNowEnabled && device.isForSale) ...[
               if (device.isListed && owner != null) ...[
                 const SizedBox(height: 10),
                 BuyerBargainCard(device: device),

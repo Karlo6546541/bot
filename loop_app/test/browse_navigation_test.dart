@@ -65,12 +65,9 @@ void main() {
     );
     await tester.tap(find.byKey(const ValueKey('home-filters')));
     await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const ValueKey('home-cat-digital')));
-    await tester.pumpAndSettle();
-    expect(find.byKey(const ValueKey('home-digital')), findsOneWidget);
-    expect(find.byKey(const ValueKey('home-ending')), findsNothing);
-    await tester.tap(find.byKey(const ValueKey('home-filters')));
-    await tester.pumpAndSettle();
+    // Kupi odmah i digitalne kupnje su isključeni.
+    expect(find.byKey(const ValueKey('home-cat-digital')), findsNothing);
+    expect(find.byKey(const ValueKey('home-cat-buy')), findsNothing);
     await tester.tap(find.byKey(const ValueKey('home-cat-my')));
     await tester.pumpAndSettle();
     expect(find.byKey(const ValueKey('my-selling')), findsOneWidget);

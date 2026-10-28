@@ -92,14 +92,13 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Objave (1)'), findsOneWidget);
     expect(find.text('Polaroid SX-70'), findsOneWidget);
-    // Pretražuju se i predmeti na Kupi odmah (naziv, model, opis…).
+    // Predmeti na Kupi odmah se više ne nude (ni u pretrazi).
     await tester.enterText(
       find.byKey(const ValueKey('global-search')),
       'airpods',
     );
     await tester.pumpAndSettle();
-    expect(find.text('Objave (0)'), findsNothing);
-    expect(find.byKey(const ValueKey('search-posts')), findsOneWidget);
+    expect(find.text('Objave (0)'), findsOneWidget);
     await tester.enterText(
       find.byKey(const ValueKey('global-search')),
       'nepostojeci predmet xyz',

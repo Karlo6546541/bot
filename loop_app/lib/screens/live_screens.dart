@@ -1,3 +1,4 @@
+import '../config/features.dart';
 import '../services/app_location/app_location.dart';
 import 'dart:async';
 import 'dart:math' as math;
@@ -1314,7 +1315,7 @@ class _LotChoice extends StatelessWidget {
                                         'U liveu kao #{0} · upiši početnu cijenu',
                                         ['$order'],
                                       )
-                                    : device.isListed
+                                    : device.isListed && kBuyNowEnabled
                                     ? t('Kupi odmah · {0}', [
                                         formatCredits(device.price),
                                       ])
@@ -5103,27 +5104,33 @@ class _LiveShopSheet extends ConsumerWidget {
                 ],
               ),
             ),
-            TabBar(
-              labelColor: _white,
-              unselectedLabelColor: _muted,
-              indicatorColor: kBidOrange,
-              dividerColor: Colors.white12,
-              labelStyle: const TextStyle(
-                fontFamily: kFontFamily,
-                fontWeight: FontWeight.w900,
+            // Bez Kupi odmah: samo predmeti na aukciji (bez kartica).
+            if (kBuyNowEnabled)
+              TabBar(
+                labelColor: _white,
+                unselectedLabelColor: _muted,
+                indicatorColor: kBidOrange,
+                dividerColor: Colors.white12,
+                labelStyle: const TextStyle(
+                  fontFamily: kFontFamily,
+                  fontWeight: FontWeight.w900,
+                ),
+                tabs: [
+                  Tab(
+                    key: const ValueKey('live-tab-auction'),
+                    text: t('🔨 Na aukciji ({0})', ['${lots.length}']),
+                  ),
+                  Tab(
+                    key: const ValueKey('live-tab-shop'),
+                    text: t('🛍️ Kupi odmah ({0})', ['${shop.length}']),
+                  ),
+                ],
               ),
-              tabs: [
-                Tab(
-                  key: const ValueKey('live-tab-auction'),
-                  text: t('🔨 Na aukciji ({0})', ['${lots.length}']),
-                ),
-                Tab(
-                  key: const ValueKey('live-tab-shop'),
-                  text: t('🛍️ Kupi odmah ({0})', ['${shop.length}']),
-                ),
-              ],
+            Expanded(
+              child: kBuyNowEnabled
+                  ? TabBarView(children: [auctionTab, shopTab])
+                  : auctionTab,
             ),
-            Expanded(child: TabBarView(children: [auctionTab, shopTab])),
           ],
         ),
       ),

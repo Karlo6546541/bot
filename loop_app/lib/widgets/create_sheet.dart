@@ -104,7 +104,7 @@ Future<void> showCreateSheet(BuildContext context) async {
                 '🏷️',
                 LoopColors.mint,
                 t('Prodaj predmet'),
-                t('Kupi odmah po fiksnoj cijeni, aukcija ili live'),
+                t('Aukcija ili live — spremi predmet pa odluči'),
               ),
             ],
           ),

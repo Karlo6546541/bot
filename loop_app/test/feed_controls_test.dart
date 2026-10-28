@@ -14,6 +14,7 @@ import 'package:loop_app/services/feed_preferences.dart';
 import 'package:loop_app/services/feed_watch_time.dart';
 import 'package:loop_app/services/seed_data.dart';
 import 'package:loop_app/services/storage_service.dart';
+import 'package:loop_app/services/auction_service.dart';
 import 'package:loop_app/services/trade_service.dart';
 import 'package:loop_app/widgets/feed.dart' show FeedEntry;
 import 'package:loop_app/widgets/photo_viewer.dart';
@@ -203,16 +204,24 @@ void main() {
         tester.widget<SwipeFeedScreen>(find.byType(SwipeFeedScreen)).entries,
         isEmpty,
       );
-      final d = await tester.runAsync(
-        () => TradeService(storage).addDevice(
+      // Kupi odmah je isključen: u feed stiže nova aukcija.
+      final d = await tester.runAsync(() async {
+        final item = await TradeService(storage).addDevice(
           userId: SeedData.anaUserId,
           name: 'Arrived after sync',
           model: 'New',
           condition: DeviceCondition.good,
           price: 25,
           category: DeviceCategory.phone,
-        ),
-      );
+          listOnMarket: false,
+        );
+        return AuctionService(storage).create(
+          userId: SeedData.anaUserId,
+          deviceId: item.id,
+          startPrice: 5,
+          duration: const Duration(days: 1),
+        );
+      });
       final container = ProviderScope.containerOf(
         tester.element(find.byType(ForYouFeed)),
       );
@@ -225,7 +234,7 @@ void main() {
             .widget<SwipeFeedScreen>(find.byType(SwipeFeedScreen))
             .entries
             .single
-            .deviceId,
+            .auctionId,
         d!.id,
       );
       await tester.tap(find.byKey(const ValueKey('feed-more')));

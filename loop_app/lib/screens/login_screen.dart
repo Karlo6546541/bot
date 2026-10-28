@@ -620,7 +620,7 @@ class _WelcomeHero extends StatelessWidget {
         LoopLogo(size: compact ? 34 : 40),
         const SizedBox(height: 18),
         Text(
-          t('Licitiraj uživo.\nKupi odmah.'),
+          t('Licitiraj uživo.\nOsvoji povoljno.'),
           textAlign: compact ? TextAlign.center : TextAlign.start,
           style: TextStyle(
             fontSize: compact ? 30 : 48,
@@ -631,7 +631,7 @@ class _WelcomeHero extends StatelessWidget {
         const SizedBox(height: 12),
         Text(
           t(
-            'Live aukcije, aukcije i Kupi odmah na jednom mjestu — od kartica i tenisica do mobitela i vintage stvari.',
+            'Live aukcije i aukcije na jednom mjestu — od kartica i tenisica do mobitela i vintage stvari.',
           ),
           textAlign: compact ? TextAlign.center : TextAlign.start,
           style: TextStyle(

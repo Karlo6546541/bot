@@ -1,3 +1,4 @@
+import '../config/features.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -76,7 +77,8 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
       // Kupi odmah: tuđi predmeti na prodaji (naziv, model, kategorija,
       // opis i prodavač).
       for (final d in s.marketDevices)
-        if (d.isListed &&
+        if (kBuyNowEnabled &&
+            d.isListed &&
             !s.isBlocked(d.ownerId!) &&
             _matches(
               '${d.name} ${d.model} ${d.category.label} ${d.description} '

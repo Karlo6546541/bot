@@ -1,3 +1,4 @@
+import '../config/features.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -488,7 +489,7 @@ class WishlistDetailScreen extends ConsumerWidget {
               padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
               itemBuilder: (context, d) {
                 final mineItem = d.ownerId == s.currentUserId;
-                final available = d.isForSale && !mineItem;
+                final available = kBuyNowEnabled && d.isForSale && !mineItem;
                 return DeviceCard(
                   device: d,
                   actionLabel: available ? t('Kupi odmah') : t('Detalji'),

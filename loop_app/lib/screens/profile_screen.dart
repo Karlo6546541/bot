@@ -1,3 +1,4 @@
+import '../config/features.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -470,7 +471,7 @@ class _AccountPostTile extends ConsumerWidget {
               child: Text(
                 auction != null
                     ? t('Aukcija')
-                    : d.isListed
+                    : d.isListed && kBuyNowEnabled
                     ? t('Kupi odmah')
                     : t('Nije na prodaji'),
                 maxLines: 1,
@@ -850,7 +851,7 @@ class _ShopCard extends ConsumerWidget {
             icon: Icons.badge_outlined,
             title: t('Podaci prodavatelja'),
             subtitle: user.seller == null
-                ? t('Nije ispunjeno — potrebno za Kupi odmah i isplatu')
+                ? t('Nije ispunjeno — potrebno za isplatu zarade')
                 : '${user.seller!.isBusiness ? user.seller!.tradeName : t('Fizička osoba')} · ${user.seller!.maskedIban}',
             onTap: () => SellerInfoScreen.open(context),
           ),

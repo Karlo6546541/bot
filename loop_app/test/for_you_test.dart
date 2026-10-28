@@ -42,7 +42,7 @@ void main() {
       now: DateTime.now(),
       recentCategories: recent,
       boost: boost,
-    ).rank(browseItems(s), limit: 50);
+    ).rank(browseItems(s, buyNow: true), limit: 50);
   }
 
   int pos(List<Pick> picks, String deviceId) =>
