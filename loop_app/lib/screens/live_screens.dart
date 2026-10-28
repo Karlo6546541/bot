@@ -201,9 +201,6 @@ class _CreateLiveShowScreenState extends ConsumerState<CreateLiveShowScreen> {
   /// Domaćin prenosi video s kamere (kao na Whatnotu).
   bool _video = true;
 
-  /// Neprodano nakon livea ide na Kupi odmah.
-  bool _relist = true;
-
   /// Naslovna slika (thumbnail).
   String? _cover;
   DeviceCategory? _category;
@@ -393,7 +390,8 @@ class _CreateLiveShowScreenState extends ConsumerState<CreateLiveShowScreen> {
           video: _video,
           coverPath: _cover,
           category: _category,
-          relistUnsold: _relist,
+          // Neprodano ostaje spremljeno u Moje (ne ide samo na Kupi odmah).
+          relistUnsold: false,
         );
       },
       // Bez obavijesti: soba se odmah otvara (obavijest bi prekrila gumbe
@@ -608,21 +606,6 @@ class _CreateLiveShowScreenState extends ConsumerState<CreateLiveShowScreen> {
                                 'Gledatelji te vide i čuju dok pokazuješ predmete. Preglednik će tražiti dopuštenje za kameru i mikrofon.',
                               )
                             : t('Gledatelji vide samo fotografije predmeta.'),
-                      ),
-                    ),
-                    SwitchListTile(
-                      key: const ValueKey('live-relist'),
-                      value: _relist,
-                      onChanged: (v) => setState(() => _relist = v),
-                      secondary: const Icon(Icons.sell_outlined),
-                      title: Text(
-                        t('Neprodano stavi na Kupi odmah'),
-                        style: const TextStyle(fontWeight: FontWeight.w800),
-                      ),
-                      subtitle: Text(
-                        t(
-                          'Što se ne proda, nakon livea ide u prodaju po početnoj cijeni.',
-                        ),
                       ),
                     ),
                     Padding(
