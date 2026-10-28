@@ -1,3 +1,4 @@
+import '../services/app_location/app_location.dart';
 import 'dart:async';
 
 import 'package:flutter/material.dart';
@@ -73,6 +74,9 @@ class _ForYouFeedState extends ConsumerState<ForYouFeed> {
     _storage = ref.read(storageProvider);
     _preferences = _storage.feedPreferences(_userId);
     _picks.addAll(_ranked());
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _syncPlace();
+    });
   }
 
   void _save() {
@@ -103,6 +107,7 @@ class _ForYouFeedState extends ConsumerState<ForYouFeed> {
 
   @override
   void dispose() {
+    AppLocation.setFeed(null);
     _disposed = true;
     _queueTimer?.cancel();
     _saveTimer?.cancel();
@@ -114,6 +119,7 @@ class _ForYouFeedState extends ConsumerState<ForYouFeed> {
   void didUpdateWidget(covariant ForYouFeed oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (widget.active) _scheduleQueue();
+    if (widget.active != oldWidget.active) _syncPlace();
   }
 
   void _onScrollState(bool scrolling) {
@@ -144,9 +150,29 @@ class _ForYouFeedState extends ConsumerState<ForYouFeed> {
       return show != null && !s.liveStateOf(show, DateTime.now()).isOver;
     }
     if (i.auction != null) {
-      return s.auctionById(i.auction!.id)?.isActive ?? false;
+      final a = s.auctionById(i.auction!.id);
+      // Moja osvojena aukcija ostaje (vidim ishod), kao i kupljeni predmet.
+      return a != null &&
+          (a.isActive || a.highestBid?.userId == s.currentUserId);
     }
-    return s.deviceById(i.device!.id)?.isForSale ?? false;
+    final id = i.device!.id;
+    return (s.deviceById(id)?.isForSale ?? false) || s.hasPurchased(id);
+  }
+
+  /// Objava u adresi za povratak nakon prijave (vidi [AppLocation]).
+  void _syncPlace() {
+    if (!widget.active || _index >= _picks.length) {
+      AppLocation.setFeed(null);
+      return;
+    }
+    final e = _picks[_index].item.entry;
+    AppLocation.setFeed(
+      e.liveId != null
+          ? AppPlace.of('live', e.liveId!).query
+          : e.auctionId != null
+          ? AppPlace.of('auction', e.auctionId!).query
+          : AppPlace.of('item', e.deviceId ?? '').query,
+    );
   }
 
   void _refreshQueue() {
@@ -250,6 +276,7 @@ class _ForYouFeedState extends ConsumerState<ForYouFeed> {
     // Page changes happen while a drag is still animating. Never rank or
     // rebuild the queue here; ScrollEnd schedules that work after settling.
     _index = to;
+    _syncPlace();
     _scheduleQueue();
   }
 

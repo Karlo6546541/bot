@@ -1,3 +1,4 @@
+import '../services/app_location/app_location.dart';
 import 'package:flutter/material.dart';
 import '../widgets/country_widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -317,7 +318,13 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
               s.isAdmin,
         ),
         (_, done) {
-          if (done && mounted) Navigator.of(context).maybePop();
+          if (done && mounted) {
+            Navigator.of(context).maybePop();
+            // Ako je korisnik ostao na istom mjestu, povratak ne treba.
+            WidgetsBinding.instance.addPostFrameCallback(
+              (_) => AppLocation.clearReturnIfHere(),
+            );
+          }
         },
       );
     }

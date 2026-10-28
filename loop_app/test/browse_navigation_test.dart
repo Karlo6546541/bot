@@ -40,8 +40,8 @@ void main() {
     addTearDown(tester.view.reset);
     await tester.pumpWidget(app());
     await tester.pumpAndSettle();
-    expect(find.byType(NavigationDestination), findsNWidgets(3));
-    expect(find.text('Moje'), findsNothing);
+    // Mobitel: Početna · Moje · + · Profil (narudžbe su odmah dostupne).
+    expect(find.byType(NavigationDestination), findsNWidgets(4));
     expect(
       find.byKey(const ValueKey('home-categories-shortcut')),
       findsNothing,
@@ -74,13 +74,14 @@ void main() {
     await tester.tap(find.byKey(const ValueKey('home-cat-my')));
     await tester.pumpAndSettle();
     expect(find.byKey(const ValueKey('my-selling')), findsOneWidget);
-    expect(find.byType(NavigationDestination), findsNWidgets(3));
+    expect(find.byType(NavigationDestination), findsNWidgets(4));
     await tester.tap(find.text('Profil').last);
     await tester.pumpAndSettle();
     await tester.tap(find.byKey(const ValueKey('shell-library-menu')));
     await tester.pumpAndSettle();
     expect(find.text('Kategorije'), findsOneWidget);
-    expect(find.text('Moje'), findsOneWidget);
+    // Izbornik + donja traka.
+    expect(find.text('Moje'), findsWidgets);
     await tester.pumpWidget(const SizedBox.shrink());
   });
 

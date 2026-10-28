@@ -1,3 +1,4 @@
+import 'services/app_location/app_location.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -90,7 +91,7 @@ class LoopApp extends ConsumerWidget {
       debugShowCheckedModeBanner: false,
       scaffoldMessengerKey: rootMessengerKey,
       navigatorKey: navigatorKeyFor((brightness, lang)),
-      navigatorObservers: [feedRouteObserver],
+      navigatorObservers: [feedRouteObserver, AppLocationObserver()],
       // Mali prozor s liveom lebdi iznad svih ekrana.
       builder: (context, child) =>
           Stack(children: [?child, const MiniLiveOverlay()]),

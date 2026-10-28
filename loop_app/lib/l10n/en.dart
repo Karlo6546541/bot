@@ -2582,4 +2582,12 @@ const kEn = <String, String>{
   '{0} paketomat': '{0} locker',
   'Prodano {0} od {1}': 'Sold {0} of {1}',
   'Prijavi se na Subhasto': 'Log in to Subhasto',
+  'Poveznica ne vodi nikamo — oglas, live ili trgovina više ne postoji.':
+      'This link leads nowhere — the listing, live or shop no longer exists.',
+  'Ponuda +2 s!': 'Bid +2 s!',
+  'Preostalo': 'Left',
+  'Ta aukcija više ne postoji.': 'That auction no longer exists.',
+  'Taj live više ne postoji.': 'That live no longer exists.',
+  'Taj oglas više ne postoji.': 'That listing no longer exists.',
+  'Taj račun više ne postoji.': 'That account no longer exists.',
 };

@@ -563,7 +563,8 @@ class _ProfileSettingsView extends ConsumerWidget {
                     onTap: () => LegalListScreen.open(context),
                   ),
                 ),
-                const _SyncStatusTile(),
+                // Gost ne sprema ništa — stanje sinkronizacije ga ne zanima.
+                if (!user.isGuest) const _SyncStatusTile(),
                 SizedBox(height: 12),
                 Text(
                   t('Izgled'),

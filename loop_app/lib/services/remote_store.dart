@@ -26,6 +26,12 @@ abstract class RemoteStore {
   /// ga je netko već upisao — npr. drugi kupac je upravo kupio isti komad.
   Future<bool> claim(String table, String id, Map<String, dynamic> data);
 
+  /// Zapisi promijenjeni nakon [since] (rezerva kad realtime veza pukne).
+  Future<Map<String, Map<String, dynamic>>> pullSince(
+    String table,
+    DateTime since,
+  );
+
   /// Svježi zapis iz baze (null ako ga nema) — prije odluke koja ovisi o
   /// tuđim promjenama (zaliha, najviša ponuda, prihvaćena ponuda).
   Future<Map<String, dynamic>?> fetch(String table, String id);
@@ -105,6 +111,22 @@ class SupabaseRemoteStore implements RemoteStore {
       }
       rethrow;
     }
+    return {
+      for (final r in rows)
+        r['id'] as String: Map<String, dynamic>.from(r['data'] as Map),
+    };
+  }
+
+  @override
+  Future<Map<String, Map<String, dynamic>>> pullSince(
+    String table,
+    DateTime since,
+  ) async {
+    final rows = await _client
+        .from(tableName(table))
+        .select('id, data')
+        .gt('updated_at', since.toUtc().toIso8601String())
+        .limit(1000);
     return {
       for (final r in rows)
         r['id'] as String: Map<String, dynamic>.from(r['data'] as Map),

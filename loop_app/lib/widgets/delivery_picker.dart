@@ -247,6 +247,7 @@ class _DeliveryPickerState extends State<DeliveryPicker> {
 
   @override
   void dispose() {
+    LockerMaps.closeAll();
     _address.dispose();
     _lockerText.dispose();
     super.dispose();

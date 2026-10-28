@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -14,6 +16,10 @@ import 'profile_screen.dart';
 import '../l10n/tr.dart';
 import '../widgets/language_button.dart';
 import '../services/deep_link.dart';
+import '../services/app_location/app_location.dart';
+import '../widgets/loop_snackbar.dart';
+import 'add_device_screen.dart';
+import 'auction_detail_screen.dart';
 import 'device_detail_screen.dart';
 import 'messages_screen.dart';
 import 'public_profile_screen.dart';
@@ -114,10 +120,51 @@ class _HomeShellState extends ConsumerState<HomeShell> {
     _go(nav < _createSlot ? nav : nav - 1);
   }
 
+  /// Tab početne u adresi (`?tab=live`…); Za tebe je bez upita.
+  void _syncHome() {
+    final tab = ref.read(homeTabProvider);
+    final filter = ref.read(homeFilterProvider);
+    AppLocation.setHome(switch (tab) {
+      0 when filter == 'for-you' => '',
+      0 => 'tab=$filter',
+      1 => 'tab=kategorije',
+      2 => 'tab=moje',
+      _ => 'tab=profil',
+    });
+  }
+
+  /// Poveznica koja se dugo ne pojavi (ne postoji ili je uklonjena).
+  Timer? _linkTimeout;
+
+  @override
+  void dispose() {
+    _linkTimeout?.cancel();
+    super.dispose();
+  }
+
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) => _openPendingLink());
+    // Nakon registracije (aplikacija se gradi ispočetka): natrag na
+    // mjesto s kojeg je gost krenuo (live, oglas, nova objava…).
+    final back = AppLocation.takeReturn();
+    if (back != null && !PendingLink.isPending) AppLocation.restore(back);
+    if (PendingLink.isPending) {
+      _linkTimeout = Timer(const Duration(seconds: 20), () {
+        if (!mounted || !PendingLink.isPending) return;
+        PendingLink.clear();
+        showLoopSnackBar(
+          t(
+            'Poveznica ne vodi nikamo — oglas, live ili trgovina više ne postoji.',
+          ),
+          error: true,
+        );
+      });
+    }
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _syncHome();
+      _openPendingLink();
+    });
   }
 
   /// Otvara dijeljeni oglas ili trgovinu (kad se podaci učitaju).
@@ -128,6 +175,39 @@ class _HomeShellState extends ConsumerState<HomeShell> {
     final shop = PendingLink.shop;
     final list = PendingLink.list;
     final live = PendingLink.live;
+    final auction = PendingLink.auction;
+    final create = PendingLink.create;
+    final tab = PendingLink.tab;
+    if (tab != null) {
+      PendingLink.clear();
+      switch (tab) {
+        case 'kategorije':
+          _go(1);
+        case 'moje':
+          _go(2);
+        case 'profil':
+          _go(3);
+        default:
+          _go(0);
+          ref.read(homeFilterProvider.notifier).select(tab);
+      }
+      return;
+    }
+    if (create != null) {
+      PendingLink.clear();
+      if (create == 'live') {
+        CreateLiveShowScreen.open(context);
+      } else {
+        AddDeviceScreen.open(context);
+      }
+      return;
+    }
+    if (auction != null) {
+      if (state.auctionById(auction) == null) return; // možda se sinkronizira
+      PendingLink.clear();
+      AuctionDetailScreen.open(context, auction);
+      return;
+    }
     if (live != null) {
       if (state.liveShowById(live) == null) return; // možda se sinkronizira
       PendingLink.clear();
@@ -161,9 +241,11 @@ class _HomeShellState extends ConsumerState<HomeShell> {
   Widget build(BuildContext context) {
     ref.listen(homeTabProvider, (prev, _) {
       if (prev != null) _remember((prev, ref.read(homeFilterProvider)));
+      _syncHome();
     });
     ref.listen(homeFilterProvider, (prev, _) {
       if (prev != null) _remember((ref.read(homeTabProvider), prev));
+      _syncHome();
     });
     final feedSelected = ref.watch(homeFilterProvider) == 'for-you';
     if (PendingLink.isPending) {
@@ -177,15 +259,31 @@ class _HomeShellState extends ConsumerState<HomeShell> {
       immersiveNavigation: _index == 0 && feedSelected,
       destinations: isDesktop
           ? _destinations
-          : [_destinations[0], _destinations[2], _destinations[4]],
-      selectedIndex: isDesktop ? _navIndex(_index) : (_index == 3 ? 2 : 0),
+          // Mobitel: Početna · Moje (kupljeno, dostave, ponude) · + · Profil.
+          : [
+              _destinations[0],
+              _destinations[3],
+              _destinations[2],
+              _destinations[4],
+            ],
+      selectedIndex: isDesktop
+          ? _navIndex(_index)
+          : switch (_index) {
+              2 => 1,
+              3 => 3,
+              _ => 0,
+            },
       onSelect: isDesktop
           ? _onNav
           : (nav) {
-              if (nav == 1) {
+              if (nav == 2) {
                 showCreateSheet(context);
               } else {
-                _go(nav == 2 ? 3 : 0);
+                _go(switch (nav) {
+                  1 => 2,
+                  3 => 3,
+                  _ => 0,
+                });
               }
             },
       railHeader: Padding(

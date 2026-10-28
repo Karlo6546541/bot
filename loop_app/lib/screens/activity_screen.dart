@@ -89,25 +89,33 @@ class _ActivityScreenState extends ConsumerState<ActivityScreen> {
               ],
             ),
             SizedBox(height: 16),
+            // Kratki natpisi u jednom redu (na uskom ekranu bez ikona —
+            // inače se riječi lome po slovima).
             SegmentedButton<TransactionType?>(
               showSelectedIcon: false,
               segments: [
-                ButtonSegment(value: null, label: Text(t('Sve'))),
-                ButtonSegment(
-                  value: TransactionType.buy,
-                  label: Text(t('Kupnje')),
-                  icon: Icon(Icons.south_west, size: 16),
-                ),
-                ButtonSegment(
-                  value: TransactionType.sell,
-                  label: Text(t('Prodaje')),
-                  icon: Icon(Icons.north_east, size: 16),
-                ),
-                ButtonSegment(
-                  value: TransactionType.payout,
-                  label: Text(t('Isplate')),
-                  icon: Icon(Icons.account_balance_outlined, size: 16),
-                ),
+                for (final (type, label, icon) in [
+                  (null, t('Sve'), null),
+                  (TransactionType.buy, t('Kupnje'), Icons.south_west),
+                  (TransactionType.sell, t('Prodaje'), Icons.north_east),
+                  (
+                    TransactionType.payout,
+                    t('Isplate'),
+                    Icons.account_balance_outlined,
+                  ),
+                ])
+                  ButtonSegment(
+                    value: type,
+                    label: Text(
+                      label,
+                      maxLines: 1,
+                      softWrap: false,
+                      overflow: TextOverflow.fade,
+                    ),
+                    icon: icon == null || MediaQuery.sizeOf(context).width < 480
+                        ? null
+                        : Icon(icon, size: 16),
+                  ),
               ],
               selected: {_type},
               onSelectionChanged: (sel) => setState(() => _type = sel.first),

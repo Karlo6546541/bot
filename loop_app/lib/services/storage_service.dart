@@ -817,6 +817,16 @@ class StorageService {
       ? _session.delete('pendingCountry')
       : _session.put('pendingCountry', code);
 
+  /// Skica novog oglasa (polja obrasca) — ostaje i nakon osvježavanja.
+  Map<String, dynamic>? get addDraft {
+    final d = _session.get('addDraft');
+    return d is Map ? Map<String, dynamic>.from(d) : null;
+  }
+
+  Future<void> setAddDraft(Map<String, dynamic>? draft) => draft == null
+      ? _session.delete('addDraft')
+      : _session.put('addDraft', draft);
+
   /// Zvuk u liveu utišan (vibracija ostaje).
   bool get liveMuted => _session.get('liveMuted') == true;
 

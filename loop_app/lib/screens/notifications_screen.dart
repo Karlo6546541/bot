@@ -132,7 +132,11 @@ class NotificationsScreen extends ConsumerStatefulWidget {
           NotificationKind.auctionLost ||
           NotificationKind.auctionSold ||
           NotificationKind.auctionUnsold:
-        if (id != null) await AuctionDetailScreen.open(context, id);
+        if (id != null && state.auctionById(id) == null) {
+          showLoopSnackBar(t('Ta aukcija više ne postoji.'));
+        } else if (id != null) {
+          await AuctionDetailScreen.open(context, id);
+        }
       case NotificationKind.auctionWon || NotificationKind.giveawayWon:
         final d = wonDelivery(state, n);
         if (d != null && !d.awaitingChoice) {
@@ -141,7 +145,11 @@ class NotificationsScreen extends ConsumerStatefulWidget {
           await DeliveriesScreen.open(context);
         }
       case NotificationKind.liveStarted:
-        if (id != null) await LiveRoomScreen.open(context, id);
+        if (id != null && state.liveShowById(id) == null) {
+          showLoopSnackBar(t('Taj live više ne postoji.'));
+        } else if (id != null) {
+          await LiveRoomScreen.open(context, id);
+        }
       case NotificationKind.shipReady ||
           NotificationKind.parcelPickedUp ||
           NotificationKind.parcelArrived:
@@ -157,11 +165,20 @@ class NotificationsScreen extends ConsumerStatefulWidget {
           NotificationKind.followedDiscount ||
           NotificationKind.soldOut:
         final d = id == null ? null : state.deviceById(id);
-        if (d != null) await DeviceDetailScreen.open(context, d);
+        if (d != null) {
+          await DeviceDetailScreen.open(context, d);
+        } else {
+          // Obrisan oglas: barem jasna poruka (umjesto da se ništa ne dogodi).
+          showLoopSnackBar(t('Taj oglas više ne postoji.'));
+        }
       case NotificationKind.newReview ||
           NotificationKind.referral ||
           NotificationKind.newFollower:
-        if (id != null) await PublicProfileScreen.open(context, id);
+        if (id != null && state.userById(id) == null) {
+          showLoopSnackBar(t('Taj račun više ne postoji.'));
+        } else if (id != null) {
+          await PublicProfileScreen.open(context, id);
+        }
       case NotificationKind.newMessage ||
           NotificationKind.swapOffer ||
           NotificationKind.swapAccepted ||

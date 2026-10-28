@@ -1,3 +1,4 @@
+import '../services/app_location/app_location.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -38,6 +39,7 @@ class DeviceDetailScreen extends ConsumerWidget {
     ).read(appProvider.notifier).recordView(device.id);
     return Navigator.of(context).push(
       MaterialPageRoute<void>(
+        settings: AppPlace.of('item', device.id).settings,
         builder: (_) => DeviceDetailScreen(deviceId: device.id),
       ),
     );

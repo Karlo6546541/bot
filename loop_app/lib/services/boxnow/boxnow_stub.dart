@@ -9,6 +9,8 @@ Future<BoxNowPick> boxNowPick(
   String language,
 ) async => const BoxNowUnavailable();
 
+void closeMaps() {}
+
 Future<BoxNowPick> glsPick(String scriptUrl, String country) async =>
     const BoxNowUnavailable();
 

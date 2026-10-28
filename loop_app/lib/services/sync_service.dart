@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 
 import 'package:flutter/foundation.dart' show ValueNotifier;
 
@@ -122,6 +123,7 @@ class SyncService {
       _changed();
       await _sub?.cancel();
       _sub = _remote.changes(_tables).listen(_onRemote);
+      _startCatchUp();
       _attempt = 0;
       lastError = null;
       _setStatus(SyncStatus.online);
@@ -259,6 +261,65 @@ class SyncService {
     }
   }
 
+  /// Rezerva za realtime: svakih 15 s dohvati nedavno promijenjene zapise
+  /// (poruke, obavijesti, dostave…). Realtime veza zna tiho pući (npr. kad
+  /// preglednik uspava karticu) — poruka bi inače stigla tek osvježavanjem.
+  static const catchUpTables = [
+    'messages',
+    'notifications',
+    'deliveries',
+    'bargains',
+    'auctions',
+    'live_shows',
+    'transactions',
+    'devices',
+    'users',
+  ];
+  static const catchUpEvery = Duration(seconds: 15);
+  Timer? _catchUp;
+  DateTime? _since;
+  bool _catchingUp = false;
+
+  void _startCatchUp() {
+    _catchUp?.cancel();
+    // Preklapanje od 2 min: satovi uređaja se razlikuju (updated_at piše
+    // uređaj koji je promijenio zapis).
+    _since = DateTime.now().subtract(const Duration(minutes: 2));
+    _catchUp = Timer.periodic(catchUpEvery, (_) => catchUpNow());
+  }
+
+  /// Jedan krug dohvaćanja nedavnih promjena (i ručno, npr. pri povratku
+  /// na karticu preglednika).
+  Future<void> catchUpNow() async {
+    if (_catchingUp || status != SyncStatus.online) return;
+    _catchingUp = true;
+    final from = _since ?? DateTime.now().subtract(const Duration(minutes: 2));
+    final started = DateTime.now();
+    var changed = false;
+    try {
+      for (final t in catchUpTables) {
+        if (!_tables.contains(t)) continue;
+        final rows = await _remote.pullSince(t, from);
+        for (final e in rows.entries) {
+          if (_pending.containsKey('$t/${e.key}')) continue;
+          final local = _storage.rawRow(t, e.key);
+          if (local != null && _same(local, e.value)) continue;
+          await _storage.applyRemote(t, e.key, e.value);
+          changed = true;
+        }
+      }
+      _since = started.subtract(const Duration(minutes: 2));
+    } catch (_) {
+      // Sljedeći krug pokušava ponovno (od istog trenutka).
+    } finally {
+      _catchingUp = false;
+    }
+    if (changed) onRemoteChange?.call();
+  }
+
+  static bool _same(Map<String, dynamic> a, Map<String, dynamic> b) =>
+      jsonEncode(a) == jsonEncode(b);
+
   Future<void> _onRemote(RemoteChange c) async {
     // Ne prepisuj vlastitu promjenu koja još čeka slanje.
     if (_pending.containsKey('${c.table}/${c.id}')) return;
@@ -269,6 +330,7 @@ class SyncService {
   int get pendingCount => _pending.length;
 
   Future<void> dispose() async {
+    _catchUp?.cancel();
     _retry?.cancel();
     _reconnect?.cancel();
     await _sub?.cancel();

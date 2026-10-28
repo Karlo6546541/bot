@@ -144,6 +144,9 @@ class LockerMaps {
     };
   }
 
+  /// Zatvara otvorene karte (Natrag dok je karta otvorena).
+  static void closeAll() => impl.closeMaps();
+
   static Future<BoxNowPick> pick(LockerNetwork n, String country) {
     if (!available(n, country)) {
       return Future.value(const BoxNowUnavailable());

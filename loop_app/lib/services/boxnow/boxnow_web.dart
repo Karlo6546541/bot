@@ -375,3 +375,36 @@ Future<BoxNowPick> dpdPick(String url, String country) async {
   );
   return c.future;
 }
+
+/// Zatvara otvorene karte (BOX NOW, GLS, DPD) — npr. kad kupac stisne
+/// Natrag dok je karta otvorena (inače ostane preko cijelog ekrana).
+void closeMaps() {
+  final doc = web.document;
+  for (final c in [_pending, _glsPending, _dpdPending]) {
+    if (c != null && !c.isCompleted) c.complete(const BoxNowClosed());
+  }
+  doc.getElementById('dpd-map')?.remove();
+  final gls = doc.getElementById('gls-dpm');
+  if (gls != null) {
+    try {
+      (gls as JSObject).callMethod<JSAny?>('close'.toJS);
+    } catch (_) {}
+  }
+  final frames = doc.querySelectorAll('iframe[src*="boxnow"]');
+  for (var i = 0; i < frames.length; i++) {
+    final f = frames.item(i) as web.Element?;
+    // Skočni prozor karte je roditelj iframea (pozadina preko ekrana).
+    final box = f?.parentElement;
+    if (box != null && box != doc.body && box.id != 'boxnowmap') {
+      box.remove();
+    } else {
+      f?.remove();
+    }
+  }
+  final map = doc.getElementById('boxnowmap');
+  if (map != null) {
+    while (map.firstChild != null) {
+      map.removeChild(map.firstChild!);
+    }
+  }
+}

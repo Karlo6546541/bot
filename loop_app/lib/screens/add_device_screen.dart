@@ -1,3 +1,8 @@
+import 'dart:async';
+
+import 'device_detail_screen.dart';
+import '../services/storage_service.dart';
+import '../services/app_location/app_location.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -39,12 +44,15 @@ class AddDeviceScreen extends ConsumerStatefulWidget {
   const AddDeviceScreen({super.key});
 
   static Future<void> open(BuildContext context) async {
-    if (blockGuest(context)) return;
+    if (blockGuest(context, place: 'new=item')) return;
     // Predmet ide u "Moje predmete"; podaci prodavatelja traže se tek za
     // aukciju ili isplatu.
-    await Navigator.of(
-      context,
-    ).push(MaterialPageRoute<void>(builder: (_) => const AddDeviceScreen()));
+    await Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        settings: const AppPlace('new=item').settings,
+        builder: (_) => const AddDeviceScreen(),
+      ),
+    );
   }
 
   @override
@@ -114,15 +122,87 @@ class _AddDeviceScreenState extends ConsumerState<AddDeviceScreen> {
   bool _saved = false;
   late final ImageStore _store;
 
+  /// Skica (osvježavanje stranice ne briše uneseno).
+  Timer? _draftTimer;
+  bool _restoring = false;
+  late final StorageService _drafts;
+
+  void _restoreDraft() {
+    final d = _drafts.addDraft;
+    if (d == null) return;
+    _restoring = true;
+    _name.text = d['name'] as String? ?? '';
+    _model.text = d['model'] as String? ?? '';
+    _price.text = d['price'] as String? ?? '';
+    _quantity.text = d['quantity'] as String? ?? '1';
+    _description.text = d['description'] as String? ?? '';
+    _condition =
+        DeviceCondition.values
+            .where((c) => c.name == d['condition'])
+            .firstOrNull ??
+        _condition;
+    _size = ParcelSize.fromName(d['size'] as String?);
+    final cat = DeviceCategory.values
+        .where((c) => c.name == d['category'])
+        .firstOrNull;
+    if (cat != null) {
+      _category = cat;
+      _section = cat.section;
+      _categoryManual = d['categoryManual'] == true;
+    }
+    _mode =
+        SellMode.values.where((m) => m.name == d['mode']).firstOrNull ?? _mode;
+    _photos.addAll([for (final p in (d['photos'] as List? ?? [])) '$p']);
+    _restoring = false;
+  }
+
+  void _saveDraft() {
+    if (_restoring || _saved) return;
+    _draftTimer?.cancel();
+    _draftTimer = Timer(const Duration(milliseconds: 400), () {
+      if (_saved) return;
+      final empty =
+          _name.text.trim().isEmpty &&
+          _price.text.trim().isEmpty &&
+          _description.text.trim().isEmpty &&
+          _photos.isEmpty;
+      _drafts.setAddDraft(
+        empty
+            ? null
+            : {
+                'name': _name.text,
+                'model': _model.text,
+                'price': _price.text,
+                'quantity': _quantity.text,
+                'description': _description.text,
+                'condition': _condition?.name,
+                'size': _size.name,
+                'category': _category?.name,
+                'categoryManual': _categoryManual,
+                'mode': _mode.name,
+                'photos': List.of(_photos),
+              },
+      );
+    });
+  }
+
   @override
   void initState() {
     super.initState();
     _store = ref.read(imageStoreProvider);
+    _drafts = ref.read(storageProvider);
+    _restoreDraft();
+    for (final c in [_name, _model, _price, _quantity, _description]) {
+      c.addListener(_saveDraft);
+    }
   }
 
   @override
   void dispose() {
-    // Odustao je: obriši kopije fotografija koje nisu spremljene uz predmet.
+    // Odustao je (Natrag): skica i kopije fotografija se brišu. Osvježavanje
+    // stranice ne zove dispose, pa skica tada ostaje.
+    _draftTimer?.cancel();
+    _drafts.setAddDraft(null);
     if (!_saved && _photos.isNotEmpty) {
       _store.delete(_photos);
     }
@@ -181,19 +261,30 @@ class _AddDeviceScreenState extends ConsumerState<AddDeviceScreen> {
           ? t('Predmet je na prodaji 🏷️')
           : t('Predmet dodan u Moje predmete'),
     );
-    if (ok) _saved = true;
+    if (ok) {
+      _saved = true;
+      _draftTimer?.cancel();
+      await ref.read(storageProvider).setAddDraft(null);
+    }
     if (!ok || !mounted) return;
     final nav = Navigator.of(context);
     nav.pop();
     final d = saved;
-    if (d == null || _digital) return;
+    if (d == null) return;
+    if (_digital) {
+      await DeviceDetailScreen.open(nav.context, d);
+      return;
+    }
     // Nastavak prema odabranom načinu prodaje.
     switch (_mode) {
       case SellMode.auction:
         await CreateAuctionScreen.open(nav.context, deviceId: d.id);
       case SellMode.live:
         await addToLive(nav.context, ref, d);
-      case SellMode.buyNow || SellMode.keep:
+      case SellMode.buyNow:
+        // Odmah vidiš svoj oglas (ne feed).
+        await DeviceDetailScreen.open(nav.context, d);
+      case SellMode.keep:
         break;
     }
   }
@@ -203,6 +294,8 @@ class _AddDeviceScreenState extends ConsumerState<AddDeviceScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // Svaka promjena (odabir stanja, veličine, kategorije…) ide u skicu.
+    _saveDraft();
     const gap = SizedBox(height: 14);
     return Scaffold(
       appBar: AppBar(title: Text(t('Dodaj predmet'))),

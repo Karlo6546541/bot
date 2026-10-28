@@ -1,3 +1,4 @@
+import '../services/app_location/app_location.dart';
 import 'dart:async';
 import 'dart:math' as math;
 
@@ -174,9 +175,10 @@ class CreateLiveShowScreen extends ConsumerStatefulWidget {
   /// Testno: live se može pokrenuti odmah, bez podataka prodavatelja
   /// (traže se tek za isplatu zarade).
   static Future<void> open(BuildContext context, {String? deviceId}) async {
-    if (blockGuest(context)) return;
+    if (blockGuest(context, place: 'new=live')) return;
     await Navigator.of(context).push(
       MaterialPageRoute<void>(
+        settings: const AppPlace('new=live').settings,
         builder: (_) => CreateLiveShowScreen(deviceId: deviceId),
       ),
     );
@@ -1372,7 +1374,10 @@ class LiveRoomScreen extends StatelessWidget {
 
   static Future<void> open(BuildContext context, String showId) =>
       Navigator.of(context).push(
-        MaterialPageRoute<void>(builder: (_) => LiveRoomScreen(showId: showId)),
+        MaterialPageRoute<void>(
+          settings: AppPlace.of('live', showId).settings,
+          builder: (_) => LiveRoomScreen(showId: showId),
+        ),
       );
 
   @override
@@ -5411,9 +5416,8 @@ class _TimeBarState extends State<_TimeBar> with TickerProviderStateMixin {
                       const SizedBox(width: 4),
                       Expanded(
                         child: Text(
-                          widget.hot
-                              ? t('Svaka ponuda +2 s!')
-                              : t('Preostalo vrijeme'),
+                          // Kratko — na uskom ekranu se dugi tekst rezao.
+                          widget.hot ? t('Ponuda +2 s!') : t('Preostalo'),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: const TextStyle(

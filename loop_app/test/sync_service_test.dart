@@ -19,6 +19,12 @@ class FakeRemote implements RemoteStore {
       data[table]?[id];
 
   @override
+  Future<Map<String, Map<String, dynamic>>> pullSince(
+    String table,
+    DateTime since,
+  ) async => const {};
+
+  @override
   Future<bool> claim(String table, String id, Map<String, dynamic> d) async {
     final t = data[table] ??= {};
     if (t.containsKey(id)) return false;

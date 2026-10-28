@@ -1,3 +1,4 @@
+import '../services/app_location/app_location.dart';
 import 'package:flutter/material.dart';
 import '../models/delivery.dart' show ParcelSize;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -73,10 +74,13 @@ String buyerRightsText(AppUser? seller) {
 /// Gost samo razgledava: kupnja, prodaja, licitiranje i ostale radnje
 /// otvaraju prijavu/registraciju preko trenutnog ekrana — nakon prijave
 /// korisnik ostaje gdje je bio. Vraća `true` ako je akcija blokirana.
-bool blockGuest(BuildContext context, {String? reason}) {
+bool blockGuest(BuildContext context, {String? reason, String? place}) {
   final container = ProviderScope.containerOf(context, listen: false);
   final user = container.read(appProvider).currentUser;
   if (user == null || !user.isGuest) return false;
+  // Nakon prijave/registracije natrag na isto mjesto ([place] ili gdje je
+  // gost sada — live, oglas…).
+  AppLocation.rememberForLogin(place);
   LoginScreen.open(context, reason: reason);
   return true;
 }

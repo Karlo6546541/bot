@@ -1,3 +1,4 @@
+import '../services/app_location/app_location.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -26,6 +27,7 @@ class AuctionDetailScreen extends ConsumerStatefulWidget {
   static Future<void> open(BuildContext context, String auctionId) =>
       Navigator.of(context).push(
         MaterialPageRoute<void>(
+          settings: AppPlace.of('auction', auctionId).settings,
           builder: (_) => AuctionDetailScreen(auctionId: auctionId),
         ),
       );

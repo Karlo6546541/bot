@@ -1,3 +1,4 @@
+import '../services/app_location/app_location.dart';
 import 'package:flutter/material.dart';
 import '../widgets/country_widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -38,6 +39,14 @@ class PublicProfileScreen extends ConsumerStatefulWidget {
   static Future<void> open(BuildContext context, String userId) =>
       Navigator.of(context).push(
         MaterialPageRoute<void>(
+          settings: AppPlace.of(
+            'shop',
+            ProviderScope.containerOf(
+                  context,
+                  listen: false,
+                ).read(appProvider).userById(userId)?.username ??
+                '',
+          ).settings,
           builder: (_) => PublicProfileScreen(userId: userId),
         ),
       );
