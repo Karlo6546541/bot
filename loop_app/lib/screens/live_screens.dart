@@ -2280,10 +2280,11 @@ class _LiveRoomViewState extends ConsumerState<_LiveRoomBody> {
                           ),
                           Center(
                             child: Padding(
-                              padding: const EdgeInsets.fromLTRB(
+                              // Završen live: sažetak točno u sredini.
+                              padding: EdgeInsets.fromLTRB(
                                 16,
                                 16,
-                                72,
+                                st.isOver ? 16 : 72,
                                 16,
                               ),
                               child: center,
@@ -2404,32 +2405,34 @@ class _LiveRoomViewState extends ConsumerState<_LiveRoomBody> {
                               ),
                             ),
                           ),
-                          // Chat zauzima najviše pola slobodnog prostora.
-                          Positioned(
-                            left: 12,
-                            right: 12,
-                            top: 0,
-                            bottom: 4,
-                            child: LayoutBuilder(
-                              builder: (_, c) => Align(
-                                alignment: Alignment.bottomLeft,
-                                child: ConstrainedBox(
-                                  constraints: const BoxConstraints(
-                                    maxWidth: 220,
-                                  ),
-                                  child: _ChatFeed(
-                                    feed: st.feed,
-                                    me: me?.id,
-                                    hostId: show.hostId,
-                                    maxHeight: math.min(
-                                      150,
-                                      c.maxHeight * 0.55,
+                          // Chat zauzima najviše pola slobodnog prostora;
+                          // kad je live gotov, ostaje samo sažetak.
+                          if (!st.isOver)
+                            Positioned(
+                              left: 12,
+                              right: 12,
+                              top: 0,
+                              bottom: 4,
+                              child: LayoutBuilder(
+                                builder: (_, c) => Align(
+                                  alignment: Alignment.bottomLeft,
+                                  child: ConstrainedBox(
+                                    constraints: const BoxConstraints(
+                                      maxWidth: 220,
+                                    ),
+                                    child: _ChatFeed(
+                                      feed: st.feed,
+                                      me: me?.id,
+                                      hostId: show.hostId,
+                                      maxHeight: math.min(
+                                        150,
+                                        c.maxHeight * 0.55,
+                                      ),
                                     ),
                                   ),
                                 ),
                               ),
                             ),
-                          ),
                         ],
                       ),
                     ),
