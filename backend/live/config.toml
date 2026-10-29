@@ -9,3 +9,6 @@ verify_jwt = false
 verify_jwt = false
 # User-facing functions verify Supabase user JWT with auth.getUser themselves.
 # stripe-webhook verifies Stripe's raw-body signature; it has no user JWT.
+
+[functions.live-control]
+verify_jwt = false

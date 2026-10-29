@@ -10,6 +10,7 @@ class CloudLiveMedia extends StatefulWidget {
   @override
   State<CloudLiveMedia> createState() => _CloudLiveMediaState();
 }
+
 class _CloudLiveMediaState extends State<CloudLiveMedia> {
   static int _counter = 0;
   late final String _view = 'cloud-live-${_counter++}';
@@ -27,22 +28,27 @@ class _CloudLiveMediaState extends State<CloudLiveMedia> {
     _frame.style.height = '100%';
     _listener = ((web.MessageEvent event) {
       if (event.origin != web.window.location.origin ||
-          event.source != _frame.contentWindow) return;
+          event.source != _frame.contentWindow) {
+        return;
+      }
       if (event.data.dartify() == 'subhasto-player-ready') {
         _frame.contentWindow?.postMessage(
-          jsonEncode(widget.connection).toJS, web.window.location.origin.toJS,
+          jsonEncode(widget.connection).toJS,
+          web.window.location.origin.toJS,
         );
       }
     }).toJS;
     web.window.addEventListener('message', _listener);
     ui_web.platformViewRegistry.registerViewFactory(_view, (_) => _frame);
   }
+
   @override
   void dispose() {
     web.window.removeEventListener('message', _listener);
     _frame.src = 'about:blank';
     super.dispose();
   }
+
   @override
   Widget build(BuildContext context) => HtmlElementView(viewType: _view);
 }

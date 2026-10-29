@@ -509,7 +509,12 @@ class _LiveHomeScreenState extends ConsumerState<LiveHomeScreen> {
                               for (final (id, label, icon, value)
                                   in <(String, String, IconData, Object)>[
                                     if (BackendConfig.cloudCommerceEnabled)
-                                      ('cloud', 'Live i trgovina online', Icons.cloud_outlined, 'cloud'),
+                                      (
+                                        'cloud',
+                                        'Live i trgovina online',
+                                        Icons.cloud_outlined,
+                                        'cloud',
+                                      ),
                                     (
                                       'categories',
                                       t('Kategorije'),
@@ -576,7 +581,11 @@ class _LiveHomeScreenState extends ConsumerState<LiveHomeScreen> {
                     );
                     if (!mounted || !context.mounted) return;
                     if (picked == 'cloud') {
-                      await Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => const CloudCommerceScreen()));
+                      await Navigator.of(context).push(
+                        MaterialPageRoute<void>(
+                          builder: (_) => const CloudCommerceScreen(),
+                        ),
+                      );
                     } else if (picked == 'categories') {
                       await CategoriesScreen.open(context);
                     } else if (picked == 'my') {

@@ -14,7 +14,7 @@ Deno.serve(async (req: Request) => {
   try {
     const auth = req.headers.get('Authorization');
     const anonKey = Deno.env.get('SUPABASE_ANON_KEY')!;
-    const hasUserToken = !!auth && auth !== `Bearer ${anonKey}`;
+    const hasUserToken = !!auth && auth !== `Bearer ${anonKey}` && !auth.startsWith('Bearer sb_publishable_');
     if (hasUserToken && !auth!.startsWith('Bearer ')) return reply(401, { error: 'INVALID_AUTH' });
     const client = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_ANON_KEY')!,
       { global: { headers: hasUserToken ? { Authorization: auth! } : {} }, auth: { persistSession: false } });
