@@ -2485,16 +2485,19 @@ class _LiveRoomViewState extends ConsumerState<_LiveRoomBody> {
                                 builder: (_, c) => Align(
                                   alignment: Alignment.bottomLeft,
                                   child: ConstrainedBox(
-                                    constraints: const BoxConstraints(
-                                      maxWidth: 220,
+                                    // Voditelj čita chat dok vodi live: veći
+                                    // i širi prozor, veći tekst.
+                                    constraints: BoxConstraints(
+                                      maxWidth: isHost ? 300 : 220,
                                     ),
                                     child: _ChatFeed(
                                       feed: st.feed,
                                       me: me?.id,
                                       hostId: show.hostId,
+                                      large: isHost,
                                       maxHeight: math.min(
-                                        150,
-                                        c.maxHeight * 0.55,
+                                        isHost ? 280 : 150,
+                                        c.maxHeight * (isHost ? 0.7 : 0.55),
                                       ),
                                     ),
                                   ),
@@ -2532,7 +2535,9 @@ class _LiveRoomViewState extends ConsumerState<_LiveRoomBody> {
                           ),
                         ),
                       ),
-                    if (!st.isOver && !composing)
+                    // Voditelju reakcije ne trebaju (srca i tako lete preko
+                    // videa) — više mjesta za chat i upravljanje.
+                    if (!st.isOver && !composing && !isHost)
                       _QuickReactions(
                         emojis: _quick,
                         onReact: canAct ? _react : null,
@@ -2553,7 +2558,7 @@ class _LiveRoomViewState extends ConsumerState<_LiveRoomBody> {
                               .length,
                       onBag: () => _showQueue(st, isHost),
                       liked: _liked,
-                      onHeart: st.isOver ? null : _toggleLike,
+                      onHeart: st.isOver || isHost ? null : _toggleLike,
                       showWallet: !isHost,
                       onShare: () => shareLink(
                         context,
@@ -2668,11 +2673,17 @@ class _LiveRoomViewState extends ConsumerState<_LiveRoomBody> {
           ),
           if (cur != null || next != null) ...[
             const SizedBox(width: 8),
-            OutlinedButton(
+            // Brzo dodavanje: jedna kompaktna ikona (bez dugog natpisa).
+            IconButton.filledTonal(
               key: const ValueKey('live-quick-add'),
-              style: outlined,
+              tooltip: t('⚡ Brzo dodaj'),
+              style: IconButton.styleFrom(
+                backgroundColor: Colors.white24,
+                foregroundColor: Colors.white,
+                minimumSize: const Size(52, 52),
+              ),
               onPressed: () => _quickAdd(show),
-              child: Text(t('⚡ Brzo dodaj')),
+              icon: const Icon(Icons.bolt),
             ),
           ],
           const SizedBox(width: 4),
@@ -4020,9 +4031,13 @@ class _ChatFeed extends ConsumerWidget {
     required this.me,
     required this.hostId,
     this.maxHeight = 210,
+    this.large = false,
   });
 
   final double maxHeight;
+
+  /// Veći tekst (voditelj).
+  final bool large;
 
   final List<LiveEvent> feed;
   final String? me;
@@ -4064,6 +4079,7 @@ class _ChatFeed extends ConsumerWidget {
                   user: s.userById(e.userId),
                   mine: e.userId == me,
                   host: e.userId == hostId,
+                  large: large,
                 ),
               ),
             );
@@ -4080,8 +4096,10 @@ class _FeedLine extends StatelessWidget {
     required this.user,
     required this.mine,
     required this.host,
+    this.large = false,
   });
 
+  final bool large;
   final LiveEvent event;
   final AppUser? user;
   final bool mine;
@@ -4095,7 +4113,7 @@ class _FeedLine extends StatelessWidget {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        UserAvatar(user: user, size: 20),
+        UserAvatar(user: user, size: large ? 28 : 20),
         const SizedBox(width: 6),
         Flexible(
           child: Column(
@@ -4109,9 +4127,9 @@ class _FeedLine extends StatelessWidget {
                       mine ? t('Ti') : event.userLabel,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
+                      style: TextStyle(
                         color: Colors.white70,
-                        fontSize: 10.5,
+                        fontSize: large ? 12.5 : 10.5,
                         fontWeight: FontWeight.w700,
                         shadows: _shadow,
                       ),
@@ -4144,11 +4162,11 @@ class _FeedLine extends StatelessWidget {
                 bid
                     ? t('licitira {0} 🔨', [formatCredits(event.amount)])
                     : event.text,
-                maxLines: 2,
+                maxLines: large ? 4 : 2,
                 overflow: TextOverflow.ellipsis,
                 style: TextStyle(
                   color: bid ? const Color(0xFFFFD166) : Colors.white,
-                  fontSize: 12.5,
+                  fontSize: large ? 14.5 : 12.5,
                   fontWeight: FontWeight.w800,
                   shadows: _shadow,
                 ),
