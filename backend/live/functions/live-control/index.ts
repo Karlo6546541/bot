@@ -1,3 +1,4 @@
+import { integrationConfig } from '../_shared/config.ts';
 import { createClient } from 'npm:@supabase/supabase-js@2.49.8';
 import { RoomServiceClient } from 'npm:livekit-server-sdk@2.13.3';
 import { authenticate, response } from '../_shared/stripe.ts';
@@ -12,8 +13,10 @@ Deno.serve(async (req: Request) => {
       { global: { headers: { Authorization: req.headers.get('Authorization')! } }, auth: { persistSession: false } });
     const { data: host, error: hostError } = await client.rpc('live_is_host', { p_room: roomId });
     if (hostError || !host) return response(403, { error: 'HOST_ONLY' });
-    const media = new RoomServiceClient(Deno.env.get('LIVEKIT_URL')!.replace(/^wss:/, 'https:'),
-      Deno.env.get('LIVEKIT_API_KEY')!, Deno.env.get('LIVEKIT_API_SECRET')!);
+    const config = await integrationConfig();
+    if (!config.LIVEKIT_URL || !config.LIVEKIT_API_KEY || !config.LIVEKIT_API_SECRET) return response(503, { error: 'STREAMING_UNAVAILABLE' });
+    const media = new RoomServiceClient(config.LIVEKIT_URL.replace(/^wss:/, 'https:'),
+      config.LIVEKIT_API_KEY, config.LIVEKIT_API_SECRET);
     if (action === 'end') {
       // DB revokes future admission first; then terminate the active SFU room.
       // End must be retryable: an already-ended room still needs SFU cleanup.
@@ -31,5 +34,8 @@ Deno.serve(async (req: Request) => {
       await media.removeParticipant(`live-${roomId}`, userId);
     }
     return response(200, { ok: true });
-  } catch { return response(503, { error: 'LIVE_CONTROL_UNAVAILABLE' }); }
+  } catch (error) {
+    if (error instanceof Error && error.message === 'AUTH_REQUIRED') return response(401, { error: 'AUTH_REQUIRED' });
+    return response(503, { error: 'LIVE_CONTROL_UNAVAILABLE' });
+  }
 });

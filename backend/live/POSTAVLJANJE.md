@@ -1,3 +1,22 @@
+# Trenutno stanje postavljanja
+
+Baza i šest Edge Functions već su postavljeni (2026-10-29). SQL migracije nemoj
+ponovno pokretati. Stripe testni webhook je registriran i njegov potpisni ključ
+je već spremljen u Vault.
+
+Preostalo: u [Supabase Secrets](https://supabase.com/dashboard/project/mwhrjrxytfdttjjdhdns/functions/secrets)
+spremi **STRIPE_RESTRICTED_KEY**, testni ograničeni ključ iz Stripe dashboarda.
+Za novu integraciju preporučen je ograničeni ključ s pravima za Connect račune,
+onboarding i Checkout. Po potrebi pregledaj točan nedostatak prava u Stripe
+Workbench zapisima; serverski log bilježi samo šifru greške i request ID.
+
+LiveKit nema povezan projekt. Kad ga otvoriš, u isti panel dodaj LIVEKIT_URL,
+LIVEKIT_API_KEY i LIVEKIT_API_SECRET. Tajne ne šalji u chat.
+
+Ispod su originalne upute za postavljanje potpuno novog okruženja.
+
+---
+
 # Uključivanje online livea i Stripe testne naplate
 
 Kod je u grani `improve/subhasto-live-backend`, PR #13. Novi tok otvara se iz

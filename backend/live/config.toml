@@ -12,3 +12,6 @@ verify_jwt = false
 
 [functions.live-control]
 verify_jwt = false
+
+[functions.integration-health]
+verify_jwt = false
