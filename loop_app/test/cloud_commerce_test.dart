@@ -9,7 +9,9 @@ import 'package:loop_app/screens/cloud_commerce_screen.dart';
 
 // Match the web SDK's inline JSON decoding; native isolate ports are outside
 // widget fake-async and do not belong in this UI interaction test.
-class _InlineJson extends YAJsonIsolate {
+class _InlineJson implements YAJsonIsolate {
+  @override
+  String? get debugName => 'widget-inline-json';
   @override
   Future<void> initialize() async {}
   @override
