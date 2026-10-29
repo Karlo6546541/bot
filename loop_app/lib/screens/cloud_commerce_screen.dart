@@ -293,7 +293,19 @@ class _CloudCommerceState extends State<CloudCommerceScreen> {
       ),
       bottomNavigationBar: roomId != null
           ? null
-          : NavigationBar(
+          : NavigationBarTheme(
+              data: NavigationBarThemeData(
+                height: 54,
+                backgroundColor: const Color(0xFF0B0C11),
+                indicatorColor: Colors.transparent,
+                surfaceTintColor: Colors.transparent,
+                iconTheme: WidgetStateProperty.resolveWith((states) => IconThemeData(
+                  size: 20, color: states.contains(WidgetState.selected) ? Colors.white : Colors.white54)),
+                labelTextStyle: WidgetStateProperty.resolveWith((states) => TextStyle(
+                  fontSize: 10, fontWeight: states.contains(WidgetState.selected) ? FontWeight.w600 : FontWeight.w400,
+                  color: states.contains(WidgetState.selected) ? Colors.white : Colors.white54)),
+              ),
+              child: NavigationBar(
               selectedIndex: tab,
               onDestinationSelected: (v) {
                 setState(() => tab = v);
@@ -313,6 +325,7 @@ class _CloudCommerceState extends State<CloudCommerceScreen> {
                   label: 'Narudžbe',
                 ),
               ],
+              ),
             ),
     );
   }
