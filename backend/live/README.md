@@ -107,3 +107,55 @@ Payment rows are private; shipping destinations are visible only to order partie
 No claim is made that all Whatnot functionality is implemented or that these migrations
 have been applied to the user's project. This branch contains the tested backend core
 and adapters. Real service credentials and deployment/integration are outstanding.
+
+## Integrated online screens and Stripe test mode
+
+The new `CloudCommerceScreen` now calls these APIs for room creation/start/end,
+web SFU playback/host camera, live chat, moderation, bidding, auction checkout,
+product publishing/reservation, private orders, shipping, tracking and delivery.
+It is reachable from the top-right menu **Live i trgovina online** when built
+with `--dart-define=CLOUD_COMMERCE_ENABLED=true`. In Pages builds set repository
+variable `CLOUD_COMMERCE_ENABLED=true` after deploying services. The switch is OFF
+by default so an unconfigured backend does not break existing accounts/orders.
+Legacy records remain in the existing UI; no automatic data migration is performed.
+
+Apply migrations **001, 002, 003** in order. Merge this directory's `config.toml`
+function settings into the Supabase CLI project and deploy all four functions:
+`live-token`, `stripe-connect`, `stripe-checkout`, `stripe-webhook`, including the
+`_shared` folder. The functions authenticate users themselves; public viewer token
+access and Stripe webhooks have gateway JWT verification disabled deliberately.
+
+Set server-only Edge Function secrets in Supabase (never GitHub Pages):
+
+- `LIVEKIT_URL`, `LIVEKIT_API_KEY`, `LIVEKIT_API_SECRET`
+- `STRIPE_SECRET_KEY` (only `sk_test_…` is accepted)
+- `STRIPE_WEBHOOK_SECRET` (`whsec_…`)
+- `APP_ORIGIN=https://karlo6546541.github.io`
+- `APP_URL=https://karlo6546541.github.io/bot/`
+
+Supabase provides `SUPABASE_URL`, `SUPABASE_ANON_KEY`, and
+`SUPABASE_SERVICE_ROLE_KEY` inside its Edge Function runtime.
+Stripe dashboard test webhook URL:
+`https://mwhrjrxytfdttjjdhdns.supabase.co/functions/v1/stripe-webhook`.
+Subscribe to `checkout.session.completed`. The webhook validates the raw request
+signature, test-mode flag, paid status, our recorded session/order association,
+amount and currency. Retries are idempotent; the success redirect never marks paid.
+
+Seller settings → **Postavi Stripe račun prodavatelja (test)** opens Stripe Express
+onboarding. Ready sellers receive destination charges through hosted Checkout.
+No real card data enters Flutter. The new online checkout is for test payments
+only, with item price as the total; shipping fees, tax and platform commission
+are not currently charged. Do not enable live keys by removing the guard without
+implementing refund, chargeback and payout reconciliation.
+
+The SFU player uses the official pinned LiveKit web SDK in `live-player.html`.
+Camera/microphone start from a host gesture; guests get subscribe-only grants.
+This media controller currently supports the web app; native Android/iOS show a
+web-version hint. Native LiveKit SDK integration and on-device verification remain
+outstanding. The legacy P2P media path is not silently replaced on native builds.
+
+Checkout creates a durable payment lock before calling Stripe. Pending checkout
+orders cannot be cancelled/restocked by the browser; recovery/expiry requires a
+trusted reconciliation worker. Do not open this experimental route to production
+commerce until scheduled reservation expiry, media eviction on bans, refunds and
+payment reconciliation are implemented and tested against actual providers.

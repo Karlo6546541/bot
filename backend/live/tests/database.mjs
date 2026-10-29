@@ -9,6 +9,7 @@ grant usage on schema auth to authenticated; grant execute on function auth.uid(
 create publication supabase_realtime;`);
 await db.exec(readFileSync(new URL('../migrations/001_live.sql',import.meta.url),'utf8'));
 await db.exec(readFileSync(new URL('../migrations/002_commerce.sql',import.meta.url),'utf8'));
+await db.exec(readFileSync(new URL('../migrations/003_payments.sql',import.meta.url),'utf8'));
 const host='00000000-0000-4000-8000-000000000001',buyer='00000000-0000-4000-8000-000000000002',other='00000000-0000-4000-8000-000000000003';
 await db.query('insert into auth.users values ($1),($2),($3)',[host,buyer,other]);
 async function as(id){await db.exec('reset role');await db.query("select set_config('request.jwt.claim.sub',$1,false)",[id]);await db.exec('set role authenticated');}
@@ -74,6 +75,7 @@ assert.equal((await db.query('select * from commerce_shipments')).rows.length,1)
 await as(host);
 await rejects("select commerce_ship($1,'BOX NOW','track')",[order],'PAYMENT_REQUIRED');
 await db.exec('reset role');
+await db.query('insert into commerce_checkout_sessions(order_id,session_id) values ($1,$2) on conflict do nothing',[order,'cs_test_123']);
 await rpc("select commerce_record_payment('evt_1',$1,1900,'EUR')",[order]);
 await rpc("select commerce_record_payment('evt_1',$1,1900,'EUR')",[order]);
 assert.equal((await rpc('select count(*)::int as n from commerce_payment_events')).n,1);
@@ -84,6 +86,13 @@ await as(host);const second=(await rpc("select (commerce_publish('Book',500,1)).
 await as(buyer);const cancelOrder=(await rpc('select (commerce_reserve($1,1,gen_random_uuid())).id',[second])).id;
 await rpc('select commerce_cancel($1)',[cancelOrder]);await rpc('select commerce_cancel($1)',[cancelOrder]);
 assert.equal((await rpc('select stock from commerce_products where id=$1',[second])).stock,1);
+await as(host);const lockedProduct=(await rpc("select (commerce_publish('Locked',500,1)).id")).id;
+await as(buyer);const lockedOrder=(await rpc('select (commerce_reserve($1,1,gen_random_uuid())).id',[lockedProduct])).id;
+await db.exec('reset role');await db.query('insert into commerce_checkout_sessions(order_id) values ($1)',[lockedOrder]);
+await as(buyer);await rejects('select commerce_cancel($1)',[lockedOrder],'CHECKOUT_IN_PROGRESS');
+assert.equal((await rpc('select stock from commerce_products where id=$1',[lockedProduct])).stock,0);
+await db.exec('reset role');await rejects("select commerce_record_payment('bad',$1,1,'EUR')",[lockedOrder],'PAYMENT_MISMATCH');
+console.log('PASS: checkout cannot be cancelled/restocked during payment; incorrect payment amount rejected');
 console.log('PASS: commerce reservation, stock, retry, private orders, shipping idempotency, payment authority, fulfillment and cancellation');
 console.log('PASS: permissions, ownership, bid increments, retry idempotency, chat rate limit, mute/ban, RLS, server expiry, single award');
 await db.close();

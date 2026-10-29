@@ -8,6 +8,9 @@
 /// ```
 /// Bez njih aplikacija radi lokalno (offline), kao i prije.
 class BackendConfig {
+  /// Enable after deploying the cloud migrations and Edge Functions.
+  static const cloudCommerceEnabled = bool.fromEnvironment('CLOUD_COMMERCE_ENABLED');
+
   static const supabaseUrl = String.fromEnvironment('SUPABASE_URL');
 
   /// Javni ključ projekta ("Publishable key", ranije "anon key").

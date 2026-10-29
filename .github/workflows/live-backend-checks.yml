@@ -16,3 +16,7 @@ jobs:
           cache-dependency-path: backend/live/package-lock.json
       - run: npm ci && npm test
         working-directory: backend/live
+      - uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+      - run: deno check backend/live/functions/live-token/index.ts backend/live/functions/stripe-connect/index.ts backend/live/functions/stripe-checkout/index.ts backend/live/functions/stripe-webhook/index.ts
