@@ -1,3 +1,4 @@
+import '../services/app_location/app_location.dart';
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -17,9 +18,11 @@ class CloudCommerceScreen extends StatefulWidget {
     this.enableRealtime = true,
     this.onLoadError,
     this.initialTab = 0,
+    this.initialRoom,
   });
   final SupabaseClient? client;
   final int initialTab;
+  final String? initialRoom;
   final Future<void> Function()? onRequireLogin;
   final bool enableRealtime;
   final void Function(Object)? onLoadError;
@@ -55,6 +58,11 @@ class _CloudCommerceState extends State<CloudCommerceScreen> {
       _refresh();
       if (roomId != null) _video();
     });
+    roomId = widget.initialRoom;
+    if (roomId != null) {
+      if (widget.enableRealtime) channel = live.watch(roomId!, _refresh);
+      unawaited(_video());
+    }
     _refresh();
     timer = Timer.periodic(const Duration(seconds: 3), (_) => _refresh());
   }
@@ -125,6 +133,9 @@ class _CloudCommerceState extends State<CloudCommerceScreen> {
     if (widget.onRequireLogin != null) {
       await widget.onRequireLogin!();
     } else {
+      AppLocation.rememberForLogin(roomId != null
+        ? 'cloud=live&room=${Uri.encodeQueryComponent(roomId!)}'
+        : 'cloud=${tab == 2 ? 'orders' : tab == 1 ? 'catalog' : 'live'}');
       await LoginScreen.open(context);
     }
     if (mounted) await _refresh();

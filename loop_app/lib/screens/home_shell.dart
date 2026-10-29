@@ -175,11 +175,12 @@ class _HomeShellState extends ConsumerState<HomeShell> {
     final state = ref.read(appProvider);
     final cloud = PendingLink.cloud;
     if (cloud != null) {
+      final cloudRoom = PendingLink.cloudRoom;
       PendingLink.clear();
       if (BackendConfig.cloudCommerceEnabled) {
         Navigator.of(context).push(MaterialPageRoute<void>(
-          settings: AppPlace.of('cloud', cloud).settings,
-          builder: (_) => CloudCommerceScreen(initialTab: cloud == 'orders' ? 2 : cloud == 'catalog' ? 1 : 0),
+          settings: AppPlace('cloud=$cloud${cloudRoom == null ? '' : '&room=${Uri.encodeQueryComponent(cloudRoom)}'}').settings,
+          builder: (_) => CloudCommerceScreen(initialTab: cloud == 'orders' ? 2 : cloud == 'catalog' ? 1 : 0, initialRoom: cloudRoom),
         ));
       }
       return;

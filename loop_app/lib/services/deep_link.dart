@@ -7,6 +7,7 @@ class PendingLink {
   PendingLink._();
 
   static String? cloud;
+  static String? cloudRoom;
   static String? item;
   static String? shop;
 
@@ -50,6 +51,7 @@ class PendingLink {
 
     final cloudTarget = opt('cloud');
     cloud = const {'orders', 'live', 'catalog'}.contains(cloudTarget) ? cloudTarget : null;
+    cloudRoom = cloud == 'live' ? opt('room') : null;
     auction = opt('auction');
     create = opt('new');
     tab = opt('tab');
@@ -61,6 +63,7 @@ class PendingLink {
 
   static void clear() {
     cloud = null;
+    cloudRoom = null;
     auction = null;
     create = null;
     tab = null;
