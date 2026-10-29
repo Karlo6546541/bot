@@ -1,3 +1,6 @@
+import '../services/app_location/app_location.dart';
+import '../config/backend_config.dart';
+import 'cloud_commerce_screen.dart';
 import '../config/features.dart';
 import 'dart:async';
 
@@ -137,6 +140,7 @@ class _LiveHomeScreenState extends ConsumerState<LiveHomeScreen> {
   @override
   void initState() {
     super.initState();
+
     if (_showHow) {
       WidgetsBinding.instance.addPostFrameCallback(
         (_) => ref.read(appProvider.notifier).dismissHowItWorks(),
@@ -506,6 +510,13 @@ class _LiveHomeScreenState extends ConsumerState<LiveHomeScreen> {
                             children: [
                               for (final (id, label, icon, value)
                                   in <(String, String, IconData, Object)>[
+                                    if (BackendConfig.cloudCommerceEnabled)
+                                      (
+                                        'cloud',
+                                        'Live i trgovina online',
+                                        Icons.cloud_outlined,
+                                        'cloud',
+                                      ),
                                     (
                                       'categories',
                                       t('Kategorije'),
@@ -571,7 +582,14 @@ class _LiveHomeScreenState extends ConsumerState<LiveHomeScreen> {
                       ),
                     );
                     if (!mounted || !context.mounted) return;
-                    if (picked == 'categories') {
+                    if (picked == 'cloud') {
+                      await Navigator.of(context).push(
+                        MaterialPageRoute<void>(
+                          settings: AppPlace.of('cloud', 'live').settings,
+                          builder: (_) => const CloudCommerceScreen(),
+                        ),
+                      );
+                    } else if (picked == 'categories') {
                       await CategoriesScreen.open(context);
                     } else if (picked == 'my') {
                       ref.read(homeTabProvider.notifier).select(2);

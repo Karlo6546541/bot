@@ -1,0 +1,1 @@
+{"name":"subhasto-live-backend","private":true,"type":"module","scripts":{"test":"node tests/database.mjs"},"devDependencies":{"@electric-sql/pglite":"0.3.14"}}

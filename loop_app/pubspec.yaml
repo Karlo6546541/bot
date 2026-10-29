@@ -55,6 +55,8 @@ dependencies:
   qr_flutter: ^4.1.0
 
 dev_dependencies:
+  yet_another_json_isolate: ^2.1.1
+  http: ^1.6.0
   flutter_test:
     sdk: flutter
 

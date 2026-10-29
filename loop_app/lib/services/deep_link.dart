@@ -6,6 +6,8 @@ import 'package:flutter/foundation.dart' show kIsWeb;
 class PendingLink {
   PendingLink._();
 
+  static String? cloud;
+  static String? cloudRoom;
   static String? item;
   static String? shop;
 
@@ -25,6 +27,7 @@ class PendingLink {
   static String? tab;
 
   static bool get isPending =>
+      cloud != null ||
       item != null ||
       shop != null ||
       list != null ||
@@ -46,6 +49,11 @@ class PendingLink {
       return x == null || x.isEmpty ? null : x;
     }
 
+    final cloudTarget = opt('cloud');
+    cloud = const {'orders', 'live', 'catalog'}.contains(cloudTarget)
+        ? cloudTarget
+        : null;
+    cloudRoom = cloud == 'live' ? opt('room') : null;
     auction = opt('auction');
     create = opt('new');
     tab = opt('tab');
@@ -56,6 +64,8 @@ class PendingLink {
   }
 
   static void clear() {
+    cloud = null;
+    cloudRoom = null;
     auction = null;
     create = null;
     tab = null;
