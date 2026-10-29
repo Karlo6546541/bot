@@ -38,7 +38,7 @@ jobs:
           set +e
           flutter test --reporter expanded > /tmp/feed-tests.log 2>&1
           result=$?
-          awk '/CLOUD_STAGE|TimeoutException/{print} /EXCEPTION CAUGHT/{remaining=85} remaining>0{print;remaining--}' /tmp/feed-tests.log
+          awk '/TimeoutException/{print} /EXCEPTION CAUGHT/{remaining=85} remaining>0{print;remaining--}' /tmp/feed-tests.log
           tail -n 20 /tmp/feed-tests.log
           exit "$result"
       - name: Build web

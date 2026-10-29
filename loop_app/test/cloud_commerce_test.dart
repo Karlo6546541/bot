@@ -85,7 +85,7 @@ void main() {
         jsonEncode(rows),
         200,
         headers: {'content-type': 'application/json'},
-          request: request,
+        request: request,
       );
     });
     final client = SupabaseClient(
@@ -94,7 +94,6 @@ void main() {
       httpClient: transport,
       isolate: _InlineJson(),
     );
-    debugPrint('CLOUD_STAGE mount');
     await tester.pumpWidget(
       MaterialApp(
         home: CloudCommerceScreen(
@@ -108,34 +107,31 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
-    debugPrint('CLOUD_STAGE lobby');
     expect(find.text('Prijava'), findsOneWidget);
     expect(errors, isEmpty, reason: 'Requests: $requests');
-    expect(find.text('Retro live'), findsOneWidget, reason: 'Requests: $requests; errors: $errors');
+    expect(
+      find.text('Retro live'),
+      findsOneWidget,
+      reason: 'Requests: $requests; errors: $errors',
+    );
     await tester.tap(find.text('Retro live'));
     await tester.pumpAndSettle();
-    debugPrint('CLOUD_STAGE room');
     expect(find.text('Dobrodošli u live!'), findsOneWidget);
     final bid = find.text('Prijavi se za licitiranje');
     await tester.ensureVisible(bid);
     await tester.tap(bid);
     await tester.pumpAndSettle();
-    debugPrint('CLOUD_STAGE bid');
     expect(logins, 1);
     await tester.tap(find.byIcon(Icons.send));
     await tester.pumpAndSettle();
-    debugPrint('CLOUD_STAGE send');
     expect(logins, 2);
     expect(mutations.where((p) => p.contains('/rpc/')), isEmpty);
     tester.view.viewInsets = const FakeViewPadding(bottom: 320);
     await tester.pumpAndSettle();
-    debugPrint('CLOUD_STAGE room');
     expect(find.text('Dobrodošli u live!'), findsOneWidget);
     expect(tester.takeException(), isNull);
     await tester.pumpWidget(const SizedBox.shrink());
-    debugPrint('CLOUD_STAGE dispose');
-    await client.dispose();
-    debugPrint('CLOUD_STAGE done');
+    await tester.runAsync(client.dispose);
     transport.close();
   }, timeout: const Timeout(Duration(seconds: 30)));
 }
