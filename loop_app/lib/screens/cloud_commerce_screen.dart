@@ -21,12 +21,14 @@ class CloudCommerceScreen extends StatefulWidget {
     this.onLoadError,
     this.initialTab = 0,
     this.initialRoom,
+    this.initialOrder,
     this.liveOnly = false,
     this.embedded = false,
   });
   final SupabaseClient? client;
   final int initialTab;
   final String? initialRoom;
+  final String? initialOrder;
   final bool liveOnly;
   final bool embedded;
   final Future<void> Function()? onRequireLogin;
@@ -112,7 +114,7 @@ class _CloudCommerceState extends State<CloudCommerceScreen> {
             .order('created_at', ascending: false)
             .limit(50);
       } else if (tab == 2 && uid != null) {
-        os = await commerce.orders();
+        os = await commerce.orders(id: widget.initialOrder);
       }
       if (!mounted || selectedRoom != roomId) return;
       setState(() {

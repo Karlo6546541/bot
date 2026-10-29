@@ -1,3 +1,5 @@
+import '../providers/my_activity_provider.dart';
+import '../widgets/my_online_activity.dart';
 import '../config/features.dart';
 import 'dart:async';
 
@@ -928,6 +930,18 @@ class _MyAuctionsViewState extends ConsumerState<MyAuctionsView> {
       );
     }
     final me = s.currentUserId ?? '';
+    final online = ref.watch(myOnlineActivityProvider).asData?.value;
+    final onlineBought =
+        online?.orders.where((o) => o['buyer_id'] == me).toList() ?? [];
+    final onlineSold =
+        online?.orders.where((o) => o['seller_id'] == me).toList() ?? [];
+    final onlineToShip = onlineSold.where((o) => o['status'] == 'paid').length;
+    final onlineSent = onlineSold
+        .where((o) => o['status'] == 'shipped' || o['status'] == 'delivered')
+        .length;
+    final onlineActions =
+        (online?.unclaimedAwards.length ?? 0) +
+        onlineBought.where((o) => o['status'] == 'awaiting_payment').length;
     final user = s.currentUser!;
     final now = DateTime.now();
 
@@ -1119,8 +1133,11 @@ class _MyAuctionsViewState extends ConsumerState<MyAuctionsView> {
         children: [
           tabButton(MyTab.buying, auc.actions.length),
           tabButton(MyTab.selling, 0),
-          tabButton(MyTab.live, lv.actions.length + shipLive.length),
-          tabButton(MyTab.notes, toShip.length),
+          tabButton(
+            MyTab.live,
+            lv.actions.length + shipLive.length + onlineActions + onlineToShip,
+          ),
+          tabButton(MyTab.notes, toShip.length + onlineToShip),
         ],
       ),
     );
@@ -1129,6 +1146,13 @@ class _MyAuctionsViewState extends ConsumerState<MyAuctionsView> {
       child: CustomScrollView(
         key: key,
         slivers: [
+          if (_tab == MyTab.live || _tab == MyTab.notes)
+            SliverToBoxAdapter(
+              child: MyOnlineActivityPanel(
+                shipmentsOnly: _tab == MyTab.notes,
+                filter: _tab == MyTab.notes ? _notesFilter : _liveFilter,
+              ),
+            ),
           ...slivers,
           const SliverToBoxAdapter(child: SizedBox(height: 96)),
         ],
@@ -1445,7 +1469,14 @@ class _MyAuctionsViewState extends ConsumerState<MyAuctionsView> {
         ),
       );
       final emptyAll =
-          liveBoughtSlivers.isEmpty && soldLive.isEmpty && lives.isEmpty;
+          liveBoughtSlivers.isEmpty &&
+          soldLive.isEmpty &&
+          lives.isEmpty &&
+          (online == null ||
+              (online.rooms.isEmpty &&
+                  online.bids.isEmpty &&
+                  online.awards.isEmpty &&
+                  online.orders.isEmpty));
       final slivers = <Widget>[
         if (f == 'all') ...[
           startLive,
@@ -1459,18 +1490,20 @@ class _MyAuctionsViewState extends ConsumerState<MyAuctionsView> {
           if (soldLive.isNotEmpty) ...soldSlivers,
           if (lives.isNotEmpty) ...liveSlivers,
         ] else if (f == 'bought') ...[
-          if (liveBoughtSlivers.isEmpty)
+          if (liveBoughtSlivers.isEmpty &&
+              onlineBought.isEmpty &&
+              (online?.unclaimedAwards.isEmpty ?? true))
             _note(t('Još nisi ništa kupio u liveu.'))
           else
             ...liveBoughtSlivers,
         ] else if (f == 'sold') ...[
-          if (soldLive.isEmpty)
+          if (soldLive.isEmpty && onlineSold.isEmpty)
             _note(t('Još nisi ništa prodao u liveu.'))
           else
             ...soldSlivers,
         ] else ...[
           startLive,
-          if (lives.isEmpty)
+          if (lives.isEmpty && (online?.rooms.isEmpty ?? true))
             _note(t('Još nisi bio uživo.'))
           else
             ...liveSlivers,
@@ -1485,10 +1518,18 @@ class _MyAuctionsViewState extends ConsumerState<MyAuctionsView> {
               (
                 'bought',
                 t('Kupljeno'),
-                lv.actions.length + lv.onTheWay.length + lv.done.length,
+                lv.actions.length +
+                    lv.onTheWay.length +
+                    lv.done.length +
+                    onlineBought.length +
+                    (online?.unclaimedAwards.length ?? 0),
               ),
-              ('sold', t('Prodano'), soldLive.length),
-              ('mine', t('Moji liveovi'), lives.length),
+              ('sold', t('Prodano'), soldLive.length + onlineSold.length),
+              (
+                'mine',
+                t('Moji liveovi'),
+                lives.length + (online?.rooms.length ?? 0),
+              ),
             ],
             f,
             (v) => setState(() => _liveFilter = v),
@@ -1560,9 +1601,13 @@ class _MyAuctionsViewState extends ConsumerState<MyAuctionsView> {
     ];
     final noteList = switch (f) {
       'ship' =>
-        toShip.isEmpty ? [_note(t('Nemaš paketa za poslati.'))] : shipSlivers,
+        toShip.isEmpty
+            ? (onlineToShip == 0
+                  ? [_note(t('Nemaš paketa za poslati.'))]
+                  : <Widget>[])
+            : shipSlivers,
       'sent' =>
-        sentNotes.isEmpty
+        sentNotes.isEmpty && onlineSent == 0
             ? [_note(t('Još nema poslanih paketa.'))]
             : [
                 sectionBox(t('✓ Poslano ({0})', ['${sentNotes.length}'])),
@@ -1573,7 +1618,7 @@ class _MyAuctionsViewState extends ConsumerState<MyAuctionsView> {
                 ),
               ],
       _ =>
-        notes.isEmpty && toShip.isEmpty
+        notes.isEmpty && toShip.isEmpty && onlineSold.isEmpty
             ? [
                 _note(
                   t(
@@ -1592,8 +1637,8 @@ class _MyAuctionsViewState extends ConsumerState<MyAuctionsView> {
         _chips(
           [
             ('all', t('Sve'), 0),
-            ('ship', t('Za poslati'), toShip.length),
-            ('sent', t('Poslano'), sentNotes.length),
+            ('ship', t('Za poslati'), toShip.length + onlineToShip),
+            ('sent', t('Poslano'), sentNotes.length + onlineSent),
           ],
           f,
           (v) => setState(() => _notesFilter = v),
