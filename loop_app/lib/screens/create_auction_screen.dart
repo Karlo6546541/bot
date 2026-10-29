@@ -177,25 +177,41 @@ class _CreateAuctionScreenState extends ConsumerState<CreateAuctionScreen> {
                         ),
                       )
                     else ...[
-                      TextField(
-                        key: const ValueKey('auction-item-search'),
-                        controller: _search,
-                        textInputAction: TextInputAction.search,
-                        onChanged: (v) => setState(() => _query = v),
-                        decoration: InputDecoration(
-                          hintText: t('Traži svoje predmete…'),
-                          prefixIcon: const Icon(Icons.search),
-                          suffixIcon: _query.isEmpty
-                              ? null
-                              : IconButton(
-                                  tooltip: t('Očisti'),
-                                  icon: const Icon(Icons.close),
-                                  onPressed: () => setState(() {
-                                    _search.clear();
-                                    _query = '';
-                                  }),
-                                ),
-                        ),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: TextField(
+                              key: const ValueKey('auction-item-search'),
+                              controller: _search,
+                              textInputAction: TextInputAction.search,
+                              onChanged: (v) => setState(() => _query = v),
+                              decoration: InputDecoration(
+                                hintText: t('Traži svoje predmete…'),
+                                prefixIcon: const Icon(Icons.search),
+                                suffixIcon: _query.isEmpty
+                                    ? null
+                                    : IconButton(
+                                        tooltip: t('Očisti'),
+                                        icon: const Icon(Icons.close),
+                                        onPressed: () => setState(() {
+                                          _search.clear();
+                                          _query = '';
+                                        }),
+                                      ),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          FilledButton.icon(
+                            key: const ValueKey('auction-new-item'),
+                            style: FilledButton.styleFrom(
+                              minimumSize: const Size(0, 52),
+                            ),
+                            onPressed: () => AddDeviceScreen.open(context),
+                            icon: const Icon(Icons.add),
+                            label: Text(t('Predmet')),
+                          ),
+                        ],
                       ),
                       const SizedBox(height: 8),
                       Builder(
@@ -238,14 +254,6 @@ class _CreateAuctionScreenState extends ConsumerState<CreateAuctionScreen> {
                             ],
                           );
                         },
-                      ),
-                      const SizedBox(height: 4),
-                      // Novi predmet ravno iz aukcije.
-                      OutlinedButton.icon(
-                        key: const ValueKey('auction-new-item'),
-                        onPressed: () => AddDeviceScreen.open(context),
-                        icon: const Icon(Icons.add_a_photo_outlined),
-                        label: Text(t('Novi predmet')),
                       ),
                     ],
                     if (selected != null) ...[
