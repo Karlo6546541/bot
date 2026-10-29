@@ -54,7 +54,7 @@ jobs:
           BOXNOW_PARTNER_ID: ${{ vars.BOXNOW_PARTNER_ID }}
         run: >
           flutter build web --release --base-href /bot/ --no-web-resources-cdn
-          --dart-define=CLOUD_COMMERCE_ENABLED="${{ vars.CLOUD_COMMERCE_ENABLED }}"
+          --dart-define=CLOUD_COMMERCE_ENABLED="${{ vars.CLOUD_COMMERCE_ENABLED || 'true' }}"
           --dart-define=SUPABASE_URL="$SUPABASE_URL"
           --dart-define=SUPABASE_KEY="$SUPABASE_KEY"
           --dart-define=LIVE_TURN_URL="$LIVE_TURN_URL"
