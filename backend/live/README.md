@@ -164,3 +164,35 @@ Live moderation now uses `live-control`: authenticated host ownership is verifie
 against the database before room deletion or participant removal through the
 LiveKit server API. Ban updates DB access first; SFU cleanup can be retried on
 provider failure. There is no host-only permission derived from browser input.
+
+## Deployed rollout (2026-10-29)
+
+The existing project now has all 15 live/commerce tables with RLS and four recorded
+migrations. Six functions are deployed: live-token, live-control, stripe-connect,
+stripe-checkout, stripe-webhook and integration-health. A Stripe test webhook is
+registered for completed, asynchronous-success and asynchronous-failure checkout
+events. Its signing secret is in Supabase Vault; no credential is in this repository.
+
+Stripe now uses SDK 23.0.0, Accounts v2 recipient capabilities, hosted onboarding,
+dynamic checkout methods and signed asynchronous-payment events. The fixed
+server-only config reader supports Vault or Edge Function Secrets, with environment
+values taking priority and a 30-second process cache. It accepts test restricted
+keys (STRIPE_RESTRICTED_KEY) and test secret keys for compatibility.
+
+Anonymous and authenticated roles cannot execute the credential reader. Only
+service_role can read the allowlisted integration values. The public health endpoint
+returns configuration booleans, never credential values. Unauthorized Connect,
+Checkout and live-control requests return 401; unsigned webhook requests return 400.
+A rollback-only database test checked actual guest reads, denied guest writes,
+chat and bidding without retaining test records.
+
+Current readiness: webhook configured; Stripe server API key and LiveKit
+configuration still absent. Account OAuth access in ChatGPT does not automatically
+install keys in Edge Functions. Owner enters a test restricted key under
+STRIPE_RESTRICTED_KEY in Supabase Edge Function Secrets. LiveKit still needs a
+project and LIVEKIT_URL, LIVEKIT_API_KEY, LIVEKIT_API_SECRET in the same panel.
+The Stripe Projects catalog returned no LiveKit provisioning service.
+
+The retention function loop_purge_deleted is now server-only because it deletes
+Auth users. Existing clients already tolerate permission denial for that maintenance
+call. No accounts were deleted. A trusted retention scheduler is separate work.

@@ -1,5 +1,5 @@
 import { PGlite } from '@electric-sql/pglite';
-import { readFileSync } from 'node:fs';
+import { readFileSync, readdirSync } from 'node:fs';
 import assert from 'node:assert/strict';
 const db=new PGlite();
 await db.exec(`create role anon; create role authenticated; create role service_role; create schema auth;
@@ -10,6 +10,13 @@ create publication supabase_realtime;`);
 await db.exec(readFileSync(new URL('../migrations/001_live.sql',import.meta.url),'utf8'));
 await db.exec(readFileSync(new URL('../migrations/002_commerce.sql',import.meta.url),'utf8'));
 await db.exec(readFileSync(new URL('../migrations/003_payments.sql',import.meta.url),'utf8'));
+
+await db.exec("create schema vault; create table vault.decrypted_secrets(name text, decrypted_secret text);");
+await db.exec('create function public.loop_purge_deleted() returns integer language sql as $$select 0$$;');
+for (const name of readdirSync(new URL('../migrations/', import.meta.url)).filter(n=>n.includes('subhasto_payment_events'))) {
+  await db.exec(readFileSync(new URL('../migrations/'+name,import.meta.url),'utf8'));
+}
+
 const host='00000000-0000-4000-8000-000000000001',buyer='00000000-0000-4000-8000-000000000002',other='00000000-0000-4000-8000-000000000003';
 await db.query('insert into auth.users values ($1),($2),($3)',[host,buyer,other]);
 async function as(id){await db.exec('reset role');await db.query("select set_config('request.jwt.claim.sub',$1,false)",[id]);await db.exec('set role authenticated');}
@@ -92,6 +99,18 @@ await db.exec('reset role');await db.query('insert into commerce_checkout_sessio
 await as(buyer);await rejects('select commerce_cancel($1)',[lockedOrder],'CHECKOUT_IN_PROGRESS');
 assert.equal((await rpc('select stock from commerce_products where id=$1',[lockedProduct])).stock,0);
 await db.exec('reset role');await rejects("select commerce_record_payment('bad',$1,1,'EUR')",[lockedOrder],'PAYMENT_MISMATCH');
+await db.query('update commerce_checkout_sessions set session_id=$1 where order_id=$2',['cs_test_failed',lockedOrder]);
+await rpc('select commerce_record_failure($1,$2,$3)',['evt_failed',lockedOrder,'cs_test_failed']);
+await rpc('select commerce_record_failure($1,$2,$3)',['evt_failed',lockedOrder,'cs_test_failed']);
+assert.equal((await rpc('select failed from commerce_checkout_sessions where order_id=$1',[lockedOrder])).failed,true);
+await as(buyer);await rejects('select commerce_record_failure($1,$2,$3)',['bad',lockedOrder,'cs_test_failed'],'permission denied');
+await db.exec('reset role; set role anon');await rejects('select subhasto_integration_secrets()',[],'permission denied');await rejects('select loop_purge_deleted()',[],'permission denied');
+await db.exec('reset role');
+await rpc("select commerce_record_payment('evt_late',$1,1900,'EUR')",[order]);
+assert.equal((await rpc('select status from commerce_orders where id=$1',[order])).status,'delivered');
+assert.equal((await rpc('select count(*)::int as n from commerce_notifications where order_id=$1',[order])).n,3);
+console.log('PASS: late duplicate payment events do not repeat fulfillment or notifications');
+console.log('PASS: asynchronous payment failure retries and retention permissions');
 console.log('PASS: checkout cannot be cancelled/restocked during payment; incorrect payment amount rejected');
 console.log('PASS: commerce reservation, stock, retry, private orders, shipping idempotency, payment authority, fulfillment and cancellation');
 console.log('PASS: permissions, ownership, bid increments, retry idempotency, chat rate limit, mute/ban, RLS, server expiry, single award');
