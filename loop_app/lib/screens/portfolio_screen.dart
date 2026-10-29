@@ -113,7 +113,10 @@ class MyItemsScreen extends StatelessWidget {
 
 /// Popis mojih predmeta s filtrima (i u kartici Moje → Prodajem).
 class MyItemsView extends ConsumerStatefulWidget {
-  const MyItemsView({super.key, this.leading = const []});
+  const MyItemsView({super.key, this.leading = const [], this.fixedFilter});
+
+  /// Stalni filter stanja (bez odabira chipova), npr. samo spremljeno.
+  final ItemStatus? fixedFilter;
 
   /// Sliverovi iznad popisa (npr. zarada, paketi za poslati, liveovi).
   final List<Widget> leading;
@@ -170,9 +173,10 @@ class _MyItemsViewState extends ConsumerState<MyItemsView> {
       for (final st in ItemStatus.values)
         st: own.where((d) => statusOf(d) == st).length,
     };
-    final list = _filter == null
+    final active = widget.fixedFilter ?? _filter;
+    final list = active == null
         ? own
-        : own.where((d) => statusOf(d) == _filter).toList();
+        : own.where((d) => statusOf(d) == active).toList();
 
     Widget chip(ItemStatus? st, String label, int n) => Padding(
       padding: const EdgeInsets.only(right: 6),
@@ -217,18 +221,19 @@ class _MyItemsViewState extends ConsumerState<MyItemsView> {
                   ],
                 ),
                 const SizedBox(height: 8),
-                SingleChildScrollView(
-                  scrollDirection: Axis.horizontal,
-                  child: Row(
-                    children: [
-                      chip(null, t('Sve'), own.length),
-                      for (final st in ItemStatus.values)
-                        // Stari oglasi za Kupi odmah vide se pod Sve.
-                        if (kBuyNowEnabled || st != ItemStatus.buyNow)
-                          chip(st, st.label, counts[st]!),
-                    ],
+                if (widget.fixedFilter == null)
+                  SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    child: Row(
+                      children: [
+                        chip(null, t('Sve'), own.length),
+                        for (final st in ItemStatus.values)
+                          // Stari oglasi za Kupi odmah vide se pod Sve.
+                          if (kBuyNowEnabled || st != ItemStatus.buyNow)
+                            chip(st, st.label, counts[st]!),
+                      ],
+                    ),
                   ),
-                ),
               ],
             ),
           ),

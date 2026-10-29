@@ -192,6 +192,14 @@ void main() {
       expect(find.byKey(const ValueKey('my-bought')), findsOneWidget);
       expect(find.text('Polaroid SX-70'), findsOneWidget);
       expect(find.text('Vodiš'), findsOneWidget);
+      // Brzi prečaci: Vodim pokazuje samo aukcije koje vodim; Nadmašen je
+      // prazan pa chipa nema.
+      await tester.tap(find.byKey(const ValueKey('my-chip-leading')));
+      await tester.pumpAndSettle();
+      expect(find.text('Polaroid SX-70'), findsOneWidget);
+      expect(find.byKey(const ValueKey('my-chip-outbid')), findsNothing);
+      await tester.tap(find.byKey(const ValueKey('my-chip-all')));
+      await tester.pumpAndSettle();
       // Prodajem: bez liveova nema odjeljka Moji liveovi.
       await tester.tap(find.byKey(const ValueKey('my-selling')));
       await tester.pumpAndSettle();
