@@ -499,7 +499,7 @@ class DeviceDetailScreen extends ConsumerWidget {
                     ],
                   ),
                 ),
-              ] else if (!device.isDigital) ...[
+              ] else if (!device.isDigital || !kBuyNowEnabled) ...[
                 Text(
                   t('Kako želiš prodati?'),
                   style: const TextStyle(
@@ -531,15 +531,18 @@ class DeviceDetailScreen extends ConsumerWidget {
                   ),
                   const SizedBox(height: 10),
                 ],
-                FilledButton.icon(
-                  key: const ValueKey('item-auction'),
-                  onPressed: () =>
-                      CreateAuctionScreen.open(context, deviceId: device.id),
-                  icon: const Icon(Icons.gavel),
-                  label: Text(t('Stavi na aukciju')),
-                ),
-                const SizedBox(height: 10),
-                OutlinedButton.icon(
+                // Digitalno se prodaje samo preko livea (bez aukcije).
+                if (!device.isDigital) ...[
+                  FilledButton.icon(
+                    key: const ValueKey('item-auction'),
+                    onPressed: () =>
+                        CreateAuctionScreen.open(context, deviceId: device.id),
+                    icon: const Icon(Icons.gavel),
+                    label: Text(t('Stavi na aukciju')),
+                  ),
+                  const SizedBox(height: 10),
+                ],
+                (device.isDigital ? FilledButton.icon : OutlinedButton.icon)(
                   key: const ValueKey('item-live'),
                   onPressed: () => addToLive(context, ref, device),
                   icon: const Icon(Icons.videocam_outlined),

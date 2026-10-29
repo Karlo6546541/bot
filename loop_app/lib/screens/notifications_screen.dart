@@ -155,6 +155,7 @@ class NotificationsScreen extends ConsumerStatefulWidget {
           NotificationKind.parcelArrived:
         if (id != null) await DeliveryDetailScreen.open(context, id);
       case NotificationKind.itemSold ||
+          NotificationKind.digitalWon ||
           NotificationKind.priceDrop ||
           NotificationKind.bargainNew ||
           NotificationKind.bargainAccepted ||

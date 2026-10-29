@@ -418,6 +418,71 @@ void main() {
       expect(state(id, 38).lots[1].start, at(37));
     });
 
+    test(
+      'digitalni proizvod u liveu: pobjednik dobiva datoteku, bez dostave',
+      () async {
+        final digital = await trade.addDevice(
+          userId: host,
+          name: 'STL nosač',
+          model: 'PLA',
+          condition: DeviceCondition.good,
+          price: 20,
+          category: DeviceCategory.models3d,
+          listOnMarket: false,
+          file: DigitalFile(
+            ref: 'local:t/nosac.stl',
+            name: 'nosac.stl',
+            size: 100,
+            uploadedAt: DateTime(2026),
+          ),
+        );
+        // Kupi odmah je isključen: ne ide u Market.
+        expect(digital.isListed, isFalse);
+        final show = await live.create(
+          hostId: host,
+          title: 'Digitalno',
+          items: [(digital.id, 1)],
+          startsAt: t0,
+          now: t0,
+        );
+        await live.startLot(host, show.id, index: 0, now: t0);
+        await live.bid(bob, show.id, 3, now: at(5));
+        expect(await live.settleDue(userId: bob, now: at(60)), 1);
+        // Predmet ostaje prodavatelju; kupac ima zapis kupnje (preuzimanje).
+        expect(storage.deviceById(digital.id)!.ownerId, host);
+        expect(
+          storage.transactions.any(
+            (x) =>
+                x.type == TransactionType.buy &&
+                x.buyerId == bob &&
+                x.deviceId == digital.id,
+          ),
+          isTrue,
+        );
+        expect(storage.deliveryById('live-${show.id}-0'), isNull);
+        expect(
+          storage.notifications.any(
+            (n) => n.userId == bob && n.kind == NotificationKind.digitalWon,
+          ),
+          isTrue,
+        );
+        // Isti kupac ne licitira ponovno za isti digitalni proizvod.
+        await live.end(host, show.id, now: at(65));
+        final again = await live.create(
+          hostId: host,
+          title: 'Opet',
+          items: [(digital.id, 1)],
+          startsAt: at(70),
+          now: at(70),
+        );
+        await live.startLot(host, again.id, index: 0, now: at(70));
+        await expectLater(
+          live.bid(bob, again.id, 3, now: at(72)),
+          throwsA(isA<TradeException>()),
+        );
+      },
+    );
+
     test('prodaju provodi pobjednik ili domaćin — samo jednom', () async {
       final id = await start();
       await live.bid(bob, id, 3, now: at(5)); // Bob vodi s 3 €

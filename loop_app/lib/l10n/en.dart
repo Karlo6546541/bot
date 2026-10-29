@@ -2656,4 +2656,11 @@ const kEn = <String, String>{
   'Licitiram': 'Bidding',
   'Traži svoje predmete…': 'Search your items…',
   'Nema predmeta za tu pretragu.': 'No items match that search.',
+  'Digitalni proizvod prodaješ u liveu: pobjednik licitacije odmah dobiva datoteku za preuzimanje, bez dostave. Predmet ostaje tebi pa ga možeš prodati i u sljedećem liveu.':
+      'You sell a digital product in a live: the winning bidder immediately gets the file to download, no shipping. You keep the item and can sell it in your next live too.',
+  'Digitalni proizvod treba datoteku.': 'A digital product needs a file.',
+  'Ovaj digitalni proizvod si već kupio — preuzmi ga u Moje.':
+      'You already bought this digital product — download it in My.',
+  'Osvojio si "{0}" za {1}. Datoteku preuzmi na stranici predmeta.':
+      'You won "{0}" for {1}. Download the file on the item page.',
 };

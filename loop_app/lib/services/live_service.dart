@@ -599,8 +599,10 @@ class LiveService {
     if (d == null || d.ownerId != hostId) {
       throw TradeException(t('U live možeš staviti samo svoje predmete.'));
     }
-    if (d.isDigital) {
-      throw TradeException(t('Digitalni proizvodi ne idu na live.'));
+    // Digitalni proizvod ide na live: pobjednik dobiva pravo preuzimanja
+    // datoteke (vidi [_settleLot]); bez datoteke nema što isporučiti.
+    if (d.isDigital && d.file == null) {
+      throw TradeException(t('Digitalni proizvod treba datoteku.'));
     }
     if (_storage.activeAuctionFor(deviceId) != null) {
       throw TradeException(t('"{0}" je već na aukciji.', [d.name]));
@@ -948,6 +950,20 @@ class LiveService {
     if (target == null || target.mode != LotMode.auction) {
       throw TradeException(t('Trenutno se ništa ne licitira.'));
     }
+    // Digitalni proizvod već kupljen: ne licitira se ponovno za isti.
+    final lotDevice = _storage.deviceById(target.lot.deviceId);
+    if (lotDevice != null &&
+        lotDevice.isDigital &&
+        _storage.transactions.any(
+          (x) =>
+              x.type == TransactionType.buy &&
+              x.buyerId == userId &&
+              x.deviceId == lotDevice.id,
+        )) {
+      throw TradeException(
+        t('Ovaj digitalni proizvod si već kupio — preuzmi ga u Moje.'),
+      );
+    }
     final value = roundCredits(amount);
     if (!value.isFinite || value > TradeService.maxListPrice) {
       throw TradeException(
@@ -1104,6 +1120,47 @@ class LiveService {
     );
     final claimed = await _storage.claimTransaction(sale, strict: true);
     if (!claimed) return false;
+    // Digitalni proizvod: predmet ostaje prodavatelju (može ga ponovno
+    // prodavati), a pobjednik dobiva zapis kupnje — pravo preuzimanja
+    // datoteke. Nema dostave.
+    if (device.isDigital) {
+      await _storage.putTransaction(
+        LoopTransaction(
+          id: 'livebuy-$txId',
+          type: TransactionType.buy,
+          userId: winner.id,
+          deviceId: device.id,
+          deviceName: l.lot.deviceName,
+          price: price,
+          fee: 0,
+          amount: price,
+          buyerId: winner.id,
+          buyerLabel: winner.handle,
+          sellerId: seller.id,
+          sellerLabel: seller.handle,
+          createdAt: l.end!,
+        ),
+      );
+      await Earnings(_storage).credit(sale);
+      await _storage.recordSnapshot(seller.id, now: at);
+      await _storage.recordSnapshot(winner.id, now: at);
+      final inbox = Inbox(_storage);
+      await inbox.send(
+        winner.id,
+        NotificationKind.digitalWon,
+        args: [l.lot.deviceName, price],
+        targetId: device.id,
+        now: at,
+      );
+      await inbox.send(
+        seller.id,
+        NotificationKind.itemSold,
+        args: [l.lot.deviceName, winner.handle, payout],
+        targetId: device.id,
+        now: at,
+      );
+      return true;
+    }
     // Items on screen (više komada): kupac dobiva jedan komad, domaćinu
     // ostaje jedan predmet s komadom manje.
     var bought = device;

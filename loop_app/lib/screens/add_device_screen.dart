@@ -99,6 +99,16 @@ class _AddDeviceScreenState extends ConsumerState<AddDeviceScreen> {
 
   bool get _digital => _section == ItemSection.digital;
 
+  /// Digitalni proizvod ide u Kupi odmah samo kad je on uključen; inače se
+  /// prodaje preko livea (pobjednik dobiva datoteku), a ne preko aukcije.
+  bool get _digitalMarket => _digital && kBuyNowEnabled;
+
+  /// Način prodaje (digitalno: live ili samo spremi).
+  SellMode get _effMode =>
+      _digital && !kBuyNowEnabled && _mode == SellMode.auction
+      ? SellMode.live
+      : _mode;
+
   Future<void> _pickFile(FormFieldState<PickedFile> field) async {
     final store = ref.read(fileStoreProvider);
     try {
@@ -243,7 +253,7 @@ class _AddDeviceScreenState extends ConsumerState<AddDeviceScreen> {
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
     // Kupi odmah traži podatke prodavatelja (DAC7/DSA).
-    if ((_digital || _listOnMarket) &&
+    if ((_digitalMarket || _listOnMarket) &&
         (!await ensureSellerInfo(context) || !mounted)) {
       return;
     }
@@ -260,12 +270,12 @@ class _AddDeviceScreenState extends ConsumerState<AddDeviceScreen> {
             category: _category!,
             imagePaths: List.of(_photos),
             description: _description.text,
-            listOnMarket: _digital || _listOnMarket,
+            listOnMarket: _digitalMarket || _listOnMarket,
             quantity: _digital ? 1 : int.tryParse(_quantity.text.trim()) ?? 1,
             file: _digital ? _file : null,
             parcelSize: _size.name,
           ),
-      successMessage: _digital || _listOnMarket
+      successMessage: _digitalMarket || _listOnMarket
           ? t('Predmet je na prodaji 🏷️')
           : t('Predmet dodan u Moje predmete'),
     );
@@ -279,12 +289,12 @@ class _AddDeviceScreenState extends ConsumerState<AddDeviceScreen> {
     nav.pop();
     final d = saved;
     if (d == null) return;
-    if (_digital) {
+    if (_digitalMarket) {
       await DeviceDetailScreen.open(nav.context, d);
       return;
     }
     // Nastavak prema odabranom načinu prodaje.
-    switch (_mode) {
+    switch (_effMode) {
       case SellMode.auction:
         await CreateAuctionScreen.open(nav.context, deviceId: d.id);
       case SellMode.live:
@@ -411,22 +421,18 @@ class _AddDeviceScreenState extends ConsumerState<AddDeviceScreen> {
                                   runSpacing: 8,
                                   children: [
                                     for (final sec in ItemSection.values)
-                                      // Digitalno se prodaje samo za Kupi
-                                      // odmah (isključeno).
-                                      if (kBuyNowEnabled ||
-                                          sec != ItemSection.digital)
-                                        ChoiceChip(
-                                          avatar: Icon(sec.icon, size: 18),
-                                          label: Text(sec.label),
-                                          selected: _section == sec,
-                                          onSelected: (_) {
-                                            setState(() {
-                                              _section = sec;
-                                              _category = null;
-                                            });
-                                            field.didChange(null);
-                                          },
-                                        ),
+                                      ChoiceChip(
+                                        avatar: Icon(sec.icon, size: 18),
+                                        label: Text(sec.label),
+                                        selected: _section == sec,
+                                        onSelected: (_) {
+                                          setState(() {
+                                            _section = sec;
+                                            _category = null;
+                                          });
+                                          field.didChange(null);
+                                        },
+                                      ),
                                   ],
                                 ),
                                 const SizedBox(height: 14),
@@ -634,7 +640,7 @@ class _AddDeviceScreenState extends ConsumerState<AddDeviceScreen> {
                       ),
                     ],
                     const SizedBox(height: 12),
-                    if (_digital)
+                    if (_digitalMarket)
                       Container(
                         padding: const EdgeInsets.all(14),
                         decoration: BoxDecoration(
@@ -648,6 +654,22 @@ class _AddDeviceScreenState extends ConsumerState<AddDeviceScreen> {
                         ),
                       )
                     else ...[
+                      if (_digital) ...[
+                        Container(
+                          key: const ValueKey('digital-live-note'),
+                          padding: const EdgeInsets.all(14),
+                          decoration: BoxDecoration(
+                            color: LoopColors.mint,
+                            borderRadius: BorderRadius.circular(kRadius),
+                          ),
+                          child: Text(
+                            t(
+                              'Digitalni proizvod prodaješ u liveu: pobjednik licitacije odmah dobiva datoteku za preuzimanje, bez dostave. Predmet ostaje tebi pa ga možeš prodati i u sljedećem liveu.',
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                      ],
                       Text(
                         t('Kako prodaješ?'),
                         style: const TextStyle(
@@ -665,10 +687,11 @@ class _AddDeviceScreenState extends ConsumerState<AddDeviceScreen> {
                         childAspectRatio: 2.3,
                         children: [
                           for (final m in SellMode.values)
-                            if (kBuyNowEnabled || m != SellMode.buyNow)
+                            if ((kBuyNowEnabled || m != SellMode.buyNow) &&
+                                !(_digital && m == SellMode.auction))
                               _SellModeTile(
                                 mode: m,
-                                selected: _mode == m,
+                                selected: _effMode == m,
                                 onTap: () => setState(() => _mode = m),
                               ),
                         ],
@@ -679,12 +702,12 @@ class _AddDeviceScreenState extends ConsumerState<AddDeviceScreen> {
                       key: const ValueKey('add-submit'),
                       onPressed: _submit,
                       icon: Icon(
-                        _digital || _listOnMarket
+                        _digitalMarket || _listOnMarket
                             ? Icons.sell_outlined
                             : Icons.arrow_forward,
                       ),
-                      label: Text(switch (_mode) {
-                        _ when _digital => t('Objavi za Kupi odmah'),
+                      label: Text(switch (_effMode) {
+                        _ when _digitalMarket => t('Objavi za Kupi odmah'),
                         SellMode.buyNow => t('Objavi za Kupi odmah'),
                         SellMode.auction => t('Dalje: aukcija'),
                         SellMode.live => t('Dalje: live'),

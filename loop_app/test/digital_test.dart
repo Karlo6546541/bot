@@ -38,7 +38,8 @@ void main() {
     condition: DeviceCondition.good, // zanemaruje se
     price: price,
     category: DeviceCategory.models3d,
-    listOnMarket: false, // zanemaruje se — digitalno je uvijek u Marketu
+    // Kupi odmah je isključen: u Market ide samo na izričit zahtjev.
+    listOnMarket: true,
     file: file('nosac.stl'),
   );
 

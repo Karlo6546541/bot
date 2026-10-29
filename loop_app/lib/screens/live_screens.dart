@@ -4213,10 +4213,7 @@ class _AddLotSheetState extends ConsumerState<_AddLotSheet> {
     final inShow = {...?show?.lots.map((l) => l.deviceId)};
     final eligible = s.myDevices
         .where(
-          (d) =>
-              !d.isDigital &&
-              s.activeAuctionFor(d.id) == null &&
-              !inShow.contains(d.id),
+          (d) => s.activeAuctionFor(d.id) == null && !inShow.contains(d.id),
         )
         .toList();
     return SafeArea(

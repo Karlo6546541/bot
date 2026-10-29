@@ -2,6 +2,7 @@ import 'dart:math';
 
 import 'package:uuid/uuid.dart';
 
+import '../config/features.dart';
 import '../models/app_user.dart';
 import '../models/device.dart';
 import '../models/loop_transaction.dart';
@@ -85,8 +86,9 @@ class TradeService {
       throw TradeException(t('Opis može imati najviše 500 znakova.'));
     }
     _requireUser(userId);
-    // Digitalni proizvod je uvijek "nov" i uvijek u Marketu.
-    final list = listOnMarket || digital;
+    // Digitalni proizvod je uvijek "nov"; u Market (Kupi odmah) ide samo
+    // kad je Kupi odmah uključen, inače se prodaje preko livea.
+    final list = listOnMarket || (digital && kBuyNowEnabled);
     final device = Device(
       id: id ?? _uuid.v4(),
       name: name.trim(),
