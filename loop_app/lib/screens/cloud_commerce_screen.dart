@@ -1,3 +1,5 @@
+import 'live_screens.dart';
+import '../widgets/item_image.dart';
 import '../services/app_location/app_location.dart';
 import 'dart:async';
 import 'package:flutter/material.dart';
@@ -19,10 +21,14 @@ class CloudCommerceScreen extends StatefulWidget {
     this.onLoadError,
     this.initialTab = 0,
     this.initialRoom,
+    this.liveOnly = false,
+    this.embedded = false,
   });
   final SupabaseClient? client;
   final int initialTab;
   final String? initialRoom;
+  final bool liveOnly;
+  final bool embedded;
   final Future<void> Function()? onRequireLogin;
   final bool enableRealtime;
   final void Function(Object)? onLoadError;
@@ -96,6 +102,7 @@ class _CloudCommerceState extends State<CloudCommerceScreen> {
             .from('live_lots')
             .select()
             .eq('room_id', selectedRoom)
+            .order('position')
             .order('id');
       } else if (tab == 1) {
         ps = await db
@@ -217,6 +224,10 @@ class _CloudCommerceState extends State<CloudCommerceScreen> {
   Future<void> _video() async {
     final selected = roomId;
     if (selected == null) return;
+    if (rooms.where((r) => r['id'] == selected).firstOrNull?['video_enabled'] ==
+        false) {
+      return;
+    }
     try {
       final value = await live.videoToken(selected);
       if (mounted && selected == roomId) setState(() => connection = value);
@@ -229,6 +240,10 @@ class _CloudCommerceState extends State<CloudCommerceScreen> {
     final old = channel;
     channel = null;
     if (old != null) await db.removeChannel(old);
+    if (mounted && widget.liveOnly && widget.initialRoom != null) {
+      Navigator.of(context).pop();
+      return;
+    }
     if (mounted) {
       setState(() {
         roomId = null;
@@ -242,9 +257,8 @@ class _CloudCommerceState extends State<CloudCommerceScreen> {
       '${((cents as num? ?? 0) / 100).toStringAsFixed(2)} €';
   Future<void> _createRoom() async {
     if (!await _login()) return;
-    final title = await _ask('Naziv livea');
-    if (title == null) return;
-    await live.createRoom(title, 'Ostalo');
+    if (!mounted) return;
+    await CreateLiveShowScreen.open(context);
   }
 
   Future<void> _publish() async {
@@ -266,17 +280,32 @@ class _CloudCommerceState extends State<CloudCommerceScreen> {
     final room = rooms.where((r) => r['id'] == roomId).firstOrNull;
     final host = uid != null && room?['host_id'] == uid;
     return Scaffold(
-      appBar: AppBar(
-        title: Text(room?['title'] as String? ?? 'Online trgovina'),
-        leading: roomId == null
-            ? null
-            : IconButton(icon: const Icon(Icons.arrow_back), onPressed: _leave),
-        actions: [
-          if (uid == null)
-            TextButton(onPressed: _login, child: const Text('Prijava')),
-          IconButton(onPressed: _refresh, icon: const Icon(Icons.refresh)),
-        ],
-      ),
+      appBar: widget.embedded
+          ? null
+          : AppBar(
+              title: Text(
+                room?['title'] as String? ??
+                    (tab == 2
+                        ? 'Narudžbe'
+                        : widget.liveOnly
+                        ? 'Uživo'
+                        : 'Online trgovina'),
+              ),
+              leading: roomId == null
+                  ? null
+                  : IconButton(
+                      icon: const Icon(Icons.arrow_back),
+                      onPressed: _leave,
+                    ),
+              actions: [
+                if (uid == null)
+                  TextButton(onPressed: _login, child: const Text('Prijava')),
+                IconButton(
+                  onPressed: _refresh,
+                  icon: const Icon(Icons.refresh),
+                ),
+              ],
+            ),
       body: Column(
         children: [
           if (busy) const LinearProgressIndicator(),
@@ -299,7 +328,7 @@ class _CloudCommerceState extends State<CloudCommerceScreen> {
           ),
         ],
       ),
-      bottomNavigationBar: roomId != null
+      bottomNavigationBar: roomId != null || widget.liveOnly
           ? null
           : NavigationBarTheme(
               data: NavigationBarThemeData(
@@ -370,10 +399,37 @@ class _CloudCommerceState extends State<CloudCommerceScreen> {
           if (r['status'] != 'ended')
             _card(
               ListTile(
+                leading: r['cover_url'] == null
+                    ? const Icon(Icons.live_tv)
+                    : SizedBox(
+                        width: 64,
+                        height: 64,
+                        child: LocalPhoto(
+                          path: r['cover_url'] as String,
+                          fit: BoxFit.cover,
+                          fallback: const Icon(Icons.live_tv),
+                        ),
+                      ),
                 title: Text(r['title'] as String),
                 subtitle: Text(r['status'] == 'live' ? 'Uživo' : 'Uskoro'),
                 trailing: const Icon(Icons.play_circle_outline),
-                onTap: () => _open(r['id'] as String),
+                onTap: () {
+                  if (widget.embedded) {
+                    Navigator.of(context).push(
+                      MaterialPageRoute<void>(
+                        settings: AppPlace(
+                          'cloud=live&room=${r['id']}',
+                        ).settings,
+                        builder: (_) => CloudCommerceScreen(
+                          initialRoom: r['id'] as String,
+                          liveOnly: true,
+                        ),
+                      ),
+                    );
+                  } else {
+                    _open(r['id'] as String);
+                  }
+                },
               ),
             ),
       ],
@@ -499,7 +555,8 @@ class _CloudCommerceState extends State<CloudCommerceScreen> {
 
   Widget _room(Map<String, dynamic>? room, bool host) => Column(
     children: [
-      if (MediaQuery.viewInsetsOf(context).bottom == 0)
+      if (MediaQuery.viewInsetsOf(context).bottom == 0 &&
+          room?['video_enabled'] != false)
         SizedBox(
           height: 220,
           child: connection == null
@@ -562,9 +619,12 @@ class _CloudCommerceState extends State<CloudCommerceScreen> {
                         onPressed: busy
                             ? null
                             : () => _run(
-                                () => live.startLot(lot['id'] as String, 30),
+                                () => live.startLot(
+                                  lot['id'] as String,
+                                  room?['lot_seconds'] as int? ?? 30,
+                                ),
                               ),
-                        child: const Text('Pokreni 30 s'),
+                        child: Text('Pokreni ${room?['lot_seconds'] ?? 30} s'),
                       ),
                     if (!host && lot['status'] == 'running')
                       FilledButton(
@@ -605,6 +665,21 @@ class _CloudCommerceState extends State<CloudCommerceScreen> {
                                   lot['id'] as String,
                                   const Uuid().v4(),
                                 );
+                                if (widget.liveOnly && mounted) {
+                                  Navigator.of(context).pushReplacement(
+                                    MaterialPageRoute<void>(
+                                      settings: AppPlace.of(
+                                        'cloud',
+                                        'orders',
+                                      ).settings,
+                                      builder: (_) => const CloudCommerceScreen(
+                                        initialTab: 2,
+                                        liveOnly: true,
+                                      ),
+                                    ),
+                                  );
+                                  return;
+                                }
                                 await _leave();
                                 if (mounted) setState(() => tab = 2);
                                 await _refresh();

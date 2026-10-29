@@ -1,3 +1,4 @@
+import '../config/backend_config.dart';
 import 'dart:async';
 import 'dart:convert';
 
@@ -13,6 +14,7 @@ import '../services/account_service.dart';
 import '../services/auction_service.dart';
 import '../services/bargain_service.dart';
 import '../services/live_service.dart';
+import '../services/live_backend.dart';
 import '../services/live_video.dart';
 import '../services/social_service.dart';
 import '../models/app_notification.dart';
@@ -64,6 +66,12 @@ final fileStoreProvider = Provider<FileStore>(
 
 /// Sinkronizacija s online bazom (`null` = lokalni način rada).
 final syncProvider = Provider<SyncService?>((ref) => null);
+
+final preparedLiveBackendProvider = Provider<LiveBackend?>(
+  (ref) => BackendConfig.cloudCommerceEnabled && ref.watch(syncProvider) != null
+      ? LiveBackend(Supabase.instance.client)
+      : null,
+);
 
 /// Signalizacija za video uživo (Supabase Realtime). Bez online baze (i u
 /// testovima) je `null` — live tada prikazuje fotografije predmeta.

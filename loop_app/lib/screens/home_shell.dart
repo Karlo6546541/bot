@@ -190,6 +190,7 @@ class _HomeShellState extends ConsumerState<HomeShell> {
                   ? 1
                   : 0,
               initialRoom: cloudRoom,
+              liveOnly: true,
             ),
           ),
         );

@@ -1,3 +1,5 @@
+import 'cloud_commerce_screen.dart';
+import 'package:uuid/uuid.dart';
 import '../config/features.dart';
 import '../services/app_location/app_location.dart';
 import 'dart:async';
@@ -191,6 +193,7 @@ class CreateLiveShowScreen extends ConsumerStatefulWidget {
 }
 
 class _CreateLiveShowScreenState extends ConsumerState<CreateLiveShowScreen> {
+  final _creationRequest = const Uuid().v4();
   final _title = TextEditingController();
 
   /// Odabrani predmeti redom kojim će se licitirati.
@@ -359,10 +362,49 @@ class _CreateLiveShowScreenState extends ConsumerState<CreateLiveShowScreen> {
       items.add((id, price));
     }
     LiveShow? created;
+    String? onlineRoom;
+    final backend = ref.read(preparedLiveBackendProvider);
     final app = ref.read(appProvider.notifier);
     final ok = await runWithLoading(
       context,
       () async {
+        if (backend != null) {
+          final state = ref.read(appProvider);
+          final lots = <Map<String, dynamic>>[];
+          for (final (id, price) in items) {
+            final d = state.deviceById(id);
+            if (d == null) throw StateError('ITEM_NOT_FOUND');
+            lots.add({
+              'title': '${d.name} ${d.model}'.trim(),
+              'start_cents': (price * 100).round(),
+              'source_device_id': id,
+              'image_url': d.imagePaths.firstOrNull,
+            });
+          }
+          for (final draft in _drafts) {
+            for (var k = 0; k < draft.count; k++) {
+              lots.add({
+                'title': draft.onScreen
+                    ? '${draft.name} #${draft.from! + k}'
+                    : draft.name,
+                'start_cents': (draft.price * 100).round(),
+                'image_url': draft.photo,
+              });
+            }
+          }
+          final room = await backend.prepareRoom(
+            title: _title.text,
+            category: (_category ?? DeviceCategory.other).name,
+            cover: _cover,
+            startsAt: _startsAt,
+            seconds: _secs,
+            video: _video,
+            lots: lots,
+            requestId: _creationRequest,
+          );
+          onlineRoom = room['id'] as String;
+          return;
+        }
         // Predmeti ovog livea: tek sad se spremaju (redom). Items on
         // screen = jedan predmet s više komada; svaki broj je jedna
         // licitacija (#150, #151…).
@@ -402,7 +444,21 @@ class _CreateLiveShowScreenState extends ConsumerState<CreateLiveShowScreen> {
       // na dnu sobe).
       successMessage: null,
     );
-    if (!ok || !mounted || created == null) return;
+    if (!ok || !mounted) return;
+    if (onlineRoom != null) {
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute<void>(
+          settings: AppPlace('cloud=live&room=$onlineRoom').settings,
+          builder: (_) => CloudCommerceScreen(
+            initialRoom: onlineRoom,
+            liveOnly: true,
+            client: backend!.client,
+          ),
+        ),
+      );
+      return;
+    }
+    if (created == null) return;
     Navigator.of(context).pushReplacement(
       MaterialPageRoute<void>(
         builder: (_) => LiveRoomScreen(showId: created!.id),

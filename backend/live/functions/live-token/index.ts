@@ -29,8 +29,8 @@ Deno.serve(async (req: Request) => {
     if (typeof roomId !== 'string' || !/^[0-9a-f-]{36}$/i.test(roomId)) return reply(400, { error: 'INVALID_ROOM' });
     const { data: allowed, error: accessError } = await client.rpc('live_can_join', { p_room: roomId });
     if (accessError || !allowed) return reply(403, { error: 'ACCESS_DENIED' });
-    const { data: room } = await client.from('live_rooms').select('host_id,status').eq('id', roomId).single();
-    if (!room || room.status !== 'live') return reply(409, { error: 'ROOM_NOT_LIVE' });
+    const { data: room } = await client.from('live_rooms').select('host_id,status,video_enabled').eq('id', roomId).single();
+    if (!room || room.status !== 'live' || room.video_enabled === false) return reply(409, { error: 'ROOM_NOT_LIVE' });
     const host = userId !== null && room.host_id === userId;
     const config = await integrationConfig();
     if (!config.LIVEKIT_URL?.startsWith('wss://') || !config.LIVEKIT_API_KEY || !config.LIVEKIT_API_SECRET) return reply(503, { error: 'STREAMING_UNAVAILABLE' });
