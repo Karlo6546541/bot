@@ -24,3 +24,15 @@ class StripeBackend {
     }
   }
 }
+
+String paymentActionErrorMessage(Object error) {
+  final code = error is FunctionException && error.details is Map
+      ? (error.details as Map)['error']
+      : null;
+  return switch (code) {
+    'CONNECT_PLATFORM_REQUIRED' =>
+      'Postavljanje isplata još nije dostupno. Administrator treba aktivirati Stripe Connect za Subhasto.',
+    'AUTH_REQUIRED' => 'Prijavi se ponovno za nastavak.',
+    _ => 'Radnja nije uspjela. Osvježi stanje pa pokušaj ponovno.',
+  };
+}
