@@ -32,8 +32,22 @@ Deno.serve(async (req: Request) => {
       if (session.status === 'open' && session.url) return response(200, { url: session.url, mode: 'test' });
       if (session.status === 'complete' && !previous.failed) return response(409, { error: 'PAYMENT_PROCESSING' });
     }
+    // Stripe kupac po korisniku: spremljena kartica / Link / Google Pay vrijede
+    // pri sljedećoj kupnji bez ponovnog upisa. ID se čuva u app_metadata
+    // Supabase korisnika (bez nove tablice).
+    let customerId = user.app_metadata?.stripe_customer_id as string | undefined;
+    if (!customerId) {
+      const customer = await stripe.customers.create(
+        { email: user.email, metadata: { user_id: user.id } },
+        { idempotencyKey: `customer-${user.id}` });
+      customerId = customer.id;
+      const { error: metaError } = await admin.auth.admin.updateUserById(user.id,
+        { app_metadata: { ...user.app_metadata, stripe_customer_id: customerId } });
+      if (metaError) throw metaError;
+    }
     const session = await stripe.checkout.sessions.create({ mode: 'payment',
-      client_reference_id: order.id, customer_email: user.email,
+      client_reference_id: order.id, customer: customerId,
+      saved_payment_method_options: { payment_method_save: 'enabled' },
       success_url: appUrl(), cancel_url: appUrl(),
       integration_identifier: 'subhasto_' + Array.from(order.id.replaceAll('-', '').slice(0, 8), (c: string) => String.fromCharCode(97 + parseInt(c, 16))).join(''),
       metadata: { order_id: order.id },
