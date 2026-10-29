@@ -43,6 +43,8 @@ jobs:
           exit "$result"
       - name: Build web
         run: flutter build web --release --base-href /bot/ --no-web-resources-cdn
+      - name: Build enabled online commerce
+        run: flutter build web --release --base-href /bot/ --no-web-resources-cdn --dart-define=CLOUD_COMMERCE_ENABLED=true
       - name: Build isolated product preview
         run: flutter build web --release --target=tool/feed_design_preview.dart --base-href /bot/ --no-web-resources-cdn
       - name: Browser previews
