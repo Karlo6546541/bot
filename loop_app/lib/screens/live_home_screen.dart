@@ -386,6 +386,10 @@ class _LiveHomeScreenState extends ConsumerState<LiveHomeScreen> {
               : grid('home-buy', buyNow, t('Kupi odmah')),
         );
       case _LiveOnly():
+        if (BackendConfig.cloudCommerceEnabled && ref.read(syncProvider) != null) {
+          slivers.add(const SliverFillRemaining(child: CloudCommerceScreen(liveOnly: true, embedded: true)));
+          break;
+        }
         slivers.add(const SliverToBoxAdapter(child: SizedBox(height: 12)));
         slivers.add(
           live.isEmpty
@@ -513,7 +517,7 @@ class _LiveHomeScreenState extends ConsumerState<LiveHomeScreen> {
                                     if (BackendConfig.cloudCommerceEnabled)
                                       (
                                         'cloud',
-                                        'Live i trgovina online',
+                                        'Plaćanja i narudžbe',
                                         Icons.cloud_outlined,
                                         'cloud',
                                       ),
@@ -586,7 +590,7 @@ class _LiveHomeScreenState extends ConsumerState<LiveHomeScreen> {
                       await Navigator.of(context).push(
                         MaterialPageRoute<void>(
                           settings: AppPlace.of('cloud', 'live').settings,
-                          builder: (_) => const CloudCommerceScreen(),
+                          builder: (_) => const CloudCommerceScreen(initialTab: 2, liveOnly: true),
                         ),
                       );
                     } else if (picked == 'categories') {

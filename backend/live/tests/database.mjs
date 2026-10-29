@@ -3,7 +3,7 @@ import { readFileSync, readdirSync } from 'node:fs';
 import assert from 'node:assert/strict';
 const db=new PGlite();
 await db.exec(`create role anon; create role authenticated; create role service_role; create schema auth;
-create table auth.users(id uuid primary key);
+create table auth.users(id uuid primary key); create table public.loop_devices(id text primary key,data jsonb);
 create function auth.uid() returns uuid language sql stable as $$select nullif(current_setting('request.jwt.claim.sub',true),'')::uuid$$;
 grant usage on schema auth to authenticated; grant execute on function auth.uid() to authenticated;
 create publication supabase_realtime;`);
@@ -13,7 +13,7 @@ await db.exec(readFileSync(new URL('../migrations/003_payments.sql',import.meta.
 
 await db.exec("create schema vault; create table vault.decrypted_secrets(name text, decrypted_secret text);");
 await db.exec('create function public.loop_purge_deleted() returns integer language sql as $$select 0$$;');
-for (const name of readdirSync(new URL('../migrations/', import.meta.url)).filter(n=>n.includes('subhasto_payment_events'))) {
+for (const name of readdirSync(new URL('../migrations/', import.meta.url)).filter(n=>n.includes('subhasto_payment_events') || n.includes('unified_live_creation'))) {
   await db.exec(readFileSync(new URL('../migrations/'+name,import.meta.url),'utf8'));
 }
 
@@ -109,6 +109,19 @@ await db.exec('reset role');
 await rpc("select commerce_record_payment('evt_late',$1,1900,'EUR')",[order]);
 assert.equal((await rpc('select status from commerce_orders where id=$1',[order])).status,'delivered');
 assert.equal((await rpc('select count(*)::int as n from commerce_notifications where order_id=$1',[order])).n,3);
+await as(host);
+const preparedReq='00000000-0000-4000-8000-000000000030';
+const payload=JSON.stringify([{title:'First',start_cents:100,image_url:'https://example.test/1.jpg'},{title:'Second',start_cents:200}]);
+const prepared=(await rpc("select (live_prepare_room('Prepared','console','https://example.test/cover.jpg',now()+interval '1 hour',10,true,$1::jsonb,$2)).id",[payload,preparedReq])).id;
+assert.equal((await rpc('select lot_seconds from live_rooms where id=$1',[prepared])).lot_seconds,10);
+assert.equal((await rpc('select status from live_rooms where id=$1',[prepared])).status,'scheduled');
+assert.equal((await rpc("select (live_prepare_room('Prepared','console',null,null,10,true,$1::jsonb,$2)).id",[payload,preparedReq])).id,prepared);
+assert.deepEqual((await db.query('select title from live_lots where room_id=$1 order by position',[prepared])).rows.map(r=>r.title),['First','Second']);
+const countBefore=(await rpc('select count(*)::int as n from live_rooms')).n;
+await rejects("select live_prepare_room('Bad','console',null,null,30,true,$1::jsonb,gen_random_uuid())",[JSON.stringify([{title:'Good',start_cents:100},{title:'Invalid',start_cents:0}])],'INVALID_AMOUNT');
+assert.equal((await rpc('select count(*)::int as n from live_rooms')).n,countBefore);
+await rejects("select live_prepare_room('Bad','console',null,null,30,true,$1::jsonb,gen_random_uuid())",[JSON.stringify([{title:'Other item',start_cents:100,source_device_id:'not-owned'}])],'ITEM_NOT_OWNED');
+console.log('PASS: prepared live atomicity, retry, scheduling, metadata, ordering and item ownership');
 console.log('PASS: late duplicate payment events do not repeat fulfillment or notifications');
 console.log('PASS: asynchronous payment failure retries and retention permissions');
 console.log('PASS: checkout cannot be cancelled/restocked during payment; incorrect payment amount rejected');
