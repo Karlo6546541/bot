@@ -11,6 +11,7 @@ import '../providers/app_providers.dart';
 import '../services/auction_policy.dart';
 import '../services/auction_service.dart';
 import '../services/fee.dart';
+import '../services/market_filter.dart' show normalizeSearch, searchMatches;
 import '../theme/app_theme.dart';
 import '../widgets/category_style.dart';
 import '../widgets/empty_state.dart';
@@ -48,6 +49,13 @@ class _CreateAuctionScreenState extends ConsumerState<CreateAuctionScreen> {
   Duration _duration = AuctionService.durations[2].$2;
   String? _error;
 
+  /// Pretraga predmeta (naziv, model, kategorija, opis).
+  final _search = TextEditingController();
+  String _query = '';
+
+  /// Odabir predmeta je otvoren (nakon odabira se skupi u jedan red).
+  bool _picking = true;
+
   @override
   void initState() {
     super.initState();
@@ -56,6 +64,7 @@ class _CreateAuctionScreenState extends ConsumerState<CreateAuctionScreen> {
 
   @override
   void dispose() {
+    _search.dispose();
     _start.dispose();
     super.dispose();
   }
@@ -64,6 +73,7 @@ class _CreateAuctionScreenState extends ConsumerState<CreateAuctionScreen> {
     final d = ref.read(appProvider).deviceById(id);
     setState(() {
       _deviceId = id;
+      _picking = false;
       // Prijedlog: početi od 60% vrijednosti predmeta.
       if (d != null) {
         _start.text = (d.price * 0.6).roundToDouble().toStringAsFixed(0);
@@ -153,39 +163,91 @@ class _CreateAuctionScreenState extends ConsumerState<CreateAuctionScreen> {
                       style: TextStyle(fontWeight: FontWeight.w700),
                     ),
                     const SizedBox(height: 8),
-                    SizedBox(
-                      height: 112,
-                      child: ListView(
-                        scrollDirection: Axis.horizontal,
-                        children: [
-                          for (final d in eligible)
-                            _DeviceChoice(
-                              device: d,
-                              selected: d.id == _deviceId,
-                              onTap: () => _select(d.id),
-                            ),
-                          // Novi predmet ravno iz aukcije.
-                          SizedBox(
-                            width: 120,
-                            child: OutlinedButton(
-                              key: const ValueKey('auction-new-item'),
-                              onPressed: () => AddDeviceScreen.open(context),
-                              child: Column(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  const Icon(Icons.add_a_photo_outlined),
-                                  const SizedBox(height: 4),
-                                  Text(
-                                    t('Novi predmet'),
-                                    textAlign: TextAlign.center,
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                        ],
+                    if (selected != null && !_picking)
+                      // Odabrani predmet u jednom redu + promjena.
+                      _DeviceRow(
+                        key: const ValueKey('auction-selected'),
+                        device: selected,
+                        selected: true,
+                        onTap: () => setState(() => _picking = true),
+                        trailing: TextButton(
+                          key: const ValueKey('auction-change-item'),
+                          onPressed: () => setState(() => _picking = true),
+                          child: Text(t('Promijeni')),
+                        ),
+                      )
+                    else ...[
+                      TextField(
+                        key: const ValueKey('auction-item-search'),
+                        controller: _search,
+                        textInputAction: TextInputAction.search,
+                        onChanged: (v) => setState(() => _query = v),
+                        decoration: InputDecoration(
+                          hintText: t('Traži svoje predmete…'),
+                          prefixIcon: const Icon(Icons.search),
+                          suffixIcon: _query.isEmpty
+                              ? null
+                              : IconButton(
+                                  tooltip: t('Očisti'),
+                                  icon: const Icon(Icons.close),
+                                  onPressed: () => setState(() {
+                                    _search.clear();
+                                    _query = '';
+                                  }),
+                                ),
+                        ),
                       ),
-                    ),
+                      const SizedBox(height: 8),
+                      Builder(
+                        builder: (context) {
+                          final terms = normalizeSearch(
+                            _query,
+                          ).split(RegExp(r'\s+')).where((x) => x.isNotEmpty);
+                          final shown = [
+                            for (final d in eligible)
+                              if (terms.isEmpty ||
+                                  searchMatches(
+                                    '${d.name} ${d.model} '
+                                    '${d.category.label} ${d.description}',
+                                    terms,
+                                  ))
+                                d,
+                          ];
+                          if (shown.isEmpty) {
+                            return Padding(
+                              padding: const EdgeInsets.symmetric(vertical: 16),
+                              child: Text(
+                                t('Nema predmeta za tu pretragu.'),
+                                textAlign: TextAlign.center,
+                                style: TextStyle(
+                                  color: LoopColors.textSecondary,
+                                ),
+                              ),
+                            );
+                          }
+                          return Column(
+                            key: const ValueKey('auction-item-list'),
+                            children: [
+                              for (final d in shown)
+                                _DeviceRow(
+                                  key: ValueKey('auction-item-${d.id}'),
+                                  device: d,
+                                  selected: d.id == _deviceId,
+                                  onTap: () => _select(d.id),
+                                ),
+                            ],
+                          );
+                        },
+                      ),
+                      const SizedBox(height: 4),
+                      // Novi predmet ravno iz aukcije.
+                      OutlinedButton.icon(
+                        key: const ValueKey('auction-new-item'),
+                        onPressed: () => AddDeviceScreen.open(context),
+                        icon: const Icon(Icons.add_a_photo_outlined),
+                        label: Text(t('Novi predmet')),
+                      ),
+                    ],
                     if (selected != null) ...[
                       const SizedBox(height: 20),
                       Text(
@@ -320,52 +382,72 @@ class _CreateAuctionScreenState extends ConsumerState<CreateAuctionScreen> {
   }
 }
 
-class _DeviceChoice extends StatelessWidget {
-  const _DeviceChoice({
+class _DeviceRow extends StatelessWidget {
+  const _DeviceRow({
+    super.key,
     required this.device,
     required this.selected,
     required this.onTap,
+    this.trailing,
   });
 
   final Device device;
   final bool selected;
   final VoidCallback onTap;
+  final Widget? trailing;
 
   @override
   Widget build(BuildContext context) {
     final c = device.category.color;
+    final title = '${device.name} ${device.model}'.trim();
     return Padding(
-      padding: const EdgeInsets.only(right: 8),
+      padding: const EdgeInsets.only(bottom: 8),
       child: InkWell(
         onTap: onTap,
         borderRadius: BorderRadius.circular(kRadius),
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 150),
-          width: 150,
+        child: Container(
           padding: const EdgeInsets.all(10),
           decoration: BoxDecoration(
-            color: selected ? c.withValues(alpha: 0.16) : LoopColors.surface,
+            color: selected ? c.withValues(alpha: 0.14) : LoopColors.surface,
             borderRadius: BorderRadius.circular(kRadius),
             border: Border.all(
               color: selected ? c : Colors.transparent,
               width: 1.5,
             ),
           ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+          child: Row(
             children: [
-              ItemThumb(device: device, size: 40),
-              const Spacer(),
-              Text(
-                device.name,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: const TextStyle(fontWeight: FontWeight.w700),
+              ItemThumb(device: device, size: 52),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(fontWeight: FontWeight.w800),
+                    ),
+                    Text(
+                      '${device.category.label} · '
+                      '${formatCredits(device.price)} · '
+                      '${formatDate(device.createdAt)}',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        color: LoopColors.textSecondary,
+                        fontSize: 12,
+                      ),
+                    ),
+                  ],
+                ),
               ),
-              Text(
-                formatCredits(device.price),
-                style: TextStyle(color: LoopColors.textSecondary, fontSize: 12),
-              ),
+              trailing ??
+                  Icon(
+                    selected ? Icons.check_circle : Icons.chevron_right,
+                    color: selected ? c : LoopColors.textSecondary,
+                  ),
             ],
           ),
         ),

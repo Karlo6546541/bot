@@ -2654,4 +2654,6 @@ const kEn = <String, String>{
   '💸 Prodano u liveu ({0})': '💸 Sold in live ({0})',
   '🧾 Sve otpremnice ({0})': '🧾 All delivery notes ({0})',
   'Licitiram': 'Bidding',
+  'Traži svoje predmete…': 'Search your items…',
+  'Nema predmeta za tu pretragu.': 'No items match that search.',
 };
