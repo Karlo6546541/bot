@@ -586,6 +586,7 @@ class _LiveHomeScreenState extends ConsumerState<LiveHomeScreen> {
                     if (picked == 'cloud') {
                       await Navigator.of(context).push(
                         MaterialPageRoute<void>(
+                          settings: AppPlace.of('cloud', 'live').settings,
                           builder: (_) => const CloudCommerceScreen(),
                         ),
                       );
