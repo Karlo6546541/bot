@@ -10,13 +10,14 @@ import 'login_screen.dart';
 
 /// Explicit online route. Legacy local orders and bids are never written here.
 class CloudCommerceScreen extends StatefulWidget {
-  const CloudCommerceScreen({super.key});
+  const CloudCommerceScreen({super.key, this.client});
+  final SupabaseClient? client;
   @override
   State<CloudCommerceScreen> createState() => _CloudCommerceState();
 }
 
 class _CloudCommerceState extends State<CloudCommerceScreen> {
-  SupabaseClient get db => Supabase.instance.client;
+  SupabaseClient get db => widget.client ?? Supabase.instance.client;
   LiveBackend get live => LiveBackend(db);
   CommerceBackend get commerce => CommerceBackend(db);
   String? get uid => db.auth.currentUser?.id;
@@ -435,7 +436,7 @@ class _CloudCommerceState extends State<CloudCommerceScreen> {
 
   Widget _room(Map<String, dynamic>? room, bool host) => Column(
     children: [
-      SizedBox(
+      if (MediaQuery.viewInsetsOf(context).bottom == 0) SizedBox(
         height: 220,
         child: connection == null
             ? Center(
@@ -449,7 +450,7 @@ class _CloudCommerceState extends State<CloudCommerceScreen> {
                 connection: connection!,
               ),
       ),
-      if (host)
+      if (host && MediaQuery.viewInsetsOf(context).bottom == 0)
         Wrap(
           spacing: 8,
           children: [

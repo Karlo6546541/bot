@@ -1,9 +1,9 @@
 # Live commerce backend
 
 This is an additive production backend foundation, not Whatnot's proprietary architecture.
-The deployed Flutter UI still uses the legacy `LiveService` and peer-to-peer video.
-`LiveBackend` is the new API adapter; switching UI ownership, identity and video controllers
-is deliberately pending deployment of the real services. Do not label the demo as production.
+The default Flutter UI uses the legacy `LiveService`. The opt-in online route uses the APIs below.
+`LiveBackend` and `CommerceBackend` power the new CloudCommerceScreen. Activation
+is pending deployment of the real services. Do not label the demo as production.
 
 ## Responsibilities
 
@@ -120,8 +120,8 @@ by default so an unconfigured backend does not break existing accounts/orders.
 Legacy records remain in the existing UI; no automatic data migration is performed.
 
 Apply migrations **001, 002, 003** in order. Merge this directory's `config.toml`
-function settings into the Supabase CLI project and deploy all four functions:
-`live-token`, `stripe-connect`, `stripe-checkout`, `stripe-webhook`, including the
+function settings into the Supabase CLI project and deploy all five functions:
+`live-token`, `live-control`, `stripe-connect`, `stripe-checkout`, `stripe-webhook`, including the
 `_shared` folder. The functions authenticate users themselves; public viewer token
 access and Stripe webhooks have gateway JWT verification disabled deliberately.
 
@@ -159,3 +159,8 @@ orders cannot be cancelled/restocked by the browser; recovery/expiry requires a
 trusted reconciliation worker. Do not open this experimental route to production
 commerce until scheduled reservation expiry, media eviction on bans, refunds and
 payment reconciliation are implemented and tested against actual providers.
+
+Live moderation now uses `live-control`: authenticated host ownership is verified
+against the database before room deletion or participant removal through the
+LiveKit server API. Ban updates DB access first; SFU cleanup can be retried on
+provider failure. There is no host-only permission derived from browser input.
