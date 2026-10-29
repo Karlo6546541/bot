@@ -115,7 +115,7 @@ void main() {
     expect(find.text('Dobrodošli u live!'), findsOneWidget);
     expect(tester.takeException(), isNull);
     await tester.pumpWidget(const SizedBox.shrink());
-    await client.dispose();
+    await tester.runAsync(client.dispose);
     transport.close();
-  });
+  }, timeout: const Timeout(Duration(seconds: 30)));
 }
