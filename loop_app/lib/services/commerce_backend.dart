@@ -56,12 +56,18 @@ class CommerceBackend {
       );
   Future<dynamic> confirmDelivery(String order) =>
       client.rpc('commerce_confirm_delivery', params: {'p_order': order});
-  Future<List<Map<String, dynamic>>> orders({int offset = 0, String? id}) async {
+  Future<List<Map<String, dynamic>>> orders({
+    int offset = 0,
+    String? id,
+  }) async {
     var query = client.from('commerce_orders').select();
     if (id != null) query = query.eq('id', id);
-    return await query.order('created_at', ascending: false).order('id')
+    return await query
+        .order('created_at', ascending: false)
+        .order('id')
         .range(offset, offset + 49);
   }
+
   Future<List<Map<String, dynamic>>> notifications({int? before}) async {
     var query = client.from('commerce_notifications').select();
     if (before != null) query = query.lt('id', before);

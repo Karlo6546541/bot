@@ -424,7 +424,11 @@ class _ForYouFeedState extends ConsumerState<ForYouFeed> {
               ),
               const SizedBox(height: 16),
               Text(
-                t(_picks.isEmpty ? 'Nema dostupnih preporuka' : 'Sve novo si pogledao'),
+                t(
+                  _picks.isEmpty
+                      ? 'Nema dostupnih preporuka'
+                      : 'Sve novo si pogledao',
+                ),
                 textAlign: TextAlign.center,
                 style: const TextStyle(
                   color: Colors.white,

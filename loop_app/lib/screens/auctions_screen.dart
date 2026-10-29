@@ -931,11 +931,16 @@ class _MyAuctionsViewState extends ConsumerState<MyAuctionsView> {
     }
     final me = s.currentUserId ?? '';
     final online = ref.watch(myOnlineActivityProvider).asData?.value;
-    final onlineBought = online?.orders.where((o) => o['buyer_id'] == me).toList() ?? [];
-    final onlineSold = online?.orders.where((o) => o['seller_id'] == me).toList() ?? [];
+    final onlineBought =
+        online?.orders.where((o) => o['buyer_id'] == me).toList() ?? [];
+    final onlineSold =
+        online?.orders.where((o) => o['seller_id'] == me).toList() ?? [];
     final onlineToShip = onlineSold.where((o) => o['status'] == 'paid').length;
-    final onlineSent = onlineSold.where((o) => o['status'] == 'shipped' || o['status'] == 'delivered').length;
-    final onlineActions = (online?.unclaimedAwards.length ?? 0) +
+    final onlineSent = onlineSold
+        .where((o) => o['status'] == 'shipped' || o['status'] == 'delivered')
+        .length;
+    final onlineActions =
+        (online?.unclaimedAwards.length ?? 0) +
         onlineBought.where((o) => o['status'] == 'awaiting_payment').length;
     final user = s.currentUser!;
     final now = DateTime.now();
@@ -1128,7 +1133,10 @@ class _MyAuctionsViewState extends ConsumerState<MyAuctionsView> {
         children: [
           tabButton(MyTab.buying, auc.actions.length),
           tabButton(MyTab.selling, 0),
-          tabButton(MyTab.live, lv.actions.length + shipLive.length + onlineActions + onlineToShip),
+          tabButton(
+            MyTab.live,
+            lv.actions.length + shipLive.length + onlineActions + onlineToShip,
+          ),
           tabButton(MyTab.notes, toShip.length + onlineToShip),
         ],
       ),
@@ -1139,10 +1147,12 @@ class _MyAuctionsViewState extends ConsumerState<MyAuctionsView> {
         key: key,
         slivers: [
           if (_tab == MyTab.live || _tab == MyTab.notes)
-            SliverToBoxAdapter(child: MyOnlineActivityPanel(
-              shipmentsOnly: _tab == MyTab.notes,
-              filter: _tab == MyTab.notes ? _notesFilter : _liveFilter,
-            )),
+            SliverToBoxAdapter(
+              child: MyOnlineActivityPanel(
+                shipmentsOnly: _tab == MyTab.notes,
+                filter: _tab == MyTab.notes ? _notesFilter : _liveFilter,
+              ),
+            ),
           ...slivers,
           const SliverToBoxAdapter(child: SizedBox(height: 96)),
         ],
@@ -1459,8 +1469,14 @@ class _MyAuctionsViewState extends ConsumerState<MyAuctionsView> {
         ),
       );
       final emptyAll =
-          liveBoughtSlivers.isEmpty && soldLive.isEmpty && lives.isEmpty &&
-          (online == null || (online.rooms.isEmpty && online.bids.isEmpty && online.awards.isEmpty && online.orders.isEmpty));
+          liveBoughtSlivers.isEmpty &&
+          soldLive.isEmpty &&
+          lives.isEmpty &&
+          (online == null ||
+              (online.rooms.isEmpty &&
+                  online.bids.isEmpty &&
+                  online.awards.isEmpty &&
+                  online.orders.isEmpty));
       final slivers = <Widget>[
         if (f == 'all') ...[
           startLive,
@@ -1474,7 +1490,9 @@ class _MyAuctionsViewState extends ConsumerState<MyAuctionsView> {
           if (soldLive.isNotEmpty) ...soldSlivers,
           if (lives.isNotEmpty) ...liveSlivers,
         ] else if (f == 'bought') ...[
-          if (liveBoughtSlivers.isEmpty && onlineBought.isEmpty && (online?.unclaimedAwards.isEmpty ?? true))
+          if (liveBoughtSlivers.isEmpty &&
+              onlineBought.isEmpty &&
+              (online?.unclaimedAwards.isEmpty ?? true))
             _note(t('Još nisi ništa kupio u liveu.'))
           else
             ...liveBoughtSlivers,
@@ -1500,10 +1518,18 @@ class _MyAuctionsViewState extends ConsumerState<MyAuctionsView> {
               (
                 'bought',
                 t('Kupljeno'),
-                lv.actions.length + lv.onTheWay.length + lv.done.length + onlineBought.length + (online?.unclaimedAwards.length ?? 0),
+                lv.actions.length +
+                    lv.onTheWay.length +
+                    lv.done.length +
+                    onlineBought.length +
+                    (online?.unclaimedAwards.length ?? 0),
               ),
               ('sold', t('Prodano'), soldLive.length + onlineSold.length),
-              ('mine', t('Moji liveovi'), lives.length + (online?.rooms.length ?? 0)),
+              (
+                'mine',
+                t('Moji liveovi'),
+                lives.length + (online?.rooms.length ?? 0),
+              ),
             ],
             f,
             (v) => setState(() => _liveFilter = v),
@@ -1575,7 +1601,11 @@ class _MyAuctionsViewState extends ConsumerState<MyAuctionsView> {
     ];
     final noteList = switch (f) {
       'ship' =>
-        toShip.isEmpty ? (onlineToShip == 0 ? [_note(t('Nemaš paketa za poslati.'))] : <Widget>[]) : shipSlivers,
+        toShip.isEmpty
+            ? (onlineToShip == 0
+                  ? [_note(t('Nemaš paketa za poslati.'))]
+                  : <Widget>[])
+            : shipSlivers,
       'sent' =>
         sentNotes.isEmpty && onlineSent == 0
             ? [_note(t('Još nema poslanih paketa.'))]
