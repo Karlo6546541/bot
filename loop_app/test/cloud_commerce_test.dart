@@ -4,7 +4,21 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:yet_another_json_isolate/yet_another_json_isolate.dart';
 import 'package:loop_app/screens/cloud_commerce_screen.dart';
+
+// Match the web SDK's inline JSON decoding; native isolate ports are outside
+// widget fake-async and do not belong in this UI interaction test.
+class _InlineJson extends YAJsonIsolate {
+  @override
+  Future<void> initialize() async {}
+  @override
+  Future<void> dispose() async {}
+  @override
+  Future<dynamic> decode(String json) async => jsonDecode(json);
+  @override
+  Future<String> encode(Object? json) async => jsonEncode(json);
+}
 
 void main() {
   testWidgets('guest reads live chat but bidding and messaging require login', (
@@ -76,6 +90,7 @@ void main() {
       'https://test.invalid',
       'test-key',
       httpClient: transport,
+      isolate: _InlineJson(),
     );
     await tester.pumpWidget(
       MaterialApp(
@@ -89,33 +104,28 @@ void main() {
         ),
       ),
     );
-    await tester.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 400)));
     await tester.pumpAndSettle();
     expect(find.text('Prijava'), findsOneWidget);
     expect(errors, isEmpty, reason: 'Requests: $requests');
     expect(find.text('Retro live'), findsOneWidget, reason: 'Requests: $requests; errors: $errors');
     await tester.tap(find.text('Retro live'));
-    await tester.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 400)));
     await tester.pumpAndSettle();
     expect(find.text('Dobrodošli u live!'), findsOneWidget);
     final bid = find.text('Prijavi se za licitiranje');
     await tester.ensureVisible(bid);
     await tester.tap(bid);
-    await tester.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 400)));
     await tester.pumpAndSettle();
     expect(logins, 1);
     await tester.tap(find.byIcon(Icons.send));
-    await tester.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 400)));
     await tester.pumpAndSettle();
     expect(logins, 2);
     expect(mutations.where((p) => p.contains('/rpc/')), isEmpty);
     tester.view.viewInsets = const FakeViewPadding(bottom: 320);
-    await tester.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 400)));
     await tester.pumpAndSettle();
     expect(find.text('Dobrodošli u live!'), findsOneWidget);
     expect(tester.takeException(), isNull);
     await tester.pumpWidget(const SizedBox.shrink());
-    await tester.runAsync(client.dispose);
+    await client.dispose();
     transport.close();
   }, timeout: const Timeout(Duration(seconds: 30)));
 }
