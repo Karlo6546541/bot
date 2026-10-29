@@ -62,12 +62,14 @@ void main() {
           '{"error":"MEDIA_NOT_CONFIGURED"}',
           503,
           headers: {'content-type': 'application/json'},
+          request: request,
         );
       }
       return http.Response(
         jsonEncode(rows),
         200,
         headers: {'content-type': 'application/json'},
+          request: request,
       );
     });
     final client = SupabaseClient(
