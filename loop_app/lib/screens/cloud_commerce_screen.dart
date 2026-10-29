@@ -277,10 +277,16 @@ class _CloudCommerceState extends State<CloudCommerceScreen> {
   Widget build(BuildContext context) {
     final room = rooms.where((r) => r['id'] == roomId).firstOrNull;
     final host = uid != null && room?['host_id'] == uid;
+    final inRoom = roomId != null;
     return Scaffold(
+      backgroundColor: inRoom ? _ink : null,
       appBar: widget.embedded
           ? null
           : AppBar(
+              // Soba je tamna (kao video): traka se stapa s njom.
+              backgroundColor: inRoom ? _ink : null,
+              foregroundColor: inRoom ? Colors.white : null,
+              surfaceTintColor: Colors.transparent,
               title: Text(
                 room?['title'] as String? ??
                     (tab == 2
@@ -297,7 +303,13 @@ class _CloudCommerceState extends State<CloudCommerceScreen> {
                     ),
               actions: [
                 if (uid == null)
-                  TextButton(onPressed: _login, child: const Text('Prijava')),
+                  TextButton(
+                    style: inRoom
+                        ? TextButton.styleFrom(foregroundColor: Colors.white)
+                        : null,
+                    onPressed: _login,
+                    child: const Text('Prijava'),
+                  ),
                 IconButton(
                   onPressed: _refresh,
                   icon: const Icon(Icons.refresh),
@@ -551,232 +563,748 @@ class _CloudCommerceState extends State<CloudCommerceScreen> {
     );
   }
 
-  Widget _room(Map<String, dynamic>? room, bool host) => Column(
-    children: [
-      if (MediaQuery.viewInsetsOf(context).bottom == 0 &&
-          room?['video_enabled'] != false)
-        SizedBox(
-          height: 220,
-          child: connection == null
-              ? Center(
-                  child: TextButton(
-                    onPressed: _video,
-                    child: const Text('Uključi prijenos'),
-                  ),
-                )
-              : CloudLiveMedia(
-                  key: ValueKey('$roomId:$uid'),
-                  connection: connection!,
-                ),
+  // ------------------------------------------------------------- live soba
+
+  static const _ink = Color(0xFF0B0C11);
+  static const _panel = Color(0xFF16171D);
+  static const _liveRed = Color(0xFFE5173F);
+
+  /// Osvojeni predmet: narudžba i odabir dostave.
+  Future<void> _claim(Map<String, dynamic> lot) => _run(() async {
+    await commerce.claimAward(lot['id'] as String, const Uuid().v4());
+    if (widget.liveOnly && mounted) {
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute<void>(
+          settings: AppPlace.of('cloud', 'orders').settings,
+          builder: (_) =>
+              const CloudCommerceScreen(initialTab: 2, liveOnly: true),
         ),
-      if (host && MediaQuery.viewInsetsOf(context).bottom == 0)
-        Wrap(
-          spacing: 8,
-          children: [
-            if (room?['status'] == 'scheduled')
-              TextButton(
-                onPressed: () => _run(() async {
-                  await live.setStatus(roomId!, 'live');
-                  await _video();
-                }),
-                child: const Text('Započni live'),
+      );
+      return;
+    }
+    await _leave();
+    if (mounted) setState(() => tab = 2);
+    await _refresh();
+  });
+
+  Future<void> _bid(Map<String, dynamic> lot) => _run(() async {
+    if (!await _login()) return;
+    final price = lot['price_cents'] as int?;
+    await live.bid(
+      lot['id'] as String,
+      price == null
+          ? lot['start_cents'] as int
+          : price + (lot['increment_cents'] as int),
+      const Uuid().v4(),
+    );
+  });
+
+  Future<void> _addLot() => _run(() async {
+    final name = await _ask('Naziv aukcijskog predmeta');
+    if (name != null) await live.addLot(roomId!, name, 100, 100);
+  });
+
+  Future<void> _confirmEnd() async {
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Završiti live?'),
+        content: const Text('Gledatelji više neće moći licitirati.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Odustani'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Završi live'),
+          ),
+        ],
+      ),
+    );
+    if (ok == true) await _run(() => live.setStatus(roomId!, 'ended'));
+  }
+
+  /// Svi predmeti livea (redoslijed, status, pokretanje za voditelja).
+  void _showLots(
+    Map<String, dynamic>? room,
+    bool host,
+  ) => showModalBottomSheet<void>(
+    context: context,
+    backgroundColor: _panel,
+    showDragHandle: true,
+    builder: (ctx) => SafeArea(
+      child: ListView(
+        shrinkWrap: true,
+        padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+        children: [
+          const Text(
+            'Predmeti',
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 18,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+          const SizedBox(height: 8),
+          if (lots.isEmpty)
+            const Padding(
+              padding: EdgeInsets.all(24),
+              child: Text(
+                'Još nema predmeta.',
+                style: TextStyle(color: Colors.white70),
               ),
-            TextButton(
-              onPressed: () => _run(() async {
-                final name = await _ask('Naziv aukcijskog predmeta');
-                if (name != null) await live.addLot(roomId!, name, 100, 100);
-              }),
-              child: const Text('Dodaj predmet od 1 €'),
             ),
-            TextButton(
-              onPressed: () => _run(() => live.setStatus(roomId!, 'ended')),
-              child: const Text('Završi live'),
-            ),
-          ],
-        ),
-      Expanded(
-        child: ListView(
-          padding: const EdgeInsets.symmetric(horizontal: 16),
-          children: [
-            for (final lot in lots)
-              _card(
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      lot['title'] as String,
-                      style: Theme.of(context).textTheme.titleMedium,
-                    ),
-                    Text(money(lot['price_cents'] ?? lot['start_cents'])),
-                    if (lot['status'] == 'running')
-                      Text(
-                        'Završava: ${DateTime.tryParse(lot['ends_at'] as String? ?? '')?.toLocal() ?? ''}',
-                      ),
-                    if (host && lot['status'] == 'queued')
-                      TextButton(
-                        onPressed: busy
-                            ? null
-                            : () => _run(
+          for (final lot in lots)
+            ListTile(
+              contentPadding: EdgeInsets.zero,
+              title: Text(
+                lot['title'] as String,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+              subtitle: Text(
+                '${money(lot['price_cents'] ?? lot['start_cents'])} · '
+                '${const {'queued': 'na redu', 'running': 'licitira se', 'sold': 'prodano', 'unsold': 'neprodano'}[lot['status']] ?? lot['status']}',
+                style: const TextStyle(color: Colors.white70),
+              ),
+              trailing: host && lot['status'] == 'queued'
+                  ? FilledButton(
+                      onPressed: busy
+                          ? null
+                          : () {
+                              Navigator.pop(ctx);
+                              _run(
                                 () => live.startLot(
                                   lot['id'] as String,
                                   room?['lot_seconds'] as int? ?? 30,
                                 ),
+                              );
+                            },
+                      child: const Text('Pokreni'),
+                    )
+                  : null,
+            ),
+        ],
+      ),
+    ),
+  );
+
+  /// Moderacija poruke (samo voditelj).
+  void _moderate(Map<String, dynamic> m) => showModalBottomSheet<void>(
+    context: context,
+    backgroundColor: _panel,
+    showDragHandle: true,
+    builder: (ctx) => SafeArea(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          for (final (v, label, icon) in const [
+            ('delete', 'Ukloni poruku', Icons.delete_outline),
+            ('mute', 'Utišaj korisnika', Icons.volume_off_outlined),
+            ('ban', 'Zabrani pristup', Icons.block),
+          ])
+            ListTile(
+              leading: Icon(icon, color: Colors.white),
+              title: Text(label, style: const TextStyle(color: Colors.white)),
+              onTap: () {
+                Navigator.pop(ctx);
+                _run(() async {
+                  if (v == 'delete') {
+                    await live.deleteMessage(m['id'] as int);
+                  } else {
+                    await live.moderate(
+                      roomId!,
+                      m['sender_id'] as String,
+                      muted: v == 'mute',
+                      banned: v == 'ban',
+                    );
+                  }
+                });
+              },
+            ),
+        ],
+      ),
+    ),
+  );
+
+  Widget _stagePlaceholder(Map<String, dynamic>? room, bool host) {
+    final scheduled = room?['status'] == 'scheduled';
+    return Container(
+      color: _ink,
+      alignment: Alignment.center,
+      padding: const EdgeInsets.all(24),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            host ? Icons.videocam_outlined : Icons.live_tv_outlined,
+            color: Colors.white38,
+            size: 56,
+          ),
+          const SizedBox(height: 12),
+          Text(
+            host
+                ? 'Pokreni kameru za emitiranje.'
+                : scheduled
+                ? 'Live još nije počeo.'
+                : 'Čekamo prijenos voditelja…',
+            textAlign: TextAlign.center,
+            style: const TextStyle(color: Colors.white70, fontSize: 15),
+          ),
+          const SizedBox(height: 16),
+          if (host)
+            FilledButton.icon(
+              style: FilledButton.styleFrom(
+                backgroundColor: _liveRed,
+                foregroundColor: Colors.white,
+                minimumSize: const Size(0, 50),
+              ),
+              onPressed: _video,
+              icon: const Icon(Icons.videocam),
+              label: const Text('Uključi kameru i mikrofon'),
+            )
+          else
+            TextButton(
+              onPressed: _video,
+              child: const Text('Uključi prijenos'),
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _chatOverlay(Map<String, dynamic>? room, bool host) {
+    final hostId = room?['host_id'];
+    final recent = messages.take(30).toList(); // najnovije prve
+    return LayoutBuilder(
+      builder: (_, c) => ConstrainedBox(
+        constraints: BoxConstraints(
+          maxWidth: 320,
+          maxHeight: c.maxHeight * 0.6,
+        ),
+        child: ShaderMask(
+          shaderCallback: (r) => const LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [Colors.transparent, Colors.white],
+            stops: [0, 0.25],
+          ).createShader(r),
+          blendMode: BlendMode.dstIn,
+          child: ListView.builder(
+            reverse: true,
+            shrinkWrap: true,
+            padding: const EdgeInsets.only(top: 40),
+            itemCount: recent.length,
+            itemBuilder: (_, i) {
+              final m = recent[i];
+              final mine = m['sender_id'] == uid;
+              final isHost = m['sender_id'] == hostId;
+              final removed = m['deleted'] == true;
+              final name = mine
+                  ? 'Ti'
+                  : isHost
+                  ? 'Voditelj'
+                  : 'Korisnik ${(m['sender_id'] as String).substring(0, 6)}';
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 4),
+                child: GestureDetector(
+                  onLongPress: host && !mine ? () => _moderate(m) : null,
+                  child: Container(
+                    padding: const EdgeInsets.fromLTRB(6, 5, 10, 5),
+                    decoration: BoxDecoration(
+                      color: Colors.black.withValues(alpha: 0.38),
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        CircleAvatar(
+                          radius: 13,
+                          backgroundColor: isHost ? _liveRed : Colors.white24,
+                          child: Text(
+                            name.characters.first,
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 12,
+                              fontWeight: FontWeight.w800,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Flexible(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                name,
+                                style: TextStyle(
+                                  color: isHost
+                                      ? const Color(0xFFFFB3C1)
+                                      : Colors.white70,
+                                  fontSize: 11.5,
+                                  fontWeight: FontWeight.w800,
+                                ),
                               ),
-                        child: Text('Pokreni ${room?['lot_seconds'] ?? 30} s'),
+                              Text(
+                                removed
+                                    ? 'Poruka je uklonjena'
+                                    : m['body'] as String,
+                                style: TextStyle(
+                                  color: removed
+                                      ? Colors.white38
+                                      : Colors.white,
+                                  fontSize: 14,
+                                  fontStyle: removed
+                                      ? FontStyle.italic
+                                      : FontStyle.normal,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              );
+            },
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// Kartica trenutnog predmeta + glavna radnja (licitiraj / pokreni).
+  Widget _lotPanel(Map<String, dynamic>? room, bool host) {
+    final running = lots.where((l) => l['status'] == 'running').firstOrNull;
+    final queued = lots.where((l) => l['status'] == 'queued').toList();
+    final won = lots
+        .where((l) => l['status'] == 'sold' && l['winner_id'] == uid)
+        .firstOrNull;
+    final scheduled = room?['status'] == 'scheduled';
+    final ended = room?['status'] == 'ended';
+    final lot = running ?? queued.firstOrNull;
+    final children = <Widget>[];
+
+    if (lot != null) {
+      children.add(
+        Row(
+          children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    running != null ? 'Sada na aukciji' : 'Sljedeći predmet',
+                    style: const TextStyle(
+                      color: Colors.white54,
+                      fontSize: 11.5,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  Text(
+                    lot['title'] as String,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 16,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 10),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                Text(
+                  money(lot['price_cents'] ?? lot['start_cents']),
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 22,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+                if (running != null)
+                  _LotTimer(
+                    endsAt: DateTime.tryParse(
+                      running['ends_at'] as String? ?? '',
+                    ),
+                  ),
+              ],
+            ),
+          ],
+        ),
+      );
+      children.add(const SizedBox(height: 10));
+    }
+
+    final primary = <Widget>[];
+    if (won != null) {
+      primary.add(
+        FilledButton.icon(
+          style: FilledButton.styleFrom(
+            backgroundColor: const Color(0xFF16A34A),
+            foregroundColor: Colors.white,
+            minimumSize: const Size.fromHeight(52),
+          ),
+          onPressed: busy ? null : () => _claim(won),
+          icon: const Icon(Icons.local_shipping_outlined),
+          label: const Text('Osvojeno · odaberi dostavu'),
+        ),
+      );
+    } else if (host) {
+      if (scheduled) {
+        primary.add(
+          FilledButton.icon(
+            style: FilledButton.styleFrom(
+              backgroundColor: _liveRed,
+              foregroundColor: Colors.white,
+              minimumSize: const Size.fromHeight(52),
+            ),
+            onPressed: busy
+                ? null
+                : () => _run(() async {
+                    await live.setStatus(roomId!, 'live');
+                    await _video();
+                  }),
+            icon: const Icon(Icons.podcasts),
+            label: const Text('Započni live'),
+          ),
+        );
+      } else if (!ended) {
+        final next = running == null ? queued.firstOrNull : null;
+        primary.add(
+          FilledButton.icon(
+            style: FilledButton.styleFrom(
+              backgroundColor: _liveRed,
+              foregroundColor: Colors.white,
+              disabledBackgroundColor: Colors.white12,
+              disabledForegroundColor: Colors.white54,
+              minimumSize: const Size.fromHeight(52),
+            ),
+            onPressed: busy
+                ? null
+                : running != null
+                ? null
+                : next != null
+                ? () => _run(
+                    () => live.startLot(
+                      next['id'] as String,
+                      room?['lot_seconds'] as int? ?? 30,
+                    ),
+                  )
+                : _addLot,
+            icon: Icon(
+              running != null
+                  ? Icons.hourglass_top
+                  : next != null
+                  ? Icons.play_arrow
+                  : Icons.add,
+            ),
+            label: Text(
+              running != null
+                  ? 'Licitacija traje…'
+                  : next != null
+                  ? 'Pokreni ${room?['lot_seconds'] ?? 30} s'
+                  : 'Dodaj predmet',
+            ),
+          ),
+        );
+      }
+    } else if (running != null) {
+      final price = running['price_cents'] as int?;
+      final nextBid = price == null
+          ? running['start_cents'] as int
+          : price + (running['increment_cents'] as int);
+      primary.add(
+        FilledButton(
+          style: FilledButton.styleFrom(
+            backgroundColor: _liveRed,
+            foregroundColor: Colors.white,
+            minimumSize: const Size.fromHeight(52),
+            textStyle: const TextStyle(
+              fontSize: 17,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+          onPressed: busy ? null : () => _bid(running),
+          child: Text(
+            uid == null
+                ? 'Prijavi se za licitiranje'
+                : 'Licitiraj ${money(nextBid)}',
+          ),
+        ),
+      );
+    }
+    children.addAll(primary);
+
+    // Sporedne radnje: voditelj (dodaj, popis, završi) i provjera rezultata.
+    final secondary = <Widget>[];
+    if (host && !ended) {
+      secondary
+        ..add(_smallAction(Icons.add, 'Dodaj predmet', busy ? null : _addLot))
+        ..add(
+          _smallAction(
+            Icons.list_alt,
+            'Predmeti (${lots.length})',
+            () => _showLots(room, host),
+          ),
+        )
+        ..add(
+          _smallAction(
+            Icons.stop_circle_outlined,
+            'Završi live',
+            busy ? null : _confirmEnd,
+            color: const Color(0xFFFF8FA3),
+          ),
+        );
+    } else if (!host) {
+      secondary.add(
+        _smallAction(
+          Icons.list_alt,
+          'Predmeti (${lots.length})',
+          () => _showLots(room, host),
+        ),
+      );
+    }
+    if (uid != null && running != null) {
+      secondary.add(
+        _smallAction(
+          Icons.refresh,
+          'Provjeri rezultat',
+          busy
+              ? null
+              : () => _run(() => live.finishLot(running['id'] as String)),
+        ),
+      );
+    }
+    if (secondary.isNotEmpty) {
+      children
+        ..add(const SizedBox(height: 6))
+        ..add(
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceAround,
+            children: secondary,
+          ),
+        );
+    }
+    if (children.isEmpty) return const SizedBox.shrink();
+    return Container(
+      padding: const EdgeInsets.fromLTRB(14, 12, 14, 6),
+      decoration: const BoxDecoration(
+        color: _panel,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: children,
+      ),
+    );
+  }
+
+  Widget _smallAction(
+    IconData icon,
+    String label,
+    VoidCallback? onTap, {
+    Color color = Colors.white70,
+  }) => TextButton.icon(
+    style: TextButton.styleFrom(
+      foregroundColor: color,
+      disabledForegroundColor: Colors.white24,
+      padding: const EdgeInsets.symmetric(horizontal: 8),
+      textStyle: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w700),
+    ),
+    onPressed: onTap,
+    icon: Icon(icon, size: 18),
+    label: Text(label),
+  );
+
+  Widget _room(Map<String, dynamic>? room, bool host) {
+    final keyboard = MediaQuery.viewInsetsOf(context).bottom > 0;
+    final videoOn = room?['video_enabled'] != false;
+    final status = room?['status'];
+    return ColoredBox(
+      color: _ink,
+      child: Column(
+        children: [
+          Expanded(
+            child: Stack(
+              fit: StackFit.expand,
+              children: [
+                if (videoOn && connection != null)
+                  CloudLiveMedia(
+                    key: ValueKey('$roomId:$uid'),
+                    connection: connection!,
+                  )
+                else
+                  _stagePlaceholder(room, host),
+                // Oznaka stanja.
+                Positioned(
+                  left: 12,
+                  top: 10,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 4,
+                    ),
+                    decoration: BoxDecoration(
+                      color: status == 'live'
+                          ? _liveRed
+                          : Colors.black.withValues(alpha: 0.55),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Text(
+                      switch (status) {
+                        'live' => '● UŽIVO',
+                        'scheduled' => 'ZAKAZANO',
+                        'ended' => 'ZAVRŠENO',
+                        _ => '',
+                      },
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w900,
+                        letterSpacing: 0.5,
                       ),
-                    if (!host && lot['status'] == 'running')
-                      FilledButton(
-                        onPressed: busy
-                            ? null
-                            : () => _run(() async {
-                                if (!await _login()) return;
-                                final price = lot['price_cents'] as int?;
-                                await live.bid(
-                                  lot['id'] as String,
-                                  price == null
-                                      ? lot['start_cents'] as int
-                                      : price + (lot['increment_cents'] as int),
-                                  const Uuid().v4(),
-                                );
-                              }),
-                        child: Text(
-                          uid == null
-                              ? 'Prijavi se za licitiranje'
-                              : 'Licitiraj',
+                    ),
+                  ),
+                ),
+                // Chat preko videa (kao na Whatnotu).
+                Positioned(
+                  left: 12,
+                  right: 12,
+                  top: 48,
+                  bottom: 8,
+                  child: Align(
+                    alignment: Alignment.bottomLeft,
+                    child: _chatOverlay(room, host),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          if (!keyboard) _lotPanel(room, host),
+          Container(
+            color: _panel,
+            child: SafeArea(
+              top: false,
+              child: Padding(
+                padding: EdgeInsets.fromLTRB(12, 6, 12, keyboard ? 6 : 10),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: TextField(
+                        controller: input,
+                        readOnly: uid == null,
+                        onTap: uid == null ? _login : null,
+                        maxLength: 500,
+                        style: const TextStyle(color: Colors.white),
+                        textInputAction: TextInputAction.send,
+                        onSubmitted: (_) => _sendChat(),
+                        decoration: InputDecoration(
+                          isDense: true,
+                          filled: true,
+                          fillColor: Colors.white12,
+                          hintText: uid == null
+                              ? 'Prijavi se za komentar'
+                              : 'Napiši komentar',
+                          hintStyle: const TextStyle(color: Colors.white60),
+                          counterText: '',
+                          contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 12,
+                          ),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(99),
+                            borderSide: BorderSide.none,
+                          ),
                         ),
                       ),
-                    if (uid != null && lot['status'] == 'running')
-                      TextButton(
-                        onPressed: busy
-                            ? null
-                            : () => _run(
-                                () => live.finishLot(lot['id'] as String),
-                              ),
-                        child: const Text('Provjeri rezultat'),
+                    ),
+                    const SizedBox(width: 6),
+                    IconButton.filled(
+                      style: IconButton.styleFrom(
+                        backgroundColor: _liveRed,
+                        foregroundColor: Colors.white,
                       ),
-                    if (lot['status'] == 'sold' && lot['winner_id'] == uid)
-                      FilledButton(
-                        onPressed: busy
-                            ? null
-                            : () => _run(() async {
-                                await commerce.claimAward(
-                                  lot['id'] as String,
-                                  const Uuid().v4(),
-                                );
-                                if (widget.liveOnly && mounted) {
-                                  Navigator.of(context).pushReplacement(
-                                    MaterialPageRoute<void>(
-                                      settings: AppPlace.of(
-                                        'cloud',
-                                        'orders',
-                                      ).settings,
-                                      builder: (_) => const CloudCommerceScreen(
-                                        initialTab: 2,
-                                        liveOnly: true,
-                                      ),
-                                    ),
-                                  );
-                                  return;
-                                }
-                                await _leave();
-                                if (mounted) setState(() => tab = 2);
-                                await _refresh();
-                              }),
-                        child: const Text('Osvojeno · odaberi dostavu'),
-                      ),
+                      onPressed: busy ? null : _sendChat,
+                      icon: const Icon(Icons.send, size: 20),
+                    ),
                   ],
                 ),
               ),
-            const Text('Chat', style: TextStyle(fontWeight: FontWeight.bold)),
-            for (final m in messages.reversed)
-              ListTile(
-                dense: true,
-                title: Text(
-                  m['deleted'] == true
-                      ? 'Poruka je uklonjena'
-                      : m['body'] as String,
-                ),
-                subtitle: Text(
-                  m['sender_id'] == uid
-                      ? 'Ti'
-                      : 'Korisnik ${(m['sender_id'] as String).substring(0, 6)}',
-                ),
-                trailing: host
-                    ? PopupMenuButton<String>(
-                        onSelected: (v) => _run(() async {
-                          if (v == 'delete') {
-                            await live.deleteMessage(m['id'] as int);
-                          } else {
-                            await live.moderate(
-                              roomId!,
-                              m['sender_id'] as String,
-                              muted: v == 'mute',
-                              banned: v == 'ban',
-                            );
-                          }
-                        }),
-                        itemBuilder: (_) => const [
-                          PopupMenuItem(
-                            value: 'delete',
-                            child: Text('Ukloni poruku'),
-                          ),
-                          PopupMenuItem(value: 'mute', child: Text('Utišaj')),
-                          PopupMenuItem(
-                            value: 'ban',
-                            child: Text('Zabrani pristup'),
-                          ),
-                        ],
-                      )
-                    : null,
-              ),
-          ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _sendChat() => _run(() async {
+    if (!await _login()) return;
+    final text = input.text.trim();
+    if (text.isEmpty) return;
+    await live.sendMessage(roomId!, text, const Uuid().v4());
+    input.clear();
+  });
+}
+
+/// Odbrojavanje do kraja licitacije (osvježava se svake sekunde).
+class _LotTimer extends StatefulWidget {
+  const _LotTimer({required this.endsAt});
+  final DateTime? endsAt;
+
+  @override
+  State<_LotTimer> createState() => _LotTimerState();
+}
+
+class _LotTimerState extends State<_LotTimer> {
+  Timer? _t;
+
+  @override
+  void initState() {
+    super.initState();
+    _t = Timer.periodic(const Duration(seconds: 1), (_) {
+      if (mounted) setState(() {});
+    });
+  }
+
+  @override
+  void dispose() {
+    _t?.cancel();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final end = widget.endsAt?.toLocal();
+    if (end == null) return const SizedBox.shrink();
+    final left = end.difference(DateTime.now());
+    final secs = left.isNegative ? 0 : left.inSeconds;
+    final hot = secs <= 5;
+    return Container(
+      margin: const EdgeInsets.only(top: 2),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+      decoration: BoxDecoration(
+        color: hot ? const Color(0xFFE5173F) : Colors.white12,
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Text(
+        secs >= 60
+            ? '${secs ~/ 60}:${(secs % 60).toString().padLeft(2, '0')}'
+            : '$secs s',
+        style: const TextStyle(
+          color: Colors.white,
+          fontSize: 12.5,
+          fontWeight: FontWeight.w900,
         ),
       ),
-      SafeArea(
-        top: false,
-        child: Padding(
-          padding: EdgeInsets.fromLTRB(
-            12,
-            6,
-            12,
-            MediaQuery.viewInsetsOf(context).bottom > 0 ? 6 : 12,
-          ),
-          child: Row(
-            children: [
-              Expanded(
-                child: TextField(
-                  controller: input,
-                  readOnly: uid == null,
-                  onTap: uid == null ? _login : null,
-                  maxLength: 500,
-                  decoration: InputDecoration(
-                    hintText: uid == null
-                        ? 'Prijavi se za komentar'
-                        : 'Napiši komentar',
-                    counterText: '',
-                  ),
-                ),
-              ),
-              IconButton(
-                onPressed: busy
-                    ? null
-                    : () => _run(() async {
-                        if (!await _login()) return;
-                        final text = input.text.trim();
-                        if (text.isEmpty) return;
-                        await live.sendMessage(
-                          roomId!,
-                          text,
-                          const Uuid().v4(),
-                        );
-                        input.clear();
-                      }),
-                icon: const Icon(Icons.send),
-              ),
-            ],
-          ),
-        ),
-      ),
-    ],
-  );
+    );
+  }
 }
