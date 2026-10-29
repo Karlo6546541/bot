@@ -1177,40 +1177,58 @@ class _MyAuctionsViewState extends ConsumerState<MyAuctionsView> {
         children: [for (final d in list) _pad(DeliveryCard(delivery: d))],
       ),
     ];
-    List<Widget> doneSlivers(
-      List<Delivery> list,
-      String title, {
-      bool digital = false,
-    }) => [
-      sectionBox(title),
-      SliverPadding(
-        padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
-        sliver: SliverGrid(
-          gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-            maxCrossAxisExtent: 200,
-            mainAxisSpacing: 12,
-            crossAxisSpacing: 12,
-            childAspectRatio: 0.68,
-          ),
-          delegate: SliverChildListDelegate([
-            for (final d in list)
-              if (d.method != DeliveryMethod.digital) _BoughtTile(delivery: d),
-            if (digital)
-              for (final dev in s.myDigitalPurchases) _BoughtTile(digital: dev),
-          ]),
+    // Osvojeno: obične stvari (s dostavom) i digitalno (datoteke) odvojeno.
+    final liveDigitalIds = {
+      for (final x in s.transactions)
+        if (x.id.startsWith('livebuy-') && x.buyerId == me) x.deviceId,
+    };
+    final digLive = [
+      for (final d in s.myDigitalPurchases)
+        if (liveDigitalIds.contains(d.id)) d,
+    ];
+    final digAuc = [
+      for (final d in s.myDigitalPurchases)
+        if (!liveDigitalIds.contains(d.id)) d,
+    ];
+    final physDone = [
+      for (final d in auc.done)
+        if (d.method != DeliveryMethod.digital) d,
+    ];
+    final physDoneLive = [
+      for (final d in lv.done)
+        if (d.method != DeliveryMethod.digital) d,
+    ];
+    SliverPadding tiles(List<Widget> children) => SliverPadding(
+      padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+      sliver: SliverGrid(
+        gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+          maxCrossAxisExtent: 200,
+          mainAxisSpacing: 12,
+          crossAxisSpacing: 12,
+          childAspectRatio: 0.68,
         ),
+        delegate: SliverChildListDelegate(children),
       ),
+    );
+    List<Widget> doneSlivers(List<Delivery> list, String title) => [
+      sectionBox(title),
+      tiles([for (final d in list) _BoughtTile(delivery: d)]),
+    ];
+    List<Widget> digitalSlivers(List<Device> list) => [
+      sectionBox(t('💾 Digitalno ({0})', ['${list.length}'])),
+      tiles([for (final dev in list) _BoughtTile(digital: dev)]),
     ];
 
     // ============================================================ Licitiram
     if (_tab == MyTab.buying) {
       final f = _buyFilter;
-      final doneCount = auc.done.length + s.myDigitalPurchases.length;
+      final doneCount = physDone.length;
       final empty =
           auc.actions.isEmpty &&
           bidding.isEmpty &&
           auc.onTheWay.isEmpty &&
           doneCount == 0 &&
+          digAuc.isEmpty &&
           lost.isEmpty;
       final slivers = <Widget>[
         if (f == 'all') ...[
@@ -1240,11 +1258,8 @@ class _MyAuctionsViewState extends ConsumerState<MyAuctionsView> {
           ],
           if (auc.onTheWay.isNotEmpty) ...onWaySlivers(auc.onTheWay),
           if (doneCount > 0)
-            ...doneSlivers(
-              auc.done,
-              t('✓ Osvojeno ({0})', ['$doneCount']),
-              digital: true,
-            ),
+            ...doneSlivers(physDone, t('✓ Osvojeno ({0})', ['$doneCount'])),
+          if (digAuc.isNotEmpty) ...digitalSlivers(digAuc),
         ] else if (f == 'action') ...[
           if (auc.actions.isEmpty)
             _note(t('Ništa ne čeka tvoju akciju.'))
@@ -1274,6 +1289,11 @@ class _MyAuctionsViewState extends ConsumerState<MyAuctionsView> {
             _note(t('Nitko te nije nadmašio.'))
           else
             _auctionGrid(outbid, me, key: const ValueKey('my-bidding')),
+        ] else if (f == 'digital') ...[
+          if (digAuc.isEmpty)
+            _note(t('Još nemaš kupljenih digitalnih proizvoda.'))
+          else
+            ...digitalSlivers(digAuc),
         ] else if (f == 'way') ...[
           if (auc.onTheWay.isEmpty)
             _note(t('Ništa ti trenutno ne stiže.'))
@@ -1283,11 +1303,7 @@ class _MyAuctionsViewState extends ConsumerState<MyAuctionsView> {
           if (doneCount == 0 && lost.isEmpty)
             _note(t('Još nema završenih aukcija.')),
           if (doneCount > 0)
-            ...doneSlivers(
-              auc.done,
-              t('✓ Osvojeno ({0})', ['$doneCount']),
-              digital: true,
-            ),
+            ...doneSlivers(physDone, t('✓ Osvojeno ({0})', ['$doneCount'])),
           if (lost.isNotEmpty) ...[
             sectionBox(t('Nisam pobijedio ({0})', ['${lost.length}'])),
             _auctionGrid(lost, me, key: const ValueKey('my-lost')),
@@ -1306,6 +1322,7 @@ class _MyAuctionsViewState extends ConsumerState<MyAuctionsView> {
               ('outbid', t('Nadmašen'), outbid.length),
               ('way', t('Na putu'), auc.onTheWay.length),
               ('done', t('Završeno'), doneCount + lost.length),
+              ('digital', t('Digitalno'), digAuc.length),
             ],
             f,
             (v) => setState(() => _buyFilter = v),
@@ -1421,11 +1438,12 @@ class _MyAuctionsViewState extends ConsumerState<MyAuctionsView> {
       final liveBoughtSlivers = <Widget>[
         if (lv.actions.isNotEmpty) ...actionSlivers(lv.actions),
         if (lv.onTheWay.isNotEmpty) ...onWaySlivers(lv.onTheWay),
-        if (lv.done.isNotEmpty)
+        if (physDoneLive.isNotEmpty)
           ...doneSlivers(
-            lv.done,
-            t('✓ Kupljeno u liveu ({0})', ['${lv.done.length}']),
+            physDoneLive,
+            t('✓ Kupljeno u liveu ({0})', ['${physDoneLive.length}']),
           ),
+        if (digLive.isNotEmpty) ...digitalSlivers(digLive),
       ];
       final soldSlivers = <Widget>[
         sectionBox(t('💸 Prodano u liveu ({0})', ['${soldLive.length}'])),
@@ -1520,7 +1538,8 @@ class _MyAuctionsViewState extends ConsumerState<MyAuctionsView> {
                 t('Kupljeno'),
                 lv.actions.length +
                     lv.onTheWay.length +
-                    lv.done.length +
+                    physDoneLive.length +
+                    digLive.length +
                     onlineBought.length +
                     (online?.unclaimedAwards.length ?? 0),
               ),

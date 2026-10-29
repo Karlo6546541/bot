@@ -2663,4 +2663,6 @@ const kEn = <String, String>{
       'You already bought this digital product — download it in My.',
   'Osvojio si "{0}" za {1}. Datoteku preuzmi na stranici predmeta.':
       'You won "{0}" for {1}. Download the file on the item page.',
+  '💾 Digitalno ({0})': '💾 Digital ({0})',
+  'Još nemaš kupljenih digitalnih proizvoda.': 'You have no purchased digital products yet.',
 };
