@@ -15,10 +15,12 @@ class CloudCommerceScreen extends StatefulWidget {
     this.client,
     this.onRequireLogin,
     this.enableRealtime = true,
+    this.onLoadError,
   });
   final SupabaseClient? client;
   final Future<void> Function()? onRequireLogin;
   final bool enableRealtime;
+  final void Function(Object)? onLoadError;
   @override
   State<CloudCommerceScreen> createState() => _CloudCommerceState();
 }
@@ -102,7 +104,8 @@ class _CloudCommerceState extends State<CloudCommerceScreen> {
         failed = false;
         loading = false;
       });
-    } catch (_) {
+    } catch (error) {
+      widget.onLoadError?.call(error);
       if (mounted) {
         setState(() {
           failed = true;

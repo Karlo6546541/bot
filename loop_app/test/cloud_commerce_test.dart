@@ -16,10 +16,13 @@ void main() {
     addTearDown(tester.view.resetDevicePixelRatio);
     addTearDown(tester.view.resetViewInsets);
     final mutations = <String>[];
+    final requests = <String>[];
+    final errors = <Object>[];
     var logins = 0;
     const room = '00000000-0000-4000-8000-000000000001';
     const host = '00000000-0000-4000-8000-000000000002';
     final transport = MockClient((request) async {
+      requests.add('${request.method} ${request.url}');
       if (request.method == 'POST') mutations.add(request.url.path);
       Object rows = [];
       if (request.url.path.endsWith('live_rooms')) {
@@ -77,6 +80,7 @@ void main() {
         home: CloudCommerceScreen(
           client: client,
           enableRealtime: false,
+          onLoadError: errors.add,
           onRequireLogin: () async {
             logins++;
           },
@@ -86,6 +90,8 @@ void main() {
     await tester.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 400)));
     await tester.pumpAndSettle();
     expect(find.text('Prijava'), findsOneWidget);
+    expect(errors, isEmpty, reason: 'Requests: $requests');
+    expect(find.text('Retro live'), findsOneWidget, reason: 'Requests: $requests; errors: $errors');
     await tester.tap(find.text('Retro live'));
     await tester.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 400)));
     await tester.pumpAndSettle();
