@@ -2636,4 +2636,21 @@ const kEn = <String, String>{
   '⏱ Na aukciji ({0})': '⏱ On auction ({0})',
   '✓ Završene aukcije ({0})': '✓ Finished auctions ({0})',
   '📬 Potvrda paketa ({0})': '📬 Confirm parcel ({0})',
+  'Još nema kupnji ni prodaja u liveu. Licitiraj ili pokreni live.':
+      'No live purchases or sales yet. Bid or start a live.',
+  'Još nema poslanih paketa.': 'No sent parcels yet.',
+  'Još nisi ništa kupio u liveu.':
+      'You haven\'t bought anything in a live yet.',
+  'Još nisi ništa prodao u liveu.': 'You haven\'t sold anything in a live yet.',
+  'Licitiraj na aukciji — ovdje pratiš ponude, pobjede i paket.':
+      'Bid on an auction — here you follow bids, wins and your parcel.',
+  'Ovdje pratiš što si osvojio, svoje aukcije, liveove i pakete za poslati.':
+      'Here you follow what you won, your auctions, lives and parcels to send.',
+  'Prijavi se za svoje licitacije i prodaje':
+      'Log in to see your bids and sales',
+  '✓ Kupljeno u liveu ({0})': '✓ Bought in live ({0})',
+  '✓ Poslano ({0})': '✓ Sent ({0})',
+  '💸 Prodano u liveu ({0})': '💸 Sold in live ({0})',
+  '🧾 Sve otpremnice ({0})': '🧾 All delivery notes ({0})',
+  'Licitiram': 'Bidding',
 };

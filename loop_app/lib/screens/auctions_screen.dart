@@ -31,19 +31,27 @@ import 'login_screen.dart';
 import 'swipe_feed_screen.dart';
 import '../l10n/tr.dart';
 
-/// Moje: dva taba — što kupujem (licitacije, pobjede, dostava) i što
-/// prodajem (paketi za poslati, liveovi, predmeti).
+/// Moje: četiri taba — Licitiram (aukcije na kojima licitiram i pobjede),
+/// Aukcije (moje aukcije i predmeti), Live (kupljeno i prodano u liveu) i
+/// Otpremnice (paketi za poslati).
 enum MyTab {
-  buying('Kupujem', Icons.gavel),
-  selling('Prodajem', Icons.sell_outlined);
+  buying('Licitiram', Icons.gavel),
+  selling('Aukcije', Icons.sell_outlined),
+  live('Live', Icons.videocam_outlined),
+  notes('Otpremnice', Icons.description_outlined);
 
   const MyTab(this._label, this.icon);
   final String _label;
   String get label => t(_label);
   final IconData icon;
 
-  /// Ključ taba (testovi i stari linkovi: Prodajem = "my-selling").
-  String get key => this == selling ? 'my-selling' : 'my-buying';
+  /// Ključ taba (testovi i stari linkovi: Aukcije = "my-selling").
+  String get key => switch (this) {
+    buying => 'my-buying',
+    selling => 'my-selling',
+    live => 'my-live',
+    notes => 'my-notes-tab',
+  };
 }
 
 /// Odnos prijavljenog korisnika prema aukciji (za oznaku na kartici).
@@ -819,6 +827,8 @@ class _MyAuctionsViewState extends ConsumerState<MyAuctionsView> {
   /// Brzi prečac (filter) po tabu; 'all' = sve.
   String _buyFilter = 'all';
   String _sellFilter = 'all';
+  String _liveFilter = 'all';
+  String _notesFilter = 'all';
 
   /// Prikazani su i stariji završeni liveovi.
   bool _allLives = false;
@@ -905,9 +915,9 @@ class _MyAuctionsViewState extends ConsumerState<MyAuctionsView> {
       return EmptyState(
         key: const ValueKey('my-guest'),
         icon: Icons.person_outline,
-        title: t('Prijavi se za svoje kupnje i prodaje'),
+        title: t('Prijavi se za svoje licitacije i prodaje'),
         message: t(
-          'Ovdje pratiš što si osvojio, svoje licitacije, predmete i pakete za poslati.',
+          'Ovdje pratiš što si osvojio, svoje aukcije, liveove i pakete za poslati.',
         ),
         action: FilledButton.icon(
           key: const ValueKey('my-guest-login'),
@@ -921,46 +931,95 @@ class _MyAuctionsViewState extends ConsumerState<MyAuctionsView> {
     final user = s.currentUser!;
     final now = DateTime.now();
 
-    // ------------------------------------------------------------ Kupujem
+    // ----------------------------------------------- dostave kupca (po izvoru)
+    bool isLive(Delivery d) => d.id.startsWith('live-');
+    bool physical(Delivery d) => d.method != DeliveryMethod.digital;
     final bought = [...s.myDeliveries]
       ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
-    bool physical(Delivery d) => d.method != DeliveryMethod.digital;
-    final choose = [
-      for (final d in bought)
-        if (d.awaitingChoice) d,
+
+    /// Popisi dostava kupca za aukcije ([live] = false) ili liveove.
+    ({
+      List<Delivery> actions,
+      List<Delivery> confirm,
+      List<Delivery> onTheWay,
+      List<Delivery> done,
+    })
+    buyer(bool live) {
+      final mine = [
+        for (final d in bought)
+          if (isLive(d) == live) d,
+      ];
+      final choose = [
+        for (final d in mine)
+          if (d.awaitingChoice) d,
+      ];
+      final pickup = [
+        for (final d in mine)
+          if (physical(d) &&
+              d.autoConfirms &&
+              d.confirmedAt == null &&
+              d.status(now) == DeliveryStatus.inLocker)
+            d,
+      ];
+      final confirm = [
+        for (final d in mine)
+          if (d.method != null &&
+              physical(d) &&
+              !d.autoConfirms &&
+              d.confirmedAt == null &&
+              d.isDelivered(now))
+            d,
+      ];
+      return (
+        actions: [...choose, ...pickup, ...confirm],
+        confirm: [...pickup, ...confirm],
+        onTheWay: [
+          for (final d in mine)
+            if (d.method != null &&
+                physical(d) &&
+                d.confirmedAt == null &&
+                !d.isDelivered(now) &&
+                !pickup.contains(d))
+              d,
+        ],
+        done: [
+          for (final d in mine)
+            if (d.confirmedAt != null || d.method == DeliveryMethod.digital) d,
+        ],
+      );
+    }
+
+    final auc = buyer(false);
+    final lv = buyer(true);
+    final toShip = s.toShip;
+    final shipLive = [
+      for (final d in toShip)
+        if (isLive(d)) d,
     ];
-    // Paket čeka u paketomatu (PIN) ili je stigao i traži potvrdu.
-    final pickup = [
-      for (final d in bought)
-        if (physical(d) &&
-            d.autoConfirms &&
-            d.confirmedAt == null &&
-            d.status(now) == DeliveryStatus.inLocker)
-          d,
+    final notes =
+        [
+          for (final d in s.sellerDeliveries)
+            if (d.method != null && d.method != DeliveryMethod.digital) d,
+        ]..sort(
+          (a, b) => (b.startedAt ?? b.createdAt).compareTo(
+            a.startedAt ?? a.createdAt,
+          ),
+        );
+    final soldLive = [
+      for (final d in s.sellerDeliveries)
+        if (isLive(d) && d.sellerId == me) d,
+    ]..sort((a, b) => b.createdAt.compareTo(a.createdAt));
+    final lives = [...s.liveShows.where((l) => l.hostId == me)]
+      ..sort((a, b) => b.startsAt.compareTo(a.startsAt));
+    final recentLives = [
+      for (final l in lives)
+        if (_allLives ||
+            !s.liveStateOf(l).isOver ||
+            now.difference(l.startsAt) < const Duration(days: 3))
+          l,
     ];
-    final confirm = [
-      for (final d in bought)
-        if (d.method != null &&
-            physical(d) &&
-            !d.autoConfirms &&
-            d.confirmedAt == null &&
-            d.isDelivered(now))
-          d,
-    ];
-    final actions = [...choose, ...pickup, ...confirm];
-    final onTheWay = [
-      for (final d in bought)
-        if (d.method != null &&
-            physical(d) &&
-            d.confirmedAt == null &&
-            !d.isDelivered(now) &&
-            !pickup.contains(d))
-          d,
-    ];
-    final done = [
-      for (final d in bought)
-        if (d.confirmedAt != null || (d.method == DeliveryMethod.digital)) d,
-    ];
+
+    // --------------------------------------------------------------- aukcije
     final bidding =
         s.auctions
             .where(
@@ -972,7 +1031,6 @@ class _MyAuctionsViewState extends ConsumerState<MyAuctionsView> {
             )
             .toList()
           ..sort((a, b) => a.endsAt.compareTo(b.endsAt));
-
     final leading = [
       for (final a in bidding)
         if (a.highestBid?.userId == me) a,
@@ -981,7 +1039,6 @@ class _MyAuctionsViewState extends ConsumerState<MyAuctionsView> {
       for (final a in bidding)
         if (a.highestBid?.userId != me) a,
     ];
-    // Završene aukcije na kojima sam licitirao, a nisam pobijedio.
     final lost =
         s.auctions
             .where(
@@ -993,9 +1050,6 @@ class _MyAuctionsViewState extends ConsumerState<MyAuctionsView> {
             )
             .toList()
           ..sort((a, b) => b.endsAt.compareTo(a.endsAt));
-    final confirmPackages = [...pickup, ...confirm];
-
-    // ------------------------------------------------------------ Prodajem
     final myActive =
         s.auctions
             .where((a) => a.sellerId == me && a.isActive && !a.isExpired(now))
@@ -1006,24 +1060,13 @@ class _MyAuctionsViewState extends ConsumerState<MyAuctionsView> {
             .where((a) => a.sellerId == me && (!a.isActive || a.isExpired(now)))
             .toList()
           ..sort((a, b) => b.endsAt.compareTo(a.endsAt));
-    final toShip = s.toShip;
-    final lives = [...s.liveShows.where((l) => l.hostId == me)]
-      ..sort((a, b) => b.startsAt.compareTo(a.startsAt));
-    final recentLives = [
-      for (final l in lives)
-        if (_allLives ||
-            !s.liveStateOf(l).isOver ||
-            now.difference(l.startsAt) < const Duration(days: 3))
-          l,
-    ];
-    final notes = [
-      for (final d in s.sellerDeliveries)
-        if (d.method != null && d.method != DeliveryMethod.digital) d,
-    ];
+
+    Widget sectionBox(String title, {Widget? trailing}) =>
+        SliverToBoxAdapter(child: _section(title, trailing: trailing));
 
     Widget tabButton(MyTab t0, int badge) => Expanded(
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 4),
+        padding: const EdgeInsets.symmetric(horizontal: 3),
         child: Material(
           color: _tab == t0 ? LoopColors.textPrimary : LoopColors.surface,
           borderRadius: BorderRadius.circular(14),
@@ -1032,9 +1075,8 @@ class _MyAuctionsViewState extends ConsumerState<MyAuctionsView> {
             borderRadius: BorderRadius.circular(14),
             onTap: () => setState(() => _tab = t0),
             child: Padding(
-              padding: const EdgeInsets.symmetric(vertical: 12),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
+              padding: const EdgeInsets.symmetric(vertical: 8),
+              child: Column(
                 children: [
                   Badge(
                     isLabelVisible: badge > 0,
@@ -1048,15 +1090,19 @@ class _MyAuctionsViewState extends ConsumerState<MyAuctionsView> {
                           : LoopColors.textPrimary,
                     ),
                   ),
-                  const SizedBox(width: 8),
-                  Text(
-                    t0.label,
-                    style: TextStyle(
-                      fontWeight: FontWeight.w900,
-                      fontSize: 15,
-                      color: _tab == t0
-                          ? LoopColors.background
-                          : LoopColors.textPrimary,
+                  const SizedBox(height: 3),
+                  FittedBox(
+                    fit: BoxFit.scaleDown,
+                    child: Text(
+                      t0.label,
+                      maxLines: 1,
+                      style: TextStyle(
+                        fontWeight: FontWeight.w800,
+                        fontSize: 12,
+                        color: _tab == t0
+                            ? LoopColors.background
+                            : LoopColors.textPrimary,
+                      ),
                     ),
                   ),
                 ],
@@ -1068,18 +1114,184 @@ class _MyAuctionsViewState extends ConsumerState<MyAuctionsView> {
     );
 
     final tabs = Padding(
-      padding: const EdgeInsets.fromLTRB(12, 8, 12, 4),
+      padding: const EdgeInsets.fromLTRB(10, 8, 10, 4),
       child: Row(
         children: [
-          tabButton(MyTab.buying, actions.length),
-          tabButton(MyTab.selling, toShip.length),
+          tabButton(MyTab.buying, auc.actions.length),
+          tabButton(MyTab.selling, 0),
+          tabButton(MyTab.live, lv.actions.length + shipLive.length),
+          tabButton(MyTab.notes, toShip.length),
         ],
       ),
     );
 
-    Widget sectionBox(String title, {Widget? trailing}) =>
-        SliverToBoxAdapter(child: _section(title, trailing: trailing));
+    Widget body(List<Widget> slivers, {Key? key}) => Expanded(
+      child: CustomScrollView(
+        key: key,
+        slivers: [
+          ...slivers,
+          const SliverToBoxAdapter(child: SizedBox(height: 96)),
+        ],
+      ),
+    );
 
+    // Odjeljci dostava kupca (zajednički za Licitiram i Live).
+    List<Widget> actionSlivers(List<Delivery> list) => [
+      sectionBox(t('⚡ Treba tvoju akciju ({0})', ['${list.length}'])),
+      SliverList.list(
+        key: const ValueKey('my-actions'),
+        children: [
+          for (final d in list)
+            _pad(DeliveryCard(key: ValueKey('bought-${d.id}'), delivery: d)),
+        ],
+      ),
+    ];
+    List<Widget> onWaySlivers(List<Delivery> list) => [
+      sectionBox(t('📥 Na putu do tebe ({0})', ['${list.length}'])),
+      SliverList.list(
+        key: const ValueKey('my-on-the-way'),
+        children: [for (final d in list) _pad(DeliveryCard(delivery: d))],
+      ),
+    ];
+    List<Widget> doneSlivers(
+      List<Delivery> list,
+      String title, {
+      bool digital = false,
+    }) => [
+      sectionBox(title),
+      SliverPadding(
+        padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+        sliver: SliverGrid(
+          gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+            maxCrossAxisExtent: 200,
+            mainAxisSpacing: 12,
+            crossAxisSpacing: 12,
+            childAspectRatio: 0.68,
+          ),
+          delegate: SliverChildListDelegate([
+            for (final d in list)
+              if (d.method != DeliveryMethod.digital) _BoughtTile(delivery: d),
+            if (digital)
+              for (final dev in s.myDigitalPurchases) _BoughtTile(digital: dev),
+          ]),
+        ),
+      ),
+    ];
+
+    // ============================================================ Licitiram
+    if (_tab == MyTab.buying) {
+      final f = _buyFilter;
+      final doneCount = auc.done.length + s.myDigitalPurchases.length;
+      final empty =
+          auc.actions.isEmpty &&
+          bidding.isEmpty &&
+          auc.onTheWay.isEmpty &&
+          doneCount == 0 &&
+          lost.isEmpty;
+      final slivers = <Widget>[
+        if (f == 'all') ...[
+          if (empty)
+            SliverFillRemaining(
+              hasScrollBody: false,
+              child: EmptyState(
+                icon: Icons.gavel,
+                title: t('Još nisi licitirao'),
+                message: t(
+                  'Licitiraj na aukciji — ovdje pratiš ponude, pobjede i paket.',
+                ),
+                action: widget.onBrowse == null
+                    ? null
+                    : FilledButton.icon(
+                        key: const ValueKey('my-empty-browse'),
+                        onPressed: widget.onBrowse,
+                        icon: const Icon(Icons.explore_outlined),
+                        label: Text(t('Istraži')),
+                      ),
+              ),
+            ),
+          if (auc.actions.isNotEmpty) ...actionSlivers(auc.actions),
+          if (bidding.isNotEmpty) ...[
+            sectionBox(t('Licitiram ({0})', ['${bidding.length}'])),
+            _auctionGrid(bidding, me, key: const ValueKey('my-bidding')),
+          ],
+          if (auc.onTheWay.isNotEmpty) ...onWaySlivers(auc.onTheWay),
+          if (doneCount > 0)
+            ...doneSlivers(
+              auc.done,
+              t('✓ Osvojeno ({0})', ['$doneCount']),
+              digital: true,
+            ),
+        ] else if (f == 'action') ...[
+          if (auc.actions.isEmpty)
+            _note(t('Ništa ne čeka tvoju akciju.'))
+          else
+            ...actionSlivers(auc.actions),
+        ] else if (f == 'confirm') ...[
+          if (auc.confirm.isEmpty)
+            _note(t('Nema paketa za preuzimanje ili potvrdu.'))
+          else ...[
+            sectionBox(t('📬 Potvrda paketa ({0})', ['${auc.confirm.length}'])),
+            SliverList.list(
+              children: [
+                for (final d in auc.confirm)
+                  _pad(
+                    DeliveryCard(key: ValueKey('bought-${d.id}'), delivery: d),
+                  ),
+              ],
+            ),
+          ],
+        ] else if (f == 'leading') ...[
+          if (leading.isEmpty)
+            _note(t('Trenutno nigdje ne voziš.'))
+          else
+            _auctionGrid(leading, me, key: const ValueKey('my-bidding')),
+        ] else if (f == 'outbid') ...[
+          if (outbid.isEmpty)
+            _note(t('Nitko te nije nadmašio.'))
+          else
+            _auctionGrid(outbid, me, key: const ValueKey('my-bidding')),
+        ] else if (f == 'way') ...[
+          if (auc.onTheWay.isEmpty)
+            _note(t('Ništa ti trenutno ne stiže.'))
+          else
+            ...onWaySlivers(auc.onTheWay),
+        ] else ...[
+          if (doneCount == 0 && lost.isEmpty)
+            _note(t('Još nema završenih aukcija.')),
+          if (doneCount > 0)
+            ...doneSlivers(
+              auc.done,
+              t('✓ Osvojeno ({0})', ['$doneCount']),
+              digital: true,
+            ),
+          if (lost.isNotEmpty) ...[
+            sectionBox(t('Nisam pobijedio ({0})', ['${lost.length}'])),
+            _auctionGrid(lost, me, key: const ValueKey('my-lost')),
+          ],
+        ],
+      ];
+      return Column(
+        children: [
+          tabs,
+          _chips(
+            [
+              ('all', t('Sve'), 0),
+              ('action', t('Treba akciju'), auc.actions.length),
+              ('confirm', t('Potvrda paketa'), auc.confirm.length),
+              ('leading', t('Vodim'), leading.length),
+              ('outbid', t('Nadmašen'), outbid.length),
+              ('way', t('Na putu'), auc.onTheWay.length),
+              ('done', t('Završeno'), doneCount + lost.length),
+            ],
+            f,
+            (v) => setState(() => _buyFilter = v),
+          ),
+          body(slivers, key: const ValueKey('my-bought')),
+        ],
+      );
+    }
+
+    // =============================================================== Aukcije
     if (_tab == MyTab.selling) {
       final f = _sellFilter;
       final earnings = SliverToBoxAdapter(
@@ -1110,13 +1322,6 @@ class _MyAuctionsViewState extends ConsumerState<MyAuctionsView> {
           ),
         ),
       );
-      final shipSlivers = <Widget>[
-        sectionBox(t('📦 Za poslati ({0})', ['${toShip.length}'])),
-        SliverList.list(
-          key: const ValueKey('my-deliveries-list'),
-          children: [for (final d in toShip) _pad(_ToShipCard(delivery: d))],
-        ),
-      ];
       final activeSlivers = <Widget>[
         sectionBox(t('⏱ Na aukciji ({0})', ['${myActive.length}'])),
         _auctionGrid(myActive, me, key: const ValueKey('my-active-auctions')),
@@ -1138,62 +1343,11 @@ class _MyAuctionsViewState extends ConsumerState<MyAuctionsView> {
           key: const ValueKey('my-ended-auctions'),
         ),
       ];
-      List<Widget> liveSlivers({int? limit}) => [
-        sectionBox(
-          t('🔴 Moji liveovi'),
-          trailing:
-              limit == null && (lives.length > recentLives.length || _allLives)
-              ? TextButton(
-                  key: const ValueKey('my-lives-all'),
-                  onPressed: () => setState(() => _allLives = !_allLives),
-                  child: Text(_allLives ? t('Samo nedavni') : t('Svi')),
-                )
-              : null,
-        ),
-        SliverList.list(
-          key: const ValueKey('my-lives'),
-          children: [
-            for (final l
-                in (limit == null
-                    ? recentLives
-                    : recentLives.take(limit).toList()))
-              _MyLiveTile(show: l, state: s.liveStateOf(l)),
-          ],
-        ),
-      ];
-      final notesSliver = SliverToBoxAdapter(
-        child: _pad(
-          Material(
-            color: LoopColors.surface,
-            borderRadius: BorderRadius.circular(kRadius),
-            child: ListTile(
-              key: const ValueKey('my-notes'),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(kRadius),
-              ),
-              leading: const Icon(Icons.description_outlined),
-              title: Text(
-                t('Sve otpremnice'),
-                style: const TextStyle(fontWeight: FontWeight.w800),
-              ),
-              subtitle: Text(
-                t('{0} · generiraju se same za svaku prodaju', [
-                  '${notes.length}',
-                ]),
-              ),
-              trailing: const Icon(Icons.chevron_right),
-              onTap: () => DeliveryNotesScreen.open(context),
-            ),
-          ),
-        ),
-      );
       final chips = _chips(
         [
           ('all', t('Sve'), 0),
-          ('ship', t('Za poslati'), toShip.length),
           ('active', t('Na aukciji'), myActive.length),
           ('ended', t('Završene'), myEnded.length),
-          ('lives', t('Liveovi'), lives.length),
           ('saved', t('Spremljeno'), 0),
         ],
         f,
@@ -1211,11 +1365,8 @@ class _MyAuctionsViewState extends ConsumerState<MyAuctionsView> {
                     ? const []
                     : [
                         earnings,
-                        if (toShip.isNotEmpty) ...shipSlivers,
                         if (myActive.isNotEmpty) ...activeSlivers,
                         if (myEnded.isNotEmpty) ...endedSlivers(3),
-                        if (lives.isNotEmpty) ...liveSlivers(limit: 3),
-                        if (notes.isNotEmpty) notesSliver,
                         sectionBox(t('Moji predmeti')),
                       ],
               ),
@@ -1223,180 +1374,231 @@ class _MyAuctionsViewState extends ConsumerState<MyAuctionsView> {
           ],
         );
       }
-      final list = switch (f) {
-        'ship' =>
-          toShip.isEmpty
-              ? [_note(t('Nemaš paketa za poslati.'))]
-              : [...shipSlivers, if (notes.isNotEmpty) notesSliver],
-        'active' =>
-          myActive.isEmpty
-              ? [_note(t('Nemaš aukcija koje traju.'))]
-              : activeSlivers,
-        'ended' =>
-          myEnded.isEmpty
-              ? [_note(t('Još nema završenih aukcija.'))]
-              : endedSlivers(null),
-        _ => lives.isEmpty ? [_note(t('Još nisi bio uživo.'))] : liveSlivers(),
-      };
       return Column(
         children: [
           tabs,
           chips,
-          Expanded(
-            child: CustomScrollView(
-              slivers: [
-                ...list,
-                const SliverToBoxAdapter(child: SizedBox(height: 96)),
-              ],
-            ),
+          body(
+            f == 'active'
+                ? (myActive.isEmpty
+                      ? [_note(t('Nemaš aukcija koje traju.'))]
+                      : activeSlivers)
+                : (myEnded.isEmpty
+                      ? [_note(t('Još nema završenih aukcija.'))]
+                      : endedSlivers(null)),
           ),
         ],
       );
     }
 
-    // ------------------------------------------------------------ Kupujem
-    final f = _buyFilter;
-    final actionSlivers = <Widget>[
-      sectionBox(t('⚡ Treba tvoju akciju ({0})', ['${actions.length}'])),
-      SliverList.list(
-        key: const ValueKey('my-actions'),
-        children: [
-          for (final d in actions)
-            _pad(DeliveryCard(key: ValueKey('bought-${d.id}'), delivery: d)),
-        ],
-      ),
-    ];
-    final onWaySlivers = <Widget>[
-      sectionBox(t('📥 Na putu do tebe ({0})', ['${onTheWay.length}'])),
-      SliverList.list(
-        key: const ValueKey('my-on-the-way'),
-        children: [for (final d in onTheWay) _pad(DeliveryCard(delivery: d))],
-      ),
-    ];
-    final doneCount = done.length + s.myDigitalPurchases.length;
-    final doneSlivers = <Widget>[
-      sectionBox(t('✓ Osvojeno ({0})', ['$doneCount'])),
-      SliverPadding(
-        padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
-        sliver: SliverGrid(
-          gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-            maxCrossAxisExtent: 200,
-            mainAxisSpacing: 12,
-            crossAxisSpacing: 12,
-            childAspectRatio: 0.68,
+    // ================================================================== Live
+    if (_tab == MyTab.live) {
+      final f = _liveFilter;
+      final liveBoughtSlivers = <Widget>[
+        if (lv.actions.isNotEmpty) ...actionSlivers(lv.actions),
+        if (lv.onTheWay.isNotEmpty) ...onWaySlivers(lv.onTheWay),
+        if (lv.done.isNotEmpty)
+          ...doneSlivers(
+            lv.done,
+            t('✓ Kupljeno u liveu ({0})', ['${lv.done.length}']),
           ),
-          delegate: SliverChildListDelegate([
-            for (final d in done)
-              if (d.method != DeliveryMethod.digital) _BoughtTile(delivery: d),
-            for (final dev in s.myDigitalPurchases) _BoughtTile(digital: dev),
-          ]),
+      ];
+      final soldSlivers = <Widget>[
+        sectionBox(t('💸 Prodano u liveu ({0})', ['${soldLive.length}'])),
+        SliverList.list(
+          key: const ValueKey('my-live-sold'),
+          children: [for (final d in soldLive) _pad(_ToShipCard(delivery: d))],
         ),
+      ];
+      final liveSlivers = <Widget>[
+        sectionBox(
+          t('🔴 Moji liveovi'),
+          trailing: lives.length > recentLives.length || _allLives
+              ? TextButton(
+                  key: const ValueKey('my-lives-all'),
+                  onPressed: () => setState(() => _allLives = !_allLives),
+                  child: Text(_allLives ? t('Samo nedavni') : t('Svi')),
+                )
+              : null,
+        ),
+        SliverList.list(
+          key: const ValueKey('my-lives'),
+          children: [
+            for (final l in recentLives)
+              _MyLiveTile(show: l, state: s.liveStateOf(l)),
+          ],
+        ),
+      ];
+      final startLive = SliverToBoxAdapter(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+          child: FilledButton.icon(
+            key: const ValueKey('my-empty-live'),
+            style: FilledButton.styleFrom(
+              backgroundColor: kLiveRed,
+              foregroundColor: Colors.white,
+            ),
+            onPressed: () => CreateLiveShowScreen.open(context),
+            icon: const Icon(Icons.videocam),
+            label: Text(t('Kreni uživo')),
+          ),
+        ),
+      );
+      final emptyAll =
+          liveBoughtSlivers.isEmpty && soldLive.isEmpty && lives.isEmpty;
+      final slivers = <Widget>[
+        if (f == 'all') ...[
+          startLive,
+          if (emptyAll)
+            _note(
+              t(
+                'Još nema kupnji ni prodaja u liveu. Licitiraj ili pokreni live.',
+              ),
+            ),
+          ...liveBoughtSlivers,
+          if (soldLive.isNotEmpty) ...soldSlivers,
+          if (lives.isNotEmpty) ...liveSlivers,
+        ] else if (f == 'bought') ...[
+          if (liveBoughtSlivers.isEmpty)
+            _note(t('Još nisi ništa kupio u liveu.'))
+          else
+            ...liveBoughtSlivers,
+        ] else if (f == 'sold') ...[
+          if (soldLive.isEmpty)
+            _note(t('Još nisi ništa prodao u liveu.'))
+          else
+            ...soldSlivers,
+        ] else ...[
+          startLive,
+          if (lives.isEmpty)
+            _note(t('Još nisi bio uživo.'))
+          else
+            ...liveSlivers,
+        ],
+      ];
+      return Column(
+        children: [
+          tabs,
+          _chips(
+            [
+              ('all', t('Sve'), 0),
+              (
+                'bought',
+                t('Kupljeno'),
+                lv.actions.length + lv.onTheWay.length + lv.done.length,
+              ),
+              ('sold', t('Prodano'), soldLive.length),
+              ('mine', t('Moji liveovi'), lives.length),
+            ],
+            f,
+            (v) => setState(() => _liveFilter = v),
+          ),
+          body(slivers),
+        ],
+      );
+    }
+
+    // ========================================================== Otpremnice
+    final f = _notesFilter;
+    final sentNotes = [
+      for (final d in notes)
+        if (d.confirmedAt != null || d.isDelivered(now)) d,
+    ];
+    final shipSlivers = <Widget>[
+      sectionBox(t('📦 Za poslati ({0})', ['${toShip.length}'])),
+      SliverList.list(
+        key: const ValueKey('my-deliveries-list'),
+        children: [for (final d in toShip) _pad(_ToShipCard(delivery: d))],
       ),
     ];
-    final empty =
-        actions.isEmpty &&
-        bidding.isEmpty &&
-        onTheWay.isEmpty &&
-        doneCount == 0 &&
-        lost.isEmpty;
-    final slivers = <Widget>[
-      if (f == 'all') ...[
-        if (empty)
-          SliverFillRemaining(
-            hasScrollBody: false,
-            child: EmptyState(
-              icon: Icons.gavel,
-              title: t('Još nisi licitirao'),
-              message: t(
-                'Licitiraj u liveu ili na aukciji — ovdje pratiš ponude, pobjede i paket.',
-              ),
-              action: widget.onBrowse == null
-                  ? null
-                  : FilledButton.icon(
-                      key: const ValueKey('my-empty-browse'),
-                      onPressed: widget.onBrowse,
-                      icon: const Icon(Icons.explore_outlined),
-                      label: Text(t('Istraži')),
+    final noteSlivers = <Widget>[
+      sectionBox(t('🧾 Sve otpremnice ({0})', ['${notes.length}'])),
+      SliverList.list(
+        key: const ValueKey('my-notes-list'),
+        children: [
+          for (final d in notes)
+            _pad(
+              Material(
+                color: LoopColors.surface,
+                borderRadius: BorderRadius.circular(kRadius),
+                child: ListTile(
+                  key: ValueKey('note-${d.id}'),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(kRadius),
+                  ),
+                  leading: const Icon(Icons.description_outlined),
+                  title: Text(
+                    d.trackingNumber ?? d.id,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.w900,
+                      letterSpacing: 1,
                     ),
-            ),
-          ),
-        if (actions.isNotEmpty) ...actionSlivers,
-        if (bidding.isNotEmpty) ...[
-          sectionBox(t('Licitiram ({0})', ['${bidding.length}'])),
-          _auctionGrid(bidding, me, key: const ValueKey('my-bidding')),
-        ],
-        if (onTheWay.isNotEmpty) ...onWaySlivers,
-        if (doneCount > 0) ...doneSlivers,
-      ] else if (f == 'action') ...[
-        if (actions.isEmpty)
-          _note(t('Ništa ne čeka tvoju akciju.'))
-        else
-          ...actionSlivers,
-      ] else if (f == 'confirm') ...[
-        if (confirmPackages.isEmpty)
-          _note(t('Nema paketa za preuzimanje ili potvrdu.'))
-        else ...[
-          sectionBox(
-            t('📬 Potvrda paketa ({0})', ['${confirmPackages.length}']),
-          ),
-          SliverList.list(
-            children: [
-              for (final d in confirmPackages)
-                _pad(
-                  DeliveryCard(key: ValueKey('bought-${d.id}'), delivery: d),
+                  ),
+                  subtitle: Text(
+                    '${d.deviceName}\n${s.userById(d.buyerId)?.handle ?? ''}'
+                    ' · ${formatDateTime(d.startedAt ?? d.createdAt)}',
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  isThreeLine: true,
+                  trailing: Text(
+                    d.status(now).label,
+                    style: TextStyle(
+                      color: d.isDelivered(now)
+                          ? LoopColors.buyNow
+                          : LoopColors.accent,
+                      fontWeight: FontWeight.w800,
+                      fontSize: 12,
+                    ),
+                  ),
+                  onTap: () => DeliveryNoteScreen.open(context, d.id),
                 ),
-            ],
-          ),
+              ),
+            ),
         ],
-      ] else if (f == 'leading') ...[
-        if (leading.isEmpty)
-          _note(t('Trenutno nigdje ne voziš.'))
-        else
-          _auctionGrid(leading, me, key: const ValueKey('my-bidding')),
-      ] else if (f == 'outbid') ...[
-        if (outbid.isEmpty)
-          _note(t('Nitko te nije nadmašio.'))
-        else
-          _auctionGrid(outbid, me, key: const ValueKey('my-bidding')),
-      ] else if (f == 'way') ...[
-        if (onTheWay.isEmpty)
-          _note(t('Ništa ti trenutno ne stiže.'))
-        else
-          ...onWaySlivers,
-      ] else ...[
-        // Završeno: osvojeno i aukcije koje nisam dobio.
-        if (doneCount == 0 && lost.isEmpty)
-          _note(t('Još nema završenih aukcija.')),
-        if (doneCount > 0) ...doneSlivers,
-        if (lost.isNotEmpty) ...[
-          sectionBox(t('Nisam pobijedio ({0})', ['${lost.length}'])),
-          _auctionGrid(lost, me, key: const ValueKey('my-lost')),
-        ],
-      ],
-      const SliverToBoxAdapter(child: SizedBox(height: 96)),
+      ),
     ];
+    final noteList = switch (f) {
+      'ship' =>
+        toShip.isEmpty ? [_note(t('Nemaš paketa za poslati.'))] : shipSlivers,
+      'sent' =>
+        sentNotes.isEmpty
+            ? [_note(t('Još nema poslanih paketa.'))]
+            : [
+                sectionBox(t('✓ Poslano ({0})', ['${sentNotes.length}'])),
+                SliverList.list(
+                  children: [
+                    for (final d in sentNotes) _pad(_ToShipCard(delivery: d)),
+                  ],
+                ),
+              ],
+      _ =>
+        notes.isEmpty && toShip.isEmpty
+            ? [
+                _note(
+                  t(
+                    'Kad kupac odabere dostavu, ovdje dobiješ otpremnicu s kodom za paketomat.',
+                  ),
+                ),
+              ]
+            : [
+                if (toShip.isNotEmpty) ...shipSlivers,
+                if (notes.isNotEmpty) ...noteSlivers,
+              ],
+    };
     return Column(
       children: [
         tabs,
         _chips(
           [
             ('all', t('Sve'), 0),
-            ('action', t('Treba akciju'), actions.length),
-            ('confirm', t('Potvrda paketa'), confirmPackages.length),
-            ('leading', t('Vodim'), leading.length),
-            ('outbid', t('Nadmašen'), outbid.length),
-            ('way', t('Na putu'), onTheWay.length),
-            ('done', t('Završeno'), doneCount + lost.length),
+            ('ship', t('Za poslati'), toShip.length),
+            ('sent', t('Poslano'), sentNotes.length),
           ],
           f,
-          (v) => setState(() => _buyFilter = v),
+          (v) => setState(() => _notesFilter = v),
         ),
-        Expanded(
-          child: CustomScrollView(
-            key: const ValueKey('my-bought'),
-            slivers: slivers,
-          ),
-        ),
+        body(noteList),
       ],
     );
   }

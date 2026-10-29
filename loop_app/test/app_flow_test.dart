@@ -204,6 +204,15 @@ void main() {
       await tester.tap(find.byKey(const ValueKey('my-selling')));
       await tester.pumpAndSettle();
       expect(find.byKey(const ValueKey('my-lives')), findsNothing);
+      // Live: kupljeno i prodano u liveu, uz gumb za pokretanje.
+      await tester.tap(find.byKey(const ValueKey('my-live')));
+      await tester.pumpAndSettle();
+      expect(find.byKey(const ValueKey('my-empty-live')), findsOneWidget);
+      expect(find.byKey(const ValueKey('my-chip-sold')), findsNothing);
+      // Otpremnice su zaseban tab.
+      await tester.tap(find.byKey(const ValueKey('my-notes-tab')));
+      await tester.pumpAndSettle();
+      expect(find.byKey(const ValueKey('my-chip-all')), findsOneWidget);
     });
   }
 
