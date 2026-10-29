@@ -2,6 +2,7 @@
 // Generirano iz popisa tekstova; nadopuni ručno kad dodaješ nove.
 
 const kEn = <String, String>{
+  'Nema dostupnih preporuka': 'No recommendations available',
   'Dodaj objavu': 'Add post',
   'Još nema lajkanih oglasa.': 'No liked listings yet.',
   'Tvoje objave prikazat će se ovdje.': 'Your posts will appear here.',

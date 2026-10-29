@@ -315,6 +315,30 @@ class ForYouRanker {
     return (total, top);
   }
 
+  /// Prefer unseen entries, then fill the batch from available seen entries.
+  /// Explicit hides and seller exclusions still apply in [rank].
+  List<Pick> rankBatch(
+    List<BrowseItem> items, {
+    Set<String> exclude = const {},
+    int limit = 40,
+    bool replay = false,
+  }) {
+    final eligible = items.where((i) => !exclude.contains(keyOf(i))).toList();
+    if (replay) return rank(eligible, limit: limit);
+    final fresh = rank([
+      for (final i in eligible)
+        if (!preferences.seenRecently(keyOf(i), now)) i,
+    ], limit: limit);
+    if (fresh.length == limit) return fresh;
+    return [
+      ...fresh,
+      ...rank([
+        for (final i in eligible)
+          if (preferences.seenRecently(keyOf(i), now)) i,
+      ], limit: limit - fresh.length),
+    ];
+  }
+
   /// Najboljih [limit] oglasa — bez vlastitih, s raznolikošću (isti
   /// prodavač ili kategorija zaredom dobivaju kaznu).
   List<Pick> rank(List<BrowseItem> items, {int limit = 8}) {

@@ -120,6 +120,28 @@ void main() {
     },
   );
 
+  test('seen auctions fill a batch after fresh auctions without reviving hides', () {
+    final state = AppState.fromStorage(storage);
+    final now = DateTime.now();
+    final items = browseItems(state);
+    final prefs = FeedPreferences();
+    final ranker = ForYouRanker(state, now: now, preferences: prefs);
+    final eligible = ranker.rank(items, limit: 100);
+    expect(eligible.length, greaterThan(2));
+    for (final p in eligible) prefs.recordSeen(ForYouRanker.keyOf(p.item), now);
+    final fresh = ForYouRanker.keyOf(eligible.last.item);
+    prefs.seen.remove(fresh);
+    final hidden = ForYouRanker.keyOf(eligible.first.item);
+    prefs.hide(hidden);
+    final ranked = ranker.rankBatch(items, limit: 100);
+    expect(ForYouRanker.keyOf(ranked.first.item), fresh);
+    expect(ranked.length, eligible.length - 1);
+    expect(ranked.map((p) => ForYouRanker.keyOf(p.item)), isNot(contains(hidden)));
+    expect(ranker.rankBatch(items, exclude: ranked.map((p) => ForYouRanker.keyOf(p.item)).toSet()), isEmpty);
+    prefs.recordSeen(fresh, now);
+    expect(ranker.rankBatch(items), isNotEmpty);
+  });
+
   test('an expensive purchase does not set the budget of another category', () {
     final now = DateTime(2026, 10, 27);
     final me = SeedData.testUserId;

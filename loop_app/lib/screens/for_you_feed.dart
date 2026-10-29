@@ -56,14 +56,11 @@ class _ForYouFeedState extends ConsumerState<ForYouFeed> {
       recentCategories: ref.read(storageProvider).recentCategories,
       boost: _boost,
       preferences: _preferences,
-    ).rank([
-      for (final i in browseItems(s))
-        if (!exclude.contains(ForYouRanker.keyOf(i)) &&
-            !_shown.contains(ForYouRanker.keyOf(i)) &&
-            (_allowSeen ||
-                !_preferences.seenRecently(ForYouRanker.keyOf(i), now)))
-          i,
-    ], limit: 40);
+    ).rankBatch(
+      browseItems(s),
+      exclude: {...exclude, ..._shown},
+      replay: _allowSeen,
+    );
   }
 
   @override
@@ -280,7 +277,13 @@ class _ForYouFeedState extends ConsumerState<ForYouFeed> {
     _scheduleQueue();
   }
 
-  void _restart({bool replay = false}) {
+  Future<void> _restart({bool replay = false}) async {
+    final sync = ref.read(syncProvider);
+    if (sync != null) {
+      await sync.retry();
+      await sync.catchUpNow();
+      if (!mounted) return;
+    }
     _queueTimer?.cancel();
     setState(() {
       _allowSeen = replay;
@@ -383,9 +386,9 @@ class _ForYouFeedState extends ConsumerState<ForYouFeed> {
       _inventoryDirty =
           _inventoryDirty ||
           previous == null ||
-          previous.devices.length != next.devices.length ||
-          previous.auctions.length != next.auctions.length ||
-          previous.liveShows.length != next.liveShows.length;
+          !listEquals(previous.devices, next.devices) ||
+          !listEquals(previous.auctions, next.auctions) ||
+          !listEquals(previous.liveShows, next.liveShows);
       _rankingDirty =
           _rankingDirty ||
           previous == null ||
@@ -421,7 +424,7 @@ class _ForYouFeedState extends ConsumerState<ForYouFeed> {
               ),
               const SizedBox(height: 16),
               Text(
-                t('Sve novo si pogledao'),
+                t(_picks.isEmpty ? 'Nema dostupnih preporuka' : 'Sve novo si pogledao'),
                 textAlign: TextAlign.center,
                 style: const TextStyle(
                   color: Colors.white,
