@@ -2604,4 +2604,20 @@ const kEn = <String, String>{
   'Spremljeni predmeti čekaju — stavi ih na aukciju ili u live.':
       'Saved items are waiting — put them on auction or in a live.',
   'Očisti lokalne podatke i pokušaj ponovno': 'Clear local data and try again',
+  'Još nisi licitirao': 'You haven\'t bid yet',
+  'Licitiraj u liveu ili na aukciji — ovdje pratiš ponude, pobjede i paket.':
+      'Bid in a live or an auction — here you follow bids, wins and your parcel.',
+  'Licitiram ({0})': 'Bidding ({0})',
+  'Otpremnica · ispiši ili preuzmi': 'Delivery note · print or download',
+  'Ovdje pratiš što si osvojio, svoje licitacije, predmete i pakete za poslati.':
+      'Here you follow what you won, your bids, items and parcels to send.',
+  'Samo nedavni': 'Recent only',
+  'Sve otpremnice': 'All delivery notes',
+  '{0} · generiraju se same za svaku prodaju':
+      '{0} · created automatically for every sale',
+  '⚡ Treba tvoju akciju ({0})': '⚡ Needs your action ({0})',
+  '✓ Osvojeno ({0})': '✓ Won ({0})',
+  '📥 Na putu do tebe ({0})': '📥 On its way to you ({0})',
+  '📦 Za poslati ({0})': '📦 To send ({0})',
+  '🔴 Moji liveovi': '🔴 My lives',
 };

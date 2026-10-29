@@ -113,7 +113,10 @@ class MyItemsScreen extends StatelessWidget {
 
 /// Popis mojih predmeta s filtrima (i u kartici Moje → Prodajem).
 class MyItemsView extends ConsumerStatefulWidget {
-  const MyItemsView({super.key});
+  const MyItemsView({super.key, this.leading = const []});
+
+  /// Sliverovi iznad popisa (npr. zarada, paketi za poslati, liveovi).
+  final List<Widget> leading;
 
   @override
   ConsumerState<MyItemsView> createState() => _MyItemsViewState();
@@ -183,6 +186,7 @@ class _MyItemsViewState extends ConsumerState<MyItemsView> {
 
     return CustomScrollView(
       slivers: [
+        ...widget.leading,
         SliverToBoxAdapter(
           child: Padding(
             padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),

@@ -68,7 +68,7 @@ void main() {
       for (final v in DeliveryStatus.values) v.label,
       for (final v in ReportReason.values) v.label,
       for (final v in SwapStatus.values) v.label,
-      for (final v in AuctionView.values) v.label,
+      for (final v in MyTab.values) v.label,
       for (final v in AuctionRole.values)
         if (v != AuctionRole.none) v.label,
       for (final v in MarketSort.values) v.label,

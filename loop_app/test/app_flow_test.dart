@@ -186,21 +186,16 @@ void main() {
       }
       await tester.tap(find.text('Moje').last);
       await tester.pumpAndSettle();
-      await tester.tap(find.byKey(const ValueKey('my-bought')));
+      // Kupujem: licitacije koje traju.
+      await tester.tap(find.byKey(const ValueKey('my-buying')));
       await tester.pumpAndSettle();
       expect(find.byKey(const ValueKey('my-bought')), findsOneWidget);
-      await tester.tap(find.byKey(const ValueKey('my-myBids')));
-      await tester.pumpAndSettle();
       expect(find.text('Polaroid SX-70'), findsOneWidget);
       expect(find.text('Vodiš'), findsOneWidget);
-      // Prodajem → Liveovi.
+      // Prodajem: bez liveova nema odjeljka Moji liveovi.
       await tester.tap(find.byKey(const ValueKey('my-selling')));
       await tester.pumpAndSettle();
-      await tester.ensureVisible(find.byKey(const ValueKey('my-lives')));
-      await tester.pumpAndSettle();
-      await tester.tap(find.byKey(const ValueKey('my-lives')));
-      await tester.pumpAndSettle();
-      expect(find.text('Još nisi bio uživo'), findsOneWidget);
+      expect(find.byKey(const ValueKey('my-lives')), findsNothing);
     });
   }
 
@@ -249,14 +244,10 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('💾 Spremljeno'), findsNothing);
 
-    // Dostave: Stiže meni / Šaljem / Dostavljeno su odvojeni.
-    await tester.tap(find.byKey(const ValueKey('my-deliveries')));
+    // Kupujem: dostava je dio kartice osvojenog predmeta (nema zasebnog taba).
+    await tester.tap(find.byKey(const ValueKey('my-buying')));
     await tester.pumpAndSettle();
-    if (find.byKey(const ValueKey('my-ship-filter')).evaluate().isNotEmpty) {
-      await tester.tap(find.byKey(const ValueKey('ship-delivered')));
-      await tester.pumpAndSettle();
-      expect(find.text('Ništa ti trenutno ne stiže.'), findsNothing);
-    }
+    expect(find.byKey(const ValueKey('my-deliveries')), findsNothing);
   });
 
   testWidgets('aukcija: ponuda, vodstvo, zaključan obrazac', (tester) async {
