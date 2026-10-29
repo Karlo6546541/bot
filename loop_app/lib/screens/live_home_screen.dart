@@ -1,3 +1,4 @@
+import '../services/app_location/app_location.dart';
 import '../config/backend_config.dart';
 import 'cloud_commerce_screen.dart';
 import '../config/features.dart';
@@ -139,14 +140,7 @@ class _LiveHomeScreenState extends ConsumerState<LiveHomeScreen> {
   @override
   void initState() {
     super.initState();
-    if (BackendConfig.cloudCommerceEnabled && Uri.base.queryParameters['cloud'] == 'orders') {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (!mounted) return;
-        Navigator.of(context).push(MaterialPageRoute<void>(
-          builder: (_) => const CloudCommerceScreen(initialTab: 2),
-        ));
-      });
-    }
+
 
     if (_showHow) {
       WidgetsBinding.instance.addPostFrameCallback(

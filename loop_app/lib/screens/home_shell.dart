@@ -1,3 +1,5 @@
+import '../config/backend_config.dart';
+import 'cloud_commerce_screen.dart';
 import 'dart:async';
 
 import 'package:flutter/material.dart';
@@ -171,6 +173,17 @@ class _HomeShellState extends ConsumerState<HomeShell> {
   void _openPendingLink() {
     if (!mounted || !PendingLink.isPending) return;
     final state = ref.read(appProvider);
+    final cloud = PendingLink.cloud;
+    if (cloud != null) {
+      PendingLink.clear();
+      if (BackendConfig.cloudCommerceEnabled) {
+        Navigator.of(context).push(MaterialPageRoute<void>(
+          settings: AppPlace.of('cloud', cloud).settings,
+          builder: (_) => CloudCommerceScreen(initialTab: cloud == 'orders' ? 2 : cloud == 'catalog' ? 1 : 0),
+        ));
+      }
+      return;
+    }
     final item = PendingLink.item;
     final shop = PendingLink.shop;
     final list = PendingLink.list;
