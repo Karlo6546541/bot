@@ -1,7 +1,5 @@
 import '../config/features.dart';
-import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
-import 'package:url_launcher/url_launcher.dart';
 
 import '../config/backend_config.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -607,20 +605,6 @@ class _ProfileSettingsView extends ConsumerWidget {
                 const SizedBox(height: 8),
                 const LanguageSelector(),
                 const SizedBox(height: 24),
-                // Web: Android aplikacija (APK) s iste stranice (vidi
-                // loop-web.yml).
-                if (kIsWeb) ...[
-                  FilledButton.icon(
-                    key: const ValueKey('download-apk'),
-                    onPressed: () => launchUrl(
-                      Uri.base.resolve('subhasto.apk'),
-                      mode: LaunchMode.externalApplication,
-                    ),
-                    icon: const Icon(Icons.android),
-                    label: Text(t('Preuzmi Android aplikaciju')),
-                  ),
-                  const SizedBox(height: 12),
-                ],
                 if (!user.isGuest) ...[
                   OutlinedButton.icon(
                     onPressed: () {

@@ -163,14 +163,10 @@ class _CloudCommerceState extends State<CloudCommerceScreen> {
     try {
       await action();
       await _refresh();
-    } catch (_) {
+    } catch (error) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text(
-              'Radnja nije uspjela. Osvježi stanje pa pokušaj ponovno.',
-            ),
-          ),
+          SnackBar(content: Text(paymentActionErrorMessage(error))),
         );
       }
     } finally {

@@ -39,6 +39,11 @@ export function failure(error: unknown) {
     console.error('stripe_request_failed', { type: error.type, code: error.code, requestId: error.requestId });
   }
 
+  if (error instanceof Stripe.errors.StripeError &&
+      error.code === 'non_connect_platform_accounts_v2_access_blocked') {
+    return response(409, { error: 'CONNECT_PLATFORM_REQUIRED' });
+  }
+
   return response(error instanceof Error && error.message === 'AUTH_REQUIRED' ? 401 : 503,
     { error: error instanceof Error && error.message === 'AUTH_REQUIRED' ? 'AUTH_REQUIRED' : 'PAYMENTS_UNAVAILABLE' });
 }
