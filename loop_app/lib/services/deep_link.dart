@@ -50,7 +50,9 @@ class PendingLink {
     }
 
     final cloudTarget = opt('cloud');
-    cloud = const {'orders', 'live', 'catalog'}.contains(cloudTarget) ? cloudTarget : null;
+    cloud = const {'orders', 'live', 'catalog'}.contains(cloudTarget)
+        ? cloudTarget
+        : null;
     cloudRoom = cloud == 'live' ? opt('room') : null;
     auction = opt('auction');
     create = opt('new');

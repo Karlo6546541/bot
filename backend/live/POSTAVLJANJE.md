@@ -50,7 +50,7 @@ Tajnu tog webhooka spremi u Supabase secrets.
 
 ## 4. Uključi i provjeri
 
-Nakon postavljanja spoji PR #13 i postavi GitHub Actions repository variable
+Kad je kod iz PR-a #13 spojen i servisi postavljeni, postavi GitHub Actions repository variable
 `CLOUD_COMMERCE_ENABLED=true`. Pokreni workflow `LOOP web (GitHub Pages)`.
 
 Provjeri s dva testna računa i jednim gostom:

@@ -52,7 +52,9 @@ class _CloudCommerceState extends State<CloudCommerceScreen> {
   @override
   void initState() {
     super.initState();
-    tab = widget.initialTab >= 0 && widget.initialTab <= 2 ? widget.initialTab : 0;
+    tab = widget.initialTab >= 0 && widget.initialTab <= 2
+        ? widget.initialTab
+        : 0;
     auth = db.auth.onAuthStateChange.listen((_) {
       connection = null;
       _refresh();
@@ -133,9 +135,15 @@ class _CloudCommerceState extends State<CloudCommerceScreen> {
     if (widget.onRequireLogin != null) {
       await widget.onRequireLogin!();
     } else {
-      AppLocation.rememberForLogin(roomId != null
-        ? 'cloud=live&room=${Uri.encodeQueryComponent(roomId!)}'
-        : 'cloud=${tab == 2 ? 'orders' : tab == 1 ? 'catalog' : 'live'}');
+      AppLocation.rememberForLogin(
+        roomId != null
+            ? 'cloud=live&room=${Uri.encodeQueryComponent(roomId!)}'
+            : 'cloud=${tab == 2
+                  ? 'orders'
+                  : tab == 1
+                  ? 'catalog'
+                  : 'live'}',
+      );
       await LoginScreen.open(context);
     }
     if (mounted) await _refresh();
@@ -299,32 +307,46 @@ class _CloudCommerceState extends State<CloudCommerceScreen> {
                 backgroundColor: const Color(0xFF0B0C11),
                 indicatorColor: Colors.transparent,
                 surfaceTintColor: Colors.transparent,
-                iconTheme: WidgetStateProperty.resolveWith((states) => IconThemeData(
-                  size: 20, color: states.contains(WidgetState.selected) ? Colors.white : Colors.white54)),
-                labelTextStyle: WidgetStateProperty.resolveWith((states) => TextStyle(
-                  fontSize: 10, fontWeight: states.contains(WidgetState.selected) ? FontWeight.w600 : FontWeight.w400,
-                  color: states.contains(WidgetState.selected) ? Colors.white : Colors.white54)),
+                iconTheme: WidgetStateProperty.resolveWith(
+                  (states) => IconThemeData(
+                    size: 20,
+                    color: states.contains(WidgetState.selected)
+                        ? Colors.white
+                        : Colors.white54,
+                  ),
+                ),
+                labelTextStyle: WidgetStateProperty.resolveWith(
+                  (states) => TextStyle(
+                    fontSize: 10,
+                    fontWeight: states.contains(WidgetState.selected)
+                        ? FontWeight.w600
+                        : FontWeight.w400,
+                    color: states.contains(WidgetState.selected)
+                        ? Colors.white
+                        : Colors.white54,
+                  ),
+                ),
               ),
               child: NavigationBar(
-              selectedIndex: tab,
-              onDestinationSelected: (v) {
-                setState(() => tab = v);
-                _refresh();
-              },
-              destinations: const [
-                NavigationDestination(
-                  icon: Icon(Icons.live_tv),
-                  label: 'Uživo',
-                ),
-                NavigationDestination(
-                  icon: Icon(Icons.storefront),
-                  label: 'Katalog',
-                ),
-                NavigationDestination(
-                  icon: Icon(Icons.receipt_long),
-                  label: 'Narudžbe',
-                ),
-              ],
+                selectedIndex: tab,
+                onDestinationSelected: (v) {
+                  setState(() => tab = v);
+                  _refresh();
+                },
+                destinations: const [
+                  NavigationDestination(
+                    icon: Icon(Icons.live_tv),
+                    label: 'Uživo',
+                  ),
+                  NavigationDestination(
+                    icon: Icon(Icons.storefront),
+                    label: 'Katalog',
+                  ),
+                  NavigationDestination(
+                    icon: Icon(Icons.receipt_long),
+                    label: 'Narudžbe',
+                  ),
+                ],
               ),
             ),
     );

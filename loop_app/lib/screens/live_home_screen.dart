@@ -141,7 +141,6 @@ class _LiveHomeScreenState extends ConsumerState<LiveHomeScreen> {
   void initState() {
     super.initState();
 
-
     if (_showHow) {
       WidgetsBinding.instance.addPostFrameCallback(
         (_) => ref.read(appProvider.notifier).dismissHowItWorks(),

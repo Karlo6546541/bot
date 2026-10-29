@@ -178,10 +178,21 @@ class _HomeShellState extends ConsumerState<HomeShell> {
       final cloudRoom = PendingLink.cloudRoom;
       PendingLink.clear();
       if (BackendConfig.cloudCommerceEnabled) {
-        Navigator.of(context).push(MaterialPageRoute<void>(
-          settings: AppPlace('cloud=$cloud${cloudRoom == null ? '' : '&room=${Uri.encodeQueryComponent(cloudRoom)}'}').settings,
-          builder: (_) => CloudCommerceScreen(initialTab: cloud == 'orders' ? 2 : cloud == 'catalog' ? 1 : 0, initialRoom: cloudRoom),
-        ));
+        Navigator.of(context).push(
+          MaterialPageRoute<void>(
+            settings: AppPlace(
+              'cloud=$cloud${cloudRoom == null ? '' : '&room=${Uri.encodeQueryComponent(cloudRoom)}'}',
+            ).settings,
+            builder: (_) => CloudCommerceScreen(
+              initialTab: cloud == 'orders'
+                  ? 2
+                  : cloud == 'catalog'
+                  ? 1
+                  : 0,
+              initialRoom: cloudRoom,
+            ),
+          ),
+        );
       }
       return;
     }
