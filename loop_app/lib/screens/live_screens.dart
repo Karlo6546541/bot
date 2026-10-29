@@ -374,18 +374,34 @@ class _CreateLiveShowScreenState extends ConsumerState<CreateLiveShowScreen> {
           for (final (id, price) in items) {
             final d = state.deviceById(id);
             if (d == null) throw StateError('ITEM_NOT_FOUND');
-            lots.add({'title': '${d.name} ${d.model}'.trim(), 'start_cents': (price * 100).round(),
-              'source_device_id': id, 'image_url': d.imagePaths.firstOrNull});
+            lots.add({
+              'title': '${d.name} ${d.model}'.trim(),
+              'start_cents': (price * 100).round(),
+              'source_device_id': id,
+              'image_url': d.imagePaths.firstOrNull,
+            });
           }
           for (final draft in _drafts) {
             for (var k = 0; k < draft.count; k++) {
-              lots.add({'title': draft.onScreen ? '${draft.name} #${draft.from! + k}' : draft.name,
-                'start_cents': (draft.price * 100).round(), 'image_url': draft.photo});
+              lots.add({
+                'title': draft.onScreen
+                    ? '${draft.name} #${draft.from! + k}'
+                    : draft.name,
+                'start_cents': (draft.price * 100).round(),
+                'image_url': draft.photo,
+              });
             }
           }
-          final room = await backend.prepareRoom(title: _title.text, category: (_category ?? DeviceCategory.other).name,
-            cover: _cover, startsAt: _startsAt, seconds: _secs, video: _video,
-            lots: lots, requestId: _creationRequest);
+          final room = await backend.prepareRoom(
+            title: _title.text,
+            category: (_category ?? DeviceCategory.other).name,
+            cover: _cover,
+            startsAt: _startsAt,
+            seconds: _secs,
+            video: _video,
+            lots: lots,
+            requestId: _creationRequest,
+          );
           onlineRoom = room['id'] as String;
           return;
         }
@@ -430,10 +446,16 @@ class _CreateLiveShowScreenState extends ConsumerState<CreateLiveShowScreen> {
     );
     if (!ok || !mounted) return;
     if (onlineRoom != null) {
-      Navigator.of(context).pushReplacement(MaterialPageRoute<void>(
-        settings: AppPlace('cloud=live&room=$onlineRoom').settings,
-        builder: (_) => CloudCommerceScreen(initialRoom: onlineRoom, liveOnly: true, client: backend!.client),
-      ));
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute<void>(
+          settings: AppPlace('cloud=live&room=$onlineRoom').settings,
+          builder: (_) => CloudCommerceScreen(
+            initialRoom: onlineRoom,
+            liveOnly: true,
+            client: backend!.client,
+          ),
+        ),
+      );
       return;
     }
     if (created == null) return;

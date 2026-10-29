@@ -67,9 +67,11 @@ final fileStoreProvider = Provider<FileStore>(
 /// Sinkronizacija s online bazom (`null` = lokalni način rada).
 final syncProvider = Provider<SyncService?>((ref) => null);
 
-final preparedLiveBackendProvider = Provider<LiveBackend?>((ref) =>
-  BackendConfig.cloudCommerceEnabled && ref.watch(syncProvider) != null
-    ? LiveBackend(Supabase.instance.client) : null);
+final preparedLiveBackendProvider = Provider<LiveBackend?>(
+  (ref) => BackendConfig.cloudCommerceEnabled && ref.watch(syncProvider) != null
+      ? LiveBackend(Supabase.instance.client)
+      : null,
+);
 
 /// Signalizacija za video uživo (Supabase Realtime). Bez online baze (i u
 /// testovima) je `null` — live tada prikazuje fotografije predmeta.

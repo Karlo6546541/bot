@@ -7,14 +7,29 @@ class LiveBackend {
   LiveBackend(this.client);
   final SupabaseClient client;
 
-  Future<Map<String, dynamic>> prepareRoom({required String title, required String category,
-    String? cover, DateTime? startsAt, required int seconds, required bool video,
-    required List<Map<String, dynamic>> lots, required String requestId}) async {
-    final result = await client.rpc('live_prepare_room', params: {
-      'p_title': title, 'p_category': category, 'p_cover': cover,
-      'p_starts': startsAt?.toUtc().toIso8601String(), 'p_seconds': seconds,
-      'p_video': video, 'p_lots': lots, 'p_request': requestId,
-    });
+  Future<Map<String, dynamic>> prepareRoom({
+    required String title,
+    required String category,
+    String? cover,
+    DateTime? startsAt,
+    required int seconds,
+    required bool video,
+    required List<Map<String, dynamic>> lots,
+    required String requestId,
+  }) async {
+    final result = await client.rpc(
+      'live_prepare_room',
+      params: {
+        'p_title': title,
+        'p_category': category,
+        'p_cover': cover,
+        'p_starts': startsAt?.toUtc().toIso8601String(),
+        'p_seconds': seconds,
+        'p_video': video,
+        'p_lots': lots,
+        'p_request': requestId,
+      },
+    );
     return Map<String, dynamic>.from(result as Map);
   }
 
