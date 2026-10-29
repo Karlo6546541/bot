@@ -10,7 +10,12 @@ import 'login_screen.dart';
 
 /// Explicit online route. Legacy local orders and bids are never written here.
 class CloudCommerceScreen extends StatefulWidget {
-  const CloudCommerceScreen({super.key, this.client, this.onRequireLogin, this.enableRealtime = true});
+  const CloudCommerceScreen({
+    super.key,
+    this.client,
+    this.onRequireLogin,
+    this.enableRealtime = true,
+  });
   final SupabaseClient? client;
   final Future<void> Function()? onRequireLogin;
   final bool enableRealtime;
@@ -442,20 +447,21 @@ class _CloudCommerceState extends State<CloudCommerceScreen> {
 
   Widget _room(Map<String, dynamic>? room, bool host) => Column(
     children: [
-      if (MediaQuery.viewInsetsOf(context).bottom == 0) SizedBox(
-        height: 220,
-        child: connection == null
-            ? Center(
-                child: TextButton(
-                  onPressed: _video,
-                  child: const Text('Uključi prijenos'),
+      if (MediaQuery.viewInsetsOf(context).bottom == 0)
+        SizedBox(
+          height: 220,
+          child: connection == null
+              ? Center(
+                  child: TextButton(
+                    onPressed: _video,
+                    child: const Text('Uključi prijenos'),
+                  ),
+                )
+              : CloudLiveMedia(
+                  key: ValueKey('$roomId:$uid'),
+                  connection: connection!,
                 ),
-              )
-            : CloudLiveMedia(
-                key: ValueKey('$roomId:$uid'),
-                connection: connection!,
-              ),
-      ),
+        ),
       if (host && MediaQuery.viewInsetsOf(context).bottom == 0)
         Wrap(
           spacing: 8,

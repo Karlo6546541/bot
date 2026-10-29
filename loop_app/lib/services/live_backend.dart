@@ -13,12 +13,19 @@ class LiveBackend {
   );
   Future<dynamic> setStatus(String room, String status) async {
     if (status == 'ended') {
-      final result = await client.functions.invoke('live-control', body: {'roomId': room, 'action': 'end'});
+      final result = await client.functions.invoke(
+        'live-control',
+        body: {'roomId': room, 'action': 'end'},
+      );
       if (result.status != 200) throw StateError('LIVE_CONTROL_UNAVAILABLE');
       return result.data;
     }
-    return client.rpc('live_set_status', params: {'p_room': room, 'p_status': status});
+    return client.rpc(
+      'live_set_status',
+      params: {'p_room': room, 'p_status': status},
+    );
   }
+
   Future<dynamic> addLot(String room, String title, int cents, int increment) =>
       client.rpc(
         'live_add_lot',
@@ -44,16 +51,31 @@ class LiveBackend {
         'live_send_message',
         params: {'p_room': room, 'p_body': body, 'p_request': requestId},
       );
-  Future<dynamic> moderate(String room, String user,
-      {required bool muted, required bool banned}) async {
+  Future<dynamic> moderate(
+    String room,
+    String user, {
+    required bool muted,
+    required bool banned,
+  }) async {
     if (banned) {
-      final result = await client.functions.invoke('live-control', body: {'roomId': room, 'action': 'ban', 'userId': user});
+      final result = await client.functions.invoke(
+        'live-control',
+        body: {'roomId': room, 'action': 'ban', 'userId': user},
+      );
       if (result.status != 200) throw StateError('LIVE_CONTROL_UNAVAILABLE');
       return result.data;
     }
-    return client.rpc('live_moderate', params: {'p_room': room, 'p_user': user,
-      'p_muted': muted, 'p_banned': banned});
+    return client.rpc(
+      'live_moderate',
+      params: {
+        'p_room': room,
+        'p_user': user,
+        'p_muted': muted,
+        'p_banned': banned,
+      },
+    );
   }
+
   Future<dynamic> deleteMessage(int id) =>
       client.rpc('live_delete_message', params: {'p_id': id});
 
