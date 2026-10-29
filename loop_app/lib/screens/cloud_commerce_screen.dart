@@ -10,8 +10,10 @@ import 'login_screen.dart';
 
 /// Explicit online route. Legacy local orders and bids are never written here.
 class CloudCommerceScreen extends StatefulWidget {
-  const CloudCommerceScreen({super.key, this.client});
+  const CloudCommerceScreen({super.key, this.client, this.onRequireLogin, this.enableRealtime = true});
   final SupabaseClient? client;
+  final Future<void> Function()? onRequireLogin;
+  final bool enableRealtime;
   @override
   State<CloudCommerceScreen> createState() => _CloudCommerceState();
 }
@@ -109,7 +111,11 @@ class _CloudCommerceState extends State<CloudCommerceScreen> {
 
   Future<bool> _login() async {
     if (uid != null) return true;
-    await LoginScreen.open(context);
+    if (widget.onRequireLogin != null) {
+      await widget.onRequireLogin!();
+    } else {
+      await LoginScreen.open(context);
+    }
     if (mounted) await _refresh();
     return mounted && uid != null;
   }
@@ -173,7 +179,7 @@ class _CloudCommerceState extends State<CloudCommerceScreen> {
       messages = [];
       lots = [];
     });
-    channel = live.watch(id, _refresh);
+    if (widget.enableRealtime) channel = live.watch(id, _refresh);
     await _refresh();
     await _video();
   }
