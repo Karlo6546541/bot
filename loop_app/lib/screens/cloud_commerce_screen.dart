@@ -16,8 +16,10 @@ class CloudCommerceScreen extends StatefulWidget {
     this.onRequireLogin,
     this.enableRealtime = true,
     this.onLoadError,
+    this.initialTab = 0,
   });
   final SupabaseClient? client;
+  final int initialTab;
   final Future<void> Function()? onRequireLogin;
   final bool enableRealtime;
   final void Function(Object)? onLoadError;
@@ -47,6 +49,7 @@ class _CloudCommerceState extends State<CloudCommerceScreen> {
   @override
   void initState() {
     super.initState();
+    tab = widget.initialTab >= 0 && widget.initialTab <= 2 ? widget.initialTab : 0;
     auth = db.auth.onAuthStateChange.listen((_) {
       connection = null;
       _refresh();

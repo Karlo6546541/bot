@@ -30,6 +30,7 @@ export async function authenticate(req: Request) {
 export function appUrl() {
   const url = new URL(Deno.env.get('APP_URL')!);
   if (url.origin !== origin() || url.protocol !== 'https:') throw new Error('INVALID_APP_URL');
+  url.searchParams.set('cloud', 'orders');
   return url.toString();
 }
 export function failure(error: unknown) {
