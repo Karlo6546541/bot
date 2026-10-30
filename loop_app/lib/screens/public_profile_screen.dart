@@ -247,25 +247,23 @@ class _PublicProfileScreenState extends ConsumerState<PublicProfileScreen> {
           // Odabir dijela trgovine.
           box(
             Padding(
-              padding: const EdgeInsets.only(top: 14, bottom: 10),
-              child: SegmentedButton<_ShopTab>(
+              padding: const EdgeInsets.only(top: 6, bottom: 12),
+              child: _ShopTabBar(
                 key: const ValueKey('shop-tabs'),
-                showSelectedIcon: false,
-                segments: [
-                  ButtonSegment(
-                    value: _ShopTab.auctions,
-                    icon: const Icon(Icons.gavel, size: 18),
-                    label: Text(t('Aukcije ({0})', [auctions.length])),
+                selected: _tab,
+                tabs: [
+                  (
+                    _ShopTab.auctions,
+                    t('Aukcije ({0})', [auctions.length]),
+                    null,
                   ),
-                  ButtonSegment(
-                    value: _ShopTab.reviews,
-                    icon: const Icon(Icons.star_outline, size: 18),
-                    label: Text('${reviews.length}'),
-                    tooltip: t('Ocjene'),
+                  (
+                    _ShopTab.reviews,
+                    t('Ocjene ({0})', [reviews.length]),
+                    t('Ocjene'),
                   ),
                 ],
-                selected: {_tab},
-                onSelectionChanged: (v) => setState(() => _tab = v.first),
+                onSelected: (v) => setState(() => _tab = v),
               ),
             ),
           ),
@@ -873,70 +871,142 @@ class _ShopStats extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Whatnot: brojka i natpis u jednom redu, bez kartice.
     Widget stat(String value, String label, VoidCallback? onTap, Key key) =>
-        Expanded(
-          child: InkWell(
-            key: key,
-            borderRadius: BorderRadius.circular(12),
-            onTap: onTap,
-            child: Padding(
-              padding: const EdgeInsets.symmetric(vertical: 4),
-              child: Column(
-                children: [
-                  Text(
-                    value,
-                    style: const TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.w900,
-                    ),
-                  ),
-                  Text(
-                    label,
-                    style: TextStyle(
-                      color: LoopColors.textSecondary,
-                      fontSize: 12,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        );
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 6),
-        child: Column(
-          children: [
-            Row(
+        InkWell(
+          key: key,
+          borderRadius: BorderRadius.circular(8),
+          onTap: onTap,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 6),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
               children: [
-                stat(
-                  '$followers',
-                  t('pratitelja'),
-                  () => FollowListScreen.open(context, userId),
-                  const ValueKey('stat-followers'),
+                Text(
+                  value,
+                  style: const TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w900,
+                  ),
                 ),
-                stat(
-                  '$following',
-                  t('prati'),
-                  () => FollowListScreen.open(context, userId, following: true),
-                  const ValueKey('stat-following'),
-                ),
-                stat(
-                  '$sales',
-                  t('prodaja'),
-                  () => SalesListScreen.open(context, userId),
-                  const ValueKey('stat-sales'),
-                ),
-                stat(
-                  '$listings',
-                  t('oglasa'),
-                  null,
-                  const ValueKey('stat-listings'),
+                const SizedBox(width: 4),
+                Text(
+                  label,
+                  style: TextStyle(
+                    color: LoopColors.textSecondary,
+                    fontSize: 13,
+                  ),
                 ),
               ],
             ),
-          ],
+          ),
+        );
+    return Wrap(
+      alignment: WrapAlignment.center,
+      spacing: 10,
+      children: [
+        stat(
+          '$followers',
+          t('pratitelja'),
+          () => FollowListScreen.open(context, userId),
+          const ValueKey('stat-followers'),
         ),
+        stat(
+          '$following',
+          t('prati'),
+          () => FollowListScreen.open(context, userId, following: true),
+          const ValueKey('stat-following'),
+        ),
+        stat(
+          '$sales',
+          t('prodaja'),
+          () => SalesListScreen.open(context, userId),
+          const ValueKey('stat-sales'),
+        ),
+        stat(
+          '$listings',
+          t('oglasa'),
+          null,
+          const ValueKey('stat-listings'),
+        ),
+      ],
+    );
+  }
+}
+
+/// Tabovi trgovine u Whatnot stilu: podebljan natpis i žuta crta ispod
+/// odabranog, tanka razdjelna crta preko cijele širine.
+class _ShopTabBar extends StatelessWidget {
+  const _ShopTabBar({
+    super.key,
+    required this.tabs,
+    required this.selected,
+    required this.onSelected,
+  });
+
+  /// (tab, natpis, tooltip).
+  final List<(_ShopTab, String, String?)> tabs;
+  final _ShopTab selected;
+  final ValueChanged<_ShopTab> onSelected;
+
+  static Widget _withTooltip(String? message, Widget child) =>
+      message == null ? child : Tooltip(message: message, child: child);
+
+  @override
+  Widget build(BuildContext context) {
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        border: Border(
+          bottom: BorderSide(
+            color: LoopColors.textSecondary.withValues(alpha: 0.25),
+          ),
+        ),
+      ),
+      child: Row(
+        children: [
+          for (final (tab, label, tooltip) in tabs)
+            Expanded(
+              child: Semantics(
+                selected: tab == selected,
+                button: true,
+                child: _withTooltip(
+                  tooltip,
+                  InkWell(
+                    key: ValueKey('shop-tab-${tab.name}'),
+                    onTap: () => onSelected(tab),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      decoration: BoxDecoration(
+                        border: Border(
+                          bottom: BorderSide(
+                            color: tab == selected
+                                ? LoopColors.accent
+                                : Colors.transparent,
+                            width: 3,
+                          ),
+                        ),
+                      ),
+                      child: Text(
+                        label,
+                        textAlign: TextAlign.center,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: tab == selected
+                              ? FontWeight.w900
+                              : FontWeight.w600,
+                          color: tab == selected
+                              ? LoopColors.textPrimary
+                              : LoopColors.textSecondary,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+        ],
       ),
     );
   }
