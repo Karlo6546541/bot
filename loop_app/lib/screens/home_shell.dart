@@ -283,35 +283,11 @@ class _HomeShellState extends ConsumerState<HomeShell> {
 
     final shell = AdaptiveShell(
       immersiveNavigation: _index == 0 && feedSelected,
-      destinations: isDesktop
-          ? _destinations
-          // Mobitel: Početna · Moje (kupljeno, dostave, ponude) · + · Profil.
-          : [
-              _destinations[0],
-              _destinations[3],
-              _destinations[2],
-              _destinations[4],
-            ],
-      selectedIndex: isDesktop
-          ? _navIndex(_index)
-          : switch (_index) {
-              2 => 1,
-              3 => 3,
-              _ => 0,
-            },
-      onSelect: isDesktop
-          ? _onNav
-          : (nav) {
-              if (nav == 2) {
-                showCreateSheet(context);
-              } else {
-                _go(switch (nav) {
-                  1 => 2,
-                  3 => 3,
-                  _ => 0,
-                });
-              }
-            },
+      // Isto na mobitelu i na računalu (Whatnot): Početna · Kategorije ·
+      // Objavi · Moje (aktivnost) · Profil.
+      destinations: _destinations,
+      selectedIndex: _navIndex(_index),
+      onSelect: _onNav,
       railHeader: Padding(
         padding: const EdgeInsets.symmetric(vertical: 20),
         child: LoopLogo(size: 22, onTap: _goHome),

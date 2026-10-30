@@ -31,15 +31,28 @@ class ShellDestination {
     if (!action) {
       return Icon(selected ? selectedIcon : icon, size: compact ? 25 : null);
     }
+    // Whatnot: "Sell" je okrugli plus s obrubom, kao ostale ikone.
+    if (compact) {
+      return Container(
+        key: const ValueKey('nav-create'),
+        width: 26,
+        height: 26,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          border: Border.all(color: Colors.white, width: 2),
+        ),
+        child: const Icon(Icons.add, color: Colors.white, size: 18),
+      );
+    }
     return Container(
       key: const ValueKey('nav-create'),
-      width: compact ? 44 : 44,
-      height: compact ? 32 : 32,
+      width: 44,
+      height: 32,
       decoration: BoxDecoration(
         color: Theme.of(context).colorScheme.primary,
-        borderRadius: BorderRadius.circular(compact ? 8 : 12),
+        borderRadius: BorderRadius.circular(12),
       ),
-      child: Icon(icon, color: Colors.white, size: compact ? 22 : null),
+      child: Icon(icon, color: LoopColors.onAccent),
     );
   }
 }
@@ -71,13 +84,12 @@ class AdaptiveShell extends StatelessWidget {
   Widget _navigation(BuildContext context, {bool compact = false}) =>
       NavigationBar(
         key: ValueKey(compact ? 'feed-navigation' : 'main-navigation'),
-        // Mobitel: samo ikone (bez natpisa) na tamnosivoj traci — ugodnije
-        // za oči od crne.
-        height: compact ? 56 : null,
+        // Mobitel (Whatnot): ikone s natpisima na tamnoj traci.
+        height: compact ? 64 : null,
         labelBehavior: compact
-            ? NavigationDestinationLabelBehavior.alwaysHide
+            ? NavigationDestinationLabelBehavior.alwaysShow
             : null,
-        backgroundColor: compact ? const Color(0xFF26272C) : null,
+        backgroundColor: compact ? const Color(0xFF1C1C1C) : null,
         surfaceTintColor: compact ? Colors.transparent : null,
         indicatorColor: compact ? Colors.transparent : null,
         selectedIndex: selectedIndex,
@@ -112,20 +124,20 @@ class AdaptiveShell extends StatelessWidget {
               labelTextStyle: WidgetStateProperty.resolveWith(
                 (states) => TextStyle(
                   fontFamily: kFontFamily,
-                  fontSize: 10,
+                  fontSize: 11,
                   fontWeight: states.contains(WidgetState.selected)
-                      ? FontWeight.w700
-                      : FontWeight.w500,
+                      ? FontWeight.w800
+                      : FontWeight.w600,
                   color: states.contains(WidgetState.selected)
-                      ? const Color(0xFFE9E9ED)
-                      : const Color(0xFF92939D),
+                      ? Colors.white
+                      : const Color(0xFF9A9A9A),
                 ),
               ),
               iconTheme: WidgetStateProperty.resolveWith(
                 (states) => IconThemeData(
                   color: states.contains(WidgetState.selected)
-                      ? const Color(0xFFE9E9ED)
-                      : const Color(0xFF92939D),
+                      ? Colors.white
+                      : const Color(0xFF9A9A9A),
                 ),
               ),
             ),

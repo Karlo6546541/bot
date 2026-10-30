@@ -16,11 +16,11 @@ class LoopColors {
       _dark = brightness == Brightness.dark;
 
   static Color get background =>
-      _dark ? const Color(0xFF17120F) : const Color(0xFFFFF7EF);
+      _dark ? const Color(0xFF161616) : const Color(0xFFFFF7EF);
   static Color get surface =>
-      _dark ? const Color(0xFF221B17) : const Color(0xFFFFFFFF);
+      _dark ? const Color(0xFF232323) : const Color(0xFFFFFFFF);
   static Color get surfaceHover =>
-      _dark ? const Color(0xFF2E2520) : const Color(0xFFFFEFE2);
+      _dark ? const Color(0xFF303030) : const Color(0xFFFFEFE2);
 
   // Pravila boja (nikad se ne miješaju):
   //  * narančasta [accent] — glavne radnje: Licitiraj, Kupi, Objavi;
@@ -30,7 +30,7 @@ class LoopColors {
   /// Glavni akcent (gumbi, odabrano) — narančasta. Svijetla: bijeli
   /// tekst 5.2:1; tamna: tamni tekst 7.9:1.
   static Color get accent =>
-      _dark ? const Color(0xFFFF9248) : const Color(0xFFC2410C);
+      _dark ? const Color(0xFFFFE01B) : const Color(0xFFC2410C);
 
   /// Uživo (oznaka UŽIVO, live gumbi i bljesak) — isključivo za live.
   static const Color live = Color(0xFFFF2D55);
@@ -41,12 +41,12 @@ class LoopColors {
 
   /// Tekst/ikone na akcentu.
   static Color get onAccent =>
-      _dark ? const Color(0xFF1B1410) : const Color(0xFFFFFFFF);
+      _dark ? const Color(0xFF111111) : const Color(0xFFFFFFFF);
 
   static Color get textPrimary =>
-      _dark ? const Color(0xFFF5EDE6) : const Color(0xFF2A1F17);
+      _dark ? const Color(0xFFFFFFFF) : const Color(0xFF2A1F17);
   static Color get textSecondary =>
-      _dark ? const Color(0xFFB3A69B) : const Color(0xFF76685D);
+      _dark ? const Color(0xFFA3A3A3) : const Color(0xFF76685D);
   static Color get error =>
       _dark ? const Color(0xFFFF7B7B) : const Color(0xFFC92A3A);
   static Color get success =>
@@ -63,17 +63,17 @@ class LoopColors {
 
   // Pastelni tonovi za dekorativne pločice i pozadine (nikad za tekst).
   static Color get peach =>
-      _dark ? const Color(0xFF3A2A22) : const Color(0xFFFFE1D1);
+      _dark ? const Color(0xFF332E24) : const Color(0xFFFFE1D1);
   static Color get sunny =>
-      _dark ? const Color(0xFF3A3220) : const Color(0xFFFFEDB8);
+      _dark ? const Color(0xFF3A3414) : const Color(0xFFFFEDB8);
   static Color get mint =>
-      _dark ? const Color(0xFF1F3329) : const Color(0xFFD6F2E3);
+      _dark ? const Color(0xFF1F2F27) : const Color(0xFFD6F2E3);
   static Color get lilac =>
-      _dark ? const Color(0xFF2B2740) : const Color(0xFFE7E0FF);
+      _dark ? const Color(0xFF28263A) : const Color(0xFFE7E0FF);
   static Color get sky =>
-      _dark ? const Color(0xFF1F2C3A) : const Color(0xFFD9ECFF);
+      _dark ? const Color(0xFF1F2A35) : const Color(0xFFD9ECFF);
   static Color get rose =>
-      _dark ? const Color(0xFF3A2228) : const Color(0xFFFFD9E0);
+      _dark ? const Color(0xFF38242A) : const Color(0xFFFFD9E0);
 
   /// Meka sjena kartica (u tamnoj temi gotovo nevidljiva).
   static List<BoxShadow> get softShadow => [

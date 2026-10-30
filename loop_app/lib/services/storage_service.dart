@@ -805,7 +805,7 @@ class StorageService {
   bool get isAdmin => _session.get(_isAdminKey) == true;
 
   /// 'light' | 'dark' | 'system' (zadano: svijetla tema).
-  String get themeMode => _session.get(_themeKey) as String? ?? 'light';
+  String get themeMode => _session.get(_themeKey) as String? ?? 'dark';
 
   Future<void> setThemeMode(String mode) => _session.put(_themeKey, mode);
 
