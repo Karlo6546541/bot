@@ -711,15 +711,15 @@ void listingTests() {
           matching: find.byType(Scrollable),
         )
         .first;
-    // Demo iPhone je bio na Kupi odmah (isključeno): može se samo maknuti
-    // iz prodaje, a nudi se aukcija ili live.
+    // Demo iPhone je već na Kupi odmah: vidi se zarada nakon provizije.
     await tester.scrollUntilVisible(
       find.byKey(const ValueKey('unlist')),
       200,
       scrollable: page,
     );
     await tester.pumpAndSettle();
-    expect(find.byKey(const ValueKey('listing-info')), findsNothing);
+    expect(find.byKey(const ValueKey('listing-info')), findsOneWidget);
+    expect(find.textContaining('provizija 5 %'), findsOneWidget);
     await tester.tap(find.byKey(const ValueKey('unlist')));
     await tester.pumpAndSettle();
     await tester.scrollUntilVisible(
@@ -728,7 +728,7 @@ void listingTests() {
       scrollable: page,
     );
     await tester.pumpAndSettle();
-    expect(find.byKey(const ValueKey('item-buy-now')), findsNothing);
+    expect(find.byKey(const ValueKey('item-buy-now')), findsOneWidget);
     expect(find.byKey(const ValueKey('item-live')), findsOneWidget);
     await tester.tap(find.byKey(const ValueKey('item-auction')));
     await tester.pumpAndSettle();
