@@ -8,6 +8,9 @@
 /// ```
 /// Bez njih aplikacija radi lokalno (offline), kao i prije.
 class BackendConfig {
+  /// The saved live experience is the default; cloud commerce stays independent.
+  static const cloudLiveEnabled = bool.fromEnvironment('CLOUD_LIVE_ENABLED');
+
   /// Enable after deploying the cloud migrations and Edge Functions.
   static const cloudCommerceEnabled = bool.fromEnvironment(
     'CLOUD_COMMERCE_ENABLED',
