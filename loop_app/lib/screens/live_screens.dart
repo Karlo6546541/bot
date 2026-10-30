@@ -1595,6 +1595,8 @@ class _LiveRoomViewState extends ConsumerState<_LiveRoomBody> {
   /// Srca lete od [at] (ili uz desni rub); ostalima se šalje najviše
   /// jedno srce u 1,5 s (da chat ne zatrpa).
   void _heart({Offset? at, bool like = false, int count = 1}) {
+    final user = ref.read(appProvider).currentUser;
+    if (user == null || user.isGuest) return;
     setState(() {
       if (like) _liked = true;
       for (var i = 0; i < count; i++) {
@@ -1614,6 +1616,11 @@ class _LiveRoomViewState extends ConsumerState<_LiveRoomBody> {
 
   /// Srce u stupcu: lajk (srca lete) ili, ako je već crveno, poništi.
   void _toggleLike() {
+    final user = ref.read(appProvider).currentUser;
+    if (user == null || user.isGuest) {
+      blockGuest(context);
+      return;
+    }
     if (_liked) {
       setState(() => _liked = false);
     } else {
@@ -2543,7 +2550,7 @@ class _LiveRoomViewState extends ConsumerState<_LiveRoomBody> {
                     if (!st.isOver && !composing && !isHost)
                       _QuickReactions(
                         emojis: _quick,
-                        onReact: canAct ? _react : null,
+                        onReact: _react,
                         muted: _muted,
                         onSound: _toggleSound,
                       ),
@@ -2552,7 +2559,9 @@ class _LiveRoomViewState extends ConsumerState<_LiveRoomBody> {
                       controller: _chat,
                       focusNode: _chatFocus,
                       onSend: _send,
-                      showChat: canAct && !st.isOver,
+                      showChat: !st.isOver,
+                      guest: !canAct,
+                      onLogin: () => blockGuest(context),
                       bagCount:
                           st.queue.length +
                           s
@@ -3210,7 +3219,7 @@ class _TopBar extends ConsumerWidget {
               ),
             ),
           ),
-          if (me != null && me != show.hostId && !following) ...[
+          if (me != show.hostId) ...[
             const SizedBox(width: 6),
             FilledButton(
               key: const ValueKey('live-follow'),
@@ -3229,12 +3238,16 @@ class _TopBar extends ConsumerWidget {
                   borderRadius: BorderRadius.circular(8),
                 ),
               ),
-              onPressed: () async {
-                if (blockGuest(context)) return;
-                await ref.read(appProvider.notifier).toggleFollow(show.hostId);
-                showLoopSnackBar(t('Pratiš {0}', [hostName]));
-              },
-              child: Text(t('Prati')),
+              onPressed: following
+                  ? null
+                  : () async {
+                      if (blockGuest(context)) return;
+                      await ref
+                          .read(appProvider.notifier)
+                          .toggleFollow(show.hostId);
+                      showLoopSnackBar(t('Pratiš {0}', [hostName]));
+                    },
+              child: Text(t(following ? 'Pratim' : 'Prati')),
             ),
           ],
           const SizedBox(width: 6),
@@ -3944,66 +3957,69 @@ class _LotCard extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: 8),
-              Column(
-                key: const ValueKey('live-value'),
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                  ConstrainedBox(
-                    constraints: const BoxConstraints(maxWidth: 120),
-                    child: FittedBox(
-                      fit: BoxFit.scaleDown,
-                      child: Text(
-                        lot.mode == LotMode.giveaway
-                            ? t('Besplatno')
-                            : formatCredits(price),
-                        key: const ValueKey('live-price'),
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.w900,
-                          fontSize: 25,
-                          height: 1.05,
-                          shadows: _shadow,
+              SizedBox(
+                width: 112,
+                child: Column(
+                  key: const ValueKey('live-value'),
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    ConstrainedBox(
+                      constraints: const BoxConstraints(maxWidth: 120),
+                      child: FittedBox(
+                        fit: BoxFit.scaleDown,
+                        child: Text(
+                          lot.mode == LotMode.giveaway
+                              ? t('Besplatno')
+                              : formatCredits(price),
+                          key: const ValueKey('live-price'),
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.w900,
+                            fontSize: 25,
+                            height: 1.05,
+                            shadows: _shadow,
+                          ),
                         ),
                       ),
                     ),
-                  ),
-                  if (value > 0)
-                    Text(
-                      t('💎 procjena {0}', [formatCredits(value)]),
-                      style: const TextStyle(
-                        color: Colors.white70,
-                        fontSize: 11,
-                        shadows: _shadow,
-                      ),
-                    ),
-                  if (result)
-                    Text(
-                      leader == null
-                          ? t('Nije prodano')
-                          : leader.userId == me
-                          ? t('Osvojeno 🎉')
-                          : t('Prodano'),
-                      style: TextStyle(
-                        color: leader == null ? Colors.white70 : kLiveRed,
-                        fontWeight: FontWeight.w900,
-                        fontSize: 11,
-                        shadows: _shadow,
-                      ),
-                    )
-                  else ...[
-                    // Samo kad je razlika velika (inače je šum).
-                    if (below >= 30)
+                    if (value > 0)
                       Text(
-                        t('−{0}% ispod procjene', ['$below']),
+                        t('💎 procjena {0}', [formatCredits(value)]),
                         style: const TextStyle(
-                          color: Color(0xFF4ADE80),
-                          fontSize: 11.5,
-                          fontWeight: FontWeight.w900,
+                          color: Colors.white70,
+                          fontSize: 11,
                           shadows: _shadow,
                         ),
                       ),
+                    if (result)
+                      Text(
+                        leader == null
+                            ? t('Nije prodano')
+                            : leader.userId == me
+                            ? t('Osvojeno 🎉')
+                            : t('Prodano'),
+                        style: TextStyle(
+                          color: leader == null ? Colors.white70 : kLiveRed,
+                          fontWeight: FontWeight.w900,
+                          fontSize: 11,
+                          shadows: _shadow,
+                        ),
+                      )
+                    else ...[
+                      // Samo kad je razlika velika (inače je šum).
+                      if (below >= 30)
+                        Text(
+                          t('−{0}% ispod procjene', ['$below']),
+                          style: const TextStyle(
+                            color: Color(0xFF4ADE80),
+                            fontSize: 11.5,
+                            fontWeight: FontWeight.w900,
+                            shadows: _shadow,
+                          ),
+                        ),
+                    ],
                   ],
-                ],
+                ),
               ),
             ],
           ),
@@ -4726,10 +4742,14 @@ class _DouyinBar extends StatelessWidget {
     required this.onHeart,
     required this.onShare,
     this.showWallet = false,
+    required this.guest,
+    required this.onLogin,
   });
 
   /// Novčanik uz srce i dijeljenje (gledatelji).
   final bool showWallet;
+  final bool guest;
+  final VoidCallback onLogin;
 
   /// Pisanje u chatu (kao Whatnot): polje preko cijele širine s "Aa",
   /// bez vrećice, srca i dijeljenja.
@@ -4784,6 +4804,9 @@ class _DouyinBar extends StatelessWidget {
           child: showChat
               ? TextField(
                   key: const ValueKey('live-chat'),
+                  readOnly: guest,
+                  canRequestFocus: !guest,
+                  onTap: guest ? onLogin : null,
                   controller: controller,
                   focusNode: focusNode,
                   scrollPadding: const EdgeInsets.all(12),
@@ -4877,7 +4900,18 @@ class _DouyinBar extends StatelessWidget {
                     ),
             ),
           ),
-        if (showWallet && !composing)
+        if (showWallet && !composing && guest)
+          IconButton(
+            key: const ValueKey('live-wallet-login'),
+            tooltip: t('Novčanik'),
+            onPressed: onLogin,
+            icon: const Icon(
+              Icons.account_balance_wallet_rounded,
+              color: Colors.white,
+              size: 22,
+            ),
+          ),
+        if (showWallet && !composing && !guest)
           const Padding(
             padding: EdgeInsets.symmetric(horizontal: 2),
             child: WalletChip(dark: true),
