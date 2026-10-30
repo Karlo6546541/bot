@@ -509,21 +509,43 @@ class AuctionBrowseCard extends ConsumerWidget {
         (live?.isScheduled ?? false);
 
     final rating = s.ratingOf(sellerId);
-    // Kao Vinted/Whatnot: slika 4:5 s oznakama, ispod cijena velikim
-    // slovima, naziv i prodavatelj s ocjenom — sve kartice iste visine
-    // (vidi [BrowseGridDelegate]).
-    // Okvir kartice kao na profilu: lagani rub i sjena.
-    return Material(
-      color: LoopColors.surface,
-      elevation: 1.5,
-      shadowColor: Colors.black26,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(kRadius),
-        side: BorderSide(
-          color: LoopColors.textSecondary.withValues(alpha: 0.14),
-        ),
+    // Kao Whatnot: prodavatelj iznad slike 4:5 s oznakama, ispod naziv
+    // i cijena — sve kartice iste visine (vidi [BrowseGridDelegate]).
+    final sellerRow = Padding(
+      padding: const EdgeInsets.fromLTRB(2, 0, 2, 6),
+      child: Row(
+        children: [
+          UserAvatar(user: seller, size: 20),
+          const SizedBox(width: 6),
+          if (seller != null) ...[
+            CountryBadge(
+              code: seller.country,
+              style: const TextStyle(fontSize: 12),
+            ),
+            const SizedBox(width: 4),
+          ],
+          Expanded(
+            child: Text(
+              seller?.handle ?? show?.hostLabel ?? a?.sellerLabel ?? '',
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700),
+            ),
+          ),
+          if (rating.count > 0)
+            Text(
+              '★ ${rating.average.toStringAsFixed(1)}',
+              style: TextStyle(
+                color: LoopColors.textSecondary,
+                fontSize: 11,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+        ],
       ),
-      clipBehavior: Clip.antiAlias,
+    );
+    return Material(
+      color: Colors.transparent,
       child: InkWell(
         key: ValueKey(
           show != null
@@ -537,10 +559,11 @@ class AuctionBrowseCard extends ConsumerWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
+            sellerRow,
             AspectRatio(
               aspectRatio: 4 / 5,
               child: ClipRRect(
-                borderRadius: BorderRadius.zero,
+                borderRadius: BorderRadius.circular(kRadius),
                 child: Stack(
                   fit: StackFit.expand,
                   children: [
@@ -645,69 +668,33 @@ class AuctionBrowseCard extends ConsumerWidget {
               ),
             ),
             Padding(
-              padding: const EdgeInsets.fromLTRB(10, 6, 10, 8),
+              padding: const EdgeInsets.fromLTRB(2, 8, 2, 0),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  Text(
-                    price,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      fontWeight: FontWeight.w900,
-                      fontSize: 18,
-                      height: 1.15,
-                      color: a == null && show == null
-                          ? LoopColors.buyNow
-                          : null,
-                    ),
-                  ),
                   Text(
                     title,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: const TextStyle(
-                      fontWeight: FontWeight.w700,
-                      fontSize: 13,
+                      fontWeight: FontWeight.w800,
+                      fontSize: 14,
+                      height: 1.2,
                     ),
                   ),
-                  const SizedBox(height: 3),
-                  Row(
-                    children: [
-                      UserAvatar(user: seller, size: 16),
-                      const SizedBox(width: 5),
-                      if (seller != null) ...[
-                        CountryBadge(
-                          code: seller.country,
-                          style: const TextStyle(fontSize: 12),
-                        ),
-                        const SizedBox(width: 4),
-                      ],
-                      Expanded(
-                        child: Text(
-                          seller?.handle ??
-                              show?.hostLabel ??
-                              a?.sellerLabel ??
-                              '',
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: TextStyle(
-                            color: LoopColors.textSecondary,
-                            fontSize: 12,
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
-                      ),
-                      if (rating.count > 0)
-                        Text(
-                          '★ ${rating.average.toStringAsFixed(1)}',
-                          style: TextStyle(
-                            color: LoopColors.textSecondary,
-                            fontSize: 11,
-                            fontWeight: FontWeight.w800,
-                          ),
-                        ),
-                    ],
+                  const SizedBox(height: 2),
+                  Text(
+                    price,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontWeight: FontWeight.w800,
+                      fontSize: 13,
+                      height: 1.2,
+                      color: a == null && show == null
+                          ? LoopColors.buyNow
+                          : LoopColors.textSecondary,
+                    ),
                   ),
                 ],
               ),
@@ -733,8 +720,8 @@ class BrowseGridDelegate extends SliverGridDelegate {
   final double spacing;
   final double runSpacing;
 
-  /// Visina teksta ispod slike (cijena, naziv, prodavatelj).
-  static const textHeight = 90.0;
+  /// Visina prodavatelja iznad i teksta ispod slike (naziv, cijena).
+  static const textHeight = 92.0;
 
   @override
   SliverGridLayout getLayout(SliverConstraints constraints) {
