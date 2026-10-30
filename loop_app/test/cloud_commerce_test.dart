@@ -125,6 +125,9 @@ void main() {
     await tester.tap(find.byIcon(Icons.send));
     await tester.pumpAndSettle();
     expect(logins, 2);
+    await tester.tap(find.byTooltip('Pošalji reakciju 🔥'));
+    await tester.pumpAndSettle();
+    expect(logins, 3);
     expect(mutations.where((p) => p.contains('/rpc/')), isEmpty);
     tester.view.viewInsets = const FakeViewPadding(bottom: 320);
     await tester.pumpAndSettle();
