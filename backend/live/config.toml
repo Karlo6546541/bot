@@ -15,3 +15,9 @@ verify_jwt = false
 
 [functions.integration-health]
 verify_jwt = false
+
+[functions.stripe-setup]
+verify_jwt = false
+
+[functions.stripe-charge]
+verify_jwt = false

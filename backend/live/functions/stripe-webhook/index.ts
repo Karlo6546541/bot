@@ -12,6 +12,16 @@ Deno.serve(async (req: Request) => {
       svc.config.STRIPE_WEBHOOK_SECRET!, undefined, Stripe.createSubtleCryptoProvider());
   } catch { return new Response('Invalid webhook or configuration', { status: 400 }); }
   if (event.livemode) return new Response('Test mode only', { status: 400 });
+  // Automatska naplata spremljene kartice: PaymentIntent bez Checkout sesije.
+  if (event.type === 'payment_intent.succeeded') {
+    const intent = event.data.object as Stripe.PaymentIntent;
+    if (!intent.metadata?.order_id) return new Response('Ignored', { status: 200 });
+    const { error } = await svc.admin.rpc('commerce_record_payment', {
+      p_event: event.id, p_order: intent.metadata.order_id,
+      p_amount: intent.amount_received, p_currency: intent.currency.toUpperCase(),
+    });
+    return new Response(error ? 'Retry later' : 'OK', { status: error ? 503 : 200 });
+  }
   if (!['checkout.session.completed', 'checkout.session.async_payment_succeeded', 'checkout.session.async_payment_failed'].includes(event.type)) return new Response('Ignored', { status: 200 });
   const session = event.data.object as Stripe.Checkout.Session;
   if (!session.metadata?.order_id || !session.currency || session.amount_total === null) {

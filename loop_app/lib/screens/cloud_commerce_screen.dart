@@ -65,9 +65,13 @@ class _CloudCommerceState extends State<CloudCommerceScreen> {
         : 0;
     auth = db.auth.onAuthStateChange.listen((_) {
       connection = null;
+      cardKnown = false;
+      cardLast4 = null;
+      unawaited(_loadCard());
       _refresh();
       if (roomId != null) _video();
     });
+    unawaited(_loadCard());
     roomId = widget.initialRoom;
     if (roomId != null) {
       if (widget.enableRealtime) channel = live.watch(roomId!, _refresh);
@@ -530,15 +534,27 @@ class _CloudCommerceState extends State<CloudCommerceScreen> {
                       await commerce.chooseShipping(id, 'boxnow', {
                         'locker_id': locker,
                       });
+                      // Whatnot: spremljena kartica se naplaćuje sama.
+                      if (state == 'awaiting_payment') await _autoCharge(id);
                     }),
               child: const Text('Odaberi paketomat'),
+            ),
+          if (buyer && state == 'awaiting_payment' && cardLast4 != null)
+            FilledButton.icon(
+              onPressed: busy ? null : () => _run(() => _autoCharge(id)),
+              icon: const Icon(Icons.credit_card),
+              label: Text('Plati karticom •••• $cardLast4'),
             ),
           if (buyer && state == 'awaiting_payment')
             FilledButton(
               onPressed: busy
                   ? null
                   : () => _run(() => StripeBackend(db).checkout(id)),
-              child: const Text('Plati preko Stripea (test)'),
+              child: Text(
+                cardLast4 == null
+                    ? 'Plati preko Stripea (test)'
+                    : 'Plati drugom karticom (Stripe)',
+              ),
             ),
           if (!buyer && state == 'paid')
             FilledButton(
@@ -587,8 +603,69 @@ class _CloudCommerceState extends State<CloudCommerceScreen> {
     await _refresh();
   });
 
+  /// Spremljena kartica (zadnje 4 znamenke) ili `null` dok nije dodana.
+  String? cardLast4;
+  bool cardKnown = false;
+
+  Future<void> _loadCard() async {
+    if (uid == null) return;
+    try {
+      final c = await StripeBackend(db).cardStatus();
+      if (mounted) {
+        setState(() {
+          cardLast4 = c.hasCard ? (c.last4 ?? '••••') : null;
+          cardKnown = true;
+        });
+      }
+    } catch (_) {
+      /* Stripe nije postavljen: licitiranje ostaje moguće. */
+    }
+  }
+
+  /// Kao na Whatnotu: prije prve ponude treba spremljena kartica (naplata
+  /// pobjednika je automatska). Ako Stripe nije dostupan, ne blokira.
+  Future<bool> _ensureCard() async {
+    if (!cardKnown) await _loadCard();
+    if (!cardKnown || cardLast4 != null) return true;
+    if (!mounted) return false;
+    final add = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Dodaj karticu za licitiranje'),
+        content: const Text(
+          'Karticu spremaš jednom. Kad pobijediš, naplata ide automatski, '
+          'bez novog upisa.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Kasnije'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Dodaj karticu'),
+          ),
+        ],
+      ),
+    );
+    if (add == true) await StripeBackend(db).addCard();
+    return false;
+  }
+
+  /// Nakon odabira dostave: naplati spremljenu karticu bez checkouta.
+  Future<void> _autoCharge(String orderId) async {
+    if (cardLast4 == null) return;
+    final paid = await StripeBackend(db).charge(orderId);
+    if (paid && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Plaćeno karticom •••• $cardLast4')),
+      );
+    }
+  }
+
   Future<void> _bid(Map<String, dynamic> lot) => _run(() async {
     if (!await _login()) return;
+    if (!await _ensureCard()) return;
     final price = lot['price_cents'] as int?;
     await live.bid(
       lot['id'] as String,

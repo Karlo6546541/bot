@@ -1,4 +1,4 @@
-import { services, authenticate, response, failure, appUrl } from '../_shared/stripe.ts';
+import { services, authenticate, response, failure, appUrl, customerFor } from '../_shared/stripe.ts';
 Deno.serve(async (req: Request) => {
   if (req.method === 'OPTIONS') return response(200, {});
   if (req.method !== 'POST') return response(405, { error: 'METHOD_NOT_ALLOWED' });
@@ -32,19 +32,7 @@ Deno.serve(async (req: Request) => {
       if (session.status === 'open' && session.url) return response(200, { url: session.url, mode: 'test' });
       if (session.status === 'complete' && !previous.failed) return response(409, { error: 'PAYMENT_PROCESSING' });
     }
-    // Stripe kupac po korisniku: spremljena kartica / Link / Google Pay vrijede
-    // pri sljedećoj kupnji bez ponovnog upisa. ID se čuva u app_metadata
-    // Supabase korisnika (bez nove tablice).
-    let customerId = user.app_metadata?.stripe_customer_id as string | undefined;
-    if (!customerId) {
-      const customer = await stripe.customers.create(
-        { email: user.email, metadata: { user_id: user.id } },
-        { idempotencyKey: `customer-${user.id}` });
-      customerId = customer.id;
-      const { error: metaError } = await admin.auth.admin.updateUserById(user.id,
-        { app_metadata: { ...user.app_metadata, stripe_customer_id: customerId } });
-      if (metaError) throw metaError;
-    }
+    const customerId = await customerFor(stripe, admin, user);
     const session = await stripe.checkout.sessions.create({ mode: 'payment',
       client_reference_id: order.id, customer: customerId,
       saved_payment_method_options: { payment_method_save: 'enabled' },

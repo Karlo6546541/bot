@@ -47,3 +47,25 @@ export function failure(error: unknown) {
   return response(error instanceof Error && error.message === 'AUTH_REQUIRED' ? 401 : 503,
     { error: error instanceof Error && error.message === 'AUTH_REQUIRED' ? 'AUTH_REQUIRED' : 'PAYMENTS_UNAVAILABLE' });
 }
+
+/** Stripe kupac po korisniku (ID u app_metadata, bez nove tablice). */
+export async function customerFor(stripe: Stripe,
+  admin: ReturnType<typeof adminClient>,
+  user: { id: string; email?: string | null; app_metadata?: Record<string, unknown> }) {
+  const existing = user.app_metadata?.stripe_customer_id as string | undefined;
+  if (existing) return existing;
+  const customer = await stripe.customers.create(
+    { email: user.email ?? undefined, metadata: { user_id: user.id } },
+    { idempotencyKey: `customer-${user.id}` });
+  const { error } = await admin.auth.admin.updateUserById(user.id,
+    { app_metadata: { ...user.app_metadata, stripe_customer_id: customer.id } });
+  if (error) throw error;
+  return customer.id;
+}
+
+/** Zadnja spremljena kartica kupca (ili null). */
+export async function savedCard(stripe: Stripe, customerId: string) {
+  const list = await stripe.customers.listPaymentMethods(customerId, { type: 'card', limit: 1 });
+  const card = list.data[0];
+  return card ? { id: card.id, brand: card.card?.brand ?? 'card', last4: card.card?.last4 ?? '' } : null;
+}
