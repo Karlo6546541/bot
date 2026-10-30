@@ -673,7 +673,7 @@ class _NavTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => ListTile(
-    leading: Icon(icon, color: LoopColors.textSecondary),
+    leading: _RoundIcon(icon),
     title: Text(title),
     subtitle: subtitle == null ? null : Text(subtitle!),
     trailing: const Icon(Icons.chevron_right),
@@ -842,7 +842,7 @@ class _ShopCard extends ConsumerWidget {
           const Divider(height: 1),
           ListTile(
             key: const ValueKey('my-shop'),
-            leading: const Icon(Icons.storefront_outlined),
+            leading: const _RoundIcon(Icons.storefront_outlined),
             title: Text(t('Moja trgovina: {0}', [user.shopTitle])),
             subtitle: Text(
               t('{0} aukcija · ocjena {1}', [
@@ -857,7 +857,7 @@ class _ShopCard extends ConsumerWidget {
           ),
           const Divider(height: 1),
           ListTile(
-            leading: const Icon(Icons.badge_outlined),
+            leading: const _RoundIcon(Icons.badge_outlined),
             title: Text(t('Naziv trgovine')),
             subtitle: Text(user.shopTitle),
             trailing: IconButton(
@@ -893,10 +893,7 @@ class _AccountCard extends ConsumerWidget {
         children: [
           if (email.isNotEmpty)
             ListTile(
-              leading: Icon(
-                Icons.alternate_email,
-                color: LoopColors.textSecondary,
-              ),
+              leading: const _RoundIcon(Icons.alternate_email),
               title: Text(email),
               subtitle: Text(
                 user.authProvider == 'google'
@@ -915,7 +912,7 @@ class _AccountCard extends ConsumerWidget {
             ),
           const Divider(height: 1),
           ListTile(
-            leading: const Icon(Icons.edit_outlined),
+            leading: const _RoundIcon(Icons.edit_outlined),
             title: Text(t('Uredi profil')),
             subtitle: Text(t('Fotografija, ime, korisničko ime, opis, grad')),
             trailing: const Icon(Icons.chevron_right),
@@ -923,7 +920,7 @@ class _AccountCard extends ConsumerWidget {
           ),
           const Divider(height: 1),
           ListTile(
-            leading: const Icon(Icons.public),
+            leading: const _RoundIcon(Icons.public),
             title: Text(t('Moj javni profil')),
             trailing: const Icon(Icons.chevron_right),
             onTap: () => PublicProfileScreen.open(context, user.id),
@@ -931,7 +928,7 @@ class _AccountCard extends ConsumerWidget {
           if (user.authProvider != 'google') ...[
             const Divider(height: 1),
             ListTile(
-              leading: const Icon(Icons.password),
+              leading: const _RoundIcon(Icons.password),
               title: Text(t('Promijeni lozinku')),
               trailing: const Icon(Icons.chevron_right),
               onTap: () => showChangePasswordDialog(context),
@@ -940,7 +937,7 @@ class _AccountCard extends ConsumerWidget {
           if (user.blockedIds.isNotEmpty) ...[
             const Divider(height: 1),
             ListTile(
-              leading: const Icon(Icons.block),
+              leading: const _RoundIcon(Icons.block),
               title: Text(
                 t('Blokirani korisnici ({0})', [user.blockedIds.length]),
               ),
@@ -950,14 +947,14 @@ class _AccountCard extends ConsumerWidget {
           ],
           const Divider(height: 1),
           ListTile(
-            leading: const Icon(Icons.download_outlined),
+            leading: const _RoundIcon(Icons.download_outlined),
             title: Text(t('Preuzmi moje podatke')),
             subtitle: Text(t('Profil, predmeti, transakcije (JSON)')),
             onTap: () => exportMyData(context, ref),
           ),
           const Divider(height: 1),
           ListTile(
-            leading: Icon(
+            leading: _RoundIcon(
               Icons.person_remove_outlined,
               color: LoopColors.error,
             ),
@@ -972,6 +969,24 @@ class _AccountCard extends ConsumerWidget {
       ),
     );
   }
+}
+
+/// Ikona u okruglom polju na početku retka izbornika računa (Whatnot).
+class _RoundIcon extends StatelessWidget {
+  const _RoundIcon(this.icon, {this.color});
+  final IconData icon;
+  final Color? color;
+
+  @override
+  Widget build(BuildContext context) => Container(
+    width: 40,
+    height: 40,
+    decoration: BoxDecoration(
+      color: LoopColors.surfaceHover,
+      shape: BoxShape.circle,
+    ),
+    child: Icon(icon, size: 20, color: color ?? LoopColors.textPrimary),
+  );
 }
 
 /// Naslov odjeljka na profilu.
