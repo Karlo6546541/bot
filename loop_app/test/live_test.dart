@@ -809,38 +809,72 @@ void main() {
     });
   });
 
-  testWidgets('guest sees live controls but reactions and likes require login', (tester) async {
-    tester.view.physicalSize = const Size(320, 740);
-    tester.view.devicePixelRatio = 1;
-    addTearDown(tester.view.reset);
-    final storage = StorageService();
-    late String showId;
-    await tester.runAsync(() async {
-      await storage.init(inMemory: true);
-      await storage.putUser(AppUser(id: 'controls-guest', email: '', name: 'Gost',
-        credits: 0, createdAt: DateTime.now(), isGuest: true));
-      await storage.saveSession(userId: 'controls-guest');
-      final item = await addItem(TradeService(storage), bob, 'Predmet uživo');
-      showId = (await LiveService(storage).create(hostId: bob, title: 'Kontrole livea',
-        items: [(item.id, 1)], lotSeconds: 60)).id;
-      await LiveService(storage).startLot(bob, showId);
-    });
-    addTearDown(() => tester.runAsync(Hive.close));
-    await tester.pumpWidget(ProviderScope(overrides: [storageProvider.overrideWithValue(storage),
-      tickIntervalProvider.overrideWithValue(null)],
-      child: MaterialApp(home: LiveRoomScreen(showId: showId))));
-    await tester.pumpAndSettle();
-    for (final key in ['live-follow', 'live-chat', 'live-wallet-login', 'live-react-0', 'live-reaction-🔥', 'live-share', 'live-queue']) {
-      expect(find.byKey(ValueKey(key)), findsOneWidget, reason: key);
-    }
-    expect(tester.widget<TextField>(find.byKey(const ValueKey('live-chat'))).readOnly, isTrue);
-    final before = storage.liveEventsOf(showId).length;
-    await tester.tap(find.byKey(const ValueKey('live-react-0')));
-    await tester.pumpAndSettle();
-    expect(storage.liveEventsOf(showId).length, before);
-    expect(tester.takeException(), isNull);
-    await tester.pumpWidget(const SizedBox.shrink());
-  });
+  testWidgets(
+    'guest sees live controls but reactions and likes require login',
+    (tester) async {
+      tester.view.physicalSize = const Size(320, 740);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
+      final storage = StorageService();
+      late String showId;
+      await tester.runAsync(() async {
+        await storage.init(inMemory: true);
+        await storage.putUser(
+          AppUser(
+            id: 'controls-guest',
+            email: '',
+            name: 'Gost',
+            credits: 0,
+            createdAt: DateTime.now(),
+            isGuest: true,
+          ),
+        );
+        await storage.saveSession(userId: 'controls-guest');
+        final item = await addItem(TradeService(storage), bob, 'Predmet uživo');
+        showId = (await LiveService(storage).create(
+          hostId: bob,
+          title: 'Kontrole livea',
+          items: [(item.id, 1)],
+          lotSeconds: 60,
+        )).id;
+        await LiveService(storage).startLot(bob, showId);
+      });
+      addTearDown(() => tester.runAsync(Hive.close));
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            storageProvider.overrideWithValue(storage),
+            tickIntervalProvider.overrideWithValue(null),
+          ],
+          child: MaterialApp(home: LiveRoomScreen(showId: showId)),
+        ),
+      );
+      await tester.pumpAndSettle();
+      for (final key in [
+        'live-follow',
+        'live-chat',
+        'live-wallet-login',
+        'live-react-0',
+        'live-reaction-🔥',
+        'live-share',
+        'live-queue',
+      ]) {
+        expect(find.byKey(ValueKey(key)), findsOneWidget, reason: key);
+      }
+      expect(
+        tester
+            .widget<TextField>(find.byKey(const ValueKey('live-chat')))
+            .readOnly,
+        isTrue,
+      );
+      final before = storage.liveEventsOf(showId).length;
+      await tester.tap(find.byKey(const ValueKey('live-react-0')));
+      await tester.pumpAndSettle();
+      expect(storage.liveEventsOf(showId).length, before);
+      expect(tester.takeException(), isNull);
+      await tester.pumpWidget(const SizedBox.shrink());
+    },
+  );
 
   for (final size in const [Size(1400, 1000), Size(400, 860)]) {
     testWidgets('live: pokretanje, licitiranje i chat ($size)', (tester) async {

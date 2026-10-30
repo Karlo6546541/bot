@@ -179,7 +179,7 @@ class LoopLogo extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final c = color ?? Theme.of(context).colorScheme.primary;
-    final logo = Row(
+    final logo = FittedBox(fit: BoxFit.scaleDown, child: Row(
       mainAxisSize: MainAxisSize.min,
       children: [
         SpearMark(
@@ -198,7 +198,7 @@ class LoopLogo extends StatelessWidget {
           ),
         ),
       ],
-    );
+    ));
     if (onTap == null) return logo;
     return Tooltip(
       message: t('Početna'),

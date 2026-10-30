@@ -3238,11 +3238,15 @@ class _TopBar extends ConsumerWidget {
                   borderRadius: BorderRadius.circular(8),
                 ),
               ),
-              onPressed: following ? null : () async {
-                if (blockGuest(context)) return;
-                await ref.read(appProvider.notifier).toggleFollow(show.hostId);
-                showLoopSnackBar(t('Pratiš {0}', [hostName]));
-              },
+              onPressed: following
+                  ? null
+                  : () async {
+                      if (blockGuest(context)) return;
+                      await ref
+                          .read(appProvider.notifier)
+                          .toggleFollow(show.hostId);
+                      showLoopSnackBar(t('Pratiš {0}', [hostName]));
+                    },
               child: Text(t(following ? 'Pratim' : 'Prati')),
             ),
           ],
@@ -3953,7 +3957,7 @@ class _LotCard extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: 8),
-              Column(
+              SizedBox(width: 112, child: Column(
                 key: const ValueKey('live-value'),
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
@@ -4013,7 +4017,7 @@ class _LotCard extends StatelessWidget {
                       ),
                   ],
                 ],
-              ),
+              )),
             ],
           ),
           // Traka vremena: smanjuje se, u zadnjim sekundama crveno treperi,
@@ -4798,6 +4802,7 @@ class _DouyinBar extends StatelessWidget {
               ? TextField(
                   key: const ValueKey('live-chat'),
                   readOnly: guest,
+                  canRequestFocus: !guest,
                   onTap: guest ? onLogin : null,
                   controller: controller,
                   focusNode: focusNode,
@@ -4893,8 +4898,16 @@ class _DouyinBar extends StatelessWidget {
             ),
           ),
         if (showWallet && !composing && guest)
-          IconButton(key: const ValueKey('live-wallet-login'), tooltip: t('Novčanik'),
-            onPressed: onLogin, icon: const Icon(Icons.account_balance_wallet_rounded, color: Colors.white, size: 22)),
+          IconButton(
+            key: const ValueKey('live-wallet-login'),
+            tooltip: t('Novčanik'),
+            onPressed: onLogin,
+            icon: const Icon(
+              Icons.account_balance_wallet_rounded,
+              color: Colors.white,
+              size: 22,
+            ),
+          ),
         if (showWallet && !composing && !guest)
           const Padding(
             padding: EdgeInsets.symmetric(horizontal: 2),
