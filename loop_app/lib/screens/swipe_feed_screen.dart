@@ -5,7 +5,6 @@ import '../models/country.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../l10n/tr.dart';
-import '../widgets/trust_widgets.dart';
 import '../models/auction.dart';
 import '../models/device.dart';
 import '../providers/app_providers.dart';
@@ -906,62 +905,48 @@ class _Info extends ConsumerWidget {
     final leading = a != null && a.highestBid?.userId == meId;
     final price = buyTotal(state.priceForMe(d));
 
-    Widget primary;
-    if (isMine) {
-      primary = _MainButton(
-        icon: Icons.info_outline,
-        label: a != null ? t('Moja aukcija') : t('Moj oglas'),
-        onTap: onDetails,
-        outlined: true,
-      );
-    } else if (a != null) {
-      primary = _MainButton(
-        key: const ValueKey('post-bid'),
-        icon: leading ? Icons.emoji_events_outlined : Icons.gavel,
-        label: leading
-            ? t('Vodiš · automatska ponuda')
-            : t('Licitiraj · od {0}', [formatCredits(a.minNextBid)]),
-        onTap: () => showBidSheet(context, ref, a.id),
-        color: LoopColors.accent,
-      );
-    } else {
-      primary = _MainButton(
-        key: const ValueKey('post-buy'),
-        icon: d.isDigital
-            ? Icons.download_for_offline_outlined
-            : Icons.shopping_bag_outlined,
-        label: d.isDigital && state.hasPurchased(d.id)
-            ? t('Preuzmi')
-            : t('Kupi odmah'),
-        onTap: () => confirmAndBuy(context, ref, d),
-        color: LoopColors.buyNow,
-      );
-    }
-
     final rating = owner == null ? null : state.ratingOf(owner.id);
+    final canOffer =
+        !isMine &&
+        a == null &&
+        d.isListed &&
+        !d.isDigital &&
+        d.priceAt(DateTime.now()) > 1;
+    final subtitle = a != null
+        ? t('{0} ponuda', ['${a.bids.length}'])
+        : d.isDigital
+        ? t('Digitalna dostava')
+        : '${d.quantity > 1 ? t('{0} dostupno', ['${d.quantity}']) : t('1 dostupno')}'
+              ' · ${_shippingLabel(d)}';
+    const yellow = Color(0xFFFFE01B);
+
+    // Whatnot: prodavatelj gore, bijela kartica predmeta, dva gumba ispod.
     return DecoratedBox(
       key: const ValueKey('post-info-panel'),
       decoration: const BoxDecoration(
-        color: Color(0xFF131419),
-        border: Border(top: BorderSide(color: Color(0xFF25262D))),
+        gradient: LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [Color(0x00000000), Color(0xE6000000)],
+        ),
       ),
       child: SafeArea(
         top: false,
         child: Padding(
-          padding: const EdgeInsets.fromLTRB(14, 10, 14, 12),
+          padding: const EdgeInsets.fromLTRB(14, 18, 14, 12),
           child: Column(
             mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               if (owner != null) ...[
                 Row(
                   children: [
                     GestureDetector(
                       onTap: () => PublicProfileScreen.open(context, owner.id),
-                      child: UserAvatar(user: owner, size: 26),
+                      child: UserAvatar(user: owner, size: 30),
                     ),
                     const SizedBox(width: 8),
-                    Expanded(
+                    Flexible(
                       child: GestureDetector(
                         onTap: () =>
                             PublicProfileScreen.open(context, owner.id),
@@ -970,9 +955,12 @@ class _Info extends ConsumerWidget {
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: const TextStyle(
-                            color: Color(0xFFB3B4BF),
-                            fontSize: 12,
-                            fontWeight: FontWeight.w600,
+                            color: Colors.white,
+                            fontSize: 14,
+                            fontWeight: FontWeight.w800,
+                            shadows: [
+                              Shadow(blurRadius: 6, color: Colors.black87),
+                            ],
                           ),
                         ),
                       ),
@@ -982,8 +970,9 @@ class _Info extends ConsumerWidget {
                       Text(
                         '★ ${rating.average.toStringAsFixed(1)}',
                         style: const TextStyle(
-                          color: Color(0xFFA1A2AD),
-                          fontSize: 11,
+                          color: Colors.white70,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w700,
                         ),
                       ),
                     ],
@@ -993,123 +982,156 @@ class _Info extends ConsumerWidget {
                     ],
                   ],
                 ),
-                const SizedBox(height: 8),
+                const SizedBox(height: 10),
               ],
+              // Kartica predmeta.
               GestureDetector(
                 key: const ValueKey('post-description'),
                 behavior: HitTestBehavior.opaque,
                 onTap: onDetails,
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            d.model.isEmpty ? d.name : '${d.name} · ${d.model}',
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
-                              color: Color(0xFFE9E9EF),
-                              fontSize: 16,
-                              height: 1.2,
-                              fontWeight: FontWeight.w700,
-                            ),
-                          ),
-                          if (d.description.isNotEmpty) ...[
-                            const SizedBox(height: 4),
+                child: Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(18),
+                  ),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(8),
+                        child: ItemThumb(device: d, size: 64),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
                             Text(
-                              d.description,
-                              maxLines: 1,
+                              d.model.isEmpty
+                                  ? d.name
+                                  : '${d.name} · ${d.model}',
+                              maxLines: 2,
                               overflow: TextOverflow.ellipsis,
                               style: const TextStyle(
-                                color: Color(0xFF9B9CA8),
-                                fontSize: 12,
-                                height: 1.3,
+                                color: Color(0xFF111111),
+                                fontSize: 16,
+                                height: 1.2,
+                                fontWeight: FontWeight.w800,
                               ),
                             ),
-                          ],
-                        ],
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    ConstrainedBox(
-                      constraints: const BoxConstraints(maxWidth: 110),
-                      child: a != null
-                          ? Text(
-                              formatCredits(a.currentPrice),
+                            const SizedBox(height: 2),
+                            Text(
+                              subtitle,
                               style: const TextStyle(
-                                color: Color(0xFFE9E9EF),
-                                fontSize: 22,
-                                height: 1.1,
-                                fontWeight: FontWeight.w700,
+                                color: Color(0xFF6B6B6B),
+                                fontSize: 13,
                               ),
-                            )
-                          : PriceTag(
-                              device: d,
-                              price: isMine ? d.askPrice : price,
-                              basePrice: d.shownBasePrice,
-                              fontSize: 22,
-                              color: const Color(0xFFE9E9EF),
                             ),
-                    ),
-                  ],
+                            const SizedBox(height: 2),
+                            a != null
+                                ? Text(
+                                    formatCredits(a.currentPrice),
+                                    style: const TextStyle(
+                                      color: Color(0xFF111111),
+                                      fontSize: 22,
+                                      fontWeight: FontWeight.w900,
+                                    ),
+                                  )
+                                : PriceTag(
+                                    device: d,
+                                    price: isMine ? d.askPrice : price,
+                                    basePrice: d.shownBasePrice,
+                                    fontSize: 22,
+                                    color: const Color(0xFF111111),
+                                  ),
+                          ],
+                        ),
+                      ),
+                      const Icon(
+                        Icons.open_in_full,
+                        size: 18,
+                        color: Color(0xFF444444),
+                      ),
+                    ],
+                  ),
                 ),
               ),
-              const SizedBox(height: 5),
+              const SizedBox(height: 10),
               Row(
                 children: [
+                  if (canOffer) ...[
+                    Expanded(
+                      child: _MainButton(
+                        key: const ValueKey('post-offer'),
+                        icon: Icons.price_change_outlined,
+                        label: t('Ponudi cijenu'),
+                        onTap: () => showBargainDialog(context, ref, d),
+                        color: const Color(0x99555555),
+                        foreground: Colors.white,
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                  ],
                   Expanded(
-                    child: Text(
-                      a != null
-                          ? t('{0} ponuda', ['${a.bids.length}'])
-                          : d.isDigital
-                          ? t('Digitalna dostava')
-                          : '${d.condition.label} · ${_shippingLabel(d)}',
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        color: Color(0xFF92939F),
-                        fontSize: 11,
-                      ),
-                    ),
-                  ),
-                  IconButton(
-                    tooltip: t('Zaštita kupca'),
-                    onPressed: () => BuyerProtectionBadge.explain(context),
-                    padding: EdgeInsets.zero,
-                    visualDensity: VisualDensity.compact,
-                    constraints: const BoxConstraints.tightFor(
-                      width: 28,
-                      height: 28,
-                    ),
-                    icon: const Icon(
-                      Icons.verified_user_outlined,
-                      size: 15,
-                      color: Color(0xFF75AD91),
-                    ),
-                  ),
-                  TextButton(
-                    key: const ValueKey('post-details-link'),
-                    onPressed: onDetails,
-                    style: TextButton.styleFrom(
-                      foregroundColor: const Color(0xFFB3B4BF),
-                      padding: const EdgeInsets.only(left: 4),
-                      minimumSize: const Size(0, 28),
-                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                      textStyle: const TextStyle(
-                        fontFamily: kFontFamily,
-                        fontSize: 11,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                    child: Text(t('Detalji ›')),
+                    flex: canOffer ? 1 : 2,
+                    child: isMine
+                        ? _MainButton(
+                            icon: Icons.info_outline,
+                            label: a != null
+                                ? t('Moja aukcija')
+                                : t('Moj oglas'),
+                            onTap: onDetails,
+                            outlined: true,
+                          )
+                        : a != null
+                        ? _MainButton(
+                            key: const ValueKey('post-bid'),
+                            icon: leading
+                                ? Icons.emoji_events_outlined
+                                : Icons.gavel,
+                            label: leading
+                                ? t('Vodiš · automatska ponuda')
+                                : t('Licitiraj · od {0}', [
+                                    formatCredits(a.minNextBid),
+                                  ]),
+                            onTap: () => showBidSheet(context, ref, a.id),
+                            color: yellow,
+                            foreground: const Color(0xFF111111),
+                          )
+                        : _MainButton(
+                            key: const ValueKey('post-buy'),
+                            icon: d.isDigital
+                                ? Icons.download_for_offline_outlined
+                                : Icons.shopping_bag_outlined,
+                            label: d.isDigital && state.hasPurchased(d.id)
+                                ? t('Preuzmi')
+                                : t('Kupi odmah'),
+                            onTap: () => confirmAndBuy(context, ref, d),
+                            color: yellow,
+                            foreground: const Color(0xFF111111),
+                          ),
                   ),
                 ],
               ),
-              const SizedBox(height: 6),
-              primary,
+              Align(
+                alignment: Alignment.center,
+                child: TextButton(
+                  key: const ValueKey('post-details-link'),
+                  onPressed: onDetails,
+                  style: TextButton.styleFrom(
+                    foregroundColor: Colors.white70,
+                    minimumSize: const Size(0, 28),
+                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    textStyle: const TextStyle(
+                      fontFamily: kFontFamily,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  child: Text(t('Detalji ›')),
+                ),
+              ),
             ],
           ),
         ),
@@ -1125,12 +1147,14 @@ class _MainButton extends StatelessWidget {
     required this.label,
     required this.onTap,
     this.color,
+    this.foreground,
     this.outlined = false,
   });
   final IconData icon;
   final String label;
   final VoidCallback onTap;
   final Color? color;
+  final Color? foreground;
   final bool outlined;
 
   @override
@@ -1147,13 +1171,13 @@ class _MainButton extends StatelessWidget {
     );
     return SizedBox(
       width: double.infinity,
-      height: 42,
+      height: 48,
       child: outlined
           ? OutlinedButton(
               onPressed: onTap,
               style: OutlinedButton.styleFrom(
                 foregroundColor: const Color(0xFFE9E9EF),
-                minimumSize: const Size(0, 42),
+                minimumSize: const Size(0, 48),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12),
                 ),
@@ -1172,8 +1196,8 @@ class _MainButton extends StatelessWidget {
                   ? null
                   : FilledButton.styleFrom(
                       backgroundColor: color,
-                      foregroundColor: const Color(0xFFF0F0F3),
-                      minimumSize: const Size(0, 42),
+                      foregroundColor: foreground ?? const Color(0xFFF0F0F3),
+                      minimumSize: const Size(0, 48),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),
                       ),

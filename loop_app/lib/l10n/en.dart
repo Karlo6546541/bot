@@ -2666,4 +2666,6 @@ const kEn = <String, String>{
   '💾 Digitalno ({0})': '💾 Digital ({0})',
   'Još nemaš kupljenih digitalnih proizvoda.':
       'You have no purchased digital products yet.',
+  '1 dostupno': '1 available',
+  '{0} dostupno': '{0} available',
 };
