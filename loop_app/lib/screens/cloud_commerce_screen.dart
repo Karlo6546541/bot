@@ -1257,7 +1257,7 @@ class _CloudCommerceState extends State<CloudCommerceScreen> {
             decoration: InputDecoration(hintText: uid == null ? 'Prijavi se za komentar' : 'Napiši komentar', hintStyle: const TextStyle(color: Colors.white60),
               counterText: '', isDense: true, filled: true, fillColor: const Color(0x33000000), contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
               enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(24), borderSide: const BorderSide(color: Colors.white30)),
-              focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(24), borderSide: const BorderSide(color: Color(0xFFFFDF4D))))),
+              focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(24), borderSide: const BorderSide(color: Color(0xFFFFDF4D)))))),
           IconButton(tooltip: 'Pošalji komentar', onPressed: busy ? null : _sendChat, icon: const Icon(Icons.send_outlined, color: Colors.white, size: 22)),
           if (keyboard) IconButton(tooltip: 'Zatvori tipkovnicu', onPressed: () => FocusScope.of(context).unfocus(), icon: const Icon(Icons.keyboard_hide_outlined, color: Colors.white)),
         ])),
