@@ -67,6 +67,7 @@ class _CloudCommerceState extends State<CloudCommerceScreen> {
         : 0;
     auth = db.auth.onAuthStateChange.listen((_) {
       connection = null;
+      _following = false;
       cardKnown = false;
       cardLast4 = null;
       unawaited(_loadCard());
@@ -1002,9 +1003,22 @@ class _CloudCommerceState extends State<CloudCommerceScreen> {
       children.add(
         Row(
           children: [
-            if (lot['image_url'] is String && (lot['image_url'] as String).isNotEmpty) ...[
-              ClipRRect(borderRadius: BorderRadius.circular(16), child: SizedBox(width: 62, height: 72,
-                child: LocalPhoto(path: lot['image_url'] as String, fallback: const Icon(Icons.image_outlined, color: Colors.white38)))),
+            if (lot['image_url'] is String &&
+                (lot['image_url'] as String).isNotEmpty) ...[
+              ClipRRect(
+                borderRadius: BorderRadius.circular(16),
+                child: SizedBox(
+                  width: 62,
+                  height: 72,
+                  child: LocalPhoto(
+                    path: lot['image_url'] as String,
+                    fallback: const Icon(
+                      Icons.image_outlined,
+                      color: Colors.white38,
+                    ),
+                  ),
+                ),
+              ),
               const SizedBox(width: 10),
             ],
             Expanded(
@@ -1012,7 +1026,11 @@ class _CloudCommerceState extends State<CloudCommerceScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    running != null ? 'Sada na aukciji' : won != null ? '🏆 Osvojio si!' : 'Sljedeći predmet',
+                    running != null
+                        ? 'Sada na aukciji'
+                        : won != null
+                        ? '🏆 Osvojio si!'
+                        : 'Sljedeći predmet',
                     style: const TextStyle(
                       color: Colors.white54,
                       fontSize: 11.5,
@@ -1327,29 +1345,69 @@ class _CloudCommerceState extends State<CloudCommerceScreen> {
                           ],
                         ),
                       ),
-                      if (!host && uid != null) TextButton(
-                        style: TextButton.styleFrom(backgroundColor: const Color(0xFFF46B16), foregroundColor: Colors.white),
-                        onPressed: busy ? null : () => _run(() async {
-                          if (!await _login()) return;
-                          await commerce.follow(room!['host_id'] as String, !_following);
-                          if (mounted) setState(() => _following = !_following);
-                        }), child: Text(_following ? 'Pratim' : 'Prati')),
+                      if (!host && uid != null)
+                        TextButton(
+                          style: TextButton.styleFrom(
+                            backgroundColor: const Color(0xFFF46B16),
+                            foregroundColor: Colors.white,
+                          ),
+                          onPressed: busy
+                              ? null
+                              : () => _run(() async {
+                                  if (!await _login()) return;
+                                  await commerce.follow(
+                                    room!['host_id'] as String,
+                                    !_following,
+                                  );
+                                  if (mounted) {
+                                    setState(() => _following = !_following);
+                                  }
+                                }),
+                          child: Text(_following ? 'Pratim' : 'Prati'),
+                        ),
                       if (uid == null)
                         TextButton(
                           onPressed: _login,
                           child: const Text('Prijava'),
                         ),
-                      PopupMenuButton<String>(icon: const Icon(Icons.more_horiz, color: Colors.white),
+                      PopupMenuButton<String>(
+                        icon: const Icon(Icons.more_horiz, color: Colors.white),
                         onSelected: (value) => _run(() async {
-                          if (value == 'refresh') { await _refresh(); }
-                          else {
-                            await Clipboard.setData(ClipboardData(text: Uri.base.replace(queryParameters: {'cloud': 'live', 'room': roomId!}).toString()));
-                            if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Poveznica livea je kopirana.')));
+                          if (value == 'refresh') {
+                            await _refresh();
+                          } else {
+                            await Clipboard.setData(
+                              ClipboardData(
+                                text: Uri.base
+                                    .replace(
+                                      queryParameters: {
+                                        'cloud': 'live',
+                                        'room': roomId!,
+                                      },
+                                    )
+                                    .toString(),
+                              ),
+                            );
+                            if (mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text('Poveznica livea je kopirana.'),
+                                ),
+                              );
+                            }
                           }
-                        }), itemBuilder: (_) => const [
-                          PopupMenuItem(value: 'share', child: Text('Podijeli live')),
-                          PopupMenuItem(value: 'refresh', child: Text('Osvježi live')),
-                        ]),
+                        }),
+                        itemBuilder: (_) => const [
+                          PopupMenuItem(
+                            value: 'share',
+                            child: Text('Podijeli live'),
+                          ),
+                          PopupMenuItem(
+                            value: 'refresh',
+                            child: Text('Osvježi live'),
+                          ),
+                        ],
+                      ),
                       IconButton(
                         tooltip: 'Zatvori live',
                         onPressed: _leave,
@@ -1370,21 +1428,55 @@ class _CloudCommerceState extends State<CloudCommerceScreen> {
                     child: _chatOverlay(room, host),
                   ),
                 ),
-                if (!keyboard) Padding(padding: const EdgeInsets.symmetric(horizontal: 12),
-                  child: Row(children: [for (final emoji in const ['🔥', '😮', '💸', '👏', '😍'])
-                    IconButton(tooltip: 'Pošalji reakciju $emoji', visualDensity: VisualDensity.compact,
-                      onPressed: busy ? null : () => _run(() async {
-                        if (!await _login()) return;
-                        await live.sendMessage(roomId!, emoji, const Uuid().v4());
-                      }), icon: Text(emoji, style: const TextStyle(fontSize: 24))),
-                  ])),
+                if (!keyboard)
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 12),
+                    child: Row(
+                      children: [
+                        for (final emoji in const [
+                          '🔥',
+                          '😮',
+                          '💸',
+                          '👏',
+                          '😍',
+                        ])
+                          IconButton(
+                            tooltip: 'Pošalji reakciju $emoji',
+                            visualDensity: VisualDensity.compact,
+                            onPressed: busy
+                                ? null
+                                : () => _run(() async {
+                                    if (!await _login()) return;
+                                    await live.sendMessage(
+                                      roomId!,
+                                      emoji,
+                                      const Uuid().v4(),
+                                    );
+                                  }),
+                            icon: Text(
+                              emoji,
+                              style: const TextStyle(fontSize: 24),
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
                 Padding(
                   padding: const EdgeInsets.fromLTRB(12, 6, 8, 8),
                   child: Row(
                     children: [
-                      IconButton(tooltip: 'Predmeti u liveu', onPressed: () => _showLots(room, host),
-                        style: IconButton.styleFrom(backgroundColor: const Color(0xFFF46B16), foregroundColor: Colors.white),
-                        icon: Badge(label: Text('${lots.length}'), child: const Icon(Icons.shopping_bag_outlined))),
+                      IconButton(
+                        tooltip: 'Predmeti u liveu',
+                        onPressed: () => _showLots(room, host),
+                        style: IconButton.styleFrom(
+                          backgroundColor: const Color(0xFFF46B16),
+                          foregroundColor: Colors.white,
+                        ),
+                        icon: Badge(
+                          label: Text('${lots.length}'),
+                          child: const Icon(Icons.shopping_bag_outlined),
+                        ),
+                      ),
                       const SizedBox(width: 6),
                       Expanded(
                         child: TextField(
