@@ -179,26 +179,29 @@ class LoopLogo extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final c = color ?? Theme.of(context).colorScheme.primary;
-    final logo = FittedBox(fit: BoxFit.scaleDown, child: Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        SpearMark(
-          size: size * 1.25,
-          head: c,
-          shaft: color ?? LoopColors.textPrimary,
-        ),
-        SizedBox(width: size * 0.25),
-        Text(
-          kAppName.toUpperCase(),
-          style: TextStyle(
-            fontSize: size * 0.9,
-            fontWeight: FontWeight.w900,
-            letterSpacing: size * 0.08,
-            color: color ?? LoopColors.textPrimary,
+    final logo = FittedBox(
+      fit: BoxFit.scaleDown,
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          SpearMark(
+            size: size * 1.25,
+            head: c,
+            shaft: color ?? LoopColors.textPrimary,
           ),
-        ),
-      ],
-    ));
+          SizedBox(width: size * 0.25),
+          Text(
+            kAppName.toUpperCase(),
+            style: TextStyle(
+              fontSize: size * 0.9,
+              fontWeight: FontWeight.w900,
+              letterSpacing: size * 0.08,
+              color: color ?? LoopColors.textPrimary,
+            ),
+          ),
+        ],
+      ),
+    );
     if (onTap == null) return logo;
     return Tooltip(
       message: t('Početna'),

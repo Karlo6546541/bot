@@ -3957,67 +3957,70 @@ class _LotCard extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: 8),
-              SizedBox(width: 112, child: Column(
-                key: const ValueKey('live-value'),
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                  ConstrainedBox(
-                    constraints: const BoxConstraints(maxWidth: 120),
-                    child: FittedBox(
-                      fit: BoxFit.scaleDown,
-                      child: Text(
-                        lot.mode == LotMode.giveaway
-                            ? t('Besplatno')
-                            : formatCredits(price),
-                        key: const ValueKey('live-price'),
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.w900,
-                          fontSize: 25,
-                          height: 1.05,
-                          shadows: _shadow,
+              SizedBox(
+                width: 112,
+                child: Column(
+                  key: const ValueKey('live-value'),
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    ConstrainedBox(
+                      constraints: const BoxConstraints(maxWidth: 120),
+                      child: FittedBox(
+                        fit: BoxFit.scaleDown,
+                        child: Text(
+                          lot.mode == LotMode.giveaway
+                              ? t('Besplatno')
+                              : formatCredits(price),
+                          key: const ValueKey('live-price'),
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.w900,
+                            fontSize: 25,
+                            height: 1.05,
+                            shadows: _shadow,
+                          ),
                         ),
                       ),
                     ),
-                  ),
-                  if (value > 0)
-                    Text(
-                      t('💎 procjena {0}', [formatCredits(value)]),
-                      style: const TextStyle(
-                        color: Colors.white70,
-                        fontSize: 11,
-                        shadows: _shadow,
-                      ),
-                    ),
-                  if (result)
-                    Text(
-                      leader == null
-                          ? t('Nije prodano')
-                          : leader.userId == me
-                          ? t('Osvojeno 🎉')
-                          : t('Prodano'),
-                      style: TextStyle(
-                        color: leader == null ? Colors.white70 : kLiveRed,
-                        fontWeight: FontWeight.w900,
-                        fontSize: 11,
-                        shadows: _shadow,
-                      ),
-                    )
-                  else ...[
-                    // Samo kad je razlika velika (inače je šum).
-                    if (below >= 30)
+                    if (value > 0)
                       Text(
-                        t('−{0}% ispod procjene', ['$below']),
+                        t('💎 procjena {0}', [formatCredits(value)]),
                         style: const TextStyle(
-                          color: Color(0xFF4ADE80),
-                          fontSize: 11.5,
-                          fontWeight: FontWeight.w900,
+                          color: Colors.white70,
+                          fontSize: 11,
                           shadows: _shadow,
                         ),
                       ),
+                    if (result)
+                      Text(
+                        leader == null
+                            ? t('Nije prodano')
+                            : leader.userId == me
+                            ? t('Osvojeno 🎉')
+                            : t('Prodano'),
+                        style: TextStyle(
+                          color: leader == null ? Colors.white70 : kLiveRed,
+                          fontWeight: FontWeight.w900,
+                          fontSize: 11,
+                          shadows: _shadow,
+                        ),
+                      )
+                    else ...[
+                      // Samo kad je razlika velika (inače je šum).
+                      if (below >= 30)
+                        Text(
+                          t('−{0}% ispod procjene', ['$below']),
+                          style: const TextStyle(
+                            color: Color(0xFF4ADE80),
+                            fontSize: 11.5,
+                            fontWeight: FontWeight.w900,
+                            shadows: _shadow,
+                          ),
+                        ),
+                    ],
                   ],
-                ],
-              )),
+                ),
+              ),
             ],
           ),
           // Traka vremena: smanjuje se, u zadnjim sekundama crveno treperi,
