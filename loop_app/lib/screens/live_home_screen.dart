@@ -481,26 +481,78 @@ class _LiveHomeScreenState extends ConsumerState<LiveHomeScreen> {
             child: Row(
               key: const ValueKey('home-cats'),
               children: [
-                tab(
-                  'following',
-                  t('Pratim'),
-                  const _Following(),
-                  _filter is _Following,
-                ),
-                tab('for-you', t('Za tebe'), const _ForYou(), immersive),
-                tab(
-                  'live',
-                  t('Uživo'),
-                  const _LiveOnly(),
-                  _filter is _LiveOnly,
-                ),
-                IconButton(
-                  key: const ValueKey('home-search'),
-                  tooltip: t('Pretraži objave i račune'),
-                  color: foreground,
-                  onPressed: () => SearchScreen.open(context),
-                  icon: const Icon(Icons.search),
-                ),
+                if (immersive) ...[
+                  tab(
+                    'following',
+                    t('Pratim'),
+                    const _Following(),
+                    _filter is _Following,
+                  ),
+                  tab('for-you', t('Za tebe'), const _ForYou(), immersive),
+                  tab(
+                    'live',
+                    t('Uživo'),
+                    const _LiveOnly(),
+                    _filter is _LiveOnly,
+                  ),
+                  IconButton(
+                    key: const ValueKey('home-search'),
+                    tooltip: t('Pretraži objave i račune'),
+                    color: foreground,
+                    onPressed: () => SearchScreen.open(context),
+                    icon: const Icon(Icons.search),
+                  ),
+                ] else ...[
+                  // Whatnot: široka tražilica, poruke i obavijesti.
+                  Expanded(
+                    child: Padding(
+                      padding: const EdgeInsets.fromLTRB(12, 8, 6, 8),
+                      child: InkWell(
+                        key: const ValueKey('home-search'),
+                        borderRadius: BorderRadius.circular(99),
+                        onTap: () => SearchScreen.open(context),
+                        child: Container(
+                          height: 44,
+                          padding: const EdgeInsets.symmetric(horizontal: 14),
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(99),
+                            border: Border.all(
+                              color: LoopColors.textSecondary.withValues(
+                                alpha: 0.6,
+                              ),
+                              width: 1.5,
+                            ),
+                          ),
+                          child: Row(
+                            children: [
+                              Icon(
+                                Icons.search,
+                                color: LoopColors.textSecondary,
+                              ),
+                              const SizedBox(width: 10),
+                              Expanded(
+                                child: Text(
+                                  t('Traži na Subhastu'),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: TextStyle(
+                                    color: LoopColors.textSecondary,
+                                    fontSize: 15,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                  // Šire razine već imaju poruke i obavijesti u gornjoj traci.
+                  if (MediaQuery.sizeOf(context).width < 600) ...const [
+                    MessagesButton(),
+                    NotificationBell(),
+                  ],
+                ],
                 IconButton(
                   key: const ValueKey('home-filters'),
                   tooltip: t('Filteri'),
@@ -696,6 +748,11 @@ class _LiveHomeScreenState extends ConsumerState<LiveHomeScreen> {
     return Column(
       children: [
         chips,
+        _TileRow(
+          selected: _filter.id,
+          onSelect: (f) => _select(f),
+          onCategories: () => CategoriesScreen.open(context),
+        ),
         Expanded(
           child: GestureDetector(
             key: const ValueKey('home-swipe'),
@@ -996,6 +1053,125 @@ class _FollowingRow extends StatelessWidget {
             ),
           );
         },
+      ),
+    );
+  }
+}
+
+/// Whatnot: vodoravni red velikih pločica (Za tebe, Pratim, Uživo…).
+class _TileRow extends StatelessWidget {
+  const _TileRow({
+    required this.selected,
+    required this.onSelect,
+    required this.onCategories,
+  });
+
+  final String selected;
+  final void Function(_Filter) onSelect;
+  final VoidCallback onCategories;
+
+  @override
+  Widget build(BuildContext context) {
+    Widget tile({
+      required String id,
+      required String label,
+      required Widget art,
+      required VoidCallback onTap,
+      Key? key,
+    }) {
+      final on = selected == id;
+      return Padding(
+        padding: const EdgeInsets.only(right: 10),
+        child: InkWell(
+          key: key ?? ValueKey('tile-$id'),
+          borderRadius: BorderRadius.circular(14),
+          onTap: onTap,
+          child: Container(
+            width: 112,
+            height: 132,
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: on ? LoopColors.accent : LoopColors.surface,
+              borderRadius: BorderRadius.circular(14),
+              border: on ? Border.all(color: Colors.white, width: 2.5) : null,
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  label,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: on ? LoopColors.onAccent : LoopColors.textPrimary,
+                    fontWeight: FontWeight.w800,
+                    fontSize: 14,
+                    height: 1.15,
+                  ),
+                ),
+                Expanded(child: Center(child: art)),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
+
+    final yellow = LoopColors.accent;
+    return SizedBox(
+      height: 144,
+      child: ListView(
+        key: const ValueKey('home-tiles'),
+        scrollDirection: Axis.horizontal,
+        padding: const EdgeInsets.fromLTRB(12, 4, 2, 8),
+        children: [
+          tile(
+            id: 'for-you',
+            key: const ValueKey('home-cat-for-you'),
+            label: t('Za tebe'),
+            art: Icon(Icons.person, size: 54, color: LoopColors.onAccent),
+            onTap: () => onSelect(const _ForYou()),
+          ),
+          tile(
+            id: 'following',
+            key: const ValueKey('home-cat-following'),
+            label: t('Pratim'),
+            art: Icon(Icons.favorite, size: 54, color: yellow),
+            onTap: () => onSelect(const _Following()),
+          ),
+          tile(
+            id: 'live',
+            key: const ValueKey('home-cat-live'),
+            label: t('Uživo'),
+            art: const Icon(Icons.videocam, size: 54, color: Color(0xFFFF2D55)),
+            onTap: () => onSelect(const _LiveOnly()),
+          ),
+          tile(
+            id: 'timed',
+            label: t('Aukcije'),
+            art: Icon(Icons.gavel, size: 50, color: yellow),
+            onTap: () => onSelect(const _Timed()),
+          ),
+          if (kBuyNowEnabled)
+            tile(
+              id: 'buy',
+              label: t('Kupi odmah'),
+              art: Icon(Icons.shopping_bag, size: 50, color: yellow),
+              onTap: () => onSelect(const _BuyNow()),
+            ),
+          tile(
+            id: 'soon',
+            label: t('Uskoro'),
+            art: Icon(Icons.event, size: 50, color: yellow),
+            onTap: () => onSelect(const _Soon()),
+          ),
+          tile(
+            id: 'categories',
+            label: t('Kategorije'),
+            art: Icon(Icons.grid_view_rounded, size: 50, color: yellow),
+            onTap: onCategories,
+          ),
+        ],
       ),
     );
   }
