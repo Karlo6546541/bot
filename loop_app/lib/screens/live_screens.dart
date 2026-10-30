@@ -1,3 +1,4 @@
+import '../config/backend_config.dart';
 import 'cloud_commerce_screen.dart';
 import 'package:uuid/uuid.dart';
 import '../config/features.dart';
@@ -363,7 +364,9 @@ class _CreateLiveShowScreenState extends ConsumerState<CreateLiveShowScreen> {
     }
     LiveShow? created;
     String? onlineRoom;
-    final backend = ref.read(preparedLiveBackendProvider);
+    final backend = BackendConfig.cloudLiveEnabled
+        ? ref.read(preparedLiveBackendProvider)
+        : null;
     final app = ref.read(appProvider.notifier);
     final ok = await runWithLoading(
       context,

@@ -386,7 +386,8 @@ class _LiveHomeScreenState extends ConsumerState<LiveHomeScreen> {
               : grid('home-buy', buyNow, t('Kupi odmah')),
         );
       case _LiveOnly():
-        if (BackendConfig.cloudCommerceEnabled &&
+        if (BackendConfig.cloudLiveEnabled &&
+            BackendConfig.cloudCommerceEnabled &&
             ref.read(syncProvider) != null) {
           slivers.add(
             const SliverFillRemaining(
