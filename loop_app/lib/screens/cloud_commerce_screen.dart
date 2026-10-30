@@ -1,3 +1,4 @@
+import 'package:flutter/services.dart';
 import 'live_screens.dart';
 import '../widgets/item_image.dart';
 import '../services/app_location/app_location.dart';
@@ -54,6 +55,7 @@ class _CloudCommerceState extends State<CloudCommerceScreen> {
       orders = [];
   Map<String, dynamic>? connection;
   Timer? timer;
+  bool _following = false;
   StreamSubscription<AuthState>? auth;
   RealtimeChannel? channel;
   final input = TextEditingController();
@@ -239,6 +241,7 @@ class _CloudCommerceState extends State<CloudCommerceScreen> {
   }
 
   Future<void> _leave() async {
+    _following = false;
     final old = channel;
     channel = null;
     if (old != null) await db.removeChannel(old);
@@ -992,19 +995,24 @@ class _CloudCommerceState extends State<CloudCommerceScreen> {
         .firstOrNull;
     final scheduled = room?['status'] == 'scheduled';
     final ended = room?['status'] == 'ended';
-    final lot = running ?? queued.firstOrNull;
+    final lot = running ?? won ?? queued.firstOrNull;
     final children = <Widget>[];
 
     if (lot != null) {
       children.add(
         Row(
           children: [
+            if (lot['image_url'] is String && (lot['image_url'] as String).isNotEmpty) ...[
+              ClipRRect(borderRadius: BorderRadius.circular(16), child: SizedBox(width: 62, height: 72,
+                child: LocalPhoto(path: lot['image_url'] as String, fallback: const Icon(Icons.image_outlined, color: Colors.white38)))),
+              const SizedBox(width: 10),
+            ],
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    running != null ? 'Sada na aukciji' : 'Sljedeći predmet',
+                    running != null ? 'Sada na aukciji' : won != null ? '🏆 Osvojio si!' : 'Sljedeći predmet',
                     style: const TextStyle(
                       color: Colors.white54,
                       fontSize: 11.5,
@@ -1013,7 +1021,7 @@ class _CloudCommerceState extends State<CloudCommerceScreen> {
                   ),
                   Text(
                     lot['title'] as String,
-                    maxLines: 1,
+                    maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                     style: const TextStyle(
                       color: Colors.white,
@@ -1032,7 +1040,7 @@ class _CloudCommerceState extends State<CloudCommerceScreen> {
                   money(lot['price_cents'] ?? lot['start_cents']),
                   style: const TextStyle(
                     color: Colors.white,
-                    fontSize: 22,
+                    fontSize: 30,
                     fontWeight: FontWeight.w900,
                   ),
                 ),
@@ -1055,7 +1063,7 @@ class _CloudCommerceState extends State<CloudCommerceScreen> {
       primary.add(
         FilledButton.icon(
           style: FilledButton.styleFrom(
-            backgroundColor: const Color(0xFF16A34A),
+            backgroundColor: const Color(0xFFF46B16),
             foregroundColor: Colors.white,
             minimumSize: const Size.fromHeight(52),
           ),
@@ -1131,8 +1139,8 @@ class _CloudCommerceState extends State<CloudCommerceScreen> {
       primary.add(
         FilledButton(
           style: FilledButton.styleFrom(
-            backgroundColor: const Color(0xFFFFDF4D),
-            foregroundColor: Colors.black,
+            backgroundColor: const Color(0xFFF46B16),
+            foregroundColor: Colors.white,
             minimumSize: const Size.fromHeight(52),
             textStyle: const TextStyle(
               fontSize: 17,
@@ -1212,10 +1220,12 @@ class _CloudCommerceState extends State<CloudCommerceScreen> {
     }
     if (children.isEmpty) return const SizedBox.shrink();
     return Container(
-      padding: const EdgeInsets.fromLTRB(14, 12, 14, 6),
-      decoration: const BoxDecoration(
-        color: _panel,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      margin: const EdgeInsets.fromLTRB(12, 0, 12, 10),
+      padding: const EdgeInsets.fromLTRB(14, 12, 14, 8),
+      decoration: BoxDecoration(
+        color: Colors.black.withValues(alpha: .7),
+        border: Border.all(color: Colors.white12),
+        borderRadius: BorderRadius.circular(24),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -1279,12 +1289,12 @@ class _CloudCommerceState extends State<CloudCommerceScreen> {
                   child: Row(
                     children: [
                       const CircleAvatar(
-                        radius: 17,
+                        radius: 22,
                         backgroundColor: Color(0xFFFFDF4D),
                         child: Icon(
                           Icons.storefront,
                           color: Colors.black,
-                          size: 20,
+                          size: 24,
                         ),
                       ),
                       const SizedBox(width: 9),
@@ -1317,20 +1327,29 @@ class _CloudCommerceState extends State<CloudCommerceScreen> {
                           ],
                         ),
                       ),
+                      if (!host && uid != null) TextButton(
+                        style: TextButton.styleFrom(backgroundColor: const Color(0xFFF46B16), foregroundColor: Colors.white),
+                        onPressed: busy ? null : () => _run(() async {
+                          if (!await _login()) return;
+                          await commerce.follow(room!['host_id'] as String, !_following);
+                          if (mounted) setState(() => _following = !_following);
+                        }), child: Text(_following ? 'Pratim' : 'Prati')),
                       if (uid == null)
                         TextButton(
                           onPressed: _login,
                           child: const Text('Prijava'),
                         ),
-                      IconButton(
-                        tooltip: 'Osvježi live',
-                        onPressed: _refresh,
-                        icon: const Icon(
-                          Icons.refresh,
-                          color: Colors.white,
-                          size: 20,
-                        ),
-                      ),
+                      PopupMenuButton<String>(icon: const Icon(Icons.more_horiz, color: Colors.white),
+                        onSelected: (value) => _run(() async {
+                          if (value == 'refresh') { await _refresh(); }
+                          else {
+                            await Clipboard.setData(ClipboardData(text: Uri.base.replace(queryParameters: {'cloud': 'live', 'room': roomId!}).toString()));
+                            if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Poveznica livea je kopirana.')));
+                          }
+                        }), itemBuilder: (_) => const [
+                          PopupMenuItem(value: 'share', child: Text('Podijeli live')),
+                          PopupMenuItem(value: 'refresh', child: Text('Osvježi live')),
+                        ]),
                       IconButton(
                         tooltip: 'Zatvori live',
                         onPressed: _leave,
@@ -1344,20 +1363,6 @@ class _CloudCommerceState extends State<CloudCommerceScreen> {
                   ),
                 ),
                 const Spacer(),
-                Align(
-                  alignment: Alignment.centerRight,
-                  child: IconButton(
-                    tooltip: 'Predmeti u liveu',
-                    onPressed: () => _showLots(room, host),
-                    icon: Badge(
-                      label: Text('${lots.length}'),
-                      child: const Icon(
-                        Icons.shopping_bag_outlined,
-                        color: Colors.white,
-                      ),
-                    ),
-                  ),
-                ),
                 Flexible(
                   flex: 2,
                   child: Align(
@@ -1365,10 +1370,22 @@ class _CloudCommerceState extends State<CloudCommerceScreen> {
                     child: _chatOverlay(room, host),
                   ),
                 ),
+                if (!keyboard) Padding(padding: const EdgeInsets.symmetric(horizontal: 12),
+                  child: Row(children: [for (final emoji in const ['🔥', '😮', '💸', '👏', '😍'])
+                    IconButton(tooltip: 'Pošalji reakciju $emoji', visualDensity: VisualDensity.compact,
+                      onPressed: busy ? null : () => _run(() async {
+                        if (!await _login()) return;
+                        await live.sendMessage(roomId!, emoji, const Uuid().v4());
+                      }), icon: Text(emoji, style: const TextStyle(fontSize: 24))),
+                  ])),
                 Padding(
                   padding: const EdgeInsets.fromLTRB(12, 6, 8, 8),
                   child: Row(
                     children: [
+                      IconButton(tooltip: 'Predmeti u liveu', onPressed: () => _showLots(room, host),
+                        style: IconButton.styleFrom(backgroundColor: const Color(0xFFF46B16), foregroundColor: Colors.white),
+                        icon: Badge(label: Text('${lots.length}'), child: const Icon(Icons.shopping_bag_outlined))),
+                      const SizedBox(width: 6),
                       Expanded(
                         child: TextField(
                           controller: input,
@@ -1384,7 +1401,7 @@ class _CloudCommerceState extends State<CloudCommerceScreen> {
                           decoration: InputDecoration(
                             hintText: uid == null
                                 ? 'Prijavi se za komentar'
-                                : 'Napiši komentar',
+                                : 'Reci nešto…',
                             hintStyle: const TextStyle(color: Colors.white60),
                             counterText: '',
                             isDense: true,
