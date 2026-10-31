@@ -1280,6 +1280,12 @@ class _TileRow extends StatelessWidget {
               label: t('Kupi odmah'),
               onTap: () => onSelect(const _BuyNow()),
             ),
+          if (kBuyNowEnabled)
+            tab(
+              id: 'digital',
+              label: t('Digitalno'),
+              onTap: () => onSelect(const _Digital()),
+            ),
           tab(
             id: 'soon',
             label: t('Uskoro'),

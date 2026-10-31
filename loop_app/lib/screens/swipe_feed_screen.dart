@@ -604,59 +604,65 @@ class _PostPageState extends ConsumerState<_PostPage> {
       _showPostDetails(context, ref, d, auction);
     }
 
-    return Column(
+    // Kao Whatnot: fotografija preko cijelog ekrana, a desna traka i
+    // kartica predmeta leže preko nje pri dnu.
+    return Stack(
+      fit: StackFit.expand,
       children: [
-        Expanded(
-          child: Stack(
-            fit: StackFit.expand,
+        _Media(
+          key: const ValueKey('post-media'),
+          device: d,
+          onTap: openDetails,
+          onDoubleTap: isMine || auction != null
+              ? null
+              : () => _doubleTapLike(d),
+        ),
+        const IgnorePointer(
+          child: DecoratedBox(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [
+                  Colors.black38,
+                  Colors.transparent,
+                  Colors.transparent,
+                ],
+                stops: [0, 0.22, 1],
+              ),
+            ),
+          ),
+        ),
+        IgnorePointer(
+          child: Center(
+            child: AnimatedScale(
+              scale: _heart ? 1 : 0,
+              duration: const Duration(milliseconds: 200),
+              child: const Icon(
+                Icons.favorite,
+                color: Color(0xFFFF2D55),
+                size: 100,
+                shadows: _shadow,
+              ),
+            ),
+          ),
+        ),
+        Positioned(
+          top: MediaQuery.paddingOf(context).top + 48,
+          left: 14,
+          right: 80,
+          child: _CornerBadge(device: d, auction: auction, state: state),
+        ),
+        Positioned(
+          left: 0,
+          right: 0,
+          bottom: 0,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.end,
             children: [
-              _Media(
-                key: const ValueKey('post-media'),
-                device: d,
-                onTap: openDetails,
-                onDoubleTap: isMine || auction != null
-                    ? null
-                    : () => _doubleTapLike(d),
-              ),
-              const IgnorePointer(
-                child: DecoratedBox(
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: Alignment.topCenter,
-                      end: Alignment.bottomCenter,
-                      colors: [
-                        Colors.black38,
-                        Colors.transparent,
-                        Colors.transparent,
-                      ],
-                      stops: [0, 0.22, 1],
-                    ),
-                  ),
-                ),
-              ),
-              IgnorePointer(
-                child: Center(
-                  child: AnimatedScale(
-                    scale: _heart ? 1 : 0,
-                    duration: const Duration(milliseconds: 200),
-                    child: const Icon(
-                      Icons.favorite,
-                      color: Color(0xFFFF2D55),
-                      size: 100,
-                      shadows: _shadow,
-                    ),
-                  ),
-                ),
-              ),
-              Positioned(
-                top: MediaQuery.paddingOf(context).top + 48,
-                left: 14,
-                right: 80,
-                child: _CornerBadge(device: d, auction: auction, state: state),
-              ),
-              Positioned(
-                right: 10,
-                bottom: 12,
+              Padding(
+                padding: const EdgeInsets.only(right: 10),
                 child: _ActionRail(
                   device: d,
                   auction: auction,
@@ -664,15 +670,15 @@ class _PostPageState extends ConsumerState<_PostPage> {
                   isMine: isMine,
                 ),
               ),
+              _Info(
+                device: d,
+                auction: auction,
+                state: state,
+                isMine: isMine,
+                onDetails: openDetails,
+              ),
             ],
           ),
-        ),
-        _Info(
-          device: d,
-          auction: auction,
-          state: state,
-          isMine: isMine,
-          onDetails: openDetails,
         ),
       ],
     );

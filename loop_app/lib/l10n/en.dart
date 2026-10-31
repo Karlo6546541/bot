@@ -2874,4 +2874,18 @@ const kEn = <String, String>{
   'Flash −{0} % · {1}': 'Flash −{0}% · {1}',
   'Trenutno nema livea u ovoj kategoriji.':
       'No live shows in this category right now.',
+  'Vrijeme showa': 'Time of show',
+  'Format showa': 'Show format',
+  'Ocjena prodavača': 'Seller rating',
+  'Gledatelji: od najviše': 'Viewers: high to low',
+  'Gledatelji: od najmanje': 'Viewers: low to high',
+  'Nema showova za filtriranje.': 'No shows to filter.',
+  'Sve ocjene': 'All ratings',
+  '5 zvjezdica': '5 stars',
+  '4,5 i više': '4.5 & up',
+  '4 i više': '4 & up',
+  '{0} rezultata': '{0} results',
+  'Filter': 'Filter',
+  '⬇️ Digitalno · preuzimanje odmah, bez dostave':
+      '⬇️ Digital · instant download, no shipping',
 };

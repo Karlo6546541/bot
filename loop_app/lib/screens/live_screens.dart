@@ -4949,6 +4949,20 @@ class _LotCard extends StatelessWidget {
                         shadows: _shadow,
                       ),
                     ),
+                    // Digitalni proizvod u liveu: odmah nakon pobjede/plaćanja.
+                    if (d != null && d.isDigital)
+                      Padding(
+                        key: const ValueKey('lot-digital-badge'),
+                        padding: const EdgeInsets.only(top: 2),
+                        child: Text(
+                          t('⬇️ Digitalno · preuzimanje odmah, bez dostave'),
+                          style: const TextStyle(
+                            color: Color(0xFF6CB4FF),
+                            fontWeight: FontWeight.w800,
+                            fontSize: 11,
+                          ),
+                        ),
+                      ),
                     if (d != null)
                       Row(
                         children: [

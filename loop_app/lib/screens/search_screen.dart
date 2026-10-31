@@ -1,3 +1,4 @@
+import 'show_filters.dart';
 import 'auctions_screen.dart';
 import 'categories_screen.dart';
 import '../widgets/category_style.dart';
@@ -42,9 +43,8 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
   final _c = TextEditingController();
   String _q = '';
 
-  /// Showovi: 'live' | 'soon' | null (sve) i redoslijed po gledateljima.
-  String? _showTime;
-  int _showSort = 0; // 0 preporučeno, 1 gledatelji ↓, 2 gledatelji ↑
+  /// Odabrani filteri na kartici Showovi.
+  ShowFilters _filters = const ShowFilters();
 
   @override
   void dispose() {
@@ -440,76 +440,50 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                   )
                 : Builder(
                     builder: (ctx) {
-                      final list = [
-                        for (final i in topLives)
-                          if (_showTime == null ||
-                              (_showTime == 'live' &&
-                                  (i.live?.isLive ?? false)) ||
-                              (_showTime == 'soon' &&
-                                  (i.live?.isScheduled ?? false)))
-                            i,
-                      ];
-                      if (_showSort != 0) {
-                        list.sort((a, b) {
-                          final d = (a.live?.viewers ?? 0).compareTo(
-                            b.live?.viewers ?? 0,
-                          );
-                          return _showSort == 1 ? -d : d;
-                        });
-                      }
-                      Widget chip(
-                        String key,
-                        String label,
-                        bool on,
-                        VoidCallback tap,
-                      ) => Padding(
-                        padding: const EdgeInsets.only(right: 8),
-                        child: ChoiceChip(
-                          key: ValueKey(key),
-                          label: Text(label),
-                          selected: on,
-                          onSelected: (_) => tap(),
-                        ),
-                      );
+                      final list = _filters.apply(topLives, s);
                       return CustomScrollView(
                         key: const ValueKey('search-shows'),
                         slivers: [
                           SliverToBoxAdapter(
-                            child: SingleChildScrollView(
-                              scrollDirection: Axis.horizontal,
-                              padding: const EdgeInsets.fromLTRB(16, 12, 8, 12),
+                            child: Padding(
+                              padding: const EdgeInsets.fromLTRB(
+                                16,
+                                12,
+                                16,
+                                12,
+                              ),
                               child: Row(
                                 children: [
-                                  chip(
-                                    'shows-live',
-                                    t('Uživo'),
-                                    _showTime == 'live',
-                                    () => setState(
-                                      () => _showTime = _showTime == 'live'
-                                          ? null
-                                          : 'live',
+                                  ActionChip(
+                                    key: const ValueKey('shows-filter'),
+                                    avatar: const Icon(Icons.tune, size: 18),
+                                    label: Text(
+                                      _filters.activeCount == 0
+                                          ? t('Filter')
+                                          : '${t('Filter')} (${_filters.activeCount})',
                                     ),
+                                    onPressed: () async {
+                                      final r = await showShowFilterSheet(
+                                        ctx,
+                                        initial: _filters,
+                                        items: topLives,
+                                        state: s,
+                                      );
+                                      if (r != null) {
+                                        setState(() => _filters = r);
+                                      }
+                                    },
                                   ),
-                                  chip(
-                                    'shows-soon',
-                                    t('Uskoro'),
-                                    _showTime == 'soon',
-                                    () => setState(
-                                      () => _showTime = _showTime == 'soon'
-                                          ? null
-                                          : 'soon',
+                                  if (!_filters.isDefault) ...[
+                                    const SizedBox(width: 8),
+                                    TextButton(
+                                      key: const ValueKey('shows-filter-clear'),
+                                      onPressed: () => setState(
+                                        () => _filters = const ShowFilters(),
+                                      ),
+                                      child: Text(t('Očisti')),
                                     ),
-                                  ),
-                                  chip(
-                                    'shows-sort',
-                                    _showSort == 2
-                                        ? t('Gledatelji ↑')
-                                        : t('Gledatelji ↓'),
-                                    _showSort != 0,
-                                    () => setState(
-                                      () => _showSort = (_showSort + 1) % 3,
-                                    ),
-                                  ),
+                                  ],
                                 ],
                               ),
                             ),
