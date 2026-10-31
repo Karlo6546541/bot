@@ -1,3 +1,4 @@
+import '../widgets/category_style.dart';
 import '../services/app_location/app_location.dart';
 import '../config/backend_config.dart';
 import 'cloud_commerce_screen.dart';
@@ -127,6 +128,22 @@ class _LiveHomeScreenState extends ConsumerState<LiveHomeScreen> {
       if (!list.contains(c)) list.add(c);
     }
     return list.take(6).toList();
+  }
+
+  /// Kategorije za brzi izbor livea: prvo one s liveovima (najviše
+  /// gledatelja), zatim glavne kategorije.
+  static List<CategoryStat> _liveCategoryStats(AppState s) {
+    final stats = categoryStats(s);
+    final live = [
+      for (final c in stats)
+        if (c.viewers > 0) c,
+    ]..sort((a, b) => b.viewers.compareTo(a.viewers));
+    final main = _mainCategories(s);
+    return [
+      ...live,
+      for (final c in stats)
+        if (c.viewers == 0 && main.contains(c.category)) c,
+    ].take(10).toList();
   }
 
   Timer? _timer;
@@ -339,6 +356,15 @@ class _LiveHomeScreenState extends ConsumerState<LiveHomeScreen> {
                     child: Text('${t('Prikaži sve')} ›'),
                   ),
               ],
+            ),
+          ),
+        );
+        // Brzi izbor livea po kategoriji: pločice s brojem gledatelja.
+        slivers.add(
+          SliverToBoxAdapter(
+            child: _LiveCategoryStrip(
+              stats: _liveCategoryStats(s),
+              onSelect: (c) => _select(_Category(c)),
             ),
           ),
         );
@@ -1231,6 +1257,86 @@ class _TileRow extends StatelessWidget {
           ),
           tab(id: 'categories', label: t('Kategorije'), onTap: onCategories),
         ],
+      ),
+    );
+  }
+}
+
+/// Red pločica kategorija za brzi izbor livea (kao Trending na Whatnotu).
+class _LiveCategoryStrip extends StatelessWidget {
+  const _LiveCategoryStrip({required this.stats, required this.onSelect});
+  final List<CategoryStat> stats;
+  final ValueChanged<DeviceCategory> onSelect;
+
+  @override
+  Widget build(BuildContext context) {
+    if (stats.isEmpty) return const SizedBox.shrink();
+    return SizedBox(
+      height: 72,
+      child: ListView.separated(
+        key: const ValueKey('home-live-categories'),
+        scrollDirection: Axis.horizontal,
+        padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
+        itemCount: stats.length,
+        separatorBuilder: (_, _) => const SizedBox(width: 8),
+        itemBuilder: (_, i) {
+          final c = stats[i];
+          return Material(
+            color: LoopColors.surfaceHover,
+            borderRadius: BorderRadius.circular(14),
+            child: InkWell(
+              key: ValueKey('live-cat-${c.category.name}'),
+              borderRadius: BorderRadius.circular(14),
+              onTap: () => onSelect(c.category),
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(6, 6, 14, 6),
+                child: Row(
+                  children: [
+                    CategoryArt(category: c.category, size: 44),
+                    const SizedBox(width: 6),
+                    Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          c.category.label,
+                          style: const TextStyle(
+                            fontWeight: FontWeight.w900,
+                            fontSize: 14,
+                          ),
+                        ),
+                        Row(
+                          children: [
+                            if (c.viewers > 0) ...[
+                              Container(
+                                width: 8,
+                                height: 8,
+                                decoration: const BoxDecoration(
+                                  color: kLiveRed,
+                                  shape: BoxShape.circle,
+                                ),
+                              ),
+                              const SizedBox(width: 4),
+                            ],
+                            Text(
+                              c.viewers > 0
+                                  ? t('{0} gledatelja', ['${c.viewers}'])
+                                  : t('Nema livea'),
+                              style: TextStyle(
+                                color: LoopColors.textSecondary,
+                                fontSize: 12,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          );
+        },
       ),
     );
   }

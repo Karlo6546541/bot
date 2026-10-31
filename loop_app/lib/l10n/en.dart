@@ -2855,4 +2855,5 @@ const kEn = <String, String>{
   'Aukcije i ponude': 'Auctions & offers',
   'U ovoj kategoriji trenutno nema showova ni predmeta.':
       'No shows or items in this category right now.',
+  'Nema livea': 'No live',
 };
