@@ -1004,6 +1004,14 @@ class AppController extends Notifier<AppState> {
     _refresh();
   }
 
+  /// Prodavač: paket je predan dostavljaču.
+  Future<void> markHandedOver(String deliveryId) async {
+    await ref
+        .read(deliveryServiceProvider)
+        .markHandedOver(_requireUserId(), deliveryId);
+    _refresh();
+  }
+
   Future<void> confirmReceipt(String deliveryId) async {
     await ref
         .read(deliveryServiceProvider)
@@ -1339,6 +1347,14 @@ class AppController extends Notifier<AppState> {
       relistUnsold: relistUnsold,
       names: names,
     );
+    _refresh();
+    return show;
+  }
+
+  /// Novi show iz završenog: isti naslov, naslovnica, kategorija i postavke
+  /// te predmeti koji su još tvoji.
+  Future<LiveShow> duplicateLiveShow(String showId, DateTime startsAt) async {
+    final show = await _live.duplicate(_requireUserId(), showId, startsAt);
     _refresh();
     return show;
   }

@@ -641,6 +641,63 @@ class LiveService {
     return show;
   }
 
+  /// Predmeti završenog showa koji se mogu ponovno staviti u novi show:
+  /// još su tvoji, nisu na aukciji ni zaključani u drugom liveu.
+  List<(String, double, String)> duplicableLots(
+    String hostId,
+    LiveShow show, {
+    DateTime? now,
+  }) {
+    final at = now ?? DateTime.now();
+    final out = <(String, double, String)>[];
+    final seen = <String, int>{};
+    for (final l in show.lots) {
+      final d = _storage.deviceById(l.deviceId);
+      if (d == null || d.ownerId != hostId) continue;
+      if (l.mode == LotMode.giveaway) continue;
+      if (d.isDigital && d.file == null) continue;
+      if (_storage.activeAuctionFor(d.id) != null) continue;
+      if (isLocked(_storage, d.id, now: at)) continue;
+      final n = (seen[d.id] ?? 0) + 1;
+      if (n > d.quantity) continue;
+      seen[d.id] = n;
+      out.add((d.id, l.startPrice < 1 ? 1.0 : l.startPrice, l.deviceName));
+    }
+    return out;
+  }
+
+  /// Dupliciranje showa: nova emisija s istim naslovom, naslovnicom,
+  /// kategorijom i postavkama te predmetima koji su još domaćinovi.
+  /// Stari show mora biti gotov (može biti samo jedan live odjednom).
+  Future<LiveShow> duplicate(
+    String hostId,
+    String showId,
+    DateTime startsAt, {
+    DateTime? now,
+  }) async {
+    final show = _requireHost(hostId, showId);
+    final at = now ?? DateTime.now();
+    if (!stateOf(show, now: at).isOver) {
+      throw TradeException(
+        t('Prvo završi ovaj show, pa ga možeš duplicirati.'),
+      );
+    }
+    final lots = duplicableLots(hostId, show, now: at);
+    return create(
+      hostId: hostId,
+      title: show.title,
+      items: [for (final (id, price, _) in lots) (id, price)],
+      names: [for (final (_, _, name) in lots) name],
+      lotSeconds: show.lotSeconds,
+      startsAt: startsAt,
+      video: show.video,
+      coverPath: show.coverPath,
+      category: show.category,
+      relistUnsold: show.relistUnsold,
+      now: at,
+    );
+  }
+
   /// Provjera predmeta za live; predmet izlazi iz ponude dok se licitira.
   Future<LiveLot> _prepareLot(
     String hostId,

@@ -180,7 +180,17 @@ class Delivery {
     this.dropOffPin,
     this.pickupPin,
     this.carrier,
+    this.handedOverAt,
   });
+
+  /// Prodavač je predao paket dostavljaču (u paketomat, kurira ili poštu).
+  final DateTime? handedOverAt;
+
+  /// Prodavač mora predati paket u ovom roku nakon što kupac odabere dostavu.
+  static const handOverDeadline = Duration(hours: 48);
+
+  /// Rok za predaju (null dok dostava nije krenula).
+  DateTime? get handOverDue => startedAt?.add(handOverDeadline);
 
   /// Dostavljač (GLS, DPD, BOX NOW, pošta…), ako je odabran.
   final String? carrier;
@@ -315,6 +325,7 @@ class Delivery {
     String? dropOffPin,
     String? pickupPin,
     String? carrier,
+    DateTime? handedOverAt,
   }) => Delivery(
     id: id,
     deviceId: deviceId,
@@ -333,6 +344,7 @@ class Delivery {
     dropOffPin: dropOffPin ?? this.dropOffPin,
     pickupPin: pickupPin ?? this.pickupPin,
     carrier: carrier ?? this.carrier,
+    handedOverAt: handedOverAt ?? this.handedOverAt,
   );
 
   Map<String, dynamic> toMap() => {
@@ -353,6 +365,7 @@ class Delivery {
     'dropOffPin': dropOffPin,
     'pickupPin': pickupPin,
     if (carrier != null) 'carrier': carrier,
+    if (handedOverAt != null) 'handedOverAt': handedOverAt!.toIso8601String(),
   };
 
   factory Delivery.fromMap(Map<dynamic, dynamic> m) => Delivery(
@@ -379,5 +392,8 @@ class Delivery {
     dropOffPin: m['dropOffPin'] as String?,
     pickupPin: m['pickupPin'] as String?,
     carrier: m['carrier'] as String?,
+    handedOverAt: m['handedOverAt'] == null
+        ? null
+        : DateTime.tryParse('${m['handedOverAt']}'),
   );
 }

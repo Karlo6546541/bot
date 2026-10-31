@@ -30,6 +30,8 @@ import 'seller_screens.dart';
 import 'deliveries_screen.dart';
 import 'device_detail_screen.dart';
 import 'live_screens.dart';
+import '../services/trade_service.dart' show TradeException;
+import '../widgets/loop_snackbar.dart';
 import 'login_screen.dart';
 import 'swipe_feed_screen.dart';
 import '../l10n/tr.dart';
@@ -2015,6 +2017,35 @@ class _ToShipCard extends ConsumerWidget {
                   ),
                 ],
               ),
+              if (d.method != null && d.method != DeliveryMethod.digital) ...[
+                const SizedBox(height: 10),
+                d.handedOverAt != null
+                    ? Text(
+                        t('✓ Predano dostavljaču'),
+                        key: ValueKey('to-ship-handed-${d.id}'),
+                        style: TextStyle(
+                          color: LoopColors.buyNow,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      )
+                    : FilledButton.icon(
+                        key: ValueKey('to-ship-handover-${d.id}'),
+                        onPressed: () async {
+                          try {
+                            await ref
+                                .read(appProvider.notifier)
+                                .markHandedOver(d.id);
+                            showLoopSnackBar(
+                              t('Zabilježeno: paket je predan.'),
+                            );
+                          } on TradeException catch (e) {
+                            showLoopSnackBar(e.message, error: true);
+                          }
+                        },
+                        icon: const Icon(Icons.inventory_2_outlined, size: 18),
+                        label: Text(t('Predao sam paket')),
+                      ),
+              ],
               // Otpremnica nastaje sama čim kupac odabere dostavu.
               if (d.method != null) ...[
                 const SizedBox(height: 10),

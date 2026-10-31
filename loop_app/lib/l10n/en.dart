@@ -2723,4 +2723,38 @@ const kEn = <String, String>{
   'Nadolazeći showovi': 'Upcoming shows',
   'Nemaš zakazanih showova. Zakaži prvi pa pratitelji dobiju podsjetnik.':
       'You have no scheduled shows. Schedule your first and followers get a reminder.',
+  '✓ Predano dostavljaču': '✓ Handed over to the carrier',
+  'Zabilježeno: paket je predan.': 'Recorded: parcel handed over.',
+  'Predao sam paket': 'I handed over the parcel',
+  'Pravovremena predaja': 'On-time hand-over',
+  'Pravila zajednice': 'Community rules',
+  'Paket predaj dostavljaču u roku od 48 sati nakon što kupac odabere dostavu.':
+      'Hand the parcel to the carrier within 48 hours after the buyer chooses delivery.',
+  'Za ovu pošiljku nema predaje paketa.':
+      'This shipment has no parcel hand-over.',
+  'Prvo završi ovaj show, pa ga možeš duplicirati.':
+      'End this show first, then you can duplicate it.',
+  'Moji showovi': 'My shows',
+  'Nadolazeći ({0})': 'Upcoming ({0})',
+  'Prošli ({0})': 'Past ({0})',
+  'Nemaš zakazanih showova.': 'You have no scheduled shows.',
+  'Još nemaš završenih showova.': 'You have no finished shows yet.',
+  'Uživo sada · {0} predmeta': 'Live now · {0} items',
+  'Vrati se u show': 'Back to the show',
+  'Kopiraj link': 'Copy link',
+  'Otkazati show?': 'Cancel the show?',
+  'Pratitelji koji su označili show više ga neće moći gledati.':
+      'Followers who saved the show will no longer be able to watch it.',
+  'Otkaži show': 'Cancel show',
+  'Show je otkazan': 'Show cancelled',
+  'Dupliciraj show': 'Duplicate show',
+  'Sažetak': 'Summary',
+  '{0} predmeta se prenosi u novi show.':
+      '{0} items carry over to the new show.',
+  'Kada je novi show?': 'When is the new show?',
+  'Show je zakazan: {0}': 'Show scheduled: {0}',
+  'Svi showovi': 'All shows',
+  'Za predaju: {0}': 'To hand over: {0}',
+  'Manje': 'Less',
+  'Sve o prodaji': 'All about selling',
 };

@@ -38,11 +38,25 @@ void main() {
     await tester.tap(find.byKey(const ValueKey('my-selling')));
     await tester.pumpAndSettle();
     expect(find.byKey(const ValueKey('seller-hub')), findsOneWidget);
+    // Sažeto: samo radnje i redak stanja; razvijanje otkriva sve.
+    expect(find.byKey(const ValueKey('hub-health')), findsNothing);
+    await tester.tap(find.byKey(const ValueKey('hub-toggle')));
+    await tester.pumpAndSettle();
     expect(find.byKey(const ValueKey('hub-add-item')), findsOneWidget);
     expect(find.byKey(const ValueKey('hub-schedule-show')), findsOneWidget);
     expect(find.byKey(const ValueKey('hub-health')), findsOneWidget);
     expect(find.byKey(const ValueKey('hub-shipping-count')), findsOneWidget);
     expect(find.text('Moj sljedeći show'), findsOneWidget);
+    // Svi showovi: nadolazeći s radnjama, prošli bez zakazanih.
+    await tester.ensureVisible(find.byKey(const ValueKey('hub-all-shows')));
+    await tester.tap(find.byKey(const ValueKey('hub-all-shows')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('shows-schedule')), findsOneWidget);
+    expect(find.text('Moj sljedeći show'), findsOneWidget);
+    expect(find.text('Otkaži show'), findsOneWidget);
+    await tester.tap(find.byKey(const ValueKey('shows-tab-past')));
+    await tester.pumpAndSettle();
+    expect(find.text('Još nemaš završenih showova.'), findsOneWidget);
     await tester.pumpWidget(const SizedBox.shrink());
     await Hive.close();
   });

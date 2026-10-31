@@ -401,6 +401,26 @@ class DeliveryService {
     return started;
   }
 
+  /// Prodavač bilježi da je predao paket dostavljaču. Rok je
+  /// [Delivery.handOverDeadline] od odabira dostave; mjeri se u zdravlju računa.
+  Future<Delivery> markHandedOver(
+    String sellerId,
+    String deliveryId, {
+    DateTime? now,
+  }) async {
+    final d = _storage.deliveryById(deliveryId);
+    if (d == null || d.sellerId != sellerId) {
+      throw TradeException(t('Pošiljka ne postoji.'));
+    }
+    if (d.method == null || d.method == DeliveryMethod.digital) {
+      throw TradeException(t('Za ovu pošiljku nema predaje paketa.'));
+    }
+    if (d.handedOverAt != null) return d;
+    final updated = d.copyWith(handedOverAt: now ?? DateTime.now());
+    await _storage.putDelivery(updated);
+    return updated;
+  }
+
   /// Paket stigao u paketomat: kupac dobiva PIN za preuzimanje (jednom).
   /// Pošiljke potvrđene na drugom uređaju javljaju se prodavaču.
   /// Vraća broj novih obavijesti.
