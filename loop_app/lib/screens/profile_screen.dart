@@ -39,18 +39,271 @@ class ProfileSettingsController extends Notifier<bool> {
   void setOpen(bool value) => state = value;
 }
 
-class ProfileScreen extends ConsumerStatefulWidget {
+/// Kartica "Profil" (kao Whatnot "Account"): račun s poveznicom na profil,
+/// radnje i postavke u recima, Pomoć i pravno te odjava.
+class ProfileScreen extends ConsumerWidget {
   const ProfileScreen({super.key});
+
   @override
-  ConsumerState<ProfileScreen> createState() => _ProfileScreenState();
+  Widget build(BuildContext context, WidgetRef ref) {
+    if (ref.watch(profileSettingsProvider)) return const _ProfileSettingsView();
+    return const _AccountHome();
+  }
 }
 
-class _ProfileScreenState extends ConsumerState<ProfileScreen> {
+/// Moje objave i lajkovi (otvara se s "Pogledaj profil").
+class MyProfileScreen extends StatelessWidget {
+  const MyProfileScreen({super.key});
+
+  static Future<void> open(BuildContext context) => Navigator.of(context).push(
+    MaterialPageRoute<void>(
+      builder: (_) => Scaffold(
+        appBar: AppBar(title: Text(t('Moj profil'))),
+        body: const MyProfileScreen(),
+      ),
+    ),
+  );
+
+  @override
+  Widget build(BuildContext context) => const _MyPostsView();
+}
+
+class _AccountHome extends ConsumerWidget {
+  const _AccountHome();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final s = ref.watch(appProvider);
+    final user = s.currentUser;
+    if (user == null) return const SizedBox.shrink();
+    final app = ref.read(appProvider.notifier);
+
+    Widget row(String key, IconData icon, String label, VoidCallback onTap) =>
+        ListTile(
+          key: ValueKey(key),
+          minTileHeight: 64,
+          contentPadding: const EdgeInsets.symmetric(horizontal: 4),
+          leading: CircleAvatar(
+            radius: 24,
+            backgroundColor: LoopColors.surfaceHover,
+            child: Icon(icon, color: LoopColors.textPrimary),
+          ),
+          title: Text(
+            label,
+            style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 17),
+          ),
+          trailing: Icon(Icons.chevron_right, color: LoopColors.textPrimary),
+          onTap: onTap,
+        );
+
+    Widget head(String text) => Padding(
+      padding: const EdgeInsets.fromLTRB(4, 20, 4, 8),
+      child: Text(
+        text,
+        style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 22),
+      ),
+    );
+
+    Widget tile(
+      String key,
+      IconData icon,
+      String title,
+      Widget subtitle,
+      VoidCallback onTap,
+    ) => Expanded(
+      child: Material(
+        color: LoopColors.surfaceHover,
+        borderRadius: BorderRadius.circular(16),
+        child: InkWell(
+          key: ValueKey(key),
+          borderRadius: BorderRadius.circular(16),
+          onTap: onTap,
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Icon(icon, size: 30),
+                const SizedBox(height: 18),
+                Text(
+                  title,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w800,
+                    fontSize: 16,
+                  ),
+                ),
+                subtitle,
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+
+    return Align(
+      alignment: Alignment.topCenter,
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 640),
+        child: ListView(
+          key: const ValueKey('account-home'),
+          padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
+          children: [
+            if (user.isGuest)
+              const _GuestCard()
+            else
+              Row(
+                children: [
+                  UserAvatar(user: user, size: 76),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          user.username.isNotEmpty
+                              ? user.username
+                              : user.handle,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            fontSize: 26,
+                            fontWeight: FontWeight.w900,
+                          ),
+                        ),
+                        const SizedBox(height: 6),
+                        FilledButton(
+                          key: const ValueKey('account-view-profile'),
+                          style: FilledButton.styleFrom(
+                            backgroundColor: LoopColors.textPrimary,
+                            foregroundColor: LoopColors.background,
+                            minimumSize: const Size(0, 40),
+                            padding: const EdgeInsets.symmetric(horizontal: 20),
+                          ),
+                          onPressed: () => MyProfileScreen.open(context),
+                          child: Text(t('Pogledaj profil')),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            if (!user.isGuest) ...[
+              head(t('Račun')),
+              Row(
+                children: [
+                  tile(
+                    'account-earnings',
+                    Icons.account_balance_wallet_outlined,
+                    t('Zarada'),
+                    Text.rich(
+                      TextSpan(
+                        children: [
+                          TextSpan(text: '${t('Za isplatu')}: '),
+                          TextSpan(
+                            text: formatCredits(user.credits),
+                            style: TextStyle(
+                              color: LoopColors.buyNow,
+                              fontWeight: FontWeight.w900,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    () => showPayoutDialog(context, ref),
+                  ),
+                  const SizedBox(width: 12),
+                  tile(
+                    'account-seller-hub',
+                    Icons.storefront_outlined,
+                    t('Seller Hub'),
+                    Text(t('Prodaja i showovi')),
+                    () => ref.read(homeTabProvider.notifier).select(2),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              row(
+                'account-health',
+                Icons.verified_user_outlined,
+                t('Zdravlje računa'),
+                () => ref.read(homeTabProvider.notifier).select(2),
+              ),
+              row(
+                'profile-checkout',
+                Icons.credit_card,
+                t('Plaćanje i dostava'),
+                () => ensureCheckout(context, ref, force: true),
+              ),
+              row(
+                'account-addresses',
+                Icons.location_on_outlined,
+                t('Adrese'),
+                () => ensureCheckout(context, ref, force: true),
+              ),
+              row(
+                'open-activity',
+                Icons.receipt_long_outlined,
+                t('Povijest transakcija'),
+                () => ActivityPage.open(context),
+              ),
+            ],
+            row(
+              'profile-settings',
+              Icons.settings_outlined,
+              t('Postavke'),
+              () => ref.read(profileSettingsProvider.notifier).setOpen(true),
+            ),
+            const Divider(height: 32, thickness: 6),
+            head(t('Pomoć i pravno')),
+            row(
+              'account-contact',
+              Icons.chat_bubble_outline,
+              t('Kontaktiraj nas'),
+              () => LegalListScreen.open(context),
+            ),
+            row(
+              'open-legal',
+              Icons.description_outlined,
+              t('Uvjeti, privatnost i impresum'),
+              () => LegalListScreen.open(context),
+            ),
+            const SizedBox(height: 20),
+            if (user.isGuest)
+              FilledButton.icon(
+                key: const ValueKey('account-login'),
+                onPressed: () => LoginScreen.open(context),
+                icon: const Icon(Icons.login),
+                label: Text(t('Prijava / registracija')),
+              )
+            else
+              FilledButton.icon(
+                key: const ValueKey('account-sign-out'),
+                style: FilledButton.styleFrom(
+                  backgroundColor: LoopColors.textPrimary,
+                  foregroundColor: LoopColors.background,
+                ),
+                onPressed: app.logout,
+                icon: const Icon(Icons.logout),
+                label: Text(t('Odjavi se')),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _MyPostsView extends ConsumerStatefulWidget {
+  const _MyPostsView();
+  @override
+  ConsumerState<_MyPostsView> createState() => _ProfileScreenState();
+}
+
+class _ProfileScreenState extends ConsumerState<_MyPostsView> {
   bool _liked = false;
 
   @override
   Widget build(BuildContext context) {
-    if (ref.watch(profileSettingsProvider)) return const _ProfileSettingsView();
     final state = ref.watch(appProvider);
     final user = state.currentUser;
     if (user == null) return const SizedBox.shrink();
@@ -256,9 +509,13 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   }
 
   Widget _settingsButton() => IconButton(
-    key: const ValueKey('profile-settings'),
+    key: const ValueKey('my-profile-settings'),
     tooltip: t('Postavke'),
-    onPressed: () => ref.read(profileSettingsProvider.notifier).setOpen(true),
+    onPressed: () {
+      // Postavke su u kartici Profil: zatvori ovaj ekran i otvori ih.
+      Navigator.of(context).maybePop();
+      ref.read(profileSettingsProvider.notifier).setOpen(true);
+    },
     icon: const Icon(Icons.settings_outlined),
   );
 

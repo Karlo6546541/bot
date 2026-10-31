@@ -55,6 +55,10 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.text('Profil').last);
     await tester.pumpAndSettle();
+    // Račun (kao Whatnot): objave su iza "Pogledaj profil".
+    expect(find.byKey(const ValueKey('account-home')), findsOneWidget);
+    await tester.tap(find.byKey(const ValueKey('account-view-profile')));
+    await tester.pumpAndSettle();
   }
 
   testWidgets(
@@ -65,12 +69,12 @@ void main() {
       expect(find.byKey(const ValueKey('profile-create')), findsOneWidget);
       expect(find.byKey(const ValueKey('seller-info')), findsNothing);
       expect(find.text('Odjavi se'), findsNothing);
-      await tester.tap(find.byKey(const ValueKey('profile-settings')));
+      await tester.tap(find.byKey(const ValueKey('my-profile-settings')));
       await tester.pumpAndSettle();
       expect(find.byKey(const ValueKey('seller-info')), findsOneWidget);
       await tester.tap(find.byKey(const ValueKey('profile-settings-close')));
       await tester.pumpAndSettle();
-      expect(find.byKey(const ValueKey('account-profile')), findsOneWidget);
+      expect(find.byKey(const ValueKey('account-home')), findsOneWidget);
       expect(tester.takeException(), isNull);
       await tester.pumpWidget(const SizedBox.shrink());
     },

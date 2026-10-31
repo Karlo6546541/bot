@@ -2859,4 +2859,9 @@ const kEn = <String, String>{
   'Top': 'Top',
   'Nema rezultata za "{0}"': 'No results for "{0}"',
   'Live showovi': 'Live shows',
+  'Moj profil': 'My profile',
+  'Za isplatu': 'To pay out',
+  'Prodaja i showovi': 'Sales & shows',
+  'Plaćanje i dostava': 'Payments & shipping',
+  'Kontaktiraj nas': 'Contact us',
 };

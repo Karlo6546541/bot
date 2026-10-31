@@ -513,7 +513,12 @@ void main() {
     expect(find.textContaining('1,250'), findsWidgets);
     await tester.tap(find.text('Profile').last);
     await tester.pumpAndSettle();
+    // Račun (kao Whatnot): profil se otvara s "View profile".
+    await tester.tap(find.byKey(const ValueKey('account-view-profile')));
+    await tester.pumpAndSettle();
     expect(find.text('Edit profile'), findsOneWidget);
+    await tester.pageBack();
+    await tester.pumpAndSettle();
     await openProfileSettings(tester);
     await tester.scrollUntilVisible(
       find.text('Language / Jezik'),
@@ -605,7 +610,7 @@ void accountTests() {
     // Profil prikazuje @ime; odjava.
     await tester.tap(find.text('Profil').last);
     await tester.pumpAndSettle();
-    expect(find.text('@novi_korisnik'), findsWidgets);
+    expect(find.textContaining('novi_korisnik'), findsWidgets);
     await openProfileSettings(tester);
     await tester.scrollUntilVisible(
       find.text('Odjavi se'),
