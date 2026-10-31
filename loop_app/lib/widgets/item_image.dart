@@ -306,17 +306,18 @@ class ItemIllustration extends StatelessWidget {
           Positioned(right: -50, top: -50, child: _Ring(color: c, size: 200)),
           Positioned(left: -30, bottom: -60, child: _Ring(color: c, size: 160)),
           Center(
-            child: Container(
-              padding: EdgeInsets.all(iconSize * 0.39),
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: LoopColors.background.withValues(alpha: 0.35),
-                border: Border.all(color: c.withValues(alpha: 0.5), width: 2),
-              ),
-              child: Icon(
-                category.icon,
-                size: iconSize,
-                color: LoopColors.textPrimary,
+            child: Text(
+              category.emoji,
+              style: TextStyle(
+                fontSize: iconSize * 1.7,
+                height: 1,
+                shadows: [
+                  Shadow(
+                    color: Colors.black.withValues(alpha: 0.4),
+                    blurRadius: iconSize * 0.3,
+                    offset: Offset(0, iconSize * 0.12),
+                  ),
+                ],
               ),
             ),
           ),

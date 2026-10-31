@@ -239,26 +239,42 @@ class CategoryArt extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final c = category.color;
-    return Container(
+    // Predmet bez okvira: meki sjaj u boji kategorije iza velikog emojija
+    // sa sjenom, kao 3D ilustracije na Whatnotu.
+    return SizedBox(
       width: size,
       height: size,
-      decoration: BoxDecoration(
-        shape: circle ? BoxShape.circle : BoxShape.rectangle,
-        borderRadius: circle ? null : BorderRadius.circular(size * 0.24),
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            c.withValues(alpha: LoopColors.isDark ? 0.45 : 0.22),
-            c.withValues(alpha: LoopColors.isDark ? 0.18 : 0.08),
-          ],
-        ),
-        border: Border.all(color: c.withValues(alpha: 0.35), width: 1.5),
-      ),
-      alignment: Alignment.center,
-      child: Text(
-        category.emoji,
-        style: TextStyle(fontSize: size * 0.46, height: 1),
+      child: Stack(
+        alignment: Alignment.center,
+        children: [
+          Container(
+            width: size,
+            height: size,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              gradient: RadialGradient(
+                colors: [
+                  c.withValues(alpha: LoopColors.isDark ? 0.40 : 0.28),
+                  c.withValues(alpha: 0),
+                ],
+              ),
+            ),
+          ),
+          Text(
+            category.emoji,
+            style: TextStyle(
+              fontSize: size * 0.62,
+              height: 1,
+              shadows: [
+                Shadow(
+                  color: Colors.black.withValues(alpha: 0.35),
+                  blurRadius: size * 0.12,
+                  offset: Offset(0, size * 0.06),
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }

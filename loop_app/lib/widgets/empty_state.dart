@@ -26,12 +26,22 @@ class EmptyState extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             Container(
-              padding: const EdgeInsets.all(20),
+              width: 112,
+              height: 112,
               decoration: BoxDecoration(
-                color: LoopColors.surface,
-                borderRadius: BorderRadius.circular(kRadius * 2),
+                shape: BoxShape.circle,
+                color: LoopColors.accent.withValues(alpha: 0.08),
               ),
-              child: Icon(icon, size: 40, color: LoopColors.textSecondary),
+              alignment: Alignment.center,
+              child: Container(
+                width: 80,
+                height: 80,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: LoopColors.accent.withValues(alpha: 0.16),
+                ),
+                child: Icon(icon, size: 38, color: LoopColors.accent),
+              ),
             ),
             const SizedBox(height: 16),
             Text(
