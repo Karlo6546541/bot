@@ -95,37 +95,20 @@ class DeviceDetailScreen extends ConsumerWidget {
           padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
           children: [
             // Velika "hero" kartica u bojama kategorije.
-            Container(
-              clipBehavior: Clip.antiAlias,
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: [
-                    cat.color.withValues(alpha: 0.32),
-                    LoopColors.surface,
-                  ],
-                ),
-                borderRadius: BorderRadius.circular(kRadius * 1.5),
-                border: Border.all(color: cat.color.withValues(alpha: 0.35)),
-                boxShadow: [
-                  BoxShadow(
-                    color: cat.color.withValues(alpha: 0.18),
-                    blurRadius: 40,
-                    offset: const Offset(0, 16),
-                  ),
-                ],
-              ),
+            // Kao Whatnot: bez okvira, naslov poravnat lijevo i velik.
+            Padding(
+              padding: EdgeInsets.zero,
               child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   if (!wide) gallery,
                   const SizedBox(height: 18),
                   Text(
                     device.name,
-                    textAlign: TextAlign.center,
                     style: const TextStyle(
-                      fontSize: 24,
-                      fontWeight: FontWeight.w800,
+                      fontSize: 28,
+                      fontWeight: FontWeight.w900,
+                      height: 1.15,
                     ),
                   ),
                   const SizedBox(height: 4),
@@ -141,8 +124,7 @@ class DeviceDetailScreen extends ConsumerWidget {
                     device: device,
                     price: isMine ? device.askPrice : buyTotal(price),
                     basePrice: isMine ? null : device.shownBasePrice,
-                    fontSize: 32,
-                    center: true,
+                    fontSize: 26,
                   ),
                   if (!isMine) ...[
                     const SizedBox(height: 8),
@@ -157,7 +139,6 @@ class DeviceDetailScreen extends ConsumerWidget {
                           t('na zalihi: {0} kom', ['${device.quantity}']),
                         if (device.hasDiscount) discountLabel(device),
                       ].join(' · '),
-                      textAlign: TextAlign.center,
                       style: TextStyle(
                         color: LoopColors.buyNow,
                         fontWeight: FontWeight.w800,
@@ -275,6 +256,67 @@ class DeviceDetailScreen extends ConsumerWidget {
                             ),
                           ),
                           FollowButton(userId: owner.id, compact: true),
+                        ],
+                      ),
+                    ),
+                  // Kao Whatnot: dvije kućice s ocjenom i brojem prodaja.
+                  if (owner != null && !isMine)
+                    Padding(
+                      key: const ValueKey('seller-stat-boxes'),
+                      padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+                      child: Row(
+                        children: [
+                          for (final (icon, value, label) in [
+                            (
+                              Icons.star_border,
+                              state.ratingOf(owner.id).count == 0
+                                  ? '—'
+                                  : state
+                                        .ratingOf(owner.id)
+                                        .average
+                                        .toStringAsFixed(1),
+                              t('{0} ocjena', [
+                                '${state.ratingOf(owner.id).count}',
+                              ]),
+                            ),
+                            (
+                              Icons.sell_outlined,
+                              '${state.salesCountOf(owner.id)}',
+                              t('Prodano'),
+                            ),
+                          ]) ...[
+                            Expanded(
+                              child: Container(
+                                padding: const EdgeInsets.all(12),
+                                decoration: BoxDecoration(
+                                  color: LoopColors.surfaceHover,
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Icon(icon, size: 20),
+                                    const SizedBox(height: 6),
+                                    Text(
+                                      value,
+                                      style: const TextStyle(
+                                        fontWeight: FontWeight.w900,
+                                        fontSize: 16,
+                                      ),
+                                    ),
+                                    Text(
+                                      label,
+                                      style: TextStyle(
+                                        color: LoopColors.textSecondary,
+                                        fontSize: 12,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                          ],
                         ],
                       ),
                     ),
