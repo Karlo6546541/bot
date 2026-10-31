@@ -98,6 +98,10 @@ class LiveState {
     required this.viewers,
     required this.feed,
     this.hype = 0,
+    this.viewerIds = const [],
+    this.muted = const {},
+    this.banned = const {},
+    this.activity = const [],
   });
 
   final LiveShow show;
@@ -110,6 +114,16 @@ class LiveState {
 
   /// Gledatelji u zadnjih 5 minuta (ulazak, poruka ili ponuda).
   final int viewers;
+
+  /// Tko trenutno gleda (zadnjih 5 minuta), najnoviji prvi.
+  final List<String> viewerIds;
+
+  /// Utišani i uklonjeni gledatelji (iz događaja moderacije).
+  final Set<String> muted;
+  final Set<String> banned;
+
+  /// Ulasci, ponude, "uzimam" i prijave, najnoviji prvi (kartica Aktivnost).
+  final List<LiveEvent> activity;
 
   /// Chat i ponude, najnovije zadnje.
   final List<LiveEvent> feed;
@@ -317,10 +331,45 @@ class LiveService {
     }
 
     final since = now.subtract(viewerWindow);
-    final viewers = <String>{
+    final recent = [
       for (final e in events)
-        if (e.at.isAfter(since)) e.userId,
-    }..remove(show.hostId);
+        if (e.at.isAfter(since) && e.type != LiveEventType.mod) e,
+    ]..sort((a, b) => b.at.compareTo(a.at));
+    final viewerList = <String>[];
+    for (final e in recent) {
+      if (e.userId != show.hostId && !viewerList.contains(e.userId)) {
+        viewerList.add(e.userId);
+      }
+    }
+    final viewers = viewerList.toSet();
+    // Moderacija: događaji redom; zadnji ima prednost.
+    final muted = <String>{};
+    final banned = <String>{};
+    final modEvents = [
+      for (final e in events)
+        if (e.type == LiveEventType.mod) e,
+    ]..sort((a, b) => a.at.compareTo(b.at));
+    for (final e in modEvents) {
+      final i = e.text.indexOf(':');
+      if (i < 0) continue;
+      final target = e.text.substring(i + 1);
+      switch (e.text.substring(0, i)) {
+        case modMute:
+          muted.add(target);
+        case modUnmute:
+          muted.remove(target);
+        case modBan:
+          banned.add(target);
+      }
+    }
+    final activity = [
+      for (final e in recent)
+        if (e.type == LiveEventType.join ||
+            e.type == LiveEventType.bid ||
+            e.type == LiveEventType.take ||
+            e.type == LiveEventType.enter)
+          e,
+    ];
     final feed = [
       ...bidFeed,
       for (final e in events)
@@ -334,7 +383,7 @@ class LiveService {
       heat += switch (e.type) {
         LiveEventType.bid || LiveEventType.take => 3,
         LiveEventType.chat || LiveEventType.enter || LiveEventType.guess => 1,
-        LiveEventType.join || LiveEventType.remind => 0,
+        LiveEventType.join || LiveEventType.remind || LiveEventType.mod => 0,
       };
     }
     return LiveState(
@@ -344,6 +393,10 @@ class LiveService {
       hype: (heat / 30).clamp(0.0, 1.0),
       viewers: viewers.length,
       feed: feed.length > 60 ? feed.sublist(feed.length - 60) : feed,
+      viewerIds: viewerList,
+      muted: muted,
+      banned: banned,
+      activity: activity.length > 50 ? activity.sublist(0, 50) : activity,
     );
   }
 
@@ -852,6 +905,8 @@ class LiveService {
     final at = now ?? DateTime.now();
     final user = _storage.userById(userId);
     if (user == null) return;
+    final show = _storage.liveShowById(showId);
+    if (show != null && stateOf(show, now: at).banned.contains(userId)) return;
     final recent = _storage
         .liveEventsOf(showId)
         .any(
@@ -887,7 +942,14 @@ class LiveService {
         t('Poruka može imati najviše {0} znakova.', ['${LiveEvent.maxText}']),
       );
     }
-    _require(showId);
+    final show = _require(showId);
+    final st = stateOf(show, now: now);
+    if (st.banned.contains(userId)) {
+      throw TradeException(t('Uklonjen si iz ovog showa.'));
+    }
+    if (st.muted.contains(userId)) {
+      throw TradeException(t('Voditelj ili moderator te utišao u chatu.'));
+    }
     await _storage.putLiveEvent(
       LiveEvent(
         id: _uuid.v4(),
@@ -933,6 +995,16 @@ class LiveService {
     }
     requireCheckout(user);
     final state = stateOf(show, now: at);
+    if (state.banned.contains(userId)) {
+      throw TradeException(t('Uklonjen si iz ovog showa.'));
+    }
+    if (show.verifiedOnly && !isVerifiedBuyer(user)) {
+      throw TradeException(
+        t(
+          'Na ovom showu licitiraju samo provjereni kupci (kartica i barem jedna kupnja ili potvrđena e-pošta).',
+        ),
+      );
+    }
     final LotState? target;
     if (lot == null) {
       target = state.current;
@@ -995,6 +1067,82 @@ class LiveService {
       ),
     );
     return stateOf(show, now: at);
+  }
+
+  // ---------------------------------------------------------- moderacija
+
+  /// Provjereni kupac: ima način plaćanja i već je kupovao ili ima potvrđenu
+  /// e-poštu.
+  bool isVerifiedBuyer(AppUser user) =>
+      user.paymentCard != null &&
+      (user.emailVerified ||
+          _storage.transactions.any(
+            (x) => x.type == TransactionType.buy && x.buyerId == user.id,
+          ));
+
+  /// Domaćin uključuje ili isključuje "samo provjereni kupci".
+  Future<void> setVerifiedOnly(String hostId, String showId, bool on) async {
+    final show = _require(showId);
+    if (show.hostId != hostId) {
+      throw TradeException(t('Samo domaćin može mijenjati postavke showa.'));
+    }
+    await _storage.putLiveShow(show.copyWith(verifiedOnly: on));
+  }
+
+  /// Domaćin postavlja ili skida moderatora.
+  Future<void> setMod(
+    String hostId,
+    String showId,
+    String userId,
+    bool on,
+  ) async {
+    final show = _require(showId);
+    if (show.hostId != hostId) {
+      throw TradeException(t('Samo domaćin može postaviti moderatore.'));
+    }
+    if (userId == hostId) return;
+    final mods = [...show.modIds]..remove(userId);
+    if (on) {
+      if (mods.length >= LiveShow.maxMods) {
+        throw TradeException(
+          t('Najviše {0} moderatora.', ['${LiveShow.maxMods}']),
+        );
+      }
+      mods.add(userId);
+    }
+    await _storage.putLiveShow(show.copyWith(modIds: mods));
+  }
+
+  /// Utišavanje ([modMute], [modUnmute]) i uklanjanje ([modBan]) gledatelja.
+  /// Smiju domaćin i moderatori; domaćina i moderatore može dirati samo
+  /// domaćin.
+  Future<void> moderate(
+    String actorId,
+    String showId,
+    String action,
+    String targetId, {
+    DateTime? now,
+  }) async {
+    final show = _require(showId);
+    if (!show.canModerate(actorId)) {
+      throw TradeException(t('Samo domaćin i moderatori mogu moderirati.'));
+    }
+    if (targetId == show.hostId ||
+        (show.isMod(targetId) && actorId != show.hostId)) {
+      throw TradeException(t('Tog korisnika ne možeš moderirati.'));
+    }
+    final actor = _storage.userById(actorId);
+    await _storage.putLiveEvent(
+      LiveEvent(
+        id: _uuid.v4(),
+        showId: showId,
+        type: LiveEventType.mod,
+        userId: actorId,
+        userLabel: actor?.handle ?? '',
+        at: now ?? DateTime.now(),
+        text: '$action:$targetId',
+      ),
+    );
   }
 
   // ------------------------------------------------------- zaključivanje

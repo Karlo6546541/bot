@@ -25,6 +25,8 @@ class LiveShow {
     this.coverPath,
     this.category,
     this.relistUnsold = true,
+    this.modIds = const [],
+    this.verifiedOnly = false,
   });
 
   final String id;
@@ -64,6 +66,19 @@ class LiveShow {
   /// Neprodani predmeti nakon livea idu na Kupi odmah po početnoj cijeni.
   final bool relistUnsold;
 
+  /// Moderatori koje je postavio domaćin (utišavaju i uklanjaju gledatelje).
+  final List<String> modIds;
+
+  /// Licitirati smiju samo provjereni kupci ([AppUser] s karticom koji su
+  /// već kupovali ili imaju potvrđenu e-poštu).
+  final bool verifiedOnly;
+
+  bool isMod(String? userId) => userId != null && modIds.contains(userId);
+
+  /// Domaćin ili moderator.
+  bool canModerate(String? userId) => userId == hostId || isMod(userId);
+
+  static const maxMods = 5;
   static const maxTitle = 60;
   static const maxLots = 50;
 
@@ -96,6 +111,8 @@ class LiveShow {
     List<int>? settled,
     List<LiveLot>? lots,
     DateTime? hostSeenAt,
+    List<String>? modIds,
+    bool? verifiedOnly,
   }) => LiveShow(
     id: id,
     hostId: hostId,
@@ -112,6 +129,8 @@ class LiveShow {
     coverPath: coverPath,
     category: category,
     relistUnsold: relistUnsold,
+    modIds: modIds ?? this.modIds,
+    verifiedOnly: verifiedOnly ?? this.verifiedOnly,
   );
 
   Map<String, dynamic> toMap() => {
@@ -130,6 +149,8 @@ class LiveShow {
     'coverPath': coverPath,
     'category': category,
     'relistUnsold': relistUnsold,
+    if (modIds.isNotEmpty) 'modIds': modIds,
+    if (verifiedOnly) 'verifiedOnly': true,
   };
 
   factory LiveShow.fromMap(Map<dynamic, dynamic> m) => LiveShow(
@@ -157,6 +178,8 @@ class LiveShow {
     coverPath: m['coverPath'] as String?,
     category: m['category'] as String?,
     relistUnsold: m['relistUnsold'] != false,
+    modIds: [for (final i in (m['modIds'] as List? ?? const [])) '$i'],
+    verifiedOnly: m['verifiedOnly'] == true,
   );
 }
 
@@ -253,7 +276,12 @@ class LiveLot {
 /// (pada cijena), prijava na nagradnu igru, procjena cijene (stari zapisi
 /// uklonjene igre "Pogodi cijenu" — ne koriste se) i "podsjeti me"
 /// (zakazani live).
-enum LiveEventType { bid, chat, join, take, enter, guess, remind }
+enum LiveEventType { bid, chat, join, take, enter, guess, remind, mod }
+
+/// Radnje moderacije: tekst događaja [LiveEventType.mod] je `radnja:korisnik`.
+const modMute = 'mute';
+const modUnmute = 'unmute';
+const modBan = 'ban';
 
 /// Ponuda, poruka u chatu ili ulazak gledatelja. Svaki događaj je zaseban
 /// zapis (ne mijenja se emisija), pa se istovremene ponude s više uređaja

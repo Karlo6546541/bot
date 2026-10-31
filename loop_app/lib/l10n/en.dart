@@ -2675,4 +2675,39 @@ const kEn = <String, String>{
   'Idi uživo': 'Go live',
   'Live opcije': 'Live options',
   'Pitanja': 'Questions',
+  'Uklonjen si iz ovog showa.': 'You have been removed from this show.',
+  'Voditelj ili moderator te utišao u chatu.':
+      'The host or a moderator muted you in chat.',
+  'Na ovom showu licitiraju samo provjereni kupci (kartica i barem jedna kupnja ili potvrđena e-pošta).':
+      'Only verified buyers can bid on this show (card on file and at least one purchase or a confirmed email).',
+  'Samo domaćin može mijenjati postavke showa.':
+      'Only the host can change show settings.',
+  'Samo domaćin može postaviti moderatore.':
+      'Only the host can appoint moderators.',
+  'Najviše {0} moderatora.': 'At most {0} moderators.',
+  'Samo domaćin i moderatori mogu moderirati.':
+      'Only the host and moderators can moderate.',
+  'Tog korisnika ne možeš moderirati.': 'You cannot moderate this user.',
+  'Provjereni kupci': 'Verified buyers',
+  'Moderator': 'Moderator',
+  'Utišan': 'Muted',
+  'Uklonjen': 'Removed',
+  'Vrati glas': 'Unmute',
+  'Utišaj u chatu': 'Mute in chat',
+  'Ukloni iz showa': 'Remove from show',
+  'Skini moderatora': 'Remove moderator',
+  'Postavi za moderatora': 'Make moderator',
+  'licitira {0}': 'bids {0}',
+  'uzima': 'takes it',
+  'prijavljen na nagradnu igru': 'entered the giveaway',
+  'ušao/ušla': 'joined',
+  'Gledaju ({0})': 'Watching ({0})',
+  'Još nitko ne gleda.': 'Nobody is watching yet.',
+  'Još nema aktivnosti.': 'No activity yet.',
+  'Samo provjereni kupci': 'Verified buyers only',
+  'Licitirati mogu samo kupci s karticom koji su već kupovali ili imaju potvrđenu e-poštu. Ostali mogu gledati.':
+      'Only buyers with a card who have purchased before or have a confirmed email can bid. Everyone else can watch.',
+  'Gledatelji': 'Viewers',
+  'Mod': 'Mod',
+  'Utišani': 'Muted',
 };

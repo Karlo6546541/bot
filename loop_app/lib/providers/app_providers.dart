@@ -1411,6 +1411,25 @@ class AppController extends Notifier<AppState> {
     _refresh();
   }
 
+  Future<void> liveSetVerifiedOnly(String showId, bool on) async {
+    await _live.setVerifiedOnly(_requireUserId(), showId, on);
+    _refresh();
+  }
+
+  Future<void> liveSetMod(String showId, String userId, bool on) async {
+    await _live.setMod(_requireUserId(), showId, userId, on);
+    _refresh();
+  }
+
+  Future<void> liveModerate(
+    String showId,
+    String action,
+    String targetId,
+  ) async {
+    await _live.moderate(_requireUserId(), showId, action, targetId);
+    _refresh();
+  }
+
   Future<void> liveChat(String showId, String text) async {
     await _live.chat(_requireUserId(), showId, text);
     _refresh();

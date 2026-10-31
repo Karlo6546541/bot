@@ -128,6 +128,179 @@ class _LiveBadgeState extends ConsumerState<LiveBadge>
 }
 
 /// Broj gledatelja kao na Whatnotu: crveni krug (uživo) i broj.
+/// Popis gledatelja (Gledaju / Aktivnost). Domaćin i moderatori mogu
+/// utišati ili ukloniti gledatelja; samo domaćin postavlja moderatore.
+class _ViewersSheet extends ConsumerWidget {
+  const _ViewersSheet({required this.showId});
+  final String showId;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final s = ref.watch(appProvider);
+    final show = s.liveShowById(showId);
+    if (show == null) return const SizedBox.shrink();
+    final st = s.liveStateOf(show, DateTime.now());
+    final me = s.currentUserId;
+    final canMod = show.canModerate(me);
+    final isHost = show.hostId == me;
+    final app = ref.read(appProvider.notifier);
+
+    Future<void> run(Future<void> Function() action) async {
+      try {
+        await action();
+      } on TradeException catch (e) {
+        showLoopSnackBar(e.message, error: true);
+      }
+    }
+
+    Widget row(String userId) {
+      final u = s.userById(userId);
+      final muted = st.muted.contains(userId);
+      final banned = st.banned.contains(userId);
+      final mod = show.isMod(userId);
+      final canAct = canMod && userId != me && (isHost || !mod);
+      return ListTile(
+        key: ValueKey('viewer-$userId'),
+        dense: true,
+        leading: UserAvatar(user: u, size: 32),
+        title: Text(
+          u?.handle ?? '?',
+          style: const TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+        subtitle: Text(
+          [
+            if (mod) t('Moderator'),
+            if (muted) t('Utišan'),
+            if (banned) t('Uklonjen'),
+          ].join(' · '),
+          style: const TextStyle(color: Colors.white54, fontSize: 12),
+        ),
+        trailing: canAct
+            ? PopupMenuButton<String>(
+                key: ValueKey('viewer-menu-$userId'),
+                icon: const Icon(Icons.more_vert, color: Colors.white70),
+                onSelected: (v) => run(() async {
+                  switch (v) {
+                    case 'mute':
+                      await app.liveModerate(showId, modMute, userId);
+                    case 'unmute':
+                      await app.liveModerate(showId, modUnmute, userId);
+                    case 'ban':
+                      await app.liveModerate(showId, modBan, userId);
+                    case 'mod':
+                      await app.liveSetMod(showId, userId, !mod);
+                  }
+                }),
+                itemBuilder: (_) => [
+                  PopupMenuItem(
+                    key: ValueKey('viewer-${muted ? 'unmute' : 'mute'}'),
+                    value: muted ? 'unmute' : 'mute',
+                    child: Text(muted ? t('Vrati glas') : t('Utišaj u chatu')),
+                  ),
+                  PopupMenuItem(
+                    key: const ValueKey('viewer-ban'),
+                    value: 'ban',
+                    child: Text(t('Ukloni iz showa')),
+                  ),
+                  if (isHost)
+                    PopupMenuItem(
+                      key: const ValueKey('viewer-mod'),
+                      value: 'mod',
+                      child: Text(
+                        mod
+                            ? t('Skini moderatora')
+                            : t('Postavi za moderatora'),
+                      ),
+                    ),
+                ],
+              )
+            : null,
+      );
+    }
+
+    String when(LiveEvent e) {
+      final what = switch (e.type) {
+        LiveEventType.bid => t('licitira {0}', [formatCredits(e.amount)]),
+        LiveEventType.take => t('uzima'),
+        LiveEventType.enter => t('prijavljen na nagradnu igru'),
+        _ => t('ušao/ušla'),
+      };
+      return '${e.userLabel} $what';
+    }
+
+    return DefaultTabController(
+      length: 2,
+      child: SizedBox(
+        height: MediaQuery.sizeOf(context).height * 0.6,
+        child: Column(
+          children: [
+            TabBar(
+              indicatorColor: LoopColors.accent,
+              labelColor: Colors.white,
+              unselectedLabelColor: Colors.white54,
+              tabs: [
+                Tab(
+                  key: const ValueKey('viewers-tab-watching'),
+                  text: t('Gledaju ({0})', ['${st.viewerIds.length}']),
+                ),
+                Tab(
+                  key: const ValueKey('viewers-tab-activity'),
+                  text: t('Aktivnost'),
+                ),
+              ],
+            ),
+            Expanded(
+              child: TabBarView(
+                children: [
+                  st.viewerIds.isEmpty
+                      ? Center(
+                          child: Text(
+                            t('Još nitko ne gleda.'),
+                            style: const TextStyle(color: Colors.white70),
+                          ),
+                        )
+                      : ListView(
+                          children: [for (final id in st.viewerIds) row(id)],
+                        ),
+                  st.activity.isEmpty
+                      ? Center(
+                          child: Text(
+                            t('Još nema aktivnosti.'),
+                            style: const TextStyle(color: Colors.white70),
+                          ),
+                        )
+                      : ListView(
+                          children: [
+                            for (final e in st.activity)
+                              ListTile(
+                                dense: true,
+                                title: Text(
+                                  when(e),
+                                  style: const TextStyle(color: Colors.white),
+                                ),
+                                trailing: Text(
+                                  formatDateTime(e.at),
+                                  style: const TextStyle(
+                                    color: Colors.white54,
+                                    fontSize: 12,
+                                  ),
+                                ),
+                              ),
+                          ],
+                        ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 class _ViewersChip extends StatelessWidget {
   const _ViewersChip(this.count);
   final int count;
@@ -1794,68 +1967,134 @@ class _LiveRoomViewState extends ConsumerState<_LiveRoomBody> {
     showModalBottomSheet<void>(
       context: context,
       showDragHandle: true,
+      isScrollControlled: true,
       backgroundColor: kLiveSheet,
       constraints: const BoxConstraints(maxWidth: 520),
       builder: (ctx) => SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                t('Live opcije'),
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.w900,
-                  fontSize: 20,
+        child: SingleChildScrollView(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  t('Live opcije'),
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w900,
+                    fontSize: 20,
+                  ),
                 ),
-              ),
-              const SizedBox(height: 12),
-              GridView.count(
-                crossAxisCount: 3,
-                shrinkWrap: true,
-                mainAxisSpacing: 8,
-                crossAxisSpacing: 8,
-                childAspectRatio: 1.15,
-                physics: const NeverScrollableScrollPhysics(),
-                children: [
-                  tile(
-                    ctx,
-                    key: 'live-add-item',
-                    icon: Icons.inventory_2_outlined,
-                    label: t('Dodaj iz mojih predmeta'),
-                    onTap: () => _addItem(show),
-                  ),
-                  tile(
-                    ctx,
-                    key: 'live-quick-add-tile',
-                    icon: Icons.bolt,
-                    label: t('Brzo dodaj'),
-                    onTap: () => _quickAdd(show),
-                  ),
-                  tile(
-                    ctx,
-                    key: 'live-share-tile',
-                    icon: Icons.ios_share,
-                    label: t('Podijeli'),
-                    onTap: () => shareLink(
-                      context,
-                      publicLink(live: show.id),
-                      text: t('Gledaj "{0}" uživo na Subhastu', [show.title]),
+                const SizedBox(height: 12),
+                StatefulBuilder(
+                  builder: (_, setLocal) {
+                    final on =
+                        ref
+                            .read(appProvider)
+                            .liveShowById(show.id)
+                            ?.verifiedOnly ??
+                        false;
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: 10),
+                      child: Material(
+                        color: const Color(0xFF26272C),
+                        borderRadius: BorderRadius.circular(14),
+                        child: Padding(
+                          padding: const EdgeInsets.fromLTRB(14, 8, 8, 8),
+                          child: SwitchListTile(
+                            key: const ValueKey('live-verified-toggle'),
+                            contentPadding: EdgeInsets.zero,
+                            title: Text(
+                              t('Samo provjereni kupci'),
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.w800,
+                              ),
+                            ),
+                            subtitle: Text(
+                              t(
+                                'Licitirati mogu samo kupci s karticom koji su već kupovali ili imaju potvrđenu e-poštu. Ostali mogu gledati.',
+                              ),
+                              style: const TextStyle(
+                                color: Colors.white60,
+                                fontSize: 12,
+                              ),
+                            ),
+                            value: on,
+                            onChanged: (v) async {
+                              try {
+                                await _app.liveSetVerifiedOnly(show.id, v);
+                                setLocal(() {});
+                              } on TradeException catch (e) {
+                                showLoopSnackBar(e.message, error: true);
+                              }
+                            },
+                          ),
+                        ),
+                      ),
+                    );
+                  },
+                ),
+                GridView.count(
+                  crossAxisCount: 3,
+                  shrinkWrap: true,
+                  mainAxisSpacing: 8,
+                  crossAxisSpacing: 8,
+                  childAspectRatio: 1.15,
+                  physics: const NeverScrollableScrollPhysics(),
+                  children: [
+                    tile(
+                      ctx,
+                      key: 'live-add-item',
+                      icon: Icons.inventory_2_outlined,
+                      label: t('Dodaj iz mojih predmeta'),
+                      onTap: () => _addItem(show),
                     ),
-                  ),
-                  tile(
-                    ctx,
-                    key: 'live-end',
-                    icon: Icons.stop_circle_outlined,
-                    label: t('Završi live'),
-                    color: kLiveRed,
-                    onTap: () => _end(false),
-                  ),
-                ],
-              ),
-            ],
+                    tile(
+                      ctx,
+                      key: 'live-viewers-tile',
+                      icon: Icons.groups_outlined,
+                      label: t('Gledatelji'),
+                      onTap: () => showModalBottomSheet<void>(
+                        context: context,
+                        showDragHandle: true,
+                        isScrollControlled: true,
+                        backgroundColor: kLiveSheet,
+                        constraints: const BoxConstraints(maxWidth: 520),
+                        builder: (_) => _ViewersSheet(showId: show.id),
+                      ),
+                    ),
+                    tile(
+                      ctx,
+                      key: 'live-quick-add-tile',
+                      icon: Icons.bolt,
+                      label: t('Brzo dodaj'),
+                      onTap: () => _quickAdd(show),
+                    ),
+                    tile(
+                      ctx,
+                      key: 'live-share-tile',
+                      icon: Icons.ios_share,
+                      label: t('Podijeli'),
+                      onTap: () => shareLink(
+                        context,
+                        publicLink(live: show.id),
+                        text: t('Gledaj "{0}" uživo na Subhastu', [show.title]),
+                      ),
+                    ),
+                    tile(
+                      ctx,
+                      key: 'live-end',
+                      icon: Icons.stop_circle_outlined,
+                      label: t('Završi live'),
+                      color: kLiveRed,
+                      onTap: () => _end(false),
+                    ),
+                  ],
+                ),
+              ],
+            ),
           ),
         ),
       ),
@@ -2677,6 +2916,10 @@ class _LiveRoomViewState extends ConsumerState<_LiveRoomBody> {
                                           CrossAxisAlignment.start,
                                       children: [
                                         _ChatFeed(
+                                          show: show,
+                                          muted: st.muted,
+                                          banned: st.banned,
+                                          moderator: show.canModerate(me?.id),
                                           feed: st.feed,
                                           me: me?.id,
                                           hostId: show.hostId,
@@ -2687,7 +2930,8 @@ class _LiveRoomViewState extends ConsumerState<_LiveRoomBody> {
                                             c.maxHeight * (isHost ? 0.7 : 0.55),
                                           ),
                                         ),
-                                        if (isHost && !composing)
+                                        if (show.canModerate(me?.id) &&
+                                            !composing)
                                           _ChatFilterChips(
                                             value: _chatFilter,
                                             onChanged: (f) =>
@@ -3369,7 +3613,9 @@ class _TopBar extends ConsumerWidget {
                     ),
                   ),
                   Text(
-                    '$meta · ${show.title}',
+                    show.verifiedOnly
+                        ? '$meta · ${t('Provjereni kupci')} · ${show.title}'
+                        : '$meta · ${show.title}',
                     key: const ValueKey('live-host-meta'),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
@@ -3416,7 +3662,19 @@ class _TopBar extends ConsumerWidget {
           ],
           const SizedBox(width: 6),
           if (state.isLive)
-            _ViewersChip(state.viewers)
+            InkWell(
+              key: const ValueKey('live-viewers-open'),
+              borderRadius: BorderRadius.circular(8),
+              onTap: () => showModalBottomSheet<void>(
+                context: context,
+                showDragHandle: true,
+                isScrollControlled: true,
+                backgroundColor: kLiveSheet,
+                constraints: const BoxConstraints(maxWidth: 520),
+                builder: (_) => _ViewersSheet(showId: show.id),
+              ),
+              child: _ViewersChip(state.viewers),
+            )
           else
             Text(
               state.isScheduled ? t('ZAKAZANO') : t('ZAVRŠENO'),
@@ -4219,7 +4477,7 @@ class _ChatFilterChips extends StatelessWidget {
     child: Wrap(
       spacing: 6,
       children: [
-        for (final f in _ChatFilter.values)
+        for (final f in _ChatFilter.forModerators)
           ChoiceChip(
             key: ValueKey('chat-filter-${f.name}'),
             label: Text(t(f.label)),
@@ -4244,15 +4502,22 @@ class _ChatFilterChips extends StatelessWidget {
 enum _ChatFilter {
   all('Sve'),
   questions('Pitanja'),
-  bids('Ponude');
+  bids('Ponude'),
+  mods('Mod'),
+  muted('Utišani');
 
   const _ChatFilter(this.label);
   final String label;
 
-  bool accepts(LiveEvent e) => switch (this) {
+  /// Filteri za domaćina i moderatore (samo oni vide "Utišani").
+  static const forModerators = values;
+
+  bool accepts(LiveEvent e, LiveShow show, Set<String> muted) => switch (this) {
     all => true,
     questions => e.type == LiveEventType.chat && e.text.contains('?'),
     bids => e.type == LiveEventType.bid || e.type == LiveEventType.take,
+    mods => show.canModerate(e.userId),
+    _ => muted.contains(e.userId),
   };
 }
 
@@ -4264,10 +4529,20 @@ class _ChatFeed extends ConsumerWidget {
     this.maxHeight = 210,
     this.large = false,
     this.filter = _ChatFilter.all,
+    required this.show,
+    this.muted = const {},
+    this.banned = const {},
+    this.moderator = false,
   });
 
   final double maxHeight;
   final _ChatFilter filter;
+  final LiveShow show;
+  final Set<String> muted;
+  final Set<String> banned;
+
+  /// Domaćin ili moderator (vidi i utišane poruke kad je filter "Utišani").
+  final bool moderator;
 
   /// Veći tekst (voditelj).
   final bool large;
@@ -4280,7 +4555,12 @@ class _ChatFeed extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final lines = [
       for (final e in feed)
-        if (!_LiveRoomViewState.isReaction(e) && filter.accepts(e)) e,
+        if (!_LiveRoomViewState.isReaction(e) &&
+            filter.accepts(e, show, muted) &&
+            // Utišani i uklonjeni: poruke vidi samo moderator (filter Utišani).
+            (filter == _ChatFilter.muted && moderator ||
+                (!muted.contains(e.userId) && !banned.contains(e.userId))))
+          e,
     ];
     final s = ref.watch(appProvider);
     // Cijeli chat se može listati (najnovije dolje); gore blijedi.
@@ -4312,6 +4592,7 @@ class _ChatFeed extends ConsumerWidget {
                   user: s.userById(e.userId),
                   mine: e.userId == me,
                   host: e.userId == hostId,
+                  mod: show.isMod(e.userId),
                   large: large,
                 ),
               ),
@@ -4329,9 +4610,11 @@ class _FeedLine extends StatelessWidget {
     required this.user,
     required this.mine,
     required this.host,
+    this.mod = false,
     this.large = false,
   });
 
+  final bool mod;
   final bool large;
   final LiveEvent event;
   final AppUser? user;
@@ -4368,7 +4651,7 @@ class _FeedLine extends StatelessWidget {
                       ),
                     ),
                   ),
-                  if (host) ...[
+                  if (host || mod) ...[
                     const SizedBox(width: 5),
                     Container(
                       padding: const EdgeInsets.symmetric(
@@ -4380,7 +4663,7 @@ class _FeedLine extends StatelessWidget {
                         borderRadius: BorderRadius.circular(4),
                       ),
                       child: Text(
-                        t('Domaćin'),
+                        host ? t('Domaćin') : t('Mod'),
                         style: const TextStyle(
                           color: Colors.white,
                           fontSize: 10,

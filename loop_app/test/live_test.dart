@@ -117,6 +117,86 @@ void main() {
     tearDown(() => Hive.close());
 
     test(
+      'moderacija: moderatori, utišavanje, uklanjanje, gledatelji',
+      () async {
+        final id = await start();
+        await live.join(bob, id, now: at(1));
+        await live.join(ana, id, now: at(2));
+        await live.bid(bob, id, 1, now: at(3));
+        var st = state(id, 4);
+        expect(st.viewerIds, containsAll([bob, ana]));
+        expect(st.activity.any((e) => e.type == LiveEventType.bid), isTrue);
+
+        // Samo domaćin postavlja moderatore i uključuje "samo provjereni".
+        await expectLater(
+          live.setMod(bob, id, ana, true),
+          throwsA(isA<TradeException>()),
+        );
+        await live.setMod(host, id, ana, true);
+        expect(storage.liveShowById(id)!.isMod(ana), isTrue);
+
+        // Obični gledatelj ne moderira; moderator ne dira domaćina.
+        await expectLater(
+          live.moderate(bob, id, modMute, ana, now: at(5)),
+          throwsA(isA<TradeException>()),
+        );
+        await expectLater(
+          live.moderate(ana, id, modMute, host, now: at(5)),
+          throwsA(isA<TradeException>()),
+        );
+
+        // Moderator utišava: chat je odbijen, vraćanje glasa ga vraća.
+        await live.moderate(ana, id, modMute, bob, now: at(6));
+        expect(state(id, 7).muted, contains(bob));
+        await expectLater(
+          live.chat(bob, id, 'halo', now: at(7)),
+          throwsA(isA<TradeException>()),
+        );
+        await live.moderate(ana, id, modUnmute, bob, now: at(8));
+        await live.chat(bob, id, 'halo', now: at(9));
+
+        // Uklonjeni ne može ni chatati ni licitirati.
+        await live.moderate(host, id, modBan, bob, now: at(10));
+        expect(state(id, 11).banned, contains(bob));
+        await expectLater(
+          live.chat(bob, id, 'opet', now: at(11)),
+          throwsA(isA<TradeException>()),
+        );
+        await expectLater(
+          live.bid(bob, id, 5, now: at(12)),
+          throwsA(isA<TradeException>()),
+        );
+      },
+    );
+
+    test(
+      'samo provjereni kupci: bez kartice ili kupnje nema licitiranja',
+      () async {
+        final id = await start();
+        await live.setVerifiedOnly(host, id, true);
+        expect(storage.liveShowById(id)!.verifiedOnly, isTrue);
+        final fan = storage.userById(bob)!;
+        await storage.putUser(
+          fan.copyWith(paymentCard: 'Visa •••• 4242', emailVerified: false),
+        );
+        if (!live.isVerifiedBuyer(storage.userById(bob)!)) {
+          await expectLater(
+            live.bid(bob, id, 1, now: at(2)),
+            throwsA(isA<TradeException>()),
+          );
+        }
+        await storage.putUser(
+          storage.userById(bob)!.copyWith(emailVerified: true),
+        );
+        await live.bid(bob, id, 1, now: at(3));
+        await expectLater(
+          live.setVerifiedOnly(bob, id, false),
+          throwsA(isA<TradeException>()),
+        );
+      },
+    );
+
+    test(
       'objava: predmeti izlaze iz Marketa, pratitelji dobivaju obavijest',
       () async {
         final fan = storage.userById(bob)!;
