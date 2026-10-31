@@ -988,18 +988,21 @@ class _Info extends ConsumerWidget {
                 key: const ValueKey('post-description'),
                 behavior: HitTestBehavior.opaque,
                 onTap: onDetails,
+                // Kao panel ponude na Whatnotu: tamna prozirna kartica,
+                // cijena desno, bijeli tekst.
                 child: Container(
-                  padding: const EdgeInsets.all(12),
+                  padding: const EdgeInsets.all(10),
                   decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(18),
+                    color: const Color(0xCC1C1C1C),
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: Colors.white12),
                   ),
                   child: Row(
                     crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
                       ClipRRect(
-                        borderRadius: BorderRadius.circular(8),
-                        child: ItemThumb(device: d, size: 64),
+                        borderRadius: BorderRadius.circular(10),
+                        child: ItemThumb(device: d, size: 56),
                       ),
                       const SizedBox(width: 12),
                       Expanded(
@@ -1013,8 +1016,8 @@ class _Info extends ConsumerWidget {
                               maxLines: 2,
                               overflow: TextOverflow.ellipsis,
                               style: const TextStyle(
-                                color: Color(0xFF111111),
-                                fontSize: 16,
+                                color: Colors.white,
+                                fontSize: 15,
                                 height: 1.2,
                                 fontWeight: FontWeight.w800,
                               ),
@@ -1022,35 +1025,47 @@ class _Info extends ConsumerWidget {
                             const SizedBox(height: 2),
                             Text(
                               subtitle,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
                               style: const TextStyle(
-                                color: Color(0xFF6B6B6B),
-                                fontSize: 13,
+                                color: Colors.white60,
+                                fontSize: 12.5,
                               ),
                             ),
-                            const SizedBox(height: 2),
-                            a != null
-                                ? Text(
-                                    formatCredits(a.currentPrice),
-                                    style: const TextStyle(
-                                      color: Color(0xFF111111),
-                                      fontSize: 22,
-                                      fontWeight: FontWeight.w900,
-                                    ),
-                                  )
-                                : PriceTag(
-                                    device: d,
-                                    price: isMine ? d.askPrice : price,
-                                    basePrice: d.shownBasePrice,
-                                    fontSize: 22,
-                                    color: const Color(0xFF111111),
-                                  ),
                           ],
                         ),
                       ),
-                      const Icon(
-                        Icons.open_in_full,
-                        size: 18,
-                        color: Color(0xFF444444),
+                      const SizedBox(width: 10),
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.end,
+                        children: [
+                          a != null
+                              ? Text(
+                                  formatCredits(a.currentPrice),
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 20,
+                                    fontWeight: FontWeight.w900,
+                                  ),
+                                )
+                              : PriceTag(
+                                  device: d,
+                                  price: isMine ? d.askPrice : price,
+                                  basePrice: d.shownBasePrice,
+                                  fontSize: 20,
+                                  color: Colors.white,
+                                ),
+                          if (a != null)
+                            AuctionCountdown(
+                              endsAt: a.endsAt,
+                              showIcon: false,
+                              style: const TextStyle(
+                                color: Color(0xFFFF4D6D),
+                                fontSize: 12,
+                                fontWeight: FontWeight.w900,
+                              ),
+                            ),
+                        ],
                       ),
                     ],
                   ),
@@ -1066,8 +1081,7 @@ class _Info extends ConsumerWidget {
                         icon: Icons.price_change_outlined,
                         label: t('Ponudi cijenu'),
                         onTap: () => showBargainDialog(context, ref, d),
-                        color: const Color(0x99555555),
-                        foreground: Colors.white,
+                        outlined: true,
                       ),
                     ),
                     const SizedBox(width: 10),
@@ -1177,15 +1191,14 @@ class _MainButton extends StatelessWidget {
               style: OutlinedButton.styleFrom(
                 foregroundColor: const Color(0xFFE9E9EF),
                 minimumSize: const Size(0, 48),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
+                backgroundColor: Colors.transparent,
+                shape: const StadiumBorder(),
                 textStyle: const TextStyle(
                   fontFamily: kFontFamily,
                   fontSize: 14,
                   fontWeight: FontWeight.w700,
                 ),
-                side: const BorderSide(color: Color(0xFF555661)),
+                side: const BorderSide(color: Colors.white70, width: 1.5),
               ),
               child: child,
             )
@@ -1197,9 +1210,7 @@ class _MainButton extends StatelessWidget {
                       backgroundColor: color,
                       foregroundColor: foreground ?? const Color(0xFFF0F0F3),
                       minimumSize: const Size(0, 48),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
+                      shape: const StadiumBorder(),
                       textStyle: const TextStyle(
                         fontFamily: kFontFamily,
                         fontSize: 14,

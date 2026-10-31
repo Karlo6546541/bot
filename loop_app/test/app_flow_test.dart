@@ -126,8 +126,9 @@ void main() {
       await tester.tap(find.text('Prijavi se'));
       await tester.pumpAndSettle();
 
-      // Početna: "Za tebe" je feed preko cijelog ekrana (kao TikTok).
-      expect(find.byKey(const ValueKey('for-you-feed')), findsOneWidget);
+      // Početna: "Za tebe" je mreža (kao Whatnot), feed tek na dodir.
+      expect(find.byKey(const ValueKey('home-cat-for-you')), findsOneWidget);
+      expect(find.byKey(const ValueKey('for-you-feed')), findsNothing);
       // Uživo: poziv na live; Aukcije: one koje završavaju.
       await tester.tap(find.byKey(const ValueKey('home-cat-live')));
       await tester.pumpAndSettle();
@@ -489,7 +490,7 @@ void main() {
     await tester.tap(find.text('Log in').last);
     await tester.pumpAndSettle();
     // Početna na engleskom.
-    expect(find.text('For you'), findsOneWidget);
+    expect(find.text('For you'), findsWidgets);
 
     // Swipe feed aukcija na engleskom.
     await openAuctionsPill(tester);
@@ -1065,7 +1066,7 @@ void logoTests() {
     await tester.ensureVisible(find.text('Prijavi se'));
     await tester.tap(find.text('Prijavi se'));
     await tester.pumpAndSettle();
-    expect(find.byKey(const ValueKey('for-you-feed')), findsOneWidget);
+    expect(find.byKey(const ValueKey('home-cat-for-you')), findsOneWidget);
 
     // Za tebe → Uživo → Pratim (dodirom), zatim natrag dvaput.
     await tester.tap(find.byKey(const ValueKey('home-cat-live')));
@@ -1077,7 +1078,7 @@ void logoTests() {
     expect(find.byKey(const ValueKey('home-go-live')), findsOneWidget);
     await tester.binding.handlePopRoute();
     await tester.pumpAndSettle();
-    expect(find.byKey(const ValueKey('for-you-feed')), findsOneWidget);
+    expect(find.byKey(const ValueKey('home-for-you')), findsOneWidget);
 
     // Swipe lijevo na Uživo pa natrag na Za tebe.
     await tester.fling(
@@ -1089,7 +1090,7 @@ void logoTests() {
     expect(find.byKey(const ValueKey('home-go-live')), findsOneWidget);
     await tester.binding.handlePopRoute();
     await tester.pumpAndSettle();
-    expect(find.byKey(const ValueKey('for-you-feed')), findsOneWidget);
+    expect(find.byKey(const ValueKey('home-for-you')), findsOneWidget);
   });
 
   testWidgets('Kupi odmah iz swipe feeda: kupljeno, ne "nije dostupan"', (

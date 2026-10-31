@@ -146,7 +146,19 @@ void main() {
   testWidgets(
     'feed keeps its queue and controller stable during a drag and sync',
     (tester) async {
-      await tester.pumpWidget(app());
+      // Feed se više ne prikazuje na početnoj (ona je mreža), pa ga
+      // testiramo samog.
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            storageProvider.overrideWithValue(storage),
+            tickIntervalProvider.overrideWithValue(null),
+          ],
+          child: const MaterialApp(
+            home: Scaffold(body: ForYouFeed(active: true)),
+          ),
+        ),
+      );
       await tester.pumpAndSettle();
       final feed = find.byType(ForYouFeed);
       final swipe = find.byKey(const ValueKey('for-you-feed'));

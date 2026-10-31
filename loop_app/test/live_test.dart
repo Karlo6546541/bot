@@ -1385,8 +1385,8 @@ void main() {
     // Početna: pilule, a "Za tebe" je feed (live ima svoju traku, pa
     // pretraga preko objave tada nije prikazana).
     expect(find.byKey(const ValueKey('home-cat-for-you')), findsOneWidget);
-    // "Za tebe" (TikTok): live uživo je prva objava feeda.
-    expect(find.byKey(ValueKey('feed-live-$id')), findsOneWidget);
+    // "Za tebe" (mreža kao Whatnot): live uživo je prvi, u odjeljku Uživo sada.
+    expect(find.byKey(ValueKey('browse-live-$id')), findsOneWidget);
     expect(find.byKey(const ValueKey('home-go-live')), findsNothing);
     await tester.tap(find.byKey(const ValueKey('home-cat-live')));
     await tester.pumpAndSettle();

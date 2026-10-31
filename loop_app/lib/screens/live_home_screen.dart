@@ -17,7 +17,6 @@ import '../providers/app_providers.dart';
 import '../theme/app_theme.dart';
 import '../widgets/trade_actions.dart';
 import 'auctions_screen.dart';
-import 'for_you_feed.dart';
 import 'public_profile_screen.dart';
 import 'account_menu.dart';
 import 'live_screens.dart';
@@ -101,7 +100,9 @@ class _Following extends _Filter {
 class _LiveHomeScreenState extends ConsumerState<LiveHomeScreen> {
   void _select(_Filter filter) {
     ref.read(homeFilterProvider.notifier).select(filter.id);
-    widget.onImmersiveChanged?.call(filter is _ForYou);
+    // Početna je uvijek mreža (kao Whatnot); feed preko cijelog ekrana
+    // otvara se tek dodirom na karticu.
+    widget.onImmersiveChanged?.call(false);
   }
 
   Timer? _timer;
@@ -169,7 +170,7 @@ class _LiveHomeScreenState extends ConsumerState<LiveHomeScreen> {
     ref.watch(homeFilterProvider);
     final s = ref.watch(appProvider);
     final me = s.currentUserId ?? '';
-    final all = _filter is _ForYou ? const <BrowseItem>[] : browseItems(s);
+    final all = browseItems(s);
     final allLive = all.where((i) => i.live?.isLive ?? false).toList();
     final live = allLive
         .where(
@@ -284,8 +285,42 @@ class _LiveHomeScreenState extends ConsumerState<LiveHomeScreen> {
           );
         }
       case _ForYou():
-        // Feed preko cijelog ekrana (vidi dolje) — bez mreže.
-        break;
+        // Kao Whatnot: prvo liveovi (najgledaniji), pa ostalo u mreži.
+        final liveNow = [...allLive]
+          ..sort(
+            (a, b) => (b.live?.viewers ?? 0).compareTo(a.live?.viewers ?? 0),
+          );
+        final rest = [
+          for (final i in all)
+            if (!(i.live?.isLive ?? false)) i,
+        ];
+        Widget head(String text, {Key? key}) => SliverToBoxAdapter(
+          key: key,
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 10),
+            child: Text(
+              text,
+              style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w900),
+            ),
+          ),
+        );
+        if (liveNow.isNotEmpty) {
+          slivers.add(head(t('Uživo sada')));
+          slivers.add(grid('home-for-you-live', liveNow, t('Uživo')));
+        }
+        if (rest.isNotEmpty) {
+          slivers.add(head(t('Za tebe')));
+          slivers.add(grid('home-for-you', rest, t('Za tebe')));
+        }
+        if (liveNow.isEmpty && rest.isEmpty) {
+          slivers.add(
+            SliverToBoxAdapter(
+              child: _EmptyLive(
+                onGoLive: () => CreateLiveShowScreen.open(context),
+              ),
+            ),
+          );
+        }
       case _Timed():
         slivers.add(
           SliverToBoxAdapter(
@@ -442,37 +477,10 @@ class _LiveHomeScreenState extends ConsumerState<LiveHomeScreen> {
         );
     }
 
-    final immersive = _filter is _ForYou;
-    final foreground = immersive ? Colors.white : LoopColors.textPrimary;
-    Widget tab(String id, String label, _Filter filter, bool selected) =>
-        Expanded(
-          child: Semantics(
-            selected: selected,
-            child: TextButton(
-              key: ValueKey('home-cat-$id'),
-              style: TextButton.styleFrom(
-                foregroundColor: foreground.withValues(
-                  alpha: selected ? 1 : 0.65,
-                ),
-                padding: const EdgeInsets.symmetric(horizontal: 2),
-                minimumSize: const Size(44, 48),
-              ),
-              onPressed: () => _select(filter),
-              child: Text(
-                label,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
-                  decoration: selected ? TextDecoration.underline : null,
-                ),
-              ),
-            ),
-          ),
-        );
+    // Bez TikTok prikaza na početnoj: uvijek tražilica i tabovi.
+    final foreground = LoopColors.textPrimary;
     final chips = ColoredBox(
-      color: immersive ? Colors.black : LoopColors.background,
+      color: LoopColors.background,
       child: SafeArea(
         bottom: false,
         child: Center(
@@ -482,78 +490,52 @@ class _LiveHomeScreenState extends ConsumerState<LiveHomeScreen> {
             child: Row(
               key: const ValueKey('home-cats'),
               children: [
-                if (immersive) ...[
-                  tab(
-                    'following',
-                    t('Pratim'),
-                    const _Following(),
-                    _filter is _Following,
-                  ),
-                  tab('for-you', t('Za tebe'), const _ForYou(), immersive),
-                  tab(
-                    'live',
-                    t('Uživo'),
-                    const _LiveOnly(),
-                    _filter is _LiveOnly,
-                  ),
-                  IconButton(
-                    key: const ValueKey('home-search'),
-                    tooltip: t('Pretraži objave i račune'),
-                    color: foreground,
-                    onPressed: () => SearchScreen.open(context),
-                    icon: const Icon(Icons.search),
-                  ),
-                ] else ...[
-                  // Whatnot: široka tražilica, poruke i obavijesti.
-                  Expanded(
-                    child: Padding(
-                      padding: const EdgeInsets.fromLTRB(12, 8, 6, 8),
-                      child: InkWell(
-                        key: const ValueKey('home-search'),
-                        borderRadius: BorderRadius.circular(99),
-                        onTap: () => SearchScreen.open(context),
-                        child: Container(
-                          height: 44,
-                          padding: const EdgeInsets.symmetric(horizontal: 14),
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(99),
-                            border: Border.all(
-                              color: LoopColors.textSecondary.withValues(
-                                alpha: 0.6,
-                              ),
-                              width: 1.5,
+                // Whatnot: široka tražilica, poruke i obavijesti.
+                Expanded(
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(12, 8, 6, 8),
+                    child: InkWell(
+                      key: const ValueKey('home-search'),
+                      borderRadius: BorderRadius.circular(99),
+                      onTap: () => SearchScreen.open(context),
+                      child: Container(
+                        height: 44,
+                        padding: const EdgeInsets.symmetric(horizontal: 14),
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(99),
+                          border: Border.all(
+                            color: LoopColors.textSecondary.withValues(
+                              alpha: 0.6,
                             ),
+                            width: 1.5,
                           ),
-                          child: Row(
-                            children: [
-                              Icon(
-                                Icons.search,
-                                color: LoopColors.textSecondary,
-                              ),
-                              const SizedBox(width: 10),
-                              Expanded(
-                                child: Text(
-                                  t('Traži na Subhastu'),
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: TextStyle(
-                                    color: LoopColors.textSecondary,
-                                    fontSize: 15,
-                                  ),
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(Icons.search, color: LoopColors.textSecondary),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: Text(
+                                t('Traži na Subhastu'),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                  color: LoopColors.textSecondary,
+                                  fontSize: 15,
                                 ),
                               ),
-                            ],
-                          ),
+                            ),
+                          ],
                         ),
                       ),
                     ),
                   ),
-                  // Šire razine već imaju poruke i obavijesti u gornjoj traci.
-                  if (MediaQuery.sizeOf(context).width < 600) ...const [
-                    MessagesButton(),
-                    NotificationBell(),
-                    AccountMenuButton(),
-                  ],
+                ),
+                // Šire razine već imaju poruke i obavijesti u gornjoj traci.
+                if (MediaQuery.sizeOf(context).width < 600) ...const [
+                  MessagesButton(),
+                  NotificationBell(),
+                  AccountMenuButton(),
                 ],
                 IconButton(
                   key: const ValueKey('home-filters'),
@@ -723,29 +705,6 @@ class _LiveHomeScreenState extends ConsumerState<LiveHomeScreen> {
         ),
       ),
     );
-
-    // "Za tebe": TikTok — objave preko cijelog ekrana ispod izbornika,
-    // beskonačno, a redoslijed uči dok listaš (vidi [ForYouFeed]).
-    if (_filter is _ForYou) {
-      return Column(
-        children: [
-          chips,
-          Expanded(
-            child: GestureDetector(
-              key: const ValueKey('home-swipe'),
-              behavior: HitTestBehavior.translucent,
-              onHorizontalDragEnd: _swipe,
-              child: ForYouFeed(
-                key: ValueKey('recommendations:${s.currentUserId}'),
-                active:
-                    widget.visible &&
-                    (ModalRoute.of(context)?.isCurrent ?? true),
-              ),
-            ),
-          ),
-        ],
-      );
-    }
 
     return Column(
       children: [
