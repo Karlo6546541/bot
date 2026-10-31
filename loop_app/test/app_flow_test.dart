@@ -1076,6 +1076,15 @@ void logoTests() {
     // Za tebe → Uživo → Pratim (dodirom), zatim natrag dvaput.
     await tester.tap(find.byKey(const ValueKey('home-cat-live')));
     await tester.pumpAndSettle();
+    await tester.scrollUntilVisible(
+      find.byKey(const ValueKey('home-cat-following')),
+      200,
+      scrollable: find.descendant(
+        of: find.byKey(const ValueKey('home-tiles')),
+        matching: find.byType(Scrollable),
+      ),
+    );
+    await tester.pumpAndSettle();
     await tester.tap(find.byKey(const ValueKey('home-cat-following')));
     await tester.pumpAndSettle();
     await tester.binding.handlePopRoute();

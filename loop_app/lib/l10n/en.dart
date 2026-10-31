@@ -2888,4 +2888,9 @@ const kEn = <String, String>{
   'Filter': 'Filter',
   '⬇️ Digitalno · preuzimanje odmah, bez dostave':
       '⬇️ Digital · instant download, no shipping',
+  'Live shop': 'Live shop',
+  'Showovi': 'Shows',
+  'Trenutno nema livea s predmetima za Kupi odmah.':
+      'No live shows with Buy now items right now.',
+  'Trenutno nema livea s aukcijama.': 'No live shows with auctions right now.',
 };
