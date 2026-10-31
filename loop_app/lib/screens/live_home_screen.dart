@@ -186,6 +186,9 @@ class _LiveHomeScreenState extends ConsumerState<LiveHomeScreen> {
 
   /// Odabrana kategorija (traka ispod tabova): filtrira sve prikaze.
   DeviceCategory? _cat;
+
+  /// Traka kategorija se sažima kad se lista prema dolje.
+  bool _catCompact = false;
   DeviceCategory? _auctionCategory;
 
   /// "Kako Subhasto radi" vidi se samo pri prvom otvaranju — odmah se bilježi
@@ -843,38 +846,54 @@ class _LiveHomeScreenState extends ConsumerState<LiveHomeScreen> {
           onCategories: () => CategoriesScreen.open(context),
         ),
         // Dolje kategorije: odabrana ostaje označena i filtrira prikaz.
-        _LiveCategoryStrip(
-          stats: _liveCategoryStats(s, keep: _cat),
-          selected: _cat,
-          onSelect: (c) => setState(() => _cat = _cat == c ? null : c),
+        AnimatedSize(
+          duration: const Duration(milliseconds: 200),
+          curve: Curves.easeOut,
+          alignment: Alignment.topCenter,
+          child: _LiveCategoryStrip(
+            stats: _liveCategoryStats(s, keep: _cat),
+            selected: _cat,
+            compact: _catCompact,
+            onSelect: (c) => setState(() => _cat = _cat == c ? null : c),
+          ),
         ),
         Expanded(
           child: GestureDetector(
             key: const ValueKey('home-swipe'),
             behavior: HitTestBehavior.translucent,
             onHorizontalDragEnd: _swipe,
-            child: CustomScrollView(
-              slivers: [
-                if (onLive || onAuctions)
-                  SliverToBoxAdapter(child: categoryFilter),
-                if (_showHow && _filter is _ForYou)
-                  SliverToBoxAdapter(
-                    child: _HowLoopWorks(
-                      onClose: () => setState(() => _showHow = false),
+            child: NotificationListener<ScrollUpdateNotification>(
+              onNotification: (n) {
+                if (n.depth != 0) return false;
+                final compact = n.metrics.pixels > 60;
+                if (compact != _catCompact) {
+                  setState(() => _catCompact = compact);
+                }
+                return false;
+              },
+              child: CustomScrollView(
+                slivers: [
+                  if (onLive || onAuctions)
+                    SliverToBoxAdapter(child: categoryFilter),
+                  if (_showHow && _filter is _ForYou)
+                    SliverToBoxAdapter(
+                      child: _HowLoopWorks(
+                        onClose: () => setState(() => _showHow = false),
+                      ),
                     ),
-                  ),
-                if (!_hideCheckout &&
-                    s.currentUser != null &&
-                    !s.currentUser!.isGuest &&
-                    !s.currentUser!.checkoutReady)
-                  SliverToBoxAdapter(
-                    child: _CheckoutBanner(
-                      onClose: () => setState(() => _hideCheckout = true),
+                  if (!_hideCheckout &&
+                      s.currentUser != null &&
+                      !s.currentUser!.isGuest &&
+                      !s.currentUser!.checkoutReady)
+                    SliverToBoxAdapter(
+                      child: _CheckoutBanner(
+                        onClose: () => setState(() => _hideCheckout = true),
+                      ),
                     ),
-                  ),
-                ...slivers,
-                const SliverToBoxAdapter(child: SizedBox(height: 96)),
-              ],
+                  ...slivers,
+                  const SliverToBoxAdapter(child: SizedBox(height: 96)),
+                ],
+              ),
             ),
           ),
         ),
@@ -1153,9 +1172,8 @@ class _FollowingRow extends StatelessWidget {
   }
 }
 
-/// Vodoravni red velikih pločica vrste prikaza (kao Whatnot): Za tebe,
-/// Live shop, Live aukcije, Showovi, Kupi odmah, Aukcije… Odabrana je
-/// u boji akcenta s bijelim okvirom.
+/// Vodoravni tekstualni tabovi vrste prikaza: aktivni je podebljan i
+/// podcrtan, ostali sivi.
 class _TileRow extends StatelessWidget {
   const _TileRow({
     required this.selected,
@@ -1169,55 +1187,34 @@ class _TileRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    Widget tile({
+    Widget tab({
       required String id,
       required String label,
-      required IconData icon,
       required VoidCallback onTap,
       Key? key,
     }) {
       final on = selected == id;
-      return Padding(
-        padding: const EdgeInsets.only(right: 10),
-        child: InkWell(
-          key: key ?? ValueKey('tile-$id'),
-          borderRadius: BorderRadius.circular(14),
-          onTap: onTap,
-          child: Container(
-            width: 104,
-            height: 96,
-            padding: const EdgeInsets.fromLTRB(10, 10, 10, 8),
-            decoration: BoxDecoration(
-              color: on ? LoopColors.accent : LoopColors.surfaceHover,
-              borderRadius: BorderRadius.circular(14),
-              border: on
-                  ? Border.all(color: LoopColors.textPrimary, width: 2.5)
-                  : null,
+      return InkWell(
+        key: key ?? ValueKey('tile-$id'),
+        onTap: onTap,
+        child: Container(
+          constraints: const BoxConstraints(minHeight: 48),
+          padding: const EdgeInsets.symmetric(horizontal: 14),
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            border: Border(
+              bottom: BorderSide(
+                color: on ? LoopColors.accent : Colors.transparent,
+                width: 3,
+              ),
             ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  label,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    fontWeight: FontWeight.w800,
-                    fontSize: 14,
-                    height: 1.1,
-                    color: on ? LoopColors.onAccent : LoopColors.textPrimary,
-                  ),
-                ),
-                const Spacer(),
-                Align(
-                  alignment: Alignment.bottomRight,
-                  child: Icon(
-                    icon,
-                    size: 32,
-                    color: on ? LoopColors.onAccent : LoopColors.accent,
-                  ),
-                ),
-              ],
+          ),
+          child: Text(
+            label,
+            style: TextStyle(
+              fontSize: 17,
+              fontWeight: on ? FontWeight.w800 : FontWeight.w500,
+              color: on ? LoopColors.textPrimary : LoopColors.textSecondary,
             ),
           ),
         ),
@@ -1225,77 +1222,63 @@ class _TileRow extends StatelessWidget {
     }
 
     return SizedBox(
-      height: 108,
+      height: 50,
       child: ListView(
         key: const ValueKey('home-tiles'),
         scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.fromLTRB(16, 4, 6, 8),
+        padding: const EdgeInsets.symmetric(horizontal: 6),
         children: [
-          tile(
+          tab(
             id: 'for-you',
             key: const ValueKey('home-cat-for-you'),
             label: t('Za tebe'),
-            icon: Icons.auto_awesome,
             onTap: () => onSelect(const _ForYou()),
           ),
-          tile(
-            id: 'live-shop',
-            label: t('Live shop'),
-            icon: Icons.storefront_outlined,
-            onTap: () => onSelect(const _LiveShop()),
-          ),
-          tile(
-            id: 'live-auctions',
-            label: t('Live aukcije'),
-            icon: Icons.gavel,
-            onTap: () => onSelect(const _LiveAuctions()),
-          ),
-          tile(
-            id: 'live',
-            key: const ValueKey('home-cat-live'),
-            label: t('Showovi'),
-            icon: Icons.videocam,
-            onTap: () => onSelect(const _LiveOnly()),
-          ),
-          if (kBuyNowEnabled)
-            tile(
-              id: 'buy',
-              label: t('Kupi odmah'),
-              icon: Icons.shopping_bag_outlined,
-              onTap: () => onSelect(const _BuyNow()),
-            ),
-          tile(
-            id: 'timed',
-            label: t('Aukcije'),
-            icon: Icons.timer_outlined,
-            onTap: () => onSelect(const _Timed()),
-          ),
-          tile(
+          tab(
             id: 'following',
             key: const ValueKey('home-cat-following'),
             label: t('Pratim'),
-            icon: Icons.favorite_border,
             onTap: () => onSelect(const _Following()),
           ),
+          tab(
+            id: 'live',
+            key: const ValueKey('home-cat-live'),
+            label: t('Showovi'),
+            onTap: () => onSelect(const _LiveOnly()),
+          ),
+          tab(
+            id: 'live-shop',
+            label: t('Live shop'),
+            onTap: () => onSelect(const _LiveShop()),
+          ),
+          tab(
+            id: 'live-auctions',
+            label: t('Live aukcije'),
+            onTap: () => onSelect(const _LiveAuctions()),
+          ),
           if (kBuyNowEnabled)
-            tile(
+            tab(
+              id: 'buy',
+              label: t('Kupi odmah'),
+              onTap: () => onSelect(const _BuyNow()),
+            ),
+          tab(
+            id: 'timed',
+            label: t('Aukcije'),
+            onTap: () => onSelect(const _Timed()),
+          ),
+          if (kBuyNowEnabled)
+            tab(
               id: 'digital',
               label: t('Digitalno'),
-              icon: Icons.download_for_offline_outlined,
               onTap: () => onSelect(const _Digital()),
             ),
-          tile(
+          tab(
             id: 'soon',
             label: t('Uskoro'),
-            icon: Icons.event_outlined,
             onTap: () => onSelect(const _Soon()),
           ),
-          tile(
-            id: 'categories',
-            label: t('Kategorije'),
-            icon: Icons.grid_view_rounded,
-            onTap: onCategories,
-          ),
+          tab(id: 'categories', label: t('Kategorije'), onTap: onCategories),
         ],
       ),
     );
@@ -1308,8 +1291,12 @@ class _LiveCategoryStrip extends StatelessWidget {
     required this.stats,
     required this.onSelect,
     this.selected,
+    this.compact = false,
   });
   final List<CategoryStat> stats;
+
+  /// Sažeto (pri listanju prema dolje): samo mali čipovi s nazivom.
+  final bool compact;
   final ValueChanged<DeviceCategory> onSelect;
 
   /// Odabrana kategorija ostaje označena (ponovni dodir je poništava).
@@ -1318,7 +1305,42 @@ class _LiveCategoryStrip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (stats.isEmpty) return const SizedBox.shrink();
+    if (compact) {
+      return SizedBox(
+        key: const ValueKey('home-live-categories-compact'),
+        height: 44,
+        child: ListView.separated(
+          scrollDirection: Axis.horizontal,
+          padding: const EdgeInsets.fromLTRB(16, 4, 16, 6),
+          itemCount: stats.length,
+          separatorBuilder: (_, _) => const SizedBox(width: 6),
+          itemBuilder: (_, i) {
+            final c = stats[i];
+            final on = selected == c.category;
+            return ChoiceChip(
+              key: ValueKey('live-cat-${c.category.name}'),
+              label: Text(
+                c.viewers > 0
+                    ? '${c.category.label} · ${c.viewers}'
+                    : c.category.label,
+              ),
+              selected: on,
+              showCheckmark: false,
+              visualDensity: VisualDensity.compact,
+              selectedColor: LoopColors.accent,
+              labelStyle: TextStyle(
+                fontWeight: FontWeight.w800,
+                fontSize: 13,
+                color: on ? LoopColors.onAccent : null,
+              ),
+              onSelected: (_) => onSelect(c.category),
+            );
+          },
+        ),
+      );
+    }
     return SizedBox(
+      key: const ValueKey('home-live-categories-full'),
       height: 72,
       child: ListView.separated(
         key: const ValueKey('home-live-categories'),
