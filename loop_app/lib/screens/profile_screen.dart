@@ -539,7 +539,38 @@ class _ProfileSettingsView extends ConsumerWidget {
                 if (user.isGuest)
                   const _GuestCard()
                 else ...[
-                  _SectionTitle(t('Račun'), Icons.manage_accounts_outlined),
+                  // Kao Whatnot: na vrhu profil s poveznicom "Pogledaj profil".
+                  ListTile(
+                    key: const ValueKey('settings-profile-row'),
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 4),
+                    leading: UserAvatar(user: user, size: 48),
+                    title: Text(
+                      user.name.isNotEmpty ? user.name : user.handle,
+                      style: const TextStyle(
+                        fontWeight: FontWeight.w800,
+                        fontSize: 17,
+                      ),
+                    ),
+                    subtitle: Text(
+                      t('Pogledaj profil'),
+                      style: TextStyle(
+                        color: LoopColors.accent,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    onTap: () => PublicProfileScreen.open(context, user.id),
+                  ),
+                  const SizedBox(height: 4),
+                  OutlinedButton.icon(
+                    key: const ValueKey('settings-seller-hub'),
+                    onPressed: () {
+                      ref.read(profileSettingsProvider.notifier).setOpen(false);
+                      ref.read(homeTabProvider.notifier).select(2);
+                    },
+                    icon: const Icon(Icons.storefront_outlined),
+                    label: Text(t('Seller Hub')),
+                  ),
+                  _SectionTitle(t('Općenito'), Icons.manage_accounts_outlined),
                   _ShopCard(user: user),
                   const SizedBox(height: 8),
                   Card(
@@ -567,7 +598,7 @@ class _ProfileSettingsView extends ConsumerWidget {
                   const SizedBox(height: 8),
                   _AccountCard(user: user),
                 ],
-                _SectionTitle(t('Postavke'), Icons.tune),
+                _SectionTitle(t('Pomoć i pravno'), Icons.help_outline),
                 Card(
                   child: _NavTile(
                     key: const ValueKey('open-legal'),

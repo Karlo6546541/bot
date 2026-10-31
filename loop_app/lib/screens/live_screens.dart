@@ -591,17 +591,13 @@ class _ViewersChip extends StatelessWidget {
       key: const ValueKey('live-viewers'),
       padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 5),
       decoration: BoxDecoration(
-        color: Colors.black38,
-        borderRadius: BorderRadius.circular(8),
+        color: kLiveRed,
+        borderRadius: BorderRadius.circular(99),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const Icon(
-            Icons.visibility_outlined,
-            size: 13,
-            color: Colors.white70,
-          ),
+          const Icon(Icons.bar_chart, size: 14, color: Colors.white),
           const SizedBox(width: 4),
           Text(
             count >= 1000 ? '${(count / 1000).toStringAsFixed(1)}k' : '$count',
@@ -3570,40 +3566,49 @@ class _LiveRoomViewState extends ConsumerState<_LiveRoomBody> {
   );
 
   Widget _bidRow(LotState cur) {
-    // Veliki gumb = korak više; "Iznos" = vlastita ponuda koja odmah
-    // postaje nova cijena.
+    // Kao Whatnot: lijevo bijela obrubljena pilula "Iznos" (vlastita
+    // ponuda), desno široka pilula "Licitiraj: X »".
     return Row(
       children: [
+        SizedBox(
+          height: 52,
+          child: OutlinedButton(
+            key: const ValueKey('live-bid-custom'),
+            style: OutlinedButton.styleFrom(
+              foregroundColor: Colors.white,
+              backgroundColor: Colors.transparent,
+              side: const BorderSide(color: Colors.white70, width: 1.5),
+              shape: const StadiumBorder(),
+              padding: const EdgeInsets.symmetric(horizontal: 22),
+              textStyle: const TextStyle(
+                fontFamily: kFontFamily,
+                fontWeight: FontWeight.w800,
+                fontSize: 16,
+              ),
+            ),
+            onPressed: _busy ? null : () => _customBid(cur),
+            child: Text(t('Iznos')),
+          ),
+        ),
+        const SizedBox(width: 10),
         Expanded(
           child: FilledButton(
             key: const ValueKey('live-bid'),
             style: FilledButton.styleFrom(
               backgroundColor: kBidOrange,
               foregroundColor: Colors.white,
-              minimumSize: const Size.fromHeight(54),
+              minimumSize: const Size.fromHeight(52),
+              shape: const StadiumBorder(),
               textStyle: const TextStyle(
                 fontFamily: kFontFamily,
                 fontWeight: FontWeight.w900,
-                fontSize: 18,
+                fontSize: 17,
               ),
             ),
             onPressed: _busy ? null : () => _bid(cur.minNext),
-            child: Text(t('Licitiraj {0}', [formatCredits(cur.minNext)])),
-          ),
-        ),
-        const SizedBox(width: 8),
-        SizedBox(
-          height: 54,
-          child: OutlinedButton.icon(
-            key: const ValueKey('live-bid-custom'),
-            style: OutlinedButton.styleFrom(
-              foregroundColor: Colors.white,
-              side: const BorderSide(color: Colors.white70, width: 1.5),
-              padding: const EdgeInsets.symmetric(horizontal: 14),
+            child: Text(
+              '${t('Licitiraj {0}', [formatCredits(cur.minNext)])}  »',
             ),
-            onPressed: _busy ? null : () => _customBid(cur),
-            icon: const Icon(Icons.edit, size: 18),
-            label: Text(t('Iznos')),
           ),
         ),
       ],
@@ -3962,20 +3967,21 @@ class _TopBar extends ConsumerWidget {
             const SizedBox(width: 6),
             FilledButton(
               key: const ValueKey('live-follow'),
+              // Kao Whatnot: "Prati" je pilula u boji akcenta.
               style: FilledButton.styleFrom(
-                backgroundColor: Colors.white.withValues(alpha: 0.16),
+                backgroundColor: kBidOrange,
                 foregroundColor: Colors.white,
-                minimumSize: const Size(48, 30),
+                disabledBackgroundColor: Colors.white.withValues(alpha: 0.16),
+                disabledForegroundColor: Colors.white,
+                minimumSize: const Size(56, 30),
                 visualDensity: VisualDensity.compact,
-                padding: const EdgeInsets.symmetric(horizontal: 10),
+                padding: const EdgeInsets.symmetric(horizontal: 12),
                 textStyle: const TextStyle(
                   fontFamily: kFontFamily,
-                  fontSize: 11,
-                  fontWeight: FontWeight.w600,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w800,
                 ),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8),
-                ),
+                shape: const StadiumBorder(),
               ),
               onPressed: following
                   ? null

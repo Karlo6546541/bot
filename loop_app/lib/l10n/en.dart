@@ -2848,4 +2848,7 @@ const kEn = <String, String>{
   'Kategorije ({0})': 'Categories ({0})',
   'Nema showova za "{0}"': 'No shows for "{0}"',
   'Nema kategorija za "{0}"': 'No categories for "{0}"',
+  'Pogledaj profil': 'View profile',
+  'Seller Hub': 'Seller Hub',
+  'Općenito': 'General',
 };
