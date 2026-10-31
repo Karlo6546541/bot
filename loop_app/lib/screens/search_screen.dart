@@ -42,6 +42,10 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
   final _c = TextEditingController();
   String _q = '';
 
+  /// Showovi: 'live' | 'soon' | null (sve) i redoslijed po gledateljima.
+  String? _showTime;
+  int _showSort = 0; // 0 preporučeno, 1 gledatelji ↓, 2 gledatelji ↑
+
   @override
   void dispose() {
     _c.dispose();
@@ -279,7 +283,10 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
             // Top: kategorije, live showovi i objave (kao Whatnot).
             _q.trim().isEmpty
                 ? _History(onPick: _set)
-                : topLives.isEmpty && topPosts.isEmpty && categories.isEmpty
+                : topLives.isEmpty &&
+                      topPosts.isEmpty &&
+                      categories.isEmpty &&
+                      accounts.isEmpty
                 ? _EmptyOrLoading(
                     child: EmptyState(
                       icon: Icons.search_off,
@@ -328,6 +335,78 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                               topLives.take(4).toList(),
                             ),
                           ],
+                          if (accounts.isNotEmpty) ...[
+                            section(t('Korisnici'), () => tabs.animateTo(3)),
+                            SliverToBoxAdapter(
+                              child: SizedBox(
+                                height: 210,
+                                child: ListView.separated(
+                                  key: const ValueKey('search-top-users'),
+                                  scrollDirection: Axis.horizontal,
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 16,
+                                  ),
+                                  itemCount: accounts.take(10).length,
+                                  separatorBuilder: (_, _) =>
+                                      const SizedBox(width: 10),
+                                  itemBuilder: (_, i) {
+                                    final u = accounts[i];
+                                    return InkWell(
+                                      borderRadius: BorderRadius.circular(18),
+                                      onTap: () => PublicProfileScreen.open(
+                                        context,
+                                        u.id,
+                                      ),
+                                      child: Container(
+                                        width: 150,
+                                        padding: const EdgeInsets.all(12),
+                                        decoration: BoxDecoration(
+                                          borderRadius: BorderRadius.circular(
+                                            18,
+                                          ),
+                                          border: Border.all(
+                                            color: LoopColors.textSecondary
+                                                .withValues(alpha: 0.5),
+                                          ),
+                                        ),
+                                        child: Column(
+                                          children: [
+                                            UserAvatar(user: u, size: 64),
+                                            const SizedBox(height: 8),
+                                            Text(
+                                              u.username.isNotEmpty
+                                                  ? u.username
+                                                  : u.handle,
+                                              maxLines: 1,
+                                              overflow: TextOverflow.ellipsis,
+                                              style: const TextStyle(
+                                                fontWeight: FontWeight.w900,
+                                              ),
+                                            ),
+                                            Text(
+                                              t('{0} pratitelja', [
+                                                '${s.followersOf(u.id)}',
+                                              ]),
+                                              style: TextStyle(
+                                                color: LoopColors.textSecondary,
+                                                fontSize: 12,
+                                              ),
+                                            ),
+                                            const Spacer(),
+                                            if (u.id != s.currentUserId)
+                                              FollowButton(
+                                                userId: u.id,
+                                                compact: true,
+                                              ),
+                                          ],
+                                        ),
+                                      ),
+                                    );
+                                  },
+                                ),
+                              ),
+                            ),
+                          ],
                           if (topPosts.isNotEmpty) ...[
                             section(t('Objave'), () => tabs.animateTo(1)),
                             cards(
@@ -359,7 +438,88 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                     icon: Icons.videocam_off_outlined,
                     title: t('Nema showova za "{0}"', [_q.trim()]),
                   )
-                : postGrid(shows, const ValueKey('search-shows')),
+                : Builder(
+                    builder: (ctx) {
+                      final list = [
+                        for (final i in topLives)
+                          if (_showTime == null ||
+                              (_showTime == 'live' &&
+                                  (i.live?.isLive ?? false)) ||
+                              (_showTime == 'soon' &&
+                                  (i.live?.isScheduled ?? false)))
+                            i,
+                      ];
+                      if (_showSort != 0) {
+                        list.sort((a, b) {
+                          final d = (a.live?.viewers ?? 0).compareTo(
+                            b.live?.viewers ?? 0,
+                          );
+                          return _showSort == 1 ? -d : d;
+                        });
+                      }
+                      Widget chip(
+                        String key,
+                        String label,
+                        bool on,
+                        VoidCallback tap,
+                      ) => Padding(
+                        padding: const EdgeInsets.only(right: 8),
+                        child: ChoiceChip(
+                          key: ValueKey(key),
+                          label: Text(label),
+                          selected: on,
+                          onSelected: (_) => tap(),
+                        ),
+                      );
+                      return CustomScrollView(
+                        key: const ValueKey('search-shows'),
+                        slivers: [
+                          SliverToBoxAdapter(
+                            child: SingleChildScrollView(
+                              scrollDirection: Axis.horizontal,
+                              padding: const EdgeInsets.fromLTRB(16, 12, 8, 12),
+                              child: Row(
+                                children: [
+                                  chip(
+                                    'shows-live',
+                                    t('Uživo'),
+                                    _showTime == 'live',
+                                    () => setState(
+                                      () => _showTime = _showTime == 'live'
+                                          ? null
+                                          : 'live',
+                                    ),
+                                  ),
+                                  chip(
+                                    'shows-soon',
+                                    t('Uskoro'),
+                                    _showTime == 'soon',
+                                    () => setState(
+                                      () => _showTime = _showTime == 'soon'
+                                          ? null
+                                          : 'soon',
+                                    ),
+                                  ),
+                                  chip(
+                                    'shows-sort',
+                                    _showSort == 2
+                                        ? t('Gledatelji ↑')
+                                        : t('Gledatelji ↓'),
+                                    _showSort != 0,
+                                    () => setState(
+                                      () => _showSort = (_showSort + 1) % 3,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                          cards('search-shows-grid', list),
+                          const SliverToBoxAdapter(child: SizedBox(height: 32)),
+                        ],
+                      );
+                    },
+                  ),
             // Računi
             accounts.isEmpty
                 ? _EmptyOrLoading(

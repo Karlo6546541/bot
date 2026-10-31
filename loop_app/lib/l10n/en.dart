@@ -2864,4 +2864,6 @@ const kEn = <String, String>{
   'Prodaja i showovi': 'Sales & shows',
   'Plaćanje i dostava': 'Payments & shipping',
   'Kontaktiraj nas': 'Contact us',
+  'Gledatelji ↑': 'Viewers ↑',
+  'Gledatelji ↓': 'Viewers ↓',
 };
