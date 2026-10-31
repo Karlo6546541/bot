@@ -12,6 +12,7 @@ import '../widgets/user_avatar.dart';
 import '../models/app_user.dart';
 import '../models/device.dart';
 import '../widgets/browse_category_picker.dart';
+import '../providers/app_state.dart';
 import 'categories_screen.dart';
 import '../providers/app_providers.dart';
 import '../theme/app_theme.dart';
@@ -55,9 +56,16 @@ sealed class _Filter {
     _BuyNow() => 'buy',
     _Digital() => 'digital',
     _Following() => 'following',
+    _Category(:final category) => 'cat-${category.name}',
   };
 
   static _Filter of(String id) => switch (id) {
+    _ when id.startsWith('cat-') =>
+      DeviceCategory.values
+              .where((c) => 'cat-${c.name}' == id)
+              .map<_Filter>(_Category.new)
+              .firstOrNull ??
+          const _ForYou(),
     'live' => const _LiveOnly(),
     'soon' => const _Soon(),
     'timed' => const _Timed(),
@@ -97,12 +105,28 @@ class _Following extends _Filter {
   const _Following();
 }
 
+/// Glavna kategorija (tab na početnoj, kao Whatnot): liveovi te kategorije.
+class _Category extends _Filter {
+  const _Category(this.category);
+  final DeviceCategory category;
+}
+
 class _LiveHomeScreenState extends ConsumerState<LiveHomeScreen> {
   void _select(_Filter filter) {
     ref.read(homeFilterProvider.notifier).select(filter.id);
     // Početna je uvijek mreža (kao Whatnot); feed preko cijelog ekrana
     // otvara se tek dodirom na karticu.
     widget.onImmersiveChanged?.call(false);
+  }
+
+  /// Glavne kategorije za tabove: najgledanije/najpopunjenije, do 6.
+  static List<DeviceCategory> _mainCategories(AppState s) {
+    final list = [for (final c in trendingCategories(s)) c.category];
+    for (final c in DeviceCategory.values) {
+      if (list.length >= 6) break;
+      if (!list.contains(c)) list.add(c);
+    }
+    return list.take(6).toList();
   }
 
   Timer? _timer;
@@ -285,17 +309,89 @@ class _LiveHomeScreenState extends ConsumerState<LiveHomeScreen> {
           );
         }
       case _ForYou():
-        // Kao Whatnot: prvo liveovi (najgledaniji), pa ostalo u mreži.
+        // Kao Whatnot: skoro sve su liveovi — prvo uživo (najgledaniji),
+        // pa nadolazeći showovi, a aukcije i ponude tek na kraju (malo).
         final liveNow = [...allLive]
           ..sort(
             (a, b) => (b.live?.viewers ?? 0).compareTo(a.live?.viewers ?? 0),
           );
         final rest = [
           for (final i in all)
-            if (!(i.live?.isLive ?? false)) i,
+            if (i.live == null) i,
         ];
-        Widget head(String text, {Key? key}) => SliverToBoxAdapter(
-          key: key,
+        Widget head(String text, {VoidCallback? onAll}) => SliverToBoxAdapter(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(16, 12, 8, 10),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    text,
+                    style: const TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                ),
+                if (onAll != null)
+                  TextButton(
+                    onPressed: onAll,
+                    child: Text('${t('Prikaži sve')} ›'),
+                  ),
+              ],
+            ),
+          ),
+        );
+        if (liveNow.isNotEmpty) {
+          slivers.add(head(t('Uživo sada')));
+          slivers.add(grid('home-for-you-live', liveNow, t('Uživo')));
+        } else {
+          slivers.add(
+            SliverToBoxAdapter(
+              child: _EmptyLive(
+                onGoLive: () => CreateLiveShowScreen.open(context),
+              ),
+            ),
+          );
+        }
+        if (soon.isNotEmpty) {
+          slivers.add(
+            head(t('Uskoro uživo'), onAll: () => _select(const _Soon())),
+          );
+          slivers.add(
+            grid('home-for-you-soon', soon.take(4).toList(), t('Uskoro')),
+          );
+        }
+        if (rest.isNotEmpty) {
+          slivers.add(
+            head(t('Aukcije i ponude'), onAll: () => _select(const _Timed())),
+          );
+          slivers.add(
+            grid('home-for-you', rest.take(6).toList(), t('Za tebe')),
+          );
+        }
+      case _Category(:final category):
+        // Kategorija: liveovi i nadolazeći showovi te kategorije, pa ostalo.
+        final inCat = [
+          for (final i in all)
+            if (i.categories.contains(category)) i,
+        ];
+        final catLive =
+            [
+              for (final i in inCat)
+                if (i.live?.isLive ?? false) i,
+            ]..sort(
+              (a, b) => (b.live?.viewers ?? 0).compareTo(a.live?.viewers ?? 0),
+            );
+        final catSoon = [
+          for (final i in inCat)
+            if (i.live?.isScheduled ?? false) i,
+        ];
+        final catRest = [
+          for (final i in inCat)
+            if (i.live == null) i,
+        ];
+        Widget head(String text) => SliverToBoxAdapter(
           child: Padding(
             padding: const EdgeInsets.fromLTRB(16, 12, 16, 10),
             child: Text(
@@ -304,19 +400,29 @@ class _LiveHomeScreenState extends ConsumerState<LiveHomeScreen> {
             ),
           ),
         );
-        if (liveNow.isNotEmpty) {
+        if (catLive.isNotEmpty) {
           slivers.add(head(t('Uživo sada')));
-          slivers.add(grid('home-for-you-live', liveNow, t('Uživo')));
+          slivers.add(grid('home-cat-live-grid', catLive, category.label));
         }
-        if (rest.isNotEmpty) {
-          slivers.add(head(t('Za tebe')));
-          slivers.add(grid('home-for-you', rest, t('Za tebe')));
+        if (catSoon.isNotEmpty) {
+          slivers.add(head(t('Uskoro uživo')));
+          slivers.add(grid('home-cat-soon-grid', catSoon, category.label));
         }
-        if (liveNow.isEmpty && rest.isEmpty) {
+        if (catRest.isNotEmpty) {
+          slivers.add(head(t('Aukcije i ponude')));
+          slivers.add(grid('home-cat-rest-grid', catRest, category.label));
+        }
+        if (inCat.isEmpty) {
           slivers.add(
             SliverToBoxAdapter(
-              child: _EmptyLive(
-                onGoLive: () => CreateLiveShowScreen.open(context),
+              child: Padding(
+                key: const ValueKey('home-category-empty'),
+                padding: const EdgeInsets.all(24),
+                child: Text(
+                  t('U ovoj kategoriji trenutno nema showova ni predmeta.'),
+                  textAlign: TextAlign.center,
+                  style: TextStyle(color: LoopColors.textSecondary),
+                ),
               ),
             ),
           );
@@ -713,6 +819,7 @@ class _LiveHomeScreenState extends ConsumerState<LiveHomeScreen> {
           selected: _filter.id,
           onSelect: (f) => _select(f),
           onCategories: () => CategoriesScreen.open(context),
+          categories: _mainCategories(s),
         ),
         Expanded(
           child: GestureDetector(
@@ -1027,7 +1134,12 @@ class _TileRow extends StatelessWidget {
     required this.selected,
     required this.onSelect,
     required this.onCategories,
+    this.categories = const [],
   });
+
+  /// Glavne kategorije kao tabovi (kao Whatnot: For You, Following, pa
+  /// kategorije).
+  final List<DeviceCategory> categories;
 
   final String selected;
   final void Function(_Filter) onSelect;
@@ -1094,6 +1206,13 @@ class _TileRow extends StatelessWidget {
             label: t('Uživo'),
             onTap: () => onSelect(const _LiveOnly()),
           ),
+          for (final c in categories)
+            tab(
+              id: 'cat-${c.name}',
+              key: ValueKey('home-tab-cat-${c.name}'),
+              label: c.label,
+              onTap: () => onSelect(_Category(c)),
+            ),
           tab(
             id: 'timed',
             label: t('Aukcije'),

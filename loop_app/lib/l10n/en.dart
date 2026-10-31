@@ -2851,4 +2851,8 @@ const kEn = <String, String>{
   'Pogledaj profil': 'View profile',
   'Seller Hub': 'Seller Hub',
   'Općenito': 'General',
+  'Uskoro uživo': 'Live soon',
+  'Aukcije i ponude': 'Auctions & offers',
+  'U ovoj kategoriji trenutno nema showova ni predmeta.':
+      'No shows or items in this category right now.',
 };
