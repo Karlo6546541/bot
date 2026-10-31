@@ -10,6 +10,7 @@ import '../providers/app_providers.dart';
 
 import '../widgets/adaptive_shell.dart';
 import '../widgets/create_sheet.dart';
+import 'account_menu.dart';
 import 'auctions_screen.dart';
 import 'categories_screen.dart';
 import 'live_home_screen.dart';
@@ -326,6 +327,7 @@ class _HomeShellState extends ConsumerState<HomeShell> {
                 ),
                 const MessagesButton(),
                 const NotificationBell(),
+                const AccountMenuButton(),
                 if (!phone) ...[
                   const LanguageButton(compact: true),
                   const SizedBox(width: 6),

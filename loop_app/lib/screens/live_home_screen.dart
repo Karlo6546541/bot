@@ -19,6 +19,7 @@ import '../widgets/trade_actions.dart';
 import 'auctions_screen.dart';
 import 'for_you_feed.dart';
 import 'public_profile_screen.dart';
+import 'account_menu.dart';
 import 'live_screens.dart';
 import 'search_screen.dart';
 import 'messages_screen.dart';
@@ -551,6 +552,7 @@ class _LiveHomeScreenState extends ConsumerState<LiveHomeScreen> {
                   if (MediaQuery.sizeOf(context).width < 600) ...const [
                     MessagesButton(),
                     NotificationBell(),
+                    AccountMenuButton(),
                   ],
                 ],
                 IconButton(

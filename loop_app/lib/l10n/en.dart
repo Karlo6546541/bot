@@ -2840,4 +2840,8 @@ const kEn = <String, String>{
   'Najgledanije': 'Most watched',
   'Najviše predmeta': 'Most items',
   'Što je trenutno popularno na Subhastu.': 'Trending on Subhasto right now.',
+  'Izbornik': 'Menu',
+  'Adrese': 'Addresses',
+  'Pomoć i pravno': 'Help & legal',
+  'Uvjeti i pravila': 'Terms & rules',
 };

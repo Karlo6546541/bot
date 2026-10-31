@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hive/hive.dart';
 import 'package:loop_app/providers/app_providers.dart';
+import 'package:loop_app/screens/account_menu.dart';
 import 'package:loop_app/screens/auctions_screen.dart';
 import 'package:loop_app/screens/seller_hub.dart';
 import 'package:loop_app/services/live_service.dart';
@@ -119,5 +120,48 @@ void main() {
       shipments: 10,
     );
     expect(bad.level, HealthLevel.attention);
+  });
+
+  testWidgets('izbornik računa: avatar otvara pretragu, kupnje i postavke', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(420, 900);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    final storage = StorageService();
+    await storage.init(inMemory: true);
+    await storage.saveSession(userId: SeedData.testUserId);
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          storageProvider.overrideWithValue(storage),
+          tickIntervalProvider.overrideWithValue(null),
+        ],
+        child: const MaterialApp(
+          home: Scaffold(body: Center(child: AccountMenuButton())),
+        ),
+      ),
+    );
+    await tester.tap(find.byKey(const ValueKey('account-menu-button')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('account-menu')), findsOneWidget);
+    for (final k in [
+      'menu-home',
+      'menu-browse',
+      'menu-inbox',
+      'menu-saved',
+      'menu-offers',
+      'menu-purchases',
+      'menu-wallet',
+      'menu-addresses',
+    ]) {
+      expect(find.byKey(ValueKey(k)), findsOneWidget, reason: k);
+    }
+    await tester.tap(find.byKey(const ValueKey('account-menu-close')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('account-menu')), findsNothing);
+    await tester.pumpWidget(const SizedBox.shrink());
+    await Hive.close();
   });
 }
