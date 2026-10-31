@@ -2844,4 +2844,8 @@ const kEn = <String, String>{
   'Adrese': 'Addresses',
   'Pomoć i pravno': 'Help & legal',
   'Uvjeti i pravila': 'Terms & rules',
+  'Showovi ({0})': 'Shows ({0})',
+  'Kategorije ({0})': 'Categories ({0})',
+  'Nema showova za "{0}"': 'No shows for "{0}"',
+  'Nema kategorija za "{0}"': 'No categories for "{0}"',
 };

@@ -227,8 +227,6 @@ class _PublicProfileScreenState extends ConsumerState<PublicProfileScreen> {
                     const SizedBox(height: 10),
                     Row(
                       children: [
-                        Expanded(child: FollowButton(userId: other.id)),
-                        const SizedBox(width: 10),
                         Expanded(
                           child: OutlinedButton.icon(
                             key: const ValueKey('profile-message'),
@@ -237,6 +235,8 @@ class _PublicProfileScreenState extends ConsumerState<PublicProfileScreen> {
                             label: Text(t('Poruka')),
                           ),
                         ),
+                        const SizedBox(width: 10),
+                        Expanded(child: FollowButton(userId: other.id)),
                       ],
                     ),
                   ],
@@ -248,24 +248,57 @@ class _PublicProfileScreenState extends ConsumerState<PublicProfileScreen> {
           box(
             Padding(
               padding: const EdgeInsets.only(top: 14, bottom: 10),
-              child: SegmentedButton<_ShopTab>(
+              child: Row(
                 key: const ValueKey('shop-tabs'),
-                showSelectedIcon: false,
-                segments: [
-                  ButtonSegment(
-                    value: _ShopTab.auctions,
-                    icon: const Icon(Icons.gavel, size: 18),
-                    label: Text(t('Aukcije ({0})', [auctions.length])),
-                  ),
-                  ButtonSegment(
-                    value: _ShopTab.reviews,
-                    icon: const Icon(Icons.star_outline, size: 18),
-                    label: Text('${reviews.length}'),
-                    tooltip: t('Ocjene'),
-                  ),
+                children: [
+                  for (final (tab, label, tip) in [
+                    (
+                      _ShopTab.auctions,
+                      t('Aukcije ({0})', [auctions.length]),
+                      null,
+                    ),
+                    (
+                      _ShopTab.reviews,
+                      t('Ocjene ({0})', ['${reviews.length}']),
+                      t('Ocjene'),
+                    ),
+                  ])
+                    Expanded(
+                      child: Tooltip(
+                        message: tip ?? '',
+                        excludeFromSemantics: tip == null,
+                        child: InkWell(
+                          onTap: () => setState(() => _tab = tab),
+                          child: Container(
+                            height: 46,
+                            alignment: Alignment.center,
+                            decoration: BoxDecoration(
+                              border: Border(
+                                bottom: BorderSide(
+                                  color: _tab == tab
+                                      ? LoopColors.textPrimary
+                                      : LoopColors.surfaceHover,
+                                  width: _tab == tab ? 2 : 1,
+                                ),
+                              ),
+                            ),
+                            child: Text(
+                              label,
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: _tab == tab
+                                    ? FontWeight.w800
+                                    : FontWeight.w500,
+                                color: _tab == tab
+                                    ? LoopColors.textPrimary
+                                    : LoopColors.textSecondary,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
                 ],
-                selected: {_tab},
-                onSelectionChanged: (v) => setState(() => _tab = v.first),
               ),
             ),
           ),
@@ -873,70 +906,59 @@ class _ShopStats extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    Widget stat(String value, String label, VoidCallback? onTap, Key key) =>
-        Expanded(
-          child: InkWell(
-            key: key,
-            borderRadius: BorderRadius.circular(12),
-            onTap: onTap,
-            child: Padding(
-              padding: const EdgeInsets.symmetric(vertical: 4),
-              child: Column(
-                children: [
-                  Text(
-                    value,
-                    style: const TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.w900,
-                    ),
-                  ),
-                  Text(
-                    label,
-                    style: TextStyle(
-                      color: LoopColors.textSecondary,
-                      fontSize: 12,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        );
-    return Card(
+    // Kao Whatnot: brojevi i nazivi u retku, bez kartice.
+    Widget stat(
+      String value,
+      String label,
+      VoidCallback? onTap,
+      Key key,
+    ) => InkWell(
+      key: key,
+      borderRadius: BorderRadius.circular(8),
+      onTap: onTap,
       child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 6),
-        child: Column(
+        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 6),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
           children: [
-            Row(
-              children: [
-                stat(
-                  '$followers',
-                  t('pratitelja'),
-                  () => FollowListScreen.open(context, userId),
-                  const ValueKey('stat-followers'),
-                ),
-                stat(
-                  '$following',
-                  t('prati'),
-                  () => FollowListScreen.open(context, userId, following: true),
-                  const ValueKey('stat-following'),
-                ),
-                stat(
-                  '$sales',
-                  t('prodaja'),
-                  () => SalesListScreen.open(context, userId),
-                  const ValueKey('stat-sales'),
-                ),
-                stat(
-                  '$listings',
-                  t('oglasa'),
-                  null,
-                  const ValueKey('stat-listings'),
-                ),
-              ],
+            Text(
+              value,
+              style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w900),
+            ),
+            const SizedBox(width: 4),
+            Text(
+              label,
+              style: TextStyle(color: LoopColors.textSecondary, fontSize: 14),
             ),
           ],
         ),
+      ),
+    );
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 12),
+      child: Wrap(
+        spacing: 10,
+        children: [
+          stat(
+            '$followers',
+            t('pratitelja'),
+            () => FollowListScreen.open(context, userId),
+            const ValueKey('stat-followers'),
+          ),
+          stat(
+            '$following',
+            t('prati'),
+            () => FollowListScreen.open(context, userId, following: true),
+            const ValueKey('stat-following'),
+          ),
+          stat(
+            '$sales',
+            t('prodaja'),
+            () => SalesListScreen.open(context, userId),
+            const ValueKey('stat-sales'),
+          ),
+          stat('$listings', t('oglasa'), null, const ValueKey('stat-listings')),
+        ],
       ),
     );
   }

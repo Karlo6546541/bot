@@ -1,3 +1,6 @@
+import 'categories_screen.dart';
+import '../widgets/category_style.dart';
+import '../models/device.dart';
 import '../config/features.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -115,9 +118,46 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
     final s = ref.watch(appProvider);
     final posts = _posts(s);
     final accounts = _accounts(s);
+    final shows = [
+      for (final e in posts)
+        if (e.isLive) e,
+    ];
+    final terms = _q.trim().toLowerCase();
+    final categories = [
+      for (final c in DeviceCategory.values)
+        if (terms.isNotEmpty && c.label.toLowerCase().contains(terms)) c,
+    ];
+    Widget postGrid(List<FeedEntry> list, Key key) => LayoutBuilder(
+      builder: (context, c) {
+        final cols = c.maxWidth >= 900
+            ? 5
+            : c.maxWidth >= 600
+            ? 4
+            : 3;
+        return GridView.builder(
+          key: key,
+          padding: const EdgeInsets.all(8),
+          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: cols,
+            mainAxisSpacing: 4,
+            crossAxisSpacing: 4,
+            childAspectRatio: 3 / 4,
+          ),
+          itemCount: list.length,
+          itemBuilder: (context, i) => PostTile(
+            entry: list[i],
+            state: s,
+            onTap: () {
+              ref.read(appProvider.notifier).addSearch(_q);
+              SwipeFeedScreen.open(context, list, i);
+            },
+          ),
+        );
+      },
+    );
     return DefaultTabController(
-      length: 2,
-      initialIndex: widget.accounts ? 1 : 0,
+      length: 4,
+      initialIndex: widget.accounts ? 2 : 0,
       child: Scaffold(
         appBar: AppBar(
           titleSpacing: 0,
@@ -129,6 +169,21 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
             onChanged: (v) => setState(() => _q = v),
             onSubmitted: (v) => ref.read(appProvider.notifier).addSearch(v),
             decoration: InputDecoration(
+              isDense: true,
+              filled: true,
+              fillColor: LoopColors.surfaceHover,
+              border: const OutlineInputBorder(
+                borderRadius: BorderRadius.all(Radius.circular(99)),
+                borderSide: BorderSide.none,
+              ),
+              enabledBorder: const OutlineInputBorder(
+                borderRadius: BorderRadius.all(Radius.circular(99)),
+                borderSide: BorderSide.none,
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: const BorderRadius.all(Radius.circular(99)),
+                borderSide: BorderSide(color: LoopColors.textSecondary),
+              ),
               hintText: t('Traži liveove, aukcije, predmete i račune…'),
               prefixIcon: const Icon(Icons.search),
               suffixIcon: _q.isEmpty
@@ -141,9 +196,18 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
             ),
           ),
           bottom: TabBar(
+            indicatorColor: LoopColors.textPrimary,
+            labelColor: LoopColors.textPrimary,
+            unselectedLabelColor: LoopColors.textSecondary,
+            labelStyle: const TextStyle(
+              fontWeight: FontWeight.w800,
+              fontSize: 15,
+            ),
             tabs: [
               Tab(text: t('Objave ({0})', ['${posts.length}'])),
+              Tab(text: t('Showovi ({0})', ['${shows.length}'])),
               Tab(text: t('Računi ({0})', ['${accounts.length}'])),
+              Tab(text: t('Kategorije ({0})', ['${categories.length}'])),
             ],
           ),
         ),
@@ -159,34 +223,16 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                       title: t('Nema objava za "{0}"', [_q.trim()]),
                     ),
                   )
-                : LayoutBuilder(
-                    builder: (context, c) {
-                      final cols = c.maxWidth >= 900
-                          ? 5
-                          : c.maxWidth >= 600
-                          ? 4
-                          : 3;
-                      return GridView.builder(
-                        key: const ValueKey('search-posts'),
-                        padding: const EdgeInsets.all(8),
-                        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                          crossAxisCount: cols,
-                          mainAxisSpacing: 4,
-                          crossAxisSpacing: 4,
-                          childAspectRatio: 3 / 4,
-                        ),
-                        itemCount: posts.length,
-                        itemBuilder: (context, i) => PostTile(
-                          entry: posts[i],
-                          state: s,
-                          onTap: () {
-                            ref.read(appProvider.notifier).addSearch(_q);
-                            SwipeFeedScreen.open(context, posts, i);
-                          },
-                        ),
-                      );
-                    },
-                  ),
+                : postGrid(posts, const ValueKey('search-posts')),
+            // Showovi (liveovi)
+            _q.trim().isEmpty
+                ? _History(onPick: _set)
+                : shows.isEmpty
+                ? EmptyState(
+                    icon: Icons.videocam_off_outlined,
+                    title: t('Nema showova za "{0}"', [_q.trim()]),
+                  )
+                : postGrid(shows, const ValueKey('search-shows')),
             // Računi
             accounts.isEmpty
                 ? _EmptyOrLoading(
@@ -233,6 +279,29 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                         },
                       );
                     },
+                  ),
+            // Kategorije
+            categories.isEmpty
+                ? EmptyState(
+                    icon: Icons.grid_view_outlined,
+                    title: t('Nema kategorija za "{0}"', [_q.trim()]),
+                  )
+                : ListView(
+                    key: const ValueKey('search-categories'),
+                    padding: const EdgeInsets.symmetric(vertical: 8),
+                    children: [
+                      for (final c in categories)
+                        ListTile(
+                          key: ValueKey('search-category-${c.name}'),
+                          leading: CategoryArt(category: c, size: 44),
+                          title: Text(
+                            c.label,
+                            style: const TextStyle(fontWeight: FontWeight.w800),
+                          ),
+                          trailing: const Icon(Icons.chevron_right),
+                          onTap: () => CategoryItemsScreen.open(context, c),
+                        ),
+                    ],
                   ),
           ],
         ),
