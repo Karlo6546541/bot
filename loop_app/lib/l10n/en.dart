@@ -2669,4 +2669,9 @@ const kEn = <String, String>{
   '1 dostupno': '1 available',
   '{0} dostupno': '{0} available',
   'Traži na Subhastu': 'Search Subhasto',
+  'Pokrenuti prijenos?': 'Start the stream?',
+  'Pratitelji i svi koji su označili show dobit će obavijest.':
+      'Followers and everyone who saved the show will be notified.',
+  'Idi uživo': 'Go live',
+  'Live opcije': 'Live options',
 };

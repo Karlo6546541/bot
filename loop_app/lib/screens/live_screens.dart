@@ -1694,6 +1694,171 @@ class _LiveRoomViewState extends ConsumerState<_LiveRoomBody> {
     if (ok && mounted) await _startVideo();
   }
 
+  /// Potvrda prije pokretanja prijenosa: gledatelji dobivaju obavijest.
+  Future<void> _confirmGoLive() async {
+    final ok = await showModalBottomSheet<bool>(
+      context: context,
+      showDragHandle: true,
+      backgroundColor: kLiveSheet,
+      constraints: const BoxConstraints(maxWidth: 520),
+      builder: (ctx) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text(
+                t('Pokrenuti prijenos?'),
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w900,
+                  fontSize: 22,
+                ),
+              ),
+              const SizedBox(height: 6),
+              Text(
+                t('Pratitelji i svi koji su označili show dobit će obavijest.'),
+                style: const TextStyle(color: Colors.white70),
+              ),
+              const SizedBox(height: 16),
+              FilledButton(
+                key: const ValueKey('live-go-confirm'),
+                style: FilledButton.styleFrom(
+                  backgroundColor: kLiveRed,
+                  foregroundColor: Colors.white,
+                  minimumSize: const Size.fromHeight(52),
+                ),
+                onPressed: () => Navigator.pop(ctx, true),
+                child: Text(t('Idi uživo')),
+              ),
+              const SizedBox(height: 8),
+              TextButton(
+                style: TextButton.styleFrom(foregroundColor: Colors.white70),
+                onPressed: () => Navigator.pop(ctx, false),
+                child: Text(t('Odustani')),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+    if (ok == true && mounted) await _goLiveNow();
+  }
+
+  /// "Live opcije" voditelja: tamne pločice po tri u retku.
+  void _showHostOptions(LiveShow show) {
+    Widget tile(
+      BuildContext ctx, {
+      required String key,
+      required IconData icon,
+      required String label,
+      required VoidCallback onTap,
+      Color? color,
+    }) => Material(
+      color: const Color(0xFF26272C),
+      borderRadius: BorderRadius.circular(14),
+      child: InkWell(
+        key: ValueKey(key),
+        borderRadius: BorderRadius.circular(14),
+        onTap: () {
+          Navigator.pop(ctx);
+          onTap();
+        },
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 14),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(icon, color: color ?? Colors.white, size: 26),
+              const SizedBox(height: 6),
+              Text(
+                label,
+                textAlign: TextAlign.center,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  color: color ?? Colors.white,
+                  fontWeight: FontWeight.w700,
+                  fontSize: 12,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+    showModalBottomSheet<void>(
+      context: context,
+      showDragHandle: true,
+      backgroundColor: kLiveSheet,
+      constraints: const BoxConstraints(maxWidth: 520),
+      builder: (ctx) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                t('Live opcije'),
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w900,
+                  fontSize: 20,
+                ),
+              ),
+              const SizedBox(height: 12),
+              GridView.count(
+                crossAxisCount: 3,
+                shrinkWrap: true,
+                mainAxisSpacing: 8,
+                crossAxisSpacing: 8,
+                childAspectRatio: 1.15,
+                physics: const NeverScrollableScrollPhysics(),
+                children: [
+                  tile(
+                    ctx,
+                    key: 'live-add-item',
+                    icon: Icons.inventory_2_outlined,
+                    label: t('Dodaj iz mojih predmeta'),
+                    onTap: () => _addItem(show),
+                  ),
+                  tile(
+                    ctx,
+                    key: 'live-quick-add-tile',
+                    icon: Icons.bolt,
+                    label: t('Brzo dodaj'),
+                    onTap: () => _quickAdd(show),
+                  ),
+                  tile(
+                    ctx,
+                    key: 'live-share-tile',
+                    icon: Icons.ios_share,
+                    label: t('Podijeli'),
+                    onTap: () => shareLink(
+                      context,
+                      publicLink(live: show.id),
+                      text: t('Gledaj "{0}" uživo na Subhastu', [show.title]),
+                    ),
+                  ),
+                  tile(
+                    ctx,
+                    key: 'live-end',
+                    icon: Icons.stop_circle_outlined,
+                    label: t('Završi live'),
+                    color: kLiveRed,
+                    onTap: () => _end(false),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   Future<void> _startLot([int? index]) async {
     try {
       await _app.liveStartLot(widget.showId, index: index);
@@ -2166,7 +2331,7 @@ class _LiveRoomViewState extends ConsumerState<_LiveRoomBody> {
                 backgroundColor: kLiveRed,
                 foregroundColor: Colors.white,
               ),
-              onPressed: _goLiveNow,
+              onPressed: _confirmGoLive,
               icon: const Icon(Icons.videocam),
               label: Text(t('Kreni uživo sada')),
             )
@@ -2699,32 +2864,11 @@ class _LiveRoomViewState extends ConsumerState<_LiveRoomBody> {
             ),
           ],
           const SizedBox(width: 4),
-          PopupMenuButton<String>(
+          IconButton(
             key: const ValueKey('live-host-menu'),
             tooltip: t('Više'),
+            onPressed: () => _showHostOptions(show),
             icon: const Icon(Icons.more_vert, color: Colors.white),
-            onSelected: (v) => switch (v) {
-              'add' => _addItem(show),
-              _ => _end(false),
-            },
-            itemBuilder: (_) => [
-              PopupMenuItem(
-                key: const ValueKey('live-add-item'),
-                value: 'add',
-                child: ListTile(
-                  leading: const Icon(Icons.inventory_2_outlined),
-                  title: Text(t('Dodaj iz mojih predmeta')),
-                ),
-              ),
-              PopupMenuItem(
-                key: const ValueKey('live-end'),
-                value: 'end',
-                child: ListTile(
-                  leading: Icon(Icons.stop_circle_outlined, color: kLiveRed),
-                  title: Text(t('Završi live')),
-                ),
-              ),
-            ],
           ),
         ],
       );
