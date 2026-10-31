@@ -2,6 +2,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:hive/hive.dart';
 import 'package:loop_app/models/delivery.dart';
 import 'package:loop_app/models/device.dart';
+import 'package:loop_app/models/live_show.dart';
 import 'package:loop_app/models/loop_transaction.dart';
 import 'package:loop_app/screens/seller_finance_screens.dart';
 import 'package:loop_app/models/report.dart';
@@ -272,4 +273,89 @@ void main() {
     expect(csv.split('\n').length, greaterThan(2));
     expect(csv, contains('Walkman'));
   });
+
+  test(
+    'giveaway: do 5 min, samo pratitelji, izvlačenje prije vremena',
+    () async {
+      final trade = TradeService(storage);
+      final live = LiveService(storage);
+      final cat = DeviceCategory.values.firstWhere(
+        (c) => c.section != ItemSection.digital,
+      );
+      final d = await trade.addDevice(
+        userId: seller,
+        name: 'Poklon',
+        model: 'Retro',
+        condition: DeviceCondition.good,
+        price: 20,
+        category: cat,
+      );
+      final show = await live.create(
+        hostId: seller,
+        title: 'Giveaway show',
+        startsAt: t0,
+        now: t0,
+      );
+      // Trajanje mora biti jedno od ponuđenih (najviše 5 min).
+      await expectLater(
+        live.addLot(
+          seller,
+          show.id,
+          d.id,
+          0,
+          mode: LotMode.giveaway,
+          seconds: 600,
+          now: t0,
+        ),
+        throwsA(isA<TradeException>()),
+      );
+      await live.addLot(
+        seller,
+        show.id,
+        d.id,
+        0,
+        mode: LotMode.giveaway,
+        seconds: 120,
+        followersOnly: true,
+        now: t0,
+      );
+      await live.startLot(seller, show.id, index: 0, now: t0);
+      var st = live.stateOf(
+        storage.liveShowById(show.id)!,
+        now: t0.add(const Duration(seconds: 60)),
+      );
+      expect(st.current?.end, t0.add(const Duration(seconds: 120)));
+      // Nepratitelj ne može sudjelovati; pratitelj može.
+      final fan = storage.userById(buyer)!;
+      await storage.putUser(fan.copyWith(paymentCard: 'Visa •••• 4242'));
+      await expectLater(
+        live.enterGiveaway(
+          buyer,
+          show.id,
+          now: t0.add(const Duration(seconds: 5)),
+        ),
+        throwsA(isA<TradeException>()),
+      );
+      await storage.putUser(
+        storage.userById(buyer)!.copyWith(following: [seller]),
+      );
+      await live.enterGiveaway(
+        buyer,
+        show.id,
+        now: t0.add(const Duration(seconds: 10)),
+      );
+      // Domaćin izvlači prije isteka vremena.
+      await live.endGiveawayEarly(
+        seller,
+        show.id,
+        now: t0.add(const Duration(seconds: 30)),
+      );
+      st = live.stateOf(
+        storage.liveShowById(show.id)!,
+        now: t0.add(const Duration(seconds: 31)),
+      );
+      expect(st.lots.first.status, LotStatus.sold);
+      expect(st.lots.first.leader?.userId, buyer);
+    },
+  );
 }

@@ -250,7 +250,7 @@ class LiveService {
         );
         continue;
       }
-      var end = start.add(Duration(seconds: show.lotSeconds));
+      var end = start.add(Duration(seconds: lot.seconds ?? show.lotSeconds));
       final valid = <LiveEvent>[];
       var maxes = const <String, double>{};
       var entrants = 0;
@@ -294,6 +294,11 @@ class LiveService {
             if (inWindow(e)) first.putIfAbsent(e.userId, () => e);
           }
           entrants = first.length;
+          // Domaćin može završiti nagradnu igru prije isteka vremena.
+          final stop = (byLot[(LiveEventType.stop, i)] ?? const <LiveEvent>[])
+              .where((e) => !e.at.isBefore(start) && !e.at.isAfter(end))
+              .firstOrNull;
+          if (stop != null) end = stop.at;
           if (first.isNotEmpty) {
             final ids = first.keys.toList()..sort();
             final pick = ids[stableHash('${show.id}:$i') % ids.length];
@@ -388,7 +393,8 @@ class LiveService {
         LiveEventType.remind ||
         LiveEventType.mod ||
         LiveEventType.watch ||
-        LiveEventType.follow => 0,
+        LiveEventType.follow ||
+        LiveEventType.stop => 0,
       };
     }
     return LiveState(
@@ -804,10 +810,17 @@ class LiveService {
     double price, {
     LotMode mode = LotMode.auction,
     double floorPrice = 1,
+    int? seconds,
+    bool followersOnly = false,
     DateTime? now,
   }) async {
     final at = now ?? DateTime.now();
     final show = _requireHost(hostId, showId);
+    if (seconds != null &&
+        (mode != LotMode.giveaway ||
+            !LiveLot.giveawaySeconds.contains(seconds))) {
+      throw TradeException(t('Nagradna igra traje najviše 5 minuta.'));
+    }
     if (show.endedAt != null || stateOf(show, now: at).isOver) {
       throw TradeException(t('Live je završio.'));
     }
@@ -834,6 +847,8 @@ class LiveService {
       startPrice: mode == LotMode.giveaway ? 0 : base.startPrice,
       mode: mode,
       floorPrice: roundCredits(floorPrice),
+      seconds: seconds,
+      followersOnly: mode == LotMode.giveaway && followersOnly,
     );
     final updated = show.copyWith(lots: [...show.lots, lot]);
     await _storage.putLiveShow(updated);
@@ -974,10 +989,34 @@ class LiveService {
   }) async {
     final at = now ?? DateTime.now();
     final (_, lot) = _viewerLot(userId, showId, LotMode.giveaway, at);
-    requireCheckout(_storage.userById(userId)!);
+    final user = _storage.userById(userId)!;
+    final show = _require(showId);
+    if (lot.lot.followersOnly && !user.following.contains(show.hostId)) {
+      throw TradeException(
+        t('Ova nagradna igra je samo za pratitelje — zaprati domaćina.'),
+      );
+    }
+    requireCheckout(user);
     if (hasEntered(userId, showId, lot.index)) return;
     await _storage.putLiveEvent(
       _event(LiveEventType.enter, userId, showId, at: at, lot: lot.index),
+    );
+  }
+
+  /// Domaćin završava nagradnu igru prije isteka vremena (izvlači se odmah).
+  Future<void> endGiveawayEarly(
+    String hostId,
+    String showId, {
+    DateTime? now,
+  }) async {
+    final at = now ?? DateTime.now();
+    final show = _requireHost(hostId, showId);
+    final cur = stateOf(show, now: at).current;
+    if (cur == null || cur.mode != LotMode.giveaway) {
+      throw TradeException(t('Nagradna igra nije u tijeku.'));
+    }
+    await _storage.putLiveEvent(
+      _event(LiveEventType.stop, hostId, showId, at: at, lot: cur.index),
     );
   }
 

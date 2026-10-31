@@ -6,22 +6,22 @@ Redizajn se drži samo ovih vrijednosti: nove boje, fontovi i oblici se ne
 uvode. Ako element nema pandana, izvodi se iz ovih tokena (npr. tamniji ili
 prozirniji ton postojeće boje).
 
-Zadana tema je **svijetla**; tamna je dostupna u postavkama. Live soba je
+Zadana tema je **tamna** (neutralne sive kao Whatnot, s terakota/narančastim akcentom); svijetla je dostupna u postavkama. Live soba je
 uvijek tamna (`buildLiveTheme`).
 
 ## Boje (`LoopColors`)
 
 | Uloga | Svijetla | Tamna | Gdje |
 |---|---|---|---|
-| `background` | `#FFF7EF` (krem) | `#17120F` | pozadina ekrana |
-| `surface` | `#FFFFFF` | `#221B17` | kartice, sheetovi, polja |
-| `surfaceHover` | `#FFEFE2` | `#2E2520` | rubovi polja, razdjelnici, odabrane površine |
+| `background` | `#FFF7EF` (krem) | `#121212` | pozadina ekrana |
+| `surface` | `#FFFFFF` | `#1E1E1E` | kartice, sheetovi, polja |
+| `surfaceHover` | `#FFEFE2` | `#2A2A2A` | rubovi polja, razdjelnici, odabrane površine |
 | `accent` | `#C2410C` (terakota) | `#FF9248` | glavne radnje: Licitiraj, Kupi, Objavi; odabrano |
 | `onAccent` | `#FFFFFF` | `#1B1410` | tekst/ikone na akcentu |
 | `live` | `#FF2D55` | isto | isključivo "UŽIVO" |
 | `buyNow` | `#15803D` | `#4CC38A` | Kupi odmah, dostavljeno, zaštita kupca |
-| `textPrimary` | `#2A1F17` | `#F5EDE6` | naslovi, tijelo |
-| `textSecondary` | `#76685D` | `#B3A69B` | opisi, neaktivno |
+| `textPrimary` | `#2A1F17` | `#FFFFFF` | naslovi, tijelo |
+| `textSecondary` | `#76685D` | `#A3A3A3` | opisi, neaktivno |
 | `error` | `#C92A3A` | `#FF7B7B` | |
 | `success` | `#1A7F4E` | `#4CC38A` | |
 | `info` | `#1E6FD9` | `#6CB4FF` | "Provjeren", informativne oznake |

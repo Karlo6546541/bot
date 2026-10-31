@@ -80,6 +80,12 @@ class _HostLotsPanelState extends ConsumerState<HostLotsPanel> {
                     ),
                   ),
                 ),
+                IconButton.filledTonal(
+                  key: const ValueKey('console-giveaway'),
+                  tooltip: t('Giveaway'),
+                  onPressed: () => showGiveawaySheet(context, ref, show),
+                  icon: const Icon(Icons.card_giftcard),
+                ),
                 IconButton.filled(
                   key: const ValueKey('console-add'),
                   tooltip: t('Dodaj predmet'),

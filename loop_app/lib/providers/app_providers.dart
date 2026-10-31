@@ -1389,6 +1389,8 @@ class AppController extends Notifier<AppState> {
     double price, {
     LotMode mode = LotMode.auction,
     double floorPrice = 1,
+    int? seconds,
+    bool followersOnly = false,
   }) async {
     await _live.addLot(
       _requireUserId(),
@@ -1397,6 +1399,8 @@ class AppController extends Notifier<AppState> {
       price,
       mode: mode,
       floorPrice: floorPrice,
+      seconds: seconds,
+      followersOnly: followersOnly,
     );
     _refresh();
   }
@@ -1406,6 +1410,12 @@ class AppController extends Notifier<AppState> {
     final won = await _live.take(_requireUserId(), showId);
     _refresh();
     return won;
+  }
+
+  /// Domaćin završava nagradnu igru prije vremena.
+  Future<void> liveEndGiveaway(String showId) async {
+    await _live.endGiveawayEarly(_requireUserId(), showId);
+    _refresh();
   }
 
   /// Nagradna igra: prijava.

@@ -1249,6 +1249,15 @@ void logoTests() {
     // Samo kategorije — bez liveova, aukcija i predmeta.
     expect(find.byKey(const ValueKey('home-live')), findsNothing);
     final camera = find.byKey(const ValueKey('category-camera'));
+    final list = find
+        .descendant(
+          of: find.byKey(const ValueKey('categories')),
+          matching: find.byType(Scrollable),
+        )
+        .first;
+    await tester.scrollUntilVisible(camera, 300, scrollable: list);
+    await Scrollable.ensureVisible(tester.element(camera), alignment: 0.3);
+    await tester.pumpAndSettle();
     expect(camera, findsOneWidget);
     await tester.tap(camera);
     await tester.pumpAndSettle();

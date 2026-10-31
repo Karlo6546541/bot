@@ -224,7 +224,19 @@ class LiveLot {
     this.startedAt,
     this.mode = LotMode.auction,
     this.floorPrice = 1,
+    this.seconds,
+    this.followersOnly = false,
   });
+
+  /// Trajanje samo za ovaj predmet (nagradna igra: do 5 minuta); inače
+  /// vrijedi [LiveShow.lotSeconds].
+  final int? seconds;
+
+  /// Nagradna igra: sudjeluju samo pratitelji domaćina.
+  final bool followersOnly;
+
+  /// Trajanja nagradne igre (kao Whatnot: najviše 5 minuta).
+  static const giveawaySeconds = [60, 120, 180, 300];
 
   final String deviceId;
   final String deviceName;
@@ -260,6 +272,8 @@ class LiveLot {
     startedAt: at,
     mode: mode,
     floorPrice: floorPrice,
+    seconds: seconds,
+    followersOnly: followersOnly,
   );
 
   Map<String, dynamic> toMap() => {
@@ -269,6 +283,8 @@ class LiveLot {
     if (startedAt != null) 'startedAt': startedAt!.toIso8601String(),
     if (mode != LotMode.auction) 'mode': mode.name,
     if (mode == LotMode.dutch) 'floorPrice': floorPrice,
+    if (seconds != null) 'seconds': seconds,
+    if (followersOnly) 'followersOnly': true,
   };
 
   factory LiveLot.fromMap(Map<dynamic, dynamic> m) => LiveLot(
@@ -283,6 +299,8 @@ class LiveLot {
       orElse: () => LotMode.auction,
     ),
     floorPrice: (m['floorPrice'] as num?)?.toDouble() ?? 1,
+    seconds: (m['seconds'] as num?)?.toInt(),
+    followersOnly: m['followersOnly'] == true,
   );
 }
 
@@ -306,6 +324,9 @@ enum LiveEventType {
 
   /// Gledatelj je zapratio domaćina iz sobe showa.
   follow,
+
+  /// Domaćin je prije vremena završio nagradnu igru ([LiveEvent.lot]).
+  stop,
 }
 
 /// Radnje moderacije: tekst događaja [LiveEventType.mod] je `radnja:korisnik`.

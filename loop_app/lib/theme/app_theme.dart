@@ -16,11 +16,11 @@ class LoopColors {
       _dark = brightness == Brightness.dark;
 
   static Color get background =>
-      _dark ? const Color(0xFF17120F) : const Color(0xFFFFF7EF);
+      _dark ? const Color(0xFF121212) : const Color(0xFFFFF7EF);
   static Color get surface =>
-      _dark ? const Color(0xFF221B17) : const Color(0xFFFFFFFF);
+      _dark ? const Color(0xFF1E1E1E) : const Color(0xFFFFFFFF);
   static Color get surfaceHover =>
-      _dark ? const Color(0xFF2E2520) : const Color(0xFFFFEFE2);
+      _dark ? const Color(0xFF2A2A2A) : const Color(0xFFFFEFE2);
 
   // Pravila boja (nikad se ne miješaju):
   //  * narančasta [accent] — glavne radnje: Licitiraj, Kupi, Objavi;
@@ -44,9 +44,9 @@ class LoopColors {
       _dark ? const Color(0xFF1B1410) : const Color(0xFFFFFFFF);
 
   static Color get textPrimary =>
-      _dark ? const Color(0xFFF5EDE6) : const Color(0xFF2A1F17);
+      _dark ? const Color(0xFFFFFFFF) : const Color(0xFF2A1F17);
   static Color get textSecondary =>
-      _dark ? const Color(0xFFB3A69B) : const Color(0xFF76685D);
+      _dark ? const Color(0xFFA3A3A3) : const Color(0xFF76685D);
   static Color get error =>
       _dark ? const Color(0xFFFF7B7B) : const Color(0xFFC92A3A);
   static Color get success =>

@@ -2817,4 +2817,27 @@ const kEn = <String, String>{
   'Vlastiti tjedni cilj (ponedjeljak – nedjelja), bez bonusa platforme.':
       'Your own weekly goal (Monday – Sunday), no platform bonus.',
   'Tjedni cilj': 'Weekly goal',
+  'Nagradna igra traje najviše 5 minuta.':
+      'A giveaway lasts at most 5 minutes.',
+  'Ova nagradna igra je samo za pratitelje — zaprati domaćina.':
+      'This giveaway is for followers only — follow the host.',
+  'Nagradna igra nije u tijeku.': 'No giveaway is running.',
+  'Izvuci sada': 'Draw now',
+  '🎁 Giveaway · samo pratitelji · {0} prijava':
+      '🎁 Giveaway · followers only · {0} entries',
+  'Giveaway': 'Giveaway',
+  'Gledatelji se prijave, a dobitnik se izvlači na kraju. Pošiljku plaćaš ti.':
+      'Viewers enter and the winner is drawn at the end. You pay for shipping.',
+  'Samo pratitelji': 'Followers only',
+  'Nemaš predmeta koje možeš pokloniti.': 'You have no items to give away.',
+  'Pokreni giveaway': 'Start giveaway',
+  'Giveaway je počeo!': 'The giveaway has started!',
+  'Giveaway je dodan na red.': 'Giveaway added to the queue.',
+  '{0} gledatelja': '{0} viewers',
+  'Trending danas': 'Trending today',
+  'Prikaži sve': 'Show all',
+  'A–Z': 'A–Z',
+  'Najgledanije': 'Most watched',
+  'Najviše predmeta': 'Most items',
+  'Što je trenutno popularno na Subhastu.': 'Trending on Subhasto right now.',
 };

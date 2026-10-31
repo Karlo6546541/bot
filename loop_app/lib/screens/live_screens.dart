@@ -305,6 +305,177 @@ class _ViewersSheet extends ConsumerWidget {
   }
 }
 
+/// Giveaway (nagradna igra): predmet, trajanje do 5 minuta i "samo
+/// pratitelji". Pokreće se odmah ako ništa drugo ne teče, inače ide na red.
+Future<void> showGiveawaySheet(
+  BuildContext context,
+  WidgetRef ref,
+  LiveShow show,
+) async {
+  await showModalBottomSheet<void>(
+    context: context,
+    showDragHandle: true,
+    isScrollControlled: true,
+    backgroundColor: kLiveSheet,
+    constraints: const BoxConstraints(maxWidth: 520),
+    builder: (_) => _GiveawaySheet(showId: show.id),
+  );
+}
+
+class _GiveawaySheet extends ConsumerStatefulWidget {
+  const _GiveawaySheet({required this.showId});
+  final String showId;
+
+  @override
+  ConsumerState<_GiveawaySheet> createState() => _GiveawaySheetState();
+}
+
+class _GiveawaySheetState extends ConsumerState<_GiveawaySheet> {
+  String? _deviceId;
+  int _seconds = 120;
+  bool _followersOnly = false;
+  bool _busy = false;
+
+  Future<void> _start() async {
+    final id = _deviceId;
+    if (id == null) return;
+    setState(() => _busy = true);
+    final app = ref.read(appProvider.notifier);
+    try {
+      await app.liveAddLot(
+        widget.showId,
+        id,
+        0,
+        mode: LotMode.giveaway,
+        seconds: _seconds,
+        followersOnly: _followersOnly,
+      );
+      final s = ref.read(appProvider);
+      final show = s.liveShowById(widget.showId)!;
+      final st = s.liveStateOf(show, DateTime.now());
+      if (st.canStart) {
+        await app.liveStartLot(widget.showId, index: show.lots.length - 1);
+        showLoopSnackBar(t('Giveaway je počeo!'));
+      } else {
+        showLoopSnackBar(t('Giveaway je dodan na red.'));
+      }
+      if (mounted) Navigator.pop(context);
+    } on TradeException catch (e) {
+      showLoopSnackBar(e.message, error: true);
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final s = ref.watch(appProvider);
+    final show = s.liveShowById(widget.showId);
+    final inShow = {...?show?.lots.map((l) => l.deviceId)};
+    final eligible = s.myDevices
+        .where(
+          (d) => s.activeAuctionFor(d.id) == null && !inShow.contains(d.id),
+        )
+        .toList();
+    return SafeArea(
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              t('Giveaway'),
+              style: const TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.w900,
+                fontSize: 20,
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              t(
+                'Gledatelji se prijave, a dobitnik se izvlači na kraju. Pošiljku plaćaš ti.',
+              ),
+              style: const TextStyle(color: Colors.white60, fontSize: 12),
+            ),
+            const SizedBox(height: 12),
+            Wrap(
+              spacing: 8,
+              children: [
+                for (final sec in LiveLot.giveawaySeconds)
+                  ChoiceChip(
+                    key: ValueKey('giveaway-secs-$sec'),
+                    label: Text(t('{0} min', ['${sec ~/ 60}'])),
+                    selected: _seconds == sec,
+                    onSelected: (_) => setState(() => _seconds = sec),
+                  ),
+              ],
+            ),
+            SwitchListTile(
+              key: const ValueKey('giveaway-followers'),
+              contentPadding: EdgeInsets.zero,
+              title: Text(
+                t('Samo pratitelji'),
+                style: const TextStyle(color: Colors.white),
+              ),
+              value: _followersOnly,
+              onChanged: (v) => setState(() => _followersOnly = v),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              t('Predmet'),
+              style: const TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+            if (eligible.isEmpty)
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                child: Text(
+                  t('Nemaš predmeta koje možeš pokloniti.'),
+                  style: const TextStyle(color: Colors.white60),
+                ),
+              )
+            else
+              RadioGroup<String>(
+                groupValue: _deviceId,
+                onChanged: (v) => setState(() => _deviceId = v),
+                child: Column(
+                  children: [
+                    for (final d in eligible.take(30))
+                      RadioListTile<String>(
+                        key: ValueKey('giveaway-item-${d.id}'),
+                        contentPadding: EdgeInsets.zero,
+                        title: Text(
+                          d.name,
+                          style: const TextStyle(color: Colors.white),
+                        ),
+                        value: d.id,
+                      ),
+                  ],
+                ),
+              ),
+            const SizedBox(height: 8),
+            FilledButton.icon(
+              key: const ValueKey('giveaway-start'),
+              style: FilledButton.styleFrom(
+                backgroundColor: kLiveRed,
+                foregroundColor: Colors.white,
+                minimumSize: const Size.fromHeight(52),
+              ),
+              onPressed: _busy || _deviceId == null ? null : _start,
+              icon: const Icon(Icons.card_giftcard),
+              label: Text(t('Pokreni giveaway')),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 /// Zadnji brzo dodani predmet ("Ponovi zadnji") za sheet "Dodaj u show".
 (String, double)? _lastQuickAdd;
 
@@ -3155,7 +3326,7 @@ class _LiveRoomViewState extends ConsumerState<_LiveRoomBody> {
                         lot: cur,
                         device: s.deviceById(cur.lot.deviceId),
                         total: show.lots.length,
-                        lotSeconds: show.lotSeconds,
+                        lotSeconds: cur.lot.seconds ?? show.lotSeconds,
                         now: now,
                         me: me?.id,
                         leaderUser: s.userById(cur.leader?.userId),
@@ -3166,7 +3337,7 @@ class _LiveRoomViewState extends ConsumerState<_LiveRoomBody> {
                         lot: done,
                         device: s.deviceById(done.lot.deviceId),
                         total: show.lots.length,
-                        lotSeconds: show.lotSeconds,
+                        lotSeconds: done.lot.seconds ?? show.lotSeconds,
                         now: now,
                         me: me?.id,
                         leaderUser: s.userById(done.leader?.userId),
@@ -3255,6 +3426,21 @@ class _LiveRoomViewState extends ConsumerState<_LiveRoomBody> {
                     ),
                   ),
           ),
+          if (cur != null && cur.mode == LotMode.giveaway) ...[
+            const SizedBox(width: 8),
+            OutlinedButton(
+              key: const ValueKey('live-giveaway-end'),
+              style: outlined,
+              onPressed: () async {
+                try {
+                  await _app.liveEndGiveaway(show.id);
+                } on TradeException catch (e) {
+                  showLoopSnackBar(e.message, error: true);
+                }
+              },
+              child: Text(t('Izvuci sada')),
+            ),
+          ],
           if (cur != null || next != null) ...[
             const SizedBox(width: 8),
             // Brzo dodavanje: jedna kompaktna ikona (bez dugog natpisa).
@@ -4378,9 +4564,12 @@ class _LotCard extends StatelessWidget {
         LotMode.dutch => t('⬇️ Pada cijena · do {0}', [
           formatCredits(lot.lot.floorPrice),
         ]),
-        LotMode.giveaway => t('🎁 Nagradna igra · {0} prijava', [
-          '${lot.entrants}',
-        ]),
+        LotMode.giveaway =>
+          lot.lot.followersOnly
+              ? t('🎁 Giveaway · samo pratitelji · {0} prijava', [
+                  '${lot.entrants}',
+                ])
+              : t('🎁 Nagradna igra · {0} prijava', ['${lot.entrants}']),
         LotMode.auction =>
           leader == null
               ? t('Predmet {0}/{1} · još nema ponuda', [
