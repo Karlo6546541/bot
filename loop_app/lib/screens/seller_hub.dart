@@ -10,7 +10,8 @@ import '../providers/app_state.dart';
 import '../theme/app_theme.dart';
 import '../widgets/formatters.dart';
 import 'add_device_screen.dart';
-import 'auctions_screen.dart' show BrowseCardMedia;
+import 'auctions_screen.dart' show BrowseCardMedia, MyAuctionsScreen;
+import 'create_auction_screen.dart';
 import 'live_screens.dart';
 import 'my_shows_screen.dart';
 import 'seller_finance_screens.dart';
@@ -357,10 +358,68 @@ class _SellerGoalsCardState extends ConsumerState<SellerGoalsCard> {
   }
 }
 
+/// Prodajni centar okuplja postojeće alate za liveove, aukcije i otpremu.
+class SellerHubScreen extends StatelessWidget {
+  const SellerHubScreen({super.key});
+
+  static Future<void> open(BuildContext context) => Navigator.of(context).push(
+    MaterialPageRoute<void>(builder: (_) => const SellerHubScreen()),
+  );
+
+  @override
+  Widget build(BuildContext context) => Scaffold(
+    appBar: AppBar(title: Text(t('Seller Hub'))),
+    body: Align(
+      alignment: Alignment.topCenter,
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 680),
+        child: ListView(
+          padding: const EdgeInsets.only(bottom: 32),
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
+              child: Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  FilledButton.icon(
+                    key: const ValueKey('seller-hub-live'),
+                    onPressed: () => CreateLiveShowScreen.open(context),
+                    icon: const Icon(Icons.videocam_outlined),
+                    label: Text(t('Pokreni ili zakaži live')),
+                  ),
+                  OutlinedButton.icon(
+                    key: const ValueKey('seller-hub-auction'),
+                    onPressed: () => CreateAuctionScreen.open(context),
+                    icon: const Icon(Icons.gavel),
+                    label: Text(t('Nova aukcija')),
+                  ),
+                  OutlinedButton.icon(
+                    key: const ValueKey('seller-hub-sales'),
+                    onPressed: () => MyAuctionsScreen.open(context),
+                    icon: const Icon(Icons.inventory_2_outlined),
+                    label: Text(t('Moja prodaja')),
+                  ),
+                ],
+              ),
+            ),
+            SellerHubPanel(
+              initiallyExpanded: true,
+              onShipping: () => MyAuctionsScreen.open(context),
+            ),
+          ],
+        ),
+      ),
+    ),
+  );
+}
+
 /// "Prodavač": pregled na jednom mjestu — brze radnje, otprema, zdravlje
 /// računa i nadolazeći showovi.
 class SellerHubPanel extends ConsumerStatefulWidget {
-  const SellerHubPanel({super.key, this.onShipping});
+  const SellerHubPanel({super.key, this.onShipping, this.initiallyExpanded = false});
+
+  final bool initiallyExpanded;
 
   /// Otvara popis pošiljki za slanje.
   final VoidCallback? onShipping;
@@ -371,7 +430,7 @@ class SellerHubPanel extends ConsumerStatefulWidget {
 
 class _SellerHubPanelState extends ConsumerState<SellerHubPanel> {
   /// Sažeto: radnje i jedan redak stanja; razvijeno: sve kartice.
-  bool _open = false;
+  late bool _open = widget.initiallyExpanded;
 
   VoidCallback? get onShipping => widget.onShipping;
 
