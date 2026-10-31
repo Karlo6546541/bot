@@ -363,7 +363,7 @@ class _AccountPostTile extends ConsumerWidget {
     return Material(
       key: ValueKey('account-post-${d.id}'),
       color: LoopColors.surface,
-      elevation: 1.5,
+      elevation: 0,
       shadowColor: Colors.black26,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(14),

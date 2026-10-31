@@ -670,7 +670,7 @@ class ProfileHeader extends ConsumerWidget {
         shape: CircleBorder(
           side: BorderSide(color: LoopColors.surface, width: 2.5),
         ),
-        elevation: 2,
+        elevation: 0,
         child: InkWell(
           key: const ValueKey('edit-avatar'),
           customBorder: const CircleBorder(),

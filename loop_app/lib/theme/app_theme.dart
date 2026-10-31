@@ -75,19 +75,12 @@ class LoopColors {
   static Color get rose =>
       _dark ? const Color(0xFF3A2228) : const Color(0xFFFFD9E0);
 
-  /// Meka sjena kartica (u tamnoj temi gotovo nevidljiva).
-  static List<BoxShadow> get softShadow => [
-    BoxShadow(
-      color: _dark
-          ? Colors.black.withValues(alpha: 0.25)
-          : const Color(0xFF8A5A3C).withValues(alpha: 0.10),
-      blurRadius: 18,
-      offset: const Offset(0, 6),
-    ),
-  ];
+  /// Whatnot nema vidljivih sjena: slojevi se odvajaju bojom podloge.
+  /// Ostaje kao prazan popis da postojeći zapisi (`...softShadow`) rade.
+  static List<BoxShadow> get softShadow => const [];
 }
 
-const double kRadius = 18;
+const double kRadius = 14;
 const String kFontFamily = 'Nunito';
 
 /// Live je uvijek taman (kao TikTok/Whatnot), neovisno o temi aplikacije:
@@ -151,8 +144,7 @@ ThemeData buildLoopTheme({Color? accent}) {
     ),
     cardTheme: CardThemeData(
       color: LoopColors.surface,
-      elevation: dark ? 0 : 1.5,
-      shadowColor: const Color(0xFF8A5A3C).withValues(alpha: 0.25),
+      elevation: 0,
       surfaceTintColor: Colors.transparent,
       margin: EdgeInsets.zero,
       shape: rounded,
@@ -160,13 +152,30 @@ ThemeData buildLoopTheme({Color? accent}) {
     dialogTheme: DialogThemeData(
       backgroundColor: LoopColors.surface,
       surfaceTintColor: Colors.transparent,
-      shape: rounded,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+    ),
+    bottomSheetTheme: BottomSheetThemeData(
+      backgroundColor: LoopColors.surface,
+      surfaceTintColor: Colors.transparent,
+      showDragHandle: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+    ),
+    switchTheme: SwitchThemeData(
+      thumbColor: WidgetStateProperty.all(Colors.white),
+      trackColor: WidgetStateProperty.resolveWith(
+        (st) => st.contains(WidgetState.selected)
+            ? LoopColors.buyNow
+            : LoopColors.surfaceHover,
+      ),
+      trackOutlineColor: WidgetStateProperty.all(Colors.transparent),
     ),
     filledButtonTheme: FilledButtonThemeData(
       style: FilledButton.styleFrom(
         backgroundColor: primary,
         foregroundColor: onPrimary,
-        minimumSize: const Size(64, 52),
+        minimumSize: const Size(64, 48),
         textStyle: const TextStyle(
           fontFamily: kFontFamily,
           fontWeight: FontWeight.w800,
@@ -178,13 +187,14 @@ ThemeData buildLoopTheme({Color? accent}) {
     outlinedButtonTheme: OutlinedButtonThemeData(
       style: OutlinedButton.styleFrom(
         foregroundColor: LoopColors.textPrimary,
-        minimumSize: const Size(64, 52),
+        backgroundColor: LoopColors.surfaceHover,
+        minimumSize: const Size(64, 48),
         textStyle: const TextStyle(
           fontFamily: kFontFamily,
           fontWeight: FontWeight.w700,
           fontSize: 15,
         ),
-        side: BorderSide(color: LoopColors.surfaceHover, width: 2),
+        side: BorderSide.none,
         shape: const StadiumBorder(),
       ),
     ),
@@ -198,14 +208,20 @@ ThemeData buildLoopTheme({Color? accent}) {
       ),
     ),
     chipTheme: ChipThemeData(
-      backgroundColor: LoopColors.surface,
-      selectedColor: primary.withValues(alpha: 0.16),
-      side: BorderSide(color: LoopColors.surfaceHover),
-      shape: const StadiumBorder(),
+      backgroundColor: LoopColors.surfaceHover,
+      selectedColor: LoopColors.textPrimary,
+      side: BorderSide.none,
+      showCheckmark: false,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
       labelStyle: TextStyle(
         fontFamily: kFontFamily,
-        fontWeight: FontWeight.w600,
-        color: LoopColors.textPrimary,
+        fontWeight: FontWeight.w700,
+        // Odabrani čip je obrnut (bijeli s crnim tekstom u tamnoj temi).
+        color: WidgetStateColor.resolveWith(
+          (st) => st.contains(WidgetState.selected)
+              ? LoopColors.background
+              : LoopColors.textPrimary,
+        ),
       ),
     ),
     floatingActionButtonTheme: FloatingActionButtonThemeData(
@@ -252,7 +268,7 @@ ThemeData buildLoopTheme({Color? accent}) {
     navigationBarTheme: NavigationBarThemeData(
       backgroundColor: LoopColors.surface,
       surfaceTintColor: Colors.transparent,
-      indicatorColor: primary.withValues(alpha: 0.16),
+      indicatorColor: Colors.transparent,
       labelTextStyle: WidgetStateProperty.resolveWith(
         (s) => TextStyle(
           fontFamily: kFontFamily,
@@ -268,7 +284,7 @@ ThemeData buildLoopTheme({Color? accent}) {
       iconTheme: WidgetStateProperty.resolveWith(
         (s) => IconThemeData(
           color: s.contains(WidgetState.selected)
-              ? primary
+              ? LoopColors.textPrimary
               : LoopColors.textSecondary,
         ),
       ),

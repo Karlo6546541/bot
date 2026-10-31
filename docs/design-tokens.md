@@ -47,14 +47,14 @@ Mobilna donja traka: pozadina `#26272C`, aktivno `#E9E9ED`, neaktivno `#92939D`.
 
 ## Oblici, razmaci, sjene
 
-- Radijus: `kRadius = 18` (kartice, dijalozi, polja, snackbar); pilule
+- Radijus: `kRadius = 14` (kartice, polja, snackbar; dijalozi i sheetovi 16); pilule
   (`StadiumBorder`) za gumbe, čipove, FAB; 8 za male oznake i donju ikonu `+`.
-- Gumbi: minimalno 64 × 52, `StadiumBorder`. Outlined: rub `surfaceHover` 2 px.
+- Gumbi: minimalno 64 × 48, `StadiumBorder`. Sekundarni (outlined) = siva pilula `surfaceHover` bez ruba.
 - Polja: ispuna `surface`, rub `surfaceHover` 1,5 px, fokus `accent` 2 px,
   padding 18 × 16.
-- Čip: pilula, rub `surfaceHover`, odabran = `accent` 16 % prozirnosti.
+- Čip: zaobljeni pravokutnik 10, siva podloga `surfaceHover` bez ruba; odabran = obrnut (tekst boje pozadine na `textPrimary`).
 - Navigacija: indikator `accent` 16 %; aktivna ikona `accent`.
-- Sjena kartice (`softShadow`): svijetla `#8A5A3C` 10 %, blur 18, y 6;
+- Sjene: nema vidljivih sjena (`softShadow` je prazan); slojevi se odvajaju bojom podloge.
   tamna crna 25 %. `Card`: elevation 1,5 (svijetla) / 0 (tamna), margin 0.
 - Razmaci: 4 / 6 / 8 / 10 / 12 / 16 / 24 (višekratnici 2 i 4).
 - Mreža kartica: 4:5 slika (`BrowseGridDelegate`, max širina pločice 240,
