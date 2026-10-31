@@ -25,6 +25,7 @@ import '../widgets/item_image.dart';
 import '../widgets/user_avatar.dart';
 import 'auction_detail_screen.dart';
 import 'portfolio_screen.dart';
+import 'seller_hub.dart';
 import 'seller_screens.dart';
 import 'deliveries_screen.dart';
 import 'device_detail_screen.dart';
@@ -1392,6 +1393,12 @@ class _MyAuctionsViewState extends ConsumerState<MyAuctionsView> {
                 leading: f == 'saved'
                     ? const []
                     : [
+                        SliverToBoxAdapter(
+                          child: SellerHubPanel(
+                            onShipping: () =>
+                                setState(() => _tab = MyTab.notes),
+                          ),
+                        ),
                         earnings,
                         if (myActive.isNotEmpty) ...activeSlivers,
                         if (myEnded.isNotEmpty) ...endedSlivers(3),

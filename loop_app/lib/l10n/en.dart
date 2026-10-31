@@ -2710,4 +2710,17 @@ const kEn = <String, String>{
   'Gledatelji': 'Viewers',
   'Mod': 'Mod',
   'Utišani': 'Muted',
+  'Treba pažnju': 'Needs attention',
+  'Bok, {0}!': 'Hi, {0}!',
+  'Zakaži show': 'Schedule a show',
+  'Otprema': 'Shipping',
+  'Nema paketa za predaju': 'No parcels to hand over',
+  'Spremno za predaju': 'Ready for drop-off',
+  '{0} do sutra': '{0} due tomorrow',
+  'Zdravlje računa': 'Account health',
+  'Ocjena kupaca': 'Buyer rating',
+  'Uspješna isporuka': 'Delivery success',
+  'Nadolazeći showovi': 'Upcoming shows',
+  'Nemaš zakazanih showova. Zakaži prvi pa pratitelji dobiju podsjetnik.':
+      'You have no scheduled shows. Schedule your first and followers get a reminder.',
 };
