@@ -99,6 +99,10 @@ void main() {
     );
     await tester.pumpAndSettle();
     expect(find.text('Objave (0)'), findsNothing);
+    // Top (kao Whatnot) je prvi; objave su u svom tabu.
+    expect(find.byKey(const ValueKey('search-top')), findsOneWidget);
+    await tester.tap(find.textContaining('Objave ('));
+    await tester.pumpAndSettle();
     expect(find.byKey(const ValueKey('search-posts')), findsOneWidget);
     await tester.enterText(
       find.byKey(const ValueKey('global-search')),

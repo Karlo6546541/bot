@@ -231,7 +231,7 @@ class _CategoriesScreenState extends ConsumerState<CategoriesScreen> {
             ),
             delegate: SliverChildListDelegate([
               for (final c in list)
-                _CategoryTile(
+                CategoryStatTile(
                   stat: c,
                   onTap: () => CategoryItemsScreen.open(context, c.category),
                 ),
@@ -321,8 +321,8 @@ class _TrendingChip extends StatelessWidget {
 }
 
 /// Pločica kategorije: naziv gore, ilustracija, dolje gledatelji.
-class _CategoryTile extends StatelessWidget {
-  const _CategoryTile({required this.stat, required this.onTap});
+class CategoryStatTile extends StatelessWidget {
+  const CategoryStatTile({super.key, required this.stat, required this.onTap});
   final CategoryStat stat;
   final VoidCallback onTap;
 

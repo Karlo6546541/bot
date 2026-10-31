@@ -1,3 +1,4 @@
+import 'auctions_screen.dart';
 import 'categories_screen.dart';
 import '../widgets/category_style.dart';
 import '../models/device.dart';
@@ -155,9 +156,70 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
         );
       },
     );
+    // Kartice za odjeljak "Top" (kao Whatnot): iste kartice kao na početnoj.
+    final liveIds = {for (final e in shows) e.liveId};
+    final postIds = {
+      for (final e in posts)
+        if (!e.isLive) e.auctionId ?? e.deviceId,
+    };
+    final browse = browseItems(s);
+    final topLives = [
+      for (final i in browse)
+        if (i.show != null && liveIds.contains(i.show!.id)) i,
+    ];
+    final topPosts = [
+      for (final i in browse)
+        if (i.show == null && postIds.contains(i.auction?.id ?? i.device?.id))
+          i,
+    ];
+    final stats = {for (final c in categoryStats(s)) c.category: c};
+    Widget section(String title, VoidCallback onAll) => SliverToBoxAdapter(
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(16, 18, 4, 10),
+        child: Row(
+          children: [
+            Expanded(
+              child: Text(
+                title,
+                style: const TextStyle(
+                  fontSize: 22,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+            ),
+            Builder(
+              builder: (ctx) => TextButton(
+                onPressed: () {
+                  onAll();
+                },
+                child: Text('${t('Prikaži sve')} ›'),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+    Widget cards(String key, List<BrowseItem> list) => SliverPadding(
+      key: ValueKey(key),
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      sliver: SliverGrid(
+        gridDelegate: const BrowseGridDelegate(),
+        delegate: SliverChildBuilderDelegate(
+          (ctx, i) => AuctionBrowseCard(
+            item: list[i],
+            viewerId: s.currentUserId ?? '',
+            onTap: () {
+              ref.read(appProvider.notifier).addSearch(_q);
+              SwipeFeedScreen.open(ctx, [for (final x in list) x.entry], i);
+            },
+          ),
+          childCount: list.length,
+        ),
+      ),
+    );
     return DefaultTabController(
-      length: 4,
-      initialIndex: widget.accounts ? 2 : 0,
+      length: 5,
+      initialIndex: widget.accounts ? 3 : 0,
       child: Scaffold(
         appBar: AppBar(
           titleSpacing: 0,
@@ -204,6 +266,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
               fontSize: 15,
             ),
             tabs: [
+              Tab(key: const ValueKey('search-tab-top'), text: t('Top')),
               Tab(text: t('Objave ({0})', ['${posts.length}'])),
               Tab(text: t('Showovi ({0})', ['${shows.length}'])),
               Tab(text: t('Računi ({0})', ['${accounts.length}'])),
@@ -213,6 +276,70 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
         ),
         body: TabBarView(
           children: [
+            // Top: kategorije, live showovi i objave (kao Whatnot).
+            _q.trim().isEmpty
+                ? _History(onPick: _set)
+                : topLives.isEmpty && topPosts.isEmpty && categories.isEmpty
+                ? _EmptyOrLoading(
+                    child: EmptyState(
+                      icon: Icons.search_off,
+                      title: t('Nema rezultata za "{0}"', [_q.trim()]),
+                    ),
+                  )
+                : Builder(
+                    builder: (ctx) {
+                      final tabs = DefaultTabController.of(ctx);
+                      return CustomScrollView(
+                        key: const ValueKey('search-top'),
+                        slivers: [
+                          if (categories.isNotEmpty) ...[
+                            section(t('Kategorije'), () => tabs.animateTo(4)),
+                            SliverToBoxAdapter(
+                              child: SizedBox(
+                                height: 200,
+                                child: ListView.separated(
+                                  scrollDirection: Axis.horizontal,
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 16,
+                                  ),
+                                  itemCount: categories.length,
+                                  separatorBuilder: (_, _) =>
+                                      const SizedBox(width: 10),
+                                  itemBuilder: (_, i) => SizedBox(
+                                    width: 150,
+                                    child: CategoryStatTile(
+                                      stat:
+                                          stats[categories[i]] ??
+                                          CategoryStat(categories[i]),
+                                      onTap: () => CategoryItemsScreen.open(
+                                        context,
+                                        categories[i],
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
+                          if (topLives.isNotEmpty) ...[
+                            section(t('Live showovi'), () => tabs.animateTo(2)),
+                            cards(
+                              'search-top-lives',
+                              topLives.take(4).toList(),
+                            ),
+                          ],
+                          if (topPosts.isNotEmpty) ...[
+                            section(t('Objave'), () => tabs.animateTo(1)),
+                            cards(
+                              'search-top-posts',
+                              topPosts.take(6).toList(),
+                            ),
+                          ],
+                          const SliverToBoxAdapter(child: SizedBox(height: 32)),
+                        ],
+                      );
+                    },
+                  ),
             // Objave
             _q.trim().isEmpty
                 ? _History(onPick: _set)

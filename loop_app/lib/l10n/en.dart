@@ -2856,4 +2856,7 @@ const kEn = <String, String>{
   'U ovoj kategoriji trenutno nema showova ni predmeta.':
       'No shows or items in this category right now.',
   'Nema livea': 'No live',
+  'Top': 'Top',
+  'Nema rezultata za "{0}"': 'No results for "{0}"',
+  'Live showovi': 'Live shows',
 };
