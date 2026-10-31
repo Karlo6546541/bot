@@ -158,6 +158,205 @@ enum HealthLevel {
   };
 }
 
+/// Razine tjednog cilja prodavača (vlastiti cilj, bez bonusa platforme).
+enum SellerGoal {
+  rising('Rastem', 250, 120, 5),
+  power('Napredujem', 750, 240, 10),
+  top('Vrh', 2500, 480, 25);
+
+  const SellerGoal(this._label, this.sales, this.liveMinutes, this.buyers);
+  final String _label;
+  String get label => t(_label);
+
+  /// Prodaja u eurima, minute uživo i različiti kupci u tjednu.
+  final int sales;
+  final int liveMinutes;
+  final int buyers;
+}
+
+/// Napredak prema tjednom cilju (ponedjeljak – nedjelja).
+class WeeklyProgress {
+  const WeeklyProgress({
+    required this.sales,
+    required this.liveMinutes,
+    required this.buyers,
+  });
+  final double sales;
+  final int liveMinutes;
+  final int buyers;
+
+  static WeeklyProgress of(AppState s, String userId, DateTime now) {
+    final start = weekStart(now);
+    final end = start.add(const Duration(days: 7));
+    final sales = [
+      for (final tx in s.salesOf(userId))
+        if (!tx.createdAt.isBefore(start) && tx.createdAt.isBefore(end)) tx,
+    ];
+    var minutes = 0;
+    for (final show in s.liveShows) {
+      if (show.hostId != userId || show.hostSeenAt == null) continue;
+      final from = show.hostSeenAt!.isBefore(show.startsAt)
+          ? show.hostSeenAt!
+          : show.startsAt;
+      if (from.isBefore(start) || !from.isBefore(end)) continue;
+      final st = s.liveStateOf(show, now);
+      final to = [
+        show.endedAt ?? show.hostSeenAt!,
+        for (final l in st.lots) ?l.end,
+      ].reduce((a, b) => a.isAfter(b) ? a : b);
+      final capped = to.isAfter(now) ? now : to;
+      if (capped.isAfter(from)) minutes += capped.difference(from).inMinutes;
+    }
+    return WeeklyProgress(
+      sales: sales.fold<double>(0, (a, tx) => a + tx.price),
+      liveMinutes: minutes,
+      buyers: {for (final tx in sales) tx.buyerId}.length,
+    );
+  }
+}
+
+/// Tjedni ciljevi: izabereš razinu i pratiš napredak (prodaja, minute uživo,
+/// različiti kupci). Vlastiti cilj — platforma ne isplaćuje bonuse.
+class SellerGoalsCard extends ConsumerStatefulWidget {
+  const SellerGoalsCard({super.key});
+
+  @override
+  ConsumerState<SellerGoalsCard> createState() => _SellerGoalsCardState();
+}
+
+class _SellerGoalsCardState extends ConsumerState<SellerGoalsCard> {
+  late int _level = ref.read(storageProvider).sellerGoal;
+
+  @override
+  Widget build(BuildContext context) {
+    final s = ref.watch(appProvider);
+    final me = s.currentUserId;
+    if (me == null) return const SizedBox.shrink();
+    final goal = _level == 0 ? null : SellerGoal.values[_level - 1];
+    final p = WeeklyProgress.of(s, me, DateTime.now());
+
+    Widget bar(
+      String key,
+      String label,
+      double value,
+      double target,
+      String text,
+    ) {
+      final f = target <= 0 ? 0.0 : (value / target).clamp(0.0, 1.0);
+      return Padding(
+        padding: const EdgeInsets.only(top: 10),
+        child: Column(
+          key: ValueKey(key),
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    label,
+                    style: const TextStyle(fontWeight: FontWeight.w700),
+                  ),
+                ),
+                Text(
+                  text,
+                  style: TextStyle(
+                    color: f >= 1
+                        ? LoopColors.buyNow
+                        : LoopColors.textSecondary,
+                    fontWeight: FontWeight.w800,
+                    fontSize: 12,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 4),
+            ClipRRect(
+              borderRadius: BorderRadius.circular(99),
+              child: LinearProgressIndicator(
+                value: f,
+                minHeight: 8,
+                color: f >= 1 ? LoopColors.buyNow : LoopColors.accent,
+                backgroundColor: LoopColors.surfaceHover,
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    return Container(
+      key: const ValueKey('hub-goals'),
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: LoopColors.surface,
+        borderRadius: BorderRadius.circular(kRadius),
+        border: Border.all(color: LoopColors.surfaceHover),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Wrap(
+            spacing: 6,
+            children: [
+              for (final (i, g) in SellerGoal.values.indexed)
+                ChoiceChip(
+                  key: ValueKey('hub-goal-${g.name}'),
+                  label: Text(g.label),
+                  selected: _level == i + 1,
+                  onSelected: (on) async {
+                    final next = on ? i + 1 : 0;
+                    await ref.read(storageProvider).setSellerGoal(next);
+                    if (mounted) setState(() => _level = next);
+                  },
+                ),
+            ],
+          ),
+          if (goal == null)
+            Padding(
+              padding: const EdgeInsets.only(top: 10),
+              child: Text(
+                t('Odaberi cilj za ovaj tjedan pa prati napredak.'),
+                style: TextStyle(color: LoopColors.textSecondary),
+              ),
+            )
+          else ...[
+            bar(
+              'goal-sales',
+              t('Prodaja'),
+              p.sales,
+              goal.sales.toDouble(),
+              '${formatCredits(p.sales)} / ${formatCredits(goal.sales.toDouble())}',
+            ),
+            bar(
+              'goal-live',
+              t('Minute uživo'),
+              p.liveMinutes.toDouble(),
+              goal.liveMinutes.toDouble(),
+              '${p.liveMinutes} / ${goal.liveMinutes} min',
+            ),
+            bar(
+              'goal-buyers',
+              t('Različiti kupci'),
+              p.buyers.toDouble(),
+              goal.buyers.toDouble(),
+              '${p.buyers} / ${goal.buyers}',
+            ),
+          ],
+          Padding(
+            padding: const EdgeInsets.only(top: 8),
+            child: Text(
+              t(
+                'Vlastiti tjedni cilj (ponedjeljak – nedjelja), bez bonusa platforme.',
+              ),
+              style: TextStyle(color: LoopColors.textSecondary, fontSize: 11),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 /// "Prodavač": pregled na jednom mjestu — brze radnje, otprema, zdravlje
 /// računa i nadolazeći showovi.
 class SellerHubPanel extends ConsumerStatefulWidget {
@@ -414,6 +613,8 @@ class _SellerHubPanelState extends ConsumerState<SellerHubPanel> {
                 ),
               ),
             ),
+            title(t('Tjedni cilj')),
+            const SellerGoalsCard(),
             title(t('Financije')),
             Material(
               color: LoopColors.surface,

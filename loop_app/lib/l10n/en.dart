@@ -2789,8 +2789,8 @@ const kEn = <String, String>{
   'Publika': 'Audience',
   'Novi kupci': 'New buyers',
   'Ponovni kupci': 'Returning buyers',
-  'Gledatelji i ponude se računaju iz zapisa u sobi, koji se čuvaju 2 dana nakon showa.':
-      'Viewers and bids are counted from room records, which are kept for 2 days after the show.',
+  'Publika se računa iz zapisa u sobi; nakon 2 dana ostaje spremljeni sažetak.':
+      'Audience is counted from room records; after 2 days a saved summary remains.',
   'Najbolji kupci': 'Top buyers',
   'Još nema kupaca.': 'No buyers yet.',
   'Analitika': 'Analytics',
@@ -2799,4 +2799,22 @@ const kEn = <String, String>{
   'Još nema paketa predanih dostavljaču.':
       'No parcels handed to the carrier yet.',
   '📦 Predano dostavljaču ({0})': '📦 Handed to the carrier ({0})',
+  'Prosj. gledanje': 'Avg. watch time',
+  'Novi pratitelji': 'New followers',
+  '{0} min {1} s': '{0} min {1} s',
+  'Nema predmeta u ovom prikazu.': 'No items in this view.',
+  'Licitira se': 'Bidding',
+  'Neprodano': 'Unsold',
+  'Na redu': 'Up next',
+  'Gledatelji sada': 'Viewers now',
+  'Rastem': 'Growing',
+  'Napredujem': 'Advancing',
+  'Vrh': 'Top',
+  'Minute uživo': 'Live minutes',
+  'Različiti kupci': 'Different buyers',
+  'Odaberi cilj za ovaj tjedan pa prati napredak.':
+      'Pick a goal for this week and track your progress.',
+  'Vlastiti tjedni cilj (ponedjeljak – nedjelja), bez bonusa platforme.':
+      'Your own weekly goal (Monday – Sunday), no platform bonus.',
+  'Tjedni cilj': 'Weekly goal',
 };

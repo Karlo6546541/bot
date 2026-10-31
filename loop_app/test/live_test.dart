@@ -1208,6 +1208,18 @@ void main() {
       expect(find.byKey(const ValueKey('live-lot')), findsOneWidget);
       expect(find.byKey(const ValueKey('live-bid')), findsNothing);
       expect(storage.liveShowById(show.id)!.lots.first.startedAt, isNotNull);
+      // Veliki ekran: pult u tri stupca (predmeti, video, statistika).
+      if (tester.view.physicalSize.width >= 1100) {
+        expect(find.byKey(const ValueKey('host-console')), findsOneWidget);
+        expect(find.byKey(const ValueKey('console-sales')), findsOneWidget);
+        expect(find.byKey(const ValueKey('console-add')), findsOneWidget);
+        await tester.tap(find.byKey(const ValueKey('console-filter-auction')));
+        await tester.pumpAndSettle();
+        await tester.tap(find.byKey(const ValueKey('console-filter-all')));
+        await tester.pumpAndSettle();
+      } else {
+        expect(find.byKey(const ValueKey('host-console')), findsNothing);
+      }
       // Filteri chata (samo voditelj).
       expect(find.byKey(const ValueKey('chat-filter-all')), findsOneWidget);
       await tester.tap(find.byKey(const ValueKey('chat-filter-questions')));

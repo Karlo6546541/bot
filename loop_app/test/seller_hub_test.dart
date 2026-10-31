@@ -47,6 +47,13 @@ void main() {
     expect(find.byKey(const ValueKey('hub-health')), findsOneWidget);
     expect(find.byKey(const ValueKey('hub-shipping-count')), findsOneWidget);
     expect(find.text('Moj sljedeći show'), findsOneWidget);
+    // Tjedni cilj: odabir razine otkriva napredak.
+    await tester.ensureVisible(find.byKey(const ValueKey('hub-goal-rising')));
+    await tester.tap(find.byKey(const ValueKey('hub-goal-rising')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('goal-sales')), findsOneWidget);
+    expect(find.byKey(const ValueKey('goal-live')), findsOneWidget);
+    expect(find.byKey(const ValueKey('goal-buyers')), findsOneWidget);
     // Financije: knjiga, isplate, izvještaji.
     await tester.ensureVisible(find.byKey(const ValueKey('hub-financials')));
     await tester.tap(find.byKey(const ValueKey('hub-financials')));

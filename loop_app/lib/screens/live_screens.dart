@@ -1,3 +1,4 @@
+import 'host_console.dart';
 import '../config/backend_config.dart';
 import 'cloud_commerce_screen.dart';
 import 'package:uuid/uuid.dart';
@@ -131,8 +132,11 @@ class _LiveBadgeState extends ConsumerState<LiveBadge>
 /// Popis gledatelja (Gledaju / Aktivnost). Domaćin i moderatori mogu
 /// utišati ili ukloniti gledatelja; samo domaćin postavlja moderatore.
 class _ViewersSheet extends ConsumerWidget {
-  const _ViewersSheet({required this.showId});
+  const _ViewersSheet({required this.showId, this.embedded = false});
   final String showId;
+
+  /// Ugrađeno u pult (desni stupac): bez fiksne visine lista.
+  final bool embedded;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -234,7 +238,7 @@ class _ViewersSheet extends ConsumerWidget {
     return DefaultTabController(
       length: 2,
       child: SizedBox(
-        height: MediaQuery.sizeOf(context).height * 0.6,
+        height: embedded ? null : MediaQuery.sizeOf(context).height * 0.6,
         child: Column(
           children: [
             TabBar(
@@ -393,6 +397,16 @@ Future<void> showAddToShowSheet(
   if (!ok) return;
   _lastQuickAdd = r;
   showLoopSnackBar(t('Predmet je dodan u live.'));
+}
+
+/// Gledatelji i aktivnost ugrađeni u pult za voditelja.
+class ViewersPanel extends StatelessWidget {
+  const ViewersPanel({super.key, required this.showId});
+  final String showId;
+
+  @override
+  Widget build(BuildContext context) =>
+      _ViewersSheet(showId: showId, embedded: true);
 }
 
 class _ViewersChip extends StatelessWidget {
@@ -1718,7 +1732,35 @@ class LiveRoomScreen extends StatelessWidget {
     ),
     child: Scaffold(
       backgroundColor: Colors.black,
-      body: LiveRoomView(showId: showId),
+      body: Consumer(
+        builder: (context, ref, _) {
+          final s = ref.watch(appProvider);
+          final show = s.liveShowById(showId);
+          final host = show != null && show.hostId == s.currentUserId;
+          final wide = MediaQuery.sizeOf(context).width >= kHostConsoleWidth;
+          final room = LiveRoomView(showId: showId);
+          if (!host || !wide) return room;
+          // Domaćin na velikom ekranu: predmeti | video | statistika.
+          return Theme(
+            data: buildLiveTheme(),
+            child: Row(
+              key: const ValueKey('host-console'),
+              children: [
+                SizedBox(width: 320, child: HostLotsPanel(showId: showId)),
+                Expanded(
+                  child: Center(
+                    child: ConstrainedBox(
+                      constraints: const BoxConstraints(maxWidth: 520),
+                      child: room,
+                    ),
+                  ),
+                ),
+                SizedBox(width: 340, child: HostStatsPanel(showId: showId)),
+              ],
+            ),
+          );
+        },
+      ),
     ),
   );
 }
@@ -1752,6 +1794,7 @@ class _LiveRoomBody extends ConsumerStatefulWidget {
 
 class _LiveRoomViewState extends ConsumerState<_LiveRoomBody> {
   Timer? _timer;
+  DateTime _watchAt = DateTime.now();
   DateTime _joinedAt = DateTime.now();
   DateTime _beatAt = DateTime.now();
   final _chat = TextEditingController();
@@ -2408,6 +2451,12 @@ class _LiveRoomViewState extends ConsumerState<_LiveRoomBody> {
       _stopVideo();
     }
     _beat();
+    // Javljanje svake minute: prosječno vrijeme gledanja u analitici.
+    if (now.difference(_watchAt) >= const Duration(minutes: 1)) {
+      final seconds = now.difference(_watchAt).inSeconds;
+      _watchAt = now;
+      _app.liveWatchPing(widget.showId, seconds);
+    }
     // Gledatelj ostaje brojan dok je u sobi.
     if (now.difference(_joinedAt) > const Duration(minutes: 4)) {
       _joinedAt = now;
@@ -3749,6 +3798,9 @@ class _TopBar extends ConsumerWidget {
                       await ref
                           .read(appProvider.notifier)
                           .toggleFollow(show.hostId);
+                      await ref
+                          .read(appProvider.notifier)
+                          .liveFollowedFromShow(show.id);
                       showLoopSnackBar(t('Pratiš {0}', [hostName]));
                     },
               child: Text(t(following ? 'Pratim' : 'Prati')),

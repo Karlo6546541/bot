@@ -27,6 +27,7 @@ class LiveShow {
     this.relistUnsold = true,
     this.modIds = const [],
     this.verifiedOnly = false,
+    this.summary,
   });
 
   final String id;
@@ -73,6 +74,10 @@ class LiveShow {
   /// već kupovali ili imaju potvrđenu e-poštu).
   final bool verifiedOnly;
 
+  /// Sažetak analitike (gledatelji, ponude, prosječno gledanje, novi
+  /// pratitelji), spremljen prije brisanja zapisa u sobi.
+  final Map<String, num>? summary;
+
   bool isMod(String? userId) => userId != null && modIds.contains(userId);
 
   /// Domaćin ili moderator.
@@ -113,6 +118,7 @@ class LiveShow {
     DateTime? hostSeenAt,
     List<String>? modIds,
     bool? verifiedOnly,
+    Map<String, num>? summary,
   }) => LiveShow(
     id: id,
     hostId: hostId,
@@ -131,6 +137,7 @@ class LiveShow {
     relistUnsold: relistUnsold,
     modIds: modIds ?? this.modIds,
     verifiedOnly: verifiedOnly ?? this.verifiedOnly,
+    summary: summary ?? this.summary,
   );
 
   Map<String, dynamic> toMap() => {
@@ -151,6 +158,7 @@ class LiveShow {
     'relistUnsold': relistUnsold,
     if (modIds.isNotEmpty) 'modIds': modIds,
     if (verifiedOnly) 'verifiedOnly': true,
+    if (summary != null) 'summary': summary,
   };
 
   factory LiveShow.fromMap(Map<dynamic, dynamic> m) => LiveShow(
@@ -180,6 +188,12 @@ class LiveShow {
     relistUnsold: m['relistUnsold'] != false,
     modIds: [for (final i in (m['modIds'] as List? ?? const [])) '$i'],
     verifiedOnly: m['verifiedOnly'] == true,
+    summary: m['summary'] is Map
+        ? {
+            for (final e in (m['summary'] as Map).entries)
+              '${e.key}': (e.value as num?) ?? 0,
+          }
+        : null,
   );
 }
 
@@ -276,7 +290,23 @@ class LiveLot {
 /// (pada cijena), prijava na nagradnu igru, procjena cijene (stari zapisi
 /// uklonjene igre "Pogodi cijenu" — ne koriste se) i "podsjeti me"
 /// (zakazani live).
-enum LiveEventType { bid, chat, join, take, enter, guess, remind, mod }
+enum LiveEventType {
+  bid,
+  chat,
+  join,
+  take,
+  enter,
+  guess,
+  remind,
+  mod,
+
+  /// Gledatelj je u sobi: javlja se svake minute, [LiveEvent.amount] je
+  /// broj sekundi od zadnjeg javljanja (za prosječno vrijeme gledanja).
+  watch,
+
+  /// Gledatelj je zapratio domaćina iz sobe showa.
+  follow,
+}
 
 /// Radnje moderacije: tekst događaja [LiveEventType.mod] je `radnja:korisnik`.
 const modMute = 'mute';

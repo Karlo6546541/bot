@@ -1463,6 +1463,25 @@ class AppController extends Notifier<AppState> {
     _refresh();
   }
 
+  /// Gledatelj u sobi javlja da gleda ([seconds] od zadnjeg javljanja).
+  Future<void> liveWatchPing(String showId, int seconds) async {
+    final user = state.currentUser;
+    if (user == null || user.isGuest) return;
+    try {
+      await _live.watchPing(user.id, showId, seconds);
+    } catch (_) {
+      // nije kritično
+    }
+  }
+
+  /// Zapratio si domaćina iz sobe showa (za analitiku showa).
+  Future<void> liveFollowedFromShow(String showId) async {
+    final user = state.currentUser;
+    if (user == null || user.isGuest) return;
+    await _live.followedFromShow(user.id, showId);
+    _refresh();
+  }
+
   Future<void> liveChat(String showId, String text) async {
     await _live.chat(_requireUserId(), showId, text);
     _refresh();

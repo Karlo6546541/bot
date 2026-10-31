@@ -7,6 +7,7 @@ import '../models/live_show.dart';
 import '../models/loop_transaction.dart';
 import '../providers/app_providers.dart';
 import '../providers/app_state.dart';
+import '../services/live_service.dart';
 import '../theme/app_theme.dart';
 import '../widgets/empty_state.dart';
 import '../widgets/formatters.dart';
@@ -258,6 +259,8 @@ class ShowAnalytics {
     required this.bids,
     required this.topBuyers,
     required this.duration,
+    required this.avgWatchSeconds,
+    required this.newFollowers,
   });
 
   final double sales;
@@ -275,6 +278,12 @@ class ShowAnalytics {
   final int bids;
   final List<({String userId, double spent, int orders})> topBuyers;
   final Duration duration;
+
+  /// Prosječno vrijeme gledanja po gledatelju koji se javljao (s).
+  final int avgWatchSeconds;
+
+  /// Gledatelji koji su zapratili domaćina iz sobe showa.
+  final int newFollowers;
 
   static ShowAnalytics of(
     AppState s,
@@ -312,6 +321,11 @@ class ShowAnalytics {
             buyerIds.contains(tx.buyerId))
           tx.buyerId!,
     };
+    // Zapisi u sobi se brišu 2 dana nakon showa; tada vrijedi spremljeni
+    // sažetak.
+    final live = events.isNotEmpty
+        ? LiveService.summarize(show, events)
+        : (show.summary ?? const <String, num>{});
     final perBuyer = <String, ({double spent, int orders})>{};
     for (final tx in txs) {
       final p = perBuyer[tx.buyerId!];
@@ -331,14 +345,13 @@ class ShowAnalytics {
       averageOrder: txs.isEmpty ? 0 : sales / txs.length,
       salesPerHour: sales / hours,
       ordersPerHour: txs.length / hours,
-      viewers: {
-        for (final e in events)
-          if (e.type != LiveEventType.mod && e.userId != show.hostId) e.userId,
-      }.length,
+      viewers: (live['viewers'] ?? 0).toInt(),
       buyers: buyerIds.length,
       newBuyers: buyerIds.length - returning.length,
       returningBuyers: returning.length,
-      bids: events.where((e) => e.type == LiveEventType.bid).length,
+      bids: (live['bids'] ?? 0).toInt(),
+      avgWatchSeconds: (live['avgWatchSeconds'] ?? 0).toInt(),
+      newFollowers: (live['newFollowers'] ?? 0).toInt(),
       topBuyers: top.take(5).toList(),
       duration: duration,
     );
@@ -446,13 +459,27 @@ class ShowAnalyticsScreen extends ConsumerWidget {
             tile('an-bids', t('Ponude'), '${a.bids}'),
           ]),
           row([
+            tile(
+              'an-watch',
+              t('Prosj. gledanje'),
+              a.avgWatchSeconds == 0
+                  ? '—'
+                  : t('{0} min {1} s', [
+                      '${a.avgWatchSeconds ~/ 60}',
+                      '${a.avgWatchSeconds % 60}',
+                    ]),
+            ),
+            const SizedBox(width: 8),
+            tile('an-followers', t('Novi pratitelji'), '${a.newFollowers}'),
+          ]),
+          row([
             tile('an-new', t('Novi kupci'), '${a.newBuyers}'),
             const SizedBox(width: 8),
             tile('an-returning', t('Ponovni kupci'), '${a.returningBuyers}'),
           ]),
           Text(
             t(
-              'Gledatelji i ponude se računaju iz zapisa u sobi, koji se čuvaju 2 dana nakon showa.',
+              'Publika se računa iz zapisa u sobi; nakon 2 dana ostaje spremljeni sažetak.',
             ),
             style: TextStyle(color: LoopColors.textSecondary, fontSize: 11),
           ),

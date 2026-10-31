@@ -214,6 +214,25 @@ void main() {
     );
     await live.join(buyer, show.id, now: t0.add(const Duration(seconds: 1)));
     await live.startLot(seller, show.id, index: 0, now: t0);
+    await live.watchPing(
+      buyer,
+      show.id,
+      60,
+      now: t0.add(const Duration(seconds: 60)),
+    );
+    await live.watchPing(
+      buyer,
+      show.id,
+      60,
+      now: t0.add(const Duration(seconds: 120)),
+    );
+    await live.followedFromShow(
+      buyer,
+      show.id,
+      now: t0.add(const Duration(seconds: 3)),
+    );
+    // Drugi poziv ne dupla pratitelja.
+    await live.followedFromShow(buyer, show.id);
     await live.bid(buyer, show.id, 8, now: t0.add(const Duration(seconds: 5)));
     await live.end(seller, show.id, now: t0.add(const Duration(minutes: 2)));
     await live.settleDue(now: t0.add(const Duration(minutes: 3)));
@@ -231,6 +250,20 @@ void main() {
     expect(a.bids, 1);
     expect(a.viewers, 1);
     expect(a.topBuyers.first.userId, buyer);
+    expect(a.avgWatchSeconds, 120);
+    expect(a.newFollowers, 1);
+    // Nakon brisanja zapisa ostaje spremljeni sažetak.
+    await live.purgeOld(now: t0.add(const Duration(days: 3)));
+    expect(storage.liveEventsOf(show.id), isEmpty);
+    final after = ShowAnalytics.of(
+      s,
+      storage.liveShowById(show.id)!,
+      const [],
+      t0.add(const Duration(days: 3)),
+    );
+    expect(after.avgWatchSeconds, 120);
+    expect(after.newFollowers, 1);
+    expect(after.viewers, 1);
     final sales = sellerLedger(
       s,
       seller,

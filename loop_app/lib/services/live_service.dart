@@ -367,7 +367,8 @@ class LiveService {
         if (e.type == LiveEventType.join ||
             e.type == LiveEventType.bid ||
             e.type == LiveEventType.take ||
-            e.type == LiveEventType.enter)
+            e.type == LiveEventType.enter ||
+            e.type == LiveEventType.follow)
           e,
     ];
     final feed = [
@@ -383,7 +384,11 @@ class LiveService {
       heat += switch (e.type) {
         LiveEventType.bid || LiveEventType.take => 3,
         LiveEventType.chat || LiveEventType.enter || LiveEventType.guess => 1,
-        LiveEventType.join || LiveEventType.remind || LiveEventType.mod => 0,
+        LiveEventType.join ||
+        LiveEventType.remind ||
+        LiveEventType.mod ||
+        LiveEventType.watch ||
+        LiveEventType.follow => 0,
       };
     }
     return LiveState(
@@ -1178,6 +1183,84 @@ class LiveService {
     return stateOf(show, now: at);
   }
 
+  /// Gledatelj se javlja da je u sobi ([seconds] od zadnjeg javljanja).
+  /// Iz toga se računa prosječno vrijeme gledanja.
+  Future<void> watchPing(
+    String userId,
+    String showId,
+    int seconds, {
+    DateTime? now,
+  }) async {
+    final at = now ?? DateTime.now();
+    final user = _storage.userById(userId);
+    final show = _storage.liveShowById(showId);
+    if (user == null || user.isGuest || show == null) return;
+    if (show.hostId == userId || !stateOf(show, now: at).isLive) return;
+    await _storage.putLiveEvent(
+      LiveEvent(
+        id: _uuid.v4(),
+        showId: showId,
+        type: LiveEventType.watch,
+        userId: userId,
+        userLabel: user.handle,
+        at: at,
+        amount: seconds.clamp(1, 120).toDouble(),
+      ),
+    );
+  }
+
+  /// Gledatelj je zapratio domaćina iz sobe (najviše jednom po showu).
+  Future<void> followedFromShow(
+    String userId,
+    String showId, {
+    DateTime? now,
+  }) async {
+    final user = _storage.userById(userId);
+    final show = _storage.liveShowById(showId);
+    if (user == null || user.isGuest || show == null) return;
+    if (show.hostId == userId) return;
+    if (_storage
+        .liveEventsOf(showId)
+        .any((e) => e.type == LiveEventType.follow && e.userId == userId)) {
+      return;
+    }
+    await _storage.putLiveEvent(
+      LiveEvent(
+        id: _uuid.v4(),
+        showId: showId,
+        type: LiveEventType.follow,
+        userId: userId,
+        userLabel: user.handle,
+        at: now ?? DateTime.now(),
+      ),
+    );
+  }
+
+  /// Sažetak za analitiku iz događaja u sobi: gledatelji, ponude,
+  /// prosječno vrijeme gledanja (s), novi pratitelji.
+  static Map<String, num> summarize(LiveShow show, List<LiveEvent> events) {
+    final watch = <String, double>{};
+    for (final e in events) {
+      if (e.type == LiveEventType.watch) {
+        watch[e.userId] = (watch[e.userId] ?? 0) + e.amount;
+      }
+    }
+    return {
+      'viewers': {
+        for (final e in events)
+          if (e.type != LiveEventType.mod && e.userId != show.hostId) e.userId,
+      }.length,
+      'bids': events.where((e) => e.type == LiveEventType.bid).length,
+      'avgWatchSeconds': watch.isEmpty
+          ? 0
+          : (watch.values.fold<double>(0, (a, b) => a + b) / watch.length)
+                .round(),
+      'newFollowers': events
+          .where((e) => e.type == LiveEventType.follow)
+          .length,
+    };
+  }
+
   // ---------------------------------------------------------- moderacija
 
   /// Provjereni kupac: ima način plaćanja i već je kupovao ili ima potvrđenu
@@ -1475,7 +1558,13 @@ class LiveService {
         for (final l in state.lots) ?l.end,
       ].reduce((a, b) => a.isAfter(b) ? a : b);
       if (state.isOver && at.difference(last) > const Duration(days: 2)) {
-        for (final e in _storage.liveEventsOf(show.id)) {
+        final events = _storage.liveEventsOf(show.id);
+        if (show.summary == null && events.isNotEmpty) {
+          await _storage.putLiveShow(
+            show.copyWith(summary: summarize(show, events)),
+          );
+        }
+        for (final e in events) {
           await _storage.deleteLiveEvent(e.id);
         }
       }

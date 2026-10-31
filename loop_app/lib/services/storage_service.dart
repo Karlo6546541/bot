@@ -98,6 +98,7 @@ class StorageService {
   static const _currentUserKey = 'currentUserId';
   static const _isAdminKey = 'isAdmin';
   static const _themeKey = 'themeMode';
+  static const _sellerGoalKey = 'sellerGoal';
   static const _langKey = 'lang';
   static const _howItWorksKey = 'howItWorksDismissed';
   static const _pendingAuthKey = 'pendingAuth';
@@ -805,6 +806,11 @@ class StorageService {
   bool get isAdmin => _session.get(_isAdminKey) == true;
 
   /// 'light' | 'dark' | 'system' (zadano: svijetla tema).
+  /// Odabrani tjedni cilj prodavača (0 = bez cilja, 1–3 = razine).
+  int get sellerGoal => (_session.get(_sellerGoalKey) as num?)?.toInt() ?? 0;
+
+  Future<void> setSellerGoal(int level) => _session.put(_sellerGoalKey, level);
+
   String get themeMode => _session.get(_themeKey) as String? ?? 'light';
 
   Future<void> setThemeMode(String mode) => _session.put(_themeKey, mode);
