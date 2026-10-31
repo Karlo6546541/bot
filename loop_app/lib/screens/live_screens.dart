@@ -305,6 +305,258 @@ class _ViewersSheet extends ConsumerWidget {
   }
 }
 
+/// Flash ponuda: kratki popust na predmet s fiksnom cijenom koji vrijedi
+/// uz aukciju. Gledatelji vide traku s odbrojavanjem i kupuju jednim dodirom.
+Future<void> showFlashSheet(BuildContext context, WidgetRef ref) =>
+    showModalBottomSheet<void>(
+      context: context,
+      showDragHandle: true,
+      isScrollControlled: true,
+      backgroundColor: kLiveSheet,
+      constraints: const BoxConstraints(maxWidth: 520),
+      builder: (_) => const _FlashSheet(),
+    );
+
+class _FlashSheet extends ConsumerStatefulWidget {
+  const _FlashSheet();
+
+  @override
+  ConsumerState<_FlashSheet> createState() => _FlashSheetState();
+}
+
+class _FlashSheetState extends ConsumerState<_FlashSheet> {
+  String? _deviceId;
+  int _percent = 20;
+  int _seconds = 60;
+  bool _busy = false;
+
+  Future<void> _start() async {
+    final id = _deviceId;
+    if (id == null) return;
+    setState(() => _busy = true);
+    try {
+      await ref
+          .read(appProvider.notifier)
+          .setDiscount(id, _percent, duration: Duration(seconds: _seconds));
+      showLoopSnackBar(t('Flash ponuda je počela!'));
+      if (mounted) Navigator.pop(context);
+    } on TradeException catch (e) {
+      showLoopSnackBar(e.message, error: true);
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final s = ref.watch(appProvider);
+    final me = s.currentUserId ?? '';
+    final items = [
+      for (final d in s.listingsOf(me))
+        if (!d.isDigital) d,
+    ];
+    return SafeArea(
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              t('Flash ponuda'),
+              style: const TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.w900,
+                fontSize: 20,
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              t(
+                'Kratki popust na predmet s fiksnom cijenom. Aukcija teče dalje.',
+              ),
+              style: const TextStyle(color: Colors.white60, fontSize: 12),
+            ),
+            const SizedBox(height: 12),
+            Wrap(
+              spacing: 8,
+              children: [
+                for (final p in const [10, 20, 30, 50])
+                  ChoiceChip(
+                    key: ValueKey('flash-pct-$p'),
+                    label: Text('−$p %'),
+                    selected: _percent == p,
+                    onSelected: (_) => setState(() => _percent = p),
+                  ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Wrap(
+              spacing: 8,
+              children: [
+                for (final sec in const [30, 60, 120, 300])
+                  ChoiceChip(
+                    key: ValueKey('flash-secs-$sec'),
+                    label: Text(
+                      sec < 60
+                          ? t('{0} s', ['$sec'])
+                          : t('{0} min', ['${sec ~/ 60}']),
+                    ),
+                    selected: _seconds == sec,
+                    onSelected: (_) => setState(() => _seconds = sec),
+                  ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            Text(
+              t('Predmet'),
+              style: const TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+            if (items.isEmpty)
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                child: Text(
+                  t('Nemaš predmeta na Kupi odmah.'),
+                  style: const TextStyle(color: Colors.white60),
+                ),
+              )
+            else
+              RadioGroup<String>(
+                groupValue: _deviceId,
+                onChanged: (v) => setState(() => _deviceId = v),
+                child: Column(
+                  children: [
+                    for (final d in items.take(30))
+                      RadioListTile<String>(
+                        key: ValueKey('flash-item-${d.id}'),
+                        contentPadding: EdgeInsets.zero,
+                        title: Text(
+                          d.name,
+                          style: const TextStyle(color: Colors.white),
+                        ),
+                        subtitle: Text(
+                          formatCredits(d.askPrice),
+                          style: const TextStyle(color: Colors.white60),
+                        ),
+                        value: d.id,
+                      ),
+                  ],
+                ),
+              ),
+            const SizedBox(height: 8),
+            FilledButton.icon(
+              key: const ValueKey('flash-start'),
+              style: FilledButton.styleFrom(
+                backgroundColor: kLiveRed,
+                foregroundColor: Colors.white,
+                minimumSize: const Size.fromHeight(52),
+              ),
+              onPressed: _busy || _deviceId == null ? null : _start,
+              icon: const Icon(Icons.bolt),
+              label: Text(t('Pokreni flash')),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Traka s aktivnom flash ponudom domaćina (odbrojavanje + Kupi).
+class _FlashBar extends ConsumerWidget {
+  const _FlashBar({required this.hostId, required this.now});
+  final String hostId;
+  final DateTime now;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final s = ref.watch(appProvider);
+    final flash = [
+      for (final d in s.listingsOf(hostId))
+        if (!d.isDigital &&
+            d.discountUntil != null &&
+            d.discountActiveAt(now) &&
+            d.discountUntil!.difference(now) <= const Duration(minutes: 10))
+          d,
+    ];
+    if (flash.isEmpty) return const SizedBox.shrink();
+    final d = flash.first;
+    final mine = s.currentUserId == hostId;
+    return Padding(
+      key: const ValueKey('live-flash-bar'),
+      padding: const EdgeInsets.fromLTRB(12, 8, 12, 0),
+      child: Container(
+        padding: const EdgeInsets.fromLTRB(12, 8, 8, 8),
+        decoration: BoxDecoration(
+          color: const Color(0xE6FF2D55),
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: Row(
+          children: [
+            const Icon(Icons.bolt, color: Colors.white),
+            const SizedBox(width: 6),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    t('Flash −{0} % · {1}', ['${d.discountPercent}', d.name]),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w900,
+                      fontSize: 13,
+                    ),
+                  ),
+                  Row(
+                    children: [
+                      Text(
+                        formatCredits(d.priceAt(now)),
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w900,
+                          fontSize: 16,
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      AuctionCountdown(
+                        endsAt: d.discountUntil!,
+                        showIcon: false,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w800,
+                          fontSize: 13,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+            if (!mine)
+              FilledButton(
+                key: const ValueKey('live-flash-buy'),
+                style: FilledButton.styleFrom(
+                  backgroundColor: Colors.white,
+                  foregroundColor: Colors.black,
+                  minimumSize: const Size(72, 40),
+                  shape: const StadiumBorder(),
+                ),
+                onPressed: () => confirmAndBuy(context, ref, d),
+                child: Text(t('Kupi')),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 /// Giveaway (nagradna igra): predmet, trajanje do 5 minuta i "samo
 /// pratitelji". Pokreće se odmah ako ništa drugo ne teče, inače ide na red.
 Future<void> showGiveawaySheet(
@@ -2371,6 +2623,20 @@ class _LiveRoomViewState extends ConsumerState<_LiveRoomBody> {
                     ),
                     tile(
                       ctx,
+                      key: 'live-flash-tile',
+                      icon: Icons.bolt,
+                      label: t('Flash ponuda'),
+                      onTap: () => showFlashSheet(context, ref),
+                    ),
+                    tile(
+                      ctx,
+                      key: 'live-giveaway-tile',
+                      icon: Icons.card_giftcard,
+                      label: t('Giveaway'),
+                      onTap: () => showGiveawaySheet(context, ref, show),
+                    ),
+                    tile(
+                      ctx,
                       key: 'live-quick-add-tile',
                       icon: Icons.bolt,
                       label: t('Brzo dodaj'),
@@ -3317,6 +3583,8 @@ class _LiveRoomViewState extends ConsumerState<_LiveRoomBody> {
                         text: t('Gledaj "{0}" uživo na Subhastu', [show.title]),
                       ),
                     ),
+                    if (!composing && !st.isOver)
+                      _FlashBar(hostId: show.hostId, now: now),
                     if (!composing && cur != null)
                       _LotCard(
                         lot: cur,

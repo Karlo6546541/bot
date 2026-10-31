@@ -131,18 +131,26 @@ class _LiveHomeScreenState extends ConsumerState<LiveHomeScreen> {
 
   /// Kategorije za brzi izbor livea: prvo one s liveovima (najviše
   /// gledatelja), zatim glavne kategorije.
-  static List<CategoryStat> _liveCategoryStats(AppState s) {
+  static List<CategoryStat> _liveCategoryStats(
+    AppState s, {
+    DeviceCategory? keep,
+  }) {
     final stats = categoryStats(s);
     final live = [
       for (final c in stats)
         if (c.viewers > 0) c,
     ]..sort((a, b) => b.viewers.compareTo(a.viewers));
     final main = _mainCategories(s);
-    return [
+    final list = [
       ...live,
       for (final c in stats)
         if (c.viewers == 0 && main.contains(c.category)) c,
     ].take(10).toList();
+    // Odabrana kategorija uvijek je u traci (i kad nema livea).
+    if (keep != null && !list.any((c) => c.category == keep)) {
+      list.insert(0, stats.firstWhere((c) => c.category == keep));
+    }
+    return list;
   }
 
   Timer? _timer;
@@ -396,7 +404,18 @@ class _LiveHomeScreenState extends ConsumerState<LiveHomeScreen> {
           );
         }
       case _Category(:final category):
-        // Kategorija: liveovi i nadolazeći showovi te kategorije, pa ostalo.
+        // Kategorija ostaje označena u traci, a ispod su njeni liveovi.
+        slivers.add(
+          SliverToBoxAdapter(
+            child: _LiveCategoryStrip(
+              stats: _liveCategoryStats(s, keep: category),
+              selected: category,
+              onSelect: (c) => c == category
+                  ? _select(const _ForYou())
+                  : _select(_Category(c)),
+            ),
+          ),
+        );
         final inCat = [
           for (final i in all)
             if (i.categories.contains(category)) i,
@@ -428,6 +447,19 @@ class _LiveHomeScreenState extends ConsumerState<LiveHomeScreen> {
         if (catLive.isNotEmpty) {
           slivers.add(head(t('Uživo sada')));
           slivers.add(grid('home-cat-live-grid', catLive, category.label));
+        } else {
+          slivers.add(
+            SliverToBoxAdapter(
+              child: Padding(
+                key: const ValueKey('home-category-no-live'),
+                padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
+                child: Text(
+                  t('Trenutno nema livea u ovoj kategoriji.'),
+                  style: TextStyle(color: LoopColors.textSecondary),
+                ),
+              ),
+            ),
+          );
         }
         if (catSoon.isNotEmpty) {
           slivers.add(head(t('Uskoro uživo')));
@@ -1262,9 +1294,16 @@ class _TileRow extends StatelessWidget {
 
 /// Red pločica kategorija za brzi izbor livea (kao Trending na Whatnotu).
 class _LiveCategoryStrip extends StatelessWidget {
-  const _LiveCategoryStrip({required this.stats, required this.onSelect});
+  const _LiveCategoryStrip({
+    required this.stats,
+    required this.onSelect,
+    this.selected,
+  });
   final List<CategoryStat> stats;
   final ValueChanged<DeviceCategory> onSelect;
+
+  /// Odabrana kategorija ostaje označena (ponovni dodir je poništava).
+  final DeviceCategory? selected;
 
   @override
   Widget build(BuildContext context) {
@@ -1279,8 +1318,9 @@ class _LiveCategoryStrip extends StatelessWidget {
         separatorBuilder: (_, _) => const SizedBox(width: 8),
         itemBuilder: (_, i) {
           final c = stats[i];
+          final on = selected == c.category;
           return Material(
-            color: LoopColors.surfaceHover,
+            color: on ? LoopColors.accent : LoopColors.surfaceHover,
             borderRadius: BorderRadius.circular(14),
             child: InkWell(
               key: ValueKey('live-cat-${c.category.name}'),
@@ -1298,9 +1338,10 @@ class _LiveCategoryStrip extends StatelessWidget {
                       children: [
                         Text(
                           c.category.label,
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontWeight: FontWeight.w900,
                             fontSize: 14,
+                            color: on ? LoopColors.onAccent : null,
                           ),
                         ),
                         Row(
@@ -1321,7 +1362,9 @@ class _LiveCategoryStrip extends StatelessWidget {
                                   ? t('{0} gledatelja', ['${c.viewers}'])
                                   : t('Nema livea'),
                               style: TextStyle(
-                                color: LoopColors.textSecondary,
+                                color: on
+                                    ? LoopColors.onAccent.withValues(alpha: 0.8)
+                                    : LoopColors.textSecondary,
                                 fontSize: 12,
                               ),
                             ),

@@ -2866,4 +2866,12 @@ const kEn = <String, String>{
   'Kontaktiraj nas': 'Contact us',
   'Gledatelji ↑': 'Viewers ↑',
   'Gledatelji ↓': 'Viewers ↓',
+  'Flash ponuda': 'Flash deal',
+  'Flash ponuda je počela!': 'The flash deal has started!',
+  'Kratki popust na predmet s fiksnom cijenom. Aukcija teče dalje.':
+      'A short discount on a fixed-price item. The auction keeps running.',
+  'Pokreni flash': 'Start flash',
+  'Flash −{0} % · {1}': 'Flash −{0}% · {1}',
+  'Trenutno nema livea u ovoj kategoriji.':
+      'No live shows in this category right now.',
 };

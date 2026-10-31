@@ -1220,6 +1220,16 @@ void main() {
       } else {
         expect(find.byKey(const ValueKey('host-console')), findsNothing);
       }
+      // Flash ponuda i Giveaway su u Live opcijama.
+      await tester.tap(find.byKey(const ValueKey('live-host-menu')));
+      await tester.pumpAndSettle();
+      expect(find.byKey(const ValueKey('live-flash-tile')), findsOneWidget);
+      expect(find.byKey(const ValueKey('live-giveaway-tile')), findsOneWidget);
+      await tester.tap(find.byKey(const ValueKey('live-flash-tile')));
+      await tester.pumpAndSettle();
+      expect(find.byKey(const ValueKey('flash-start')), findsOneWidget);
+      await tester.tapAt(const Offset(10, 10));
+      await tester.pumpAndSettle();
       // Filteri chata (samo voditelj).
       expect(find.byKey(const ValueKey('chat-filter-all')), findsOneWidget);
       await tester.tap(find.byKey(const ValueKey('chat-filter-questions')));
