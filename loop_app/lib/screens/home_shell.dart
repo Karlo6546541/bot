@@ -15,6 +15,7 @@ import 'categories_screen.dart';
 import 'live_home_screen.dart';
 import 'live_screens.dart';
 import 'profile_screen.dart';
+import 'seller_hub.dart';
 import '../l10n/tr.dart';
 import '../widgets/language_button.dart';
 import '../services/deep_link.dart';
@@ -93,21 +94,36 @@ class _HomeShellState extends ConsumerState<HomeShell> {
     _go(0);
   }
 
-  static List<ShellDestination> get _destinations => [
+  List<ShellDestination> get _destinations {
+    final user = ref.watch(appProvider).currentUser;
+    final isSeller = user != null && !user.isGuest && user.seller != null;
+    return [
     ShellDestination(t('Početna'), Icons.home_outlined, Icons.home),
     ShellDestination(
       t('Kategorije'),
       Icons.grid_view_outlined,
       Icons.grid_view_rounded,
     ),
-    ShellDestination(t('Objavi'), Icons.add, Icons.add, action: true),
+    ShellDestination(
+      isSeller
+          ? t('Seller Hub')
+          : t('Objavi'),
+      isSeller
+          ? Icons.storefront_outlined
+          : Icons.add,
+      isSeller
+          ? Icons.storefront
+          : Icons.add,
+      action: true,
+    ),
     ShellDestination(
       t('Moje'),
       Icons.local_activity_outlined,
       Icons.local_activity,
     ),
     ShellDestination(t('Profil'), Icons.person_outline, Icons.person),
-  ];
+    ];
+  }
 
   /// Kartice: 0 Početna, 1 Kategorije, 2 Moje, 3 Profil. U traci je "+"
   /// na mjestu 2 pa su Moje i Profil pomaknuti za jedan.
@@ -116,7 +132,12 @@ class _HomeShellState extends ConsumerState<HomeShell> {
 
   void _onNav(int nav) {
     if (nav == _createSlot) {
-      showCreateSheet(context);
+      final user = ref.read(appProvider).currentUser;
+      if (user != null && !user.isGuest && user.seller != null) {
+        SellerHubScreen.open(context);
+      } else {
+        showCreateSheet(context);
+      }
       return;
     }
     _go(nav < _createSlot ? nav : nav - 1);
