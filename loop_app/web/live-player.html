@@ -1,0 +1,34 @@
+<!doctype html><html lang="hr"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Prijenos uživo</title><style>html,body{margin:0;height:100%;background:#0c0d10;color:#fff;font:14px system-ui}#media{position:absolute;inset:0;overflow:hidden}video{width:100%;height:100%;object-fit:contain}#status{position:absolute;top:12px;left:12px;right:12px;text-shadow:0 1px 3px #000}#start{position:absolute;bottom:12px;left:12px;padding:12px;border:0;border-radius:12px;background:#c44408;color:white}audio{display:none}</style>
+<div id="media"></div><div id="status">Spajanje…</div><button id="start" hidden>Uključi kameru i mikrofon</button>
+<script type="module">
+import {Room,RoomEvent,Track} from 'https://cdn.jsdelivr.net/npm/livekit-client@2.15.6/+esm';
+const media=document.querySelector('#media'),status=document.querySelector('#status'),start=document.querySelector('#start');
+let room;
+const attach=(track)=>{const el=track.attach();media.append(el);if(el.play)el.play().catch(()=>{start.hidden=false;start.textContent='Uključi zvuk';});};
+window.addEventListener('message',async e=>{
+ if(e.source!==parent||e.origin!==location.origin||room)return;
+ let c;try{c=JSON.parse(e.data);}catch{return;}
+ if(typeof c.url!=='string'||!c.url.startsWith('wss://')||typeof c.token!=='string')return;
+ room=new Room({adaptiveStream:true,dynacast:true});
+ room.on(RoomEvent.TrackSubscribed,track=>{attach(track);status.textContent='';});
+ room.on(RoomEvent.TrackUnsubscribed,track=>track.detach().forEach(el=>el.remove()));
+ room.on(RoomEvent.Reconnecting,()=>status.textContent='Ponovno spajanje…');
+ room.on(RoomEvent.Reconnected,()=>status.textContent='');
+ room.on(RoomEvent.Disconnected,()=>status.textContent='Prijenos je prekinut. Ponovno otvori live.');
+ start.onclick=async()=>{try{
+   await room.startAudio();
+   if(c.role==='host'){
+     await room.localParticipant.setCameraEnabled(true);
+     await room.localParticipant.setMicrophoneEnabled(true);
+     const pub=room.localParticipant.getTrackPublication(Track.Source.Camera);if(pub?.track){media.replaceChildren();attach(pub.track);media.querySelector('video').muted=true;}
+   }
+   start.hidden=true;status.textContent='';
+ }catch{status.textContent='Dopusti kameru i mikrofon pa pokušaj ponovno.';}};
+ try{await room.connect(c.url,c.token);status.textContent=c.role==='host'?'Pokreni kameru za emitiranje.':'Čeka se slika voditelja…';
+ if(c.role==='host'){start.hidden=false;start.textContent='Uključi kameru i mikrofon';}
+ }catch{status.textContent='Prijenos trenutačno nije dostupan.';}
+});
+window.addEventListener('pagehide',()=>room?.disconnect());
+parent.postMessage('subhasto-player-ready',location.origin);
+</script></html>

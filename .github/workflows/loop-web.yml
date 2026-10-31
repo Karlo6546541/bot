@@ -1,0 +1,200 @@
+# Gradi web verziju aplikacije LOOP i objavljuje je na GitHub Pages:
+# https://<korisnik>.github.io/bot/
+#
+# Jednokratno postavljanje (Settings repozitorija):
+#   1. Pages → Build and deployment → Source: "GitHub Actions".
+#   2. (Neobavezno, za online bazu) Secrets and variables → Actions →
+#      New repository secret: SUPABASE_URL i SUPABASE_KEY.
+#      Bez njih web verzija radi lokalno (podaci samo u pregledniku).
+name: LOOP web (GitHub Pages)
+
+on:
+  push:
+    branches: [main, claude/beautiful-newton-sftcyd]
+    paths: ["loop_app/**", ".github/workflows/loop-web.yml"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: loop-pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: loop_app
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          flutter-version: "3.47.7"
+          cache: true
+
+      - run: flutter pub get
+      - run: flutter analyze
+      - run: flutter test
+
+      - name: Build web
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
+          # Neobavezno: TURN poslužitelj za video u live aukcijama.
+          LIVE_TURN_URL: ${{ secrets.LIVE_TURN_URL }}
+          LIVE_TURN_USER: ${{ secrets.LIVE_TURN_USER }}
+          LIVE_TURN_PASS: ${{ secrets.LIVE_TURN_PASS }}
+          # Neobavezno: BOX NOW partner ID za kartu paketomata.
+          BOXNOW_PARTNER_ID: ${{ vars.BOXNOW_PARTNER_ID }}
+        run: >
+          flutter build web --release --base-href /bot/ --no-web-resources-cdn
+          --dart-define=CLOUD_COMMERCE_ENABLED="${{ vars.CLOUD_COMMERCE_ENABLED || 'true' }}"
+          --dart-define=SUPABASE_URL="$SUPABASE_URL"
+          --dart-define=SUPABASE_KEY="$SUPABASE_KEY"
+          --dart-define=LIVE_TURN_URL="$LIVE_TURN_URL"
+          --dart-define=LIVE_TURN_USER="$LIVE_TURN_USER"
+          --dart-define=LIVE_TURN_PASS="$LIVE_TURN_PASS"
+          --dart-define=BOXNOW_PARTNER_ID="$BOXNOW_PARTNER_ID"
+
+      # Spremljena kopija verzije prije pojednostavljenja sučelja:
+      # https://<korisnik>.github.io/bot/stara/
+      - uses: actions/checkout@v4
+        with:
+          ref: fc5bf8d7493d5da4e0eee25abfd44687e9d75bdd
+          path: stara
+
+      - name: Build saved copy (/bot/stara/)
+        working-directory: stara/loop_app
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
+        run: |
+          flutter pub get
+          flutter build web --release --base-href /bot/stara/ --no-web-resources-cdn \
+            --dart-define=SUPABASE_URL="$SUPABASE_URL" \
+            --dart-define=SUPABASE_KEY="$SUPABASE_KEY"
+          cp -r build/web "$GITHUB_WORKSPACE/loop_app/build/web/stara"
+
+      # Spremljena kopija tržnice (Market + aukcije + live) prije prelaska
+      # na aplikaciju samo za aukcije: https://<korisnik>.github.io/bot/marketplace/
+      - uses: actions/checkout@v4
+        with:
+          ref: c7f297ea7239c808849e47e0e26bb42f7e592b70
+          path: marketplace
+
+      - name: Build saved copy (/bot/marketplace/)
+        working-directory: marketplace/loop_app
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
+          LIVE_TURN_URL: ${{ secrets.LIVE_TURN_URL }}
+          LIVE_TURN_USER: ${{ secrets.LIVE_TURN_USER }}
+          LIVE_TURN_PASS: ${{ secrets.LIVE_TURN_PASS }}
+        run: |
+          flutter pub get
+          flutter build web --release --base-href /bot/marketplace/ --no-web-resources-cdn \
+            --dart-define=SUPABASE_URL="$SUPABASE_URL" \
+            --dart-define=SUPABASE_KEY="$SUPABASE_KEY" \
+            --dart-define=LIVE_TURN_URL="$LIVE_TURN_URL" \
+            --dart-define=LIVE_TURN_USER="$LIVE_TURN_USER" \
+            --dart-define=LIVE_TURN_PASS="$LIVE_TURN_PASS"
+          cp -r build/web "$GITHUB_WORKSPACE/loop_app/build/web/marketplace"
+
+      # Spremljena kopija LICIT verzije (ljubičasti dizajn, sve funkcije):
+      # https://<korisnik>.github.io/bot/licit/
+      - uses: actions/checkout@v4
+        with:
+          ref: 6734d359391525498ec9ae18e536ac8c68ff2d07
+          path: licit
+
+      - name: Build saved copy (/bot/licit/)
+        working-directory: licit/loop_app
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
+          LIVE_TURN_URL: ${{ secrets.LIVE_TURN_URL }}
+          LIVE_TURN_USER: ${{ secrets.LIVE_TURN_USER }}
+          LIVE_TURN_PASS: ${{ secrets.LIVE_TURN_PASS }}
+        run: |
+          flutter pub get
+          flutter build web --release --base-href /bot/licit/ --no-web-resources-cdn \
+            --dart-define=SUPABASE_URL="$SUPABASE_URL" \
+            --dart-define=SUPABASE_KEY="$SUPABASE_KEY" \
+            --dart-define=LIVE_TURN_URL="$LIVE_TURN_URL" \
+            --dart-define=LIVE_TURN_USER="$LIVE_TURN_USER" \
+            --dart-define=LIVE_TURN_PASS="$LIVE_TURN_PASS"
+          cp -r build/web "$GITHUB_WORKSPACE/loop_app/build/web/licit"
+
+      # Spremljena kopija prije prodavatelja-trgovaca (samo privatne osobe):
+      # https://<korisnik>.github.io/bot/privatni/
+      - uses: actions/checkout@v4
+        with:
+          ref: 4fd1b565982deb864e15e80349f7a432ef41c8d6
+          path: privatni
+
+      - name: Build saved copy (/bot/privatni/)
+        working-directory: privatni/loop_app
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
+          LIVE_TURN_URL: ${{ secrets.LIVE_TURN_URL }}
+          LIVE_TURN_USER: ${{ secrets.LIVE_TURN_USER }}
+          LIVE_TURN_PASS: ${{ secrets.LIVE_TURN_PASS }}
+          BOXNOW_PARTNER_ID: ${{ vars.BOXNOW_PARTNER_ID }}
+        run: |
+          flutter pub get
+          flutter build web --release --base-href /bot/privatni/ --no-web-resources-cdn \
+            --dart-define=SUPABASE_URL="$SUPABASE_URL" \
+            --dart-define=SUPABASE_KEY="$SUPABASE_KEY" \
+            --dart-define=LIVE_TURN_URL="$LIVE_TURN_URL" \
+            --dart-define=LIVE_TURN_USER="$LIVE_TURN_USER" \
+            --dart-define=LIVE_TURN_PASS="$LIVE_TURN_PASS" \
+            --dart-define=BOXNOW_PARTNER_ID="$BOXNOW_PARTNER_ID"
+          cp -r build/web "$GITHUB_WORKSPACE/loop_app/build/web/privatni"
+
+      # Spremljena kopija prije velikog pojednostavljenja (sve funkcije:
+      # priče, liste želja, zamjene, digitalno…): .../bot/puna/
+      - uses: actions/checkout@v4
+        with:
+          ref: 556ea6b131a6dabde706694f3ad06bfca5c6999a
+          path: puna
+
+      - name: Build saved copy (/bot/puna/)
+        working-directory: puna/loop_app
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
+          LIVE_TURN_URL: ${{ secrets.LIVE_TURN_URL }}
+          LIVE_TURN_USER: ${{ secrets.LIVE_TURN_USER }}
+          LIVE_TURN_PASS: ${{ secrets.LIVE_TURN_PASS }}
+          BOXNOW_PARTNER_ID: ${{ vars.BOXNOW_PARTNER_ID }}
+        run: |
+          flutter pub get
+          flutter build web --release --base-href /bot/puna/ --no-web-resources-cdn \
+            --dart-define=SUPABASE_URL="$SUPABASE_URL" \
+            --dart-define=SUPABASE_KEY="$SUPABASE_KEY" \
+            --dart-define=LIVE_TURN_URL="$LIVE_TURN_URL" \
+            --dart-define=LIVE_TURN_USER="$LIVE_TURN_USER" \
+            --dart-define=LIVE_TURN_PASS="$LIVE_TURN_PASS" \
+            --dart-define=BOXNOW_PARTNER_ID="$BOXNOW_PARTNER_ID"
+          cp -r build/web "$GITHUB_WORKSPACE/loop_app/build/web/puna"
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: loop_app/build/web
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

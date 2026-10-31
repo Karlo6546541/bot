@@ -1,0 +1,1237 @@
+import '../services/app_location/app_location.dart';
+import '../config/backend_config.dart';
+import 'cloud_commerce_screen.dart';
+import '../config/features.dart';
+import 'dart:async';
+
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+import '../l10n/tr.dart';
+import '../widgets/user_avatar.dart';
+import '../models/app_user.dart';
+import '../models/device.dart';
+import '../widgets/browse_category_picker.dart';
+import '../providers/app_state.dart';
+import 'categories_screen.dart';
+import '../providers/app_providers.dart';
+import '../theme/app_theme.dart';
+import '../widgets/trade_actions.dart';
+import 'auctions_screen.dart';
+import 'public_profile_screen.dart';
+import 'account_menu.dart';
+import 'live_screens.dart';
+import 'search_screen.dart';
+import 'messages_screen.dart';
+import 'notifications_screen.dart';
+import 'swipe_feed_screen.dart';
+
+/// Početna kao Whatnot: pretraga, kategorije kao "pilule" i mreža kartica —
+/// tko je uživo sada, što uskoro kreće, aukcije koje završavaju i predmeti
+/// za Kupi odmah. Dodir na karticu otvara swipe feed te skupine.
+class LiveHomeScreen extends ConsumerStatefulWidget {
+  const LiveHomeScreen({
+    super.key,
+    this.visible = true,
+    this.onImmersiveChanged,
+  });
+  final ValueChanged<bool>? onImmersiveChanged;
+
+  /// Je li tab Početna na ekranu (feed "Za tebe" pušta live samo tada).
+  final bool visible;
+
+  @override
+  ConsumerState<LiveHomeScreen> createState() => _LiveHomeScreenState();
+}
+
+/// Filter na početnoj: za tebe, uživo, uskoro ili kategorija.
+sealed class _Filter {
+  const _Filter();
+
+  String get id => switch (this) {
+    _ForYou() => 'for-you',
+    _LiveOnly() => 'live',
+    _Soon() => 'soon',
+    _Timed() => 'timed',
+    _BuyNow() => 'buy',
+    _Digital() => 'digital',
+    _Following() => 'following',
+    _Category(:final category) => 'cat-${category.name}',
+  };
+
+  static _Filter of(String id) => switch (id) {
+    _ when id.startsWith('cat-') =>
+      DeviceCategory.values
+              .where((c) => 'cat-${c.name}' == id)
+              .map<_Filter>(_Category.new)
+              .firstOrNull ??
+          const _ForYou(),
+    'live' => const _LiveOnly(),
+    'soon' => const _Soon(),
+    'timed' => const _Timed(),
+    // Kupi odmah je isključen (stare poveznice vode na Za tebe).
+    'buy' when kBuyNowEnabled => const _BuyNow(),
+    'digital' when kBuyNowEnabled => const _Digital(),
+    'following' => const _Following(),
+    _ => const _ForYou(),
+  };
+}
+
+class _ForYou extends _Filter {
+  const _ForYou();
+}
+
+class _LiveOnly extends _Filter {
+  const _LiveOnly();
+}
+
+class _Soon extends _Filter {
+  const _Soon();
+}
+
+class _Timed extends _Filter {
+  const _Timed();
+}
+
+class _BuyNow extends _Filter {
+  const _BuyNow();
+}
+
+class _Digital extends _Filter {
+  const _Digital();
+}
+
+class _Following extends _Filter {
+  const _Following();
+}
+
+/// Glavna kategorija (tab na početnoj, kao Whatnot): liveovi te kategorije.
+class _Category extends _Filter {
+  const _Category(this.category);
+  final DeviceCategory category;
+}
+
+class _LiveHomeScreenState extends ConsumerState<LiveHomeScreen> {
+  void _select(_Filter filter) {
+    ref.read(homeFilterProvider.notifier).select(filter.id);
+    // Početna je uvijek mreža (kao Whatnot); feed preko cijelog ekrana
+    // otvara se tek dodirom na karticu.
+    widget.onImmersiveChanged?.call(false);
+  }
+
+  /// Glavne kategorije za tabove: najgledanije/najpopunjenije, do 6.
+  static List<DeviceCategory> _mainCategories(AppState s) {
+    final list = [for (final c in trendingCategories(s)) c.category];
+    for (final c in DeviceCategory.values) {
+      if (list.length >= 6) break;
+      if (!list.contains(c)) list.add(c);
+    }
+    return list.take(6).toList();
+  }
+
+  Timer? _timer;
+  _Filter get _filter => _Filter.of(ref.read(homeFilterProvider));
+
+  /// Swipe lijevo/desno između gornjih tabova (kao TikTok): Pratim ·
+  /// Za tebe · Uživo · Pretraga.
+  static const _swipeTabs = ['following', 'for-you', 'live'];
+
+  void _swipe(DragEndDetails d) {
+    final v = d.primaryVelocity ?? 0;
+    if (v.abs() < 350) return;
+    final i = _swipeTabs.indexOf(_filter.id);
+    if (i < 0) {
+      // Ostali prikazi (Aukcije, Kupi odmah…): swipe vraća na Za tebe.
+      _select(const _ForYou());
+      return;
+    }
+    final next = v < 0 ? i + 1 : i - 1;
+    if (next >= _swipeTabs.length) {
+      SearchScreen.open(context);
+    } else if (next >= 0) {
+      _select(_Filter.of(_swipeTabs[next]));
+    }
+  }
+
+  /// Digitalne kupnje: prikaz kupljenog (inače "Kupi").
+  bool _digitalOwned = false;
+  bool _hideCheckout = false;
+  DeviceCategory? _liveCategory;
+  DeviceCategory? _auctionCategory;
+
+  /// "Kako Subhasto radi" vidi se samo pri prvom otvaranju — odmah se bilježi
+  /// kao viđeno, a do kraja ove sesije ostaje (dok ga ne zatvoriš).
+  late bool _showHow = ref.read(appProvider).showHowItWorks;
+
+  @override
+  void initState() {
+    super.initState();
+
+    if (_showHow) {
+      WidgetsBinding.instance.addPostFrameCallback(
+        (_) => ref.read(appProvider.notifier).dismissHowItWorks(),
+      );
+    }
+    // Liveovi počinju i završavaju sami (domaćin dođe ili ode).
+    if (ref.read(tickIntervalProvider) != null) {
+      _timer = Timer.periodic(const Duration(seconds: 5), (_) {
+        // The swipe feed manages its own queue. Avoid rebuilding it every 5 s.
+        if (mounted && widget.visible && _filter is! _ForYou) {
+          setState(() {});
+        }
+      });
+    }
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    ref.watch(homeFilterProvider);
+    final s = ref.watch(appProvider);
+    final me = s.currentUserId ?? '';
+    final all = browseItems(s);
+    final allLive = all.where((i) => i.live?.isLive ?? false).toList();
+    final live = allLive
+        .where(
+          (i) => _liveCategory == null || i.categories.contains(_liveCategory),
+        )
+        .toList();
+    final soon = all.where((i) => i.live?.isScheduled ?? false).toList();
+    final allAuctions = all.where((i) => i.auction != null).toList();
+    final auctions = allAuctions
+        .where(
+          (i) =>
+              _auctionCategory == null ||
+              i.categories.contains(_auctionCategory),
+        )
+        .toList();
+    final buyNow = all.where((i) => i.isBuyNow).toList();
+    final digital = buyNow.where((i) => i.device?.isDigital ?? false).toList();
+
+    void open(List<BrowseItem> list, int i, String title) {
+      // Signal za "Za tebe": što otvaraš (samo na ovom uređaju).
+      ref.read(storageProvider).addRecentCategories([
+        for (final c in list[i].categories) c.name,
+      ]);
+      SwipeFeedScreen.open(
+        context,
+        [for (final x in list) x.entry],
+        i,
+        title: title,
+      );
+    }
+
+    Widget grid(String key, List<BrowseItem> list, String title) =>
+        SliverPadding(
+          key: ValueKey(key),
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          sliver: SliverGrid(
+            gridDelegate: const BrowseGridDelegate(),
+            delegate: SliverChildBuilderDelegate(
+              (_, i) => AuctionBrowseCard(
+                item: list[i],
+                viewerId: me,
+                onTap: () => open(list, i, title),
+              ),
+              childCount: list.length,
+            ),
+          ),
+        );
+
+    // Računi koje pratiš i njihove objave (liveovi, aukcije, Kupi odmah).
+    final following =
+        _filter is! _Following ||
+            s.currentUser == null ||
+            s.currentUser!.isGuest
+        ? const <AppUser>[]
+        : s.followingListOf(me);
+    final followIds = {for (final u in following) u.id};
+    final theirs = [
+      for (final i in all)
+        if (followIds.contains(
+          i.show?.hostId ?? i.auction?.sellerId ?? i.device?.ownerId,
+        ))
+          i,
+    ];
+
+    final slivers = <Widget>[];
+    switch (_filter) {
+      case _Following():
+        if (following.isEmpty) {
+          slivers.add(
+            SliverToBoxAdapter(
+              child: Padding(
+                key: const ValueKey('home-following-empty'),
+                padding: const EdgeInsets.all(24),
+                child: Text(
+                  s.currentUser?.isGuest ?? true
+                      ? t(
+                          'Prijavi se i prati prodavače — njihovi oglasi bit će ovdje.',
+                        )
+                      : t(
+                          'Još nikoga ne pratiš. Dodirni "Prati" na liveu ili trgovini.',
+                        ),
+                  textAlign: TextAlign.center,
+                  style: TextStyle(color: LoopColors.textSecondary),
+                ),
+              ),
+            ),
+          );
+        } else {
+          slivers.add(const SliverToBoxAdapter(child: SizedBox(height: 8)));
+          slivers.add(
+            SliverToBoxAdapter(
+              child: _FollowingRow(
+                users: following,
+                liveBy: {for (final i in allLive) i.show!.hostId: i},
+                onLive: (i) => open([i], 0, t('Uživo')),
+              ),
+            ),
+          );
+          slivers.add(const SliverToBoxAdapter(child: SizedBox(height: 12)));
+          slivers.add(
+            theirs.isEmpty
+                ? SliverToBoxAdapter(
+                    child: Padding(
+                      padding: const EdgeInsets.all(16),
+                      child: Text(
+                        t('Računi koje pratiš trenutno nemaju oglasa.'),
+                        style: TextStyle(color: LoopColors.textSecondary),
+                      ),
+                    ),
+                  )
+                : grid('home-following', theirs, t('Pratim')),
+          );
+        }
+      case _ForYou():
+        // Kao Whatnot: skoro sve su liveovi — prvo uživo (najgledaniji),
+        // pa nadolazeći showovi, a aukcije i ponude tek na kraju (malo).
+        final liveNow = [...allLive]
+          ..sort(
+            (a, b) => (b.live?.viewers ?? 0).compareTo(a.live?.viewers ?? 0),
+          );
+        final rest = [
+          for (final i in all)
+            if (i.live == null) i,
+        ];
+        Widget head(String text, {VoidCallback? onAll}) => SliverToBoxAdapter(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(16, 12, 8, 10),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    text,
+                    style: const TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                ),
+                if (onAll != null)
+                  TextButton(
+                    onPressed: onAll,
+                    child: Text('${t('Prikaži sve')} ›'),
+                  ),
+              ],
+            ),
+          ),
+        );
+        if (liveNow.isNotEmpty) {
+          slivers.add(head(t('Uživo sada')));
+          slivers.add(grid('home-for-you-live', liveNow, t('Uživo')));
+        } else {
+          slivers.add(
+            SliverToBoxAdapter(
+              child: _EmptyLive(
+                onGoLive: () => CreateLiveShowScreen.open(context),
+              ),
+            ),
+          );
+        }
+        if (soon.isNotEmpty) {
+          slivers.add(
+            head(t('Uskoro uživo'), onAll: () => _select(const _Soon())),
+          );
+          slivers.add(
+            grid('home-for-you-soon', soon.take(4).toList(), t('Uskoro')),
+          );
+        }
+        if (rest.isNotEmpty) {
+          slivers.add(
+            head(t('Aukcije i ponude'), onAll: () => _select(const _Timed())),
+          );
+          slivers.add(
+            grid('home-for-you', rest.take(6).toList(), t('Za tebe')),
+          );
+        }
+      case _Category(:final category):
+        // Kategorija: liveovi i nadolazeći showovi te kategorije, pa ostalo.
+        final inCat = [
+          for (final i in all)
+            if (i.categories.contains(category)) i,
+        ];
+        final catLive =
+            [
+              for (final i in inCat)
+                if (i.live?.isLive ?? false) i,
+            ]..sort(
+              (a, b) => (b.live?.viewers ?? 0).compareTo(a.live?.viewers ?? 0),
+            );
+        final catSoon = [
+          for (final i in inCat)
+            if (i.live?.isScheduled ?? false) i,
+        ];
+        final catRest = [
+          for (final i in inCat)
+            if (i.live == null) i,
+        ];
+        Widget head(String text) => SliverToBoxAdapter(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 10),
+            child: Text(
+              text,
+              style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w900),
+            ),
+          ),
+        );
+        if (catLive.isNotEmpty) {
+          slivers.add(head(t('Uživo sada')));
+          slivers.add(grid('home-cat-live-grid', catLive, category.label));
+        }
+        if (catSoon.isNotEmpty) {
+          slivers.add(head(t('Uskoro uživo')));
+          slivers.add(grid('home-cat-soon-grid', catSoon, category.label));
+        }
+        if (catRest.isNotEmpty) {
+          slivers.add(head(t('Aukcije i ponude')));
+          slivers.add(grid('home-cat-rest-grid', catRest, category.label));
+        }
+        if (inCat.isEmpty) {
+          slivers.add(
+            SliverToBoxAdapter(
+              child: Padding(
+                key: const ValueKey('home-category-empty'),
+                padding: const EdgeInsets.all(24),
+                child: Text(
+                  t('U ovoj kategoriji trenutno nema showova ni predmeta.'),
+                  textAlign: TextAlign.center,
+                  style: TextStyle(color: LoopColors.textSecondary),
+                ),
+              ),
+            ),
+          );
+        }
+      case _Timed():
+        slivers.add(
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 10),
+              child: Text(
+                t('Aukcije'),
+                style: const TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ),
+          ),
+        );
+        slivers.add(
+          auctions.isEmpty
+              ? SliverToBoxAdapter(
+                  child: Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Text(
+                      t('Trenutno nema aukcija.'),
+                      style: TextStyle(color: LoopColors.textSecondary),
+                    ),
+                  ),
+                )
+              : grid('home-ending', auctions, t('Aukcije')),
+        );
+      case _Digital():
+        // Digitalno: odvojeno "Kupi" (još nije kupljeno) i "Kupljeno"
+        // (preuzimanje).
+        final boughtIds = {for (final d in s.myDigitalPurchases) d.id};
+        final toBuy = [
+          for (final i in digital)
+            if (!boughtIds.contains(i.device?.id)) i,
+        ];
+        final owned = [
+          for (final d in s.myDigitalPurchases) BrowseItem.item(d),
+        ];
+        final list = _digitalOwned ? owned : toBuy;
+        slivers.add(
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 10),
+              child: Wrap(
+                spacing: 8,
+                children: [
+                  ChoiceChip(
+                    key: const ValueKey('digital-buy'),
+                    avatar: const Icon(Icons.shopping_cart_outlined, size: 18),
+                    label: Text(t('Kupi ({0})', ['${toBuy.length}'])),
+                    selected: !_digitalOwned,
+                    onSelected: (_) => setState(() => _digitalOwned = false),
+                  ),
+                  ChoiceChip(
+                    key: const ValueKey('digital-owned'),
+                    avatar: const Icon(Icons.download_done, size: 18),
+                    label: Text(t('Kupljeno ({0})', ['${owned.length}'])),
+                    selected: _digitalOwned,
+                    onSelected: (_) => setState(() => _digitalOwned = true),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+        slivers.add(
+          list.isEmpty
+              ? SliverToBoxAdapter(
+                  child: Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Text(
+                      _digitalOwned
+                          ? t('Još nemaš digitalnih kupnji.')
+                          : t('Trenutno nema digitalnih proizvoda.'),
+                      style: TextStyle(color: LoopColors.textSecondary),
+                    ),
+                  ),
+                )
+              : grid(
+                  _digitalOwned ? 'home-digital-owned' : 'home-digital',
+                  list,
+                  t('Digitalne kupnje'),
+                ),
+        );
+      case _BuyNow():
+        slivers.add(const SliverToBoxAdapter(child: SizedBox(height: 12)));
+        slivers.add(
+          buyNow.isEmpty
+              ? SliverToBoxAdapter(
+                  child: Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Text(
+                      t('Još nema predmeta za Kupi odmah.'),
+                      style: TextStyle(color: LoopColors.textSecondary),
+                    ),
+                  ),
+                )
+              : grid('home-buy', buyNow, t('Kupi odmah')),
+        );
+      case _LiveOnly():
+        if (BackendConfig.cloudLiveEnabled &&
+            BackendConfig.cloudCommerceEnabled &&
+            ref.read(syncProvider) != null) {
+          slivers.add(
+            const SliverFillRemaining(
+              child: CloudCommerceScreen(liveOnly: true, embedded: true),
+            ),
+          );
+          break;
+        }
+        slivers.add(const SliverToBoxAdapter(child: SizedBox(height: 12)));
+        slivers.add(
+          live.isEmpty
+              ? SliverToBoxAdapter(
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    child: _liveCategory == null
+                        ? _EmptyLive(
+                            onGoLive: () => CreateLiveShowScreen.open(context),
+                          )
+                        : Column(
+                            children: [
+                              const SizedBox(height: 20),
+                              Text(
+                                t('Trenutno nema liveova u ovoj kategoriji.'),
+                                textAlign: TextAlign.center,
+                              ),
+                              TextButton(
+                                onPressed: () =>
+                                    setState(() => _liveCategory = null),
+                                child: Text(t('Sve kategorije')),
+                              ),
+                            ],
+                          ),
+                  ),
+                )
+              : grid('home-live', live, t('Uživo sada')),
+        );
+      case _Soon():
+        slivers.add(const SliverToBoxAdapter(child: SizedBox(height: 12)));
+        slivers.add(
+          soon.isEmpty
+              ? SliverToBoxAdapter(
+                  child: Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Text(
+                      t('Nema zakazanih liveova.'),
+                      style: TextStyle(color: LoopColors.textSecondary),
+                    ),
+                  ),
+                )
+              : grid('home-soon', soon, t('Uskoro')),
+        );
+    }
+
+    // Bez TikTok prikaza na početnoj: uvijek tražilica i tabovi.
+    final foreground = LoopColors.textPrimary;
+    final chips = ColoredBox(
+      color: LoopColors.background,
+      child: SafeArea(
+        bottom: false,
+        child: Center(
+          heightFactor: 1,
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 520),
+            child: Row(
+              key: const ValueKey('home-cats'),
+              children: [
+                // Whatnot: široka tražilica, poruke i obavijesti.
+                Expanded(
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(12, 8, 6, 8),
+                    child: InkWell(
+                      key: const ValueKey('home-search'),
+                      borderRadius: BorderRadius.circular(99),
+                      onTap: () => SearchScreen.open(context),
+                      child: Container(
+                        height: 44,
+                        padding: const EdgeInsets.symmetric(horizontal: 14),
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(99),
+                          border: Border.all(
+                            color: LoopColors.textSecondary.withValues(
+                              alpha: 0.6,
+                            ),
+                            width: 1.5,
+                          ),
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(Icons.search, color: LoopColors.textSecondary),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: Text(
+                                t('Traži na Subhastu'),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                  color: LoopColors.textSecondary,
+                                  fontSize: 15,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+                // Šire razine već imaju poruke i obavijesti u gornjoj traci.
+                if (MediaQuery.sizeOf(context).width < 600) ...const [
+                  MessagesButton(),
+                  NotificationBell(),
+                  AccountMenuButton(),
+                ],
+                IconButton(
+                  key: const ValueKey('home-filters'),
+                  tooltip: t('Filteri'),
+                  color: foreground,
+                  onPressed: () async {
+                    final picked = await showModalBottomSheet<Object>(
+                      context: context,
+                      showDragHandle: true,
+                      isScrollControlled: true,
+                      constraints: BoxConstraints(
+                        maxHeight: MediaQuery.sizeOf(context).height * 0.85,
+                      ),
+                      builder: (ctx) => SafeArea(
+                        child: SingleChildScrollView(
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              for (final (id, label, icon, value)
+                                  in <(String, String, IconData, Object)>[
+                                    if (BackendConfig.cloudCommerceEnabled)
+                                      (
+                                        'cloud',
+                                        'Plaćanja i narudžbe',
+                                        Icons.cloud_outlined,
+                                        'cloud',
+                                      ),
+                                    (
+                                      'categories',
+                                      t('Kategorije'),
+                                      Icons.grid_view,
+                                      'categories',
+                                    ),
+                                    (
+                                      'my',
+                                      t('Moje'),
+                                      Icons.local_activity_outlined,
+                                      'my',
+                                    ),
+                                    (
+                                      'live-menu',
+                                      t('Uživo'),
+                                      Icons.videocam_outlined,
+                                      const _LiveOnly(),
+                                    ),
+                                    if (kBuyNowEnabled)
+                                      (
+                                        'digital',
+                                        t('Digitalne kupnje'),
+                                        Icons.download_outlined,
+                                        const _Digital(),
+                                      ),
+                                    (
+                                      'soon',
+                                      t('Uskoro'),
+                                      Icons.event,
+                                      const _Soon(),
+                                    ),
+                                    (
+                                      'timed',
+                                      t('Aukcije'),
+                                      Icons.gavel,
+                                      const _Timed(),
+                                    ),
+                                    if (kBuyNowEnabled)
+                                      (
+                                        'buy',
+                                        t('Kupi odmah'),
+                                        Icons.shopping_bag_outlined,
+                                        const _BuyNow(),
+                                      ),
+                                  ])
+                                ListTile(
+                                  key: ValueKey('home-cat-$id'),
+                                  leading: Icon(icon),
+                                  title: Text(label),
+                                  onTap: () => Navigator.pop(ctx, value),
+                                ),
+                              const Divider(),
+                              const Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  MessagesButton(),
+                                  NotificationBell(),
+                                ],
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    );
+                    if (!mounted || !context.mounted) return;
+                    if (picked == 'cloud') {
+                      await Navigator.of(context).push(
+                        MaterialPageRoute<void>(
+                          settings: AppPlace.of('cloud', 'live').settings,
+                          builder: (_) => const CloudCommerceScreen(
+                            initialTab: 2,
+                            liveOnly: true,
+                          ),
+                        ),
+                      );
+                    } else if (picked == 'categories') {
+                      await CategoriesScreen.open(context);
+                    } else if (picked == 'my') {
+                      ref.read(homeTabProvider.notifier).select(2);
+                    } else if (picked is _Filter) {
+                      _select(picked);
+                    }
+                  },
+                  icon: const Icon(Icons.tune),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+
+    final onLive = _filter is _LiveOnly;
+    final onAuctions = _filter is _Timed;
+    final selectedCategory = onLive
+        ? _liveCategory
+        : onAuctions
+        ? _auctionCategory
+        : null;
+    Future<void> categories() async {
+      if (!onLive && !onAuctions) {
+        await CategoriesScreen.open(context);
+        return;
+      }
+      final counts = <DeviceCategory, int>{};
+      for (final item in onLive ? allLive : allAuctions) {
+        for (final c in item.categories) {
+          counts[c] = (counts[c] ?? 0) + 1;
+        }
+      }
+      final picked = await pickBrowseCategory(
+        context,
+        title: onLive ? t('Kategorije uživo') : t('Kategorije aukcija'),
+        keyPrefix: onLive ? 'live-category' : 'auction-category',
+        counts: counts,
+        selected: selectedCategory,
+      );
+      if (picked == null || !mounted) return;
+      setState(() {
+        if (onLive) {
+          _liveCategory = picked.category;
+        } else {
+          _auctionCategory = picked.category;
+        }
+      });
+    }
+
+    final categoryFilter = Padding(
+      padding: const EdgeInsets.fromLTRB(16, 4, 16, 0),
+      child: Align(
+        alignment: Alignment.centerLeft,
+        child: ActionChip(
+          key: ValueKey(
+            onLive ? 'live-category-filter' : 'auction-category-filter',
+          ),
+          avatar: const Icon(Icons.filter_list, size: 16),
+          label: Text(selectedCategory?.label ?? t('Sve kategorije')),
+          onPressed: categories,
+          visualDensity: VisualDensity.compact,
+        ),
+      ),
+    );
+
+    return Column(
+      children: [
+        chips,
+        _TileRow(
+          selected: _filter.id,
+          onSelect: (f) => _select(f),
+          onCategories: () => CategoriesScreen.open(context),
+          categories: _mainCategories(s),
+        ),
+        Expanded(
+          child: GestureDetector(
+            key: const ValueKey('home-swipe'),
+            behavior: HitTestBehavior.translucent,
+            onHorizontalDragEnd: _swipe,
+            child: CustomScrollView(
+              slivers: [
+                if (onLive || onAuctions)
+                  SliverToBoxAdapter(child: categoryFilter),
+                if (_showHow && _filter is _ForYou)
+                  SliverToBoxAdapter(
+                    child: _HowLoopWorks(
+                      onClose: () => setState(() => _showHow = false),
+                    ),
+                  ),
+                if (!_hideCheckout &&
+                    s.currentUser != null &&
+                    !s.currentUser!.isGuest &&
+                    !s.currentUser!.checkoutReady)
+                  SliverToBoxAdapter(
+                    child: _CheckoutBanner(
+                      onClose: () => setState(() => _hideCheckout = true),
+                    ),
+                  ),
+                ...slivers,
+                const SliverToBoxAdapter(child: SizedBox(height: 96)),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+/// Kratko objašnjenje tri načina kupnje (može se sakriti zauvijek).
+class _HowLoopWorks extends ConsumerWidget {
+  const _HowLoopWorks({required this.onClose});
+  final VoidCallback onClose;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final ways = [
+      ('🔴', t('Uživo'), t('Licitiraj dok prodavač pokazuje predmet')),
+      ('⏱', t('Aukcije'), t('Najviša ponuda kad istekne vrijeme')),
+      if (kBuyNowEnabled)
+        ('🛒', t('Kupi odmah'), t('Fiksna cijena, kupnja jednim dodirom')),
+    ];
+    return Padding(
+      key: const ValueKey('home-how'),
+      padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+      child: Card(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(14, 6, 4, 12),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      t('Kako Subhasto radi'),
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                  ),
+                  IconButton(
+                    key: const ValueKey('home-how-close'),
+                    tooltip: t('Sakrij'),
+                    onPressed: onClose,
+                    icon: const Icon(Icons.close, size: 20),
+                  ),
+                ],
+              ),
+              for (final (emoji, title, text) in ways)
+                Padding(
+                  padding: const EdgeInsets.only(top: 6, right: 10),
+                  child: Row(
+                    children: [
+                      Text(emoji, style: const TextStyle(fontSize: 20)),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Text.rich(
+                          TextSpan(
+                            children: [
+                              TextSpan(
+                                text: '$title  ',
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.w800,
+                                ),
+                              ),
+                              TextSpan(
+                                text: text,
+                                style: TextStyle(
+                                  color: LoopColors.textSecondary,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Podsjetnik: s karticom i adresom kupuješ i licitiraš jednim dodirom.
+class _CheckoutBanner extends ConsumerWidget {
+  const _CheckoutBanner({required this.onClose});
+
+  final VoidCallback onClose;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+      child: Material(
+        color: LoopColors.peach,
+        borderRadius: BorderRadius.circular(16),
+        child: InkWell(
+          key: const ValueKey('home-checkout'),
+          borderRadius: BorderRadius.circular(16),
+          onTap: () => ensureCheckout(context, ref, force: true),
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(14, 6, 4, 6),
+            child: Row(
+              children: [
+                const Icon(Icons.credit_card),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    t(
+                      'Dodaj karticu i adresu — licitiraj i kupuj jednim dodirom',
+                    ),
+                    style: const TextStyle(fontWeight: FontWeight.w700),
+                  ),
+                ),
+                IconButton(
+                  tooltip: t('Sakrij'),
+                  onPressed: onClose,
+                  icon: const Icon(Icons.close, size: 20),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _EmptyLive extends StatelessWidget {
+  const _EmptyLive({required this.onGoLive});
+  final VoidCallback onGoLive;
+
+  @override
+  Widget build(BuildContext context) => Container(
+    padding: const EdgeInsets.all(16),
+    decoration: BoxDecoration(
+      gradient: const LinearGradient(
+        begin: Alignment.topLeft,
+        end: Alignment.bottomRight,
+        colors: [Color(0xFFC8441E), kLiveRed],
+      ),
+      borderRadius: BorderRadius.circular(kRadius),
+    ),
+    child: Row(
+      children: [
+        const Icon(Icons.videocam, color: Colors.white, size: 30),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Text(
+            t('Nitko trenutno nije uživo — budi prvi!'),
+            style: const TextStyle(
+              color: Colors.white,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+        ),
+        FilledButton(
+          key: const ValueKey('home-go-live'),
+          style: FilledButton.styleFrom(
+            backgroundColor: Colors.white,
+            foregroundColor: kLiveRed,
+          ),
+          onPressed: onGoLive,
+          child: Text(t('Kreni uživo')),
+        ),
+      ],
+    ),
+  );
+}
+
+/// Računi koje pratiš (kao priče): krug s avatarom, crveni prsten i
+/// UŽIVO kad emitira (dodir ulazi u live), inače otvara trgovinu.
+class _FollowingRow extends StatelessWidget {
+  const _FollowingRow({
+    required this.users,
+    required this.liveBy,
+    required this.onLive,
+  });
+
+  final List<AppUser> users;
+  final Map<String, BrowseItem> liveBy;
+  final void Function(BrowseItem) onLive;
+
+  @override
+  Widget build(BuildContext context) {
+    // Oni koji su uživo idu prvi.
+    final list = [...users]
+      ..sort(
+        (a, b) => (liveBy.containsKey(b.id) ? 1 : 0).compareTo(
+          liveBy.containsKey(a.id) ? 1 : 0,
+        ),
+      );
+    return SizedBox(
+      height: 96,
+      child: ListView.separated(
+        key: const ValueKey('home-following-row'),
+        scrollDirection: Axis.horizontal,
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        itemCount: list.length,
+        separatorBuilder: (_, _) => const SizedBox(width: 12),
+        itemBuilder: (context, i) {
+          final u = list[i];
+          final live = liveBy[u.id];
+          return InkWell(
+            key: ValueKey('following-${u.id}'),
+            borderRadius: BorderRadius.circular(40),
+            onTap: () => live != null
+                ? onLive(live)
+                : PublicProfileScreen.open(context, u.id),
+            child: SizedBox(
+              width: 66,
+              child: Column(
+                children: [
+                  Stack(
+                    clipBehavior: Clip.none,
+                    alignment: Alignment.bottomCenter,
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(2.5),
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          border: Border.all(
+                            color: live != null
+                                ? LoopColors.live
+                                : LoopColors.surfaceHover,
+                            width: 2.5,
+                          ),
+                        ),
+                        child: UserAvatar(user: u, size: 54),
+                      ),
+                      if (live != null)
+                        Positioned(
+                          bottom: -6,
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 5,
+                              vertical: 1,
+                            ),
+                            decoration: BoxDecoration(
+                              color: LoopColors.live,
+                              borderRadius: BorderRadius.circular(4),
+                            ),
+                            child: Text(
+                              t('UŽIVO'),
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.w900,
+                                fontSize: 9,
+                              ),
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    u.handle,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      fontSize: 11.5,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+}
+
+/// Whatnot: vodoravni red velikih pločica (Za tebe, Pratim, Uživo…).
+/// Vodoravni tekstualni tabovi (kao Whatnot): aktivni je podebljan i
+/// podcrtan, ostali sivi. Zamjenjuje velike pločice.
+class _TileRow extends StatelessWidget {
+  const _TileRow({
+    required this.selected,
+    required this.onSelect,
+    required this.onCategories,
+    this.categories = const [],
+  });
+
+  /// Glavne kategorije kao tabovi (kao Whatnot: For You, Following, pa
+  /// kategorije).
+  final List<DeviceCategory> categories;
+
+  final String selected;
+  final void Function(_Filter) onSelect;
+  final VoidCallback onCategories;
+
+  @override
+  Widget build(BuildContext context) {
+    Widget tab({
+      required String id,
+      required String label,
+      required VoidCallback onTap,
+      Key? key,
+    }) {
+      final on = selected == id;
+      return InkWell(
+        key: key ?? ValueKey('tile-$id'),
+        onTap: onTap,
+        child: Container(
+          constraints: const BoxConstraints(minHeight: 48),
+          padding: const EdgeInsets.symmetric(horizontal: 14),
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            border: Border(
+              bottom: BorderSide(
+                color: on ? LoopColors.accent : Colors.transparent,
+                width: 3,
+              ),
+            ),
+          ),
+          child: Text(
+            label,
+            style: TextStyle(
+              fontSize: 17,
+              fontWeight: on ? FontWeight.w800 : FontWeight.w500,
+              color: on ? LoopColors.textPrimary : LoopColors.textSecondary,
+            ),
+          ),
+        ),
+      );
+    }
+
+    return SizedBox(
+      height: 50,
+      child: ListView(
+        key: const ValueKey('home-tiles'),
+        scrollDirection: Axis.horizontal,
+        padding: const EdgeInsets.symmetric(horizontal: 6),
+        children: [
+          tab(
+            id: 'for-you',
+            key: const ValueKey('home-cat-for-you'),
+            label: t('Za tebe'),
+            onTap: () => onSelect(const _ForYou()),
+          ),
+          tab(
+            id: 'following',
+            key: const ValueKey('home-cat-following'),
+            label: t('Pratim'),
+            onTap: () => onSelect(const _Following()),
+          ),
+          tab(
+            id: 'live',
+            key: const ValueKey('home-cat-live'),
+            label: t('Uživo'),
+            onTap: () => onSelect(const _LiveOnly()),
+          ),
+          for (final c in categories)
+            tab(
+              id: 'cat-${c.name}',
+              key: ValueKey('home-tab-cat-${c.name}'),
+              label: c.label,
+              onTap: () => onSelect(_Category(c)),
+            ),
+          tab(
+            id: 'timed',
+            label: t('Aukcije'),
+            onTap: () => onSelect(const _Timed()),
+          ),
+          if (kBuyNowEnabled)
+            tab(
+              id: 'buy',
+              label: t('Kupi odmah'),
+              onTap: () => onSelect(const _BuyNow()),
+            ),
+          tab(
+            id: 'soon',
+            label: t('Uskoro'),
+            onTap: () => onSelect(const _Soon()),
+          ),
+          tab(id: 'categories', label: t('Kategorije'), onTap: onCategories),
+        ],
+      ),
+    );
+  }
+}
