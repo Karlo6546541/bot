@@ -86,7 +86,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                         compact: true,
                         trailing: _settingsButton(),
                       ),
-                      Row(
+                      Wrap(
+                        alignment: WrapAlignment.center,
                         children: [
                           _stat(
                             '${state.followersOf(user.id)}',
@@ -118,18 +119,14 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                             child: OutlinedButton.icon(
                               key: const ValueKey('profile-edit'),
                               style: OutlinedButton.styleFrom(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 10,
-                                  vertical: 10,
-                                ),
-                                minimumSize: const Size(0, 42),
+                                backgroundColor: LoopColors.surfaceHover,
+                                side: BorderSide.none,
+                                minimumSize: const Size(0, 44),
                                 textStyle: const TextStyle(
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.w600,
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w700,
                                 ),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
+                                shape: const StadiumBorder(),
                               ),
                               onPressed: () => EditProfileScreen.open(context),
                               icon: const Icon(Icons.edit_outlined, size: 17),
@@ -141,18 +138,12 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                             child: FilledButton.icon(
                               key: const ValueKey('profile-create'),
                               style: FilledButton.styleFrom(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 10,
-                                  vertical: 10,
-                                ),
-                                minimumSize: const Size(0, 42),
+                                minimumSize: const Size(0, 44),
                                 textStyle: const TextStyle(
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.w600,
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w700,
                                 ),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
+                                shape: const StadiumBorder(),
                               ),
                               onPressed: () {
                                 setState(() => _liked = false);
@@ -271,41 +262,64 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     icon: const Icon(Icons.settings_outlined),
   );
 
+  /// Broj i naziv u istom retku ("12 pratitelja"), kao Whatnot.
   Widget _stat(String value, String label, String key, VoidCallback onTap) =>
-      Expanded(
-        child: TextButton(
-          key: ValueKey(key),
-          onPressed: onTap,
-          child: Column(
+      TextButton(
+        key: ValueKey(key),
+        style: TextButton.styleFrom(
+          minimumSize: const Size(0, 40),
+          padding: const EdgeInsets.symmetric(horizontal: 10),
+        ),
+        onPressed: onTap,
+        child: Text.rich(
+          TextSpan(
             children: [
-              Text(
-                value,
+              TextSpan(
+                text: value,
                 style: TextStyle(
                   color: LoopColors.textPrimary,
-                  fontSize: 20,
-                  fontWeight: FontWeight.w700,
+                  fontSize: 16,
+                  fontWeight: FontWeight.w800,
                 ),
               ),
-              Text(
-                label,
-                style: TextStyle(color: LoopColors.textSecondary, fontSize: 11),
+              TextSpan(
+                text: ' $label',
+                style: TextStyle(color: LoopColors.textSecondary, fontSize: 14),
               ),
             ],
           ),
         ),
       );
 
-  Widget _tab(bool liked, IconData icon, String label) => TextButton.icon(
-    key: ValueKey(liked ? 'profile-liked-tab' : 'profile-posts-tab'),
-    style: TextButton.styleFrom(
-      foregroundColor: _liked == liked
-          ? LoopColors.accent
-          : LoopColors.textSecondary,
-    ),
-    onPressed: () => setState(() => _liked = liked),
-    icon: Icon(icon, size: 18),
-    label: Text(label, maxLines: 1),
-  );
+  /// Tekstualni tab s podcrtom (kao Whatnot).
+  Widget _tab(bool liked, IconData icon, String label) {
+    final on = _liked == liked;
+    return InkWell(
+      key: ValueKey(liked ? 'profile-liked-tab' : 'profile-posts-tab'),
+      onTap: () => setState(() => _liked = liked),
+      child: Container(
+        height: 46,
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          border: Border(
+            bottom: BorderSide(
+              color: on ? LoopColors.textPrimary : Colors.transparent,
+              width: 2,
+            ),
+          ),
+        ),
+        child: Text(
+          label,
+          maxLines: 1,
+          style: TextStyle(
+            fontSize: 16,
+            fontWeight: on ? FontWeight.w800 : FontWeight.w500,
+            color: on ? LoopColors.textPrimary : LoopColors.textSecondary,
+          ),
+        ),
+      ),
+    );
+  }
 }
 
 class _AccountPostTile extends ConsumerWidget {

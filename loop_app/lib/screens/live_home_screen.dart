@@ -1059,6 +1059,8 @@ class _FollowingRow extends StatelessWidget {
 }
 
 /// Whatnot: vodoravni red velikih pločica (Za tebe, Pratim, Uživo…).
+/// Vodoravni tekstualni tabovi (kao Whatnot): aktivni je podebljan i
+/// podcrtan, ostali sivi. Zamjenjuje velike pločice.
 class _TileRow extends StatelessWidget {
   const _TileRow({
     required this.selected,
@@ -1072,105 +1074,82 @@ class _TileRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    Widget tile({
+    Widget tab({
       required String id,
       required String label,
-      required Widget art,
       required VoidCallback onTap,
       Key? key,
     }) {
       final on = selected == id;
-      return Padding(
-        padding: const EdgeInsets.only(right: 10),
-        child: InkWell(
-          key: key ?? ValueKey('tile-$id'),
-          borderRadius: BorderRadius.circular(14),
-          onTap: onTap,
-          child: Container(
-            width: 112,
-            height: 132,
-            padding: const EdgeInsets.all(10),
-            decoration: BoxDecoration(
-              color: on ? LoopColors.accent : LoopColors.surface,
-              borderRadius: BorderRadius.circular(14),
-              border: on ? Border.all(color: Colors.white, width: 2.5) : null,
+      return InkWell(
+        key: key ?? ValueKey('tile-$id'),
+        onTap: onTap,
+        child: Container(
+          constraints: const BoxConstraints(minHeight: 48),
+          padding: const EdgeInsets.symmetric(horizontal: 14),
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            border: Border(
+              bottom: BorderSide(
+                color: on ? LoopColors.accent : Colors.transparent,
+                width: 3,
+              ),
             ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  label,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    color: on ? LoopColors.onAccent : LoopColors.textPrimary,
-                    fontWeight: FontWeight.w800,
-                    fontSize: 14,
-                    height: 1.15,
-                  ),
-                ),
-                Expanded(child: Center(child: art)),
-              ],
+          ),
+          child: Text(
+            label,
+            style: TextStyle(
+              fontSize: 17,
+              fontWeight: on ? FontWeight.w800 : FontWeight.w500,
+              color: on ? LoopColors.textPrimary : LoopColors.textSecondary,
             ),
           ),
         ),
       );
     }
 
-    final yellow = LoopColors.accent;
     return SizedBox(
-      height: 144,
+      height: 50,
       child: ListView(
         key: const ValueKey('home-tiles'),
         scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.fromLTRB(12, 4, 2, 8),
+        padding: const EdgeInsets.symmetric(horizontal: 6),
         children: [
-          tile(
+          tab(
             id: 'for-you',
             key: const ValueKey('home-cat-for-you'),
             label: t('Za tebe'),
-            art: Icon(Icons.person, size: 54, color: LoopColors.onAccent),
             onTap: () => onSelect(const _ForYou()),
           ),
-          tile(
+          tab(
             id: 'following',
             key: const ValueKey('home-cat-following'),
             label: t('Pratim'),
-            art: Icon(Icons.favorite, size: 54, color: yellow),
             onTap: () => onSelect(const _Following()),
           ),
-          tile(
+          tab(
             id: 'live',
             key: const ValueKey('home-cat-live'),
             label: t('Uživo'),
-            art: const Icon(Icons.videocam, size: 54, color: Color(0xFFFF2D55)),
             onTap: () => onSelect(const _LiveOnly()),
           ),
-          tile(
+          tab(
             id: 'timed',
             label: t('Aukcije'),
-            art: Icon(Icons.gavel, size: 50, color: yellow),
             onTap: () => onSelect(const _Timed()),
           ),
           if (kBuyNowEnabled)
-            tile(
+            tab(
               id: 'buy',
               label: t('Kupi odmah'),
-              art: Icon(Icons.shopping_bag, size: 50, color: yellow),
               onTap: () => onSelect(const _BuyNow()),
             ),
-          tile(
+          tab(
             id: 'soon',
             label: t('Uskoro'),
-            art: Icon(Icons.event, size: 50, color: yellow),
             onTap: () => onSelect(const _Soon()),
           ),
-          tile(
-            id: 'categories',
-            label: t('Kategorije'),
-            art: Icon(Icons.grid_view_rounded, size: 50, color: yellow),
-            onTap: onCategories,
-          ),
+          tab(id: 'categories', label: t('Kategorije'), onTap: onCategories),
         ],
       ),
     );
