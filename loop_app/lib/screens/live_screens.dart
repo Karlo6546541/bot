@@ -1541,6 +1541,9 @@ class _LiveRoomViewState extends ConsumerState<_LiveRoomBody> {
 
   bool _muted = false;
 
+  /// Filter chata za voditelja: sve / pitanja / ponude.
+  _ChatFilter _chatFilter = _ChatFilter.all;
+
   void _toggleSound() {
     setState(() => _muted = !_muted);
     LiveSound.muted = _muted;
@@ -2603,7 +2606,10 @@ class _LiveRoomViewState extends ConsumerState<_LiveRoomBody> {
                             Positioned(
                               right: 8,
                               top: 4,
-                              child: _HostControls(broadcaster: b),
+                              child: _HostControls(
+                                broadcaster: b,
+                                onMore: () => _showHostOptions(show),
+                              ),
                             ),
                           Positioned(
                             right: 0,
@@ -2665,15 +2671,29 @@ class _LiveRoomViewState extends ConsumerState<_LiveRoomBody> {
                                     constraints: BoxConstraints(
                                       maxWidth: isHost ? 300 : 220,
                                     ),
-                                    child: _ChatFeed(
-                                      feed: st.feed,
-                                      me: me?.id,
-                                      hostId: show.hostId,
-                                      large: isHost,
-                                      maxHeight: math.min(
-                                        isHost ? 280 : 150,
-                                        c.maxHeight * (isHost ? 0.7 : 0.55),
-                                      ),
+                                    child: Column(
+                                      mainAxisSize: MainAxisSize.min,
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        _ChatFeed(
+                                          feed: st.feed,
+                                          me: me?.id,
+                                          hostId: show.hostId,
+                                          filter: _chatFilter,
+                                          large: isHost,
+                                          maxHeight: math.min(
+                                            isHost ? 280 : 150,
+                                            c.maxHeight * (isHost ? 0.7 : 0.55),
+                                          ),
+                                        ),
+                                        if (isHost && !composing)
+                                          _ChatFilterChips(
+                                            value: _chatFilter,
+                                            onChanged: (f) =>
+                                                setState(() => _chatFilter = f),
+                                          ),
+                                      ],
                                     ),
                                   ),
                                 ),
@@ -4188,6 +4208,54 @@ class _LotCard extends StatelessWidget {
 /// Chat preko videa kao na Whatnotu: avatar, ime (domaćin s oznakom) i
 /// poruka, bez oblačića. Ponude su istaknute, a reakcije (srca) lete uz
 /// desni rub umjesto da zatrpaju chat.
+class _ChatFilterChips extends StatelessWidget {
+  const _ChatFilterChips({required this.value, required this.onChanged});
+  final _ChatFilter value;
+  final ValueChanged<_ChatFilter> onChanged;
+
+  @override
+  Widget build(BuildContext context) => Padding(
+    padding: const EdgeInsets.only(top: 4),
+    child: Wrap(
+      spacing: 6,
+      children: [
+        for (final f in _ChatFilter.values)
+          ChoiceChip(
+            key: ValueKey('chat-filter-${f.name}'),
+            label: Text(t(f.label)),
+            selected: f == value,
+            showCheckmark: false,
+            visualDensity: VisualDensity.compact,
+            labelStyle: TextStyle(
+              color: f == value ? LoopColors.onAccent : Colors.white,
+              fontWeight: FontWeight.w700,
+              fontSize: 12,
+            ),
+            backgroundColor: const Color(0x99202127),
+            selectedColor: LoopColors.accent,
+            side: BorderSide.none,
+            onSelected: (_) => onChanged(f),
+          ),
+      ],
+    ),
+  );
+}
+
+enum _ChatFilter {
+  all('Sve'),
+  questions('Pitanja'),
+  bids('Ponude');
+
+  const _ChatFilter(this.label);
+  final String label;
+
+  bool accepts(LiveEvent e) => switch (this) {
+    all => true,
+    questions => e.type == LiveEventType.chat && e.text.contains('?'),
+    bids => e.type == LiveEventType.bid || e.type == LiveEventType.take,
+  };
+}
+
 class _ChatFeed extends ConsumerWidget {
   const _ChatFeed({
     required this.feed,
@@ -4195,9 +4263,11 @@ class _ChatFeed extends ConsumerWidget {
     required this.hostId,
     this.maxHeight = 210,
     this.large = false,
+    this.filter = _ChatFilter.all,
   });
 
   final double maxHeight;
+  final _ChatFilter filter;
 
   /// Veći tekst (voditelj).
   final bool large;
@@ -4210,7 +4280,7 @@ class _ChatFeed extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final lines = [
       for (final e in feed)
-        if (!_LiveRoomViewState.isReaction(e)) e,
+        if (!_LiveRoomViewState.isReaction(e) && filter.accepts(e)) e,
     ];
     final s = ref.watch(appProvider);
     // Cijeli chat se može listati (najnovije dolje); gore blijedi.
@@ -4698,8 +4768,9 @@ class _VideoStatus extends StatelessWidget {
 
 /// Domaćin: okreni kameru, mikrofon, kamera uključena/isključena.
 class _HostControls extends StatelessWidget {
-  const _HostControls({required this.broadcaster});
+  const _HostControls({required this.broadcaster, required this.onMore});
   final LiveBroadcaster broadcaster;
+  final VoidCallback onMore;
 
   @override
   Widget build(BuildContext context) {
@@ -4725,6 +4796,7 @@ class _HostControls extends StatelessWidget {
     );
     return Column(
       children: [
+        button('live-rail-more', t('Više'), Icons.more_horiz, onMore),
         button(
           'live-cam-flip',
           t('Okreni kameru'),

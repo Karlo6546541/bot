@@ -1128,6 +1128,12 @@ void main() {
       expect(find.byKey(const ValueKey('live-lot')), findsOneWidget);
       expect(find.byKey(const ValueKey('live-bid')), findsNothing);
       expect(storage.liveShowById(show.id)!.lots.first.startedAt, isNotNull);
+      // Filteri chata (samo voditelj).
+      expect(find.byKey(const ValueKey('chat-filter-all')), findsOneWidget);
+      await tester.tap(find.byKey(const ValueKey('chat-filter-questions')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('chat-filter-all')));
+      await tester.pumpAndSettle();
       // Novi predmet usred livea.
       await tester.tap(find.byKey(const ValueKey('live-host-menu')));
       await tester.pumpAndSettle();

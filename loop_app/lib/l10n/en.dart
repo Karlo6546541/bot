@@ -2674,4 +2674,5 @@ const kEn = <String, String>{
       'Followers and everyone who saved the show will be notified.',
   'Idi uživo': 'Go live',
   'Live opcije': 'Live options',
+  'Pitanja': 'Questions',
 };
