@@ -31,28 +31,19 @@ class ShellDestination {
     if (!action) {
       return Icon(selected ? selectedIcon : icon, size: compact ? 25 : null);
     }
-    // Whatnot: "Sell" je okrugli plus s obrubom, kao ostale ikone.
-    if (compact) {
-      return Container(
-        key: const ValueKey('nav-create'),
-        width: 26,
-        height: 26,
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          border: Border.all(color: Colors.white, width: 2),
-        ),
-        child: const Icon(Icons.add, color: Colors.white, size: 18),
-      );
-    }
     return Container(
       key: const ValueKey('nav-create'),
       width: 44,
       height: 32,
       decoration: BoxDecoration(
         color: Theme.of(context).colorScheme.primary,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(compact ? 8 : 12),
       ),
-      child: Icon(icon, color: LoopColors.onAccent),
+      child: Icon(
+        icon,
+        color: compact ? Colors.white : LoopColors.onAccent,
+        size: compact ? 22 : null,
+      ),
     );
   }
 }
@@ -84,12 +75,12 @@ class AdaptiveShell extends StatelessWidget {
   Widget _navigation(BuildContext context, {bool compact = false}) =>
       NavigationBar(
         key: ValueKey(compact ? 'feed-navigation' : 'main-navigation'),
-        // Mobitel (Whatnot): ikone s natpisima na tamnoj traci.
+        // Mobitel: ikone s natpisima na tamnosivoj traci.
         height: compact ? 64 : null,
         labelBehavior: compact
             ? NavigationDestinationLabelBehavior.alwaysShow
             : null,
-        backgroundColor: compact ? const Color(0xFF1C1C1C) : null,
+        backgroundColor: compact ? const Color(0xFF26272C) : null,
         surfaceTintColor: compact ? Colors.transparent : null,
         indicatorColor: compact ? Colors.transparent : null,
         selectedIndex: selectedIndex,
@@ -129,15 +120,15 @@ class AdaptiveShell extends StatelessWidget {
                       ? FontWeight.w800
                       : FontWeight.w600,
                   color: states.contains(WidgetState.selected)
-                      ? Colors.white
-                      : const Color(0xFF9A9A9A),
+                      ? const Color(0xFFE9E9ED)
+                      : const Color(0xFF92939D),
                 ),
               ),
               iconTheme: WidgetStateProperty.resolveWith(
                 (states) => IconThemeData(
                   color: states.contains(WidgetState.selected)
-                      ? Colors.white
-                      : const Color(0xFF9A9A9A),
+                      ? const Color(0xFFE9E9ED)
+                      : const Color(0xFF92939D),
                 ),
               ),
             ),

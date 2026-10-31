@@ -918,9 +918,8 @@ class _Info extends ConsumerWidget {
         ? t('Digitalna dostava')
         : '${d.quantity > 1 ? t('{0} dostupno', ['${d.quantity}']) : t('1 dostupno')}'
               ' · ${_shippingLabel(d)}';
-    const yellow = Color(0xFFFFE01B);
 
-    // Whatnot: prodavatelj gore, bijela kartica predmeta, dva gumba ispod.
+    // Prodavatelj gore, bijela kartica predmeta, dva gumba ispod.
     return DecoratedBox(
       key: const ValueKey('post-info-panel'),
       decoration: const BoxDecoration(
@@ -1096,8 +1095,8 @@ class _Info extends ConsumerWidget {
                                     formatCredits(a.minNextBid),
                                   ]),
                             onTap: () => showBidSheet(context, ref, a.id),
-                            color: yellow,
-                            foreground: const Color(0xFF111111),
+                            color: LoopColors.accent,
+                            foreground: LoopColors.onAccent,
                           )
                         : _MainButton(
                             key: const ValueKey('post-buy'),
@@ -1108,8 +1107,8 @@ class _Info extends ConsumerWidget {
                                 ? t('Preuzmi')
                                 : t('Kupi odmah'),
                             onTap: () => confirmAndBuy(context, ref, d),
-                            color: yellow,
-                            foreground: const Color(0xFF111111),
+                            color: LoopColors.accent,
+                            foreground: LoopColors.onAccent,
                           ),
                   ),
                 ],

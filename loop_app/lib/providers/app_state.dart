@@ -36,7 +36,7 @@ class AppState {
     this.myHistory = const [],
     this.auctions = const [],
     this.deliveries = const [],
-    this.themeMode = ThemeMode.dark,
+    this.themeMode = ThemeMode.light,
     this.lang = AppLang.hr,
     this.pendingSignup,
     this.showHowItWorks = true,
@@ -69,7 +69,7 @@ class AppState {
       isAdmin: storage.isAdmin,
       themeMode: ThemeMode.values.firstWhere(
         (m) => m.name == storage.themeMode,
-        orElse: () => ThemeMode.dark,
+        orElse: () => ThemeMode.light,
       ),
       lang: AppLang.fromName(storage.lang),
       pendingSignup: storage.pendingAuth == null
