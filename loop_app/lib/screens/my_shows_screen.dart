@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../l10n/tr.dart';
+import '../models/device.dart';
 import '../models/live_show.dart';
 import '../providers/app_providers.dart';
 import '../services/live_service.dart';
@@ -12,6 +13,7 @@ import '../widgets/shop_widgets.dart';
 import '../widgets/trade_actions.dart';
 import 'auctions_screen.dart' show BrowseCardMedia;
 import 'live_screens.dart';
+import 'seller_finance_screens.dart';
 
 /// Moji showovi (Seller Hub): nadolazeći (otvori, kopiraj link, otkaži) i
 /// prošli (sažetak, dupliciraj show).
@@ -180,6 +182,19 @@ class _UpcomingCard extends ConsumerWidget {
                   onPressed: () => LiveRoomScreen.open(context, show.id),
                   child: Text(st.isLive ? t('Vrati se u show') : t('Otvori')),
                 ),
+                OutlinedButton.icon(
+                  key: ValueKey('show-add-${show.id}'),
+                  onPressed: () => showAddToShowSheet(context, ref, show),
+                  icon: const Icon(Icons.add, size: 18),
+                  label: Text(t('Dodaj predmet')),
+                ),
+                if (st.isScheduled)
+                  OutlinedButton.icon(
+                    key: ValueKey('show-edit-${show.id}'),
+                    onPressed: () => _editShow(context, ref, show),
+                    icon: const Icon(Icons.edit_outlined, size: 18),
+                    label: Text(t('Uredi')),
+                  ),
                 OutlinedButton(
                   key: ValueKey('show-link-${show.id}'),
                   onPressed: () => shareLink(
@@ -279,6 +294,12 @@ class _PastCard extends ConsumerWidget {
                   onPressed: () => LiveRoomScreen.open(context, show.id),
                   child: Text(t('Sažetak')),
                 ),
+                OutlinedButton.icon(
+                  key: ValueKey('show-analytics-${show.id}'),
+                  onPressed: () => ShowAnalyticsScreen.open(context, show.id),
+                  icon: const Icon(Icons.insights_outlined, size: 18),
+                  label: Text(t('Analitika')),
+                ),
               ],
             ),
             if (reusable > 0)
@@ -325,4 +346,132 @@ class _PastCard extends ConsumerWidget {
     );
     if (ok && context.mounted) DefaultTabController.of(context).animateTo(0);
   }
+}
+
+/// Uređivanje zakazanog showa: naslov, početak i kategorija.
+Future<void> _editShow(
+  BuildContext context,
+  WidgetRef ref,
+  LiveShow show,
+) async {
+  final r = await showDialog<_ShowEdit>(
+    context: context,
+    builder: (_) => _EditShowDialog(show: show),
+  );
+  if (r == null || !context.mounted) return;
+  await runWithLoading(
+    context,
+    () => ref
+        .read(appProvider.notifier)
+        .editLiveShow(
+          show.id,
+          title: r.title,
+          startsAt: r.startsAt,
+          category: r.category,
+        ),
+    successMessage: t('Show je spremljen'),
+  );
+}
+
+class _ShowEdit {
+  const _ShowEdit(this.title, this.startsAt, this.category);
+  final String title;
+  final DateTime startsAt;
+  final String? category;
+}
+
+class _EditShowDialog extends StatefulWidget {
+  const _EditShowDialog({required this.show});
+  final LiveShow show;
+
+  @override
+  State<_EditShowDialog> createState() => _EditShowDialogState();
+}
+
+class _EditShowDialogState extends State<_EditShowDialog> {
+  late final _title = TextEditingController(text: widget.show.title);
+  late DateTime _start = widget.show.startsAt;
+  late String? _category = widget.show.category;
+
+  @override
+  void dispose() {
+    _title.dispose();
+    super.dispose();
+  }
+
+  Future<void> _pickTime() async {
+    final now = DateTime.now();
+    final day = await showDatePicker(
+      context: context,
+      initialDate: _start.isBefore(now) ? now : _start,
+      firstDate: now,
+      lastDate: now.add(LiveShow.maxScheduleAhead),
+    );
+    if (day == null || !mounted) return;
+    final time = await showTimePicker(
+      context: context,
+      initialTime: TimeOfDay.fromDateTime(_start),
+    );
+    if (time == null) return;
+    setState(
+      () => _start = DateTime(
+        day.year,
+        day.month,
+        day.day,
+        time.hour,
+        time.minute,
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) => AlertDialog(
+    title: Text(t('Uredi show')),
+    content: SingleChildScrollView(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          TextField(
+            key: const ValueKey('edit-show-title'),
+            controller: _title,
+            maxLength: LiveShow.maxTitle,
+            decoration: InputDecoration(labelText: t('Naslov')),
+          ),
+          const SizedBox(height: 8),
+          OutlinedButton.icon(
+            key: const ValueKey('edit-show-time'),
+            onPressed: _pickTime,
+            icon: const Icon(Icons.event_outlined),
+            label: Text(formatDateTime(_start)),
+          ),
+          const SizedBox(height: 12),
+          DropdownButtonFormField<String>(
+            key: const ValueKey('edit-show-category'),
+            initialValue: DeviceCategory.values.any((c) => c.name == _category)
+                ? _category
+                : null,
+            decoration: InputDecoration(labelText: t('Kategorija')),
+            items: [
+              for (final c in DeviceCategory.values)
+                DropdownMenuItem(value: c.name, child: Text(c.label)),
+            ],
+            onChanged: (v) => setState(() => _category = v),
+          ),
+        ],
+      ),
+    ),
+    actions: [
+      TextButton(
+        onPressed: () => Navigator.pop(context),
+        child: Text(t('Odustani')),
+      ),
+      FilledButton(
+        key: const ValueKey('edit-show-save'),
+        onPressed: () =>
+            Navigator.pop(context, _ShowEdit(_title.text, _start, _category)),
+        child: Text(t('Spremi')),
+      ),
+    ],
+  );
 }

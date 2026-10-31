@@ -301,6 +301,100 @@ class _ViewersSheet extends ConsumerWidget {
   }
 }
 
+/// Zadnji brzo dodani predmet ("Ponovi zadnji") za sheet "Dodaj u show".
+(String, double)? _lastQuickAdd;
+
+/// "Dodaj u show": predmet iz zalihe ili potpuno novi (naziv i cijena).
+/// Radi i za zakazani show, prije nego što domaćin uđe u sobu.
+Future<void> showAddToShowSheet(
+  BuildContext context,
+  WidgetRef ref,
+  LiveShow show,
+) async {
+  final choice = await showModalBottomSheet<String>(
+    context: context,
+    showDragHandle: true,
+    builder: (ctx) => SafeArea(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 0, 20, 8),
+            child: Align(
+              alignment: Alignment.centerLeft,
+              child: Text(
+                t('Dodaj u show'),
+                style: const TextStyle(
+                  fontWeight: FontWeight.w900,
+                  fontSize: 20,
+                ),
+              ),
+            ),
+          ),
+          ListTile(
+            key: const ValueKey('add-to-show-stock'),
+            leading: const Icon(Icons.inventory_2_outlined),
+            title: Text(t('Iz zalihe')),
+            subtitle: Text(t('Odaberi predmet koji već imaš.')),
+            onTap: () => Navigator.pop(ctx, 'stock'),
+          ),
+          ListTile(
+            key: const ValueKey('add-to-show-new'),
+            leading: const Icon(Icons.bolt),
+            title: Text(t('Novi predmet')),
+            subtitle: Text(t('Samo naziv i početna cijena.')),
+            onTap: () => Navigator.pop(ctx, 'new'),
+          ),
+        ],
+      ),
+    ),
+  );
+  if (choice == null || !context.mounted) return;
+  final app = ref.read(appProvider.notifier);
+  if (choice == 'stock') {
+    final added = await showModalBottomSheet<bool>(
+      context: context,
+      showDragHandle: true,
+      isScrollControlled: true,
+      backgroundColor: kLiveSheet,
+      constraints: const BoxConstraints(maxWidth: 520),
+      builder: (_) => _AddLotSheet(showId: show.id),
+    );
+    if (added == true) showLoopSnackBar(t('Predmet je dodan u live.'));
+    return;
+  }
+  final r = await showModalBottomSheet<(String, double)>(
+    context: context,
+    showDragHandle: true,
+    isScrollControlled: true,
+    backgroundColor: kLiveSheet,
+    constraints: const BoxConstraints(maxWidth: 520),
+    builder: (_) => _QuickAddSheet(last: _lastQuickAdd),
+  );
+  if (r == null || !context.mounted) return;
+  final (name, price) = r;
+  final category =
+      suggestCategory(name) ??
+      DeviceCategory.values.firstWhere(
+        (c) => c.name == show.category,
+        orElse: () => DeviceCategory.other,
+      );
+  final ok = await runWithLoading(context, () async {
+    final d = await app.addDevice(
+      name: name,
+      model: '',
+      condition: DeviceCondition.good,
+      price: price,
+      category: category,
+      listOnMarket: false,
+    );
+    await app.liveAddLot(show.id, d.id, price);
+  }, successMessage: null);
+  if (!ok) return;
+  _lastQuickAdd = r;
+  showLoopSnackBar(t('Predmet je dodan u live.'));
+}
+
 class _ViewersChip extends StatelessWidget {
   const _ViewersChip(this.count);
   final int count;

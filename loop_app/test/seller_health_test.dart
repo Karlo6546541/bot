@@ -2,6 +2,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:hive/hive.dart';
 import 'package:loop_app/models/delivery.dart';
 import 'package:loop_app/models/device.dart';
+import 'package:loop_app/models/loop_transaction.dart';
+import 'package:loop_app/screens/seller_finance_screens.dart';
 import 'package:loop_app/models/report.dart';
 import 'package:loop_app/providers/app_state.dart';
 import 'package:loop_app/screens/seller_hub.dart';
@@ -154,4 +156,87 @@ void main() {
       expect(copy.lots.first.startPrice, 5);
     },
   );
+
+  test('uređivanje zakazanog showa: naslov, početak, kategorija', () async {
+    final live = LiveService(storage);
+    final show = await live.create(
+      hostId: seller,
+      title: 'Stari naslov',
+      startsAt: t0.add(const Duration(hours: 3)),
+      now: t0,
+    );
+    final edited = await live.edit(
+      seller,
+      show.id,
+      title: 'Novi naslov',
+      startsAt: t0.add(const Duration(hours: 5)),
+      category: 'other',
+      now: t0,
+    );
+    expect(edited.title, 'Novi naslov');
+    expect(edited.startsAt, t0.add(const Duration(hours: 5)));
+    expect(edited.category, 'other');
+    await expectLater(
+      live.edit(buyer, show.id, title: 'Tuđe', now: t0),
+      throwsA(isA<TradeException>()),
+    );
+    await expectLater(
+      live.edit(seller, show.id, title: 'ab', now: t0),
+      throwsA(isA<TradeException>()),
+    );
+    // Show koji je počeo (domaćin je u sobi) više se ne uređuje.
+    await live.heartbeat(seller, show.id, now: t0);
+    await expectLater(
+      live.edit(seller, show.id, title: 'Prekasno', now: t0),
+      throwsA(isA<TradeException>()),
+    );
+  });
+
+  test('analitika showa i tjedni CSV', () async {
+    final trade = TradeService(storage);
+    final live = LiveService(storage);
+    final d = await trade.addDevice(
+      userId: seller,
+      name: 'Walkman',
+      model: 'Retro',
+      condition: DeviceCondition.good,
+      price: 20,
+      category: DeviceCategory.values.firstWhere(
+        (c) => c.section != ItemSection.digital,
+      ),
+    );
+    final show = await live.create(
+      hostId: seller,
+      title: 'Analitika show',
+      items: [(d.id, 5.0)],
+      startsAt: t0,
+      now: t0,
+    );
+    await live.join(buyer, show.id, now: t0.add(const Duration(seconds: 1)));
+    await live.startLot(seller, show.id, index: 0, now: t0);
+    await live.bid(buyer, show.id, 8, now: t0.add(const Duration(seconds: 5)));
+    await live.end(seller, show.id, now: t0.add(const Duration(minutes: 2)));
+    await live.settleDue(now: t0.add(const Duration(minutes: 3)));
+    final s = AppState.fromStorage(storage);
+    final a = ShowAnalytics.of(
+      s,
+      storage.liveShowById(show.id)!,
+      storage.liveEventsOf(show.id),
+      t0.add(const Duration(minutes: 3)),
+    );
+    expect(a.orders, 1);
+    expect(a.sales, 8); // jedini ponuditelj plaća svoju ponudu
+    expect(a.buyers, 1);
+    expect(a.newBuyers, 1);
+    expect(a.bids, 1);
+    expect(a.viewers, 1);
+    expect(a.topBuyers.first.userId, buyer);
+    final sales = sellerLedger(
+      s,
+      seller,
+    ).where((tx) => tx.type == TransactionType.sell).toList();
+    final csv = weeklyReportCsv(sales, weekStart(t0), s.userLabel);
+    expect(csv.split('\n').length, greaterThan(2));
+    expect(csv, contains('Walkman'));
+  });
 }

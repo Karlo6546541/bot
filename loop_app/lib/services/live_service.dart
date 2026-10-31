@@ -641,6 +641,58 @@ class LiveService {
     return show;
   }
 
+  /// Uređivanje zakazanog showa (dok domaćin nije došao u sobu): naslov,
+  /// početak i kategorija.
+  Future<LiveShow> edit(
+    String hostId,
+    String showId, {
+    String? title,
+    DateTime? startsAt,
+    String? category,
+    DateTime? now,
+  }) async {
+    final at = now ?? DateTime.now();
+    final show = _requireHost(hostId, showId);
+    if (show.endedAt != null || show.hostSeenAt != null) {
+      throw TradeException(t('Show koji je počeo više se ne može uređivati.'));
+    }
+    final name = (title ?? show.title).trim();
+    if (name.length < 3) throw TradeException(t('Upiši naslov livea.'));
+    if (name.length > LiveShow.maxTitle) {
+      throw TradeException(
+        t('Naslov može imati najviše {0} znakova.', ['${LiveShow.maxTitle}']),
+      );
+    }
+    final start = startsAt ?? show.startsAt;
+    if (start.isBefore(at.subtract(const Duration(minutes: 1))) ||
+        start.isAfter(at.add(LiveShow.maxScheduleAhead))) {
+      throw TradeException(
+        t('Live se može zakazati najviše 7 dana unaprijed.'),
+      );
+    }
+    final updated = LiveShow(
+      id: show.id,
+      hostId: show.hostId,
+      hostLabel: show.hostLabel,
+      title: name,
+      startsAt: start,
+      createdAt: show.createdAt,
+      lots: show.lots,
+      lotSeconds: show.lotSeconds,
+      endedAt: show.endedAt,
+      settled: show.settled,
+      video: show.video,
+      hostSeenAt: show.hostSeenAt,
+      coverPath: show.coverPath,
+      category: category ?? show.category,
+      relistUnsold: show.relistUnsold,
+      modIds: show.modIds,
+      verifiedOnly: show.verifiedOnly,
+    );
+    await _storage.putLiveShow(updated);
+    return updated;
+  }
+
   /// Predmeti završenog showa koji se mogu ponovno staviti u novi show:
   /// još su tvoji, nisu na aukciji ni zaključani u drugom liveu.
   List<(String, double, String)> duplicableLots(

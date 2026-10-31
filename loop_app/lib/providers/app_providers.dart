@@ -1351,6 +1351,23 @@ class AppController extends Notifier<AppState> {
     return show;
   }
 
+  /// Uređivanje zakazanog showa (naslov, početak, kategorija).
+  Future<void> editLiveShow(
+    String showId, {
+    String? title,
+    DateTime? startsAt,
+    String? category,
+  }) async {
+    await _live.edit(
+      _requireUserId(),
+      showId,
+      title: title,
+      startsAt: startsAt,
+      category: category,
+    );
+    _refresh();
+  }
+
   /// Novi show iz završenog: isti naslov, naslovnica, kategorija i postavke
   /// te predmeti koji su još tvoji.
   Future<LiveShow> duplicateLiveShow(String showId, DateTime startsAt) async {

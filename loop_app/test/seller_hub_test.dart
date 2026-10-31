@@ -47,6 +47,19 @@ void main() {
     expect(find.byKey(const ValueKey('hub-health')), findsOneWidget);
     expect(find.byKey(const ValueKey('hub-shipping-count')), findsOneWidget);
     expect(find.text('Moj sljedeći show'), findsOneWidget);
+    // Financije: knjiga, isplate, izvještaji.
+    await tester.ensureVisible(find.byKey(const ValueKey('hub-financials')));
+    await tester.tap(find.byKey(const ValueKey('hub-financials')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('fin-balance')), findsOneWidget);
+    await tester.tap(find.byKey(const ValueKey('fin-tab-payouts')));
+    await tester.pumpAndSettle();
+    expect(find.text('Još nema isplata.'), findsOneWidget);
+    await tester.tap(find.byKey(const ValueKey('fin-tab-reports')));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('Tjedan je u tijeku'), findsOneWidget);
+    await tester.pageBack();
+    await tester.pumpAndSettle();
     // Svi showovi: nadolazeći s radnjama, prošli bez zakazanih.
     await tester.ensureVisible(find.byKey(const ValueKey('hub-all-shows')));
     await tester.tap(find.byKey(const ValueKey('hub-all-shows')));
@@ -54,6 +67,15 @@ void main() {
     expect(find.byKey(const ValueKey('shows-schedule')), findsOneWidget);
     expect(find.text('Moj sljedeći show'), findsOneWidget);
     expect(find.text('Otkaži show'), findsOneWidget);
+    expect(find.text('Uredi'), findsOneWidget);
+    await tester.tap(
+      find.byKey(ValueKey('show-add-${storage.liveShows.first.id}')),
+    );
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('add-to-show-stock')), findsOneWidget);
+    expect(find.byKey(const ValueKey('add-to-show-new')), findsOneWidget);
+    await tester.tapAt(const Offset(10, 10));
+    await tester.pumpAndSettle();
     await tester.tap(find.byKey(const ValueKey('shows-tab-past')));
     await tester.pumpAndSettle();
     expect(find.text('Još nemaš završenih showova.'), findsOneWidget);

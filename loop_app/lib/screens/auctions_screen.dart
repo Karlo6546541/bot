@@ -1560,6 +1560,12 @@ class _MyAuctionsViewState extends ConsumerState<MyAuctionsView> {
       for (final d in notes)
         if (d.confirmedAt != null || d.isDelivered(now)) d,
     ];
+    final handedNotes = [
+      for (final d in notes)
+        if (d.handedOverAt != null &&
+            !(d.confirmedAt != null || d.isDelivered(now)))
+          d,
+    ];
     final shipSlivers = <Widget>[
       sectionBox(t('📦 Za poslati ({0})', ['${toShip.length}'])),
       SliverList.list(
@@ -1621,6 +1627,19 @@ class _MyAuctionsViewState extends ConsumerState<MyAuctionsView> {
                   ? [_note(t('Nemaš paketa za poslati.'))]
                   : <Widget>[])
             : shipSlivers,
+      'handed' =>
+        handedNotes.isEmpty
+            ? [_note(t('Još nema paketa predanih dostavljaču.'))]
+            : [
+                sectionBox(
+                  t('📦 Predano dostavljaču ({0})', ['${handedNotes.length}']),
+                ),
+                SliverList.list(
+                  children: [
+                    for (final d in handedNotes) _pad(_ToShipCard(delivery: d)),
+                  ],
+                ),
+              ],
       'sent' =>
         sentNotes.isEmpty && onlineSent == 0
             ? [_note(t('Još nema poslanih paketa.'))]
@@ -1653,6 +1672,7 @@ class _MyAuctionsViewState extends ConsumerState<MyAuctionsView> {
           [
             ('all', t('Sve'), 0),
             ('ship', t('Za poslati'), toShip.length + onlineToShip),
+            ('handed', t('Predano'), handedNotes.length),
             ('sent', t('Poslano'), sentNotes.length + onlineSent),
           ],
           f,

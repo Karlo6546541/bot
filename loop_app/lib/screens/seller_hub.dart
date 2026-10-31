@@ -13,6 +13,7 @@ import 'add_device_screen.dart';
 import 'auctions_screen.dart' show BrowseCardMedia;
 import 'live_screens.dart';
 import 'my_shows_screen.dart';
+import 'seller_finance_screens.dart';
 
 /// Zdravlje računa prodavača, izračunato iz stvarnih podataka: ocjene
 /// kupaca, isporuke, pravovremene predaje paketa (rok
@@ -403,6 +404,46 @@ class _SellerHubPanelState extends ConsumerState<SellerHubPanel> {
                           fontWeight: FontWeight.w900,
                           fontSize: 16,
                         ),
+                      ),
+                      Icon(
+                        Icons.chevron_right,
+                        color: LoopColors.textSecondary,
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+            title(t('Financije')),
+            Material(
+              color: LoopColors.surface,
+              borderRadius: BorderRadius.circular(kRadius),
+              child: InkWell(
+                key: const ValueKey('hub-financials'),
+                borderRadius: BorderRadius.circular(kRadius),
+                onTap: () => FinancialsScreen.open(context),
+                child: Container(
+                  padding: const EdgeInsets.all(14),
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(kRadius),
+                    border: Border.all(color: LoopColors.surfaceHover),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(
+                        Icons.account_balance_wallet_outlined,
+                        color: LoopColors.textSecondary,
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Text(
+                          t('Knjiga, isplate i tjedni izvještaji'),
+                          style: const TextStyle(fontWeight: FontWeight.w800),
+                        ),
+                      ),
+                      Text(
+                        formatCredits(user.credits),
+                        style: const TextStyle(fontWeight: FontWeight.w900),
                       ),
                       Icon(
                         Icons.chevron_right,
