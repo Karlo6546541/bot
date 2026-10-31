@@ -32,6 +32,25 @@ void main() {
     child: const LoopApp(),
   );
 
+  testWidgets('seller navigation opens hub with live and auction actions', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(390, 844);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    await tester.pumpWidget(app());
+    await tester.pumpAndSettle();
+    await tester.tap(find.byIcon(Icons.storefront_outlined).first);
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('seller-hub-live')), findsOneWidget);
+    expect(find.byKey(const ValueKey('seller-hub-auction')), findsOneWidget);
+    expect(find.byKey(const ValueKey('seller-hub-sales')), findsOneWidget);
+    await tester.ensureVisible(find.byKey(const ValueKey('hub-health')));
+    expect(find.byKey(const ValueKey('hub-health')), findsOneWidget);
+    expect(tester.takeException(), isNull);
+    await tester.pumpWidget(const SizedBox.shrink());
+  });
+
   testWidgets('browse menu opens categories, auctions and digital shopping', (
     tester,
   ) async {

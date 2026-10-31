@@ -2,6 +2,8 @@
 // Generirano iz popisa tekstova; nadopuni ručno kad dodaješ nove.
 
 const kEn = <String, String>{
+  'Pokreni ili zakaži live': 'Start or schedule a live',
+  'Moja prodaja': 'My sales',
   'Nema dostupnih preporuka': 'No recommendations available',
   'Dodaj objavu': 'Add post',
   'Još nema lajkanih oglasa.': 'No liked listings yet.',

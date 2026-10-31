@@ -1124,10 +1124,10 @@ void main() {
       await tester.tap(find.byTooltip('Natrag'));
       await tester.pumpAndSettle();
 
-      // Vlastiti live preko "+ Objavi → Live aukcija".
+      // Prodavač pokreće live iz Seller Huba.
       await tester.tap(find.byKey(const ValueKey('nav-create')));
       await tester.pumpAndSettle();
-      await tester.tap(find.byKey(const ValueKey('create-live')));
+      await tester.tap(find.byKey(const ValueKey('seller-hub-live')));
       await tester.pumpAndSettle();
       expect(find.text('Novi live'), findsOneWidget);
       await tester.enterText(

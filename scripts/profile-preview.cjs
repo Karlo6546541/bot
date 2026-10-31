@@ -9,6 +9,7 @@ const {chromium} = require('/tmp/feed-browser/node_modules/playwright');
       page.on('pageerror', error => errors.push(error.message));
       await page.goto('http://127.0.0.1:8765/bot/?preview=profile', {waitUntil: 'networkidle'});
       await page.waitForSelector('flutter-view', {timeout: 30000});
+      await page.getByRole('button', {name: 'Pogledaj profil', exact: true}).click({timeout: 20000});
       await page.getByRole('button', {name: 'Sviđa mi se', exact: true}).waitFor({timeout: 20000});
       await page.waitForTimeout(1000);
       const capture = async suffix => console.log(`FEED_SCREENSHOT:${name}${suffix}:` + (await page.screenshot({type: 'jpeg', quality: 75})).toString('base64'));
