@@ -34,6 +34,8 @@ const kEn = <String, String>{
   'Sakrij prodavača': 'Hide seller',
   'Povećaj fotografiju': 'Zoom photo',
   'Dostava od {0}': 'Shipping from {0}',
+  'Dostava već od {0}': 'Shipping from {0}',
+  'Besplatna dostava': 'Free shipping',
   'Isprobaj demo račun': 'Try demo account',
   'Mogu kupiti': 'I can afford',
   'Poništi filtre': 'Clear filters',

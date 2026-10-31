@@ -1,6 +1,10 @@
+import 'dart:math' show min;
+
 import 'package:flutter/material.dart';
 
+import '../models/delivery.dart';
 import '../models/device.dart';
+import '../services/delivery_service.dart';
 import '../theme/app_theme.dart';
 import 'category_style.dart';
 import 'item_image.dart';
@@ -106,6 +110,19 @@ class _DeviceCardState extends State<DeviceCard> {
     );
   }
 
+  /// Najjeftinija dostava u zemlji (paketomat ili kurir) kao na Whatnotu:
+  /// kupac vidi ukupni trošak već na kartici.
+  static String _shippingLabel(Device d) {
+    final size = ParcelSize.fromName(d.parcelSize);
+    final cost = [
+      if (size.index <= ParcelSize.medium.index) DeliveryMethod.parcelLocker,
+      DeliveryMethod.courier,
+    ].map((m) => DeliveryService.costFor(m, size)).reduce(min);
+    return cost == 0
+        ? t('Besplatna dostava')
+        : t('Dostava već od {0}', [formatCredits(cost)]);
+  }
+
   /// Kompaktna pločica: slika gore, naziv, cijena i akcija ispod.
   Widget _tile(Device d) {
     final photo = d.imagePaths.isEmpty
@@ -192,6 +209,19 @@ class _DeviceCardState extends State<DeviceCard> {
                         ),
                       ),
               ),
+              if (widget.showPrice && d.section != ItemSection.activities)
+                Padding(
+                  padding: const EdgeInsets.only(top: 2),
+                  child: Text(
+                    _shippingLabel(d),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      color: LoopColors.textSecondary,
+                      fontSize: 12,
+                    ),
+                  ),
+                ),
               const SizedBox(height: 8),
               FilledButton.icon(
                 onPressed: widget.onAction,
