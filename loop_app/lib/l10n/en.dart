@@ -2,6 +2,7 @@
 // Generirano iz popisa tekstova; nadopuni ručno kad dodaješ nove.
 
 const kEn = <String, String>{
+  'Za live je potreban račun prodavača.': 'A seller account is required to go live.',
   'Pregled prodaje': 'Sales overview',
   'Sve za tvoju prodaju na jednom mjestu.': 'Everything for your sales in one place.',
   'Za napraviti': 'To do',
