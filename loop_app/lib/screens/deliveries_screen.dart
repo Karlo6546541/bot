@@ -22,7 +22,6 @@ import '../widgets/item_image.dart';
 import '../widgets/empty_state.dart';
 import '../widgets/formatters.dart';
 import '../widgets/trade_actions.dart';
-import '../widgets/loop_snackbar.dart';
 import 'messages_screen.dart' show ChatScreen;
 import '../l10n/tr.dart';
 
