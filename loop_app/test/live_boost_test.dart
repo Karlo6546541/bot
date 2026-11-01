@@ -4,6 +4,7 @@ import 'package:loop_app/models/device.dart';
 import 'package:loop_app/models/live_boost.dart';
 import 'package:loop_app/models/live_show.dart';
 import 'package:loop_app/models/loop_transaction.dart';
+import 'package:loop_app/screens/show_checklist_screen.dart';
 import 'package:loop_app/services/live_service.dart';
 import 'package:loop_app/services/seed_data.dart';
 import 'package:loop_app/services/storage_service.dart';
@@ -161,5 +162,18 @@ void main() {
       hasLength(1),
     );
     expect(live.stateOf(show, now: t0).boost.sharers, 1);
+  });
+
+  test('priprema showa: predmeti i kupci otključavaju korake', () async {
+    final show = await makeShow(t0.add(const Duration(days: 1)));
+    var done = showPrepDone(
+      show,
+      storage.liveEventsOf(show.id),
+      promoted: false,
+    );
+    expect(done, {ShowPrepStep.create, ShowPrepStep.products});
+    await live.shared(viewer, show.id, now: t0);
+    done = showPrepDone(show, storage.liveEventsOf(show.id), promoted: false);
+    expect(done, contains(ShowPrepStep.buyers));
   });
 }

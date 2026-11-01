@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'live_promote_sheet.dart';
+import 'show_checklist_screen.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../l10n/tr.dart';
@@ -183,6 +184,13 @@ class _UpcomingCard extends ConsumerWidget {
                   onPressed: () => LiveRoomScreen.open(context, show.id),
                   child: Text(st.isLive ? t('Vrati se u show') : t('Otvori')),
                 ),
+                if (st.isScheduled)
+                  OutlinedButton.icon(
+                    key: ValueKey('show-prep-${show.id}'),
+                    onPressed: () => ShowChecklistScreen.open(context, show.id),
+                    icon: const Icon(Icons.checklist, size: 18),
+                    label: Text(t('Priprema')),
+                  ),
                 OutlinedButton.icon(
                   key: ValueKey('show-add-${show.id}'),
                   onPressed: () => showAddToShowSheet(context, ref, show),
