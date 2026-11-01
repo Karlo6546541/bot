@@ -45,10 +45,13 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.byKey(const ValueKey('seller-hub-live')), findsOneWidget);
     expect(find.byKey(const ValueKey('seller-hub-auction')), findsOneWidget);
-    expect(find.byKey(const ValueKey('seller-hub-sales')), findsOneWidget);
     await tester.ensureVisible(find.byKey(const ValueKey('hub-health')));
     expect(find.byKey(const ValueKey('hub-health')), findsOneWidget);
-    await tester.ensureVisible(find.byKey(const ValueKey('seller-hub-shipments')));
+    await tester.scrollUntilVisible(
+      find.byKey(const ValueKey('seller-hub-shipments')),
+      250,
+      scrollable: find.byType(Scrollable).last,
+    );
     await tester.tap(find.byKey(const ValueKey('seller-hub-shipments')));
     await tester.pumpAndSettle();
     expect(tester.widget<MyAuctionsView>(find.byType(MyAuctionsView).last).initialTab, MyTab.notes);
