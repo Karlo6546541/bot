@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="hr">
+<head>
+  <!--
+    If you are serving your web app in a path other than the root, change the
+    href value below to reflect the base path you are serving from.
+
+    The path provided below has to start and end with a slash "/" in order for
+    it to work correctly.
+
+    For more details:
+    * https://developer.mozilla.org/en-US/docs/Web/HTML/Element/base
+
+    This is a placeholder for base href that will be replaced by the value of
+    the `--base-href` argument provided to `flutter build`.
+  -->
+  <base href="$FLUTTER_BASE_HREF">
+
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, interactive-widget=resizes-content">
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <meta http-equiv="Pragma" content="no-cache">
+  <meta http-equiv="Expires" content="0">
+  <meta content="IE=Edge" http-equiv="X-UA-Compatible">
+  <meta name="description" content="Subhasto — live aukcije, aukcije i Kupi odmah (demo).">
+
+  <!-- iOS meta tags & icons -->
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black">
+  <meta name="apple-mobile-web-app-title" content="Subhasto">
+  <link rel="apple-touch-icon" href="icons/Icon-192.png">
+
+  <!-- Favicon -->
+  <link rel="icon" type="image/png" href="favicon.png"/>
+
+  <title>Subhasto — live aukcije i Kupi odmah</title>
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#17120F">
+  <style>
+    /* Dok se Flutter učitava: ista tamna pozadina i koplje kao na
+       uvodnom ekranu u aplikaciji (bez bijelog bljeska). */
+    html, body { margin: 0; height: 100%; background: #17120F; }
+    #pre-splash {
+      position: fixed; inset: 0; display: flex; align-items: center;
+      justify-content: center;
+      animation: loop-pulse 0.9s ease-in-out infinite alternate;
+    }
+    @keyframes loop-pulse {
+      from { transform: scale(0.9); opacity: 0.55; }
+      to { transform: scale(1.05); opacity: 1; }
+    }
+  </style>
+</head>
+<body>
+  <div id="pre-splash" aria-label="Subhasto">
+    <svg width="96" height="96" viewBox="0 0 100 100" aria-hidden="true">
+      <g transform="translate(50 50) rotate(-45)">
+        <line x1="-58" y1="0" x2="8" y2="0" stroke="#F5EDE6" stroke-width="6.5" stroke-linecap="round"/><path d="M-66 0 L-56 -5 L-52 0 L-56 5Z" fill="#FF9248"/><rect x="4.5" y="-12" width="5" height="24" rx="2.5" fill="#FF9248"/><path d="M10 0 L27 -11 L64 0 L27 11Z" fill="#FF9248"/>
+      </g>
+    </svg>
+  </div>
+  <script>
+    window.addEventListener('flutter-first-frame', function () {
+      var el = document.getElementById('pre-splash');
+      if (el) el.remove();
+    });
+  </script>
+  <!--
+    You can customize the "flutter_bootstrap.js" script.
+    This is useful to provide a custom configuration to the Flutter loader
+    or to give the user feedback during the initialization process.
+
+    For more details:
+    * https://docs.flutter.dev/platform-integration/web/initialization
+  -->
+  <script>
+    // Uvijek najnovija verzija: stari service workeri se brišu, a
+    // flutter_bootstrap.js (koji nosi oznaku verzije) se ne uzima iz cachea.
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.getRegistrations().then(function (rs) {
+        rs.forEach(function (r) { r.unregister(); });
+      });
+    }
+    var s = document.createElement('script');
+    s.src = 'flutter_bootstrap.js?t=' + Date.now();
+    s.async = true;
+    document.body.appendChild(s);
+  </script>
+</body>
+</html>
