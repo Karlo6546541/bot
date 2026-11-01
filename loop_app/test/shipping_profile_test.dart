@@ -1,4 +1,8 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:loop_app/providers/app_providers.dart';
+import 'package:loop_app/screens/add_device_screen.dart';
 import 'package:hive/hive.dart';
 import 'package:loop_app/models/delivery.dart';
 import 'package:loop_app/models/device.dart';
@@ -104,5 +108,63 @@ void main() {
         expect(costs, [courier, 0, courier]);
       },
     );
+  });
+
+  testWidgets('obrazac predmeta: profil dostave, količina i Spremi skicu', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(500, 1400);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    final storage = StorageService();
+    await storage.init(inMemory: true);
+    await storage.saveSession(userId: SeedData.demoUserId);
+    const profile = ShippingProfile(
+      id: 'sp-box',
+      name: 'Srednja kutija',
+      weightGrams: 4000,
+      lengthCm: 40,
+      widthCm: 30,
+      heightCm: 20,
+    );
+    final me = storage.userById(SeedData.demoUserId)!;
+    await storage.putUser(me.copyWith(shippingProfiles: [profile]));
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          storageProvider.overrideWithValue(storage),
+          tickIntervalProvider.overrideWithValue(null),
+        ],
+        child: const MaterialApp(home: AddDeviceScreen()),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byKey(const ValueKey('add-name')), 'iPhone 13');
+    await tester.enterText(find.byType(TextFormField).at(1), '300');
+    await tester.pumpAndSettle();
+    // Profil dostave iz padajućeg izbornika.
+    await tester.tap(find.byKey(const ValueKey('add-profile-null')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Srednja kutija · 4 kg').last);
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('add-profile-summary')), findsOneWidget);
+    // Količina s + (u "Više detalja").
+    await tester.ensureVisible(find.byKey(const ValueKey('add-more')));
+    await tester.tap(find.byKey(const ValueKey('add-more')));
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(find.byKey(const ValueKey('quantity-plus')));
+    await tester.tap(find.byKey(const ValueKey('quantity-plus')));
+    await tester.pumpAndSettle();
+    expect(find.text('2'), findsWidgets);
+    await tester.ensureVisible(find.byKey(const ValueKey('add-save-draft')));
+    await tester.tap(find.byKey(const ValueKey('add-save-draft')));
+    await tester.pumpAndSettle();
+    final d = storage.devices.firstWhere((d) => d.name == 'iPhone 13');
+    expect(d.isListed, isFalse);
+    expect(d.quantity, 2);
+    expect(d.shipping?.id, 'sp-box');
+    expect(d.parcelSize, ParcelSize.medium.name);
+    await tester.pumpWidget(const SizedBox.shrink());
+    await Hive.close();
   });
 }

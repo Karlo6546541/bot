@@ -2,6 +2,7 @@ import '../config/features.dart';
 import 'dart:async';
 
 import 'device_detail_screen.dart';
+import 'shipping_profiles_screen.dart';
 import '../services/storage_service.dart';
 import '../services/app_location/app_location.dart';
 import 'package:flutter/material.dart';
@@ -9,6 +10,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../models/delivery.dart' show ParcelSize;
+import '../models/shipping_profile.dart';
 import '../models/device.dart';
 import '../providers/app_providers.dart';
 import '../services/file_store.dart';
@@ -71,6 +73,9 @@ class _AddDeviceScreenState extends ConsumerState<AddDeviceScreen> {
 
   /// Veličina paketa (cijena dostave za kupca).
   ParcelSize _size = ParcelSize.small;
+
+  /// Odabrani profil dostave (veličina paketa se računa iz njega).
+  String? _profileId;
   ItemSection _section = ItemSection.electronics;
   DeviceCategory? _category;
 
@@ -153,6 +158,7 @@ class _AddDeviceScreenState extends ConsumerState<AddDeviceScreen> {
             .firstOrNull ??
         _condition;
     _size = ParcelSize.fromName(d['size'] as String?);
+    _profileId = d['profile'] as String?;
     final cat = DeviceCategory.values
         .where((c) => c.name == d['category'])
         .firstOrNull;
@@ -195,6 +201,7 @@ class _AddDeviceScreenState extends ConsumerState<AddDeviceScreen> {
                 'description': _description.text,
                 'condition': _condition?.name,
                 'size': _size.name,
+                'profile': _profileId,
                 'category': _category?.name,
                 'categoryManual': _categoryManual,
                 'mode': _mode.name,
@@ -246,6 +253,19 @@ class _AddDeviceScreenState extends ConsumerState<AddDeviceScreen> {
     }
   }
 
+  ShippingProfile? get _profile => ref
+      .read(appProvider)
+      .currentUser
+      ?.shippingProfiles
+      .where((p) => p.id == _profileId)
+      .firstOrNull;
+
+  /// Spremi kao skicu (u Moje predmete, bez objave).
+  Future<void> _saveAsDraft() async {
+    setState(() => _mode = SellMode.keep);
+    await _submit();
+  }
+
   /// Prihvaća i decimalni zarez i točku.
   double? _parsePrice(String? v) =>
       double.tryParse((v ?? '').trim().replaceAll(',', '.'));
@@ -260,21 +280,26 @@ class _AddDeviceScreenState extends ConsumerState<AddDeviceScreen> {
     Device? saved;
     final ok = await runWithLoading(
       context,
-      () async => saved = await ref
-          .read(appProvider.notifier)
-          .addDevice(
-            name: _name.text,
-            model: _model.text.trim(),
-            condition: _digital ? DeviceCondition.brandNew : _condition!,
-            price: _parsePrice(_price.text)!,
-            category: _category!,
-            imagePaths: List.of(_photos),
-            description: _description.text,
-            listOnMarket: _digitalMarket || _listOnMarket,
-            quantity: _digital ? 1 : int.tryParse(_quantity.text.trim()) ?? 1,
-            file: _digital ? _file : null,
-            parcelSize: _size.name,
-          ),
+      () async {
+        final app = ref.read(appProvider.notifier);
+        saved = await app.addDevice(
+          name: _name.text,
+          model: _model.text.trim(),
+          condition: _digital ? DeviceCondition.brandNew : _condition!,
+          price: _parsePrice(_price.text)!,
+          category: _category!,
+          imagePaths: List.of(_photos),
+          description: _description.text,
+          listOnMarket: _digitalMarket || _listOnMarket,
+          quantity: _digital ? 1 : int.tryParse(_quantity.text.trim()) ?? 1,
+          file: _digital ? _file : null,
+          parcelSize: _size.name,
+        );
+        final profile = _profile;
+        if (profile != null && !_digital) {
+          await app.setDeviceShipping(saved!.id, profile);
+        }
+      },
       successMessage: _digitalMarket || _listOnMarket
           ? t('Predmet je na prodaji 🏷️')
           : t('Predmet dodan u Moje predmete'),
@@ -310,6 +335,100 @@ class _AddDeviceScreenState extends ConsumerState<AddDeviceScreen> {
   String? _required(String? v) =>
       (v == null || v.trim().isEmpty) ? t('Obavezno polje') : null;
 
+  /// Dostava: profil dostave (težina, dimenzije, paketi) ili ručno
+  /// odabrana veličina paketa. O njoj ovisi cijena dostave za kupca.
+  Widget _shippingSection() {
+    final profiles =
+        ref.watch(appProvider).currentUser?.shippingProfiles ??
+        const <ShippingProfile>[];
+    final profile = profiles.where((p) => p.id == _profileId).firstOrNull;
+    final size = profile?.parcelSize ?? _size;
+    return Container(
+      key: const ValueKey('add-shipping'),
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: LoopColors.surface,
+        borderRadius: BorderRadius.circular(kRadius),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text(
+            t('Dostava'),
+            style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 16),
+          ),
+          const SizedBox(height: 10),
+          DropdownButtonFormField<String>(
+            key: ValueKey('add-profile-${profile?.id}'),
+            initialValue: profile?.id ?? '',
+            isExpanded: true,
+            decoration: InputDecoration(labelText: t('Profil dostave')),
+            items: [
+              DropdownMenuItem(
+                value: '',
+                child: Text(t('Bez profila (odaberi veličinu)')),
+              ),
+              for (final p in profiles)
+                DropdownMenuItem(
+                  value: p.id,
+                  child: Text(
+                    '${p.name} · ${p.weightLabel}',
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              DropdownMenuItem(
+                value: '+new',
+                child: Text(
+                  '+ ${t('Novi profil dostave')}',
+                  style: TextStyle(
+                    color: LoopColors.accent,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ),
+            ],
+            onChanged: (v) async {
+              if (v == '+new') {
+                final created = await ShippingProfileForm.open(context);
+                if (!mounted) return;
+                setState(() => _profileId = created?.id ?? _profileId);
+                return;
+              }
+              setState(() => _profileId = v == '' ? null : v);
+            },
+          ),
+          const SizedBox(height: 10),
+          if (profile != null)
+            Text(
+              '${profile.summary} · ${t('Veličina paketa: {0}', [size.label])}',
+              key: const ValueKey('add-profile-summary'),
+              style: TextStyle(color: LoopColors.textSecondary, fontSize: 13),
+            )
+          else ...[
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                for (final z in ParcelSize.values)
+                  ChoiceChip(
+                    key: ValueKey('parcel-${z.name}'),
+                    label: Text(z.label),
+                    selected: _size == z,
+                    onSelected: (_) => setState(() => _size = z),
+                  ),
+              ],
+            ),
+            const SizedBox(height: 4),
+            Text(
+              '${_size.hint}${_size.extra > 0 ? ' · ${t('+{0} na dostavu', [formatCredits(_size.extra)])}' : ''}${_size.index > ParcelSize.medium.index ? ' · ${t('bez paketomata')}' : ''}',
+              style: TextStyle(color: LoopColors.textSecondary, fontSize: 12),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     // Svaka promjena (odabir stanja, veličine, kategorije…) ide u skicu.
@@ -342,7 +461,9 @@ class _AddDeviceScreenState extends ConsumerState<AddDeviceScreen> {
                       gap,
                     ],
                     TextFormField(
+                      key: const ValueKey('add-name'),
                       controller: _name,
+                      maxLength: Device.maxName,
                       onChanged: (v) => setState(() => _suggest(v)),
                       textCapitalization: TextCapitalization.words,
                       decoration: InputDecoration(
@@ -479,6 +600,10 @@ class _AddDeviceScreenState extends ConsumerState<AddDeviceScreen> {
                               ],
                             ),
                     ),
+                    if (!_digital) ...[
+                      const SizedBox(height: 14),
+                      _shippingSection(),
+                    ],
                     const SizedBox(height: 8),
                     // Sve ostalo je neobavezno — skriveno dok se ne zatraži.
                     Theme(
@@ -559,63 +684,9 @@ class _AddDeviceScreenState extends ConsumerState<AddDeviceScreen> {
                                   v == null ? t('Odaberi stanje') : null,
                             ),
                             gap,
-                            // Veličina paketa: o njoj ovisi cijena dostave
-                            // (i može li u paketomat).
-                            Text(
-                              t('Veličina paketa'),
-                              style: const TextStyle(
-                                fontWeight: FontWeight.w800,
-                              ),
-                            ),
-                            const SizedBox(height: 6),
-                            Wrap(
-                              spacing: 8,
-                              runSpacing: 8,
-                              children: [
-                                for (final z in ParcelSize.values)
-                                  ChoiceChip(
-                                    key: ValueKey('parcel-${z.name}'),
-                                    label: Text(z.label),
-                                    selected: _size == z,
-                                    onSelected: (_) =>
-                                        setState(() => _size = z),
-                                  ),
-                              ],
-                            ),
-                            const SizedBox(height: 4),
-                            Text(
-                              '${_size.hint}${_size.extra > 0 ? ' · ${t('+{0} na dostavu', [formatCredits(_size.extra)])}' : ''}${_size.index > ParcelSize.medium.index ? ' · ${t('bez paketomata')}' : ''}',
-                              style: TextStyle(
-                                color: LoopColors.textSecondary,
-                                fontSize: 12,
-                              ),
-                            ),
-                            gap,
-                            TextFormField(
-                              key: const ValueKey('quantity-field'),
+                            _QuantityStepper(
                               controller: _quantity,
-                              keyboardType: TextInputType.number,
-                              inputFormatters: [
-                                FilteringTextInputFormatter.digitsOnly,
-                              ],
-                              decoration: InputDecoration(
-                                labelText: t('Količina na zalihi'),
-                                suffixText: t('kom'),
-                                helperText: t(
-                                  'Imaš više istih komada? Svaka kupnja skida jedan s zalihe.',
-                                ),
-                              ),
-                              validator: (v) {
-                                final q = int.tryParse((v ?? '').trim());
-                                if (q == null ||
-                                    q < 1 ||
-                                    q > Device.maxQuantity) {
-                                  return t('Od 1 do {0}', [
-                                    '${Device.maxQuantity}',
-                                  ]);
-                                }
-                                return null;
-                              },
+                              onChanged: () => setState(() {}),
                             ),
                           ],
                         ],
@@ -698,6 +769,15 @@ class _AddDeviceScreenState extends ConsumerState<AddDeviceScreen> {
                       ),
                     ],
                     const SizedBox(height: 16),
+                    if (_effMode != SellMode.keep && !_digitalMarket) ...[
+                      OutlinedButton.icon(
+                        key: const ValueKey('add-save-draft'),
+                        onPressed: _saveAsDraft,
+                        icon: const Icon(Icons.save_outlined),
+                        label: Text(t('Spremi skicu')),
+                      ),
+                      const SizedBox(height: 8),
+                    ],
                     FilledButton.icon(
                       key: const ValueKey('add-submit'),
                       onPressed: _submit,
@@ -1083,6 +1163,67 @@ class _FilePickerCard extends StatelessWidget {
               style: TextStyle(color: LoopColors.error, fontSize: 12),
             ),
           ),
+      ],
+    );
+  }
+}
+
+/// Količina na zalihi s − i + (kao Whatnot "Quantity Available").
+class _QuantityStepper extends StatelessWidget {
+  const _QuantityStepper({required this.controller, required this.onChanged});
+  final TextEditingController controller;
+  final VoidCallback onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final q = int.tryParse(controller.text.trim()) ?? 1;
+    void set(int v) {
+      controller.text = '${v.clamp(1, Device.maxQuantity)}';
+      onChanged();
+    }
+
+    return Row(
+      key: const ValueKey('quantity-field'),
+      children: [
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                t('Količina na zalihi'),
+                style: const TextStyle(fontWeight: FontWeight.w800),
+              ),
+              Text(
+                t('Svaka kupnja skida jedan komad.'),
+                style: TextStyle(color: LoopColors.textSecondary, fontSize: 12),
+              ),
+            ],
+          ),
+        ),
+        IconButton(
+          key: const ValueKey('quantity-minus'),
+          onPressed: q > 1 ? () => set(q - 1) : null,
+          icon: const Icon(Icons.remove),
+        ),
+        Container(
+          constraints: const BoxConstraints(minWidth: 48),
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+          decoration: BoxDecoration(
+            color: LoopColors.surfaceHover,
+            borderRadius: BorderRadius.circular(999),
+          ),
+          child: Text(
+            '$q',
+            key: const ValueKey('quantity-value'),
+            textAlign: TextAlign.center,
+            style: const TextStyle(fontWeight: FontWeight.w900),
+          ),
+        ),
+        IconButton(
+          key: const ValueKey('quantity-plus'),
+          onPressed: q < Device.maxQuantity ? () => set(q + 1) : null,
+          icon: const Icon(Icons.add),
+        ),
       ],
     );
   }

@@ -170,6 +170,9 @@ class Device {
 
   static const maxDescription = 500;
 
+  /// Najdulji naziv predmeta.
+  static const maxName = 100;
+
   /// Cijena po kojoj vlasnik prodaje predmet u Marketu (`null` = nije
   /// objavljen). Kupac plaća ovu cijenu (umanjenu za popust) + 2%, a
   /// vlasnik dobiva punu cijenu.
