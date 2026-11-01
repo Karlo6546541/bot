@@ -330,9 +330,13 @@ void main() {
     await tester.tap(find.text('Prijavi se'));
     await tester.pumpAndSettle();
 
-    // Zarada (1.250 €) ide na IBAN iz podataka prodavatelja (Moje → Prodajem).
-    await openMyItems(tester);
-    await tester.tap(find.byKey(const ValueKey('profile-payout')));
+    // Zarada se isplaćuje kroz financije u Seller Hubu.
+    await tester.tap(find.byKey(const ValueKey('nav-create')));
+    await tester.pumpAndSettle();
+    await tester.scrollUntilVisible(find.byKey(const ValueKey('seller-hub-finance')), 250, scrollable: find.byType(Scrollable).last);
+    await tester.tap(find.byKey(const ValueKey('seller-hub-finance')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('fin-payout')));
     await tester.pumpAndSettle();
     expect(find.text('Isplatiti zaradu?'), findsOneWidget);
     expect(find.textContaining('HR25 •••• 1111'), findsWidgets);
@@ -342,6 +346,10 @@ void main() {
     expect(find.text('0 €'), findsWidgets);
 
     // Tamna tema iz Profila: sučelje se ponovno izgradi bez grešaka.
+    await tester.pageBack();
+    await tester.pumpAndSettle();
+    await tester.pageBack();
+    await tester.pumpAndSettle();
     await tester.tap(find.text('Profil').last);
     await tester.pumpAndSettle();
     await openProfileSettings(tester);
