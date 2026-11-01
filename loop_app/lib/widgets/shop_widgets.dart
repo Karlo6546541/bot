@@ -559,27 +559,36 @@ Future<double?> _amountDialog(
   required String message,
   required double suggestion,
   required double max,
-}) => showDialog<double>(
+  String? itemName,
+}) => showModalBottomSheet<double>(
   context: context,
+  isScrollControlled: true,
+  showDragHandle: true,
+  constraints: const BoxConstraints(maxWidth: 520),
   builder: (ctx) => _AmountDialog(
     title: title,
     message: message,
     suggestion: suggestion,
     max: max,
+    itemName: itemName,
   ),
 );
 
+/// Ponuda / protuponuda: velik iznos, popusti u jednom redu (s cijenom) i
+/// gumb "Pošalji" koji je uvijek iznad tipkovnice.
 class _AmountDialog extends StatefulWidget {
   const _AmountDialog({
     required this.title,
     required this.message,
     required this.suggestion,
     required this.max,
+    this.itemName,
   });
   final String title;
   final String message;
   final double suggestion;
   final double max;
+  final String? itemName;
 
   @override
   State<_AmountDialog> createState() => _AmountDialogState();
@@ -608,86 +617,118 @@ class _AmountDialogState extends State<_AmountDialog> {
       setState(() => _error = t('Unesi ispravan iznos'));
       return;
     }
+    if (v >= widget.max) {
+      setState(
+        () => _error = t('Ponuda mora biti niža od {0}.', [
+          formatCredits(widget.max),
+        ]),
+      );
+      return;
+    }
     Navigator.pop(context, v);
   }
 
   @override
   Widget build(BuildContext context) {
-    return Dialog(
-      alignment: Alignment.topCenter,
-      insetPadding: const EdgeInsets.fromLTRB(16, 24, 16, 24),
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 380),
+    final v = _value;
+    final pct = v == null || widget.max <= 0
+        ? null
+        : ((1 - v / widget.max) * 100).round();
+    return Padding(
+      padding: EdgeInsets.only(bottom: MediaQuery.viewInsetsOf(context).bottom),
+      child: SafeArea(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.fromLTRB(20, 18, 20, 12),
+          padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
           child: Column(
+            key: const ValueKey('amount-sheet'),
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               Text(
                 widget.title,
                 style: const TextStyle(
-                  fontSize: 19,
+                  fontSize: 20,
                   fontWeight: FontWeight.w900,
                 ),
               ),
-              const SizedBox(height: 4),
-              Text(
-                widget.message,
-                style: TextStyle(color: LoopColors.textSecondary, fontSize: 13),
-              ),
-              const SizedBox(height: 12),
-              Wrap(
-                spacing: 6,
-                runSpacing: 6,
-                children: [
-                  for (final p in const [5, 10, 15, 20])
-                    ActionChip(
-                      label: Text('−$p%'),
-                      onPressed: () => setState(() {
-                        _c.text = _fmt(
-                          roundCredits(widget.max * (100 - p) / 100),
-                        );
-                        _error = null;
-                      }),
-                    ),
-                ],
-              ),
-              const SizedBox(height: 12),
+              if (widget.itemName != null)
+                Text(
+                  widget.itemName!,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(fontWeight: FontWeight.w700),
+                ),
+              const SizedBox(height: 14),
+              // Velik iznos u sredini.
               TextField(
                 key: const ValueKey('amount-field'),
                 controller: _c,
+                autofocus: true,
+                textAlign: TextAlign.center,
                 keyboardType: const TextInputType.numberWithOptions(
                   decimal: true,
                 ),
                 textInputAction: TextInputAction.send,
                 style: const TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.w800,
+                  fontSize: 34,
+                  fontWeight: FontWeight.w900,
                 ),
                 onChanged: (_) => setState(() => _error = null),
                 onSubmitted: (_) => _submit(),
                 decoration: InputDecoration(
-                  labelText: t('Iznos'),
                   suffixText: '€',
                   errorText: _error,
+                  helperText: pct != null && pct > 0
+                      ? t('{0} % manje od {1}', [
+                          '$pct',
+                          formatCredits(widget.max),
+                        ])
+                      : t('Cijena je {0}', [formatCredits(widget.max)]),
                 ),
               ),
-              const SizedBox(height: 8),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.end,
-                children: [
-                  TextButton(
-                    onPressed: () => Navigator.pop(context),
-                    child: Text(t('Odustani')),
+              const SizedBox(height: 10),
+              SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: Row(
+                  children: [
+                    for (final p in const [5, 10, 15, 20])
+                      Padding(
+                        padding: const EdgeInsets.only(right: 8),
+                        child: ChoiceChip(
+                          key: ValueKey('amount-pct-$p'),
+                          showCheckmark: false,
+                          selected: pct == p,
+                          label: Text(
+                            '−$p% · ${formatCredits(roundCredits(widget.max * (100 - p) / 100))}',
+                          ),
+                          onSelected: (_) => setState(() {
+                            _c.text = _fmt(
+                              roundCredits(widget.max * (100 - p) / 100),
+                            );
+                            _error = null;
+                          }),
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 10),
+              Text(
+                widget.message,
+                style: TextStyle(color: LoopColors.textSecondary, fontSize: 13),
+              ),
+              const SizedBox(height: 14),
+              SizedBox(
+                height: 52,
+                child: FilledButton(
+                  key: const ValueKey('amount-submit'),
+                  onPressed: _submit,
+                  child: Text(
+                    v == null
+                        ? t('Pošalji')
+                        : t('Pošalji {0}', [formatCredits(v)]),
                   ),
-                  const SizedBox(width: 8),
-                  FilledButton(
-                    key: const ValueKey('amount-submit'),
-                    onPressed: _submit,
-                    child: Text(t('Pošalji')),
-                  ),
-                ],
+                ),
               ),
             ],
           ),
@@ -710,11 +751,11 @@ Future<void> showBargainDialog(
     context,
     title: t('Ponudi cijenu'),
     message: t(
-      'Cijena je {0}. Prodavatelj može prihvatiti, odbiti ili dati protuponudu. Prihvaćena cijena vrijedi 48 sati samo za tebe.',
-      [formatCredits(ask)],
+      'Prodavatelj može prihvatiti, odbiti ili dati protuponudu. Prihvaćena cijena vrijedi 48 sati samo za tebe.',
     ),
     suggestion: roundCredits(ask * 0.9),
     max: ask,
+    itemName: device.name,
   );
   if (amount == null || !context.mounted) return;
   await runWithLoading(

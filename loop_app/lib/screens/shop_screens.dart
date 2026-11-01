@@ -17,29 +17,37 @@ import '../widgets/user_avatar.dart';
 import 'device_detail_screen.dart';
 import 'public_profile_screen.dart';
 
-/// Sve moje ponude cijena: najprije one koje čekaju moj odgovor.
+/// Ponude cijena: Primljene (za moje oglase, prodavatelj) i Poslane (moje
+/// ponude kao kupac). Najprije one koje čekaju moj odgovor.
 class BargainsScreen extends ConsumerWidget {
-  const BargainsScreen({super.key});
+  const BargainsScreen({super.key, this.received = true});
 
-  static Future<void> open(BuildContext context) => Navigator.of(
-    context,
-  ).push(MaterialPageRoute<void>(builder: (_) => const BargainsScreen()));
+  /// Otvori na kartici Primljene (prodavatelj) ili Poslane (kupac).
+  final bool received;
+
+  static Future<void> open(BuildContext context, {bool received = true}) =>
+      Navigator.of(context).push(
+        MaterialPageRoute<void>(
+          builder: (_) => BargainsScreen(received: received),
+        ),
+      );
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final state = ref.watch(appProvider);
-    final toAnswer = state.bargainsToAnswer;
-    final rest = state.myBargains
-        .where((o) => !toAnswer.contains(o))
-        .take(50)
-        .toList();
-    Widget section(String title) => Padding(
-      padding: const EdgeInsets.fromLTRB(4, 16, 4, 6),
-      child: Text(
-        title,
-        style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 16),
-      ),
-    );
+    final me = state.currentUserId;
+    final toAnswer = state.bargainsToAnswer.toSet();
+    List<PriceOffer> sorted(Iterable<PriceOffer> list) => list.toList()
+      ..sort((a, b) {
+        final wa = toAnswer.contains(a), wb = toAnswer.contains(b);
+        if (wa != wb) return wa ? -1 : 1;
+        return (b.updatedAt ?? b.createdAt).compareTo(
+          a.updatedAt ?? a.createdAt,
+        );
+      });
+    final incoming = sorted(state.myBargains.where((o) => o.sellerId == me));
+    final outgoing = sorted(state.myBargains.where((o) => o.buyerId == me));
+
     Widget tile(PriceOffer o) => Card(
       child: InkWell(
         borderRadius: BorderRadius.circular(kRadius),
@@ -53,35 +61,61 @@ class BargainsScreen extends ConsumerWidget {
         ),
       ),
     );
-    return Scaffold(
-      appBar: AppBar(title: Text(t('Ponude cijena'))),
-      body: state.myBargains.isEmpty
-          ? EmptyState(
-              icon: Icons.price_change_outlined,
-              title: t('Još nema ponuda'),
-              message: t(
-                'Na tuđem oglasu dodirni "Ponudi cijenu". Ponude za tvoje oglase pojavit će se ovdje.',
+
+    Widget list(List<PriceOffer> offers, String empty) => offers.isEmpty
+        ? EmptyState(
+            icon: Icons.price_change_outlined,
+            title: empty,
+            message: '',
+          )
+        : ListView(
+            padding: const EdgeInsets.fromLTRB(12, 8, 12, 24),
+            children: [for (final o in offers.take(80)) tile(o)],
+          );
+
+    final waitingIn = incoming.where(toAnswer.contains).length;
+    final waitingOut = outgoing.where(toAnswer.contains).length;
+    return DefaultTabController(
+      length: 2,
+      initialIndex: received ? 0 : 1,
+      child: Scaffold(
+        appBar: AppBar(
+          title: Text(t('Ponude')),
+          bottom: TabBar(
+            tabs: [
+              Tab(
+                key: const ValueKey('offers-tab-in'),
+                text: waitingIn > 0
+                    ? t('Primljene · {0}', ['$waitingIn'])
+                    : t('Primljene'),
               ),
-            )
-          : Align(
-              alignment: Alignment.topCenter,
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 720),
-                child: ListView(
-                  padding: const EdgeInsets.fromLTRB(12, 0, 12, 24),
-                  children: [
-                    if (toAnswer.isNotEmpty) ...[
-                      section(t('Čeka tvoj odgovor ({0})', [toAnswer.length])),
-                      for (final o in toAnswer) tile(o),
-                    ],
-                    if (rest.isNotEmpty) ...[
-                      section(t('Ostale ponude')),
-                      for (final o in rest) tile(o),
-                    ],
-                  ],
+              Tab(
+                key: const ValueKey('offers-tab-out'),
+                text: waitingOut > 0
+                    ? t('Poslane · {0}', ['$waitingOut'])
+                    : t('Poslane'),
+              ),
+            ],
+          ),
+        ),
+        body: Align(
+          alignment: Alignment.topCenter,
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 720),
+            child: TabBarView(
+              children: [
+                list(incoming, t('Još nema ponuda za tvoje oglase.')),
+                list(
+                  outgoing,
+                  t(
+                    'Na oglasu dodirni "Ponudi cijenu" i predloži svoju cijenu.',
+                  ),
                 ),
-              ),
+              ],
             ),
+          ),
+        ),
+      ),
     );
   }
 }

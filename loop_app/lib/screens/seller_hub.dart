@@ -21,6 +21,7 @@ import 'inventory_screen.dart';
 import 'messages_screen.dart';
 import 'seller_finance_screens.dart';
 import 'seller_tools_screen.dart';
+import 'shop_screens.dart' show BargainsScreen;
 
 /// Zdravlje računa prodavača, izračunato iz stvarnih podataka: ocjene
 /// kupaca, isporuke, pravovremene predaje paketa (rok
@@ -480,6 +481,22 @@ class SellerHubScreen extends ConsumerWidget {
                     : t('Za predaju: {0}', ['$shipping']),
                 () => DeliveryNotesScreen.open(context),
               ),
+              const SizedBox(height: 8),
+              Builder(
+                builder: (_) {
+                  final waiting = state.bargainsToAnswer
+                      .where((o) => o.sellerId == state.currentUserId)
+                      .length;
+                  return tile(
+                    const ValueKey('seller-hub-offers-todo'),
+                    Icons.price_change_outlined,
+                    waiting == 0
+                        ? t('Nema ponuda za odgovor')
+                        : t('Ponude za odgovor: {0}', ['$waiting']),
+                    () => BargainsScreen.open(context),
+                  );
+                },
+              ),
               heading(t('Brze radnje')),
               Wrap(
                 spacing: 8,
@@ -578,6 +595,13 @@ class SellerHubScreen extends ConsumerWidget {
                 Icons.inventory_2_outlined,
                 t('Inventar'),
                 () => InventoryScreen.open(context),
+              ),
+              const SizedBox(height: 8),
+              tile(
+                const ValueKey('seller-hub-offers'),
+                Icons.price_change_outlined,
+                t('Ponude'),
+                () => BargainsScreen.open(context),
               ),
               const SizedBox(height: 8),
               tile(

@@ -8,6 +8,7 @@ import 'inventory_screen.dart';
 import 'my_shows_screen.dart';
 import 'seller_finance_screens.dart';
 import 'seller_verification_screen.dart';
+import 'shop_screens.dart' show BargainsScreen;
 import 'shipping_profiles_screen.dart';
 
 /// "Alati prodavača": sve seller radnje grupirane u kartice
@@ -117,6 +118,12 @@ class SellerToolsScreen extends ConsumerWidget {
               Icons.add_box_outlined,
               t('Kreiraj'),
               () => showCreateSheet(context, ref),
+            ),
+            row(
+              'tool-offers',
+              Icons.price_change_outlined,
+              t('Ponude'),
+              () => BargainsScreen.open(context),
             ),
             row(
               'tool-shows',
