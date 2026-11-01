@@ -116,6 +116,23 @@ void main() {
     });
     tearDown(() => Hive.close());
 
+    test('live requires a signed-in seller account', () async {
+      await storage.putUser(AppUser(
+        id: 'buyer-only',
+        email: 'buyer@example.test',
+        name: 'Buyer',
+        credits: 0,
+        createdAt: t0,
+      ));
+      await expectLater(
+        live.create(hostId: 'buyer-only', title: 'Buyer live', now: t0),
+        throwsA(isA<TradeException>()),
+      );
+      expect(storage.liveShows.where((show) => show.hostId == 'buyer-only'), isEmpty);
+      final show = await live.create(hostId: host, title: 'Seller live', now: t0);
+      expect(show.hostId, host);
+    });
+
     test(
       'moderacija: moderatori, utišavanje, uklanjanje, gledatelji',
       () async {
