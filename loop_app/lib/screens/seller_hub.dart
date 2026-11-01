@@ -488,7 +488,7 @@ class SellerHubScreen extends ConsumerWidget {
                     builder: (context) => Scaffold(
                       appBar: AppBar(title: Text(t('Zdravlje računa'))),
                       body: ListView(children: [
-                        SellerHubPanel(initiallyExpanded: true, onShipping: () => openSales(MyTab.notes)),
+                        SellerHubPanel(initiallyExpanded: true, onShipping: () => DeliveryNotesScreen.open(context)),
                       ]),
                     ),
                   )),
