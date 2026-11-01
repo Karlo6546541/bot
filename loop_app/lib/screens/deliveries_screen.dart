@@ -22,6 +22,8 @@ import '../widgets/item_image.dart';
 import '../widgets/empty_state.dart';
 import '../widgets/formatters.dart';
 import '../widgets/trade_actions.dart';
+import '../widgets/loop_snackbar.dart';
+import 'messages_screen.dart' show ChatScreen;
 import '../l10n/tr.dart';
 
 /// Moje dostave: pošiljke s vremenskom crtom statusa.
@@ -57,11 +59,40 @@ class _DeliveriesScreenState extends ConsumerState<DeliveriesScreen> {
     super.dispose();
   }
 
+  /// Filtar kupnji: `null` = sve, `true` = u tijeku, `false` = završeno.
+  bool? _open;
+
   @override
   Widget build(BuildContext context) {
-    final list = ref.watch(appProvider.select((s) => s.myDeliveries));
+    final all = ref.watch(appProvider.select((s) => s.myDeliveries));
+    bool done(Delivery d) => d.confirmedAt != null;
+    final list = [
+      for (final d in all)
+        if (_open == null || _open == !done(d)) d,
+    ]..sort((a, b) => b.createdAt.compareTo(a.createdAt));
+    Widget chip(String key, String label, bool? value) => Padding(
+      padding: const EdgeInsets.only(right: 8),
+      child: ChoiceChip(
+        key: ValueKey('purchases-$key'),
+        label: Text(label),
+        selected: _open == value,
+        showCheckmark: false,
+        onSelected: (_) => setState(() => _open = value),
+      ),
+    );
+    final open = all.where((d) => !done(d)).length;
+    final chips = SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      child: Row(
+        children: [
+          chip('all', t('Sve'), null),
+          chip('open', '${t('U tijeku')} · $open', true),
+          chip('done', t('Završeno'), false),
+        ],
+      ),
+    );
     return Scaffold(
-      appBar: AppBar(title: Text(t('Moje dostave'))),
+      appBar: AppBar(title: Text(t('Kupnje'))),
       body: list.isEmpty
           ? EmptyState(
               icon: Icons.local_shipping_outlined,
@@ -77,19 +108,27 @@ class _DeliveriesScreenState extends ConsumerState<DeliveriesScreen> {
                 child: ListView(
                   padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
                   children: [
-                    Container(
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color: LoopColors.sky,
-                        borderRadius: BorderRadius.circular(kRadius),
+                    chips,
+                    const SizedBox(height: 10),
+                    Text(
+                      t(
+                        '🚚 Demo: dostava je ubrzana — umjesto dana traje nekoliko minuta, pa statuse možeš pratiti uživo.',
                       ),
-                      child: Text(
-                        t(
-                          '🚚 Demo: dostava je ubrzana — umjesto dana traje nekoliko minuta, pa statuse možeš pratiti uživo.',
-                        ),
+                      style: TextStyle(
+                        color: LoopColors.textSecondary,
+                        fontSize: 12,
                       ),
                     ),
                     const SizedBox(height: 12),
+                    if (list.isEmpty)
+                      Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 32),
+                        child: Text(
+                          t('Ovdje nema kupnji.'),
+                          textAlign: TextAlign.center,
+                          style: TextStyle(color: LoopColors.textSecondary),
+                        ),
+                      ),
                     for (final d in list)
                       Padding(
                         padding: const EdgeInsets.only(bottom: 12),
@@ -155,6 +194,185 @@ Future<void> pickDelivery(
   );
 }
 
+/// Stanje kupnje za kupca (oznaka u popisu kupnji).
+String purchaseStatus(Delivery d, DateTime now) {
+  if (d.confirmedAt != null) return t('Završeno');
+  if (d.method == null) return t('Odaberi dostavu');
+  if (d.method == DeliveryMethod.digital) return t('Preuzmi datoteku');
+  if (d.isDelivered(now)) return t('Dostavljeno');
+  if (d.handedOverAt == null && d.stepIndex(now) <= 1) {
+    return t('Otpremnica izrađena');
+  }
+  return d.status(now).label;
+}
+
+/// Koliko dana kupac još može tražiti povrat od trgovca (14 dana od
+/// primitka); `null` kad povrat ne vrijedi (privatni prodavatelj).
+int? returnDaysLeft(Delivery d, bool business, DateTime now) {
+  if (!business) return null;
+  final from = d.confirmedAt ?? (d.isDelivered(now) ? d.eta() : null);
+  if (from == null) return 14;
+  final left = 14 - now.difference(from).inDays;
+  return left < 0 ? 0 : left;
+}
+
+/// Traka napretka dostave u akcentu (kao Whatnot).
+class DeliveryProgressBar extends StatelessWidget {
+  const DeliveryProgressBar({super.key, required this.value});
+  final double value;
+
+  @override
+  Widget build(BuildContext context) => ClipRRect(
+    borderRadius: BorderRadius.circular(999),
+    child: Stack(
+      children: [
+        Container(height: 6, color: LoopColors.surfaceHover),
+        FractionallySizedBox(
+          widthFactor: value.clamp(0.04, 1.0),
+          child: Container(
+            height: 6,
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [
+                  LoopColors.accent.withValues(alpha: 0.7),
+                  LoopColors.accent,
+                ],
+              ),
+            ),
+          ),
+        ),
+      ],
+    ),
+  );
+}
+
+class _StatusPill extends StatelessWidget {
+  const _StatusPill({super.key, required this.label, required this.color});
+  final String label;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) => Container(
+    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+    decoration: BoxDecoration(
+      color: LoopColors.surfaceHover,
+      borderRadius: BorderRadius.circular(6),
+    ),
+    child: Text(
+      label,
+      style: TextStyle(color: color, fontWeight: FontWeight.w900, fontSize: 11),
+    ),
+  );
+}
+
+class _InfoLine extends StatelessWidget {
+  const _InfoLine(this.label, this.value, {this.accent = false});
+  final String label;
+  final String value;
+  final bool accent;
+
+  @override
+  Widget build(BuildContext context) => Text.rich(
+    TextSpan(
+      children: [
+        TextSpan(
+          text: '$label: ',
+          style: TextStyle(color: LoopColors.textSecondary),
+        ),
+        TextSpan(
+          text: value,
+          style: TextStyle(
+            fontWeight: FontWeight.w800,
+            color: accent ? LoopColors.accent : null,
+          ),
+        ),
+      ],
+    ),
+    maxLines: 1,
+    overflow: TextOverflow.ellipsis,
+    style: const TextStyle(fontSize: 13),
+  );
+}
+
+/// Pomoć s kupnjom: prava kupca i prijava problema.
+Future<void> showPurchaseHelp(BuildContext context, WidgetRef ref, Delivery d) {
+  final s = ref.read(appProvider);
+  final seller = s.userById(d.sellerId);
+  final business = seller?.seller?.isBusiness ?? false;
+  final left = returnDaysLeft(d, business, DateTime.now());
+  return showModalBottomSheet<void>(
+    context: context,
+    showDragHandle: true,
+    builder: (ctx) => SafeArea(
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
+        child: Column(
+          key: const ValueKey('purchase-help'),
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text(
+              t('Pomoć s ovom kupnjom'),
+              style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 20),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              d.confirmedAt == null
+                  ? t(
+                      'Ako paket ne stigne ili je predmet bitno drukčiji od opisa, prijavi problem prije potvrde primitka.',
+                    )
+                  : t(
+                      'Primitak je potvrđen. Za problem se najprije javi prodavatelju porukom.',
+                    ),
+            ),
+            if (left != null) ...[
+              const SizedBox(height: 8),
+              Text(
+                left > 0
+                    ? t(
+                        'Prodavatelj je trgovac: imaš pravo na povrat još {0} dana.',
+                        ['$left'],
+                      )
+                    : t('Rok od 14 dana za povrat od trgovca je istekao.'),
+                key: const ValueKey('purchase-return-days'),
+                style: const TextStyle(fontWeight: FontWeight.w800),
+              ),
+            ],
+            const SizedBox(height: 14),
+            if (d.sellerId != null)
+              OutlinedButton.icon(
+                key: const ValueKey('purchase-help-message'),
+                onPressed: () {
+                  Navigator.pop(ctx);
+                  ChatScreen.open(context, d.sellerId!, deviceId: d.deviceId);
+                },
+                icon: const Icon(Icons.chat_bubble_outline),
+                label: Text(t('Piši prodavatelju')),
+              ),
+            const SizedBox(height: 8),
+            if (d.sellerId != null)
+              FilledButton.icon(
+                key: const ValueKey('purchase-help-report'),
+                onPressed: () {
+                  Navigator.pop(ctx);
+                  showReportSheet(
+                    context,
+                    ref,
+                    targetType: 'user',
+                    targetId: d.sellerId!,
+                    targetLabel: s.userLabel(d.sellerId),
+                  );
+                },
+                icon: const Icon(Icons.report_outlined),
+                label: Text(t('Prijavi problem')),
+              ),
+          ],
+        ),
+      ),
+    ),
+  );
+}
+
 class DeliveryCard extends ConsumerWidget {
   const DeliveryCard({super.key, required this.delivery});
   final Delivery delivery;
@@ -212,12 +430,39 @@ class DeliveryCard extends ConsumerWidget {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
+                        _StatusPill(
+                          key: ValueKey('purchase-status-${d.id}'),
+                          label: purchaseStatus(d, now),
+                          color: d.confirmedAt != null
+                              ? LoopColors.success
+                              : m == null
+                              ? LoopColors.accent
+                              : LoopColors.textSecondary,
+                        ),
+                        const SizedBox(height: 4),
                         Text(
                           d.deviceName,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: const TextStyle(fontWeight: FontWeight.w800),
                         ),
+                        if (ref
+                                .read(appProvider)
+                                .itemPaid(d.deviceId, d.buyerId)
+                            case final paid?)
+                          _InfoLine(t('Cijena'), formatCredits(paid)),
+                        _InfoLine(t('Kupljeno'), formatDate(d.createdAt)),
+                        if (!delivered && d.eta() != null)
+                          _InfoLine(
+                            t('Dostava očekivana'),
+                            formatDate(d.eta()!),
+                          ),
+                        if (d.sellerId != null)
+                          _InfoLine(
+                            t('Od'),
+                            '@${ref.read(appProvider).userLabel(d.sellerId)}',
+                            accent: true,
+                          ),
                         Text(
                           m == null
                               ? d.id.startsWith('live-')
@@ -248,26 +493,9 @@ class DeliveryCard extends ConsumerWidget {
                 ),
               ] else ...[
                 const SizedBox(height: 14),
-                // Vremenska crta statusa.
-                Row(
-                  children: [
-                    for (var i = 0; i < steps.length; i++) ...[
-                      _Dot(done: i <= current, active: i == current),
-                      if (i < steps.length - 1)
-                        Expanded(
-                          child: Container(
-                            height: 3,
-                            margin: const EdgeInsets.symmetric(horizontal: 4),
-                            decoration: BoxDecoration(
-                              color: i < current
-                                  ? LoopColors.success
-                                  : LoopColors.surfaceHover,
-                              borderRadius: BorderRadius.circular(999),
-                            ),
-                          ),
-                        ),
-                    ],
-                  ],
+                // Traka napretka dostave (kao Whatnot).
+                DeliveryProgressBar(
+                  value: steps.length <= 1 ? 1 : current / (steps.length - 1),
                 ),
                 const SizedBox(height: 8),
                 Text(
@@ -416,12 +644,132 @@ class DeliveryDetailScreen extends ConsumerWidget {
     final steps = d.steps;
     final current = d.stepIndex(now);
     final device = s.deviceById(d.deviceId);
+    final buyer = d.buyerId == s.currentUserId;
+    final eta = d.eta();
+    final delivered = d.isDelivered(now);
+    Widget action(
+      String key,
+      IconData icon,
+      String title,
+      String? subtitle,
+      VoidCallback onTap, {
+      bool highlight = false,
+    }) => ListTile(
+      key: ValueKey(key),
+      contentPadding: EdgeInsets.zero,
+      leading: Container(
+        width: 40,
+        height: 40,
+        decoration: BoxDecoration(
+          color: highlight ? LoopColors.accent : LoopColors.surfaceHover,
+          shape: BoxShape.circle,
+        ),
+        child: Icon(
+          icon,
+          size: 20,
+          color: highlight ? LoopColors.onAccent : null,
+        ),
+      ),
+      title: Text(title, style: const TextStyle(fontWeight: FontWeight.w800)),
+      subtitle: subtitle == null ? null : Text(subtitle),
+      trailing: const Icon(Icons.chevron_right),
+      onTap: onTap,
+    );
+    final business = s.userById(d.sellerId)?.seller?.isBusiness ?? false;
+    final left = returnDaysLeft(d, business, now);
     return Scaffold(
       key: const ValueKey('delivery-detail'),
-      appBar: AppBar(title: Text(t('Pošiljka'))),
+      appBar: AppBar(title: Text(d.deviceName)),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
+          if (buyer && d.method != null) ...[
+            Container(
+              key: const ValueKey('order-status'),
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: LoopColors.surface,
+                borderRadius: BorderRadius.circular(kRadius),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    purchaseStatus(d, now),
+                    style: const TextStyle(
+                      fontWeight: FontWeight.w900,
+                      fontSize: 20,
+                    ),
+                  ),
+                  if (eta != null && !delivered)
+                    Text(
+                      t('Očekivano do {0}', [formatDate(eta)]),
+                      style: const TextStyle(
+                        fontWeight: FontWeight.w800,
+                        fontSize: 16,
+                      ),
+                    ),
+                  const SizedBox(height: 12),
+                  DeliveryProgressBar(
+                    value: steps.length <= 1 ? 1 : current / (steps.length - 1),
+                  ),
+                  const SizedBox(height: 10),
+                  if (d.destination != null && eta != null)
+                    Text(
+                      delivered
+                          ? t('Pošiljka je dostavljena na {0}.', [
+                              d.destination!,
+                            ])
+                          : t('Pošiljka bi trebala stići na {0} do {1}.', [
+                              d.destination!,
+                              formatDate(eta),
+                            ]),
+                      style: TextStyle(color: LoopColors.textSecondary),
+                    ),
+                  const SizedBox(height: 8),
+                  if (d.sellerId != null)
+                    action(
+                      'order-message',
+                      Icons.chat_bubble_outline,
+                      t('Poruka prodavatelju'),
+                      null,
+                      () => ChatScreen.open(
+                        context,
+                        d.sellerId!,
+                        deviceId: d.deviceId,
+                      ),
+                    ),
+                  action(
+                    'order-help',
+                    Icons.help_outline,
+                    t('Pomoć s ovom kupnjom'),
+                    left != null && left > 0
+                        ? t('Pravo na povrat još {0} dana.', ['$left'])
+                        : d.confirmedAt == null
+                        ? t('Problem prijavi prije potvrde primitka.')
+                        : null,
+                    () => showPurchaseHelp(context, ref, d),
+                  ),
+                  if (d.trackingNumber != null)
+                    action(
+                      'order-track',
+                      Icons.local_shipping_outlined,
+                      t('Prati pošiljku'),
+                      d.trackingNumber,
+                      () {
+                        Clipboard.setData(
+                          ClipboardData(text: d.trackingNumber!),
+                        );
+                        showLoopSnackBar(
+                          t('Broj pošiljke kopiran: {0}', [d.trackingNumber!]),
+                        );
+                      },
+                    ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 16),
+          ],
           Row(
             children: [
               if (device != null)

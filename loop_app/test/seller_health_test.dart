@@ -7,7 +7,8 @@ import 'package:loop_app/models/loop_transaction.dart';
 import 'package:loop_app/screens/seller_finance_screens.dart';
 import 'package:loop_app/models/report.dart';
 import 'package:loop_app/providers/app_state.dart';
-import 'package:loop_app/screens/deliveries_screen.dart' show ShipGroup;
+import 'package:loop_app/screens/deliveries_screen.dart'
+    show ShipGroup, purchaseStatus, returnDaysLeft;
 import 'package:loop_app/screens/seller_hub.dart';
 import 'package:loop_app/services/delivery_service.dart';
 import 'package:loop_app/services/live_service.dart';
@@ -89,6 +90,24 @@ void main() {
     expect(
       ShipGroup.of(handed.copyWith(confirmedAt: now), now),
       ShipGroup.delivered,
+    );
+  });
+
+  test('kupnja: oznaka stanja i rok povrata od trgovca', () async {
+    final a = await ship('p');
+    expect(purchaseStatus(a, t0), 'Otpremnica izrađena');
+    final confirmed = a.copyWith(confirmedAt: t0);
+    expect(purchaseStatus(confirmed, t0), 'Završeno');
+    // Privatni prodavatelj: bez prava na povrat.
+    expect(returnDaysLeft(confirmed, false, t0), isNull);
+    // Trgovac: 14 dana od primitka.
+    expect(
+      returnDaysLeft(confirmed, true, t0.add(const Duration(days: 4))),
+      10,
+    );
+    expect(
+      returnDaysLeft(confirmed, true, t0.add(const Duration(days: 20))),
+      0,
     );
   });
 
