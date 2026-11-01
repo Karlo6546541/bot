@@ -333,7 +333,11 @@ void main() {
     // Zarada se isplaćuje kroz financije u Seller Hubu.
     await tester.tap(find.byKey(const ValueKey('nav-create')));
     await tester.pumpAndSettle();
-    await tester.scrollUntilVisible(find.byKey(const ValueKey('seller-hub-finance')), 250, scrollable: find.byType(Scrollable).last);
+    await tester.scrollUntilVisible(
+      find.byKey(const ValueKey('seller-hub-finance')),
+      250,
+      scrollable: find.byType(Scrollable).last,
+    );
     await tester.tap(find.byKey(const ValueKey('seller-hub-finance')));
     await tester.pumpAndSettle();
     await tester.tap(find.byKey(const ValueKey('fin-payout')));
@@ -346,7 +350,9 @@ void main() {
     expect(find.text('0 €'), findsWidgets);
 
     // Tamna tema iz Profila: sučelje se ponovno izgradi bez grešaka.
-    tester.state<NavigatorState>(find.byType(Navigator).first).popUntil((route) => route.isFirst);
+    tester
+        .state<NavigatorState>(find.byType(Navigator).first)
+        .popUntil((route) => route.isFirst);
     await tester.pumpAndSettle();
     await tester.tap(find.text('Profil').last);
     await tester.pumpAndSettle();
@@ -511,11 +517,17 @@ void main() {
     // Engleski zapis eura u financijama Seller Huba.
     await tester.tap(find.byKey(const ValueKey('nav-create')));
     await tester.pumpAndSettle();
-    await tester.scrollUntilVisible(find.byKey(const ValueKey('seller-hub-finance')), 250, scrollable: find.byType(Scrollable).last);
+    await tester.scrollUntilVisible(
+      find.byKey(const ValueKey('seller-hub-finance')),
+      250,
+      scrollable: find.byType(Scrollable).last,
+    );
     await tester.tap(find.byKey(const ValueKey('seller-hub-finance')));
     await tester.pumpAndSettle();
     expect(find.textContaining('1,250'), findsWidgets);
-    tester.state<NavigatorState>(find.byType(Navigator).first).popUntil((route) => route.isFirst);
+    tester
+        .state<NavigatorState>(find.byType(Navigator).first)
+        .popUntil((route) => route.isFirst);
     await tester.pumpAndSettle();
     await tester.tap(find.text('Profile').last);
     await tester.pumpAndSettle();

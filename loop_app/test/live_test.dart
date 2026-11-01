@@ -117,19 +117,28 @@ void main() {
     tearDown(() => Hive.close());
 
     test('live requires a signed-in seller account', () async {
-      await storage.putUser(AppUser(
-        id: 'buyer-only',
-        email: 'buyer@example.test',
-        name: 'Buyer',
-        credits: 0,
-        createdAt: t0,
-      ));
+      await storage.putUser(
+        AppUser(
+          id: 'buyer-only',
+          email: 'buyer@example.test',
+          name: 'Buyer',
+          credits: 0,
+          createdAt: t0,
+        ),
+      );
       await expectLater(
         live.create(hostId: 'buyer-only', title: 'Buyer live', now: t0),
         throwsA(isA<TradeException>()),
       );
-      expect(storage.liveShows.where((show) => show.hostId == 'buyer-only'), isEmpty);
-      final show = await live.create(hostId: host, title: 'Seller live', now: t0);
+      expect(
+        storage.liveShows.where((show) => show.hostId == 'buyer-only'),
+        isEmpty,
+      );
+      final show = await live.create(
+        hostId: host,
+        title: 'Seller live',
+        now: t0,
+      );
       expect(show.hostId, host);
     });
 
@@ -1186,16 +1195,12 @@ void main() {
         '150',
       );
       await tester.enterText(
-        find.byKey(const ValueKey('on-screen-count')),
-        '2',
-      );
-      await tester.enterText(
         find.byKey(const ValueKey('on-screen-price')),
         '5',
       );
       await tester.tap(find.byKey(const ValueKey('on-screen-confirm')));
       await tester.pumpAndSettle();
-      expect(find.text('Predmet #150–#151'), findsOneWidget);
+      expect(find.text('Predmet #150'), findsOneWidget);
       // Zatvori tipkovnicu (fokusirano polje inače vraća pomak na sebe).
       FocusManager.instance.primaryFocus?.unfocus();
       await tester.pumpAndSettle();
@@ -1230,11 +1235,10 @@ void main() {
       expect(show.lotSeconds, 45);
       expect(
         [for (final l in show.lots) l.deviceName],
-        ['Game Boy Color', 'Predmet #150', 'Predmet #151'],
+        ['Game Boy Color', 'Predmet #150'],
       );
-      // Items on screen je jedan predmet s 2 komada (ne dva predmeta).
-      expect(show.lots[1].deviceId, show.lots[2].deviceId);
-      expect(storage.deviceById(show.lots[1].deviceId)!.quantity, 2);
+      // Sljedeći broj se dodaje sam, bez ograničenja (isti predmet).
+      expect(LiveService.nextOnScreen(show)!.name, 'Predmet #151');
       expect(show.lots.last.startPrice, 5);
       expect(show.video, isTrue);
       // Domaćin sam pokreće licitaciju.
@@ -1282,7 +1286,7 @@ void main() {
       await tester.pumpAndSettle();
       await tester.tap(find.byKey(const ValueKey('live-add-confirm')));
       await tester.pumpAndSettle();
-      expect(storage.liveShowById(show.id)!.lots, hasLength(4));
+      expect(storage.liveShowById(show.id)!.lots, hasLength(3));
       // ⚡ Brzo dodaj: samo naziv i cijena, predmet ide u Moje predmete.
       await tester.tap(find.byKey(const ValueKey('live-quick-add')));
       await tester.pumpAndSettle();
@@ -1294,7 +1298,7 @@ void main() {
       await tester.tap(find.byKey(const ValueKey('quick-add-confirm')));
       await tester.pumpAndSettle();
       final lots = storage.liveShowById(show.id)!.lots;
-      expect(lots, hasLength(5));
+      expect(lots, hasLength(4));
       expect(lots.last.deviceName, 'Pokemon Charizard');
       expect(lots.last.startPrice, 7);
       expect(

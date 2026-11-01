@@ -838,6 +838,7 @@ class LiveService {
     double floorPrice = 1,
     int? seconds,
     bool followersOnly = false,
+    String? name,
     DateTime? now,
   }) async {
     final at = now ?? DateTime.now();
@@ -869,7 +870,7 @@ class LiveService {
     );
     final lot = LiveLot(
       deviceId: base.deviceId,
-      deviceName: base.deviceName,
+      deviceName: name ?? base.deviceName,
       startPrice: mode == LotMode.giveaway ? 0 : base.startPrice,
       mode: mode,
       floorPrice: roundCredits(floorPrice),
@@ -877,6 +878,71 @@ class LiveService {
       followersOnly: mode == LotMode.giveaway && followersOnly,
     );
     final updated = show.copyWith(lots: [...show.lots, lot]);
+    await _storage.putLiveShow(updated);
+    return updated;
+  }
+
+  static final _numbered = RegExp(r'^(.*) #(\d+)$');
+
+  /// "Items on screen": sljedeći broj iza najvećeg u nizu (isti predmet,
+  /// isti naziv). `null` kad show nema numeriranih predmeta.
+  static ({String deviceId, String name, double price, int number})?
+  nextOnScreen(LiveShow show) {
+    for (final lot in show.lots.reversed) {
+      final m = _numbered.firstMatch(lot.deviceName);
+      if (m == null) continue;
+      final base = m.group(1)!;
+      var max = int.parse(m.group(2)!);
+      for (final l in show.lots) {
+        final x = _numbered.firstMatch(l.deviceName);
+        if (x == null || x.group(1) != base || l.deviceId != lot.deviceId) {
+          continue;
+        }
+        final n = int.parse(x.group(2)!);
+        if (n > max) max = n;
+      }
+      return (
+        deviceId: lot.deviceId,
+        name: '$base #${max + 1}',
+        price: lot.startPrice,
+        number: max + 1,
+      );
+    }
+    return null;
+  }
+
+  /// "Items on screen" bez ograničenja: dodaje sljedeći broj (#N+1) na kraj
+  /// reda i jedan komad više na zalihu istog predmeta. Ne broji se u
+  /// najveći broj predmeta (isti predmet).
+  Future<LiveShow> addNextOnScreen(
+    String hostId,
+    String showId, {
+    DateTime? now,
+  }) async {
+    final at = now ?? DateTime.now();
+    final show = _requireHost(hostId, showId);
+    if (show.endedAt != null || stateOf(show, now: at).isOver) {
+      throw TradeException(t('Live je završio.'));
+    }
+    final next = nextOnScreen(show);
+    if (next == null) {
+      throw TradeException(t('Ovaj live nema predmete s brojevima.'));
+    }
+    final device = _storage.deviceById(next.deviceId);
+    if (device == null || device.ownerId != hostId) {
+      throw TradeException(t('Predmet više nije tvoj.'));
+    }
+    await _storage.putDevice(device.withQuantity(device.quantity + 1));
+    final updated = show.copyWith(
+      lots: [
+        ...show.lots,
+        LiveLot(
+          deviceId: next.deviceId,
+          deviceName: next.name,
+          startPrice: next.price,
+        ),
+      ],
+    );
     await _storage.putLiveShow(updated);
     return updated;
   }

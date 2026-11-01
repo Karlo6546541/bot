@@ -1833,21 +1833,15 @@ class _CoverPicker extends StatelessWidget {
 
 /// Predmet ovog livea prije spremanja.
 class _DraftLot {
-  const _DraftLot(
-    this.name,
-    this.price, {
-    this.photo,
-    this.from,
-    this.count = 1,
-  });
+  const _DraftLot(this.name, this.price, {this.photo, this.from});
   final String name;
   final double price;
   final String? photo;
 
-  /// "Items on screen": jedan predmet s [count] komada, brojevi od
-  /// [from] (#150, #151…). `null` = obični predmet.
+  /// "Items on screen": prvi broj niza (#150); sljedeći se u liveu dodaju
+  /// sami ("Sljedeći #N"). `null` = obični predmet.
   final int? from;
-  final int count;
+  int get count => 1;
   bool get onScreen => from != null;
 
   /// Zadnji broj u nizu (za nastavak brojanja).
@@ -1961,15 +1955,14 @@ class _DraftRow extends StatelessWidget {
         child: ListTile(
           leading: thumb,
           title: Text(
-            lot.onScreen ? '${lot.name} #${lot.from}–#${lot.last}' : lot.name,
+            lot.onScreen ? '${lot.name} #${lot.from}' : lot.name,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
             style: const TextStyle(fontWeight: FontWeight.w800),
           ),
           subtitle: Text(
             lot.onScreen
-                ? t('Items on screen · {0} brojeva · od {1}', [
-                    '${lot.count}',
+                ? t('Items on screen · brojevi idu sami · od {0}', [
                     formatCredits(lot.price),
                   ])
                 : '${t('Predmet sa slikom')} · ${t('od {0}', [formatCredits(lot.price)])}',
@@ -2133,9 +2126,6 @@ class _OnScreenSheet extends StatefulWidget {
   const _OnScreenSheet({required this.start});
   final int start;
 
-  /// Najviše brojeva u jednom nizu (svejedno je jedan predmet).
-  static const max = 200;
-
   @override
   State<_OnScreenSheet> createState() => _OnScreenSheetState();
 }
@@ -2143,12 +2133,11 @@ class _OnScreenSheet extends StatefulWidget {
 class _OnScreenSheetState extends State<_OnScreenSheet> {
   late final _name = TextEditingController(text: t('Predmet'));
   late final _from = TextEditingController(text: '${widget.start}');
-  late final _count = TextEditingController(text: '10');
   final _price = TextEditingController(text: '1');
 
   @override
   void dispose() {
-    for (final c in [_name, _from, _count, _price]) {
+    for (final c in [_name, _from, _price]) {
       c.dispose();
     }
     super.dispose();
@@ -2157,35 +2146,24 @@ class _OnScreenSheetState extends State<_OnScreenSheet> {
   void _submit() {
     final name = _name.text.trim();
     final from = int.tryParse(_from.text.trim());
-    final count = int.tryParse(_count.text.trim());
     final price = double.tryParse(_price.text.trim().replaceAll(',', '.'));
     if (name.isEmpty ||
         from == null ||
         from < 0 ||
-        count == null ||
-        count < 1 ||
         price == null ||
         price < 1) {
       showLoopSnackBar(
-        t('Upiši naziv, broj, količinu i cijenu (barem 1 €).'),
+        t('Upiši naziv, početni broj i cijenu (barem 1 €).'),
         error: true,
       );
       return;
     }
-    if (count > _OnScreenSheet.max) {
-      showLoopSnackBar(
-        t('Najviše {0} brojeva u nizu.', ['${_OnScreenSheet.max}']),
-        error: true,
-      );
-      return;
-    }
-    Navigator.pop(context, _DraftLot(name, price, from: from, count: count));
+    Navigator.pop(context, _DraftLot(name, price, from: from));
   }
 
   @override
   Widget build(BuildContext context) {
     final from = int.tryParse(_from.text) ?? widget.start;
-    final count = int.tryParse(_count.text) ?? 0;
     return Padding(
       padding: EdgeInsets.fromLTRB(
         20,
@@ -2203,7 +2181,7 @@ class _OnScreenSheetState extends State<_OnScreenSheet> {
           ),
           Text(
             t(
-              'Jedan predmet s brojevima, bez slike — pokazuješ ih na kameri. Nakon svake prodaje na ekranu se pojavi sljedeći broj.',
+              'Predmeti s brojevima, bez slike — pokazuješ ih na kameri. Brojevi idu sami: nakon svake prodaje stisneš "Sljedeći #N". Nema ograničenja.',
             ),
             style: TextStyle(color: LoopColors.textSecondary, fontSize: 13),
           ),
@@ -2232,18 +2210,6 @@ class _OnScreenSheetState extends State<_OnScreenSheet> {
               const SizedBox(width: 10),
               Expanded(
                 child: TextField(
-                  key: const ValueKey('on-screen-count'),
-                  controller: _count,
-                  keyboardType: TextInputType.number,
-                  decoration: InputDecoration(
-                    labelText: t('Koliko (do {0})', ['${_OnScreenSheet.max}']),
-                  ),
-                  onChanged: (_) => setState(() {}),
-                ),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: TextField(
                   key: const ValueKey('on-screen-price'),
                   controller: _price,
                   keyboardType: const TextInputType.numberWithOptions(
@@ -2258,16 +2224,17 @@ class _OnScreenSheetState extends State<_OnScreenSheet> {
             ],
           ),
           const SizedBox(height: 10),
-          if (count > 0)
-            Text(
-              t('{0} #{1} … #{2}', [
-                _name.text.trim(),
-                '$from',
-                '${from + count - 1}',
-              ]),
-              textAlign: TextAlign.center,
-              style: const TextStyle(fontWeight: FontWeight.w800),
-            ),
+          Text(
+            t('Prvi: {0} #{1} · zatim #{2}, #{3}… bez ograničenja', [
+              _name.text.trim(),
+              '$from',
+              '${from + 1}',
+              '${from + 2}',
+            ]),
+            key: const ValueKey('on-screen-preview'),
+            textAlign: TextAlign.center,
+            style: const TextStyle(fontWeight: FontWeight.w800),
+          ),
           const SizedBox(height: 12),
           FilledButton(
             key: const ValueKey('on-screen-confirm'),
@@ -2932,6 +2899,13 @@ class _LiveRoomViewState extends ConsumerState<_LiveRoomBody> {
                     ),
                     tile(
                       ctx,
+                      key: 'live-on-screen-tile',
+                      icon: Icons.tag,
+                      label: t('Items on screen'),
+                      onTap: () => _startOnScreen(show),
+                    ),
+                    tile(
+                      ctx,
                       key: 'live-promote-tile',
                       icon: Icons.trending_up,
                       label: t('Promoviraj'),
@@ -2979,6 +2953,46 @@ class _LiveRoomViewState extends ConsumerState<_LiveRoomBody> {
     } on TradeException catch (e) {
       showLoopSnackBar(e.message, error: true);
     }
+  }
+
+  /// "Items on screen": sljedeći broj se doda i odmah licitira.
+  Future<void> _nextNumber(LiveShow show) async {
+    try {
+      await _app.liveStartNextNumber(show.id);
+    } on TradeException catch (e) {
+      showLoopSnackBar(e.message, error: true);
+    }
+  }
+
+  /// "Items on screen" usred livea: naziv, početni broj i cijena; prvi
+  /// broj ide na kraj reda, a dalje "Sljedeći #N".
+  Future<void> _startOnScreen(LiveShow show) async {
+    final lot = await showModalBottomSheet<_DraftLot>(
+      context: context,
+      showDragHandle: true,
+      isScrollControlled: true,
+      constraints: const BoxConstraints(maxWidth: 520),
+      builder: (_) => appThemed(
+        _OnScreenSheet(start: LiveService.nextOnScreen(show)?.number ?? 1),
+      ),
+    );
+    if (lot == null || !mounted) return;
+    await runWithLoading(context, () async {
+      final d = await _app.addDevice(
+        name: lot.name,
+        model: '',
+        condition: DeviceCondition.good,
+        price: lot.price,
+        category: DeviceCategory.fromName(show.category),
+        listOnMarket: false,
+      );
+      await _app.liveAddLot(
+        show.id,
+        d.id,
+        lot.price,
+        name: '${lot.name} #${lot.from}',
+      );
+    }, successMessage: t('Brojevi su spremni u liveu.'));
   }
 
   /// Domaćin dodaje predmet u live (iz svojih predmeta ili novi).
@@ -4126,7 +4140,24 @@ class _LiveRoomViewState extends ConsumerState<_LiveRoomBody> {
       return Row(
         children: [
           Expanded(
-            child: cur == null && next == null
+            child:
+                cur == null &&
+                    next == null &&
+                    LiveService.nextOnScreen(show) != null
+                ? FilledButton.icon(
+                    key: const ValueKey('live-next-number'),
+                    style: big,
+                    onPressed: st.canStart ? () => _nextNumber(show) : null,
+                    icon: const Icon(Icons.tag),
+                    label: Text(
+                      t('Sljedeći: {0}', [
+                        LiveService.nextOnScreen(show)!.name,
+                      ]),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  )
+                : cur == null && next == null
                 ? FilledButton.icon(
                     key: const ValueKey('live-add-first'),
                     style: big,

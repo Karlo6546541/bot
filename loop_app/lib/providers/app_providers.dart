@@ -1394,6 +1394,7 @@ class AppController extends Notifier<AppState> {
     double floorPrice = 1,
     int? seconds,
     bool followersOnly = false,
+    String? name,
   }) async {
     await _live.addLot(
       _requireUserId(),
@@ -1404,7 +1405,16 @@ class AppController extends Notifier<AppState> {
       floorPrice: floorPrice,
       seconds: seconds,
       followersOnly: followersOnly,
+      name: name,
     );
+    _refresh();
+  }
+
+  /// "Items on screen": dodaj sljedeći broj i odmah ga pokreni.
+  Future<void> liveStartNextNumber(String showId) async {
+    final me = _requireUserId();
+    final show = await _live.addNextOnScreen(me, showId);
+    await _live.startLot(me, showId, index: show.lots.length - 1);
     _refresh();
   }
 

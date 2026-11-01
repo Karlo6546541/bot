@@ -187,10 +187,9 @@ void main() {
     });
     await storage.putLiveShow(other);
     // Vlastiti show nije cilj; tuđi live jest.
-    expect(
-      live.raidTargets(host, show.id, now: t0).map((s) => s.id),
-      ['other-show'],
-    );
+    expect(live.raidTargets(host, show.id, now: t0).map((s) => s.id), [
+      'other-show',
+    ]);
     await expectLater(
       live.raid(host, show.id, show.id, now: t0),
       throwsA(isA<TradeException>()),
@@ -199,5 +198,30 @@ void main() {
     final st = live.stateOf(storage.liveShowById(show.id)!, now: t0);
     expect(st.raidTo, 'other-show');
     expect(storage.liveShowById(show.id)!.endedAt, isNotNull);
+  });
+
+  test('items on screen: sljedeći broj sam, bez ograničenja', () async {
+    final show = await makeShow(t0);
+    // Prvi predmet postaje "#150" (kao iz obrasca), pa dalje sami brojevi.
+    final first = show.copyWith(
+      lots: [
+        LiveLot(
+          deviceId: show.lots.first.deviceId,
+          deviceName: 'Kartica #150',
+          startPrice: 2,
+        ),
+      ],
+    );
+    await storage.putLiveShow(first);
+    expect(LiveService.nextOnScreen(first)!.name, 'Kartica #151');
+    var s = first;
+    for (var i = 0; i < 60; i++) {
+      s = await live.addNextOnScreen(host, show.id, now: t0);
+    }
+    // Više od najvećeg broja predmeta po showu (isti predmet, bez limita).
+    expect(s.lots, hasLength(61));
+    expect(s.lots.last.deviceName, 'Kartica #210');
+    expect(s.lots.last.startPrice, 2);
+    expect(storage.deviceById(show.lots.first.deviceId)!.quantity, 61);
   });
 }

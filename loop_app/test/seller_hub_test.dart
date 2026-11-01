@@ -16,20 +16,24 @@ import 'package:loop_app/services/seed_data.dart';
 import 'package:loop_app/services/storage_service.dart';
 
 void main() {
-  testWidgets('seller tools open their screens and return to the hub', (tester) async {
+  testWidgets('seller tools open their screens and return to the hub', (
+    tester,
+  ) async {
     tester.view.physicalSize = const Size(390, 844);
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.reset);
     final storage = StorageService();
     await storage.init(inMemory: true);
     await storage.saveSession(userId: SeedData.testUserId);
-    await tester.pumpWidget(ProviderScope(
-      overrides: [
-        storageProvider.overrideWithValue(storage),
-        tickIntervalProvider.overrideWithValue(null),
-      ],
-      child: const MaterialApp(home: SellerHubScreen()),
-    ));
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          storageProvider.overrideWithValue(storage),
+          tickIntervalProvider.overrideWithValue(null),
+        ],
+        child: const MaterialApp(home: SellerHubScreen()),
+      ),
+    );
     await tester.pumpAndSettle();
     final links = <(String, Type)>[
       ('seller-hub-shows', MyShowsScreen),
@@ -41,7 +45,8 @@ void main() {
     ];
     for (final (key, screen) in links) {
       await tester.scrollUntilVisible(
-        find.byKey(ValueKey(key)), 200,
+        find.byKey(ValueKey(key)),
+        200,
         scrollable: find.byType(Scrollable).last,
       );
       await tester.tap(find.byKey(ValueKey(key)));
@@ -53,7 +58,8 @@ void main() {
     }
     // Inventar: kartice i izbornik "Kreiraj".
     await tester.scrollUntilVisible(
-      find.byKey(const ValueKey('seller-hub-inventory')), 200,
+      find.byKey(const ValueKey('seller-hub-inventory')),
+      200,
       scrollable: find.byType(Scrollable).last,
     );
     await tester.tap(find.byKey(const ValueKey('seller-hub-inventory')));
@@ -68,9 +74,7 @@ void main() {
     await Hive.close();
   });
 
-  testWidgets('Seller Hub s radnjama, otpremom i zdravljem', (
-    tester,
-  ) async {
+  testWidgets('Seller Hub s radnjama, otpremom i zdravljem', (tester) async {
     tester.view.physicalSize = const Size(420, 1200);
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.resetPhysicalSize);
@@ -89,7 +93,9 @@ void main() {
           storageProvider.overrideWithValue(storage),
           tickIntervalProvider.overrideWithValue(null),
         ],
-        child: const MaterialApp(home: Scaffold(body: SingleChildScrollView(child: SellerHubPanel()))),
+        child: const MaterialApp(
+          home: Scaffold(body: SingleChildScrollView(child: SellerHubPanel())),
+        ),
       ),
     );
     await tester.pumpAndSettle();
