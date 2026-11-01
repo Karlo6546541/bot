@@ -934,7 +934,6 @@ class _MyAuctionsViewState extends ConsumerState<MyAuctionsView> {
     final onlineActions =
         (online?.unclaimedAwards.length ?? 0) +
         onlineBought.where((o) => o['status'] == 'awaiting_payment').length;
-    final user = s.currentUser!;
     final now = DateTime.now();
 
     // ----------------------------------------------- dostave kupca (po izvoru)
