@@ -1153,12 +1153,10 @@ void logoTests() {
     await tester.pumpAndSettle();
     await tester.tap(find.byKey(const ValueKey('post-buy')));
     await tester.pumpAndSettle();
-    // Prvo se mora odabrati način dostave — bez toga nema plaćanja.
+    // Kupac ne bira dostavu: šalje prodavač (kurir ili paketomat).
     final pay = find.byKey(const ValueKey('checkout-pay'));
-    expect(find.text('Prvo odaberi način dostave'), findsOneWidget);
-    expect(tester.widget<ButtonStyleButton>(pay).onPressed, isNull);
-    await tester.tap(find.byKey(const ValueKey('delivery-hr-gls')));
-    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('checkout-shipping')), findsOneWidget);
+    expect(find.byKey(const ValueKey('delivery-hr-gls')), findsNothing);
     expect(tester.widget<ButtonStyleButton>(pay).onPressed, isNotNull);
     // Kartica i adresa demo računa koriste se automatski.
     await tester.ensureVisible(pay);

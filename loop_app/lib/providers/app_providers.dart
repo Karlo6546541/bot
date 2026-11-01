@@ -913,7 +913,7 @@ class AppController extends Notifier<AppState> {
   /// krediti pokrivaju predmet + fee + dostavu, pa tek onda kupuje.
   Future<LoopTransaction> buy(
     String deviceId, {
-    DeliveryMethod method = DeliveryMethod.pickup,
+    DeliveryMethod? method,
     String? destination,
     Carrier? carrier,
   }) async {
@@ -926,14 +926,32 @@ class AppController extends Notifier<AppState> {
       _refresh();
       return tx;
     }
-    final error = DeliveryService.validate(
-      method,
-      destination,
-      carrier: carrier,
-    );
-    if (error != null) throw TradeException(error);
+    if (method != null) {
+      final error = DeliveryService.validate(
+        method,
+        destination,
+        carrier: carrier,
+      );
+      if (error != null) throw TradeException(error);
+    }
     // Predmet i dostavu kupac plaća karticom (pružatelj plaćanja).
     final tx = await _trade.buy(userId: userId, deviceId: deviceId);
+    if (method == null) {
+      // Dostavu bira prodavač (kurir ili paketomat) kad šalje paket.
+      final bought =
+          ref.read(storageProvider).deviceById(tx.deviceId) ?? device;
+      await ref
+          .read(deliveryServiceProvider)
+          .createPending(
+            userId: userId,
+            deviceId: bought.id,
+            deviceName: bought.name,
+            sellerId: tx.sellerId,
+            fromAuction: false,
+          );
+      _refresh();
+      return tx;
+    }
     // Kod zalihe kupac dobiva novi predmet (jedan komad) — dostava ide za njega.
     final bought = ref.read(storageProvider).deviceById(tx.deviceId) ?? device;
     await ref
@@ -948,6 +966,28 @@ class AppController extends Notifier<AppState> {
         );
     _refresh();
     return tx;
+  }
+
+  /// Prodavač bira način dostave i šalje paket kupcu.
+  Future<void> shipDelivery(
+    String deliveryId,
+    DeliveryMethod method,
+    String? destination, {
+    Carrier? carrier,
+  }) async {
+    try {
+      await ref
+          .read(deliveryServiceProvider)
+          .ship(
+            sellerId: _requireUserId(),
+            deliveryId: deliveryId,
+            method: method,
+            destination: destination,
+            carrier: carrier,
+          );
+    } finally {
+      _refresh();
+    }
   }
 
   /// Pobjednik aukcije bira način dostave.

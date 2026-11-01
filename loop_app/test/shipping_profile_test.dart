@@ -167,4 +167,44 @@ void main() {
     await tester.pumpWidget(const SizedBox.shrink());
     await Hive.close();
   });
+
+  test('prodavač šalje u paketomat: kupac dobiva broj i PIN', () async {
+    final storage = StorageService();
+    await storage.init(inMemory: true);
+    await storage.saveSession(userId: SeedData.testUserId);
+    final deliveries = DeliveryService(storage);
+    await deliveries.createPending(
+      id: 'auc-1',
+      userId: SeedData.testUserId,
+      deviceId: 'dev-1',
+      deviceName: 'Walkman',
+      sellerId: SeedData.demoUserId,
+    );
+    // Kupac ne može poslati umjesto prodavača.
+    await expectLater(
+      deliveries.ship(
+        sellerId: SeedData.testUserId,
+        deliveryId: 'auc-1',
+        method: DeliveryMethod.courier,
+        destination: 'Ilica 1, 10000 Zagreb',
+      ),
+      throwsA(isA<TradeException>()),
+    );
+    final before = storage.userById(SeedData.testUserId)!;
+    final d = await deliveries.ship(
+      sellerId: SeedData.demoUserId,
+      deliveryId: 'auc-1',
+      method: DeliveryMethod.parcelLocker,
+      destination: kDemoLockers.first,
+    );
+    expect(d.method, DeliveryMethod.parcelLocker);
+    expect(d.trackingNumber, isNotNull);
+    expect(d.pickupPin, isNotNull);
+    // Kupčeve spremljene postavke ostaju (bira prodavač).
+    expect(
+      storage.userById(SeedData.testUserId)!.lastDelivery,
+      before.lastDelivery,
+    );
+    await Hive.close();
+  });
 }

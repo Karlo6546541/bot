@@ -1,6 +1,6 @@
 import '../services/app_location/app_location.dart';
 import 'package:flutter/material.dart';
-import '../models/delivery.dart' show ParcelSize;
+import '../models/delivery.dart' show DeliveryMethod;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../models/app_user.dart';
@@ -10,10 +10,8 @@ import '../services/fee.dart';
 import '../services/trade_service.dart';
 import '../theme/app_theme.dart';
 import '../screens/seller_screens.dart';
-import '../services/delivery_service.dart';
 import '../screens/login_screen.dart';
 import 'celebration.dart';
-import 'delivery_picker.dart';
 import 'payment_sheet.dart';
 import 'formatters.dart';
 import 'loop_snackbar.dart';
@@ -530,9 +528,10 @@ Future<bool> confirmAndBuy(
     return _buyDigital(context, ref, device, price);
   }
 
-  // Prvo se bira način dostave (ništa nije unaprijed odabrano), a
-  // spremljena kartica i adresa koriste se automatski.
-  final picked = await showModalBottomSheet<DeliveryChoice>(
+  // Dostavu bira prodavač (kurir ili paketomat); kupcu treba adresa i
+  // kartica.
+  if (!await ensureCheckout(context, ref) || !context.mounted) return false;
+  final ok0 = await showModalBottomSheet<bool>(
     context: context,
     isScrollControlled: true,
     showDragHandle: true,
@@ -540,33 +539,22 @@ Future<bool> confirmAndBuy(
     constraints: BoxConstraints(maxWidth: 560),
     builder: (_) => appThemed(_CheckoutSheet(device: device, price: price)),
   );
-  if (picked == null || !context.mounted) return false;
+  if (ok0 != true || !context.mounted) return false;
   // Gumb kupnje nestaje čim predmet ode (npr. objava u swipe feedu), pa
   // slavlje ide preko navigatora, ne preko gumba.
   final nav = Navigator.of(context, rootNavigator: true).context;
-  // ref se ne smije koristiti nakon kupnje (gumb tada nestaje).
-  final shipping = ref
-      .read(appProvider)
-      .deliveryCostOf(picked.method, picked.carrier, device);
   final ok = await runWithLoading(
     context,
-    () => ref
-        .read(appProvider.notifier)
-        .buy(
-          device.id,
-          method: picked.method,
-          destination: picked.destination,
-          carrier: picked.carrier,
-        ),
+    () => ref.read(appProvider.notifier).buy(device.id),
     successMessage: null,
   );
   if (ok && nav.mounted) {
     await showCelebration(
       nav,
       title: t('Kupljeno! 🎉'),
-      subtitle: t('Paket pratiš u Moje → Kupljeno'),
+      subtitle: t('Prodavač šalje paket — broj za praćenje stiže u Moje.'),
       device: device,
-      amount: buyTotal(price) + shipping,
+      amount: buyTotal(price),
     );
   }
   return ok;
@@ -591,7 +579,6 @@ class _CheckoutSheetState extends ConsumerState<_CheckoutSheet> {
     setState(() => _error = null);
   }
 
-  DeliveryChoice? _choice;
   String? _error;
 
   @override
@@ -600,13 +587,18 @@ class _CheckoutSheetState extends ConsumerState<_CheckoutSheet> {
       appProvider.select((s) => s.currentUser?.paymentCard),
     );
     final d = widget.device;
-    final shipping = _choice == null
-        ? 0.0
-        : ref
-              .read(appProvider)
-              .deliveryCostOf(_choice!.method, _choice!.carrier, widget.device);
+    final st = ref.read(appProvider);
+    // Najjeftinija dostava koju prodavač može odabrati (kurir/paketomat).
+    final costs = [
+      for (final o in st.deliveryOptionsFor(d))
+        if (o.method != DeliveryMethod.pickup &&
+            o.method != DeliveryMethod.digital)
+          st.deliveryCostOf(o.method, o.carrier, d),
+    ]..sort();
+    final shippingFrom = costs.isEmpty ? 0.0 : costs.first;
     final price = widget.price;
-    final total = buyTotal(price) + shipping;
+    final total = buyTotal(price);
+    final address = st.currentUser?.address;
 
     Widget row(String k, String v, {bool bold = false}) => Padding(
       padding: EdgeInsets.symmetric(vertical: 3),
@@ -621,11 +613,14 @@ class _CheckoutSheetState extends ConsumerState<_CheckoutSheet> {
               ),
             ),
           ),
-          Text(
-            v,
-            style: TextStyle(
-              fontWeight: bold ? FontWeight.w900 : FontWeight.w700,
-              fontSize: bold ? 17 : 14,
+          Flexible(
+            child: Text(
+              v,
+              textAlign: TextAlign.right,
+              style: TextStyle(
+                fontWeight: bold ? FontWeight.w900 : FontWeight.w700,
+                fontSize: bold ? 17 : 14,
+              ),
             ),
           ),
         ],
@@ -648,24 +643,49 @@ class _CheckoutSheetState extends ConsumerState<_CheckoutSheet> {
               style: TextStyle(color: LoopColors.textSecondary),
             ),
             SizedBox(height: 16),
-            Text(
-              t('Dostava'),
-              style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16),
-            ),
-            SizedBox(height: 8),
-            Consumer(
-              builder: (context, ref, _) => DeliveryPicker(
-                options: ref.read(appProvider).deliveryOptionsFor(d),
-                size: ParcelSize.fromName(d.parcelSize),
-                savedAddress: ref.read(appProvider).currentUser?.address,
-                saved: DeliveryChoice.saved(
-                  ref.read(appProvider).currentUser?.lastDelivery,
-                ),
-                onChanged: (c) => setState(() {
-                  _choice = c;
-                  _error = null;
-                }),
-                onCleared: () => setState(() => _choice = null),
+            Container(
+              key: ValueKey('checkout-shipping'),
+              padding: EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: LoopColors.surface,
+                borderRadius: BorderRadius.circular(14),
+              ),
+              child: Row(
+                children: [
+                  Icon(
+                    Icons.local_shipping_outlined,
+                    color: LoopColors.textSecondary,
+                  ),
+                  SizedBox(width: 10),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          t('Dostava na {0}', [address ?? '—']),
+                          style: TextStyle(fontWeight: FontWeight.w800),
+                        ),
+                        Text(
+                          t(
+                            'Prodavač šalje kurirom ili u paketomat. Dobit ćeš broj za praćenje (i PIN ako je paketomat).',
+                          ),
+                          style: TextStyle(
+                            color: LoopColors.textSecondary,
+                            fontSize: 12,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  TextButton(
+                    key: ValueKey('checkout-address-change'),
+                    onPressed: () async {
+                      await ensureCheckout(context, ref, force: true);
+                      if (mounted) setState(() {});
+                    },
+                    child: Text(t('Promijeni')),
+                  ),
+                ],
               ),
             ),
             SizedBox(height: 12),
@@ -679,12 +699,14 @@ class _CheckoutSheetState extends ConsumerState<_CheckoutSheet> {
                     row(t('Cijena'), formatCredits(buyTotal(price))),
                     row(
                       t('Dostava'),
-                      shipping == 0
+                      shippingFrom == 0
                           ? t('besplatno')
-                          : '+ ${formatCredits(shipping)}',
+                          : t('od {0}, prema načinu slanja', [
+                              formatCredits(shippingFrom),
+                            ]),
                     ),
                     Divider(height: 16),
-                    row(t('Ukupno'), formatCredits(total), bold: true),
+                    row(t('Predmet ukupno'), formatCredits(total), bold: true),
                   ],
                 ),
               ),
@@ -752,29 +774,16 @@ class _CheckoutSheetState extends ConsumerState<_CheckoutSheet> {
             SizedBox(height: 14),
             FilledButton.icon(
               key: ValueKey('checkout-pay'),
-              onPressed: _choice == null
-                  ? null
-                  : () {
-                      final err = DeliveryService.validate(
-                        _choice!.method,
-                        _choice!.destination,
-                        carrier: _choice!.carrier,
-                      );
-                      if (err != null) {
-                        setState(() => _error = err);
-                        return;
-                      }
-                      if (card == null) {
-                        _changeCard();
-                        return;
-                      }
-                      Navigator.pop(context, _choice);
-                    },
+              onPressed: () {
+                if (card == null) {
+                  _changeCard();
+                  return;
+                }
+                Navigator.pop(context, true);
+              },
               icon: Icon(Icons.lock_outline),
               label: Text(
-                _choice == null
-                    ? t('Prvo odaberi način dostave')
-                    : t('Plati {0} i potvrdi kupnju', [formatCredits(total)]),
+                t('Plati {0} i potvrdi kupnju', [formatCredits(total)]),
               ),
             ),
           ],

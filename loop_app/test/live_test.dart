@@ -1466,27 +1466,33 @@ void main() {
     ).read(appProvider.notifier);
     await tester.runAsync(app.settleLive);
     await tester.pumpAndSettle();
+    // Kupac ne bira dostavu: vidi da prodavač šalje paket.
     final choose = find.byKey(const ValueKey('live-choose-delivery'));
     expect(choose, findsOneWidget);
-    await tester.tap(choose);
-    await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const ValueKey('delivery-hr-gls')));
-    await tester.pumpAndSettle();
-    await tester.ensureVisible(find.text('Potvrdi · 6 €'));
-    await tester.runAsync(() => tester.tap(find.text('Potvrdi · 6 €')));
-    await tester.runAsync(
-      () => Future<void>.delayed(const Duration(milliseconds: 900)),
+    expect(find.textContaining('prodavač šalje paket'), findsOneWidget);
+    // Prodavač bira paketomat i šalje → kupac dobiva broj za praćenje.
+    final pending = storage.deliveries.firstWhere(
+      (d) => d.buyerId == host && d.method == null,
     );
-    await tester.pumpAndSettle();
-    expect(choose, findsNothing);
-    // Poruka "Dostava je krenula" nestane sama.
-    await tester.pump(const Duration(seconds: 5));
-    await tester.pumpAndSettle();
+    await tester.runAsync(
+      () => DeliveryService(storage).ship(
+        sellerId: bob,
+        deliveryId: pending.id,
+        method: DeliveryMethod.courier,
+        destination: 'Ilica 1, 10000 Zagreb',
+      ),
+    );
+    final shipped = storage.deliveryById(pending.id)!;
+    expect(shipped.method, DeliveryMethod.courier);
+    expect(shipped.trackingNumber, isNotNull);
     expect(
-      storage.deliveries
-          .where((d) => d.buyerId == host && d.method != null)
-          .length,
-      1,
+      storage.notifications.any(
+        (n) =>
+            n.userId == host &&
+            n.kind == NotificationKind.parcelShipped &&
+            n.targetId == pending.id,
+      ),
+      isTrue,
     );
 
     // Domaćin pokreće nagradnu igru — gledatelj se prijavljuje.

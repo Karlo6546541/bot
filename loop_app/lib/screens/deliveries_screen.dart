@@ -215,7 +215,7 @@ Future<void> pickDelivery(
 String purchaseStatus(Delivery d, DateTime now) {
   if (d.dispute case final x?) return t('Povrat: {0}', [x.status.label]);
   if (d.confirmedAt != null) return t('Završeno');
-  if (d.method == null) return t('Odaberi dostavu');
+  if (d.method == null) return t('Čeka slanje');
   if (d.method == DeliveryMethod.digital) return t('Preuzmi datoteku');
   if (d.isDelivered(now)) return t('Dostavljeno');
   if (d.handedOverAt == null && d.stepIndex(now) <= 1) {
@@ -401,6 +401,60 @@ Future<void> showPurchaseHelp(BuildContext context, WidgetRef ref, Delivery d) {
   );
 }
 
+/// Prodavač bira dostavu (kurir na kupčevu adresu ili paketomat) i šalje
+/// paket. Kupac dobiva broj za praćenje, a kod paketomata i PIN kad paket
+/// stigne. Za predmete iz istog livea vrijedi za cijeli paket.
+Future<void> shipBySeller(
+  BuildContext context,
+  WidgetRef ref,
+  Delivery delivery,
+) async {
+  final st = ref.read(appProvider);
+  final device = st.deviceById(delivery.deviceId);
+  final buyer = st.userById(delivery.buyerId);
+  final options = device == null
+      ? [
+          for (final m in DeliveryMethod.values)
+            if (m != DeliveryMethod.digital && m != DeliveryMethod.pickup)
+              DeliveryOption(m),
+        ]
+      : DeliveryService.optionsFor(
+          device,
+          from: st.currentUser?.country ?? 'HR',
+          to: buyer?.country ?? 'HR',
+        );
+  final choice = await showModalBottomSheet<DeliveryChoice>(
+    context: context,
+    isScrollControlled: true,
+    showDragHandle: true,
+    backgroundColor: LoopColors.background,
+    constraints: const BoxConstraints(maxWidth: 560),
+    builder: (_) => appThemed(
+      _ChooseSheet(
+        title: t('Kako šalješ "{0}"?', [delivery.deviceName]),
+        confirm: t('Pošalji paket'),
+        options: options,
+        size: ParcelSize.fromName(device?.parcelSize),
+        savedAddress: buyer?.address,
+        saved: DeliveryChoice.saved(buyer?.lastDelivery),
+      ),
+    ),
+  );
+  if (choice == null || !context.mounted) return;
+  await runWithLoading(
+    context,
+    () => ref
+        .read(appProvider.notifier)
+        .shipDelivery(
+          delivery.id,
+          choice.method,
+          choice.destination,
+          carrier: choice.carrier,
+        ),
+    successMessage: t('Poslano. Kupac je dobio broj za praćenje 🚚'),
+  );
+}
+
 class DeliveryCard extends ConsumerWidget {
   const DeliveryCard({super.key, required this.delivery});
   final Delivery delivery;
@@ -508,12 +562,38 @@ class DeliveryCard extends ConsumerWidget {
               ),
               if (m == null) ...[
                 const SizedBox(height: 12),
-                FilledButton.icon(
-                  key: ValueKey('delivery-pick-${d.id}'),
-                  onPressed: () => pickDelivery(context, ref, delivery),
-                  icon: const Icon(Icons.local_shipping_outlined),
-                  label: Text(t('Odaberi dostavu')),
-                ),
+                if (d.sellerId == ref.read(appProvider).currentUserId)
+                  FilledButton.icon(
+                    key: ValueKey('delivery-ship-${d.id}'),
+                    onPressed: () => shipBySeller(context, ref, delivery),
+                    icon: const Icon(Icons.local_shipping_outlined),
+                    label: Text(t('Odaberi dostavu i pošalji')),
+                  )
+                else
+                  Container(
+                    key: ValueKey('delivery-waiting-${d.id}'),
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: LoopColors.surfaceHover,
+                      borderRadius: BorderRadius.circular(kRadius),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(
+                          Icons.inventory_2_outlined,
+                          color: LoopColors.textSecondary,
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Text(
+                            t(
+                              'Prodavač priprema paket. Broj za praćenje dobit ćeš čim pošalje.',
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
               ] else ...[
                 const SizedBox(height: 14),
                 // Traka napretka dostave (kao Whatnot).
@@ -988,8 +1068,12 @@ class _ChooseSheet extends StatefulWidget {
     this.savedAddress,
     this.saved,
     this.size = ParcelSize.small,
+    this.title,
+    this.confirm,
   });
   final List<DeliveryOption> options;
+  final String? title;
+  final String? confirm;
   final ParcelSize size;
   final String? savedAddress;
 
@@ -1014,7 +1098,7 @@ class _ChooseSheetState extends State<_ChooseSheet> {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Text(
-              t('Kako želiš preuzeti predmet?'),
+              widget.title ?? t('Kako želiš preuzeti predmet?'),
               style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900),
             ),
             const SizedBox(height: 12),
@@ -1047,10 +1131,14 @@ class _ChooseSheetState extends State<_ChooseSheet> {
                       }
                       Navigator.pop(context, _choice);
                     },
+              key: const ValueKey('choose-confirm'),
               child: Text(
-                _choice == null || _choice!.method.cost == 0
-                    ? t('Potvrdi dostavu')
-                    : t('Potvrdi · {0}', [formatCredits(_choice!.method.cost)]),
+                widget.confirm ??
+                    (_choice == null || _choice!.method.cost == 0
+                        ? t('Potvrdi dostavu')
+                        : t('Potvrdi · {0}', [
+                            formatCredits(_choice!.method.cost),
+                          ])),
               ),
             ),
           ],
@@ -1571,7 +1659,7 @@ class BoxNowCard extends StatelessWidget {
 
 /// Grupa pošiljke u Otpremi prodavača (čipovi filtra).
 enum ShipGroup {
-  /// Kupac još bira način dostave.
+  /// Prodavač treba odabrati dostavu i poslati paket.
   awaitingBuyer,
 
   /// Spremno za predaju dostavljaču (otpremnica, rok 48 h).
@@ -1584,14 +1672,15 @@ enum ShipGroup {
   delivered;
 
   static ShipGroup of(Delivery d, DateTime now) {
-    if (d.confirmedAt != null || d.isDelivered(now)) return delivered;
+    if (d.confirmedAt != null) return delivered;
     if (d.method == null) return awaitingBuyer;
+    if (d.isDelivered(now)) return delivered;
     if (d.handedOverAt == null) return readyToShip;
     return shipped;
   }
 
   String get label => switch (this) {
-    awaitingBuyer => t('Čeka kupca'),
+    awaitingBuyer => t('Za slanje'),
     readyToShip => t('Za predaju'),
     shipped => t('Poslano'),
     delivered => t('Dostavljeno'),
@@ -1836,6 +1925,7 @@ class _DeliveryNotesScreenState extends ConsumerState<DeliveryNotesScreen> {
                     d: d,
                     group: ShipGroup.of(d, now),
                     device: s.deviceById(d.deviceId),
+                    onShip: () => shipBySeller(context, ref, d),
                     buyer: s.userById(d.buyerId)?.handle ?? '',
                     now: now,
                     selected: _selected.contains(d.id),
@@ -1866,10 +1956,14 @@ class _ShipmentRow extends StatelessWidget {
     required this.selected,
     this.device,
     this.onSelect,
+    this.onShip,
   });
 
   final Delivery d;
   final Device? device;
+
+  /// Prodavač bira dostavu i šalje (pošiljke "Za slanje").
+  final VoidCallback? onShip;
   final ShipGroup group;
   final String buyer;
   final DateTime now;
@@ -1959,24 +2053,34 @@ class _ShipmentRow extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(width: 8),
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 8,
-                    vertical: 3,
-                  ),
-                  decoration: BoxDecoration(
-                    color: color.withValues(alpha: 0.15),
-                    borderRadius: BorderRadius.circular(6),
-                  ),
-                  child: Text(
-                    label,
-                    style: TextStyle(
-                      color: color,
-                      fontWeight: FontWeight.w900,
-                      fontSize: 11,
+                if (group == ShipGroup.awaitingBuyer && onShip != null)
+                  FilledButton(
+                    key: ValueKey('ship-send-${d.id}'),
+                    style: FilledButton.styleFrom(
+                      visualDensity: VisualDensity.compact,
+                    ),
+                    onPressed: onShip,
+                    child: Text(t('Pošalji')),
+                  )
+                else
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 3,
+                    ),
+                    decoration: BoxDecoration(
+                      color: color.withValues(alpha: 0.15),
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                    child: Text(
+                      label,
+                      style: TextStyle(
+                        color: color,
+                        fontWeight: FontWeight.w900,
+                        fontSize: 11,
+                      ),
                     ),
                   ),
-                ),
               ],
             ),
           ),

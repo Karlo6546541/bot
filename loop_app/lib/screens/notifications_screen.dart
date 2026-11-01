@@ -153,6 +153,7 @@ class NotificationsScreen extends ConsumerStatefulWidget {
       case NotificationKind.shipReady ||
           NotificationKind.parcelPickedUp ||
           NotificationKind.parcelArrived ||
+          NotificationKind.parcelShipped ||
           NotificationKind.disputeOpened ||
           NotificationKind.disputeReview ||
           NotificationKind.disputeRefunded ||

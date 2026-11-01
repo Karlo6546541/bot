@@ -4007,11 +4007,10 @@ class _LiveRoomViewState extends ConsumerState<_LiveRoomBody> {
                             foregroundColor: Colors.white,
                             minimumSize: const Size.fromHeight(42),
                           ),
-                          onPressed: () =>
-                              pickDelivery(context, ref, pending.first),
+                          onPressed: () => DeliveriesScreen.open(context),
                           icon: const Icon(Icons.local_shipping_outlined),
                           label: Text(
-                            t('📦 Osvojio si {0} · Odaberi dostavu', [
+                            t('📦 Osvojio si {0} · prodavač šalje paket', [
                               '${pending.length}',
                             ]),
                           ),

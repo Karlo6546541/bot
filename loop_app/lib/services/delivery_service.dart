@@ -283,6 +283,33 @@ class DeliveryService {
     }
   }
 
+  /// Prodavač bira način dostave i šalje (kao na Whatnotu): kupac ništa
+  /// ne bira, dobiva broj za praćenje (i PIN kad paket stigne u
+  /// paketomat). Za predmete iz istog livea vrijedi za cijeli paket.
+  Future<Delivery> ship({
+    required String sellerId,
+    required String deliveryId,
+    required DeliveryMethod method,
+    String? destination,
+    DateTime? now,
+    Carrier? carrier,
+  }) async {
+    final d = _storage.deliveryById(deliveryId);
+    if (d == null || d.sellerId != sellerId) {
+      throw TradeException(t('Pošiljka ne postoji.'));
+    }
+    if (!d.awaitingChoice) return d;
+    return _choose(
+      userId: d.buyerId,
+      deliveryId: deliveryId,
+      method: method,
+      destination: destination,
+      now: now,
+      carrier: carrier,
+      bySeller: true,
+    );
+  }
+
   Future<Delivery> _choose({
     required String userId,
     required String deliveryId,
@@ -290,6 +317,7 @@ class DeliveryService {
     String? destination,
     DateTime? now,
     Carrier? carrier,
+    bool bySeller = false,
   }) async {
     final d = _storage.deliveryById(deliveryId);
     if (d == null || d.buyerId != userId) {
@@ -300,7 +328,15 @@ class DeliveryService {
     }
     final parcel = liveParcel(d.id);
     if (parcel == null) {
-      return _start(d, userId, method, destination, now: now, carrier: carrier);
+      return _start(
+        d,
+        userId,
+        method,
+        destination,
+        now: now,
+        carrier: carrier,
+        bySeller: bySeller,
+      );
     }
     final same = [
       for (final x in _storage.deliveries)
@@ -323,6 +359,7 @@ class DeliveryService {
         now: now,
         free: free,
         carrier: carrier,
+        bySeller: bySeller,
       );
       packed++;
       first ??= started;
@@ -338,23 +375,27 @@ class DeliveryService {
     DateTime? now,
     bool free = false,
     Carrier? carrier,
+    bool bySeller = false,
   }) async {
     final at = now ?? DateTime.now();
     final error = validate(method, destination, carrier: carrier);
     if (error != null) throw TradeException(error);
     final user = _storage.userById(userId);
     if (user == null) throw TradeException(t('Korisnik ne postoji.'));
-    // Dostava se plaća karticom; zapamti adresu za sljedeći put.
     final dest = destination?.trim();
-    await _storage.putUser(
-      user.copyWith(
-        address: method.needsAddress ? dest : null,
-        // Zapamti odabir za sljedeću kupnju (osim digitalne dostave).
-        lastDelivery: method == DeliveryMethod.digital
-            ? null
-            : '${method.name}|${dest ?? ''}${carrier == null ? '' : '|${carrier.id}'}',
-      ),
-    );
+    // Dostava se plaća karticom; zapamti adresu za sljedeći put (samo kad
+    // bira sam kupac — prodavač ne mijenja kupčeve postavke).
+    if (!bySeller) {
+      await _storage.putUser(
+        user.copyWith(
+          address: method.needsAddress ? dest : null,
+          // Zapamti odabir za sljedeću kupnju (osim digitalne dostave).
+          lastDelivery: method == DeliveryMethod.digital
+              ? null
+              : '${method.name}|${dest ?? ''}${carrier == null ? '' : '|${carrier.id}'}',
+        ),
+      );
+    }
     final size = ParcelSize.fromName(
       _storage.deviceById(d.deviceId)?.parcelSize,
     );
@@ -375,15 +416,33 @@ class DeliveryService {
       carrier: carrier?.name,
     );
     await _storage.putDelivery(started);
-    // Prodavač dobiva kod za paketomat / etiketu (ime i adresa kupca).
-    if (d.sellerId != null && method != DeliveryMethod.digital) {
+    // Prodavač je poslao: kupac dobiva broj za praćenje (a PIN paketomata
+    // kad paket stigne u pretinac).
+    if (bySeller && method != DeliveryMethod.digital) {
       await Inbox(_storage).send(
-        d.sellerId,
-        NotificationKind.shipReady,
-        args: [user.handle, d.deviceName],
+        d.buyerId,
+        NotificationKind.parcelShipped,
+        args: [
+          _storage.userById(d.sellerId ?? '')?.handle ?? '',
+          d.deviceName,
+          started.serviceLabel,
+          started.trackingNumber ?? '',
+        ],
         targetId: d.id,
         now: at,
       );
+    }
+    // Prodavač dobiva kod za paketomat / etiketu (ime i adresa kupca).
+    if (d.sellerId != null && method != DeliveryMethod.digital) {
+      if (!bySeller) {
+        await Inbox(_storage).send(
+          d.sellerId,
+          NotificationKind.shipReady,
+          args: [user.handle, d.deviceName],
+          targetId: d.id,
+          now: at,
+        );
+      }
       // Službena poruka od Subhasta s uputama (i PIN-om za BOX NOW).
       await _storage.putMessage(SystemMessages.ship(started, user.handle));
     }

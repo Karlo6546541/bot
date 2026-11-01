@@ -603,10 +603,10 @@ class AppState {
   List<Delivery> get toShip => sellerDeliveries
       .where(
         (d) =>
-            d.method != null &&
             d.method != DeliveryMethod.digital &&
             d.confirmedAt == null &&
-            !d.isDelivered(DateTime.now()),
+            // Čeka da prodavač odabere dostavu i pošalje.
+            (d.method == null || !d.isDelivered(DateTime.now())),
       )
       .toList();
 

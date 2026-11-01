@@ -5,12 +5,18 @@ import '../utils/formatters.dart';
 enum NotificationKind {
   outbid('🔔', 'Netko te nadmašio na aukciji "{0}" — nova ponuda {1}.'),
   newBid('🔨', 'Nova ponuda na tvojoj aukciji "{0}": {1}.'),
-  auctionWon('🏆', 'Osvojio si aukciju "{0}" za {1}. Odaberi dostavu.'),
+  auctionWon(
+    '🏆',
+    'Osvojio si aukciju "{0}" za {1}. Prodavač šalje paket, a broj za praćenje stiže ovdje.',
+  ),
   digitalWon(
     '💾',
     'Osvojio si "{0}" za {1}. Datoteku preuzmi na stranici predmeta.',
   ),
-  giveawayWon('🎁', 'Osvojio si "{0}" u nagradnoj igri {1}. Odaberi dostavu.'),
+  giveawayWon(
+    '🎁',
+    'Osvojio si "{0}" u nagradnoj igri {1}. Prodavač šalje paket, a broj za praćenje stiže ovdje.',
+  ),
   auctionLost('😕', 'Aukcija "{0}" je završila — nisi pobijedio.'),
   auctionSold('💰', 'Tvoja aukcija "{0}" je završila: prodano za {1}.'),
   auctionUnsold('⏱️', 'Tvoja aukcija "{0}" je završila bez ponuda.'),
@@ -58,6 +64,7 @@ enum NotificationKind {
     '📬',
     '"{0}" te čeka u paketomatu {1}. PIN za preuzimanje: {2}',
   ),
+  parcelShipped('🚚', '{0} je poslao "{1}" ({2}). Broj za praćenje: {3}'),
   disputeOpened(
     '⚠️',
     '{0} je prijavio problem s "{1}": {2}. Odgovori u roku od 3 dana, inače se novac vraća kupcu.',
@@ -94,6 +101,7 @@ enum NotificationKind {
     shipReady ||
     parcelPickedUp ||
     parcelArrived ||
+    parcelShipped ||
     disputeOpened ||
     disputeReview ||
     disputeRefunded ||
