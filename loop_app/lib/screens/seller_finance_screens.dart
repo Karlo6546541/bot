@@ -24,7 +24,8 @@ List<LoopTransaction> sellerLedger(AppState s, String me) => [
             tx.buyerId != me) ||
         ((tx.type == TransactionType.payout ||
                 tx.type == TransactionType.auctionFee ||
-                tx.type == TransactionType.promotion) &&
+                tx.type == TransactionType.promotion ||
+                tx.type == TransactionType.refund) &&
             tx.userId == me))
       tx,
 ]..sort((a, b) => b.createdAt.compareTo(a.createdAt));
@@ -151,7 +152,9 @@ class _PayoutsTab extends ConsumerWidget {
     final transit = payouts
         .where((tx) => payoutInTransit(tx, now))
         .fold<double>(0, (a, tx) => a + tx.amount);
-    final available = user.credits;
+    final held = ref.watch(appProvider).heldEarnings(user.id);
+    final balance = user.credits;
+    final available = balance - held < 0 ? 0.0 : balance - held;
     final verified = isVerifiedSeller(user);
     final seller = user.seller;
     final muted = TextStyle(color: LoopColors.textSecondary, fontSize: 13);
@@ -252,7 +255,7 @@ class _PayoutsTab extends ConsumerWidget {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      formatCredits(available),
+                      formatCredits(balance),
                       key: const ValueKey('fin-balance'),
                       style: const TextStyle(
                         fontWeight: FontWeight.w900,
@@ -272,6 +275,19 @@ class _PayoutsTab extends ConsumerWidget {
                             available,
                             t('dostupno za isplatu'),
                           ),
+                          if (held > 0) ...[
+                            Divider(height: 1, color: LoopColors.surface),
+                            balanceRow(
+                              'fin-held',
+                              held,
+                              t('zadržano zbog zahtjeva za povrat'),
+                              end: Icon(
+                                Icons.lock_clock_outlined,
+                                size: 18,
+                                color: LoopColors.accent,
+                              ),
+                            ),
+                          ],
                           Divider(height: 1, color: LoopColors.surface),
                           balanceRow(
                             'fin-transit',

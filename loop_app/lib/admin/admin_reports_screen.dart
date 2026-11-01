@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../l10n/tr.dart';
+import '../models/delivery.dart';
 import '../models/report.dart';
 import '../providers/app_providers.dart';
 import '../theme/app_theme.dart';
@@ -25,18 +26,86 @@ class _AdminReportsScreenState extends ConsumerState<AdminReportsScreen> {
   Widget build(BuildContext context) {
     final s = ref.watch(appProvider);
     final list = _showClosed ? s.reports : s.openReports;
-    final header = Row(
+    final disputes = [
+      for (final d in s.deliveries)
+        if (d.dispute?.status == DisputeStatus.review) d,
+    ];
+    final header = Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Expanded(
-          child: Text(
-            t('Otvorene prijave: {0}', [s.openReports.length]),
+        if (disputes.isNotEmpty) ...[
+          Text(
+            t('Zahtjevi za povrat za odluku: {0}', ['${disputes.length}']),
+            key: const ValueKey('admin-disputes'),
             style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 16),
           ),
-        ),
-        FilterChip(
-          label: Text(t('Prikaži i zatvorene')),
-          selected: _showClosed,
-          onSelected: (v) => setState(() => _showClosed = v),
+          const SizedBox(height: 8),
+          for (final d in disputes)
+            Card(
+              child: Padding(
+                padding: const EdgeInsets.all(12),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      d.deviceName,
+                      style: const TextStyle(fontWeight: FontWeight.w800),
+                    ),
+                    Text(
+                      '${s.userLabel(d.buyerId)} → ${s.userLabel(d.sellerId)} · ${d.dispute!.reason.label}',
+                    ),
+                    if (d.dispute!.note.isNotEmpty) Text(d.dispute!.note),
+                    const SizedBox(height: 8),
+                    Wrap(
+                      spacing: 8,
+                      children: [
+                        FilledButton(
+                          key: ValueKey('admin-refund-${d.id}'),
+                          onPressed: () => runWithLoading(
+                            context,
+                            () => ref
+                                .read(appProvider.notifier)
+                                .adminDecideDispute(d.id, refund: true),
+                            successMessage: t('Novac je vraćen kupcu.'),
+                          ),
+                          child: Text(t('Vrati novac kupcu')),
+                        ),
+                        OutlinedButton(
+                          key: ValueKey('admin-reject-${d.id}'),
+                          onPressed: () => runWithLoading(
+                            context,
+                            () => ref
+                                .read(appProvider.notifier)
+                                .adminDecideDispute(d.id, refund: false),
+                            successMessage: t('Zahtjev je odbijen.'),
+                          ),
+                          child: Text(t('Odbij zahtjev')),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          const SizedBox(height: 16),
+        ],
+        Row(
+          children: [
+            Expanded(
+              child: Text(
+                t('Otvorene prijave: {0}', [s.openReports.length]),
+                style: const TextStyle(
+                  fontWeight: FontWeight.w800,
+                  fontSize: 16,
+                ),
+              ),
+            ),
+            FilterChip(
+              label: Text(t('Prikaži i zatvorene')),
+              selected: _showClosed,
+              onSelected: (v) => setState(() => _showClosed = v),
+            ),
+          ],
         ),
       ],
     );

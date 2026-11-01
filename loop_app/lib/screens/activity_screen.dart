@@ -209,6 +209,8 @@ class TransactionTile extends StatelessWidget {
     final isSell =
         type == TransactionType.sell ||
         type == TransactionType.topUp ||
+        // Povrat novca: kupcu se vraća, prodavatelju se odbija.
+        (type == TransactionType.refund && tx.buyerId == viewerId) ||
         // Zamjena: nadoplatu dobiva vlasnik traženog predmeta.
         (type == TransactionType.swap && tx.sellerId == viewerId);
     final color = isSell ? LoopColors.success : LoopColors.textPrimary;
@@ -221,6 +223,7 @@ class TransactionTile extends StatelessWidget {
       TransactionType.delivery => Icons.local_shipping_outlined,
       TransactionType.swap => Icons.swap_horiz,
       TransactionType.promotion => Icons.campaign_outlined,
+      TransactionType.refund => Icons.undo,
     };
     return Card(
       child: Padding(
@@ -275,6 +278,10 @@ class TransactionTile extends StatelessWidget {
                     TransactionType.auctionFee => t('naknada za objavu'),
                     TransactionType.delivery => t('trošak dostave'),
                     TransactionType.promotion => t('isticanje'),
+                    TransactionType.refund =>
+                      tx.buyerId == viewerId
+                          ? t('vraćeno na karticu')
+                          : t('odbijeno od zarade'),
                     TransactionType.sell =>
                       tx.feeFor(viewerId) > 0
                           ? t('provizija {0}', [

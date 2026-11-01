@@ -35,8 +35,15 @@ Future<bool> ensureSellerInfo(BuildContext context) async {
 Future<void> showPayoutDialog(BuildContext context, WidgetRef ref) async {
   if (!await ensureSellerInfo(context) || !context.mounted) return;
   final user = ref.read(appProvider).currentUser!;
-  if (user.credits <= 0) {
-    showLoopSnackBar(t('Nemaš zarade za isplatu.'), error: true);
+  final held = ref.read(appProvider).heldEarnings(user.id);
+  final amount = user.credits - held;
+  if (amount <= 0) {
+    showLoopSnackBar(
+      held > 0
+          ? t('Zarada je zadržana dok traje spor oko povrata.')
+          : t('Nemaš zarade za isplatu.'),
+      error: true,
+    );
     return;
   }
   final ok = await confirmDialog(
@@ -44,7 +51,7 @@ Future<void> showPayoutDialog(BuildContext context, WidgetRef ref) async {
     title: t('Isplatiti zaradu?'),
     message: t(
       '{0} ide na račun {1}. Isplatu obrađuje pružatelj plaćanja (obično 1–2 radna dana).',
-      [formatCredits(user.credits), user.seller!.maskedIban],
+      [formatCredits(amount), user.seller!.maskedIban],
     ),
     confirmLabel: t('Isplati'),
   );

@@ -30,6 +30,7 @@ import '../services/community_service.dart';
 import '../services/swap_service.dart';
 import '../models/report.dart';
 import '../services/delivery_service.dart';
+import '../services/dispute_service.dart';
 import '../services/earnings.dart';
 import '../models/country.dart';
 import '../models/delivery.dart';
@@ -1566,6 +1567,41 @@ class AppController extends Notifier<AppState> {
     _refresh();
   }
 
+  // ------------------------------------------------------------ povrati
+
+  DisputeService get _disputes => DisputeService(_storage);
+
+  /// Kupac prijavljuje problem s kupnjom (zahtjev za povrat).
+  Future<void> openDispute(
+    String deliveryId,
+    DisputeReason reason,
+    String note,
+  ) async {
+    await _disputes.open(_requireUserId(), deliveryId, reason, note);
+    _refresh();
+  }
+
+  /// Prodavatelj prihvaća ili odbija zahtjev za povrat.
+  Future<void> respondDispute(String deliveryId, {required bool accept}) async {
+    await _disputes.respond(_requireUserId(), deliveryId, accept: accept);
+    _refresh();
+  }
+
+  /// Admin (Subhasto) odlučuje o odbijenom zahtjevu.
+  Future<void> adminDecideDispute(
+    String deliveryId, {
+    required bool refund,
+  }) async {
+    await _disputes.decide(deliveryId, refund: refund);
+    _refresh();
+  }
+
+  /// Smije li kupac prijaviti problem za pošiljku.
+  bool canOpenDispute(String deliveryId) {
+    final d = _storage.deliveryById(deliveryId);
+    return d != null && _disputes.canOpen(d);
+  }
+
   /// Sprema (novi ili izmijenjeni) profil dostave.
   Future<ShippingProfile> saveShippingProfile({
     String? id,
@@ -1675,6 +1711,12 @@ class AppController extends Notifier<AppState> {
     }
     await settleExpiredAuctions();
     await settleLive();
+    // Zahtjevi za povrat bez odgovora prodavatelja (72 h): novac kupcu.
+    try {
+      if (await _disputes.expire() > 0 && ref.mounted) _refresh();
+    } catch (_) {
+      // nije kritično
+    }
   }
 
   Future<void> cancelAuction(String auctionId) async {

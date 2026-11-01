@@ -18,6 +18,7 @@ import '../services/file_saver/file_saver.dart';
 import '../theme/app_theme.dart';
 import '../widgets/community_widgets.dart';
 import '../widgets/delivery_picker.dart';
+import '../widgets/dispute_widgets.dart';
 import '../widgets/item_image.dart';
 import '../widgets/empty_state.dart';
 import '../widgets/formatters.dart';
@@ -61,24 +62,32 @@ class _DeliveriesScreenState extends ConsumerState<DeliveriesScreen> {
   /// Filtar kupnji: `null` = sve, `true` = u tijeku, `false` = završeno.
   bool? _open;
 
+  /// Samo kupnje sa zahtjevom za povrat.
+  bool _returns = false;
+
   @override
   Widget build(BuildContext context) {
     final all = ref.watch(appProvider.select((s) => s.myDeliveries));
     bool done(Delivery d) => d.confirmedAt != null;
     final list = [
       for (final d in all)
-        if (_open == null || _open == !done(d)) d,
+        if (_returns ? d.dispute != null : (_open == null || _open == !done(d)))
+          d,
     ]..sort((a, b) => b.createdAt.compareTo(a.createdAt));
     Widget chip(String key, String label, bool? value) => Padding(
       padding: const EdgeInsets.only(right: 8),
       child: ChoiceChip(
         key: ValueKey('purchases-$key'),
         label: Text(label),
-        selected: _open == value,
+        selected: !_returns && _open == value,
         showCheckmark: false,
-        onSelected: (_) => setState(() => _open = value),
+        onSelected: (_) => setState(() {
+          _returns = false;
+          _open = value;
+        }),
       ),
     );
+    final returns = all.where((d) => d.dispute != null).length;
     final open = all.where((d) => !done(d)).length;
     final chips = SingleChildScrollView(
       scrollDirection: Axis.horizontal,
@@ -87,6 +96,15 @@ class _DeliveriesScreenState extends ConsumerState<DeliveriesScreen> {
           chip('all', t('Sve'), null),
           chip('open', '${t('U tijeku')} · $open', true),
           chip('done', t('Završeno'), false),
+          ChoiceChip(
+            key: const ValueKey('purchases-returns'),
+            label: Text(
+              returns > 0 ? '${t('Povrati')} · $returns' : t('Povrati'),
+            ),
+            selected: _returns,
+            showCheckmark: false,
+            onSelected: (_) => setState(() => _returns = true),
+          ),
         ],
       ),
     );
@@ -195,6 +213,7 @@ Future<void> pickDelivery(
 
 /// Stanje kupnje za kupca (oznaka u popisu kupnji).
 String purchaseStatus(Delivery d, DateTime now) {
+  if (d.dispute case final x?) return t('Povrat: {0}', [x.status.label]);
   if (d.confirmedAt != null) return t('Završeno');
   if (d.method == null) return t('Odaberi dostavu');
   if (d.method == DeliveryMethod.digital) return t('Preuzmi datoteku');
@@ -349,7 +368,17 @@ Future<void> showPurchaseHelp(BuildContext context, WidgetRef ref, Delivery d) {
                 label: Text(t('Piši prodavatelju')),
               ),
             const SizedBox(height: 8),
-            if (d.sellerId != null)
+            if (ref.read(appProvider.notifier).canOpenDispute(d.id))
+              FilledButton.icon(
+                key: const ValueKey('purchase-help-refund'),
+                onPressed: () {
+                  Navigator.pop(ctx);
+                  showDisputeForm(context, ref, d);
+                },
+                icon: const Icon(Icons.undo),
+                label: Text(t('Zatraži povrat')),
+              )
+            else if (d.sellerId != null)
               FilledButton.icon(
                 key: const ValueKey('purchase-help-report'),
                 onPressed: () {
@@ -767,6 +796,10 @@ class DeliveryDetailScreen extends ConsumerWidget {
                 ],
               ),
             ),
+            const SizedBox(height: 16),
+          ],
+          if (d.dispute != null) ...[
+            DisputeCard(delivery: d, seller: d.sellerId == s.currentUserId),
             const SizedBox(height: 16),
           ],
           Row(
@@ -1717,6 +1750,24 @@ class _DeliveryNotesScreenState extends ConsumerState<DeliveryNotesScreen> {
                   ],
                 ),
               ),
+              if (all.where((d) => d.dispute?.active ?? false).toList()
+                  case final disputes when disputes.isNotEmpty) ...[
+                const SizedBox(height: 16),
+                Text(
+                  t('Zahtjevi za povrat ({0})', ['${disputes.length}']),
+                  key: const ValueKey('ship-disputes'),
+                  style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                for (final d in disputes)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 8),
+                    child: DisputeCard(delivery: d, seller: true),
+                  ),
+              ],
               const SizedBox(height: 18),
               Row(
                 crossAxisAlignment: CrossAxisAlignment.end,

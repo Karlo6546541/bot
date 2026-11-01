@@ -12,7 +12,10 @@ enum TransactionType {
   auctionFee('Objava aukcije'),
   delivery('Dostava'),
   swap('Zamjena'),
-  promotion('Promocija');
+  promotion('Promocija'),
+
+  /// Povrat novca kupcu nakon prijave problema (kod prodavatelja odbitak).
+  refund('Povrat novca');
 
   const TransactionType(this._label);
   final String _label;

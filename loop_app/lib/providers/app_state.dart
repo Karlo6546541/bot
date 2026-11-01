@@ -505,6 +505,27 @@ class AppState {
         : DeliveryService.costFor(m, size);
   }
 
+  /// Zarada prodavatelja zadržana zbog zahtjeva za povrat u tijeku.
+  double heldEarnings(String sellerId) {
+    var held = 0.0;
+    for (final d in deliveries) {
+      if (d.sellerId != sellerId || !(d.dispute?.active ?? false)) continue;
+      held +=
+          transactions
+              .where(
+                (x) =>
+                    x.type == TransactionType.sell &&
+                    x.deviceId == d.deviceId &&
+                    x.buyerId == d.buyerId &&
+                    (x.sellerId ?? x.userId) == sellerId,
+              )
+              .firstOrNull
+              ?.amount ??
+          0;
+    }
+    return held;
+  }
+
   /// Cijena koju je [buyerId] platio za predmet (bez zapisa plaćene
   /// dostave, koji ima cijenu 0) — za otpremnicu i "Plaćeno" u Kupljeno.
   double? itemPaid(String deviceId, String? buyerId) => transactions

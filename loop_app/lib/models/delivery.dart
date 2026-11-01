@@ -181,7 +181,11 @@ class Delivery {
     this.pickupPin,
     this.carrier,
     this.handedOverAt,
+    this.dispute,
   });
+
+  /// Prijava problema / zahtjev za povrat (ako postoji).
+  final DeliveryDispute? dispute;
 
   /// Prodavač je predao paket dostavljaču (u paketomat, kurira ili poštu).
   final DateTime? handedOverAt;
@@ -326,6 +330,7 @@ class Delivery {
     String? pickupPin,
     String? carrier,
     DateTime? handedOverAt,
+    DeliveryDispute? dispute,
   }) => Delivery(
     id: id,
     deviceId: deviceId,
@@ -345,6 +350,7 @@ class Delivery {
     pickupPin: pickupPin ?? this.pickupPin,
     carrier: carrier ?? this.carrier,
     handedOverAt: handedOverAt ?? this.handedOverAt,
+    dispute: dispute ?? this.dispute,
   );
 
   Map<String, dynamic> toMap() => {
@@ -366,6 +372,7 @@ class Delivery {
     'pickupPin': pickupPin,
     if (carrier != null) 'carrier': carrier,
     if (handedOverAt != null) 'handedOverAt': handedOverAt!.toIso8601String(),
+    if (dispute != null) 'dispute': dispute!.toMap(),
   };
 
   factory Delivery.fromMap(Map<dynamic, dynamic> m) => Delivery(
@@ -395,5 +402,110 @@ class Delivery {
     handedOverAt: m['handedOverAt'] == null
         ? null
         : DateTime.tryParse('${m['handedOverAt']}'),
+    dispute: m['dispute'] is Map
+        ? DeliveryDispute.fromMap(m['dispute'] as Map)
+        : null,
+  );
+}
+
+/// Razlog prijave problema s kupnjom.
+enum DisputeReason {
+  notArrived('Paket nije stigao'),
+  notAsDescribed('Predmet nije kao u opisu'),
+  damaged('Oštećeno u dostavi'),
+  other('Nešto drugo');
+
+  const DisputeReason(this._label);
+  final String _label;
+  String get label => t(_label);
+
+  static DisputeReason fromName(String? n) => DisputeReason.values.firstWhere(
+    (r) => r.name == n,
+    orElse: () => DisputeReason.other,
+  );
+}
+
+/// Stanje spora: prodavatelj odgovara ([open]), Subhasto odlučuje
+/// ([review]), novac vraćen kupcu ([refunded]) ili zahtjev odbijen
+/// ([rejected]).
+enum DisputeStatus {
+  open('Čeka prodavatelja'),
+  review('Subhasto odlučuje'),
+  refunded('Novac vraćen'),
+  rejected('Povrat odbijen');
+
+  const DisputeStatus(this._label);
+  final String _label;
+  String get label => t(_label);
+
+  static DisputeStatus fromName(String? n) => DisputeStatus.values.firstWhere(
+    (s) => s.name == n,
+    orElse: () => DisputeStatus.open,
+  );
+}
+
+/// Prijava problema s kupnjom (zahtjev za povrat). Dok traje, prodavateljeva
+/// zarada od te prodaje je zadržana i ne može se isplatiti.
+class DeliveryDispute {
+  const DeliveryDispute({
+    required this.reason,
+    required this.openedAt,
+    this.note = '',
+    this.status = DisputeStatus.open,
+    this.resolvedAt,
+    this.refundAmount = 0,
+  });
+
+  final DisputeReason reason;
+  final String note;
+  final DateTime openedAt;
+  final DisputeStatus status;
+  final DateTime? resolvedAt;
+
+  /// Iznos vraćen kupcu (predmet + plaćena dostava).
+  final double refundAmount;
+
+  /// Prodavatelj ima toliko za odgovor; bez odgovora novac se vraća kupcu.
+  static const sellerWindow = Duration(hours: 72);
+
+  /// Subhasto odlučuje u ovom roku nakon odbijanja.
+  static const reviewWindow = Duration(days: 3);
+
+  static const maxNote = 500;
+
+  DateTime get respondBy => openedAt.add(sellerWindow);
+
+  /// Spor traje (zarada zadržana).
+  bool get active =>
+      status == DisputeStatus.open || status == DisputeStatus.review;
+
+  DeliveryDispute resolve(DisputeStatus to, DateTime at, {double refund = 0}) =>
+      DeliveryDispute(
+        reason: reason,
+        note: note,
+        openedAt: openedAt,
+        status: to,
+        resolvedAt: to == DisputeStatus.review ? null : at,
+        refundAmount: refund,
+      );
+
+  Map<String, dynamic> toMap() => {
+    'reason': reason.name,
+    if (note.isNotEmpty) 'note': note,
+    'openedAt': openedAt.toIso8601String(),
+    'status': status.name,
+    if (resolvedAt != null) 'resolvedAt': resolvedAt!.toIso8601String(),
+    if (refundAmount > 0) 'refundAmount': refundAmount,
+  };
+
+  factory DeliveryDispute.fromMap(Map<dynamic, dynamic> m) => DeliveryDispute(
+    reason: DisputeReason.fromName(m['reason'] as String?),
+    note: m['note'] as String? ?? '',
+    openedAt: DateTime.parse(m['openedAt'] as String),
+    status: DisputeStatus.fromName(m['status'] as String?),
+    resolvedAt: m['resolvedAt'] == null
+        ? null
+        : DateTime.tryParse('${m['resolvedAt']}'),
+    refundAmount: (m['refundAmount'] as num?)?.toDouble() ?? 0,
   );
 }

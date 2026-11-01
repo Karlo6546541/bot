@@ -2983,7 +2983,8 @@ const kEn = <String, String>{
   'Bez profila (odaberi veličinu)': 'No profile (choose a size)',
   'Profil dostave': 'Shipping profile',
   'Spremi skicu': 'Save draft',
-  'Ako paket ne stigne ili je predmet bitno drukčiji od opisa, prijavi problem prije potvrde primitka.': 'If the package doesn\'t arrive or the item is significantly different from the description, report a problem before confirming receipt.',
+  'Ako paket ne stigne ili je predmet bitno drukčiji od opisa, prijavi problem prije potvrde primitka.':
+      'If the package doesn\'t arrive or the item is significantly different from the description, report a problem before confirming receipt.',
   'Broj pošiljke kopiran: {0}': 'Tracking number copied: {0}',
   'Dostava očekivana': 'Delivery expected',
   'Otpremnica izrađena': 'Label created',
@@ -2992,15 +2993,71 @@ const kEn = <String, String>{
   'Piši prodavatelju': 'Message the seller',
   'Pomoć s ovom kupnjom': 'Get help with this purchase',
   'Poruka prodavatelju': 'Message the seller',
-  'Pošiljka bi trebala stići na {0} do {1}.': 'The shipment is expected at {0} by {1}.',
+  'Pošiljka bi trebala stići na {0} do {1}.':
+      'The shipment is expected at {0} by {1}.',
   'Pošiljka je dostavljena na {0}.': 'The shipment was delivered to {0}.',
   'Prati pošiljku': 'Track your purchase',
   'Pravo na povrat još {0} dana.': 'Eligible for a return for {0} more days.',
   'Prijavi problem': 'Report a problem',
-  'Primitak je potvrđen. Za problem se najprije javi prodavatelju porukom.': 'Receipt is confirmed. For a problem, message the seller first.',
-  'Problem prijavi prije potvrde primitka.': 'Report problems before confirming receipt.',
-  'Prodavatelj je trgovac: imaš pravo na povrat još {0} dana.': 'The seller is a business: you can return the item for {0} more days.',
-  'Rok od 14 dana za povrat od trgovca je istekao.': 'The 14-day return window from the business has passed.',
+  'Primitak je potvrđen. Za problem se najprije javi prodavatelju porukom.':
+      'Receipt is confirmed. For a problem, message the seller first.',
+  'Problem prijavi prije potvrde primitka.':
+      'Report problems before confirming receipt.',
+  'Prodavatelj je trgovac: imaš pravo na povrat još {0} dana.':
+      'The seller is a business: you can return the item for {0} more days.',
+  'Rok od 14 dana za povrat od trgovca je istekao.':
+      'The 14-day return window from the business has passed.',
+  'Novac je vraćen kupcu.': 'The money was returned to the buyer.',
+  'Odbij zahtjev': 'Reject request',
+  'Odbijeno. Odlučuje Subhasto.': 'Rejected. Subhasto will decide.',
+  'Odgovori do {0}, inače se novac vraća kupcu. Zarada od ove prodaje je zadržana.':
+      'Respond by {0}, otherwise the buyer is refunded. Earnings from this sale are on hold.',
+  'Povrat je odobren.': 'Refund approved.',
+  'Povrat · {0}': 'Refund · {0}',
+  'Povrat: {0}': 'Refund: {0}',
+  'Povrati': 'Returns',
+  'Pošalji zahtjev': 'Send request',
+  'Prihvati povrat': 'Accept refund',
+  'Prodavatelj ima 3 dana za odgovor. Dok zahtjev traje, njegova zarada od ove prodaje je zadržana. Ako ne odgovori, novac ti se vraća automatski.':
+      'The seller has 3 days to respond. While the request is open, their earnings from this sale are on hold. If they don\'t respond, you are refunded automatically.',
+  'Prodavatelj je odbio povrat. Subhasto odlučuje u roku od 3 dana.':
+      'The seller rejected the refund. Subhasto will decide within 3 days.',
+  'Prodavatelj odgovara do {0}.': 'The seller responds by {0}.',
+  'Tvoj zahtjev za povrat': 'Your refund request',
+  'Vrati novac kupcu': 'Refund the buyer',
+  'Za ovu kupnju više nije moguće prijaviti problem.':
+      'It\'s no longer possible to report a problem for this purchase.',
+  'Zahtjev je odbijen.': 'The request was rejected.',
+  'Zahtjev je poslan. Prodavatelj ima 3 dana za odgovor.':
+      'Request sent. The seller has 3 days to respond.',
+  'Zahtjev je već riješen.': 'The request is already resolved.',
+  'Zahtjev za povrat': 'Refund request',
+  'Zahtjevi za povrat ({0})': 'Refund requests ({0})',
+  'Zahtjevi za povrat za odluku: {0}': 'Refund requests to decide: {0}',
+  'Zarada je zadržana dok traje spor oko povrata.':
+      'Earnings are on hold while a refund dispute is open.',
+  'Zatraži povrat': 'Request a refund',
+  'odbijeno od zarade': 'deducted from earnings',
+  'vraćeno na karticu': 'refunded to card',
+  'zadržano zbog zahtjeva za povrat': 'on hold due to refund requests',
+  '{0} vraćeno na karticu kupca.': '{0} refunded to the buyer\'s card.',
+  'Što se dogodilo? (neobavezno)': 'What happened? (optional)',
+  'Povrat novca': 'Refund',
+  '{0} je prijavio problem s "{1}": {2}. Odgovori u roku od 3 dana, inače se novac vraća kupcu.':
+      '{0} reported a problem with "{1}": {2}. Respond within 3 days, otherwise the buyer is refunded.',
+  'Prodavatelj je odbio povrat za "{0}". Subhasto odlučuje u roku od 3 dana.':
+      'The seller rejected the refund for "{0}". Subhasto will decide within 3 days.',
+  'Povrat za "{0}": {1} se vraća na karticu kupca.':
+      'Refund for "{0}": {1} goes back to the buyer\'s card.',
+  'Zahtjev za povrat za "{0}" je odbijen.':
+      'The refund request for "{0}" was rejected.',
+  'Paket nije stigao': 'Package didn\'t arrive',
+  'Predmet nije kao u opisu': 'Item not as described',
+  'Oštećeno u dostavi': 'Damaged in shipping',
+  'Čeka prodavatelja': 'Waiting for seller',
+  'Subhasto odlučuje': 'Subhasto is deciding',
+  'Novac vraćen': 'Refunded',
+  'Povrat odbijen': 'Refund rejected',
   'Zakaži show': 'Schedule a show',
   'Otprema': 'Shipping',
   'Nema paketa za predaju': 'No parcels to hand over',

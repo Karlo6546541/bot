@@ -57,7 +57,17 @@ enum NotificationKind {
   parcelArrived(
     '📬',
     '"{0}" te čeka u paketomatu {1}. PIN za preuzimanje: {2}',
-  );
+  ),
+  disputeOpened(
+    '⚠️',
+    '{0} je prijavio problem s "{1}": {2}. Odgovori u roku od 3 dana, inače se novac vraća kupcu.',
+  ),
+  disputeReview(
+    '🛡️',
+    'Prodavatelj je odbio povrat za "{0}". Subhasto odlučuje u roku od 3 dana.',
+  ),
+  disputeRefunded('↩️', 'Povrat za "{0}": {1} se vraća na karticu kupca.'),
+  disputeRejected('✖️', 'Zahtjev za povrat za "{0}" je odbijen.');
 
   const NotificationKind(this.emoji, this._template);
   final String emoji;
@@ -84,6 +94,10 @@ enum NotificationKind {
     shipReady ||
     parcelPickedUp ||
     parcelArrived ||
+    disputeOpened ||
+    disputeReview ||
+    disputeRefunded ||
+    disputeRejected ||
     priceDrop ||
     soldOut ||
     followedNewItem ||

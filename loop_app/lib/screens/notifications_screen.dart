@@ -152,7 +152,11 @@ class NotificationsScreen extends ConsumerStatefulWidget {
         }
       case NotificationKind.shipReady ||
           NotificationKind.parcelPickedUp ||
-          NotificationKind.parcelArrived:
+          NotificationKind.parcelArrived ||
+          NotificationKind.disputeOpened ||
+          NotificationKind.disputeReview ||
+          NotificationKind.disputeRefunded ||
+          NotificationKind.disputeRejected:
         if (id != null) await DeliveryDetailScreen.open(context, id);
       case NotificationKind.itemSold ||
           NotificationKind.digitalWon ||

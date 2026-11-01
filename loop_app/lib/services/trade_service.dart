@@ -13,6 +13,7 @@ import 'seed_data.dart';
 import 'fee.dart';
 import 'live_service.dart';
 import 'earnings.dart';
+import 'dispute_service.dart';
 import 'storage_service.dart';
 import '../l10n/tr.dart';
 import '../models/app_notification.dart';
@@ -689,10 +690,18 @@ class TradeService {
     if (seller == null) {
       throw TradeException(t('Za isplatu ispuni podatke prodavatelja (IBAN).'));
     }
-    final amount = roundCredits(user.credits);
-    if (amount <= 0) throw TradeException(t('Nemaš zarade za isplatu.'));
+    // Zarada od prodaja sa sporom u tijeku je zadržana.
+    final held = DisputeService(_storage).heldFor(userId);
+    final amount = roundCredits(user.credits - held);
+    if (amount <= 0) {
+      throw TradeException(
+        held > 0
+            ? t('Zarada je zadržana dok traje spor oko povrata.')
+            : t('Nemaš zarade za isplatu.'),
+      );
+    }
     final at = now ?? DateTime.now();
-    await _storage.putUser(user.copyWith(credits: 0));
+    await _storage.putUser(user.copyWith(credits: roundCredits(held)));
     final tx = LoopTransaction(
       id: _uuid.v4(),
       type: TransactionType.payout,
