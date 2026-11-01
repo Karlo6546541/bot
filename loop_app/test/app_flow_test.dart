@@ -411,14 +411,13 @@ void main() {
     await tester.tap(find.text('Odustani').last);
     await tester.pumpAndSettle();
 
-    // + Objavi → Aukcija također bez podataka prodavatelja.
+    // I za aukciju su potrebni podaci prodavatelja.
     await tester.tap(find.byKey(const ValueKey('nav-create')));
     await tester.pumpAndSettle();
     await tester.tap(find.byKey(const ValueKey('create-auction')));
     await tester.pumpAndSettle();
-    expect(find.text('Podaci prodavatelja'), findsNothing);
-    expect(find.text('Nemaš predmeta za aukciju'), findsOneWidget);
-    await tester.tap(find.byTooltip('Natrag').last);
+    expect(find.text('Podaci prodavatelja'), findsOneWidget);
+    await tester.tap(find.text('Odustani').last);
     await tester.pumpAndSettle();
 
     // Podaci prodavatelja (za Kupi odmah i isplatu) — iz Profila.

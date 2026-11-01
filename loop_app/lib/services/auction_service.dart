@@ -65,6 +65,9 @@ class AuctionService {
     if (user == null || device == null) {
       throw TradeException(t('Predmet ne postoji.'));
     }
+    if (user.isGuest || user.seller == null) {
+      throw TradeException(t('Za objavu ispuni podatke prodavatelja.'));
+    }
     if (device.ownerId != userId) {
       throw TradeException(t('Na aukciju možeš staviti samo svoj predmet.'));
     }
