@@ -746,7 +746,7 @@ class _SellerHubPanelState extends ConsumerState<SellerHubPanel> {
               child: InkWell(
                 key: const ValueKey('hub-shipping'),
                 borderRadius: BorderRadius.circular(kRadius),
-                onTap: onShipping,
+                onTap: onShipping ?? () => DeliveryNotesScreen.open(context),
                 child: Container(
                   padding: const EdgeInsets.all(14),
                   decoration: BoxDecoration(
