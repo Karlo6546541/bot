@@ -4,14 +4,13 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:hive/hive.dart';
 import 'package:loop_app/providers/app_providers.dart';
 import 'package:loop_app/screens/account_menu.dart';
-import 'package:loop_app/screens/auctions_screen.dart';
 import 'package:loop_app/screens/seller_hub.dart';
 import 'package:loop_app/services/live_service.dart';
 import 'package:loop_app/services/seed_data.dart';
 import 'package:loop_app/services/storage_service.dart';
 
 void main() {
-  testWidgets('Moje → Aukcije: Seller Hub s radnjama, otpremom i zdravljem', (
+  testWidgets('Seller Hub s radnjama, otpremom i zdravljem', (
     tester,
   ) async {
     tester.view.physicalSize = const Size(420, 1200);
@@ -32,11 +31,9 @@ void main() {
           storageProvider.overrideWithValue(storage),
           tickIntervalProvider.overrideWithValue(null),
         ],
-        child: const MaterialApp(home: Scaffold(body: MyAuctionsView())),
+        child: const MaterialApp(home: Scaffold(body: SingleChildScrollView(child: SellerHubPanel()))),
       ),
     );
-    await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const ValueKey('my-selling')));
     await tester.pumpAndSettle();
     expect(find.byKey(const ValueKey('seller-hub')), findsOneWidget);
     // Sažeto: samo radnje i redak stanja; razvijanje otkriva sve.
