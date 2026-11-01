@@ -15,6 +15,7 @@ import 'create_auction_screen.dart';
 import 'live_screens.dart';
 import 'my_shows_screen.dart';
 import 'portfolio_screen.dart';
+import 'messages_screen.dart';
 import 'seller_finance_screens.dart';
 
 /// Zdravlje računa prodavača, izračunato iz stvarnih podataka: ocjene
@@ -418,6 +419,7 @@ class SellerHubScreen extends ConsumerWidget {
                 case 2: openSales(MyTab.selling);
                 case 3: openSales(MyTab.notes);
                 case 4: FinancialsScreen.open(context);
+                case 5: MessagesScreen.open(context);
               }
             },
             itemBuilder: (_) => [
@@ -426,6 +428,7 @@ class SellerHubScreen extends ConsumerWidget {
               PopupMenuItem(value: 2, child: Text(t('Aukcije i predmeti'))),
               PopupMenuItem(value: 3, child: Text(t('Otpremnice'))),
               PopupMenuItem(value: 4, child: Text(t('Financije'))),
+              PopupMenuItem(value: 5, child: Text(t('Poruke'))),
             ],
           ),
         ],
@@ -523,7 +526,7 @@ class SellerHubScreen extends ConsumerWidget {
               const SizedBox(height: 8),
               tile(const ValueKey('seller-hub-inventory'), Icons.inventory_2_outlined, t('Moji predmeti'), () => MyItemsScreen.open(context)),
               const SizedBox(height: 8),
-              tile(const ValueKey('seller-hub-inventory'), Icons.inventory_2_outlined, t('Moji predmeti'), () => MyItemsScreen.open(context)),
+              tile(const ValueKey('seller-hub-messages'), Icons.chat_bubble_outline, t('Poruke'), () => MessagesScreen.open(context)),
               const SizedBox(height: 8),
               tile(const ValueKey('seller-hub-sales'), Icons.sell_outlined, t('Aukcije i predmeti'), () => openSales(MyTab.selling)),
               const SizedBox(height: 8),
