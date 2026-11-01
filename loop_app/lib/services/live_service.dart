@@ -577,6 +577,9 @@ class LiveService {
     if (host == null || host.isGuest) {
       throw TradeException(t('Za live aukciju se prijavi.'));
     }
+    if (host.seller == null) {
+      throw TradeException(t('Za live je potreban račun prodavača.'));
+    }
     final name = title.trim();
     if (name.length < 3) throw TradeException(t('Upiši naslov livea.'));
     if (name.length > LiveShow.maxTitle) {
