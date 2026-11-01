@@ -89,6 +89,10 @@ class TradeService {
     // Digitalni proizvod je uvijek "nov"; u Market (Kupi odmah) ide samo
     // kad je Kupi odmah uključen, inače se prodaje preko livea.
     final list = listOnMarket || (digital && kBuyNowEnabled);
+    final seller = _requireUser(userId);
+    if (list && (seller.isGuest || seller.seller == null)) {
+      throw TradeException(t('Za objavu ispuni podatke prodavatelja.'));
+    }
     final device = Device(
       id: id ?? _uuid.v4(),
       name: name.trim(),
@@ -368,6 +372,10 @@ class TradeService {
     int? quantity,
   }) async {
     final device = _requireOwn(userId, deviceId);
+    final seller = _requireUser(userId);
+    if (seller.isGuest || seller.seller == null) {
+      throw TradeException(t('Za objavu ispuni podatke prodavatelja.'));
+    }
     if (_storage.activeAuctionFor(deviceId) != null) {
       throw TradeException(
         t('Predmet je na aukciji i ne može se prodati dok aukcija traje.'),
