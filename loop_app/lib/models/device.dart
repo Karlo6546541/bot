@@ -1,3 +1,4 @@
+import 'shipping_profile.dart';
 import '../l10n/tr.dart';
 import '../services/fee.dart';
 
@@ -142,10 +143,15 @@ class Device {
     this.discountUntil,
     this.priceLog = const [],
     this.parcelSize = 'small',
+    this.shipping,
   });
 
   /// Veličina paketa (ime iz [ParcelSize]) — utječe na cijenu dostave.
   final String parcelSize;
+
+  /// Profil dostave (kopija u trenutku odabira): težina, dimenzije i
+  /// koliko predmeta stane u jedan paket.
+  final ShippingProfile? shipping;
 
   final String id;
   final String name;
@@ -269,6 +275,7 @@ class Device {
     DateTime? createdAt,
     List<PriceLogEntry>? priceLog,
     String? parcelSize,
+    Object? shipping = _keep,
   }) => Device(
     id: id ?? this.id,
     name: name,
@@ -291,10 +298,17 @@ class Device {
         : discountUntil as DateTime?,
     priceLog: priceLog ?? this.priceLog,
     parcelSize: parcelSize ?? this.parcelSize,
+    shipping: shipping == _keep ? this.shipping : shipping as ShippingProfile?,
   );
 
   /// Ista stvar s drugom veličinom paketa.
   Device withParcelSize(String size) => _copy(parcelSize: size);
+
+  /// Profil dostave; veličina paketa se računa iz njega. `null` uklanja
+  /// profil (veličina ostaje).
+  Device withShipping(ShippingProfile? profile) => profile == null
+      ? _copy(shipping: null)
+      : _copy(shipping: profile, parcelSize: profile.parcelSize.name);
 
   /// Kopija s novim vlasnikom; `null` vraća predmet u Market.
   /// Novi vlasnik poništava objavu, zalihu i popust.
@@ -365,6 +379,7 @@ class Device {
     'discountUntil': discountUntil?.toIso8601String(),
     if (priceLog.isNotEmpty) 'priceLog': [for (final e in priceLog) e.toMap()],
     if (parcelSize != 'small') 'parcelSize': parcelSize,
+    if (shipping != null) 'shipping': shipping!.toMap(),
   };
 
   factory Device.fromMap(Map<dynamic, dynamic> map) => Device(
@@ -387,6 +402,9 @@ class Device {
     file: map['file'] == null ? null : DigitalFile.fromMap(map['file'] as Map),
     quantity: (map['quantity'] as num?)?.toInt() ?? 1,
     parcelSize: map['parcelSize'] as String? ?? 'small',
+    shipping: map['shipping'] is Map
+        ? ShippingProfile.fromMap(map['shipping'] as Map)
+        : null,
     discountPercent: (map['discountPercent'] as num?)?.toInt() ?? 0,
     discountUntil: map['discountUntil'] == null
         ? null

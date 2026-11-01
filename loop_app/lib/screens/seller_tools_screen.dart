@@ -8,6 +8,7 @@ import 'inventory_screen.dart';
 import 'my_shows_screen.dart';
 import 'seller_finance_screens.dart';
 import 'seller_verification_screen.dart';
+import 'shipping_profiles_screen.dart';
 
 /// "Alati prodavača": sve seller radnje grupirane u kartice
 /// (Upravljanje, Prodaja, Učinak), kao jedan pregledan izbornik.
@@ -163,6 +164,12 @@ class SellerToolsScreen extends ConsumerWidget {
             ),
           ]),
           group(t('Postavke'), [
+            row(
+              'tool-shipping-profiles',
+              Icons.local_shipping_outlined,
+              t('Profili dostave'),
+              () => ShippingProfilesScreen.open(context),
+            ),
             row(
               'tool-verification',
               Icons.verified_user_outlined,

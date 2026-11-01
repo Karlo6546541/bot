@@ -1,3 +1,4 @@
+import 'shipping_profile.dart';
 import 'seller_info.dart';
 import 'wishlist.dart';
 
@@ -43,6 +44,7 @@ class AppUser {
     this.shopName = '',
     this.coverPath,
     this.paymentCard,
+    this.shippingProfiles = const [],
   }) : username = username ?? '';
 
   final String id;
@@ -151,6 +153,9 @@ class AppUser {
   /// kartice — pravi podaci kartice nikad se ne spremaju u aplikaciju.
   final String? paymentCard;
 
+  /// Profili dostave prodavača (težina, dimenzije, predmeti po paketu).
+  final List<ShippingProfile> shippingProfiles;
+
   /// Može licitirati i kupovati: ima karticu i adresu za dostavu.
   bool get checkoutReady =>
       paymentCard != null && (address?.trim().isNotEmpty ?? false);
@@ -214,6 +219,7 @@ class AppUser {
     String? coverPath,
     bool clearCover = false,
     String? paymentCard,
+    List<ShippingProfile>? shippingProfiles,
   }) => AppUser(
     id: id,
     email: email ?? this.email,
@@ -248,6 +254,7 @@ class AppUser {
     shopName: shopName ?? this.shopName,
     coverPath: clearCover ? null : coverPath ?? this.coverPath,
     paymentCard: paymentCard ?? this.paymentCard,
+    shippingProfiles: shippingProfiles ?? this.shippingProfiles,
   );
 
   Map<String, dynamic> toMap() => {
@@ -261,6 +268,8 @@ class AppUser {
     'address': address,
     'lastDelivery': lastDelivery,
     'paymentCard': paymentCard,
+    if (shippingProfiles.isNotEmpty)
+      'shippingProfiles': [for (final p in shippingProfiles) p.toMap()],
     'bio': bio,
     'city': city,
     'avatarPath': avatarPath,
@@ -298,6 +307,10 @@ class AppUser {
     address: map['address'] as String?,
     lastDelivery: map['lastDelivery'] as String?,
     paymentCard: map['paymentCard'] as String?,
+    shippingProfiles: [
+      for (final p in (map['shippingProfiles'] as List? ?? const []))
+        if (p is Map) ShippingProfile.fromMap(p),
+    ],
     bio: map['bio'] as String? ?? '',
     city: map['city'] as String?,
     avatarPath: map['avatarPath'] as String?,

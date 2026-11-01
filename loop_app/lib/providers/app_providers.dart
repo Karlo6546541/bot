@@ -21,6 +21,7 @@ import '../models/app_notification.dart';
 import '../models/live_boost.dart';
 import '../models/live_show.dart';
 import '../models/seller_info.dart';
+import '../models/shipping_profile.dart';
 import '../models/story.dart';
 import '../models/wishlist.dart';
 import '../services/auth_backend.dart';
@@ -1562,6 +1563,78 @@ class AppController extends Notifier<AppState> {
     final error = DeliveryService.validate(DeliveryMethod.courier, address);
     if (error != null) throw TradeException(error);
     await _storage.putUser(user.copyWith(address: address.trim()));
+    _refresh();
+  }
+
+  /// Sprema (novi ili izmijenjeni) profil dostave.
+  Future<ShippingProfile> saveShippingProfile({
+    String? id,
+    required String name,
+    required int weightGrams,
+    int lengthCm = 0,
+    int widthCm = 0,
+    int heightCm = 0,
+    int maxItems = 0,
+  }) async {
+    final user = _storage.userById(_requireUserId());
+    if (user == null) throw TradeException(t('Korisnik ne postoji.'));
+    final error = ShippingProfile.validate(
+      name: name,
+      weightGrams: weightGrams,
+      lengthCm: lengthCm,
+      widthCm: widthCm,
+      heightCm: heightCm,
+      maxItems: maxItems,
+    );
+    if (error != null) throw TradeException(error);
+    final profile = ShippingProfile(
+      id: id ?? 'sp-${DateTime.now().microsecondsSinceEpoch}',
+      name: name.trim(),
+      weightGrams: weightGrams,
+      lengthCm: lengthCm,
+      widthCm: widthCm,
+      heightCm: heightCm,
+      maxItems: maxItems,
+    );
+    final list = [
+      for (final p in user.shippingProfiles)
+        if (p.id != profile.id) p,
+      profile,
+    ];
+    await _storage.putUser(user.copyWith(shippingProfiles: list));
+    // Predmeti s ovim profilom dobivaju nove podatke (i veličinu paketa).
+    for (final d in _storage.devices) {
+      if (d.ownerId == user.id && d.shipping?.id == profile.id) {
+        await _storage.putDevice(d.withShipping(profile));
+      }
+    }
+    _refresh();
+    return profile;
+  }
+
+  /// Briše profil dostave (predmeti zadržavaju zadnju kopiju podataka).
+  Future<void> deleteShippingProfile(String id) async {
+    final user = _storage.userById(_requireUserId());
+    if (user == null) return;
+    await _storage.putUser(
+      user.copyWith(
+        shippingProfiles: [
+          for (final p in user.shippingProfiles)
+            if (p.id != id) p,
+        ],
+      ),
+    );
+    _refresh();
+  }
+
+  /// Postavlja profil dostave na moj predmet.
+  Future<void> setDeviceShipping(String deviceId, ShippingProfile? p) async {
+    final me = _requireUserId();
+    final d = _storage.deviceById(deviceId);
+    if (d == null || d.ownerId != me) {
+      throw TradeException(t('Predmet ne postoji.'));
+    }
+    await _storage.putDevice(d.withShipping(p));
     _refresh();
   }
 

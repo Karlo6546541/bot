@@ -235,6 +235,10 @@ class DeliveryService {
     return _start(d, userId, method, destination, now: now, free: free);
   }
 
+  /// Koliko predmeta stane u jedan paket (profil dostave); 0 = bez
+  /// ograničenja.
+  static int packageCapacity(Device? device) => device?.shipping?.maxItems ?? 0;
+
   /// Predmeti osvojeni u istom liveu (isti paket): pošiljke `live-<id>-<n>`.
   static String? liveParcel(String deliveryId) {
     final m = RegExp(r'^(live-.+)-\d+$').firstMatch(deliveryId);
@@ -302,21 +306,25 @@ class DeliveryService {
       for (final x in _storage.deliveries)
         if (x.buyerId == userId && liveParcel(x.id) == parcel) x,
     ];
-    // Već plaćena dostava za ovaj live → i ovaj predmet ide besplatno.
-    var paid = same.any((x) => x.method != null && x.cost > 0);
+    // Jedan paket za predmete iz istog livea: plaća se prvi, ostali idu
+    // besplatno s njim — dok ne prijeđu "do N predmeta u paketu" iz profila
+    // dostave; tada kreće novi paket (opet se plaća).
+    var packed = same.where((x) => x.method != null).length;
     Delivery? first;
     for (final x in [d, ...same.where((x) => x.id != d.id)]) {
       if (!x.awaitingChoice) continue;
+      final cap = packageCapacity(_storage.deviceById(x.deviceId));
+      final free = packed > 0 && (cap == 0 || packed % cap != 0);
       final started = await _start(
         x,
         userId,
         method,
         destination,
         now: now,
-        free: paid,
+        free: free,
         carrier: carrier,
       );
-      paid = paid || started.cost > 0;
+      packed++;
       first ??= started;
     }
     return first!;

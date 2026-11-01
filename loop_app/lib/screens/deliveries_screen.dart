@@ -11,6 +11,7 @@ import '../models/device.dart';
 import '../providers/app_providers.dart';
 import '../providers/app_state.dart';
 import '../services/label_options.dart';
+import 'shipping_profiles_screen.dart';
 import '../services/boxnow/boxnow_demo.dart';
 import '../services/delivery_service.dart';
 import '../services/file_saver/file_saver.dart';
@@ -972,6 +973,10 @@ List<(String, String)> deliveryNoteRows(AppState s, Delivery d) {
     ),
     (t('Način dostave'), d.method == null ? '—' : d.serviceLabel),
     (t('Predmet'), '1 × ${d.deviceName}'),
+    if (s.deviceById(d.deviceId)?.shipping case final sp?) ...[
+      (t('Težina'), sp.weightLabel),
+      if (sp.hasDimensions) (t('Dimenzije'), sp.dimensionsLabel),
+    ],
     if (paid != null) (t('Vrijednost'), formatCredits(paid)),
     if (d.method == DeliveryMethod.parcelLocker) ...[
       (
@@ -1712,6 +1717,15 @@ class _LabelOptionsCardState extends ConsumerState<_LabelOptionsCard> {
               ),
               value: options.packingList,
               onChanged: (v) => save(options.copyWith(packingList: v)),
+            ),
+            Divider(height: 1, color: LoopColors.surfaceHover),
+            row(
+              'label-profiles',
+              t('Profili dostave'),
+              (user?.shippingProfiles.isEmpty ?? true)
+                  ? t('Težina, dimenzije i predmeti po paketu')
+                  : user!.shippingProfiles.map((p) => p.name).join(', '),
+              () => ShippingProfilesScreen.open(context),
             ),
             Divider(height: 1, color: LoopColors.surfaceHover),
             row(
