@@ -2,6 +2,7 @@
 // Generirano iz popisa tekstova; nadopuni ručno kad dodaješ nove.
 
 const kEn = <String, String>{
+  'Za objavu ispuni podatke prodavatelja.': 'Complete your seller details to publish.',
   'Za live je potreban račun prodavača.': 'A seller account is required to go live.',
   'Pregled prodaje': 'Sales overview',
   'Sve za tvoju prodaju na jednom mjestu.': 'Everything for your sales in one place.',
