@@ -10,7 +10,7 @@ import '../providers/app_state.dart';
 import '../theme/app_theme.dart';
 import '../widgets/formatters.dart';
 import 'add_device_screen.dart';
-import 'auctions_screen.dart' show BrowseCardMedia, MyAuctionsScreen;
+import 'auctions_screen.dart' show BrowseCardMedia, MyAuctionsScreen, MyTab;
 import 'create_auction_screen.dart';
 import 'live_screens.dart';
 import 'my_shows_screen.dart';
@@ -359,7 +359,7 @@ class _SellerGoalsCardState extends ConsumerState<SellerGoalsCard> {
 }
 
 /// Prodajni centar okuplja postojeće alate za liveove, aukcije i otpremu.
-class SellerHubScreen extends StatelessWidget {
+class SellerHubScreen extends ConsumerWidget {
   const SellerHubScreen({super.key});
 
   static Future<void> open(BuildContext context) => Navigator.of(context).push(
@@ -367,18 +367,64 @@ class SellerHubScreen extends StatelessWidget {
   );
 
   @override
-  Widget build(BuildContext context) => Scaffold(
-    appBar: AppBar(title: Text(t('Seller Hub'))),
-    body: Align(
-      alignment: Alignment.topCenter,
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 680),
-        child: ListView(
-          padding: const EdgeInsets.only(bottom: 32),
-          children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
-              child: Wrap(
+  Widget build(BuildContext context, WidgetRef ref) {
+    final state = ref.watch(appProvider);
+    final user = state.currentUser;
+    if (user == null || user.isGuest) {
+      return Scaffold(appBar: AppBar(title: Text(t('Seller Hub'))));
+    }
+    final health = AccountHealth.of(state, user.id, DateTime.now());
+    final shipping = state.toShip.length;
+    void openSales(MyTab tab) => MyAuctionsScreen.open(context, initialTab: tab);
+
+    Widget tile(Key key, IconData icon, String label, VoidCallback onTap) =>
+        Material(
+          color: LoopColors.surface,
+          borderRadius: BorderRadius.circular(kRadius),
+          child: InkWell(
+            key: key,
+            onTap: onTap,
+            borderRadius: BorderRadius.circular(kRadius),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+              child: Row(
+                children: [
+                  Icon(icon, color: LoopColors.accent),
+                  const SizedBox(width: 12),
+                  Expanded(child: Text(label, style: const TextStyle(fontWeight: FontWeight.w700))),
+                  Icon(Icons.chevron_right, color: LoopColors.textSecondary),
+                ],
+              ),
+            ),
+          ),
+        );
+
+    Widget heading(String title) => Padding(
+      padding: const EdgeInsets.only(top: 22, bottom: 10),
+      child: Text(title, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900)),
+    );
+
+    return Scaffold(
+      appBar: AppBar(title: Text(t('Seller Hub'))),
+      body: Align(
+        alignment: Alignment.topCenter,
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 680),
+          child: ListView(
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 36),
+            children: [
+              Text(t('Pregled prodaje'), style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w900)),
+              const SizedBox(height: 4),
+              Text(t('Sve za tvoju prodaju na jednom mjestu.'), style: TextStyle(color: LoopColors.textSecondary)),
+              heading(t('Za napraviti')),
+              tile(
+                const ValueKey('seller-hub-shipping'),
+                Icons.local_shipping_outlined,
+                shipping == 0 ? t('Nema paketa za predaju') : t('Za predaju: {0}', ['$shipping']),
+                () => openSales(MyTab.notes),
+              ),
+              heading(t('Brze radnje')),
+              Wrap(
                 spacing: 8,
                 runSpacing: 8,
                 children: [
@@ -395,23 +441,73 @@ class SellerHubScreen extends StatelessWidget {
                     label: Text(t('Nova aukcija')),
                   ),
                   OutlinedButton.icon(
-                    key: const ValueKey('seller-hub-sales'),
-                    onPressed: () => MyAuctionsScreen.open(context),
-                    icon: const Icon(Icons.inventory_2_outlined),
-                    label: Text(t('Moja prodaja')),
+                    key: const ValueKey('seller-hub-add'),
+                    onPressed: () => AddDeviceScreen.open(context),
+                    icon: const Icon(Icons.add),
+                    label: Text(t('Dodaj predmet')),
                   ),
                 ],
               ),
-            ),
-            SellerHubPanel(
-              initiallyExpanded: true,
-              onShipping: () => MyAuctionsScreen.open(context),
-            ),
-          ],
+              heading(t('Zdravlje računa')),
+              Material(
+                key: const ValueKey('hub-health'),
+                color: LoopColors.surface,
+                borderRadius: BorderRadius.circular(kRadius),
+                child: InkWell(
+                  key: const ValueKey('seller-hub-health-details'),
+                  borderRadius: BorderRadius.circular(kRadius),
+                  onTap: () => Navigator.of(context).push(MaterialPageRoute<void>(
+                    builder: (context) => Scaffold(
+                      appBar: AppBar(title: Text(t('Zdravlje računa'))),
+                      body: ListView(children: [
+                        SellerHubPanel(initiallyExpanded: true, onShipping: () => openSales(MyTab.notes)),
+                      ]),
+                    ),
+                  )),
+                  child: Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(children: [
+                          Icon(Icons.health_and_safety_outlined, color: health.level.color),
+                          const SizedBox(width: 10),
+                          Expanded(child: Text(health.level.label, style: TextStyle(color: health.level.color, fontWeight: FontWeight.w900, fontSize: 17))),
+                          Icon(Icons.chevron_right, color: LoopColors.textSecondary),
+                        ]),
+                        const SizedBox(height: 10),
+                        Text(
+                          health.ratingCount == 0
+                              ? t('Još nema ocjena kupaca.')
+                              : t('Ocjena kupaca: {0}', ['★ ${health.ratingAverage.toStringAsFixed(1)} (${health.ratingCount})']),
+                          style: TextStyle(color: LoopColors.textSecondary),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          health.onTimeRate == null
+                              ? t('Nema podataka o pravovremenoj predaji.')
+                              : t('Pravovremena predaja: {0}', ['${(health.onTimeRate! * 100).round()} %']),
+                          style: TextStyle(color: LoopColors.textSecondary),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+              heading(t('Alati za prodaju')),
+              tile(const ValueKey('seller-hub-shows'), Icons.live_tv_outlined, t('Moji showovi'), () => MyShowsScreen.open(context)),
+              const SizedBox(height: 8),
+              tile(const ValueKey('seller-hub-sales'), Icons.sell_outlined, t('Aukcije i predmeti'), () => openSales(MyTab.selling)),
+              const SizedBox(height: 8),
+              tile(const ValueKey('seller-hub-shipments'), Icons.inventory_2_outlined, t('Otpremnice'), () => openSales(MyTab.notes)),
+              const SizedBox(height: 8),
+              tile(const ValueKey('seller-hub-finance'), Icons.account_balance_wallet_outlined, t('Financije'), () => FinancialsScreen.open(context)),
+            ],
+          ),
         ),
       ),
-    ),
-  );
+    );
+  }
 }
 
 /// "Prodavač": pregled na jednom mjestu — brze radnje, otprema, zdravlje
