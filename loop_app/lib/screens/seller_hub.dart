@@ -406,7 +406,30 @@ class SellerHubScreen extends ConsumerWidget {
     );
 
     return Scaffold(
-      appBar: AppBar(title: Text(t('Seller Hub'))),
+      appBar: AppBar(
+        title: Text(t('Seller Hub')),
+        actions: [
+          PopupMenuButton<int>(
+            key: const ValueKey('seller-hub-menu'),
+            onSelected: (value) {
+              switch (value) {
+                case 0: MyItemsScreen.open(context);
+                case 1: MyShowsScreen.open(context);
+                case 2: openSales(MyTab.selling);
+                case 3: openSales(MyTab.notes);
+                case 4: FinancialsScreen.open(context);
+              }
+            },
+            itemBuilder: (_) => [
+              PopupMenuItem(value: 0, child: Text(t('Moji predmeti'))),
+              PopupMenuItem(value: 1, child: Text(t('Moji showovi'))),
+              PopupMenuItem(value: 2, child: Text(t('Aukcije i predmeti'))),
+              PopupMenuItem(value: 3, child: Text(t('Otpremnice'))),
+              PopupMenuItem(value: 4, child: Text(t('Financije'))),
+            ],
+          ),
+        ],
+      ),
       body: Align(
         alignment: Alignment.topCenter,
         child: ConstrainedBox(
@@ -497,6 +520,8 @@ class SellerHubScreen extends ConsumerWidget {
               ),
               heading(t('Alati za prodaju')),
               tile(const ValueKey('seller-hub-shows'), Icons.live_tv_outlined, t('Moji showovi'), () => MyShowsScreen.open(context)),
+              const SizedBox(height: 8),
+              tile(const ValueKey('seller-hub-inventory'), Icons.inventory_2_outlined, t('Moji predmeti'), () => MyItemsScreen.open(context)),
               const SizedBox(height: 8),
               tile(const ValueKey('seller-hub-inventory'), Icons.inventory_2_outlined, t('Moji predmeti'), () => MyItemsScreen.open(context)),
               const SizedBox(height: 8),
