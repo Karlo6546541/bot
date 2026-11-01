@@ -2,6 +2,11 @@
 // Generirano iz popisa tekstova; nadopuni ručno kad dodaješ nove.
 
 const kEn = <String, String>{
+  'Pošiljke': 'Shipments',
+  'Otvori pošiljku za pregled i ispis otpremnice.': 'Open a shipment to view and print its packing slip.',
+  'Nema pošiljaka u tijeku.': 'There are no shipments in progress.',
+  'Radnje za slanje': 'Shipping actions',
+  'Odaberi pošiljku za otvaranje i preuzimanje njezine otpremnice.': 'Select a shipment to open and download its packing slip.',
   'Za objavu ispuni podatke prodavatelja.': 'Complete your seller details to publish.',
   'Za live je potreban račun prodavača.': 'A seller account is required to go live.',
   'Pregled prodaje': 'Sales overview',
