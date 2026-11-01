@@ -14,6 +14,7 @@ import 'auctions_screen.dart' show BrowseCardMedia, MyAuctionsScreen, MyTab;
 import 'create_auction_screen.dart';
 import 'live_screens.dart';
 import 'my_shows_screen.dart';
+import 'portfolio_screen.dart';
 import 'seller_finance_screens.dart';
 
 /// Zdravlje računa prodavača, izračunato iz stvarnih podataka: ocjene
@@ -496,6 +497,8 @@ class SellerHubScreen extends ConsumerWidget {
               ),
               heading(t('Alati za prodaju')),
               tile(const ValueKey('seller-hub-shows'), Icons.live_tv_outlined, t('Moji showovi'), () => MyShowsScreen.open(context)),
+              const SizedBox(height: 8),
+              tile(const ValueKey('seller-hub-inventory'), Icons.inventory_2_outlined, t('Moji predmeti'), () => MyItemsScreen.open(context)),
               const SizedBox(height: 8),
               tile(const ValueKey('seller-hub-sales'), Icons.sell_outlined, t('Aukcije i predmeti'), () => openSales(MyTab.selling)),
               const SizedBox(height: 8),
