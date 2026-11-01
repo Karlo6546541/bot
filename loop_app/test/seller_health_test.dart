@@ -7,6 +7,7 @@ import 'package:loop_app/models/loop_transaction.dart';
 import 'package:loop_app/screens/seller_finance_screens.dart';
 import 'package:loop_app/models/report.dart';
 import 'package:loop_app/providers/app_state.dart';
+import 'package:loop_app/screens/deliveries_screen.dart' show ShipGroup;
 import 'package:loop_app/screens/seller_hub.dart';
 import 'package:loop_app/services/delivery_service.dart';
 import 'package:loop_app/services/live_service.dart';
@@ -77,6 +78,18 @@ void main() {
       now: t0.add(const Duration(hours: 50)),
     );
     expect(health(t0.add(const Duration(hours: 51))).onTimeRate, 0.5);
+  });
+
+  test('otprema: grupe pošiljaka (za predaju → poslano)', () async {
+    final a = await ship('g');
+    final now = t0;
+    expect(ShipGroup.of(a, now), ShipGroup.readyToShip);
+    final handed = await deliveries.markHandedOver(seller, a.id, now: now);
+    expect(ShipGroup.of(handed, now), ShipGroup.shipped);
+    expect(
+      ShipGroup.of(handed.copyWith(confirmedAt: now), now),
+      ShipGroup.delivered,
+    );
   });
 
   test('pravila zajednice: prijave u zadnjih 180 dana', () async {

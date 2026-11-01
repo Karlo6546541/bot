@@ -7,7 +7,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 
 import '../models/delivery.dart';
+import '../models/device.dart';
 import '../providers/app_providers.dart';
+import '../providers/app_state.dart';
+import '../services/label_options.dart';
 import '../services/boxnow/boxnow_demo.dart';
 import '../services/delivery_service.dart';
 import '../services/file_saver/file_saver.dart';
@@ -824,11 +827,6 @@ class DeliveryNoteScreen extends ConsumerWidget {
         ),
       );
 
-  static String _esc(String v) => v
-      .replaceAll('&', '&amp;')
-      .replaceAll('<', '&lt;')
-      .replaceAll('>', '&gt;');
-
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final s = ref.watch(appProvider);
@@ -842,71 +840,11 @@ class DeliveryNoteScreen extends ConsumerWidget {
         ),
       );
     }
-    final seller = s.currentUser!;
-    final buyer = s.userById(d.buyerId);
-    final recipient = (buyer?.name.trim().isNotEmpty ?? false)
-        ? buyer!.name.trim()
-        : (buyer?.handle ?? '');
-    final sender = seller.seller?.tradeName.isNotEmpty ?? false
-        ? seller.seller!.tradeName
-        : (seller.name.trim().isNotEmpty ? seller.name.trim() : seller.handle);
-    final senderAddress = seller.seller?.address ?? seller.address ?? '';
+    final recipient = deliveryRecipient(s, d);
     final code = d.trackingNumber ?? d.id;
-    final paid = s.itemPaid(d.deviceId, d.buyerId);
-    final date = formatDateTime(d.startedAt ?? d.createdAt);
-    final rows = <(String, String)>[
-      (t('Broj otpremnice'), code),
-      (t('Datum'), date),
-      (
-        t('Pošiljatelj'),
-        [sender, senderAddress].where((x) => x.isNotEmpty).join(', '),
-      ),
-      (t('Primatelj'), recipient),
-      (
-        d.method == DeliveryMethod.parcelLocker ? t('Paketomat') : t('Adresa'),
-        d.destination ?? '—',
-      ),
-      (t('Način dostave'), d.method == null ? '—' : d.serviceLabel),
-      (t('Predmet'), '1 × ${d.deviceName}'),
-      if (paid != null) (t('Vrijednost'), formatCredits(paid)),
-      if (d.method == DeliveryMethod.parcelLocker) ...[
-        (
-          t('{0} broj pošiljke', [BoxNowDemo.network(d).brand]),
-          BoxNowDemo.parcelId(d),
-        ),
-        (t('PIN za predaju'), BoxNowDemo.dropOffPin(d)),
-      ],
-    ];
+    final rows = deliveryNoteRows(s, d);
 
-    Future<void> download() async {
-      final png = await QrPainter(
-        data: ShippingLabel.payload(d, recipient),
-        version: QrVersions.auto,
-        gapless: true,
-      ).toImageData(400);
-      final qr = png == null
-          ? ''
-          : '<img src="data:image/png;base64,${base64Encode(png.buffer.asUint8List())}" width="180" height="180">';
-      final html =
-          """<!doctype html><html lang="hr"><head><meta charset="utf-8">
-<title>Otpremnica $code</title>
-<style>body{font-family:sans-serif;max-width:640px;margin:24px auto;color:#222}
-h1{font-size:22px;margin:0 0 4px}table{width:100%;border-collapse:collapse;margin-top:16px}
-td{border-bottom:1px solid #ddd;padding:8px 4px;vertical-align:top}td:first-child{color:#666;width:38%}
-.code{font-size:26px;font-weight:800;letter-spacing:2px}.qr{text-align:center;margin:16px 0}
-@media print{button{display:none}}</style></head><body>
-<h1>${_esc(t('Otpremnica'))} — Subhasto</h1>
-<div class="qr">$qr<div class="code">${_esc(code)}</div></div>
-<table>${rows.map((r) => '<tr><td>${_esc(r.$1)}</td><td>${_esc(r.$2)}</td></tr>').join()}</table>
-<p style="color:#666;font-size:13px">${_esc(t('Zalijepi otpremnicu na paket ili je priloži unutra. Kod skenira paketomat ili kurir.'))}</p>
-<button onclick="print()">${_esc(t('Ispiši'))}</button></body></html>""";
-      final where = await saveBytesFile(
-        'otpremnica-$code.html',
-        Uint8List.fromList(utf8.encode(html)),
-        mime: 'text/html',
-      );
-      showLoopSnackBar(t('Otpremnica spremljena: {0}', [where]));
-    }
+    Future<void> download() => downloadDeliveryNotes(ref, [d]);
 
     return Scaffold(
       appBar: AppBar(title: Text(t('Otpremnica'))),
@@ -999,6 +937,109 @@ td{border-bottom:1px solid #ddd;padding:8px 4px;vertical-align:top}td:first-chil
       ),
     );
   }
+}
+
+/// Ime primatelja na otpremnici.
+String deliveryRecipient(AppState s, Delivery d) {
+  final buyer = s.userById(d.buyerId);
+  return (buyer?.name.trim().isNotEmpty ?? false)
+      ? buyer!.name.trim()
+      : (buyer?.handle ?? '');
+}
+
+/// Retci otpremnice za pošiljku [d] (pošiljatelj je trenutni korisnik).
+List<(String, String)> deliveryNoteRows(AppState s, Delivery d) {
+  final seller = s.currentUser!;
+  final recipient = deliveryRecipient(s, d);
+  final sender = seller.seller?.tradeName.isNotEmpty ?? false
+      ? seller.seller!.tradeName
+      : (seller.name.trim().isNotEmpty ? seller.name.trim() : seller.handle);
+  final senderAddress = seller.seller?.address ?? seller.address ?? '';
+  final code = d.trackingNumber ?? d.id;
+  final paid = s.itemPaid(d.deviceId, d.buyerId);
+  final date = formatDateTime(d.startedAt ?? d.createdAt);
+  return <(String, String)>[
+    (t('Broj otpremnice'), code),
+    (t('Datum'), date),
+    (
+      t('Pošiljatelj'),
+      [sender, senderAddress].where((x) => x.isNotEmpty).join(', '),
+    ),
+    (t('Primatelj'), recipient),
+    (
+      d.method == DeliveryMethod.parcelLocker ? t('Paketomat') : t('Adresa'),
+      d.destination ?? '—',
+    ),
+    (t('Način dostave'), d.method == null ? '—' : d.serviceLabel),
+    (t('Predmet'), '1 × ${d.deviceName}'),
+    if (paid != null) (t('Vrijednost'), formatCredits(paid)),
+    if (d.method == DeliveryMethod.parcelLocker) ...[
+      (
+        t('{0} broj pošiljke', [BoxNowDemo.network(d).brand]),
+        BoxNowDemo.parcelId(d),
+      ),
+      (t('PIN za predaju'), BoxNowDemo.dropOffPin(d)),
+    ],
+  ];
+}
+
+String _esc(String v) =>
+    v.replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;');
+
+/// Sprema otpremnice za [list] u jedan HTML za ispis (svaka na svojoj
+/// stranici), u veličini iz zadanih postavki otpremnice.
+Future<void> downloadDeliveryNotes(WidgetRef ref, List<Delivery> list) async {
+  if (list.isEmpty) return;
+  final s = ref.read(appProvider);
+  final options = LabelOptions.of(ref.read(storageProvider), s.currentUserId);
+  final pages = StringBuffer();
+  for (final d in list) {
+    final code = d.trackingNumber ?? d.id;
+    final rows = deliveryNoteRows(s, d);
+    final png = await QrPainter(
+      data: ShippingLabel.payload(d, deliveryRecipient(s, d)),
+      version: QrVersions.auto,
+      gapless: true,
+    ).toImageData(400);
+    final qr = png == null
+        ? ''
+        : '<img src="data:image/png;base64,${base64Encode(png.buffer.asUint8List())}" width="180" height="180">';
+    pages.write('''<section class="note">
+<h1>${_esc(t('Otpremnica'))} — Subhasto</h1>
+<div class="qr">$qr<div class="code">${_esc(code)}</div></div>
+<table>${rows.map((r) => '<tr><td>${_esc(r.$1)}</td><td>${_esc(r.$2)}</td></tr>').join()}</table>
+${options.packingList ? '<p class="slip"><b>${_esc(t('Sadržaj paketa'))}:</b> 1 × ${_esc(d.deviceName)}</p>' : ''}
+<p style="color:#666;font-size:13px">${_esc(t('Zalijepi otpremnicu na paket ili je priloži unutra. Kod skenira paketomat ili kurir.'))}</p>
+</section>''');
+  }
+  final page = options.size == LabelSize.a4 ? 'A4' : '105mm 148mm';
+  final title = list.length == 1
+      ? 'Otpremnica ${list.first.trackingNumber ?? list.first.id}'
+      : 'Otpremnice (${list.length})';
+  final html =
+      """<!doctype html><html lang="hr"><head><meta charset="utf-8">
+<title>$title</title>
+<style>@page{size:$page;margin:8mm}body{font-family:sans-serif;max-width:640px;margin:24px auto;color:#222}
+h1{font-size:22px;margin:0 0 4px}table{width:100%;border-collapse:collapse;margin-top:16px}
+td{border-bottom:1px solid #ddd;padding:8px 4px;vertical-align:top}td:first-child{color:#666;width:38%}
+.code{font-size:26px;font-weight:800;letter-spacing:2px}.qr{text-align:center;margin:16px 0}
+.note{page-break-after:always}.note:last-of-type{page-break-after:auto}
+@media print{button{display:none}}</style></head><body>
+$pages
+<button onclick="print()">${_esc(t('Ispiši'))}</button></body></html>""";
+  final name = list.length == 1
+      ? 'otpremnica-${list.first.trackingNumber ?? list.first.id}.html'
+      : 'otpremnice-${list.length}.html';
+  final where = await saveBytesFile(
+    name,
+    Uint8List.fromList(utf8.encode(html)),
+    mime: 'text/html',
+  );
+  showLoopSnackBar(
+    list.length == 1
+        ? t('Otpremnica spremljena: {0}', [where])
+        : t('Otpremnice spremljene: {0}', [where]),
+  );
 }
 
 /// Paketomat (demo): broj pošiljke, PIN za predaju (prodavač) ili PIN za
@@ -1148,8 +1189,38 @@ class BoxNowCard extends StatelessWidget {
   }
 }
 
-/// Otpremnice (zasebna kategorija u Moje): svi paketi koje šaljem, s
-/// brojem pošiljke i stanjem; dodir otvara otpremnicu.
+/// Grupa pošiljke u Otpremi prodavača (čipovi filtra).
+enum ShipGroup {
+  /// Kupac još bira način dostave.
+  awaitingBuyer,
+
+  /// Spremno za predaju dostavljaču (otpremnica, rok 48 h).
+  readyToShip,
+
+  /// Predano dostavljaču, putuje.
+  shipped,
+
+  /// Dostavljeno ili preuzeto.
+  delivered;
+
+  static ShipGroup of(Delivery d, DateTime now) {
+    if (d.confirmedAt != null || d.isDelivered(now)) return delivered;
+    if (d.method == null) return awaitingBuyer;
+    if (d.handedOverAt == null) return readyToShip;
+    return shipped;
+  }
+
+  String get label => switch (this) {
+    awaitingBuyer => t('Čeka kupca'),
+    readyToShip => t('Za predaju'),
+    shipped => t('Poslano'),
+    delivered => t('Dostavljeno'),
+  };
+}
+
+/// Otprema (prodavač), kao Whatnot Fulfillment: čipovi po stanju, popis
+/// pošiljaka s odabirom, skupne radnje (otpremnice, označi kao predano) i
+/// zadane postavke otpremnice.
 class DeliveryNotesScreen extends ConsumerStatefulWidget {
   const DeliveryNotesScreen({super.key});
 
@@ -1163,128 +1234,493 @@ class DeliveryNotesScreen extends ConsumerStatefulWidget {
 }
 
 class _DeliveryNotesScreenState extends ConsumerState<DeliveryNotesScreen> {
-  bool onlyPending = false;
+  /// `null` = sve pošiljke.
+  ShipGroup? _group;
+  final Set<String> _selected = {};
+
+  Future<void> _markHandedOver(List<Delivery> list) async {
+    final n = list.length;
+    await runWithLoading(context, () async {
+      for (final d in list) {
+        await ref.read(appProvider.notifier).markHandedOver(d.id);
+      }
+    }, successMessage: t('Označeno kao predano: {0}', ['$n']));
+    if (mounted) setState(_selected.clear);
+  }
 
   @override
   Widget build(BuildContext context) {
     final s = ref.watch(appProvider);
     final now = DateTime.now();
-    final notes =
+    final all =
         [
           for (final d in s.sellerDeliveries)
-            if (d.method != null && d.method != DeliveryMethod.digital) d,
+            if (d.method != DeliveryMethod.digital) d,
         ]..sort(
           (a, b) => (b.startedAt ?? b.createdAt).compareTo(
             a.startedAt ?? a.createdAt,
           ),
         );
-    final shown = onlyPending
-        ? notes.where((d) => !d.isDelivered(now)).toList()
-        : notes;
+    final counts = {for (final g in ShipGroup.values) g: 0};
+    for (final d in all) {
+      counts[ShipGroup.of(d, now)] = counts[ShipGroup.of(d, now)]! + 1;
+    }
+    final shown = _group == null
+        ? all
+        : all.where((d) => ShipGroup.of(d, now) == _group).toList();
+    final ready = [
+      for (final d in all)
+        if (ShipGroup.of(d, now) == ShipGroup.readyToShip) d,
+    ];
+    _selected.removeWhere((id) => !ready.any((d) => d.id == id));
+    final selected = [
+      for (final d in ready)
+        if (_selected.contains(d.id)) d,
+    ];
+    final muted = TextStyle(color: LoopColors.textSecondary, fontSize: 13);
+
+    Widget chip(String key, String label, bool on, VoidCallback tap) => Padding(
+      padding: const EdgeInsets.only(right: 8),
+      child: ChoiceChip(
+        key: ValueKey(key),
+        label: Text(label),
+        selected: on,
+        showCheckmark: false,
+        onSelected: (_) => setState(tap),
+      ),
+    );
+
     return Scaffold(
-      appBar: AppBar(title: Text(t('Otpremnice'))),
+      appBar: AppBar(title: Text(t('Otprema'))),
+      bottomNavigationBar: selected.isEmpty
+          ? null
+          : SafeArea(
+              child: Container(
+                key: const ValueKey('ship-bulk'),
+                padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
+                decoration: BoxDecoration(
+                  color: LoopColors.surface,
+                  border: Border(
+                    top: BorderSide(color: LoopColors.surfaceHover),
+                  ),
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Text(
+                      t('Skupne radnje · odabrano {0}', ['${selected.length}']),
+                      style: const TextStyle(fontWeight: FontWeight.w900),
+                    ),
+                    const SizedBox(height: 8),
+                    FilledButton.icon(
+                      key: const ValueKey('ship-bulk-notes'),
+                      onPressed: () => downloadDeliveryNotes(ref, selected),
+                      icon: const Icon(Icons.print_outlined),
+                      label: Text(
+                        t('Preuzmi otpremnice ({0})', ['${selected.length}']),
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    OutlinedButton.icon(
+                      key: const ValueKey('ship-bulk-handed'),
+                      onPressed: () => _markHandedOver(selected),
+                      icon: const Icon(Icons.local_shipping_outlined),
+                      label: Text(t('Označi sve kao predano')),
+                    ),
+                  ],
+                ),
+              ),
+            ),
       body: Align(
         alignment: Alignment.topCenter,
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 680),
           child: ListView(
             key: const ValueKey('my-notes-list'),
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
             children: [
-              Text(
-                t('Pošiljke'),
-                style: const TextStyle(
-                  fontSize: 22,
-                  fontWeight: FontWeight.w900,
+              SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: Row(
+                  children: [
+                    chip(
+                      'notes-filter-all',
+                      t('Sve'),
+                      _group == null,
+                      () => _group = null,
+                    ),
+                    for (final g in [
+                      ShipGroup.readyToShip,
+                      ShipGroup.awaitingBuyer,
+                      ShipGroup.shipped,
+                      ShipGroup.delivered,
+                    ])
+                      chip(
+                        'notes-filter-${g.name}',
+                        counts[g]! > 0 ? '${g.label} · ${counts[g]}' : g.label,
+                        _group == g,
+                        () => _group = g,
+                      ),
+                  ],
                 ),
               ),
-              const SizedBox(height: 6),
-              Text(
-                t('Otvori pošiljku za pregled i ispis otpremnice.'),
-                style: TextStyle(color: LoopColors.textSecondary),
-              ),
-              const SizedBox(height: 12),
-              Wrap(
-                spacing: 8,
+              const SizedBox(height: 18),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
-                  ChoiceChip(
-                    key: const ValueKey('notes-filter-all'),
-                    label: Text(t('Sve')),
-                    selected: !onlyPending,
-                    onSelected: (_) => setState(() => onlyPending = false),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          _group?.label ?? t('Sve pošiljke'),
+                          style: const TextStyle(
+                            fontSize: 22,
+                            fontWeight: FontWeight.w900,
+                          ),
+                        ),
+                        Text(
+                          t('{0} pošiljaka za predaju', ['${ready.length}']),
+                          key: const ValueKey('ship-ready-count'),
+                          style: muted,
+                        ),
+                      ],
+                    ),
                   ),
-                  ChoiceChip(
-                    key: const ValueKey('notes-filter-pending'),
-                    label: Text(t('U tijeku')),
-                    selected: onlyPending,
-                    onSelected: (_) => setState(() => onlyPending = true),
-                  ),
+                  if (ready.isNotEmpty &&
+                      (_group == null || _group == ShipGroup.readyToShip))
+                    TextButton(
+                      key: const ValueKey('ship-select-all'),
+                      onPressed: () => setState(() {
+                        if (selected.length == ready.length) {
+                          _selected.clear();
+                        } else {
+                          _selected.addAll(ready.map((d) => d.id));
+                        }
+                      }),
+                      child: Text(
+                        selected.length == ready.length
+                            ? t('Poništi odabir')
+                            : t('Odaberi sve'),
+                      ),
+                    ),
                 ],
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: 8),
               if (shown.isEmpty)
                 Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 28),
-                  child: Text(
-                    notes.isEmpty
-                        ? t('Još nema otpremnica')
-                        : t('Nema pošiljaka u tijeku.'),
-                    textAlign: TextAlign.center,
-                    style: TextStyle(color: LoopColors.textSecondary),
+                  padding: const EdgeInsets.symmetric(vertical: 36),
+                  child: Column(
+                    children: [
+                      Icon(
+                        Icons.inventory_2_outlined,
+                        size: 44,
+                        color: LoopColors.textSecondary,
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        all.isEmpty
+                            ? t('Još nema otpremnica')
+                            : t('Sve je riješeno'),
+                        style: const TextStyle(fontWeight: FontWeight.w800),
+                      ),
+                      Text(
+                        t('Ovdje se pojavljuju paketi tvojih prodaja.'),
+                        style: muted,
+                      ),
+                    ],
                   ),
                 )
               else
                 for (final d in shown)
-                  Card(
-                    child: ListTile(
-                      key: ValueKey('note-${d.id}'),
-                      contentPadding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 8,
-                      ),
-                      leading: const Icon(Icons.local_shipping_outlined),
-                      title: Text(
-                        d.deviceName,
-                        style: const TextStyle(fontWeight: FontWeight.w800),
-                      ),
-                      subtitle: Text(
-                        [
-                          s.userById(d.buyerId)?.handle ?? '',
-                          d.trackingNumber ?? d.id,
-                          d.status(now).label,
-                        ].where((v) => v.isNotEmpty).join(' · '),
-                      ),
-                      trailing: const Icon(Icons.chevron_right),
-                      onTap: () => DeliveryNoteScreen.open(context, d.id),
-                    ),
+                  _ShipmentRow(
+                    d: d,
+                    group: ShipGroup.of(d, now),
+                    device: s.deviceById(d.deviceId),
+                    buyer: s.userById(d.buyerId)?.handle ?? '',
+                    now: now,
+                    selected: _selected.contains(d.id),
+                    onSelect: ShipGroup.of(d, now) == ShipGroup.readyToShip
+                        ? (v) => setState(
+                            () => v
+                                ? _selected.add(d.id)
+                                : _selected.remove(d.id),
+                          )
+                        : null,
                   ),
-              const SizedBox(height: 12),
-              Card(
-                child: Padding(
-                  padding: const EdgeInsets.all(16),
+              const SizedBox(height: 18),
+              const _LabelOptionsCard(),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _ShipmentRow extends StatelessWidget {
+  const _ShipmentRow({
+    required this.d,
+    required this.group,
+    required this.buyer,
+    required this.now,
+    required this.selected,
+    this.device,
+    this.onSelect,
+  });
+
+  final Delivery d;
+  final Device? device;
+  final ShipGroup group;
+  final String buyer;
+  final DateTime now;
+  final bool selected;
+  final ValueChanged<bool>? onSelect;
+
+  @override
+  Widget build(BuildContext context) {
+    final due = d.handOverDue;
+    final late =
+        group == ShipGroup.readyToShip && due != null && now.isAfter(due);
+    final (color, label) = switch (group) {
+      ShipGroup.readyToShip when late => (LoopColors.error, t('Kasni')),
+      ShipGroup.readyToShip => (LoopColors.accent, group.label),
+      ShipGroup.awaitingBuyer => (LoopColors.textSecondary, group.label),
+      ShipGroup.shipped => (LoopColors.info, group.label),
+      ShipGroup.delivered => (LoopColors.success, group.label),
+    };
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Material(
+        color: LoopColors.surface,
+        borderRadius: BorderRadius.circular(kRadius),
+        child: InkWell(
+          key: ValueKey('note-${d.id}'),
+          borderRadius: BorderRadius.circular(kRadius),
+          onTap: () => DeliveryNoteScreen.open(context, d.id),
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(4, 10, 12, 10),
+            child: Row(
+              children: [
+                if (onSelect != null)
+                  Checkbox(
+                    key: ValueKey('ship-select-${d.id}'),
+                    value: selected,
+                    onChanged: (v) => onSelect!(v ?? false),
+                  )
+                else
+                  const SizedBox(width: 12),
+                if (device != null)
+                  ItemThumb(device: device!, size: 52)
+                else
+                  Container(
+                    width: 52,
+                    height: 52,
+                    decoration: BoxDecoration(
+                      color: LoopColors.surfaceHover,
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                    child: const Icon(Icons.inventory_2_outlined),
+                  ),
+                const SizedBox(width: 12),
+                Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        t('Radnje za slanje'),
-                        style: const TextStyle(
-                          fontWeight: FontWeight.w900,
-                          fontSize: 16,
+                        d.deviceName,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(fontWeight: FontWeight.w800),
+                      ),
+                      Text(
+                        [
+                          if (buyer.isNotEmpty) '@$buyer',
+                          if (d.method != null) d.serviceLabel,
+                        ].join(' · '),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          color: LoopColors.textSecondary,
+                          fontSize: 12,
                         ),
                       ),
-                      const SizedBox(height: 6),
-                      Text(
-                        t(
-                          'Odaberi pošiljku za otvaranje i preuzimanje njezine otpremnice.',
+                      if (group == ShipGroup.readyToShip && due != null)
+                        Text(
+                          t('Predaj do {0}', [formatDateTime(due)]),
+                          style: TextStyle(
+                            color: late
+                                ? LoopColors.error
+                                : LoopColors.textSecondary,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w700,
+                          ),
                         ),
-                        style: TextStyle(color: LoopColors.textSecondary),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 3,
+                  ),
+                  decoration: BoxDecoration(
+                    color: color.withValues(alpha: 0.15),
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: Text(
+                    label,
+                    style: TextStyle(
+                      color: color,
+                      fontWeight: FontWeight.w900,
+                      fontSize: 11,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// "Zadane postavke otpremnice": vrijede za sve buduće otpremnice.
+class _LabelOptionsCard extends ConsumerStatefulWidget {
+  const _LabelOptionsCard();
+
+  @override
+  ConsumerState<_LabelOptionsCard> createState() => _LabelOptionsCardState();
+}
+
+class _LabelOptionsCardState extends ConsumerState<_LabelOptionsCard> {
+  @override
+  Widget build(BuildContext context) {
+    final s = ref.watch(appProvider);
+    final storage = ref.read(storageProvider);
+    final options = LabelOptions.of(storage, s.currentUserId);
+    final user = s.currentUser;
+    final returnAddress = user?.address ?? user?.seller?.address ?? '';
+
+    Future<void> save(LabelOptions o) async {
+      await o.save(storage, s.currentUserId);
+      if (mounted) setState(() {});
+    }
+
+    Widget row(String key, String title, String value, VoidCallback onTap) =>
+        InkWell(
+          key: ValueKey(key),
+          onTap: onTap,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 10),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        title,
+                        style: const TextStyle(fontWeight: FontWeight.w800),
+                      ),
+                      Text(
+                        value,
+                        style: TextStyle(
+                          color: LoopColors.textSecondary,
+                          fontSize: 13,
+                        ),
                       ),
                     ],
                   ),
                 ),
-              ),
-            ],
+                Icon(
+                  Icons.edit_outlined,
+                  size: 18,
+                  color: LoopColors.textSecondary,
+                ),
+              ],
+            ),
           ),
+        );
+
+    String sizeLabel(LabelSize v) => switch (v) {
+      LabelSize.a6 => t('A6 (10 × 15 cm), naljepnica'),
+      LabelSize.a4 => t('A4, običan papir'),
+    };
+
+    return Material(
+      key: const ValueKey('label-options'),
+      color: LoopColors.surface,
+      borderRadius: BorderRadius.circular(kRadius),
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(16, 14, 16, 6),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              t('Zadane postavke otpremnice'),
+              style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 16),
+            ),
+            const SizedBox(height: 2),
+            Text(
+              t('Vrijede za sve otpremnice koje još nisu ispisane.'),
+              style: TextStyle(color: LoopColors.textSecondary, fontSize: 13),
+            ),
+            const SizedBox(height: 4),
+            row(
+              'label-size',
+              t('Veličina otpremnice'),
+              sizeLabel(options.size),
+              () async {
+                final v = await showModalBottomSheet<LabelSize>(
+                  context: context,
+                  showDragHandle: true,
+                  builder: (ctx) => SafeArea(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        for (final size in LabelSize.values)
+                          ListTile(
+                            key: ValueKey('label-size-${size.name}'),
+                            title: Text(sizeLabel(size)),
+                            trailing: size == options.size
+                                ? Icon(Icons.check, color: LoopColors.accent)
+                                : null,
+                            onTap: () => Navigator.pop(ctx, size),
+                          ),
+                      ],
+                    ),
+                  ),
+                );
+                if (v != null) await save(options.copyWith(size: v));
+              },
+            ),
+            Divider(height: 1, color: LoopColors.surfaceHover),
+            SwitchListTile(
+              key: const ValueKey('label-packing'),
+              contentPadding: EdgeInsets.zero,
+              title: Text(
+                t('Popis sadržaja paketa'),
+                style: const TextStyle(fontWeight: FontWeight.w800),
+              ),
+              subtitle: Text(
+                t('Ispisuje se na otpremnici.'),
+                style: TextStyle(color: LoopColors.textSecondary, fontSize: 13),
+              ),
+              value: options.packingList,
+              onChanged: (v) => save(options.copyWith(packingList: v)),
+            ),
+            Divider(height: 1, color: LoopColors.surfaceHover),
+            row(
+              'label-return',
+              t('Adresa za povrat'),
+              returnAddress.isEmpty ? t('Dodaj adresu') : returnAddress,
+              () => ensureCheckout(context, ref, force: true),
+            ),
+          ],
         ),
       ),
     );

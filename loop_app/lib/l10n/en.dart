@@ -2784,22 +2784,30 @@ const kEn = <String, String>{
   'Adresa za povrat': 'Return address',
   'Dodaj račun za isplatu': 'Add a payout account',
   'IBAN na koji stiže zarada.': 'The IBAN your earnings are paid to.',
-  'Ime, OIB i adresa (EU pravila DAC7 i DSA).': 'Name, tax ID and address (EU DAC7 and DSA rules).',
-  'Isplata je besplatna i bez najmanjeg iznosa.': 'Payouts are free, with no minimum amount.',
-  'Isplate koje pokreneš pojavit će se ovdje.': 'Payouts you start will appear here.',
-  'Isplate stižu za 1–2 radna dana nakon slanja.': 'Payouts arrive 1–2 business days after they are sent.',
-  'Isplate, liveovi i promocije su otključani.': 'Payouts, live shows and promotions are unlocked.',
+  'Ime, OIB i adresa (EU pravila DAC7 i DSA).':
+      'Name, tax ID and address (EU DAC7 and DSA rules).',
+  'Isplata je besplatna i bez najmanjeg iznosa.':
+      'Payouts are free, with no minimum amount.',
+  'Isplate koje pokreneš pojavit će se ovdje.':
+      'Payouts you start will appear here.',
+  'Isplate stižu za 1–2 radna dana nakon slanja.':
+      'Payouts arrive 1–2 business days after they are sent.',
+  'Isplate, liveovi i promocije su otključani.':
+      'Payouts, live shows and promotions are unlocked.',
   'Isplaćeno': 'Paid out',
   'Kamo kupci vraćaju pakete.': 'Where buyers send returns.',
-  'Kartica za kupnje, promocije i naknade.': 'Card for purchases, promotions and fees.',
+  'Kartica za kupnje, promocije i naknade.':
+      'Card for purchases, promotions and fees.',
   'Naknade i promocije': 'Fees and promotions',
   'Nije gotovo': 'Incomplete',
-  'Novac obično stiže za 1–2 radna dana.': 'Funds typically arrive within 1–2 business days.',
+  'Novac obično stiže za 1–2 radna dana.':
+      'Funds typically arrive within 1–2 business days.',
   'Pokreni isplatu': 'Start payout',
   'Poslano {0}': 'Sent {0}',
   'Poslano {0} · stiže do {1}': 'Sent {0} · arrives by {1}',
   'Potrebno za isplate na tvoj račun.': 'Required for payouts to your account.',
-  'Potvrdi adresu iz poruke koju smo ti poslali.': 'Confirm your address from the email we sent you.',
+  'Potvrdi adresu iz poruke koju smo ti poslali.':
+      'Confirm your address from the email we sent you.',
   'Potvrdi e-poštu': 'Confirm your email',
   'Povijest isplata': 'Payout history',
   'Prijavljen si Google računom.': 'You signed in with Google.',
@@ -2810,10 +2818,58 @@ const kEn = <String, String>{
   'Zahtijeva prethodne korake': 'Requires previous steps',
   'Zahtijeva prethodne korake.': 'Requires previous steps.',
   'Započni verifikaciju prodavača': 'Begin seller verification',
-  'Završi korake za isplate i puni pristup prodaji.': 'Complete the steps for payouts and full selling access.',
+  'Završi korake za isplate i puni pristup prodaji.':
+      'Complete the steps for payouts and full selling access.',
   'dostupno za isplatu': 'available for payout',
   'na putu do banke': 'on the way to your bank',
   '{0} od {1} koraka': '{0} of {1} steps',
+  'A4, običan papir': 'A4, plain paper',
+  'A6 (10 × 15 cm), naljepnica': 'A6 (4 × 6 in), label',
+  'Dobro. Još malo do odličnog stanja.': 'Good. Almost at excellent.',
+  'Dodaj adresu': 'Add address',
+  'Ispisuje se na otpremnici.': 'Printed on the shipping label.',
+  'Kako održati odlično stanje': 'How to stay in excellent health',
+  'Kasni': 'Late',
+  'Nema prijava. Kršenja pravila zajednice ostaju vidljiva ovdje 180 dana.':
+      'No reports. Community guideline violations stay visible here for 180 days.',
+  'Novi račun: stanje se računa od prve prodaje.':
+      'New account: health is measured from your first sale.',
+  'Odaberi sve': 'Select all',
+  'Odgovaraj kupcima u porukama isti dan.':
+      'Reply to buyers\' messages the same day.',
+  'Odlično! Tvoj račun je u dobrom stanju.':
+      'Nice work! Your account is in good health.',
+  'Opiši stanje predmeta iskreno, s pravim fotografijama.':
+      'Describe the item\'s condition honestly, with real photos.',
+  'Otpremnice spremljene: {0}': 'Shipping labels saved: {0}',
+  'Ovdje se pojavljuju paketi tvojih prodaja.':
+      'Packages from your sales appear here.',
+  'Označeno kao predano: {0}': 'Marked as handed over: {0}',
+  'Označi sve kao predano': 'Mark all as handed over',
+  'Poništi odabir': 'Clear selection',
+  'Popis sadržaja paketa': 'Packing slip',
+  'Predaj do {0}': 'Hand over by {0}',
+  'Predaj paket u roku od {0} sati.': 'Hand over the package within {0} hours.',
+  'Preuzmi otpremnice ({0})': 'Download labels ({0})',
+  'Prijave u zadnjih 180 dana: {0} u obradi, {1} potvrđeno. Ako misliš da je prijava greška, odgovori na poruku tima za sigurnost.':
+      'Reports in the last 180 days: {0} open, {1} upheld. If you think a report is a mistake, reply to the Trust & Safety message.',
+  'Račun treba pažnju. Pogledaj što se može poboljšati.':
+      'Your account needs attention. See what can be improved.',
+  'Sadržaj paketa': 'Package contents',
+  'Skupne radnje · odabrano {0}': 'Bulk actions · {0} selected',
+  'Sve je riješeno': 'You\'re all caught up',
+  'Sve pošiljke': 'All shipments',
+  'Udio narudžbi u kojima je kupac imao dobro iskustvo: paket predan dostavljaču u roku od 48 sati i uspješno isporučen. Rijetko je 100 %, jer kupce štiti Zaštita kupca i kad greška nije tvoja.':
+      'The share of orders where the buyer had a good experience: handed to the carrier within 48 hours and delivered successfully. It is rarely 100%, because Buyer Protection covers buyers even when the fault is not yours.',
+  'Učinak prodavača': 'Seller performance',
+  'Veličina otpremnice': 'Label size',
+  'Vrijede za sve otpremnice koje još nisu ispisane.':
+      'Applies to all labels that have not been printed yet.',
+  'Za predaju': 'Ready to ship',
+  'Zadane postavke otpremnice': 'Default label options',
+  '{0} pošiljaka za predaju': '{0} shipments to fulfill',
+  '{0} pošiljaka · {1} ocjena': '{0} shipments · {1} ratings',
+  'Čeka kupca': 'Awaiting buyer',
   'Zakaži show': 'Schedule a show',
   'Otprema': 'Shipping',
   'Nema paketa za predaju': 'No parcels to hand over',

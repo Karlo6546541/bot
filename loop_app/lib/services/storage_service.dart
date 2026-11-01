@@ -822,6 +822,11 @@ class StorageService {
           ?.cast<String>() ??
       const [];
 
+  /// Mala postavka na ovom uređaju (npr. zadane postavke otpremnice).
+  Object? sessionValue(String key) => _session.get(key);
+  Future<void> setSessionValue(String key, Object value) =>
+      _session.put(key, value);
+
   Future<void> addRecentCategories(Iterable<String> names) {
     final list = [...recentCategories, ...names];
     return _session.put(

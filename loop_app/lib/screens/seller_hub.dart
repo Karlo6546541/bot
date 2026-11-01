@@ -15,6 +15,7 @@ import 'create_auction_screen.dart';
 import 'live_screens.dart';
 import 'my_shows_screen.dart';
 import 'portfolio_screen.dart';
+import 'account_health_screen.dart';
 import 'deliveries_screen.dart' show DeliveryNotesScreen;
 import 'messages_screen.dart';
 import 'seller_finance_screens.dart';
@@ -511,22 +512,7 @@ class SellerHubScreen extends ConsumerWidget {
                 child: InkWell(
                   key: const ValueKey('seller-hub-health-details'),
                   borderRadius: BorderRadius.circular(kRadius),
-                  onTap: () => Navigator.of(context).push(
-                    MaterialPageRoute<void>(
-                      builder: (context) => Scaffold(
-                        appBar: AppBar(title: Text(t('Zdravlje računa'))),
-                        body: ListView(
-                          children: [
-                            SellerHubPanel(
-                              initiallyExpanded: true,
-                              onShipping: () =>
-                                  DeliveryNotesScreen.open(context),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
+                  onTap: () => AccountHealthScreen.open(context),
                   child: Padding(
                     padding: const EdgeInsets.all(16),
                     child: Column(
@@ -785,7 +771,7 @@ class _SellerHubPanelState extends ConsumerState<SellerHubPanel> {
               onTap: () => SellerToolsScreen.open(
                 context,
                 onShipping: onShipping,
-                onHealth: () => setState(() => _open = true),
+                onHealth: () => AccountHealthScreen.open(context),
               ),
               child: Container(
                 padding: const EdgeInsets.fromLTRB(14, 12, 10, 12),

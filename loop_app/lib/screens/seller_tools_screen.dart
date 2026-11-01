@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../l10n/tr.dart';
 import '../theme/app_theme.dart';
+import 'account_health_screen.dart';
 import 'add_device_screen.dart';
 import 'my_shows_screen.dart';
 import 'seller_finance_screens.dart';
@@ -143,7 +144,9 @@ class SellerToolsScreen extends StatelessWidget {
               'tool-health',
               Icons.verified_user_outlined,
               t('Zdravlje računa'),
-              () => closeThen(onHealth),
+              () => onHealth == null
+                  ? AccountHealthScreen.open(context)
+                  : closeThen(onHealth),
             ),
             row(
               'tool-analytics',

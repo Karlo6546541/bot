@@ -1,4 +1,5 @@
 import '../config/features.dart';
+import 'account_health_screen.dart';
 import 'package:flutter/material.dart';
 
 import '../config/backend_config.dart';
@@ -226,7 +227,7 @@ class _AccountHome extends ConsumerWidget {
                 'account-health',
                 Icons.verified_user_outlined,
                 t('Zdravlje računa'),
-                () => ref.read(homeTabProvider.notifier).select(2),
+                () => AccountHealthScreen.open(context),
               ),
               row(
                 'profile-checkout',
