@@ -25,8 +25,6 @@ import '../widgets/item_image.dart';
 import '../widgets/user_avatar.dart';
 import 'auction_detail_screen.dart';
 import 'portfolio_screen.dart';
-import 'seller_hub.dart';
-import 'seller_screens.dart';
 import 'deliveries_screen.dart';
 import 'device_detail_screen.dart';
 import 'live_screens.dart';
@@ -1329,34 +1327,6 @@ class _MyAuctionsViewState extends ConsumerState<MyAuctionsView> {
     // =============================================================== Aukcije
     if (_tab == MyTab.selling) {
       final f = _sellFilter;
-      final earnings = SliverToBoxAdapter(
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
-          child: Card(
-            child: ListTile(
-              leading: Icon(
-                Icons.account_balance_wallet_outlined,
-                color: LoopColors.textSecondary,
-              ),
-              title: Text(t('Zarada za isplatu')),
-              subtitle: Text(
-                formatCredits(user.credits),
-                style: const TextStyle(
-                  fontWeight: FontWeight.w900,
-                  fontSize: 18,
-                ),
-              ),
-              trailing: FilledButton(
-                key: const ValueKey('profile-payout'),
-                onPressed: user.credits > 0
-                    ? () => showPayoutDialog(context, ref)
-                    : null,
-                child: Text(t('Isplati')),
-              ),
-            ),
-          ),
-        ),
-      );
       final activeSlivers = <Widget>[
         sectionBox(t('⏱ Na aukciji ({0})', ['${myActive.length}'])),
         _auctionGrid(myActive, me, key: const ValueKey('my-active-auctions')),
@@ -1399,13 +1369,6 @@ class _MyAuctionsViewState extends ConsumerState<MyAuctionsView> {
                 leading: f == 'saved'
                     ? const []
                     : [
-                        SliverToBoxAdapter(
-                          child: SellerHubPanel(
-                            onShipping: () =>
-                                setState(() => _tab = MyTab.notes),
-                          ),
-                        ),
-                        earnings,
                         if (myActive.isNotEmpty) ...activeSlivers,
                         if (myEnded.isNotEmpty) ...endedSlivers(3),
                         sectionBox(t('Moji predmeti')),
