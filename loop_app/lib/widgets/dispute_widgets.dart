@@ -188,7 +188,7 @@ class DisputeCard extends ConsumerWidget {
             ),
           Text(
             seller
-                ? '@${s.userLabel(d.buyerId)}: ${dispute.reason.label}'
+                ? '${s.userLabel(d.buyerId)}: ${dispute.reason.label}'
                 : dispute.reason.label,
             style: const TextStyle(fontWeight: FontWeight.w700),
           ),

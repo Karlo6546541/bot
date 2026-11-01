@@ -2946,7 +2946,7 @@ const kEn = <String, String>{
   'Trenutno nema drugih liveova uživo.':
       'There are no other live shows right now.',
   'Uvezi iz inventara': 'Import from inventory',
-  '🚀 Raid! @{0} vas šalje u "{1}"': '🚀 Raid! @{0} is sending you to "{1}"',
+  '🚀 Raid! {0} vas šalje u "{1}"': '🚀 Raid! {0} is sending you to "{1}"',
   'Dimenzije': 'Dimensions',
   'Dimenzije moraju biti do 300 cm.': 'Dimensions must be up to 300 cm.',
   'Dimenzije paketa': 'Package dimensions',
@@ -3074,11 +3074,17 @@ const kEn = <String, String>{
       'The seller can accept, decline or counter. An accepted price is valid for 48 hours, only for you.',
   '{0} % manje od {1}': '{0}% less than {1}',
   'Brojevi su spremni u liveu.': 'Numbers are ready in the show.',
-  'Items on screen · brojevi idu sami · od {0}': 'Items on screen · numbers go automatically · from {0}',
+  'Items on screen · brojevi idu sami · od {0}':
+      'Items on screen · numbers go automatically · from {0}',
   'Ovaj live nema predmete s brojevima.': 'This show has no numbered items.',
-  'Predmeti s brojevima, bez slike — pokazuješ ih na kameri. Brojevi idu sami: nakon svake prodaje stisneš "Sljedeći #N". Nema ograničenja.': 'Numbered items without photos — you show them on camera. Numbers go automatically: after each sale tap "Next #N". No limit.',
-  'Prvi: {0} #{1} · zatim #{2}, #{3}… bez ograničenja': 'First: {0} #{1} · then #{2}, #{3}… no limit',
-  'Upiši naziv, početni broj i cijenu (barem 1 €).': 'Enter a name, starting number and price (at least €1).',
+  'Predmeti s brojevima, bez slike — pokazuješ ih na kameri. Brojevi idu sami: nakon svake prodaje stisneš "Sljedeći #N". Nema ograničenja.':
+      'Numbered items without photos — you show them on camera. Numbers go automatically: after each sale tap "Next #N". No limit.',
+  'Prvi: {0} #{1} · zatim #{2}, #{3}… bez ograničenja':
+      'First: {0} #{1} · then #{2}, #{3}… no limit',
+  'Upiši naziv, početni broj i cijenu (barem 1 €).':
+      'Enter a name, starting number and price (at least €1).',
+  'Još ništa nisi kupio.': 'You haven\'t bought anything yet.',
+  '✓ Kupljeno ({0})': '✓ Bought ({0})',
   'Zakaži show': 'Schedule a show',
   'Otprema': 'Shipping',
   'Nema paketa za predaju': 'No parcels to hand over',

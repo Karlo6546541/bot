@@ -290,7 +290,7 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> {
                   style: const TextStyle(fontWeight: FontWeight.w800),
                 ),
                 subtitle: Text(
-                  '${formatDate(tx.createdAt)} · @${s.userLabel(tx.buyerId)}',
+                  '${formatDate(tx.createdAt)} · ${s.userLabel(tx.buyerId)}',
                 ),
                 trailing: Text(
                   formatCredits(tx.price),

@@ -38,7 +38,7 @@ import '../l10n/tr.dart';
 /// Aukcije (moje aukcije i predmeti), Live (kupljeno i prodano u liveu) i
 /// Otpremnice (paketi za poslati).
 enum MyTab {
-  buying('Licitiram', Icons.gavel),
+  buying('Kupujem', Icons.shopping_bag_outlined),
   selling('Aukcije', Icons.sell_outlined),
   live('Live', Icons.videocam_outlined),
   notes('Otpremnice', Icons.description_outlined);
@@ -1013,6 +1013,7 @@ class _MyAuctionsViewState extends ConsumerState<MyAuctionsView> {
     }
 
     final auc = buyer(false);
+    final lvAuc = auc;
     final lv = buyer(true);
     final toShip = s.toShip;
     final shipLive = [
@@ -1140,7 +1141,7 @@ class _MyAuctionsViewState extends ConsumerState<MyAuctionsView> {
       padding: const EdgeInsets.fromLTRB(10, 8, 10, 4),
       child: Row(
         children: [
-          tabButton(MyTab.buying, auc.actions.length),
+          tabButton(MyTab.buying, auc.actions.length + lv.actions.length),
           tabButton(MyTab.selling, 0),
           tabButton(
             MyTab.live,
@@ -1195,11 +1196,11 @@ class _MyAuctionsViewState extends ConsumerState<MyAuctionsView> {
       for (final d in s.myDigitalPurchases)
         if (liveDigitalIds.contains(d.id)) d,
     ];
-    final digAuc = [
+    final digAucOnly = [
       for (final d in s.myDigitalPurchases)
         if (!liveDigitalIds.contains(d.id)) d,
     ];
-    final physDone = [
+    final physDoneAuc = [
       for (final d in auc.done)
         if (d.method != DeliveryMethod.digital) d,
     ];
@@ -1231,6 +1232,15 @@ class _MyAuctionsViewState extends ConsumerState<MyAuctionsView> {
     // ============================================================ Licitiram
     if (_tab == MyTab.buying) {
       final f = _buyFilter;
+      // Kupac vidi sve kupnje na jednom mjestu (aukcije i liveovi).
+      final auc = (
+        actions: [...lvAuc.actions, ...lv.actions],
+        confirm: [...lvAuc.confirm, ...lv.confirm],
+        onTheWay: [...lvAuc.onTheWay, ...lv.onTheWay],
+        done: [...lvAuc.done, ...lv.done],
+      );
+      final physDone = [...physDoneAuc, ...physDoneLive];
+      final digAuc = [...digAucOnly, ...digLive];
       final doneCount = physDone.length;
       final empty =
           auc.actions.isEmpty &&
@@ -1267,7 +1277,7 @@ class _MyAuctionsViewState extends ConsumerState<MyAuctionsView> {
           ],
           if (auc.onTheWay.isNotEmpty) ...onWaySlivers(auc.onTheWay),
           if (doneCount > 0)
-            ...doneSlivers(physDone, t('✓ Osvojeno ({0})', ['$doneCount'])),
+            ...doneSlivers(physDone, t('✓ Kupljeno ({0})', ['$doneCount'])),
           if (digAuc.isNotEmpty) ...digitalSlivers(digAuc),
         ] else if (f == 'action') ...[
           if (auc.actions.isEmpty)
@@ -1309,10 +1319,11 @@ class _MyAuctionsViewState extends ConsumerState<MyAuctionsView> {
           else
             ...onWaySlivers(auc.onTheWay),
         ] else ...[
-          if (doneCount == 0 && lost.isEmpty)
-            _note(t('Još nema završenih aukcija.')),
+          if (doneCount == 0 && lost.isEmpty && digAuc.isEmpty)
+            _note(t('Još ništa nisi kupio.')),
           if (doneCount > 0)
-            ...doneSlivers(physDone, t('✓ Osvojeno ({0})', ['$doneCount'])),
+            ...doneSlivers(physDone, t('✓ Kupljeno ({0})', ['$doneCount'])),
+          if (digAuc.isNotEmpty) ...digitalSlivers(digAuc),
           if (lost.isNotEmpty) ...[
             sectionBox(t('Nisam pobijedio ({0})', ['${lost.length}'])),
             _auctionGrid(lost, me, key: const ValueKey('my-lost')),
@@ -1326,12 +1337,10 @@ class _MyAuctionsViewState extends ConsumerState<MyAuctionsView> {
             [
               ('all', t('Sve'), 0),
               ('action', t('Treba akciju'), auc.actions.length),
-              ('confirm', t('Potvrda paketa'), auc.confirm.length),
               ('leading', t('Vodim'), leading.length),
               ('outbid', t('Nadmašen'), outbid.length),
               ('way', t('Na putu'), auc.onTheWay.length),
-              ('done', t('Završeno'), doneCount + lost.length),
-              ('digital', t('Digitalno'), digAuc.length),
+              ('done', t('Kupljeno'), doneCount + digAuc.length),
             ],
             f,
             (v) => setState(() => _buyFilter = v),

@@ -3397,7 +3397,7 @@ class _LiveRoomViewState extends ConsumerState<_LiveRoomBody> {
                                 ),
                               ),
                               subtitle: Text(
-                                '@${s.userById(other.hostId)?.handle ?? ''} · '
+                                '${s.userById(other.hostId)?.handle ?? ''} · '
                                 '${t('{0} gledatelja', ['${s.liveStateOf(other).viewers}'])}',
                                 style: const TextStyle(color: Colors.white70),
                               ),
@@ -3656,7 +3656,7 @@ class _LiveRoomViewState extends ConsumerState<_LiveRoomBody> {
                 child: Column(
                   children: [
                     Text(
-                      t('🚀 Raid! @{0} vas šalje u "{1}"', [
+                      t('🚀 Raid! {0} vas šalje u "{1}"', [
                         host?.handle ?? '',
                         next.title,
                       ]),

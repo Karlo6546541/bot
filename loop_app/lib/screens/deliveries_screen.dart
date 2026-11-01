@@ -488,24 +488,19 @@ class DeliveryCard extends ConsumerWidget {
                         if (d.sellerId != null)
                           _InfoLine(
                             t('Od'),
-                            '@${ref.read(appProvider).userLabel(d.sellerId)}',
+                            ref.read(appProvider).userLabel(d.sellerId),
                             accent: true,
                           ),
-                        Text(
-                          m == null
-                              ? d.id.startsWith('live-')
-                                    ? t('Osvojeno u liveu · odaberi dostavu')
-                                    : d.fromAuction
-                                    ? t('Osvojeno na aukciji · odaberi dostavu')
-                                    : t('Zamjena · odaberi dostavu')
-                              : '${d.carrier ?? m.label}${d.destination != null ? ' · ${d.destination}' : ''}',
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                          style: TextStyle(
-                            color: LoopColors.textSecondary,
-                            fontSize: 12,
+                        if (m != null)
+                          Text(
+                            '${d.carrier ?? m.label}${d.destination != null ? ' · ${d.destination}' : ''}',
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              color: LoopColors.textSecondary,
+                              fontSize: 12,
+                            ),
                           ),
-                        ),
                       ],
                     ),
                   ),
