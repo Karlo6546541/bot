@@ -37,6 +37,7 @@ import '../widgets/user_avatar.dart';
 import 'add_device_screen.dart';
 import 'deliveries_screen.dart';
 import 'public_profile_screen.dart';
+import 'seller_screens.dart' show ensureSellerInfo;
 
 /// Crvena boja live aukcija (oznaka UŽIVO, gumb za licitiranje).
 const kLiveRed = LoopColors.live;
@@ -876,10 +877,9 @@ class CreateLiveShowScreen extends ConsumerStatefulWidget {
   /// Predmet koji je odmah odabran (npr. "Novi predmet → Live").
   final String? deviceId;
 
-  /// Testno: live se može pokrenuti odmah, bez podataka prodavatelja
-  /// (traže se tek za isplatu zarade).
   static Future<void> open(BuildContext context, {String? deviceId}) async {
     if (blockGuest(context, place: 'new=live')) return;
+    if (!await ensureSellerInfo(context) || !context.mounted) return;
     await Navigator.of(context).push(
       MaterialPageRoute<void>(
         settings: const AppPlace('new=live').settings,
