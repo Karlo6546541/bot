@@ -334,6 +334,10 @@ enum LiveEventType {
 
   /// Gledatelj je podijelio show (za community boost).
   share,
+
+  /// Domaćin je na kraju showa poslao gledatelje u drugi live (raid):
+  /// [LiveEvent.text] je ID tog showa.
+  raid,
 }
 
 /// Radnje moderacije: tekst događaja [LiveEventType.mod] je `radnja:korisnik`.

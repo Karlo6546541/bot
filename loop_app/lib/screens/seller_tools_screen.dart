@@ -1,16 +1,17 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../l10n/tr.dart';
 import '../theme/app_theme.dart';
 import 'account_health_screen.dart';
-import 'add_device_screen.dart';
+import 'inventory_screen.dart';
 import 'my_shows_screen.dart';
 import 'seller_finance_screens.dart';
 import 'seller_verification_screen.dart';
 
 /// "Alati prodavača": sve seller radnje grupirane u kartice
 /// (Upravljanje, Prodaja, Učinak), kao jedan pregledan izbornik.
-class SellerToolsScreen extends StatelessWidget {
+class SellerToolsScreen extends ConsumerWidget {
   const SellerToolsScreen({super.key, this.onShipping, this.onHealth});
 
   /// Otvara popis pošiljki za slanje.
@@ -31,7 +32,7 @@ class SellerToolsScreen extends StatelessWidget {
   );
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     void closeThen(VoidCallback? f) {
       Navigator.of(context).pop();
       f?.call();
@@ -105,10 +106,16 @@ class SellerToolsScreen extends StatelessWidget {
         children: [
           group(t('Upravljanje'), [
             row(
+              'tool-inventory',
+              Icons.inventory_2_outlined,
+              t('Inventar'),
+              () => InventoryScreen.open(context),
+            ),
+            row(
               'tool-add-item',
               Icons.add_box_outlined,
-              t('Dodaj predmet'),
-              () => AddDeviceScreen.open(context),
+              t('Kreiraj'),
+              () => showCreateSheet(context, ref),
             ),
             row(
               'tool-shows',

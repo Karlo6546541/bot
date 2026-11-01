@@ -17,6 +17,7 @@ import 'my_shows_screen.dart';
 import 'portfolio_screen.dart';
 import 'account_health_screen.dart';
 import 'deliveries_screen.dart' show DeliveryNotesScreen;
+import 'inventory_screen.dart';
 import 'messages_screen.dart';
 import 'seller_finance_screens.dart';
 import 'seller_tools_screen.dart';
@@ -575,8 +576,8 @@ class SellerHubScreen extends ConsumerWidget {
               tile(
                 const ValueKey('seller-hub-inventory'),
                 Icons.inventory_2_outlined,
-                t('Moji predmeti'),
-                () => MyItemsScreen.open(context),
+                t('Inventar'),
+                () => InventoryScreen.open(context),
               ),
               const SizedBox(height: 8),
               tile(

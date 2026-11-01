@@ -2950,6 +2950,13 @@ class _LiveRoomViewState extends ConsumerState<_LiveRoomBody> {
                     ),
                     tile(
                       ctx,
+                      key: 'live-raid-tile',
+                      icon: Icons.rocket_launch_outlined,
+                      label: t('Raid'),
+                      onTap: () => _raid(show),
+                    ),
+                    tile(
+                      ctx,
                       key: 'live-end',
                       icon: Icons.stop_circle_outlined,
                       label: t('Završi live'),
@@ -3304,6 +3311,106 @@ class _LiveRoomViewState extends ConsumerState<_LiveRoomBody> {
     );
   }
 
+  /// Raid: odaberi live u koji šalješ gledatelje; tvoj show se završava.
+  Future<void> _raid(LiveShow show) async {
+    final s = ref.read(appProvider);
+    final targets = _app.liveRaidTargets(show.id);
+    final target = await showModalBottomSheet<LiveShow>(
+      context: context,
+      showDragHandle: true,
+      isScrollControlled: true,
+      backgroundColor: kLiveSheet,
+      constraints: const BoxConstraints(maxWidth: 520),
+      builder: (ctx) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+          child: Column(
+            key: const ValueKey('live-raid-sheet'),
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                t('Raid'),
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w900,
+                  fontSize: 20,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                t(
+                  'Pošalji svoje gledatelje u drugi live. Tvoj show se tada završava.',
+                ),
+                style: const TextStyle(color: Colors.white70),
+              ),
+              const SizedBox(height: 12),
+              if (targets.isEmpty)
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 20),
+                  child: Text(
+                    t('Trenutno nema drugih liveova uživo.'),
+                    style: const TextStyle(color: Colors.white70),
+                  ),
+                )
+              else
+                Flexible(
+                  child: ListView(
+                    shrinkWrap: true,
+                    children: [
+                      for (final other in targets)
+                        Padding(
+                          padding: const EdgeInsets.only(bottom: 8),
+                          child: Material(
+                            color: const Color(0xFF26272C),
+                            borderRadius: BorderRadius.circular(14),
+                            child: ListTile(
+                              key: ValueKey('live-raid-${other.id}'),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(14),
+                              ),
+                              leading: const Icon(
+                                Icons.live_tv,
+                                color: kLiveRed,
+                              ),
+                              title: Text(
+                                other.title,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.w800,
+                                ),
+                              ),
+                              subtitle: Text(
+                                '@${s.userById(other.hostId)?.handle ?? ''} · '
+                                '${t('{0} gledatelja', ['${s.liveStateOf(other).viewers}'])}',
+                                style: const TextStyle(color: Colors.white70),
+                              ),
+                              trailing: const Icon(
+                                Icons.rocket_launch_outlined,
+                                color: Colors.white,
+                              ),
+                              onTap: () => Navigator.pop(ctx, other),
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+            ],
+          ),
+        ),
+      ),
+    );
+    if (target == null || !mounted) return;
+    await runWithLoading(
+      context,
+      () => _app.liveRaid(show.id, target.id),
+      successMessage: t('Gledatelji su poslani u "{0}"', [target.title]),
+    );
+  }
+
   /// Trgovina livea (kao Douyin): predmeti na aukciji (predlicitacija) i
   /// prodavačevi predmeti za Kupi odmah, u dvije kartice.
   void _showQueue(LiveState st, bool isHost) => showModalBottomSheet<void>(
@@ -3521,6 +3628,49 @@ class _LiveRoomViewState extends ConsumerState<_LiveRoomBody> {
             ]),
             style: const TextStyle(color: Colors.white70),
           ),
+          if (!isHost && st.raidTo != null)
+            if (s.liveShowById(st.raidTo!) case final next?
+                when !s.liveStateOf(next, now).isOver) ...[
+              const SizedBox(height: 10),
+              Container(
+                key: const ValueKey('live-raid-invite'),
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: kBidOrange.withValues(alpha: 0.18),
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                child: Column(
+                  children: [
+                    Text(
+                      t('🚀 Raid! @{0} vas šalje u "{1}"', [
+                        host?.handle ?? '',
+                        next.title,
+                      ]),
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    FilledButton.icon(
+                      key: const ValueKey('live-raid-go'),
+                      style: FilledButton.styleFrom(
+                        backgroundColor: kBidOrange,
+                        foregroundColor: Colors.white,
+                      ),
+                      onPressed: () => Navigator.of(context).pushReplacement(
+                        MaterialPageRoute<void>(
+                          builder: (_) => LiveRoomScreen(showId: next.id),
+                        ),
+                      ),
+                      icon: const Icon(Icons.rocket_launch_outlined),
+                      label: Text(t('Idi u live')),
+                    ),
+                  ],
+                ),
+              ),
+            ],
           const SizedBox(height: 10),
           _Recap(state: st, me: me?.id),
           if (won > 0) ...[
@@ -6491,10 +6641,30 @@ class _LiveShopSheet extends ConsumerWidget {
     );
 
     final lots = st.lots;
-    final auctionTab = ListView(
+    bool finished(LotState l) =>
+        l.status == LotStatus.sold ||
+        l.status == LotStatus.unsold ||
+        l.status == LotStatus.skipped;
+    final auctionLots = [
+      for (final l in lots)
+        if (l.mode != LotMode.giveaway && !finished(l)) l,
+    ];
+    final giveawayLots = [
+      for (final l in lots)
+        if (l.mode == LotMode.giveaway) l,
+    ];
+    final soldLots = [
+      for (final l in lots)
+        if (l.mode != LotMode.giveaway && finished(l)) l,
+    ];
+    Widget lotTab(
+      List<LotState> list,
+      String empty, {
+      bool hint = false,
+    }) => ListView(
       padding: const EdgeInsets.fromLTRB(14, 10, 14, 24),
       children: [
-        if (!isHost && st.queue.any((l) => l.mode == LotMode.auction))
+        if (hint && !isHost && st.queue.any((l) => l.mode == LotMode.auction))
           Padding(
             padding: const EdgeInsets.only(bottom: 10),
             child: Text(
@@ -6504,12 +6674,8 @@ class _LiveShopSheet extends ConsumerWidget {
               style: const TextStyle(color: _muted, fontSize: 13),
             ),
           ),
-        if (lots.isEmpty)
-          Text(
-            t('Još nema predmeta na aukciji.'),
-            style: const TextStyle(color: _muted),
-          ),
-        for (final l in lots)
+        if (list.isEmpty) Text(empty, style: const TextStyle(color: _muted)),
+        for (final l in list)
           row(
             key: ValueKey('live-lot-row-${l.index}'),
             image: thumb(
@@ -6569,6 +6735,11 @@ class _LiveShopSheet extends ConsumerWidget {
           ),
       ],
     );
+    final auctionTab = lotTab(
+      auctionLots,
+      t('Još nema predmeta na aukciji.'),
+      hint: true,
+    );
     final shopTab = ListView(
       key: const ValueKey('live-shop'),
       padding: const EdgeInsets.fromLTRB(14, 10, 14, 24),
@@ -6614,7 +6785,7 @@ class _LiveShopSheet extends ConsumerWidget {
     );
 
     return DefaultTabController(
-      length: 2,
+      length: kBuyNowEnabled ? 4 : 3,
       child: SizedBox(
         height: h * 0.72,
         child: Column(
@@ -6649,32 +6820,48 @@ class _LiveShopSheet extends ConsumerWidget {
                 ],
               ),
             ),
-            // Bez Kupi odmah: samo predmeti na aukciji (bez kartica).
-            if (kBuyNowEnabled)
-              TabBar(
-                labelColor: _white,
-                unselectedLabelColor: _muted,
-                indicatorColor: kBidOrange,
-                dividerColor: Colors.white12,
-                labelStyle: const TextStyle(
-                  fontFamily: kFontFamily,
-                  fontWeight: FontWeight.w900,
+            // Kao Whatnot Live Listings: Aukcija, Kupi odmah, Giveaway,
+            // Prodano.
+            TabBar(
+              isScrollable: true,
+              tabAlignment: TabAlignment.start,
+              labelColor: _white,
+              unselectedLabelColor: _muted,
+              indicatorColor: kBidOrange,
+              dividerColor: Colors.white12,
+              labelStyle: const TextStyle(
+                fontFamily: kFontFamily,
+                fontWeight: FontWeight.w900,
+              ),
+              tabs: [
+                Tab(
+                  key: const ValueKey('live-tab-auction'),
+                  text: t('Aukcija ({0})', ['${auctionLots.length}']),
                 ),
-                tabs: [
-                  Tab(
-                    key: const ValueKey('live-tab-auction'),
-                    text: t('🔨 Na aukciji ({0})', ['${lots.length}']),
-                  ),
+                if (kBuyNowEnabled)
                   Tab(
                     key: const ValueKey('live-tab-shop'),
-                    text: t('🛍️ Kupi odmah ({0})', ['${shop.length}']),
+                    text: t('Kupi odmah ({0})', ['${shop.length}']),
                   ),
+                Tab(
+                  key: const ValueKey('live-tab-giveaway'),
+                  text: t('Giveaway ({0})', ['${giveawayLots.length}']),
+                ),
+                Tab(
+                  key: const ValueKey('live-tab-sold'),
+                  text: t('Prodano ({0})', ['${soldLots.length}']),
+                ),
+              ],
+            ),
+            Expanded(
+              child: TabBarView(
+                children: [
+                  auctionTab,
+                  if (kBuyNowEnabled) shopTab,
+                  lotTab(giveawayLots, t('Nema giveawaya u ovom showu.')),
+                  lotTab(soldLots, t('Još ništa nije prodano.')),
                 ],
               ),
-            Expanded(
-              child: kBuyNowEnabled
-                  ? TabBarView(children: [auctionTab, shopTab])
-                  : auctionTab,
             ),
           ],
         ),

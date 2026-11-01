@@ -1496,6 +1496,16 @@ class AppController extends Notifier<AppState> {
     return b;
   }
 
+  /// Liveovi u koje mogu poslati gledatelje na kraju showa.
+  List<LiveShow> liveRaidTargets(String showId) =>
+      _live.raidTargets(_requireUserId(), showId);
+
+  /// Raid: šalje gledatelje u drugi live i završava moj show.
+  Future<void> liveRaid(String showId, String targetId) async {
+    await _live.raid(_requireUserId(), showId, targetId);
+    _refresh();
+  }
+
   /// Podijelio si show (za community boost).
   Future<void> liveShared(String showId) async {
     final user = state.currentUser;

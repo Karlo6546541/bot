@@ -176,4 +176,28 @@ void main() {
     done = showPrepDone(show, storage.liveEventsOf(show.id), promoted: false);
     expect(done, contains(ShowPrepStep.buyers));
   });
+
+  test('raid: šalje gledatelje u tuđi live i završava show', () async {
+    final show = await makeShow(t0);
+    final other = LiveShow.fromMap({
+      ...show.toMap(),
+      'id': 'other-show',
+      'hostId': SeedData.anaUserId,
+      'title': 'Anin live',
+    });
+    await storage.putLiveShow(other);
+    // Vlastiti show nije cilj; tuđi live jest.
+    expect(
+      live.raidTargets(host, show.id, now: t0).map((s) => s.id),
+      ['other-show'],
+    );
+    await expectLater(
+      live.raid(host, show.id, show.id, now: t0),
+      throwsA(isA<TradeException>()),
+    );
+    await live.raid(host, show.id, 'other-show', now: t0);
+    final st = live.stateOf(storage.liveShowById(show.id)!, now: t0);
+    expect(st.raidTo, 'other-show');
+    expect(storage.liveShowById(show.id)!.endedAt, isNotNull);
+  });
 }

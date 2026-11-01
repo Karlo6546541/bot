@@ -104,7 +104,11 @@ class LiveState {
     this.banned = const {},
     this.activity = const [],
     this.boost = LiveBoost.none,
+    this.raidTo,
   });
+
+  /// Show u koji je domaćin poslao gledatelje na kraju (raid).
+  final String? raidTo;
 
   final LiveShow show;
 
@@ -401,7 +405,8 @@ class LiveService {
         LiveEventType.follow ||
         LiveEventType.stop ||
         LiveEventType.boost ||
-        LiveEventType.share => 0,
+        LiveEventType.share ||
+        LiveEventType.raid => 0,
       };
     }
     return LiveState(
@@ -415,6 +420,11 @@ class LiveService {
       muted: muted,
       banned: banned,
       activity: activity.length > 50 ? activity.sublist(0, 50) : activity,
+      raidTo:
+          (events.where((e) => e.type == LiveEventType.raid).toList()
+                ..sort((a, b) => a.at.compareTo(b.at)))
+              .lastOrNull
+              ?.text,
       boost: LiveBoost.of(
         show,
         events,
@@ -1354,6 +1364,47 @@ class LiveService {
       ),
     );
     return stateOf(show, now: at).boost;
+  }
+
+  /// Liveovi u koje domaćin [hostId] može poslati gledatelje (raid):
+  /// tuđi showovi koji su upravo uživo.
+  List<LiveShow> raidTargets(String hostId, String showId, {DateTime? now}) {
+    final at = now ?? DateTime.now();
+    return [
+      for (final other in _storage.liveShows)
+        if (other.id != showId &&
+            other.hostId != hostId &&
+            stateOf(other, now: at).isLive)
+          other,
+    ];
+  }
+
+  /// Raid: domaćin šalje gledatelje u drugi live i završava svoj show.
+  /// Gledatelji na kraju showa dobiju poziv u taj live.
+  Future<void> raid(
+    String hostId,
+    String showId,
+    String targetId, {
+    DateTime? now,
+  }) async {
+    final at = now ?? DateTime.now();
+    final show = _requireHost(hostId, showId);
+    final user = _storage.userById(hostId)!;
+    if (!raidTargets(hostId, showId, now: at).any((s) => s.id == targetId)) {
+      throw TradeException(t('Taj live više nije uživo.'));
+    }
+    await _storage.putLiveEvent(
+      LiveEvent(
+        id: _uuid.v4(),
+        showId: show.id,
+        type: LiveEventType.raid,
+        userId: hostId,
+        userLabel: user.handle,
+        at: at,
+        text: targetId,
+      ),
+    );
+    await end(hostId, showId, now: at);
   }
 
   /// Gledatelj je podijelio show (jednom po showu; za community boost).

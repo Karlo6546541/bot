@@ -4,9 +4,9 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:hive/hive.dart';
 import 'package:loop_app/providers/app_providers.dart';
 import 'package:loop_app/screens/account_menu.dart';
+import 'package:loop_app/screens/inventory_screen.dart';
 import 'package:loop_app/screens/seller_hub.dart';
 import 'package:loop_app/screens/my_shows_screen.dart';
-import 'package:loop_app/screens/portfolio_screen.dart';
 import 'package:loop_app/screens/messages_screen.dart';
 import 'package:loop_app/screens/auctions_screen.dart';
 import 'package:loop_app/screens/deliveries_screen.dart';
@@ -33,7 +33,7 @@ void main() {
     await tester.pumpAndSettle();
     final links = <(String, Type)>[
       ('seller-hub-shows', MyShowsScreen),
-      ('seller-hub-inventory', MyItemsScreen),
+      ('seller-hub-inventory', InventoryScreen),
       ('seller-hub-messages', MessagesScreen),
       ('seller-hub-sales', MyAuctionsScreen),
       ('seller-hub-shipments', DeliveryNotesScreen),
@@ -51,6 +51,18 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.byType(SellerHubScreen), findsOneWidget);
     }
+    // Inventar: kartice i izbornik "Kreiraj".
+    await tester.scrollUntilVisible(
+      find.byKey(const ValueKey('seller-hub-inventory')), 200,
+      scrollable: find.byType(Scrollable).last,
+    );
+    await tester.tap(find.byKey(const ValueKey('seller-hub-inventory')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('inv-tab-draft')), findsOneWidget);
+    await tester.tap(find.byKey(const ValueKey('inv-create')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('create-sheet')), findsOneWidget);
+    expect(find.byKey(const ValueKey('create-item')), findsOneWidget);
     expect(tester.takeException(), isNull);
     await tester.pumpWidget(const SizedBox.shrink());
     await Hive.close();
