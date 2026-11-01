@@ -401,14 +401,14 @@ void main() {
     await tester.tap(find.byKey(const ValueKey('register-submit')));
     await tester.pumpAndSettle();
 
-    // Testno: live se pokreće bez podataka prodavatelja.
+    // Za live je potrebno ispuniti podatke prodavatelja.
     await tester.tap(find.byKey(const ValueKey('nav-create')));
     await tester.pumpAndSettle();
     await tester.tap(find.byKey(const ValueKey('create-live')));
     await tester.pumpAndSettle();
-    expect(find.text('Novi live'), findsOneWidget);
-    expect(find.text('Podaci prodavatelja'), findsNothing);
-    await tester.tap(find.byTooltip('Natrag').last);
+    expect(find.text('Novi live'), findsNothing);
+    expect(find.text('Podaci prodavatelja'), findsOneWidget);
+    await tester.tap(find.text('Odustani').last);
     await tester.pumpAndSettle();
 
     // + Objavi → Aukcija također bez podataka prodavatelja.

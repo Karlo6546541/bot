@@ -577,6 +577,9 @@ class LiveService {
     if (host == null || host.isGuest) {
       throw TradeException(t('Za live aukciju se prijavi.'));
     }
+    if (host.seller == null) {
+      throw TradeException(t('Za live je potreban račun prodavača.'));
+    }
     final name = title.trim();
     if (name.length < 3) throw TradeException(t('Upiši naslov livea.'));
     if (name.length > LiveShow.maxTitle) {
@@ -855,6 +858,13 @@ class LiveService {
     return updated;
   }
 
+  void _requireSeller(String hostId) {
+    final host = _storage.userById(hostId);
+    if (host == null || host.isGuest || host.seller == null) {
+      throw TradeException(t('Za live je potreban račun prodavača.'));
+    }
+  }
+
   /// Domaćin pokreće licitaciju za predmet [index] (ili prvi na čekanju).
   Future<LiveShow> startLot(
     String hostId,
@@ -864,6 +874,7 @@ class LiveService {
   }) async {
     final at = now ?? DateTime.now();
     final show = _requireHost(hostId, showId);
+    _requireSeller(hostId);
     final state = stateOf(show, now: at);
     if (show.endedAt != null || state.isOver) {
       throw TradeException(t('Live je završio.'));
@@ -895,6 +906,7 @@ class LiveService {
   Future<void> heartbeat(String hostId, String showId, {DateTime? now}) async {
     final at = now ?? DateTime.now();
     final show = _requireHost(hostId, showId);
+    _requireSeller(hostId);
     if (show.endedAt != null) return;
     await _storage.putLiveShow(show.copyWith(hostSeenAt: at));
     if (show.hostSeenAt == null) await _remindViewers(show, at);

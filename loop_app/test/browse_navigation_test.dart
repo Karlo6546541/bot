@@ -6,6 +6,7 @@ import 'package:loop_app/app.dart';
 import 'package:loop_app/models/device.dart';
 import 'package:loop_app/providers/app_providers.dart';
 import 'package:loop_app/screens/for_you_feed.dart';
+import 'package:loop_app/screens/auctions_screen.dart';
 import 'package:loop_app/screens/swipe_feed_screen.dart';
 import 'package:loop_app/services/live_service.dart';
 import 'package:loop_app/services/seed_data.dart';
@@ -44,9 +45,16 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.byKey(const ValueKey('seller-hub-live')), findsOneWidget);
     expect(find.byKey(const ValueKey('seller-hub-auction')), findsOneWidget);
-    expect(find.byKey(const ValueKey('seller-hub-sales')), findsOneWidget);
     await tester.ensureVisible(find.byKey(const ValueKey('hub-health')));
     expect(find.byKey(const ValueKey('hub-health')), findsOneWidget);
+    await tester.scrollUntilVisible(
+      find.byKey(const ValueKey('seller-hub-shipments')),
+      250,
+      scrollable: find.byType(Scrollable).last,
+    );
+    await tester.tap(find.byKey(const ValueKey('seller-hub-shipments')));
+    await tester.pumpAndSettle();
+    expect(tester.widget<MyAuctionsView>(find.byType(MyAuctionsView).last).initialTab, MyTab.notes);
     expect(tester.takeException(), isNull);
     await tester.pumpWidget(const SizedBox.shrink());
   });

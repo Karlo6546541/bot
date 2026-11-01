@@ -789,22 +789,26 @@ class BrowseCardMedia extends StatelessWidget {
 
 /// Moje aukcije kao zaseban ekran (npr. iz obavijesti).
 class MyAuctionsScreen extends StatelessWidget {
-  const MyAuctionsScreen({super.key});
+  const MyAuctionsScreen({super.key, this.initialTab = MyTab.buying});
 
-  static Future<void> open(BuildContext context) => Navigator.of(
+  final MyTab initialTab;
+
+  static Future<void> open(BuildContext context, {MyTab initialTab = MyTab.buying}) => Navigator.of(
     context,
-  ).push(MaterialPageRoute<void>(builder: (_) => const MyAuctionsScreen()));
+  ).push(MaterialPageRoute<void>(builder: (_) => MyAuctionsScreen(initialTab: initialTab)));
 
   @override
   Widget build(BuildContext context) => Scaffold(
     appBar: AppBar(title: Text(t('Moje'))),
-    body: const MyAuctionsView(),
+    body: MyAuctionsView(initialTab: initialTab),
   );
 }
 
 /// "Moje": Kupujem i Prodajem, a na vrhu samo ono što traži tvoju akciju.
 class MyAuctionsView extends ConsumerStatefulWidget {
-  const MyAuctionsView({super.key, this.onBrowse});
+  const MyAuctionsView({super.key, this.onBrowse, this.initialTab = MyTab.buying});
+
+  final MyTab initialTab;
 
   /// Prijelaz na Istraži (gumb na praznom ekranu).
   final VoidCallback? onBrowse;
@@ -814,7 +818,7 @@ class MyAuctionsView extends ConsumerStatefulWidget {
 }
 
 class _MyAuctionsViewState extends ConsumerState<MyAuctionsView> {
-  MyTab _tab = MyTab.buying;
+  late MyTab _tab = widget.initialTab;
 
   /// Brzi prečac (filter) po tabu; 'all' = sve.
   String _buyFilter = 'all';
