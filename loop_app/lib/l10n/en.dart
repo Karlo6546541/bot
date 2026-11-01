@@ -2,6 +2,16 @@
 // Generirano iz popisa tekstova; nadopuni ručno kad dodaješ nove.
 
 const kEn = <String, String>{
+  'Pregled prodaje': 'Sales overview',
+  'Sve za tvoju prodaju na jednom mjestu.': 'Everything for your sales in one place.',
+  'Za napraviti': 'To do',
+  'Brze radnje': 'Quick actions',
+  'Još nema ocjena kupaca.': 'No buyer ratings yet.',
+  'Ocjena kupaca: {0}': 'Buyer rating: {0}',
+  'Nema podataka o pravovremenoj predaji.': 'No on-time handover data yet.',
+  'Pravovremena predaja: {0}': 'On-time handover: {0}',
+  'Alati za prodaju': 'Seller tools',
+  'Aukcije i predmeti': 'Auctions and items',
   'Pokreni ili zakaži live': 'Start or schedule a live',
   'Moja prodaja': 'My sales',
   'Nema dostupnih preporuka': 'No recommendations available',
