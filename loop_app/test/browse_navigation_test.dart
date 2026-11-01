@@ -6,7 +6,7 @@ import 'package:loop_app/app.dart';
 import 'package:loop_app/models/device.dart';
 import 'package:loop_app/providers/app_providers.dart';
 import 'package:loop_app/screens/for_you_feed.dart';
-import 'package:loop_app/screens/auctions_screen.dart';
+import 'package:loop_app/screens/deliveries_screen.dart';
 import 'package:loop_app/screens/swipe_feed_screen.dart';
 import 'package:loop_app/services/live_service.dart';
 import 'package:loop_app/services/seed_data.dart';
@@ -54,7 +54,8 @@ void main() {
     );
     await tester.tap(find.byKey(const ValueKey('seller-hub-shipments')));
     await tester.pumpAndSettle();
-    expect(tester.widget<MyAuctionsView>(find.byType(MyAuctionsView).last).initialTab, MyTab.notes);
+    expect(find.byType(DeliveryNotesScreen), findsOneWidget);
+    expect(find.byKey(const ValueKey('notes-filter-all')), findsOneWidget);
     expect(tester.takeException(), isNull);
     await tester.pumpWidget(const SizedBox.shrink());
   });

@@ -15,6 +15,7 @@ import 'create_auction_screen.dart';
 import 'live_screens.dart';
 import 'my_shows_screen.dart';
 import 'portfolio_screen.dart';
+import 'deliveries_screen.dart' show DeliveryNotesScreen;
 import 'messages_screen.dart';
 import 'seller_finance_screens.dart';
 
@@ -417,7 +418,7 @@ class SellerHubScreen extends ConsumerWidget {
                 case 0: MyItemsScreen.open(context);
                 case 1: MyShowsScreen.open(context);
                 case 2: openSales(MyTab.selling);
-                case 3: openSales(MyTab.notes);
+                case 3: DeliveryNotesScreen.open(context);
                 case 4: FinancialsScreen.open(context);
                 case 5: MessagesScreen.open(context);
               }
@@ -448,7 +449,7 @@ class SellerHubScreen extends ConsumerWidget {
                 const ValueKey('seller-hub-shipping'),
                 Icons.local_shipping_outlined,
                 shipping == 0 ? t('Nema paketa za predaju') : t('Za predaju: {0}', ['$shipping']),
-                () => openSales(MyTab.notes),
+                () => DeliveryNotesScreen.open(context),
               ),
               heading(t('Brze radnje')),
               Wrap(
@@ -530,7 +531,7 @@ class SellerHubScreen extends ConsumerWidget {
               const SizedBox(height: 8),
               tile(const ValueKey('seller-hub-sales'), Icons.sell_outlined, t('Aukcije i predmeti'), () => openSales(MyTab.selling)),
               const SizedBox(height: 8),
-              tile(const ValueKey('seller-hub-shipments'), Icons.inventory_2_outlined, t('Otpremnice'), () => openSales(MyTab.notes)),
+              tile(const ValueKey('seller-hub-shipments'), Icons.inventory_2_outlined, t('Otpremnice'), () => DeliveryNotesScreen.open(context)),
               const SizedBox(height: 8),
               tile(const ValueKey('seller-hub-finance'), Icons.account_balance_wallet_outlined, t('Financije'), () => FinancialsScreen.open(context)),
             ],
