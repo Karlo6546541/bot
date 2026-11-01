@@ -346,9 +346,7 @@ void main() {
     expect(find.text('0 €'), findsWidgets);
 
     // Tamna tema iz Profila: sučelje se ponovno izgradi bez grešaka.
-    await tester.pageBack();
-    await tester.pumpAndSettle();
-    await tester.pageBack();
+    tester.state<NavigatorState>(find.byType(Navigator).first).popUntil((route) => route.isFirst);
     await tester.pumpAndSettle();
     await tester.tap(find.text('Profil').last);
     await tester.pumpAndSettle();
@@ -510,14 +508,15 @@ void main() {
     await tester.tap(find.byTooltip('Back'));
     await tester.pumpAndSettle();
 
-    // Engleski zapis eura (zarada u Moje → Prodajem).
-    await tester.tap(find.byKey(const ValueKey('home-filters')));
+    // Engleski zapis eura u financijama Seller Huba.
+    await tester.tap(find.byKey(const ValueKey('nav-create')));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Mine').last);
-    await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const ValueKey('my-selling')));
+    await tester.scrollUntilVisible(find.byKey(const ValueKey('seller-hub-finance')), 250, scrollable: find.byType(Scrollable).last);
+    await tester.tap(find.byKey(const ValueKey('seller-hub-finance')));
     await tester.pumpAndSettle();
     expect(find.textContaining('1,250'), findsWidgets);
+    tester.state<NavigatorState>(find.byType(Navigator).first).popUntil((route) => route.isFirst);
+    await tester.pumpAndSettle();
     await tester.tap(find.text('Profile').last);
     await tester.pumpAndSettle();
     // Račun (kao Whatnot): profil se otvara s "View profile".
