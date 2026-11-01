@@ -2824,8 +2824,12 @@ class _LiveRoomViewState extends ConsumerState<_LiveRoomBody> {
     if (_broadcaster != null || _watcher != null) return;
     if (s.liveStateOf(show).isOver) return;
     if (show.hostId == s.currentUserId) {
-      if (s.currentUser == null || s.currentUser!.isGuest || s.currentUser!.seller == null) {
-        setState(() => _cameraError = t('Za live je potreban račun prodavača.'));
+      if (s.currentUser == null ||
+          s.currentUser!.isGuest ||
+          s.currentUser!.seller == null) {
+        setState(
+          () => _cameraError = t('Za live je potreban račun prodavača.'),
+        );
         return;
       }
       // Kamera se pali kad domaćin stvarno krene uživo.

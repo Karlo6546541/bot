@@ -98,30 +98,24 @@ class _HomeShellState extends ConsumerState<HomeShell> {
     final user = ref.watch(appProvider).currentUser;
     final isSeller = user != null && !user.isGuest && user.seller != null;
     return [
-    ShellDestination(t('Početna'), Icons.home_outlined, Icons.home),
-    ShellDestination(
-      t('Kategorije'),
-      Icons.grid_view_outlined,
-      Icons.grid_view_rounded,
-    ),
-    ShellDestination(
-      isSeller
-          ? t('Seller Hub')
-          : t('Objavi'),
-      isSeller
-          ? Icons.storefront_outlined
-          : Icons.add,
-      isSeller
-          ? Icons.storefront
-          : Icons.add,
-      action: true,
-    ),
-    ShellDestination(
-      t('Moje'),
-      Icons.local_activity_outlined,
-      Icons.local_activity,
-    ),
-    ShellDestination(t('Profil'), Icons.person_outline, Icons.person),
+      ShellDestination(t('Početna'), Icons.home_outlined, Icons.home),
+      ShellDestination(
+        t('Kategorije'),
+        Icons.grid_view_outlined,
+        Icons.grid_view_rounded,
+      ),
+      ShellDestination(
+        isSeller ? t('Seller Hub') : t('Objavi'),
+        isSeller ? Icons.storefront_outlined : Icons.add,
+        isSeller ? Icons.storefront : Icons.add,
+        action: true,
+      ),
+      ShellDestination(
+        t('Moje'),
+        Icons.local_activity_outlined,
+        Icons.local_activity,
+      ),
+      ShellDestination(t('Profil'), Icons.person_outline, Icons.person),
     ];
   }
 

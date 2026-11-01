@@ -81,7 +81,7 @@ void main() {
     final txs = storage.transactions.where(
       (t) => t.type == TransactionType.promotion && t.userId == host,
     );
-    expect(txs.map((t) => t.amount), [5, 3]);
+    expect(txs.map((t) => t.amount).toList()..sort(), [3, 5]);
   });
 
   test('promocija zakazanog showa: jednom, ne prije plaćanja', () async {

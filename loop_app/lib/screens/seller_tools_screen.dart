@@ -5,6 +5,7 @@ import '../theme/app_theme.dart';
 import 'add_device_screen.dart';
 import 'my_shows_screen.dart';
 import 'seller_finance_screens.dart';
+import 'seller_verification_screen.dart';
 
 /// "Alati prodavača": sve seller radnje grupirane u kartice
 /// (Upravljanje, Prodaja, Učinak), kao jedan pregledan izbornik.
@@ -149,6 +150,14 @@ class SellerToolsScreen extends StatelessWidget {
               Icons.insights_outlined,
               t('Analitika showova'),
               () => MyShowsScreen.open(context),
+            ),
+          ]),
+          group(t('Postavke'), [
+            row(
+              'tool-verification',
+              Icons.verified_user_outlined,
+              t('Verifikacija prodavača'),
+              () => SellerVerificationScreen.open(context),
             ),
           ]),
         ],

@@ -800,9 +800,14 @@ class MyAuctionsScreen extends StatelessWidget {
 
   final MyTab initialTab;
 
-  static Future<void> open(BuildContext context, {MyTab initialTab = MyTab.buying}) => Navigator.of(
-    context,
-  ).push(MaterialPageRoute<void>(builder: (_) => MyAuctionsScreen(initialTab: initialTab)));
+  static Future<void> open(
+    BuildContext context, {
+    MyTab initialTab = MyTab.buying,
+  }) => Navigator.of(context).push(
+    MaterialPageRoute<void>(
+      builder: (_) => MyAuctionsScreen(initialTab: initialTab),
+    ),
+  );
 
   @override
   Widget build(BuildContext context) => Scaffold(
@@ -813,7 +818,11 @@ class MyAuctionsScreen extends StatelessWidget {
 
 /// "Moje": Kupujem i Prodajem, a na vrhu samo ono što traži tvoju akciju.
 class MyAuctionsView extends ConsumerStatefulWidget {
-  const MyAuctionsView({super.key, this.onBrowse, this.initialTab = MyTab.buying});
+  const MyAuctionsView({
+    super.key,
+    this.onBrowse,
+    this.initialTab = MyTab.buying,
+  });
 
   final MyTab initialTab;
 

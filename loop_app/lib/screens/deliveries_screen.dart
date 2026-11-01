@@ -1153,12 +1153,13 @@ class BoxNowCard extends StatelessWidget {
 class DeliveryNotesScreen extends ConsumerStatefulWidget {
   const DeliveryNotesScreen({super.key});
 
-  static Future<void> open(BuildContext context) => Navigator.of(context).push(
-    MaterialPageRoute<void>(builder: (_) => const DeliveryNotesScreen()),
-  );
+  static Future<void> open(BuildContext context) => Navigator.of(
+    context,
+  ).push(MaterialPageRoute<void>(builder: (_) => const DeliveryNotesScreen()));
 
   @override
-  ConsumerState<DeliveryNotesScreen> createState() => _DeliveryNotesScreenState();
+  ConsumerState<DeliveryNotesScreen> createState() =>
+      _DeliveryNotesScreenState();
 }
 
 class _DeliveryNotesScreenState extends ConsumerState<DeliveryNotesScreen> {
@@ -1168,11 +1169,18 @@ class _DeliveryNotesScreenState extends ConsumerState<DeliveryNotesScreen> {
   Widget build(BuildContext context) {
     final s = ref.watch(appProvider);
     final now = DateTime.now();
-    final notes = [
-      for (final d in s.sellerDeliveries)
-        if (d.method != null && d.method != DeliveryMethod.digital) d,
-    ]..sort((a, b) => (b.startedAt ?? b.createdAt).compareTo(a.startedAt ?? a.createdAt));
-    final shown = onlyPending ? notes.where((d) => !d.isDelivered(now)).toList() : notes;
+    final notes =
+        [
+          for (final d in s.sellerDeliveries)
+            if (d.method != null && d.method != DeliveryMethod.digital) d,
+        ]..sort(
+          (a, b) => (b.startedAt ?? b.createdAt).compareTo(
+            a.startedAt ?? a.createdAt,
+          ),
+        );
+    final shown = onlyPending
+        ? notes.where((d) => !d.isDelivered(now)).toList()
+        : notes;
     return Scaffold(
       appBar: AppBar(title: Text(t('Otpremnice'))),
       body: Align(
@@ -1183,30 +1191,44 @@ class _DeliveryNotesScreenState extends ConsumerState<DeliveryNotesScreen> {
             key: const ValueKey('my-notes-list'),
             padding: const EdgeInsets.all(16),
             children: [
-              Text(t('Pošiljke'), style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w900)),
+              Text(
+                t('Pošiljke'),
+                style: const TextStyle(
+                  fontSize: 22,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
               const SizedBox(height: 6),
-              Text(t('Otvori pošiljku za pregled i ispis otpremnice.'), style: TextStyle(color: LoopColors.textSecondary)),
+              Text(
+                t('Otvori pošiljku za pregled i ispis otpremnice.'),
+                style: TextStyle(color: LoopColors.textSecondary),
+              ),
               const SizedBox(height: 12),
-              Wrap(spacing: 8, children: [
-                ChoiceChip(
-                  key: const ValueKey('notes-filter-all'),
-                  label: Text(t('Sve')),
-                  selected: !onlyPending,
-                  onSelected: (_) => setState(() => onlyPending = false),
-                ),
-                ChoiceChip(
-                  key: const ValueKey('notes-filter-pending'),
-                  label: Text(t('U tijeku')),
-                  selected: onlyPending,
-                  onSelected: (_) => setState(() => onlyPending = true),
-                ),
-              ]),
+              Wrap(
+                spacing: 8,
+                children: [
+                  ChoiceChip(
+                    key: const ValueKey('notes-filter-all'),
+                    label: Text(t('Sve')),
+                    selected: !onlyPending,
+                    onSelected: (_) => setState(() => onlyPending = false),
+                  ),
+                  ChoiceChip(
+                    key: const ValueKey('notes-filter-pending'),
+                    label: Text(t('U tijeku')),
+                    selected: onlyPending,
+                    onSelected: (_) => setState(() => onlyPending = true),
+                  ),
+                ],
+              ),
               const SizedBox(height: 12),
               if (shown.isEmpty)
                 Padding(
                   padding: const EdgeInsets.symmetric(vertical: 28),
                   child: Text(
-                    notes.isEmpty ? t('Još nema otpremnica') : t('Nema pošiljaka u tijeku.'),
+                    notes.isEmpty
+                        ? t('Još nema otpremnica')
+                        : t('Nema pošiljaka u tijeku.'),
                     textAlign: TextAlign.center,
                     style: TextStyle(color: LoopColors.textSecondary),
                   ),
@@ -1216,14 +1238,22 @@ class _DeliveryNotesScreenState extends ConsumerState<DeliveryNotesScreen> {
                   Card(
                     child: ListTile(
                       key: ValueKey('note-${d.id}'),
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 8,
+                      ),
                       leading: const Icon(Icons.local_shipping_outlined),
-                      title: Text(d.deviceName, style: const TextStyle(fontWeight: FontWeight.w800)),
-                      subtitle: Text([
-                        s.userById(d.buyerId)?.handle ?? '',
-                        d.trackingNumber ?? d.id,
-                        d.status(now).label,
-                      ].where((v) => v.isNotEmpty).join(' · ')),
+                      title: Text(
+                        d.deviceName,
+                        style: const TextStyle(fontWeight: FontWeight.w800),
+                      ),
+                      subtitle: Text(
+                        [
+                          s.userById(d.buyerId)?.handle ?? '',
+                          d.trackingNumber ?? d.id,
+                          d.status(now).label,
+                        ].where((v) => v.isNotEmpty).join(' · '),
+                      ),
                       trailing: const Icon(Icons.chevron_right),
                       onTap: () => DeliveryNoteScreen.open(context, d.id),
                     ),
@@ -1235,9 +1265,20 @@ class _DeliveryNotesScreenState extends ConsumerState<DeliveryNotesScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(t('Radnje za slanje'), style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 16)),
+                      Text(
+                        t('Radnje za slanje'),
+                        style: const TextStyle(
+                          fontWeight: FontWeight.w900,
+                          fontSize: 16,
+                        ),
+                      ),
                       const SizedBox(height: 6),
-                      Text(t('Odaberi pošiljku za otvaranje i preuzimanje njezine otpremnice.'), style: TextStyle(color: LoopColors.textSecondary)),
+                      Text(
+                        t(
+                          'Odaberi pošiljku za otvaranje i preuzimanje njezine otpremnice.',
+                        ),
+                        style: TextStyle(color: LoopColors.textSecondary),
+                      ),
                     ],
                   ),
                 ),
