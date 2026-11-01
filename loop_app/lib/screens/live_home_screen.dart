@@ -231,12 +231,17 @@ class _LiveHomeScreenState extends ConsumerState<LiveHomeScreen> {
         if (_cat == null || i.categories.contains(_cat)) i,
     ];
     final allLive = all.where((i) => i.live?.isLive ?? false).toList();
-    final live = allLive
-        .where(
-          (i) => _liveCategory == null || i.categories.contains(_liveCategory),
-        )
-        .toList();
-    final soon = all.where((i) => i.live?.isScheduled ?? false).toList();
+    final live = _promotedOnTop(
+      allLive
+          .where(
+            (i) =>
+                _liveCategory == null || i.categories.contains(_liveCategory),
+          )
+          .toList(),
+    );
+    final soon = _promotedOnTop(
+      all.where((i) => i.live?.isScheduled ?? false).toList(),
+    );
     final allAuctions = all.where((i) => i.auction != null).toList();
     final auctions = allAuctions
         .where(
@@ -346,10 +351,7 @@ class _LiveHomeScreenState extends ConsumerState<LiveHomeScreen> {
       case _ForYou():
         // Kao Whatnot: skoro sve su liveovi — prvo uživo (najgledaniji),
         // pa nadolazeći showovi, a aukcije i ponude tek na kraju (malo).
-        final liveNow = [...allLive]
-          ..sort(
-            (a, b) => (b.live?.viewers ?? 0).compareTo(a.live?.viewers ?? 0),
-          );
+        final liveNow = [...allLive]..sort(_promotedFirst);
         final rest = [
           for (final i in all)
             if (i.live == null) i,
@@ -406,13 +408,10 @@ class _LiveHomeScreenState extends ConsumerState<LiveHomeScreen> {
           );
         }
       case _LiveShop():
-        final shops =
-            [
-              for (final i in allLive)
-                if (s.listingsOf(i.show!.hostId).any((d) => !d.isDigital)) i,
-            ]..sort(
-              (a, b) => (b.live?.viewers ?? 0).compareTo(a.live?.viewers ?? 0),
-            );
+        final shops = [
+          for (final i in allLive)
+            if (s.listingsOf(i.show!.hostId).any((d) => !d.isDigital)) i,
+        ]..sort(_promotedFirst);
         slivers.add(const SliverToBoxAdapter(child: SizedBox(height: 12)));
         slivers.add(
           shops.isEmpty
@@ -430,13 +429,10 @@ class _LiveHomeScreenState extends ConsumerState<LiveHomeScreen> {
               : grid('home-live-shop', shops, t('Live shop')),
         );
       case _LiveAuctions():
-        final aucLives =
-            [
-              for (final i in allLive)
-                if (i.show!.lots.any((l) => l.mode == LotMode.auction)) i,
-            ]..sort(
-              (a, b) => (b.live?.viewers ?? 0).compareTo(a.live?.viewers ?? 0),
-            );
+        final aucLives = [
+          for (final i in allLive)
+            if (i.show!.lots.any((l) => l.mode == LotMode.auction)) i,
+        ]..sort(_promotedFirst);
         slivers.add(const SliverToBoxAdapter(child: SizedBox(height: 12)));
         slivers.add(
           aucLives.isEmpty
@@ -1414,3 +1410,19 @@ class _LiveCategoryStrip extends StatelessWidget {
     );
   }
 }
+
+/// Poredak liveova: promovirani prvi (jača promocija ispred), zatim
+/// najgledaniji.
+int _promotedFirst(BrowseItem a, BrowseItem b) {
+  final w = (b.live?.boost.weight ?? 0).compareTo(a.live?.boost.weight ?? 0);
+  if (w != 0) return w;
+  return (b.live?.viewers ?? 0).compareTo(a.live?.viewers ?? 0);
+}
+
+/// Promovirani liveovi na vrh (jača promocija ispred), ostali zadržavaju
+/// svoj redoslijed.
+List<BrowseItem> _promotedOnTop(List<BrowseItem> list) => [
+  ...list.where((i) => i.live?.boost.active ?? false).toList()
+    ..sort(_promotedFirst),
+  ...list.where((i) => !(i.live?.boost.active ?? false)),
+];

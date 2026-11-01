@@ -327,6 +327,13 @@ enum LiveEventType {
 
   /// Domaćin je prije vremena završio nagradnu igru ([LiveEvent.lot]).
   stop,
+
+  /// Domaćin je platio promociju: [LiveEvent.text] je vrsta (`quick` ili
+  /// `show`), [LiveEvent.amount] plaćeni iznos (vidi `LiveBoost`).
+  boost,
+
+  /// Gledatelj je podijelio show (za community boost).
+  share,
 }
 
 /// Radnje moderacije: tekst događaja [LiveEventType.mod] je `radnja:korisnik`.

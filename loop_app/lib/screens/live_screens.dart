@@ -22,6 +22,7 @@ import '../services/live_service.dart';
 import '../services/live_sound/live_sound.dart';
 import '../services/live_video.dart';
 import '../services/trade_service.dart';
+import 'live_promote_sheet.dart';
 import '../theme/app_theme.dart';
 import '../widgets/celebration.dart';
 import '../widgets/category_style.dart';
@@ -2644,6 +2645,13 @@ class _LiveRoomViewState extends ConsumerState<_LiveRoomBody> {
                     ),
                     tile(
                       ctx,
+                      key: 'live-promote-tile',
+                      icon: Icons.trending_up,
+                      label: t('Promoviraj'),
+                      onTap: () => showPromoteSheet(context, ref, show),
+                    ),
+                    tile(
+                      ctx,
                       key: 'live-share-tile',
                       icon: Icons.ios_share,
                       label: t('Podijeli'),
@@ -3577,11 +3585,18 @@ class _LiveRoomViewState extends ConsumerState<_LiveRoomBody> {
                       liked: _liked,
                       onHeart: st.isOver || isHost ? null : _toggleLike,
                       showWallet: !isHost,
-                      onShare: () => shareLink(
-                        context,
-                        publicLink(live: show.id),
-                        text: t('Gledaj "{0}" uživo na Subhastu', [show.title]),
-                      ),
+                      onShare: () {
+                        if (!isHost) {
+                          ref.read(appProvider.notifier).liveShared(show.id);
+                        }
+                        shareLink(
+                          context,
+                          publicLink(live: show.id),
+                          text: t('Gledaj "{0}" uživo na Subhastu', [
+                            show.title,
+                          ]),
+                        );
+                      },
                     ),
                     if (!composing && !st.isOver)
                       _FlashBar(hostId: show.hostId, now: now),

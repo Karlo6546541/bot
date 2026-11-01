@@ -14,6 +14,7 @@ import 'auctions_screen.dart' show BrowseCardMedia;
 import 'live_screens.dart';
 import 'my_shows_screen.dart';
 import 'seller_finance_screens.dart';
+import 'seller_tools_screen.dart';
 
 /// Zdravlje računa prodavača, izračunato iz stvarnih podataka: ocjene
 /// kupaca, isporuke, pravovremene predaje paketa (rok
@@ -497,6 +498,40 @@ class _SellerHubPanelState extends ConsumerState<SellerHubPanel> {
                 () => CreateLiveShowScreen.open(context),
               ),
             ],
+          ),
+          const SizedBox(height: 10),
+          Material(
+            color: LoopColors.surface,
+            borderRadius: BorderRadius.circular(kRadius),
+            child: InkWell(
+              key: const ValueKey('hub-tools'),
+              borderRadius: BorderRadius.circular(kRadius),
+              onTap: () => SellerToolsScreen.open(
+                context,
+                onShipping: onShipping,
+                onHealth: () => setState(() => _open = true),
+              ),
+              child: Container(
+                padding: const EdgeInsets.fromLTRB(14, 12, 10, 12),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(kRadius),
+                  border: Border.all(color: LoopColors.surfaceHover),
+                ),
+                child: Row(
+                  children: [
+                    Icon(Icons.grid_view_rounded, color: LoopColors.accent),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        t('Alati prodavača'),
+                        style: const TextStyle(fontWeight: FontWeight.w800),
+                      ),
+                    ),
+                    Icon(Icons.chevron_right, color: LoopColors.textSecondary),
+                  ],
+                ),
+              ),
+            ),
           ),
           const SizedBox(height: 10),
           Material(

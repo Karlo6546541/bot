@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'live_promote_sheet.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../l10n/tr.dart';
@@ -195,6 +196,19 @@ class _UpcomingCard extends ConsumerWidget {
                     icon: const Icon(Icons.edit_outlined, size: 18),
                     label: Text(t('Uredi')),
                   ),
+                OutlinedButton.icon(
+                  key: ValueKey('show-promote-${show.id}'),
+                  onPressed: () => showPromoteSheet(context, ref, show),
+                  icon: Icon(
+                    st.boost.active
+                        ? Icons.trending_up
+                        : Icons.campaign_outlined,
+                    size: 18,
+                  ),
+                  label: Text(
+                    st.boost.active ? t('Promovirano') : t('Promoviraj'),
+                  ),
+                ),
                 OutlinedButton(
                   key: ValueKey('show-link-${show.id}'),
                   onPressed: () => shareLink(

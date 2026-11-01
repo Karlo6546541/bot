@@ -5,6 +5,7 @@ import 'package:uuid/uuid.dart';
 import '../l10n/tr.dart';
 import '../models/app_notification.dart';
 import '../models/app_user.dart';
+import '../models/live_boost.dart';
 import '../models/live_show.dart';
 import '../models/loop_transaction.dart';
 import '../utils/formatters.dart';
@@ -102,9 +103,13 @@ class LiveState {
     this.muted = const {},
     this.banned = const {},
     this.activity = const [],
+    this.boost = LiveBoost.none,
   });
 
   final LiveShow show;
+
+  /// Promocija showa (brzi boost, promocija showa, community boost).
+  final LiveBoost boost;
   final List<LotState> lots;
   final DateTime at;
 
@@ -394,7 +399,9 @@ class LiveService {
         LiveEventType.mod ||
         LiveEventType.watch ||
         LiveEventType.follow ||
-        LiveEventType.stop => 0,
+        LiveEventType.stop ||
+        LiveEventType.boost ||
+        LiveEventType.share => 0,
       };
     }
     return LiveState(
@@ -408,6 +415,12 @@ class LiveService {
       muted: muted,
       banned: banned,
       activity: activity.length > 50 ? activity.sublist(0, 50) : activity,
+      boost: LiveBoost.of(
+        show,
+        events,
+        now,
+        liveFrom: show.hostSeenAt == null ? null : show.startsAt,
+      ),
     );
   }
 
@@ -1244,6 +1257,112 @@ class LiveService {
         userLabel: user.handle,
         at: at,
         amount: seconds.clamp(1, 120).toDouble(),
+      ),
+    );
+  }
+
+  /// Domaćin plaća promociju showa: [kind] je [BoostKind.quick] (15 min,
+  /// samo dok je live u tijeku) ili [BoostKind.show] (zakazani ili tekući
+  /// show do kraja). Plaća se karticom kao isticanje računa i bilježi kao
+  /// transakcija "Promocija" u financijama prodavača.
+  Future<LiveBoost> boost(
+    String userId,
+    String showId,
+    BoostKind kind,
+    double amount, {
+    DateTime? now,
+  }) async {
+    final at = now ?? DateTime.now();
+    final user = _storage.userById(userId);
+    final show = _storage.liveShowById(showId);
+    if (user == null || user.isGuest || show == null) {
+      throw TradeException(t('Show više ne postoji.'));
+    }
+    if (show.hostId != userId) {
+      throw TradeException(t('Samo domaćin može promovirati show.'));
+    }
+    final state = stateOf(show, now: at);
+    if (state.isOver) throw TradeException(t('Show je završio.'));
+    final value = roundCredits(amount);
+    switch (kind) {
+      case BoostKind.quick:
+        if (!state.isLive) {
+          throw TradeException(t('Brzi boost radi samo dok si uživo.'));
+        }
+        if (value < LiveBoost.minQuick) {
+          throw TradeException(
+            t('Najmanji iznos je {0}.', [formatCredits(LiveBoost.minQuick)]),
+          );
+        }
+      case BoostKind.show:
+        if (state.boost.kind == BoostKind.show) {
+          throw TradeException(t('Show je već promoviran.'));
+        }
+        if (value < LiveBoost.minShow) {
+          throw TradeException(
+            t('Najmanji iznos je {0}.', [formatCredits(LiveBoost.minShow)]),
+          );
+        }
+      case BoostKind.community:
+        throw TradeException(t('Community boost se otključava dijeljenjem.'));
+    }
+    if (value > LiveBoost.maxAmount) {
+      throw TradeException(
+        t('Najveći iznos je {0}.', [formatCredits(LiveBoost.maxAmount)]),
+      );
+    }
+    await _storage.putLiveEvent(
+      LiveEvent(
+        id: _uuid.v4(),
+        showId: showId,
+        type: LiveEventType.boost,
+        userId: userId,
+        userLabel: user.handle,
+        at: at,
+        amount: value,
+        text: kind.name,
+      ),
+    );
+    await _storage.putTransaction(
+      LoopTransaction(
+        id: _uuid.v4(),
+        type: TransactionType.promotion,
+        userId: userId,
+        deviceId: '',
+        deviceName: kind == BoostKind.quick
+            ? t('Brzi boost · {0}', [show.title])
+            : t('Promocija showa · {0}', [show.title]),
+        price: value,
+        fee: 0,
+        amount: value,
+        buyerId: userId,
+        buyerLabel: user.handle,
+        sellerLabel: 'Subhasto',
+        createdAt: at,
+      ),
+    );
+    return stateOf(show, now: at).boost;
+  }
+
+  /// Gledatelj je podijelio show (jednom po showu; za community boost).
+  Future<void> shared(String userId, String showId, {DateTime? now}) async {
+    final user = _storage.userById(userId);
+    final show = _storage.liveShowById(showId);
+    if (user == null || user.isGuest || show == null) return;
+    if (show.hostId == userId) return;
+    if (_storage
+        .liveEventsOf(showId)
+        .any((e) => e.type == LiveEventType.share && e.userId == userId)) {
+      return;
+    }
+    await _storage.putLiveEvent(
+      LiveEvent(
+        id: _uuid.v4(),
+        showId: showId,
+        type: LiveEventType.share,
+        userId: userId,
+        userLabel: user.handle,
+        at: now ?? DateTime.now(),
       ),
     );
   }

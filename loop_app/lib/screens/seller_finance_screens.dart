@@ -22,7 +22,8 @@ List<LoopTransaction> sellerLedger(AppState s, String me) => [
             tx.buyerId != null &&
             tx.buyerId != me) ||
         ((tx.type == TransactionType.payout ||
-                tx.type == TransactionType.auctionFee) &&
+                tx.type == TransactionType.auctionFee ||
+                tx.type == TransactionType.promotion) &&
             tx.userId == me))
       tx,
 ]..sort((a, b) => b.createdAt.compareTo(a.createdAt));

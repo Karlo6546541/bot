@@ -12,7 +12,7 @@ enum TransactionType {
   auctionFee('Objava aukcije'),
   delivery('Dostava'),
   swap('Zamjena'),
-  promotion('Isticanje računa');
+  promotion('Promocija');
 
   const TransactionType(this._label);
   final String _label;

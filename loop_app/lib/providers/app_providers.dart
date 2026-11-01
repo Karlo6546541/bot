@@ -18,6 +18,7 @@ import '../services/live_backend.dart';
 import '../services/live_video.dart';
 import '../services/social_service.dart';
 import '../models/app_notification.dart';
+import '../models/live_boost.dart';
 import '../models/live_show.dart';
 import '../models/seller_info.dart';
 import '../models/story.dart';
@@ -1482,6 +1483,25 @@ class AppController extends Notifier<AppState> {
     } catch (_) {
       // nije kritično
     }
+  }
+
+  /// Plaća promociju showa (brzi boost ili promocija zakazanog showa).
+  Future<LiveBoost> liveBoost(
+    String showId,
+    BoostKind kind,
+    double amount,
+  ) async {
+    final b = await _live.boost(_requireUserId(), showId, kind, amount);
+    _refresh();
+    return b;
+  }
+
+  /// Podijelio si show (za community boost).
+  Future<void> liveShared(String showId) async {
+    final user = state.currentUser;
+    if (user == null || user.isGuest) return;
+    await _live.shared(user.id, showId);
+    _refresh();
   }
 
   /// Zapratio si domaćina iz sobe showa (za analitiku showa).

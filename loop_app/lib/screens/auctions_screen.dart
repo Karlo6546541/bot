@@ -596,6 +596,15 @@ class AuctionBrowseCard extends ConsumerWidget {
                               ),
                             ),
                           if (hot) pill(Text(t('🔥 vruće'), style: pillText)),
+                          if (live != null && live.boost.active)
+                            pill(
+                              Text(
+                                t('Promovirano'),
+                                key: ValueKey('promoted-${show!.id}'),
+                                style: pillText,
+                              ),
+                              LoopColors.accent.withValues(alpha: 0.9),
+                            ),
                         ],
                       ),
                     ),
