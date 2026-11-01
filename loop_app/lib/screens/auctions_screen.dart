@@ -25,8 +25,6 @@ import '../widgets/item_image.dart';
 import '../widgets/user_avatar.dart';
 import 'auction_detail_screen.dart';
 import 'portfolio_screen.dart';
-import 'seller_hub.dart';
-import 'seller_screens.dart';
 import 'deliveries_screen.dart';
 import 'device_detail_screen.dart';
 import 'live_screens.dart';
@@ -798,22 +796,26 @@ class BrowseCardMedia extends StatelessWidget {
 
 /// Moje aukcije kao zaseban ekran (npr. iz obavijesti).
 class MyAuctionsScreen extends StatelessWidget {
-  const MyAuctionsScreen({super.key});
+  const MyAuctionsScreen({super.key, this.initialTab = MyTab.buying});
 
-  static Future<void> open(BuildContext context) => Navigator.of(
+  final MyTab initialTab;
+
+  static Future<void> open(BuildContext context, {MyTab initialTab = MyTab.buying}) => Navigator.of(
     context,
-  ).push(MaterialPageRoute<void>(builder: (_) => const MyAuctionsScreen()));
+  ).push(MaterialPageRoute<void>(builder: (_) => MyAuctionsScreen(initialTab: initialTab)));
 
   @override
   Widget build(BuildContext context) => Scaffold(
     appBar: AppBar(title: Text(t('Moje'))),
-    body: const MyAuctionsView(),
+    body: MyAuctionsView(initialTab: initialTab),
   );
 }
 
 /// "Moje": Kupujem i Prodajem, a na vrhu samo ono što traži tvoju akciju.
 class MyAuctionsView extends ConsumerStatefulWidget {
-  const MyAuctionsView({super.key, this.onBrowse});
+  const MyAuctionsView({super.key, this.onBrowse, this.initialTab = MyTab.buying});
+
+  final MyTab initialTab;
 
   /// Prijelaz na Istraži (gumb na praznom ekranu).
   final VoidCallback? onBrowse;
@@ -823,7 +825,7 @@ class MyAuctionsView extends ConsumerStatefulWidget {
 }
 
 class _MyAuctionsViewState extends ConsumerState<MyAuctionsView> {
-  MyTab _tab = MyTab.buying;
+  late MyTab _tab = widget.initialTab;
 
   /// Brzi prečac (filter) po tabu; 'all' = sve.
   String _buyFilter = 'all';
@@ -941,7 +943,6 @@ class _MyAuctionsViewState extends ConsumerState<MyAuctionsView> {
     final onlineActions =
         (online?.unclaimedAwards.length ?? 0) +
         onlineBought.where((o) => o['status'] == 'awaiting_payment').length;
-    final user = s.currentUser!;
     final now = DateTime.now();
 
     // ----------------------------------------------- dostave kupca (po izvoru)
@@ -1334,34 +1335,6 @@ class _MyAuctionsViewState extends ConsumerState<MyAuctionsView> {
     // =============================================================== Aukcije
     if (_tab == MyTab.selling) {
       final f = _sellFilter;
-      final earnings = SliverToBoxAdapter(
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
-          child: Card(
-            child: ListTile(
-              leading: Icon(
-                Icons.account_balance_wallet_outlined,
-                color: LoopColors.textSecondary,
-              ),
-              title: Text(t('Zarada za isplatu')),
-              subtitle: Text(
-                formatCredits(user.credits),
-                style: const TextStyle(
-                  fontWeight: FontWeight.w900,
-                  fontSize: 18,
-                ),
-              ),
-              trailing: FilledButton(
-                key: const ValueKey('profile-payout'),
-                onPressed: user.credits > 0
-                    ? () => showPayoutDialog(context, ref)
-                    : null,
-                child: Text(t('Isplati')),
-              ),
-            ),
-          ),
-        ),
-      );
       final activeSlivers = <Widget>[
         sectionBox(t('⏱ Na aukciji ({0})', ['${myActive.length}'])),
         _auctionGrid(myActive, me, key: const ValueKey('my-active-auctions')),
@@ -1404,13 +1377,6 @@ class _MyAuctionsViewState extends ConsumerState<MyAuctionsView> {
                 leading: f == 'saved'
                     ? const []
                     : [
-                        SliverToBoxAdapter(
-                          child: SellerHubPanel(
-                            onShipping: () =>
-                                setState(() => _tab = MyTab.notes),
-                          ),
-                        ),
-                        earnings,
                         if (myActive.isNotEmpty) ...activeSlivers,
                         if (myEnded.isNotEmpty) ...endedSlivers(3),
                         sectionBox(t('Moji predmeti')),

@@ -10,9 +10,13 @@ import '../providers/app_state.dart';
 import '../theme/app_theme.dart';
 import '../widgets/formatters.dart';
 import 'add_device_screen.dart';
-import 'auctions_screen.dart' show BrowseCardMedia;
+import 'auctions_screen.dart' show BrowseCardMedia, MyAuctionsScreen, MyTab;
+import 'create_auction_screen.dart';
 import 'live_screens.dart';
 import 'my_shows_screen.dart';
+import 'portfolio_screen.dart';
+import 'deliveries_screen.dart' show DeliveryNotesScreen;
+import 'messages_screen.dart';
 import 'seller_finance_screens.dart';
 import 'seller_tools_screen.dart';
 
@@ -358,10 +362,193 @@ class _SellerGoalsCardState extends ConsumerState<SellerGoalsCard> {
   }
 }
 
+/// Prodajni centar okuplja postojeće alate za liveove, aukcije i otpremu.
+class SellerHubScreen extends ConsumerWidget {
+  const SellerHubScreen({super.key});
+
+  static Future<void> open(BuildContext context) => Navigator.of(context).push(
+    MaterialPageRoute<void>(builder: (_) => const SellerHubScreen()),
+  );
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final state = ref.watch(appProvider);
+    final user = state.currentUser;
+    if (user == null || user.isGuest) {
+      return Scaffold(appBar: AppBar(title: Text(t('Seller Hub'))));
+    }
+    final health = AccountHealth.of(state, user.id, DateTime.now());
+    final shipping = state.toShip.length;
+    void openSales(MyTab tab) => MyAuctionsScreen.open(context, initialTab: tab);
+
+    Widget tile(Key key, IconData icon, String label, VoidCallback onTap) =>
+        Material(
+          color: LoopColors.surface,
+          borderRadius: BorderRadius.circular(kRadius),
+          child: InkWell(
+            key: key,
+            onTap: onTap,
+            borderRadius: BorderRadius.circular(kRadius),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+              child: Row(
+                children: [
+                  Icon(icon, color: LoopColors.accent),
+                  const SizedBox(width: 12),
+                  Expanded(child: Text(label, style: const TextStyle(fontWeight: FontWeight.w700))),
+                  Icon(Icons.chevron_right, color: LoopColors.textSecondary),
+                ],
+              ),
+            ),
+          ),
+        );
+
+    Widget heading(String title) => Padding(
+      padding: const EdgeInsets.only(top: 22, bottom: 10),
+      child: Text(title, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900)),
+    );
+
+    return Scaffold(
+      appBar: AppBar(
+        title: Text(t('Seller Hub')),
+        actions: [
+          PopupMenuButton<int>(
+            key: const ValueKey('seller-hub-menu'),
+            onSelected: (value) {
+              switch (value) {
+                case 0: MyItemsScreen.open(context);
+                case 1: MyShowsScreen.open(context);
+                case 2: openSales(MyTab.selling);
+                case 3: DeliveryNotesScreen.open(context);
+                case 4: FinancialsScreen.open(context);
+                case 5: MessagesScreen.open(context);
+              }
+            },
+            itemBuilder: (_) => [
+              PopupMenuItem(value: 0, child: Text(t('Moji predmeti'))),
+              PopupMenuItem(value: 1, child: Text(t('Moji showovi'))),
+              PopupMenuItem(value: 2, child: Text(t('Aukcije i predmeti'))),
+              PopupMenuItem(value: 3, child: Text(t('Otpremnice'))),
+              PopupMenuItem(value: 4, child: Text(t('Financije'))),
+              PopupMenuItem(value: 5, child: Text(t('Poruke'))),
+            ],
+          ),
+        ],
+      ),
+      body: Align(
+        alignment: Alignment.topCenter,
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 680),
+          child: ListView(
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 36),
+            children: [
+              Text(t('Pregled prodaje'), style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w900)),
+              const SizedBox(height: 4),
+              Text(t('Sve za tvoju prodaju na jednom mjestu.'), style: TextStyle(color: LoopColors.textSecondary)),
+              heading(t('Za napraviti')),
+              tile(
+                const ValueKey('seller-hub-shipping'),
+                Icons.local_shipping_outlined,
+                shipping == 0 ? t('Nema paketa za predaju') : t('Za predaju: {0}', ['$shipping']),
+                () => DeliveryNotesScreen.open(context),
+              ),
+              heading(t('Brze radnje')),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  FilledButton.icon(
+                    key: const ValueKey('seller-hub-live'),
+                    onPressed: () => CreateLiveShowScreen.open(context),
+                    icon: const Icon(Icons.videocam_outlined),
+                    label: Text(t('Pokreni ili zakaži live')),
+                  ),
+                  OutlinedButton.icon(
+                    key: const ValueKey('seller-hub-auction'),
+                    onPressed: () => CreateAuctionScreen.open(context),
+                    icon: const Icon(Icons.gavel),
+                    label: Text(t('Nova aukcija')),
+                  ),
+                  OutlinedButton.icon(
+                    key: const ValueKey('seller-hub-add'),
+                    onPressed: () => AddDeviceScreen.open(context),
+                    icon: const Icon(Icons.add),
+                    label: Text(t('Dodaj predmet')),
+                  ),
+                ],
+              ),
+              heading(t('Zdravlje računa')),
+              Material(
+                key: const ValueKey('hub-health'),
+                color: LoopColors.surface,
+                borderRadius: BorderRadius.circular(kRadius),
+                child: InkWell(
+                  key: const ValueKey('seller-hub-health-details'),
+                  borderRadius: BorderRadius.circular(kRadius),
+                  onTap: () => Navigator.of(context).push(MaterialPageRoute<void>(
+                    builder: (context) => Scaffold(
+                      appBar: AppBar(title: Text(t('Zdravlje računa'))),
+                      body: ListView(children: [
+                        SellerHubPanel(initiallyExpanded: true, onShipping: () => DeliveryNotesScreen.open(context)),
+                      ]),
+                    ),
+                  )),
+                  child: Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(children: [
+                          Icon(Icons.health_and_safety_outlined, color: health.level.color),
+                          const SizedBox(width: 10),
+                          Expanded(child: Text(health.level.label, style: TextStyle(color: health.level.color, fontWeight: FontWeight.w900, fontSize: 17))),
+                          Icon(Icons.chevron_right, color: LoopColors.textSecondary),
+                        ]),
+                        const SizedBox(height: 10),
+                        Text(
+                          health.ratingCount == 0
+                              ? t('Još nema ocjena kupaca.')
+                              : t('Ocjena kupaca: {0}', ['★ ${health.ratingAverage.toStringAsFixed(1)} (${health.ratingCount})']),
+                          style: TextStyle(color: LoopColors.textSecondary),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          health.onTimeRate == null
+                              ? t('Nema podataka o pravovremenoj predaji.')
+                              : t('Pravovremena predaja: {0}', ['${(health.onTimeRate! * 100).round()} %']),
+                          style: TextStyle(color: LoopColors.textSecondary),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+              heading(t('Alati za prodaju')),
+              tile(const ValueKey('seller-hub-shows'), Icons.live_tv_outlined, t('Moji showovi'), () => MyShowsScreen.open(context)),
+              const SizedBox(height: 8),
+              tile(const ValueKey('seller-hub-inventory'), Icons.inventory_2_outlined, t('Moji predmeti'), () => MyItemsScreen.open(context)),
+              const SizedBox(height: 8),
+              tile(const ValueKey('seller-hub-messages'), Icons.chat_bubble_outline, t('Poruke'), () => MessagesScreen.open(context)),
+              const SizedBox(height: 8),
+              tile(const ValueKey('seller-hub-sales'), Icons.sell_outlined, t('Aukcije i predmeti'), () => openSales(MyTab.selling)),
+              const SizedBox(height: 8),
+              tile(const ValueKey('seller-hub-shipments'), Icons.inventory_2_outlined, t('Otpremnice'), () => DeliveryNotesScreen.open(context)),
+              const SizedBox(height: 8),
+              tile(const ValueKey('seller-hub-finance'), Icons.account_balance_wallet_outlined, t('Financije'), () => FinancialsScreen.open(context)),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 /// "Prodavač": pregled na jednom mjestu — brze radnje, otprema, zdravlje
 /// računa i nadolazeći showovi.
 class SellerHubPanel extends ConsumerStatefulWidget {
-  const SellerHubPanel({super.key, this.onShipping});
+  const SellerHubPanel({super.key, this.onShipping, this.initiallyExpanded = false});
+
+  final bool initiallyExpanded;
 
   /// Otvara popis pošiljki za slanje.
   final VoidCallback? onShipping;
@@ -372,7 +559,7 @@ class SellerHubPanel extends ConsumerStatefulWidget {
 
 class _SellerHubPanelState extends ConsumerState<SellerHubPanel> {
   /// Sažeto: radnje i jedan redak stanja; razvijeno: sve kartice.
-  bool _open = false;
+  late bool _open = widget.initiallyExpanded;
 
   VoidCallback? get onShipping => widget.onShipping;
 
@@ -594,7 +781,7 @@ class _SellerHubPanelState extends ConsumerState<SellerHubPanel> {
               child: InkWell(
                 key: const ValueKey('hub-shipping'),
                 borderRadius: BorderRadius.circular(kRadius),
-                onTap: onShipping,
+                onTap: onShipping ?? () => DeliveryNotesScreen.open(context),
                 child: Container(
                   padding: const EdgeInsets.all(14),
                   decoration: BoxDecoration(

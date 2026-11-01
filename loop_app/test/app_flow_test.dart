@@ -330,9 +330,13 @@ void main() {
     await tester.tap(find.text('Prijavi se'));
     await tester.pumpAndSettle();
 
-    // Zarada (1.250 €) ide na IBAN iz podataka prodavatelja (Moje → Prodajem).
-    await openMyItems(tester);
-    await tester.tap(find.byKey(const ValueKey('profile-payout')));
+    // Zarada se isplaćuje kroz financije u Seller Hubu.
+    await tester.tap(find.byKey(const ValueKey('nav-create')));
+    await tester.pumpAndSettle();
+    await tester.scrollUntilVisible(find.byKey(const ValueKey('seller-hub-finance')), 250, scrollable: find.byType(Scrollable).last);
+    await tester.tap(find.byKey(const ValueKey('seller-hub-finance')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('fin-payout')));
     await tester.pumpAndSettle();
     expect(find.text('Isplatiti zaradu?'), findsOneWidget);
     expect(find.textContaining('HR25 •••• 1111'), findsWidgets);
@@ -342,6 +346,8 @@ void main() {
     expect(find.text('0 €'), findsWidgets);
 
     // Tamna tema iz Profila: sučelje se ponovno izgradi bez grešaka.
+    tester.state<NavigatorState>(find.byType(Navigator).first).popUntil((route) => route.isFirst);
+    await tester.pumpAndSettle();
     await tester.tap(find.text('Profil').last);
     await tester.pumpAndSettle();
     await openProfileSettings(tester);
@@ -401,24 +407,23 @@ void main() {
     await tester.tap(find.byKey(const ValueKey('register-submit')));
     await tester.pumpAndSettle();
 
-    // Testno: live se pokreće bez podataka prodavatelja.
+    // Za live je potrebno ispuniti podatke prodavatelja.
     await tester.tap(find.byKey(const ValueKey('nav-create')));
     await tester.pumpAndSettle();
     await tester.tap(find.byKey(const ValueKey('create-live')));
     await tester.pumpAndSettle();
-    expect(find.text('Novi live'), findsOneWidget);
-    expect(find.text('Podaci prodavatelja'), findsNothing);
-    await tester.tap(find.byTooltip('Natrag').last);
+    expect(find.text('Novi live'), findsNothing);
+    expect(find.text('Podaci prodavatelja'), findsOneWidget);
+    await tester.tap(find.text('Odustani').last);
     await tester.pumpAndSettle();
 
-    // + Objavi → Aukcija također bez podataka prodavatelja.
+    // I za aukciju su potrebni podaci prodavatelja.
     await tester.tap(find.byKey(const ValueKey('nav-create')));
     await tester.pumpAndSettle();
     await tester.tap(find.byKey(const ValueKey('create-auction')));
     await tester.pumpAndSettle();
-    expect(find.text('Podaci prodavatelja'), findsNothing);
-    expect(find.text('Nemaš predmeta za aukciju'), findsOneWidget);
-    await tester.tap(find.byTooltip('Natrag').last);
+    expect(find.text('Podaci prodavatelja'), findsOneWidget);
+    await tester.tap(find.text('Odustani').last);
     await tester.pumpAndSettle();
 
     // Podaci prodavatelja (za Kupi odmah i isplatu) — iz Profila.
@@ -503,14 +508,15 @@ void main() {
     await tester.tap(find.byTooltip('Back'));
     await tester.pumpAndSettle();
 
-    // Engleski zapis eura (zarada u Moje → Prodajem).
-    await tester.tap(find.byKey(const ValueKey('home-filters')));
+    // Engleski zapis eura u financijama Seller Huba.
+    await tester.tap(find.byKey(const ValueKey('nav-create')));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Mine').last);
-    await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const ValueKey('my-selling')));
+    await tester.scrollUntilVisible(find.byKey(const ValueKey('seller-hub-finance')), 250, scrollable: find.byType(Scrollable).last);
+    await tester.tap(find.byKey(const ValueKey('seller-hub-finance')));
     await tester.pumpAndSettle();
     expect(find.textContaining('1,250'), findsWidgets);
+    tester.state<NavigatorState>(find.byType(Navigator).first).popUntil((route) => route.isFirst);
+    await tester.pumpAndSettle();
     await tester.tap(find.text('Profile').last);
     await tester.pumpAndSettle();
     // Račun (kao Whatnot): profil se otvara s "View profile".

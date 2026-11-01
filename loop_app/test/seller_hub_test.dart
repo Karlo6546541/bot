@@ -4,14 +4,59 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:hive/hive.dart';
 import 'package:loop_app/providers/app_providers.dart';
 import 'package:loop_app/screens/account_menu.dart';
-import 'package:loop_app/screens/auctions_screen.dart';
 import 'package:loop_app/screens/seller_hub.dart';
+import 'package:loop_app/screens/my_shows_screen.dart';
+import 'package:loop_app/screens/portfolio_screen.dart';
+import 'package:loop_app/screens/messages_screen.dart';
+import 'package:loop_app/screens/auctions_screen.dart';
+import 'package:loop_app/screens/deliveries_screen.dart';
+import 'package:loop_app/screens/seller_finance_screens.dart';
 import 'package:loop_app/services/live_service.dart';
 import 'package:loop_app/services/seed_data.dart';
 import 'package:loop_app/services/storage_service.dart';
 
 void main() {
-  testWidgets('Moje → Aukcije: Seller Hub s radnjama, otpremom i zdravljem', (
+  testWidgets('seller tools open their screens and return to the hub', (tester) async {
+    tester.view.physicalSize = const Size(390, 844);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    final storage = StorageService();
+    await storage.init(inMemory: true);
+    await storage.saveSession(userId: SeedData.testUserId);
+    await tester.pumpWidget(ProviderScope(
+      overrides: [
+        storageProvider.overrideWithValue(storage),
+        tickIntervalProvider.overrideWithValue(null),
+      ],
+      child: const MaterialApp(home: SellerHubScreen()),
+    ));
+    await tester.pumpAndSettle();
+    final links = <(String, Type)>[
+      ('seller-hub-shows', MyShowsScreen),
+      ('seller-hub-inventory', MyItemsScreen),
+      ('seller-hub-messages', MessagesScreen),
+      ('seller-hub-sales', MyAuctionsScreen),
+      ('seller-hub-shipments', DeliveryNotesScreen),
+      ('seller-hub-finance', FinancialsScreen),
+    ];
+    for (final (key, screen) in links) {
+      await tester.scrollUntilVisible(
+        find.byKey(ValueKey(key)), 200,
+        scrollable: find.byType(Scrollable).last,
+      );
+      await tester.tap(find.byKey(ValueKey(key)));
+      await tester.pumpAndSettle();
+      expect(find.byType(screen), findsOneWidget, reason: key);
+      await tester.pageBack();
+      await tester.pumpAndSettle();
+      expect(find.byType(SellerHubScreen), findsOneWidget);
+    }
+    expect(tester.takeException(), isNull);
+    await tester.pumpWidget(const SizedBox.shrink());
+    await Hive.close();
+  });
+
+  testWidgets('Seller Hub s radnjama, otpremom i zdravljem', (
     tester,
   ) async {
     tester.view.physicalSize = const Size(420, 1200);
@@ -32,11 +77,9 @@ void main() {
           storageProvider.overrideWithValue(storage),
           tickIntervalProvider.overrideWithValue(null),
         ],
-        child: const MaterialApp(home: Scaffold(body: MyAuctionsView())),
+        child: const MaterialApp(home: Scaffold(body: SingleChildScrollView(child: SellerHubPanel()))),
       ),
     );
-    await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const ValueKey('my-selling')));
     await tester.pumpAndSettle();
     expect(find.byKey(const ValueKey('seller-hub')), findsOneWidget);
     // Sažeto: samo radnje i redak stanja; razvijanje otkriva sve.

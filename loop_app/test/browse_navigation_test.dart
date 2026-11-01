@@ -6,6 +6,7 @@ import 'package:loop_app/app.dart';
 import 'package:loop_app/models/device.dart';
 import 'package:loop_app/providers/app_providers.dart';
 import 'package:loop_app/screens/for_you_feed.dart';
+import 'package:loop_app/screens/deliveries_screen.dart';
 import 'package:loop_app/screens/swipe_feed_screen.dart';
 import 'package:loop_app/services/live_service.dart';
 import 'package:loop_app/services/seed_data.dart';
@@ -31,6 +32,33 @@ void main() {
     ],
     child: const LoopApp(),
   );
+
+  testWidgets('seller navigation opens hub with live and auction actions', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(390, 844);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    await tester.pumpWidget(app());
+    await tester.pumpAndSettle();
+    await tester.tap(find.byIcon(Icons.storefront_outlined).first);
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('seller-hub-live')), findsOneWidget);
+    expect(find.byKey(const ValueKey('seller-hub-auction')), findsOneWidget);
+    await tester.ensureVisible(find.byKey(const ValueKey('hub-health')));
+    expect(find.byKey(const ValueKey('hub-health')), findsOneWidget);
+    await tester.scrollUntilVisible(
+      find.byKey(const ValueKey('seller-hub-shipments')),
+      250,
+      scrollable: find.byType(Scrollable).last,
+    );
+    await tester.tap(find.byKey(const ValueKey('seller-hub-shipments')));
+    await tester.pumpAndSettle();
+    expect(find.byType(DeliveryNotesScreen), findsOneWidget);
+    expect(find.byKey(const ValueKey('notes-filter-all')), findsOneWidget);
+    expect(tester.takeException(), isNull);
+    await tester.pumpWidget(const SizedBox.shrink());
+  });
 
   testWidgets('browse menu opens categories, auctions and digital shopping', (
     tester,
