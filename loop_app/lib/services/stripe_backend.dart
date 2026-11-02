@@ -26,7 +26,9 @@ class StripeBackend {
     String name,
     Map<String, dynamic> body,
   ) async {
-    final result = await client.functions.invoke(name, body: body).timeout(const Duration(seconds: 30));
+    final result = await client.functions
+        .invoke(name, body: body)
+        .timeout(const Duration(seconds: 30));
     if (result.status != 200 || result.data is! Map) {
       throw StateError('PAYMENTS_UNAVAILABLE');
     }
@@ -68,7 +70,10 @@ class StripeBackend {
   Future<bool> charge(String order, {BuildContext? context}) async =>
       await chargeStatus(order, context: context) == SavedCardChargeStatus.paid;
 
-  Future<SavedCardChargeStatus> chargeStatus(String order, {BuildContext? context}) async {
+  Future<SavedCardChargeStatus> chargeStatus(
+    String order, {
+    BuildContext? context,
+  }) async {
     var data = await _call('stripe-charge', {
       'orderId': order,
       'action': 'resume',
@@ -76,7 +81,9 @@ class StripeBackend {
     if (data['status'] == 'requires_action' &&
         context != null &&
         context.mounted) {
-      if (!await showStripePayment(context, data)) { return SavedCardChargeStatus.incomplete; }
+      if (!await showStripePayment(context, data)) {
+        return SavedCardChargeStatus.incomplete;
+      }
       data = await _call('stripe-charge', {
         'orderId': order,
         'action': 'resume',

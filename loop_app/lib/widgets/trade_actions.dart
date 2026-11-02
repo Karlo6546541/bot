@@ -533,19 +533,28 @@ Future<bool> confirmAndBuy(
   if (BackendConfig.cloudCommerceEnabled && ref.read(syncProvider) != null) {
     final stripe = StripeBackend(Supabase.instance.client);
     final commerce = CommerceBackend(Supabase.instance.client);
-    final paid = await showPurchaseConfirmation(context, PurchaseConfirmationSheet(
-      title: '${device.name} ${device.model}'.trim(),
-      totalCents: (ref.read(appProvider).priceForMe(device) * 100).round(),
-      address: user.address ?? '',
-      digital: device.isDigital,
-      loadCard: stripe.cardStatus,
-      addCard: stripe.addCard,
-      reserve: () => commerce.reserveDevice(device.id, const Uuid().v4()),
-      chooseDelivery: (order, address) => commerce.chooseShipping(order, 'courier', {'address': address}).then((_) {}),
-      charge: (order, ctx) => stripe.chargeStatus(order, context: ctx),
-    ));
+    final paid = await showPurchaseConfirmation(
+      context,
+      PurchaseConfirmationSheet(
+        title: '${device.name} ${device.model}'.trim(),
+        totalCents: (ref.read(appProvider).priceForMe(device) * 100).round(),
+        address: user.address ?? '',
+        digital: device.isDigital,
+        loadCard: stripe.cardStatus,
+        addCard: stripe.addCard,
+        reserve: () => commerce.reserveDevice(device.id, const Uuid().v4()),
+        chooseDelivery: (order, address) => commerce
+            .chooseShipping(order, 'courier', {'address': address})
+            .then((_) {}),
+        charge: (order, ctx) => stripe.chargeStatus(order, context: ctx),
+      ),
+    );
     if (paid) {
-      try { await ref.read(syncProvider)?.catchUpNow(); } catch (_) { /* Realtime refresh remains available. */ }
+      try {
+        await ref.read(syncProvider)?.catchUpNow();
+      } catch (_) {
+        /* Realtime refresh remains available. */
+      }
       showLoopSnackBar(t('Kupljeno! 🎉'));
     }
     return paid;
