@@ -38,6 +38,11 @@ export async function platformTests(db,assert,as,rpc,rejects,{host,buyer,other})
  await rpc("select commerce_record_refund('pi_test_order',1900,false)");
  assert.equal(Number((await rpc('select sum(amount_cents) amount from commerce_platform_ledger where order_id=$1',[o])).amount),0);
  await db.query('insert into loop_live_shows(id,data) values($1,$2)', ['paid-promo',{id:'paid-promo',hostId:host,title:'Test show',startsAt:new Date(Date.now()-60000).toISOString(),hostSeenAt:new Date().toISOString()}]);
+ await as(host);const shippingProduct=(await rpc("select (commerce_publish('Shipping fee exclusion',2399,1)).id")).id;
+ await as(buyer);const shippingOrder=(await rpc('select (commerce_reserve($1,1,gen_random_uuid())).id',[shippingProduct])).id;
+ await db.exec('reset role');await db.query('update commerce_orders set shipping_cents=499 where id=$1',[shippingOrder]);
+ await rpc('select commerce_begin_charge($1)',[shippingOrder]);
+ assert.deepEqual(await rpc('select item_cents,fee_cents,seller_cents from commerce_payments where order_id=$1',[shippingOrder]),{item_cents:1900,fee_cents:114,seller_cents:1786});
  const promo=(await rpc("select (commerce_begin_promotion($1,'paid-promo','quick',300,gen_random_uuid())).id",[buyer])).id;
  await db.query("update commerce_promotions set intent_id='pi_promo' where id=$1",[promo]);
  await rpc("select commerce_settle_promotion($1,'pi_promo',300)",[promo]);

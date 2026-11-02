@@ -19,8 +19,10 @@ Deno.serve(async(req:Request)=>{
    intent=await svc.stripe.paymentIntents.create({amount:Number(p.amount_cents),currency:'eur',customer,payment_method:card.id,metadata:{promotion_id:p.id,purpose:'promotion'}},{idempotencyKey:`promotion-intent-${p.id}`});
    const {error:e}=await svc.admin.from('commerce_promotions').update({intent_id:intent.id}).eq('id',p.id);if(e)throw e;
   }
+  if(intent.status==='requires_payment_method'&&intent.last_payment_error?.code!=='authentication_required')intent=await svc.stripe.paymentIntents.update(intent.id,{payment_method:card.id});
   if(intent.status==='requires_confirmation'){
-   try{intent=await svc.stripe.paymentIntents.confirm(intent.id,{off_session:true},{idempotencyKey:`promotion-confirm-${p.id}`});}
+   const {error:stateError}=await svc.admin.from('commerce_promotions').update({status:'pending'}).eq('id',p.id);if(stateError)throw stateError;
+   try{intent=await svc.stripe.paymentIntents.confirm(intent.id,{off_session:true},{idempotencyKey:`promotion-confirm-${p.id}-${card.id}-${p.attempt}`});}
    catch(error){if(error instanceof Stripe.errors.StripeCardError)intent=await svc.stripe.paymentIntents.retrieve(intent.id);else throw error;}
   }
   if(intent.status==='succeeded'){
@@ -29,6 +31,7 @@ Deno.serve(async(req:Request)=>{
   }
   if(intent.status==='requires_action'||intent.last_payment_error?.code==='authentication_required')return authenticationResponse(svc,intent,card.id);
   if(intent.status==='processing')return response(200,{status:'processing'});
+  await svc.admin.from('commerce_promotions').update({status:'failed',attempt:p.attempt+1}).eq('id',p.id).eq('attempt',p.attempt);
   return response(402,{error:'CARD_DECLINED'});
  }catch(error){return failure(error);}
 });

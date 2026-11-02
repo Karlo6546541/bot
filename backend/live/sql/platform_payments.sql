@@ -1,6 +1,8 @@
 begin;
 alter table public.commerce_orders add column source_device text;
 alter table public.commerce_orders add column source_snapshot jsonb;
+-- Shipping is currently a free demo; keep its amount separate from item fees.
+alter table public.commerce_orders add column shipping_cents bigint not null default 0 check(shipping_cents>=0 and shipping_cents<total_cents);
 create index orders_source_device on public.commerce_orders(source_device) where status='awaiting_payment';
 
 -- Bring existing Subhasto listings into the same authoritative payment flow.
@@ -58,9 +60,9 @@ language plpgsql security definer set search_path=public as $$ declare o commerc
   else update loop_devices set data=d||jsonb_build_object('ownerId',o.buyer_id,'listPrice',null,'listedAt',null,'quantity',1,'discountPercent',0,'discountUntil',null) where id=o.source_device;
   end if;
  end if;
- tx:=jsonb_build_object('deviceId',bought,'deviceName',coalesce(d->>'name','')||' '||coalesce(d->>'model',''),'price',o.total_cents/100.0,'fee',0,'amount',o.total_cents/100.0,'buyerId',o.buyer_id,'sellerId',o.seller_id,'buyerLabel','','sellerLabel','','createdAt',now(),'isAuction',false);
+ tx:=jsonb_build_object('deviceId',bought,'deviceName',coalesce(d->>'name','')||' '||coalesce(d->>'model',''),'price',(o.total_cents-o.shipping_cents)/100.0,'fee',0,'amount',o.total_cents/100.0,'buyerId',o.buyer_id,'sellerId',o.seller_id,'buyerLabel','','sellerLabel','','createdAt',now(),'isAuction',false);
  insert into loop_transactions(id,data) values('stripe-buy-'||o.id,tx||jsonb_build_object('id','stripe-buy-'||o.id,'type','buy','userId',o.buyer_id));
- insert into loop_transactions(id,data) values('stripe-sale-'||o.id,tx||jsonb_build_object('id','stripe-sale-'||o.id,'type','sell','userId',o.seller_id,'fee',(o.total_cents*6+50)/100/100.0,'amount',(o.total_cents-(o.total_cents*6+50)/100)/100.0));
+ insert into loop_transactions(id,data) values('stripe-sale-'||o.id,tx||jsonb_build_object('id','stripe-sale-'||o.id,'type','sell','userId',o.seller_id,'fee',((o.total_cents-o.shipping_cents)*6+50)/100/100.0,'amount',(o.total_cents-o.shipping_cents-((o.total_cents-o.shipping_cents)*6+50)/100)/100.0));
 end $$;
 
 -- Test-only platform balance: revenue is distinct from money owed to sellers.
@@ -98,6 +100,8 @@ create table public.commerce_promotions (
  amount_cents bigint not null check(amount_cents between 100 and 5000),
  request_id uuid not null,
  intent_id text unique,
+ attempt integer not null default 1,
+ refunded_cents bigint not null default 0 check(refunded_cents>=0),
  status text not null default 'pending' check(status in ('pending','paid','failed','refunded')),
  created_at timestamptz not null default now(),
  unique(user_id,request_id),
@@ -157,17 +161,18 @@ language plpgsql security definer set search_path=public as $$ declare o commerc
  select * into o from commerce_orders where id=p_order for update;
  if not found or o.status<>'awaiting_payment' then raise exception 'ORDER_NOT_PAYABLE'; end if;
  insert into commerce_payments(order_id,item_cents,fee_cents,seller_cents)
- values(o.id,o.total_cents,(o.total_cents*6+50)/100,o.total_cents-(o.total_cents*6+50)/100)
+ values(o.id,o.total_cents-o.shipping_cents,((o.total_cents-o.shipping_cents)*6+50)/100,o.total_cents-o.shipping_cents-((o.total_cents-o.shipping_cents)*6+50)/100)
  on conflict(order_id) do nothing;
  select * into p from commerce_payments where order_id=p_order;
  return p;
 end $$;
 
 create function public.commerce_settle_intent(p_event text,p_order uuid,p_intent text,p_charge text,p_amount bigint,p_currency text) returns void
-language plpgsql security definer set search_path=public as $$ declare p commerce_payments; begin
+language plpgsql security definer set search_path=public as $$ declare p commerce_payments; o commerce_orders; begin
  perform 1 from commerce_orders where id=p_order for update;
  select * into p from commerce_payments where order_id=p_order for update;
- if not found or p.intent_id is distinct from p_intent or p.item_cents<>p_amount or p_currency<>'EUR' or p.status='refunded' then raise exception 'PAYMENT_MISMATCH'; end if;
+ select * into o from commerce_orders where id=p_order;
+ if p.order_id is null or p.intent_id is distinct from p_intent or o.total_cents<>p_amount or p_currency<>'EUR' or p.status='refunded' then raise exception 'PAYMENT_MISMATCH'; end if;
  perform commerce_record_payment(p_event,p_order,p_amount,p_currency);
  perform commerce_fulfill_device(p_order);
  update commerce_payments set status='paid',source_charge=p_charge where order_id=p_order;
@@ -213,12 +218,12 @@ create function public.commerce_record_refund(p_intent text,p_refunded bigint,p_
 language plpgsql security definer set search_path=public as $$ declare p commerce_payments; begin
  select * into p from commerce_payments where intent_id=p_intent for update;
  if not found then return; end if;
- update commerce_payments set disputed=disputed or p_disputed,refunded_cents=greatest(refunded_cents,p_refunded),status=case when p_refunded>=item_cents then 'refunded' else status end where order_id=p.order_id;
+ update commerce_payments set disputed=disputed or p_disputed,refunded_cents=greatest(refunded_cents,p_refunded),status=case when p_refunded>=(select total_cents from commerce_orders where id=p.order_id) then 'refunded' else status end where order_id=p.order_id;
  if p_refunded>0 then
   insert into commerce_platform_ledger(reference,kind,amount_cents,order_id)
   values('refund:'||p_intent||':'||p_refunded,'refund',-least(p.fee_cents,(p_refunded*6+50)/100)+least(p.fee_cents,(p.refunded_cents*6+50)/100),p.order_id) on conflict do nothing;
  end if;
- if p_refunded>=p.item_cents then update commerce_orders set status='refunded' where id=p.order_id; end if;
+ if p_refunded>=(select total_cents from commerce_orders where id=p.order_id) then update commerce_orders set status='refunded' where id=p.order_id; end if;
 end $$;
 
 create function public.commerce_settle_promotion(p_id uuid,p_intent text,p_amount bigint) returns void
@@ -238,10 +243,10 @@ end $$;
 create function public.commerce_refund_promotion(p_id uuid,p_amount bigint) returns void
 language plpgsql security definer set search_path=public as $$ declare p commerce_promotions; begin
  select * into p from commerce_promotions where id=p_id for update;
- if not found or p.status='refunded' then return; end if;
- update commerce_promotions set status='refunded' where id=p_id;
+ if not found or p_amount<=p.refunded_cents then return; end if;
+ update commerce_promotions set status='refunded',refunded_cents=greatest(refunded_cents,p_amount) where id=p_id;
  delete from loop_live_events where id='stripe-boost-'||p_id;
- insert into commerce_platform_ledger(reference,kind,amount_cents,promotion_id) values('promotion-refund:'||p_id,'refund',-least(p.amount_cents,p_amount),p_id) on conflict do nothing;
+ insert into commerce_platform_ledger(reference,kind,amount_cents,promotion_id) values('promotion-refund:'||p_id||':'||p_amount,'refund',-least(p.amount_cents,p_amount)+least(p.amount_cents,p.refunded_cents),p_id) on conflict do nothing;
 end $$;
 
 -- Protect server-confirmed payment records and paid boosts from client fabrication.

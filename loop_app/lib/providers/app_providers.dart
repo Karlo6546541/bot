@@ -1551,13 +1551,27 @@ class AppController extends Notifier<AppState> {
     if (BackendConfig.cloudCommerceEnabled && ref.read(syncProvider) != null) {
       _requireUserId();
       try {
-        final paid = await StripeBackend(Supabase.instance.client).promote(showId, kind.name, (amount * 100).round(), requestId ?? const Uuid().v4(), context: paymentContext);
-        if (!paid) { throw TradeException(t('Naplata nije dovršena. Provjeri stanje prije ponovnog pokušaja.')); }
+        final paid = await StripeBackend(Supabase.instance.client).promote(
+          showId,
+          kind.name,
+          (amount * 100).round(),
+          requestId ?? const Uuid().v4(),
+          context: paymentContext,
+        );
+        if (!paid) {
+          throw TradeException(
+            t(
+              'Naplata nije dovršena. Provjeri stanje prije ponovnog pokušaja.',
+            ),
+          );
+        }
         await ref.read(syncProvider)?.catchUpNow();
         _refresh();
         final show = state.liveShowById(showId);
         return show == null ? LiveBoost.none : _live.stateOf(show).boost;
-      } on TradeException { rethrow; } catch (error) {
+      } on TradeException {
+        rethrow;
+      } catch (error) {
         throw TradeException(paymentActionErrorMessage(error));
       }
     }
@@ -1870,4 +1884,3 @@ class AppController extends Notifier<AppState> {
     return user.id;
   }
 }
-

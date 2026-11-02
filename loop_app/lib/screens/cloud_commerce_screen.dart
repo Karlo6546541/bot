@@ -525,11 +525,20 @@ class _CloudCommerceState extends State<CloudCommerceScreen> {
           ),
           Text(labels[state] ?? '$state'),
           Text('Narudžba ${id.substring(0, 8)}'),
-          const Text('Testna naplata · paketomat je demo. Naknada Subhasta: 6 % cijene predmeta.'),
+          const Text(
+            'Testna naplata · paketomat je demo. Naknada Subhasta: 6 % cijene predmeta.',
+          ),
           if (!buyer && ['paid', 'shipped', 'delivered'].contains(state))
-            const Text('Novac je zadržan do potvrde kupca ili 48 sati nakon evidentiranog preuzimanja, ako nema prijave problema.'),
+            const Text(
+              'Novac je zadržan do potvrde kupca ili 48 sati nakon evidentiranog preuzimanja, ako nema prijave problema.',
+            ),
           if (buyer && ['paid', 'shipped', 'delivered'].contains(state))
-            OutlinedButton(onPressed: busy ? null : () => _run(() => commerce.reportProblem(id)), child: const Text('Prijavi problem i zadrži isplatu')),
+            OutlinedButton(
+              onPressed: busy
+                  ? null
+                  : () => _run(() => commerce.reportProblem(id)),
+              child: const Text('Prijavi problem i zadrži isplatu'),
+            ),
 
           if (buyer && (state == 'awaiting_payment' || state == 'paid'))
             OutlinedButton(
@@ -553,13 +562,21 @@ class _CloudCommerceState extends State<CloudCommerceScreen> {
             FilledButton.icon(
               onPressed: busy ? null : () => _run(() => _autoCharge(id)),
               icon: const Icon(Icons.credit_card),
-              label: Text(cardLast4 == null ? 'Dodaj karticu i plati' : 'Plati karticom •••• $cardLast4'),
+              label: Text(
+                cardLast4 == null
+                    ? 'Dodaj karticu i plati'
+                    : 'Plati karticom •••• $cardLast4',
+              ),
             ),
           if (buyer && state == 'awaiting_payment')
             FilledButton(
               onPressed: busy
                   ? null
-                  : () => _run(() => StripeBackend(db).addCard(context).then((_) => _loadCard())),
+                  : () => _run(
+                      () => StripeBackend(
+                        db,
+                      ).addCard(context).then((_) => _loadCard()),
+                    ),
               child: Text(
                 cardLast4 == null
                     ? 'Dodaj karticu (test)'
@@ -1621,4 +1638,3 @@ class _LotTimerState extends State<_LotTimer> {
     );
   }
 }
-

@@ -2,6 +2,7 @@
 // Generirano iz popisa tekstova; nadopuni ručno kad dodaješ nove.
 
 const kEn = <String, String>{
+  'Naplata nije dovršena. Provjeri stanje prije ponovnog pokušaja.': 'Payment is incomplete. Check its status before retrying.',
   'Pošiljke': 'Shipments',
   'Otvori pošiljku za pregled i ispis otpremnice.':
       'Open a shipment to view and print its packing slip.',
