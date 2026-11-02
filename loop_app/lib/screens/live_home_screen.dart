@@ -12,7 +12,6 @@ import '../l10n/tr.dart';
 import '../widgets/user_avatar.dart';
 import '../models/app_user.dart';
 import '../models/device.dart';
-import '../models/live_show.dart';
 import '../widgets/browse_category_picker.dart';
 import '../providers/app_state.dart';
 import 'categories_screen.dart';
@@ -57,14 +56,11 @@ sealed class _Filter {
     _BuyNow() => 'buy',
     _Digital() => 'digital',
     _Following() => 'following',
-    _LiveShop() => 'live-shop',
-    _LiveAuctions() => 'live-auctions',
   };
 
   static _Filter of(String id) => switch (id) {
-    'live-shop' => const _LiveShop(),
-    'live-auctions' => const _LiveAuctions(),
-    'live' => const _LiveOnly(),
+    // Stare poveznice (Live shop / Live aukcije) vode na Live show.
+    'live' || 'live-shop' || 'live-auctions' => const _LiveOnly(),
     'soon' => const _Soon(),
     'timed' => const _Timed(),
     // Kupi odmah je isključen (stare poveznice vode na Za tebe).
@@ -101,16 +97,6 @@ class _Digital extends _Filter {
 
 class _Following extends _Filter {
   const _Following();
-}
-
-/// Liveovi čiji prodavač ima predmete za Kupi odmah ("live shop").
-class _LiveShop extends _Filter {
-  const _LiveShop();
-}
-
-/// Liveovi s aukcijama.
-class _LiveAuctions extends _Filter {
-  const _LiveAuctions();
 }
 
 class _LiveHomeScreenState extends ConsumerState<LiveHomeScreen> {
@@ -407,48 +393,6 @@ class _LiveHomeScreenState extends ConsumerState<LiveHomeScreen> {
             grid('home-for-you', rest.take(6).toList(), t('Za tebe')),
           );
         }
-      case _LiveShop():
-        final shops = [
-          for (final i in allLive)
-            if (s.listingsOf(i.show!.hostId).any((d) => !d.isDigital)) i,
-        ]..sort(_promotedFirst);
-        slivers.add(const SliverToBoxAdapter(child: SizedBox(height: 12)));
-        slivers.add(
-          shops.isEmpty
-              ? SliverToBoxAdapter(
-                  child: Padding(
-                    key: const ValueKey('home-live-shop-empty'),
-                    padding: const EdgeInsets.all(24),
-                    child: Text(
-                      t('Trenutno nema livea s predmetima za Kupi odmah.'),
-                      textAlign: TextAlign.center,
-                      style: TextStyle(color: LoopColors.textSecondary),
-                    ),
-                  ),
-                )
-              : grid('home-live-shop', shops, t('Live shop')),
-        );
-      case _LiveAuctions():
-        final aucLives = [
-          for (final i in allLive)
-            if (i.show!.lots.any((l) => l.mode == LotMode.auction)) i,
-        ]..sort(_promotedFirst);
-        slivers.add(const SliverToBoxAdapter(child: SizedBox(height: 12)));
-        slivers.add(
-          aucLives.isEmpty
-              ? SliverToBoxAdapter(
-                  child: Padding(
-                    key: const ValueKey('home-live-auctions-empty'),
-                    padding: const EdgeInsets.all(24),
-                    child: Text(
-                      t('Trenutno nema livea s aukcijama.'),
-                      textAlign: TextAlign.center,
-                      style: TextStyle(color: LoopColors.textSecondary),
-                    ),
-                  ),
-                )
-              : grid('home-live-auctions', aucLives, t('Live aukcije')),
-        );
       case _Timed():
         slivers.add(
           SliverToBoxAdapter(
@@ -1239,18 +1183,8 @@ class _TileRow extends StatelessWidget {
           tab(
             id: 'live',
             key: const ValueKey('home-cat-live'),
-            label: t('Showovi'),
+            label: t('Live show'),
             onTap: () => onSelect(const _LiveOnly()),
-          ),
-          tab(
-            id: 'live-shop',
-            label: t('Live shop'),
-            onTap: () => onSelect(const _LiveShop()),
-          ),
-          tab(
-            id: 'live-auctions',
-            label: t('Live aukcije'),
-            onTap: () => onSelect(const _LiveAuctions()),
           ),
           if (kBuyNowEnabled)
             tab(

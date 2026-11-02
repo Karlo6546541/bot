@@ -3110,17 +3110,24 @@ const kEn = <String, String>{
   '{0} je poslao "{1}" ({2}). Broj za praćenje: {3}':
       '{0} shipped "{1}" ({2}). Tracking number: {3}',
   'Aukcija · trenutno {0}': 'Auction · currently {0}',
-  'Dodirni srce na oglasu ili aukciji da ga spremiš.': 'Tap the heart on a listing or auction to save it.',
+  'Dodirni srce na oglasu ili aukciji da ga spremiš.':
+      'Tap the heart on a listing or auction to save it.',
   'Još nema kupnji': 'No purchases yet',
   'Još nemaš spremljenih stvari': 'No saved items yet',
-  'Kad nešto kupiš ili osvojiš, pojavit će se ovdje.': 'When you buy or win something, it will show up here.',
+  'Kad nešto kupiš ili osvojiš, pojavit će se ovdje.':
+      'When you buy or win something, it will show up here.',
   'Licitacije': 'Bids',
-  'Licitiraj na aukciji i ovdje pratiš ponude i pobjede.': 'Bid on an auction and follow your bids and wins here.',
-  'Na oglasu dodirni "Ponudi cijenu" i predloži svoju.': 'On a listing, tap "Make an offer" and suggest your price.',
-  'Ovdje pratiš što si kupio, licitiraš i spremio.': 'Follow what you bought, bid on and saved here.',
+  'Licitiraj na aukciji i ovdje pratiš ponude i pobjede.':
+      'Bid on an auction and follow your bids and wins here.',
+  'Na oglasu dodirni "Ponudi cijenu" i predloži svoju.':
+      'On a listing, tap "Make an offer" and suggest your price.',
+  'Ovdje pratiš što si kupio, licitiraš i spremio.':
+      'Follow what you bought, bid on and saved here.',
   'Prihvaćene': 'Accepted',
-  'Prijavi se za svoje kupnje i licitacije': 'Sign in for your purchases and bids',
+  'Prijavi se za svoje kupnje i licitacije':
+      'Sign in for your purchases and bids',
   'Čeka tvoj odgovor': 'Awaiting your reply',
+  'Live show': 'Live show',
   'Zakaži show': 'Schedule a show',
   'Otprema': 'Shipping',
   'Nema paketa za predaju': 'No parcels to hand over',
