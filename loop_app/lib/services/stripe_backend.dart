@@ -1,7 +1,10 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../widgets/stripe_payment/stripe_payment.dart';
+
+enum SavedCardChargeStatus { paid, processing, incomplete }
 
 class StripeBackend {
   StripeBackend(this.client);
@@ -23,7 +26,9 @@ class StripeBackend {
     String name,
     Map<String, dynamic> body,
   ) async {
-    final result = await client.functions.invoke(name, body: body);
+    final result = await client.functions
+        .invoke(name, body: body)
+        .timeout(const Duration(seconds: 30));
     if (result.status != 200 || result.data is! Map) {
       throw StateError('PAYMENTS_UNAVAILABLE');
     }
@@ -62,7 +67,13 @@ class StripeBackend {
     return (await cardStatus()).hasCard;
   }
 
-  Future<bool> charge(String order, {BuildContext? context}) async {
+  Future<bool> charge(String order, {BuildContext? context}) async =>
+      await chargeStatus(order, context: context) == SavedCardChargeStatus.paid;
+
+  Future<SavedCardChargeStatus> chargeStatus(
+    String order, {
+    BuildContext? context,
+  }) async {
     var data = await _call('stripe-charge', {
       'orderId': order,
       'action': 'resume',
@@ -70,13 +81,20 @@ class StripeBackend {
     if (data['status'] == 'requires_action' &&
         context != null &&
         context.mounted) {
-      if (!await showStripePayment(context, data)) return false;
+      if (!await showStripePayment(context, data)) {
+        return SavedCardChargeStatus.incomplete;
+      }
       data = await _call('stripe-charge', {
         'orderId': order,
         'action': 'resume',
       });
     }
-    return data['status'] == 'paid';
+    return switch (data['status']) {
+      'paid' => SavedCardChargeStatus.paid,
+      'processing' => SavedCardChargeStatus.processing,
+      'requires_action' => SavedCardChargeStatus.incomplete,
+      _ => throw StateError('PAYMENTS_UNAVAILABLE'),
+    };
   }
 
   Future<bool> promote(
@@ -104,6 +122,17 @@ class StripeBackend {
 }
 
 String paymentActionErrorMessage(Object error) {
+  if (error is TimeoutException) {
+    return 'Provjera plaćanja traje dulje. Provjeri status prije ponovnog pokušaja.';
+  }
+  if (error is PostgrestException) {
+    return switch (error.message) {
+      'UNAVAILABLE' => 'Predmet više nije dostupan za kupnju.',
+      'INVALID_AMOUNT' => 'Cijena predmeta nije valjana za plaćanje.',
+      'AUTH_REQUIRED' => 'Prijavi se ponovno za nastavak.',
+      _ => 'Kupnju nije moguće pripremiti. Pokušaj ponovno.',
+    };
+  }
   final code = error is FunctionException && error.details is Map
       ? (error.details as Map)['error']
       : null;
@@ -115,8 +144,8 @@ String paymentActionErrorMessage(Object error) {
     'CARD_DECLINED' => 'Banka je odbila karticu. Pokušaj drugu karticu.',
     'PAYMENT_ACTION_REQUIRED' => 'Banka traži dodatnu potvrdu kartice.',
     'PAYMENT_FORM_NOT_CONFIGURED' => 'Stripe obrazac još nije postavljen.',
-    'SHIPPING_REQUIRED' => 'Prvo odaberi paketomat.',
-    'SELLER_NOT_READY' => 'Prodavatelj još nije postavio primanje novca.',
+    'SHIPPING_REQUIRED' => 'Dodaj podatke za dostavu.',
+    'SELLER_NOT_READY' => 'Prodavatelj ovog oglasa još nije omogućio plaćanje.',
     _ => 'Radnja nije uspjela. Osvježi stanje pa pokušaj ponovno.',
   };
 }
