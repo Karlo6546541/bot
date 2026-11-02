@@ -1,5 +1,6 @@
 import Stripe from 'npm:stripe@23.0.0';
 import { services } from '../_shared/stripe.ts';
+import { reverseSellerTransfer } from '../_shared/reversal.ts';
 Deno.serve(async (req: Request) => {
   if (req.method !== 'POST') return new Response('Method not allowed', { status: 405 });
   const signature = req.headers.get('stripe-signature');
@@ -20,11 +21,10 @@ Deno.serve(async (req: Request) => {
     if(!intent)return new Response('Ignored');
     const {error}=await svc.admin.rpc('commerce_record_refund',{p_intent:intent,p_refunded:charge.amount_refunded,p_disputed:charge.disputed});
     if(error)return new Response('Retry later',{status:503});
-    const {data:p}=await svc.admin.from('commerce_payments').select('transfer_id').eq('intent_id',intent).maybeSingle();
+    const {data:p}=await svc.admin.from('commerce_payments').select('order_id,transfer_id').eq('intent_id',intent).maybeSingle();
     if(p?.transfer_id){
       try{
-        const t=await svc.stripe.transfers.retrieve(p.transfer_id);
-        if(t.amount>t.amount_reversed)await svc.stripe.transfers.createReversal(t.id,{amount:t.amount-t.amount_reversed},{idempotencyKey:`risk-reversal-${t.id}`});
+        await reverseSellerTransfer(svc,p);
       }catch{return new Response('Retry later',{status:503});}
     }
     const {data:promo}=await svc.admin.from('commerce_promotions').select('id,amount_cents').eq('intent_id',intent).maybeSingle();

@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import { chargeOrder } from '../functions/_shared/charge.ts';
+import { reverseSellerTransfer } from '../functions/_shared/reversal.ts';
 
 Deno.test('off-session charge persists one platform intent before confirmation and fulfills once',async()=>{
  const steps:string[]=[];let params:Record<string,unknown>={};
@@ -25,4 +26,15 @@ Deno.test('authentication decline resumes the same intent without another off-se
  const response=await chargeOrder(svc,{id:'order',total_cents:1900,currency:'EUR'},'cus_test','pm_test',true);
  assert.equal(confirms,0);const result=await response.json();
  assert.equal(result.status,'requires_action');assert.equal(result.confirmationRequired,true);assert.equal(result.paymentMethod,'pm_test');
+});
+
+Deno.test('risk reversal retries do not reverse the seller transfer twice',async()=>{
+ let reversed=0,calls=0,writes=0;
+ const svc={stripe:{transfers:{
+  retrieve:async()=>({id:'tr_test',amount:1786,amount_reversed:reversed}),
+  createReversal:async(_id:string,body:{amount:number},options:{idempotencyKey:string})=>{assert.equal(options.idempotencyKey,'risk-reversal-tr_test');reversed+=body.amount;calls++;},
+ }},admin:{from:()=>({update:()=>({eq:async()=>{writes++;return{error:null};}})})}} as unknown as Parameters<typeof reverseSellerTransfer>[0];
+ await reverseSellerTransfer(svc,{order_id:'order',transfer_id:'tr_test'});
+ await reverseSellerTransfer(svc,{order_id:'order',transfer_id:'tr_test'});
+ assert.equal(reversed,1786);assert.equal(calls,1);assert.equal(writes,2);
 });

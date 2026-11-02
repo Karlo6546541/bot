@@ -1,5 +1,6 @@
 import { services } from '../_shared/stripe.ts';
 import { integrationConfig,adminClient } from '../_shared/config.ts';
+import { reverseSellerTransfer } from '../_shared/reversal.ts';
 // Scheduler-only; a browser cannot select destinations or transfer amounts.
 Deno.serve(async(req:Request)=>{
  if(req.method!=='POST')return new Response(null,{status:405});
@@ -7,9 +8,15 @@ Deno.serve(async(req:Request)=>{
  if(!config.STRIPE_RELEASE_JOB_SECRET||req.headers.get('x-subhasto-job')!==config.STRIPE_RELEASE_JOB_SECRET)return new Response(null,{status:401});
  const {data:rows,error}=await adminClient().from('commerce_payments').select('order_id').eq('status','paid').eq('disputed',false).eq('refunded_cents',0).is('transfer_id',null).not('picked_up_at','is',null).order('picked_up_at').limit(50);
  if(error)return new Response('Retry later',{status:503});
- if(!rows?.length)return Response.json({mode:'test',released:0});
+ const {data:risks,error:riskError}=await adminClient().from('commerce_payments').select('order_id,transfer_id').not('transfer_id','is',null).not('released_at','is',null).or('disputed.eq.true,refunded_cents.gt.0').limit(50);
+ if(riskError)return new Response('Retry later',{status:503});
+ if(!rows?.length&&!risks?.length)return Response.json({mode:'test',released:0});
  let svc;
  try{svc=await services();}catch{return new Response('Stripe configuration unavailable',{status:503});}
+ // Reconcile risk events that raced with a successful transfer/database write.
+ for(const risk of risks??[]){
+  try{await reverseSellerTransfer(svc,risk);}catch{console.error('risk_reversal_pending');}
+ }
  let released=0;
  for(const row of rows??[]){
   try{
