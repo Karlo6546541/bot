@@ -21,3 +21,10 @@ verify_jwt = false
 
 [functions.stripe-charge]
 verify_jwt = false
+
+[functions.stripe-promotion]
+verify_jwt = false
+
+[functions.stripe-release]
+verify_jwt = false
+
