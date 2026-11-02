@@ -127,6 +127,10 @@ String paymentActionErrorMessage(Object error) {
   }
   if (error is PostgrestException) {
     return switch (error.message) {
+      'LOCKER_UNAVAILABLE' =>
+        'Odabrani paketomat više nije dostupan. Odaberi drugi ili kurira.',
+      'ADDRESS_REQUIRED' => 'Upiši adresu za dostavu.',
+      'ORDER_LOCKED' => 'Dostavu ove narudžbe više nije moguće mijenjati.',
       'UNAVAILABLE' => 'Predmet više nije dostupan za kupnju.',
       'INVALID_AMOUNT' => 'Cijena predmeta nije valjana za plaćanje.',
       'AUTH_REQUIRED' => 'Prijavi se ponovno za nastavak.',
