@@ -13,7 +13,7 @@ The application uses the existing platform `acct_1UVqd9PdLAWyn74E` in test mode.
 
 ## Configuration
 
-Set `STRIPE_RESTRICTED_KEY` (`rk_test_`, preferred) or `STRIPE_SECRET_KEY` in Edge Function Secrets. The restricted key needs the operations used by this integration: account read, Accounts v2/Connect onboarding, customers, payment methods, SetupIntents, PaymentIntents, charge reads, transfers and reversals. Services reject live keys and keys for another platform.
+Set `STRIPE_RESTRICTED_KEY` (`rk_test_`, preferred) or `STRIPE_SECRET_KEY` in Edge Function Secrets. The restricted key needs the operations used by this integration: account read (including the platform account), Accounts v2/Connect onboarding, customers, payment methods, SetupIntents, PaymentIntents, charge reads, transfers and reversals. Services reject live keys and keys for another platform.
 
 Set `STRIPE_PUBLISHABLE_KEY` (`pk_test_`) for the same test platform. This is public; secret keys must never be placed in Flutter defines, HTML, chat or logs. `STRIPE_WEBHOOK_SECRET` must belong to the platform endpoint.
 

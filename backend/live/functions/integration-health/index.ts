@@ -11,13 +11,17 @@ Deno.serve(async (req: Request) => {
   try { config = await integrationConfig(); } catch { return new Response(JSON.stringify({ configured: false }), { status: 503, headers }); }
   const key = config.STRIPE_RESTRICTED_KEY ?? config.STRIPE_SECRET_KEY ?? '';
   let testPlatformConnected = false;
+  let testPlatformKeyMismatch = false, testPlatformPermissionMissing = false;
   if (/^(rk|sk)_test_/.test(key)) {
-    try { await services(); testPlatformConnected = true; } catch { /* Return readiness only. */ }
+    try { await services(); testPlatformConnected = true; } catch (error) {
+      testPlatformKeyMismatch = error instanceof Error && error.message === 'WRONG_TEST_PLATFORM';
+      testPlatformPermissionMissing = (error as {type?:string})?.type === 'StripePermissionError';
+    }
   }
   // Configuration indicators only. Never return environment values or credentials.
   return new Response(JSON.stringify({
     paymentsConfigured: /^(rk|sk)_test_/.test(key),
-    testPlatformConnected,
+    testPlatformConnected, testPlatformKeyMismatch, testPlatformPermissionMissing,
     paymentFormConfigured: !!config.STRIPE_PUBLISHABLE_KEY?.startsWith('pk_test_'),
     webhookConfigured: !!config.STRIPE_WEBHOOK_SECRET,
     streamingConfigured: !!config.LIVEKIT_URL && !!config.LIVEKIT_API_KEY && !!config.LIVEKIT_API_SECRET,
