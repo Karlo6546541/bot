@@ -28,7 +28,12 @@ class LiveShow {
     this.modIds = const [],
     this.verifiedOnly = false,
     this.summary,
+    this.sells = LiveSells.physical,
   });
+
+  /// Što se prodaje u liveu: stvari (aukcije), digitalno (Kupi odmah bez
+  /// aukcije) ili oboje.
+  final LiveSells sells;
 
   final String id;
   final String hostId;
@@ -118,6 +123,7 @@ class LiveShow {
     DateTime? hostSeenAt,
     List<String>? modIds,
     bool? verifiedOnly,
+    LiveSells? sells,
     Map<String, num>? summary,
   }) => LiveShow(
     id: id,
@@ -137,6 +143,7 @@ class LiveShow {
     relistUnsold: relistUnsold,
     modIds: modIds ?? this.modIds,
     verifiedOnly: verifiedOnly ?? this.verifiedOnly,
+    sells: sells ?? this.sells,
     summary: summary ?? this.summary,
   );
 
@@ -158,6 +165,7 @@ class LiveShow {
     'relistUnsold': relistUnsold,
     if (modIds.isNotEmpty) 'modIds': modIds,
     if (verifiedOnly) 'verifiedOnly': true,
+    if (sells != LiveSells.physical) 'sells': sells.name,
     if (summary != null) 'summary': summary,
   };
 
@@ -188,6 +196,10 @@ class LiveShow {
     relistUnsold: m['relistUnsold'] != false,
     modIds: [for (final i in (m['modIds'] as List? ?? const [])) '$i'],
     verifiedOnly: m['verifiedOnly'] == true,
+    sells: LiveSells.values.firstWhere(
+      (v) => v.name == m['sells'],
+      orElse: () => LiveSells.physical,
+    ),
     summary: m['summary'] is Map
         ? {
             for (final e in (m['summary'] as Map).entries)
@@ -414,4 +426,21 @@ class LiveEvent {
     amount: (m['amount'] as num?)?.toDouble() ?? 0,
     text: m['text'] as String? ?? '',
   );
+}
+
+/// Što se prodaje u liveu.
+enum LiveSells {
+  physical('Stvari'),
+  digital('Digitalno'),
+  both('Oboje');
+
+  const LiveSells(this._label);
+  final String _label;
+  String get label => t(_label);
+
+  /// Digitalni proizvodi se u liveu kupuju odmah (bez aukcije).
+  bool get hasDigital => this != physical;
+
+  /// Fizičke stvari se licitiraju (aukcije u liveu).
+  bool get hasPhysical => this != LiveSells.digital;
 }

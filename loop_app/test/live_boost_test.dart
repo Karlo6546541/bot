@@ -45,12 +45,8 @@ void main() {
     );
   }
 
-  test('brzi boost: samo domaćin, samo uživo, 15 min, nižu se', () async {
+  test('brzi boost: uživo, 15 min, nižu se', () async {
     final show = await makeShow(t0);
-    await expectLater(
-      live.boost(viewer, show.id, BoostKind.quick, 5, now: t0),
-      throwsA(isA<TradeException>()),
-    );
     await expectLater(
       live.boost(host, show.id, BoostKind.quick, 0.5, now: t0),
       throwsA(isA<TradeException>()),
@@ -83,6 +79,35 @@ void main() {
       (t) => t.type == TransactionType.promotion && t.userId == host,
     );
     expect(txs.map((t) => t.amount).toList()..sort(), [3, 5]);
+  });
+
+  test('gledatelj boosta tuđi show (plaća sam)', () async {
+    final show = await makeShow(t0);
+    final b = await live.boost(viewer, show.id, BoostKind.quick, 4, now: t0);
+    expect(b.kind, BoostKind.quick);
+    final tx = storage.transactions.where(
+      (t) => t.type == TransactionType.promotion && t.userId == viewer,
+    );
+    expect(tx.single.amount, 4);
+    expect(tx.single.deviceName, startsWith('Boost showa'));
+  });
+
+  test('show prodaje digitalno: zapis i čitanje', () {
+    final m = LiveShow(
+      id: 's',
+      hostId: host,
+      hostLabel: '',
+      title: 'x',
+      startsAt: t0,
+      createdAt: t0,
+      lots: const [],
+      sells: LiveSells.both,
+    ).toMap();
+    final back = LiveShow.fromMap(m);
+    expect(back.sells, LiveSells.both);
+    expect(back.sells.hasDigital, isTrue);
+    expect(back.sells.hasPhysical, isTrue);
+    expect(LiveSells.digital.hasPhysical, isFalse);
   });
 
   test('promocija zakazanog showa: jednom, ne prije plaćanja', () async {

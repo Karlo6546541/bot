@@ -1376,9 +1376,11 @@ class AppController extends Notifier<AppState> {
     DeviceCategory? category,
     bool relistUnsold = true,
     List<String?>? names,
+    LiveSells sells = LiveSells.physical,
   }) async {
     // Testno: bez podataka prodavatelja (traže se tek za isplatu).
     final show = await _live.create(
+      sells: sells,
       hostId: _requireUserId(),
       title: title,
       items: items,

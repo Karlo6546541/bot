@@ -23,6 +23,7 @@ import '../services/live_service.dart';
 import '../services/live_sound/live_sound.dart';
 import '../services/live_video.dart';
 import '../services/trade_service.dart';
+import '../models/live_boost.dart';
 import 'live_promote_sheet.dart';
 import 'show_checklist_screen.dart';
 import '../theme/app_theme.dart';
@@ -1146,7 +1147,20 @@ class _CreateLiveShowScreenState extends ConsumerState<CreateLiveShowScreen> {
           category: _category,
           // Neprodano ostaje spremljeno u Moje (ne ide samo na Kupi odmah).
           relistUnsold: false,
+          sells: _sells,
         );
+        // Promocija odabrana u čarobnjaku (plaća se karticom).
+        if (_promo > 0) {
+          try {
+            await app.liveBoost(
+              created!.id,
+              _startsAt == null ? BoostKind.quick : BoostKind.show,
+              _promo.toDouble(),
+            );
+          } on TradeException catch (e) {
+            showLoopSnackBar(e.message, error: true);
+          }
+        }
       },
       // Bez obavijesti: soba se odmah otvara (obavijest bi prekrila gumbe
       // na dnu sobe).
@@ -1176,6 +1190,12 @@ class _CreateLiveShowScreenState extends ConsumerState<CreateLiveShowScreen> {
       ),
     );
   }
+
+  /// Što se prodaje: stvari (aukcije), digitalno (Kupi odmah) ili oboje.
+  LiveSells _sells = LiveSells.physical;
+
+  /// Promocija odmah pri kreiranju: iznos u € (0 = bez promocije).
+  int _promo = 0;
 
   /// Korak čarobnjaka (0…[_steps] - 1).
   int _step = 0;
@@ -1444,6 +1464,77 @@ class _CreateLiveShowScreenState extends ConsumerState<CreateLiveShowScreen> {
 
   /// 4. Predmeti ovog livea.
   List<Widget> _itemsStep(AppState s) => [
+    Text(
+      t('Što prodaješ u liveu?'),
+      style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 18),
+    ),
+    const SizedBox(height: 8),
+    SegmentedButton<LiveSells>(
+      key: const ValueKey('live-sells'),
+      showSelectedIcon: false,
+      segments: [
+        for (final v in LiveSells.values)
+          ButtonSegment(
+            value: v,
+            label: Text(v.label, key: ValueKey('live-sells-${v.name}')),
+          ),
+      ],
+      selected: {_sells},
+      onSelectionChanged: (v) => setState(() => _sells = v.first),
+    ),
+    const SizedBox(height: 6),
+    Text(switch (_sells) {
+      LiveSells.physical => t('Stvari se licitiraju (aukcije u liveu).'),
+      LiveSells.digital => t(
+        'Digitalni proizvodi se u liveu kupuju odmah, bez aukcije. Kupac odmah preuzima datoteku.',
+      ),
+      LiveSells.both => t(
+        'Stvari se licitiraju, a digitalni proizvodi se kupuju odmah (Kupi odmah u liveu).',
+      ),
+    }, style: TextStyle(color: LoopColors.textSecondary, fontSize: 13)),
+    if (_sells.hasDigital) ...[
+      const SizedBox(height: 8),
+      Builder(
+        builder: (_) {
+          final digital = s
+              .listingsOf(s.currentUserId ?? '')
+              .where((d) => d.isDigital)
+              .length;
+          return Container(
+            key: const ValueKey('live-digital-count'),
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: LoopColors.surface,
+              borderRadius: BorderRadius.circular(kRadius),
+            ),
+            child: Row(
+              children: [
+                const Text('⬇️', style: TextStyle(fontSize: 20)),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    digital == 0
+                        ? t(
+                            'Još nemaš digitalnih proizvoda. Dodaj ih u Seller Hubu (Kreiraj → Predmet s detaljima → Digitalno).',
+                          )
+                        : t(
+                            '{0} digitalnih proizvoda bit će u Kupi odmah u liveu.',
+                            ['$digital'],
+                          ),
+                  ),
+                ),
+              ],
+            ),
+          );
+        },
+      ),
+    ],
+    const SizedBox(height: 20),
+    if (_sells.hasPhysical) ..._lotsSection(s),
+  ];
+
+  /// Predmeti za licitaciju (stvari).
+  List<Widget> _lotsSection(AppState s) => [
     _heading(
       t('Dodaj predmete'),
       t(
@@ -1536,10 +1627,81 @@ class _CreateLiveShowScreenState extends ConsumerState<CreateLiveShowScreen> {
               t('Početak'),
               _startsAt == null ? t('Odmah') : formatDateTime(_startsAt!),
             ),
-            line(
-              t('Predmeti'),
-              '${_selected.length + _drafts.fold<int>(0, (a, l) => a + l.count)}',
+            line(t('Prodaješ'), _sells.label),
+            if (_sells.hasPhysical)
+              line(
+                t('Predmeti'),
+                '${_selected.length + _drafts.fold<int>(0, (a, l) => a + l.count)}',
+              ),
+            if (_promo > 0)
+              line(t('Promocija'), formatCredits(_promo.toDouble())),
+          ],
+        ),
+      ),
+      const SizedBox(height: 12),
+      // Promocija odmah: zakazani show → promocija do kraja showa,
+      // live odmah → brzi boost 15 min.
+      Container(
+        key: const ValueKey('live-promo'),
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: LoopColors.surface,
+          borderRadius: BorderRadius.circular(kRadius),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(Icons.trending_up, color: LoopColors.accent),
+                const SizedBox(width: 8),
+                Text(
+                  _startsAt == null
+                      ? t('Brzi boost (15 min)')
+                      : t('Promocija showa'),
+                  style: const TextStyle(fontWeight: FontWeight.w900),
+                ),
+              ],
             ),
+            const SizedBox(height: 4),
+            Text(
+              _startsAt == null
+                  ? t('Odmah na vrh početne i kategorije dok si uživo.')
+                  : t('Istaknut u "Uskoro uživo" i do kraja showa.'),
+              style: TextStyle(color: LoopColors.textSecondary, fontSize: 13),
+            ),
+            const SizedBox(height: 8),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                for (final v in [0, if (_startsAt == null) 3, 5, 10, 20])
+                  ChoiceChip(
+                    key: ValueKey('live-promo-$v'),
+                    showCheckmark: false,
+                    label: Text(
+                      v == 0
+                          ? t('Bez promocije')
+                          : '${formatCredits(v.toDouble())} · ~${LiveBoost.estimatedReach(v.toDouble())}',
+                    ),
+                    selected: _promo == v,
+                    onSelected: (_) => setState(() => _promo = v),
+                  ),
+              ],
+            ),
+            if (_promo > 0)
+              Padding(
+                padding: const EdgeInsets.only(top: 6),
+                child: Text(
+                  t(
+                    'Plaća se karticom pri objavi; show ima oznaku "Promovirano".',
+                  ),
+                  style: TextStyle(
+                    color: LoopColors.textSecondary,
+                    fontSize: 12,
+                  ),
+                ),
+              ),
           ],
         ),
       ),
@@ -4037,9 +4199,14 @@ class _LiveRoomViewState extends ConsumerState<_LiveRoomBody> {
                           st.queue.length +
                           s
                               .listingsOf(show.hostId)
-                              .where((d) => !d.isDigital)
+                              .where(
+                                (d) => !d.isDigital || show.sells.hasDigital,
+                              )
                               .length,
                       onBag: () => _showQueue(st, isHost),
+                      onBoost: isHost || !canAct || st.isOver
+                          ? null
+                          : () => showPromoteSheet(context, ref, show),
                       liked: _liked,
                       onHeart: st.isOver || isHost ? null : _toggleLike,
                       showWallet: !isHost,
@@ -6356,7 +6523,11 @@ class _DouyinBar extends StatelessWidget {
     this.showWallet = false,
     required this.guest,
     required this.onLogin,
+    this.onBoost,
   });
+
+  /// Gledatelj boosta show (plaća sam, show ide prvi na početnoj).
+  final VoidCallback? onBoost;
 
   /// Novčanik uz srce i dijeljenje (gledatelji).
   final bool showWallet;
@@ -6528,6 +6699,19 @@ class _DouyinBar extends StatelessWidget {
             padding: EdgeInsets.symmetric(horizontal: 2),
             child: WalletChip(dark: true),
           ),
+        if (!composing &&
+            onBoost != null &&
+            MediaQuery.sizeOf(context).width >= 360)
+          IconButton(
+            key: const ValueKey('live-boost'),
+            tooltip: t('Boostaj show'),
+            onPressed: onBoost,
+            icon: const Icon(
+              Icons.rocket_launch_outlined,
+              color: Color(0xFFFFA24C),
+              size: 22,
+            ),
+          ),
         if (!composing)
           IconButton(
             key: const ValueKey('live-share'),
@@ -6567,9 +6751,10 @@ class _LiveShopSheet extends ConsumerWidget {
     final st = s.liveStateOf(show, DateTime.now());
     final me = s.currentUserId;
     final host = s.userById(show.hostId);
+    // Digitalno se u liveu kupuje odmah (bez aukcije), ako ga show prodaje.
     final shop = [
       for (final d in s.listingsOf(show.hostId))
-        if (!d.isDigital) d,
+        if (!d.isDigital || show.sells.hasDigital) d,
     ];
     final h = MediaQuery.sizeOf(context).height;
 
@@ -6797,7 +6982,9 @@ class _LiveShopSheet extends ConsumerWidget {
             title: d.name,
             price: formatCredits(s.priceForMe(d)),
             priceColor: const Color(0xFF4ADE80),
-            note: d.condition.label,
+            note: d.isDigital
+                ? t('⬇️ Digitalno · preuzimanje odmah')
+                : d.condition.label,
             action: isHost
                 ? null
                 : FilledButton(
@@ -6816,6 +7003,8 @@ class _LiveShopSheet extends ConsumerWidget {
 
     return DefaultTabController(
       length: kBuyNowEnabled ? 4 : 3,
+      // Digitalni show: najprije Kupi odmah.
+      initialIndex: kBuyNowEnabled && !show.sells.hasPhysical ? 1 : 0,
       child: SizedBox(
         height: h * 0.72,
         child: Column(
@@ -6846,6 +7035,16 @@ class _LiveShopSheet extends ConsumerWidget {
                       ],
                     ),
                   ),
+                  if (!isHost && !st.isOver && me != null)
+                    IconButton(
+                      key: const ValueKey('live-shop-boost'),
+                      tooltip: t('Boostaj show'),
+                      onPressed: () => showPromoteSheet(context, ref, show),
+                      icon: const Icon(
+                        Icons.rocket_launch_outlined,
+                        color: Color(0xFFFFA24C),
+                      ),
+                    ),
                   if (!isHost) const WalletChip(dark: true),
                 ],
               ),

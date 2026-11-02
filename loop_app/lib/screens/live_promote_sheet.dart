@@ -48,6 +48,8 @@ class _PromoteSheetState extends ConsumerState<PromoteSheet> {
     final reminders = s.liveEvents
         .where((e) => e.showId == show.id && e.type == LiveEventType.remind)
         .length;
+    // Gledatelj (ne domaćin) boosta show prodavača kojeg podržava.
+    final viewer = s.currentUserId != show.hostId;
     final canQuick = st.isLive;
     final canShow = !st.isOver && boost.kind != BoostKind.show;
     final kind =
@@ -165,12 +167,18 @@ class _PromoteSheetState extends ConsumerState<PromoteSheet> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              t('Promoviraj show'),
+              viewer ? t('Boostaj ovaj show') : t('Promoviraj show'),
               style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 22),
             ),
             const SizedBox(height: 4),
             Text(
-              t('Promovirani show ide prvi na početnoj i u svojoj kategoriji.'),
+              viewer
+                  ? t(
+                      'Podrži prodavača: show ide prvi na početnoj i u kategoriji, pa dođe više kupaca. Plaćaš ti.',
+                    )
+                  : t(
+                      'Promovirani show ide prvi na početnoj i u svojoj kategoriji.',
+                    ),
               style: TextStyle(color: muted),
             ),
             if (boost.active && until != null) ...[

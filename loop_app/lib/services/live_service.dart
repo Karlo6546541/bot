@@ -592,6 +592,7 @@ class LiveService {
     bool video = false,
     String? coverPath,
     String? category,
+    LiveSells sells = LiveSells.physical,
     bool relistUnsold = true,
     List<String?>? names,
   }) async {
@@ -665,6 +666,7 @@ class LiveService {
       hostSeenAt: later ? null : at,
       coverPath: coverPath,
       category: category,
+      sells: sells,
       relistUnsold: relistUnsold,
     );
     await _storage.putLiveShow(show);
@@ -1366,8 +1368,11 @@ class LiveService {
     if (user == null || user.isGuest || show == null) {
       throw TradeException(t('Show više ne postoji.'));
     }
-    if (show.hostId != userId) {
-      throw TradeException(t('Samo domaćin može promovirati show.'));
+    // Domaćin promovira svoj show; gledatelji ga mogu boostati (podrška
+    // omiljenom prodavaču) — plaća onaj tko boosta.
+    final host = show.hostId == userId;
+    if (!host && stateOf(show, now: at).banned.contains(userId)) {
+      throw TradeException(t('Ne možeš boostati ovaj show.'));
     }
     final state = stateOf(show, now: at);
     if (state.isOver) throw TradeException(t('Show je završio.'));
@@ -1417,7 +1422,9 @@ class LiveService {
         type: TransactionType.promotion,
         userId: userId,
         deviceId: '',
-        deviceName: kind == BoostKind.quick
+        deviceName: !host
+            ? t('Boost showa · {0}', [show.title])
+            : kind == BoostKind.quick
             ? t('Brzi boost · {0}', [show.title])
             : t('Promocija showa · {0}', [show.title]),
         price: value,
