@@ -17,6 +17,14 @@ for (const name of readdirSync(new URL('../migrations/', import.meta.url)).filte
   await db.exec(readFileSync(new URL('../migrations/'+name,import.meta.url),'utf8'));
 }
 
+await db.exec(`create table public.loop_live_shows(id text primary key,data jsonb);
+create table public.loop_live_events(id text primary key,data jsonb);
+create table public.loop_transactions(id text primary key,data jsonb);
+alter table public.loop_devices enable row level security;
+create policy loop_write on public.loop_devices for all to authenticated using(true) with check(true);
+grant all on public.loop_devices,public.loop_live_events,public.loop_transactions to authenticated,service_role;`);
+await db.exec(readFileSync(new URL('../migrations/20261102170214_subhasto_platform_payments.sql',import.meta.url),'utf8'));
+
 const host='00000000-0000-4000-8000-000000000001',buyer='00000000-0000-4000-8000-000000000002',other='00000000-0000-4000-8000-000000000003';
 await db.query('insert into auth.users values ($1),($2),($3)',[host,buyer,other]);
 async function as(id){await db.exec('reset role');await db.query("select set_config('request.jwt.claim.sub',$1,false)",[id]);await db.exec('set role authenticated');}
@@ -127,4 +135,7 @@ console.log('PASS: asynchronous payment failure retries and retention permission
 console.log('PASS: checkout cannot be cancelled/restocked during payment; incorrect payment amount rejected');
 console.log('PASS: commerce reservation, stock, retry, private orders, shipping idempotency, payment authority, fulfillment and cancellation');
 console.log('PASS: permissions, ownership, bid increments, retry idempotency, chat rate limit, mute/ban, RLS, server expiry, single award');
+const { platformTests }=await import('./platform_payments.mjs');
+await platformTests(db,assert,as,rpc,rejects,{host,buyer,other});
 await db.close();
+

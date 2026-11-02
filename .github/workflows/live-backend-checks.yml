@@ -21,4 +21,8 @@ jobs:
           deno-version: v2.x
       - run: deno check backend/live/functions/integration-health/index.ts backend/live/functions/live-control/index.ts backend/live/functions/live-token/index.ts backend/live/functions/stripe-connect/index.ts backend/live/functions/stripe-checkout/index.ts backend/live/functions/stripe-webhook/index.ts
 
+      - run: deno check backend/live/functions/stripe-setup/index.ts backend/live/functions/stripe-charge/index.ts backend/live/functions/stripe-promotion/index.ts backend/live/functions/stripe-release/index.ts
+
       - run: deno test --allow-env backend/live/tests/stripe_failure_test.ts
+      - run: deno test --allow-env backend/live/tests/stripe_charge_test.ts
+      - run: deno test backend/live/tests/config_values_test.ts

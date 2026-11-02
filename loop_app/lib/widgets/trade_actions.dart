@@ -7,6 +7,12 @@ import '../models/app_user.dart';
 import '../models/device.dart';
 import '../providers/app_providers.dart';
 import '../services/fee.dart';
+import '../services/stripe_backend.dart';
+import '../services/commerce_backend.dart';
+import '../screens/cloud_commerce_screen.dart';
+import '../config/backend_config.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:uuid/uuid.dart';
 import '../services/trade_service.dart';
 import '../theme/app_theme.dart';
 import '../screens/seller_screens.dart';
@@ -119,6 +125,17 @@ Future<bool> ensureCheckout(
 Future<bool> ensureCard(BuildContext context, WidgetRef ref) async {
   final user = ref.read(appProvider).currentUser;
   if (user == null || user.isGuest) return false;
+  if (BackendConfig.cloudCommerceEnabled && ref.read(syncProvider) != null) {
+    try {
+      final card = await StripeBackend(Supabase.instance.client).cardStatus();
+      if (card.hasCard) return true;
+    } catch (error) {
+      showLoopSnackBar(paymentActionErrorMessage(error), error: true);
+      return false;
+    }
+    if (!context.mounted) return false;
+    return changeCard(context, ref);
+  }
   if (user.paymentCard != null) return true;
   return changeCard(context, ref);
 }
@@ -509,6 +526,17 @@ Future<bool> confirmAndBuy(
   if (blockGuest(context)) return false;
   final user = ref.read(appProvider).currentUser;
   if (user == null) return false;
+  if (BackendConfig.cloudCommerceEnabled && ref.read(syncProvider) != null) {
+    if (!await ensureCard(context, ref) || !context.mounted) return false;
+    try {
+      final order = await CommerceBackend(Supabase.instance.client).reserveDevice(device.id, const Uuid().v4());
+      if (!context.mounted) return false;
+      await Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => CloudCommerceScreen(initialTab: 2, initialOrder: order['id'] as String)));
+    } catch (error) {
+      showLoopSnackBar(paymentActionErrorMessage(error), error: true);
+    }
+    return false;
+  }
   // Dogovorena cijena (prihvaćena ponuda) ili cijena oglasa s popustom.
   final price = ref.read(appProvider).priceForMe(device);
   // Već kupljen digitalni proizvod — samo preuzmi.
@@ -1162,3 +1190,4 @@ Future<void> downloadDigital(
     showLoopSnackBar(t('Preuzimanje nije uspjelo: {0}', [e]), error: true);
   }
 }
+

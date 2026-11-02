@@ -3,13 +3,27 @@ import 'package:flutter/services.dart';
 
 import '../l10n/tr.dart';
 import '../services/payments.dart';
+import '../services/stripe_backend.dart';
+import '../config/backend_config.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../services/trade_service.dart';
 import '../theme/app_theme.dart';
 
 /// Dodavanje načina plaćanja: Apple Pay, Google Pay ili kartica (testni
 /// način). Vraća oznaku za spremanje ("Visa •••• 4242") ili null.
-Future<String?> addPaymentMethod(BuildContext context) =>
-    showModalBottomSheet<String>(
+Future<String?> addPaymentMethod(BuildContext context) async {
+  if (BackendConfig.isOnline && BackendConfig.cloudCommerceEnabled) {
+    try {
+      final backend = StripeBackend(Supabase.instance.client);
+      if (!await backend.addCard(context)) return null;
+      final card = await backend.cardStatus();
+      return card.hasCard ? 'Kartica •••• ${card.last4}' : null;
+    } catch (error) {
+      if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(paymentActionErrorMessage(error))));
+      return null;
+    }
+  }
+  return showModalBottomSheet<String>(
       context: context,
       isScrollControlled: true,
       showDragHandle: true,
@@ -17,6 +31,7 @@ Future<String?> addPaymentMethod(BuildContext context) =>
       constraints: const BoxConstraints(maxWidth: 520),
       builder: (_) => appThemed(const _PaymentSheet()),
     );
+}
 
 class _PaymentSheet extends StatefulWidget {
   const _PaymentSheet();
@@ -558,3 +573,4 @@ class _ExpiryFormatter extends TextInputFormatter {
     );
   }
 }
+
