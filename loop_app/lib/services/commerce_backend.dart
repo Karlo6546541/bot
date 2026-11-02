@@ -6,6 +6,9 @@ class CommerceBackend {
   CommerceBackend(this.client);
   final SupabaseClient client;
 
+  Future<Map<String, dynamic>> reserveDevice(String device, String request) async => Map<String, dynamic>.from(await client.rpc('commerce_reserve_device', params: {'p_device': device, 'p_request': request}) as Map);
+  Future<dynamic> reportProblem(String order) => client.rpc('commerce_report_problem', params: {'p_order': order});
+
   Future<dynamic> publish(String title, int cents, int stock) => client.rpc(
     'commerce_publish',
     params: {'p_title': title, 'p_price': cents, 'p_stock': stock},
@@ -77,3 +80,4 @@ class CommerceBackend {
   Future<dynamic> readNotification(int id) =>
       client.rpc('commerce_read_notification', params: {'p_id': id});
 }
+

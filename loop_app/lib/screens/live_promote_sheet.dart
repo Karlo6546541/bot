@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:uuid/uuid.dart';
+import '../widgets/trade_actions.dart' show ensureCard;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../l10n/tr.dart';
@@ -36,6 +38,7 @@ class _PromoteSheetState extends ConsumerState<PromoteSheet> {
   BoostKind? _kind;
   double? _amount;
   bool _busy = false;
+  final Map<String, String> _paymentRequests = {};
 
   @override
   Widget build(BuildContext context) {
@@ -140,7 +143,12 @@ class _PromoteSheetState extends ConsumerState<PromoteSheet> {
       setState(() => _busy = true);
       final nav = Navigator.of(context);
       try {
-        await ref.read(appProvider.notifier).liveBoost(show.id, kind, amount);
+        if (!await ensureCard(context, ref) || !context.mounted) {
+          if (mounted) setState(() => _busy = false);
+          return;
+        }
+        final request = _paymentRequests.putIfAbsent('${kind.name}:$amount', () => const Uuid().v4());
+        await ref.read(appProvider.notifier).liveBoost(show.id, kind, amount, paymentContext: context, requestId: request);
         nav.pop();
         showLoopSnackBar(
           kind == BoostKind.quick
@@ -365,3 +373,4 @@ class _CommunityCard extends StatelessWidget {
     );
   }
 }
+

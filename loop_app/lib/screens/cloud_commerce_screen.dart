@@ -525,6 +525,12 @@ class _CloudCommerceState extends State<CloudCommerceScreen> {
           ),
           Text(labels[state] ?? '$state'),
           Text('Narudžba ${id.substring(0, 8)}'),
+          const Text('Testna naplata · paketomat je demo. Naknada Subhasta: 6 % cijene predmeta.'),
+          if (!buyer && ['paid', 'shipped', 'delivered'].contains(state))
+            const Text('Novac je zadržan do potvrde kupca ili 48 sati nakon evidentiranog preuzimanja, ako nema prijave problema.'),
+          if (buyer && ['paid', 'shipped', 'delivered'].contains(state))
+            OutlinedButton(onPressed: busy ? null : () => _run(() => commerce.reportProblem(id)), child: const Text('Prijavi problem i zadrži isplatu')),
+
           if (buyer && (state == 'awaiting_payment' || state == 'paid'))
             OutlinedButton(
               onPressed: busy
@@ -543,21 +549,21 @@ class _CloudCommerceState extends State<CloudCommerceScreen> {
                     }),
               child: const Text('Odaberi paketomat'),
             ),
-          if (buyer && state == 'awaiting_payment' && cardLast4 != null)
+          if (buyer && state == 'awaiting_payment')
             FilledButton.icon(
               onPressed: busy ? null : () => _run(() => _autoCharge(id)),
               icon: const Icon(Icons.credit_card),
-              label: Text('Plati karticom •••• $cardLast4'),
+              label: Text(cardLast4 == null ? 'Dodaj karticu i plati' : 'Plati karticom •••• $cardLast4'),
             ),
           if (buyer && state == 'awaiting_payment')
             FilledButton(
               onPressed: busy
                   ? null
-                  : () => _run(() => StripeBackend(db).checkout(id)),
+                  : () => _run(() => StripeBackend(db).addCard(context).then((_) => _loadCard())),
               child: Text(
                 cardLast4 == null
-                    ? 'Plati preko Stripea (test)'
-                    : 'Plati drugom karticom (Stripe)',
+                    ? 'Dodaj karticu (test)'
+                    : 'Promijeni spremljenu karticu',
               ),
             ),
           if (!buyer && state == 'paid')
@@ -576,7 +582,7 @@ class _CloudCommerceState extends State<CloudCommerceScreen> {
               onPressed: busy
                   ? null
                   : () => _run(() => commerce.confirmDelivery(id)),
-              child: const Text('Potvrdi primitak'),
+              child: const Text('Primljeno i sve je u redu'),
             ),
         ],
       ),
@@ -630,7 +636,8 @@ class _CloudCommerceState extends State<CloudCommerceScreen> {
   /// pobjednika je automatska). Ako Stripe nije dostupan, ne blokira.
   Future<bool> _ensureCard() async {
     if (!cardKnown) await _loadCard();
-    if (!cardKnown || cardLast4 != null) return true;
+    if (!cardKnown) return false;
+    if (cardLast4 != null) return true;
     if (!mounted) return false;
     final add = await showDialog<bool>(
       context: context,
@@ -652,14 +659,18 @@ class _CloudCommerceState extends State<CloudCommerceScreen> {
         ],
       ),
     );
-    if (add == true) await StripeBackend(db).addCard();
+    if (add == true && mounted) {
+      final saved = await StripeBackend(db).addCard(context);
+      await _loadCard();
+      return saved;
+    }
     return false;
   }
 
   /// Nakon odabira dostave: naplati spremljenu karticu bez checkouta.
   Future<void> _autoCharge(String orderId) async {
-    if (cardLast4 == null) return;
-    final paid = await StripeBackend(db).charge(orderId);
+    if (!await _ensureCard() || !mounted) return;
+    final paid = await StripeBackend(db).charge(orderId, context: context);
     if (paid && mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Plaćeno karticom •••• $cardLast4')),
@@ -1610,3 +1621,4 @@ class _LotTimerState extends State<_LotTimer> {
     );
   }
 }
+

@@ -5,8 +5,11 @@ export async function services() {
   const config = await integrationConfig();
   const secret = config.STRIPE_RESTRICTED_KEY ?? config.STRIPE_SECRET_KEY;
   if (!secret || !/^(rk|sk)_test_/.test(secret)) throw new Error('TEST_MODE_REQUIRED');
+  const stripe = new Stripe(secret, { httpClient: Stripe.createFetchHttpClient() });
+  const platform = await stripe.accounts.retrieve();
+  if (platform.id !== 'acct_1UVqd9PdLAWyn74E') throw new Error('WRONG_TEST_PLATFORM');
   return {
-    stripe: new Stripe(secret, { httpClient: Stripe.createFetchHttpClient() }),
+    stripe,
     admin: adminClient(), config,
   };
 }
@@ -53,12 +56,21 @@ export async function customerFor(stripe: Stripe,
   admin: ReturnType<typeof adminClient>,
   user: { id: string; email?: string | null; app_metadata?: Record<string, unknown> }) {
   const existing = user.app_metadata?.stripe_customer_id as string | undefined;
-  if (existing) return existing;
+  const { data: profile, error: readError } = await admin.from('commerce_customers').select('customer_id').eq('user_id', user.id).maybeSingle();
+  if (readError) throw readError;
+  if (profile) return profile.customer_id as string;
+  if (existing) {
+    const customer = await stripe.customers.retrieve(existing);
+    if (!customer.deleted && !customer.livemode && customer.metadata.user_id === user.id) {
+      const { error } = await admin.from('commerce_customers').upsert({user_id:user.id,customer_id:existing},{onConflict:'user_id'});
+      if (error) throw error;
+      return existing;
+    }
+  }
   const customer = await stripe.customers.create(
     { email: user.email ?? undefined, metadata: { user_id: user.id } },
     { idempotencyKey: `customer-${user.id}` });
-  const { error } = await admin.auth.admin.updateUserById(user.id,
-    { app_metadata: { ...user.app_metadata, stripe_customer_id: customer.id } });
+  const { error } = await admin.from('commerce_customers').upsert({user_id:user.id,customer_id:customer.id},{onConflict:'user_id'});
   if (error) throw error;
   return customer.id;
 }
@@ -69,3 +81,4 @@ export async function savedCard(stripe: Stripe, customerId: string) {
   const card = list.data[0];
   return card ? { id: card.id, brand: card.card?.brand ?? 'card', last4: card.card?.last4 ?? '' } : null;
 }
+

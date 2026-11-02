@@ -12,7 +12,9 @@ Deno.serve(async (req: Request) => {
   // Configuration indicators only. Never return environment values or credentials.
   return new Response(JSON.stringify({
     paymentsConfigured: /^(rk|sk)_test_/.test(key),
+    paymentFormConfigured: !!config.STRIPE_PUBLISHABLE_KEY?.startsWith('pk_test_'),
     webhookConfigured: !!config.STRIPE_WEBHOOK_SECRET,
     streamingConfigured: !!config.LIVEKIT_URL && !!config.LIVEKIT_API_KEY && !!config.LIVEKIT_API_SECRET,
   }), { headers });
 });
+

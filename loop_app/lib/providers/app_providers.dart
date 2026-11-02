@@ -2,7 +2,7 @@ import '../config/backend_config.dart';
 import 'dart:async';
 import 'dart:convert';
 
-import 'package:flutter/material.dart' show ThemeMode;
+import 'package:flutter/material.dart' show ThemeMode, BuildContext;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart' show Supabase;
 
@@ -41,6 +41,7 @@ import '../widgets/loop_snackbar.dart';
 import '../services/storage_service.dart';
 import '../services/sync_service.dart';
 import '../services/trade_service.dart';
+import '../services/stripe_backend.dart';
 import 'package:uuid/uuid.dart';
 import '../services/file_saver/file_saver.dart';
 import 'app_state.dart';
@@ -1543,8 +1544,23 @@ class AppController extends Notifier<AppState> {
   Future<LiveBoost> liveBoost(
     String showId,
     BoostKind kind,
-    double amount,
-  ) async {
+    double amount, {
+    BuildContext? paymentContext,
+    String? requestId,
+  }) async {
+    if (BackendConfig.cloudCommerceEnabled && ref.read(syncProvider) != null) {
+      _requireUserId();
+      try {
+        final paid = await StripeBackend(Supabase.instance.client).promote(showId, kind.name, (amount * 100).round(), requestId ?? const Uuid().v4(), context: paymentContext);
+        if (!paid) throw TradeException(t('Naplata nije dovršena. Provjeri stanje prije ponovnog pokušaja.'));
+        await ref.read(syncProvider)?.catchUpNow();
+        _refresh();
+        final show = state.liveShowById(showId);
+        return show == null ? LiveBoost.none : _live.stateOf(show).boost;
+      } on TradeException { rethrow; } catch (error) {
+        throw TradeException(paymentActionErrorMessage(error));
+      }
+    }
     final b = await _live.boost(_requireUserId(), showId, kind, amount);
     _refresh();
     return b;
@@ -1854,3 +1870,4 @@ class AppController extends Notifier<AppState> {
     return user.id;
   }
 }
+

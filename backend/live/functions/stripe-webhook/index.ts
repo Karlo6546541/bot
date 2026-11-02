@@ -12,10 +12,41 @@ Deno.serve(async (req: Request) => {
       svc.config.STRIPE_WEBHOOK_SECRET!, undefined, Stripe.createSubtleCryptoProvider());
   } catch { return new Response('Invalid webhook or configuration', { status: 400 }); }
   if (event.livemode) return new Response('Test mode only', { status: 400 });
-  // Automatska naplata spremljene kartice: PaymentIntent bez Checkout sesije.
+  if (['charge.refunded','charge.dispute.created'].includes(event.type)) {
+    const object=event.data.object as unknown as {id:string;charge?:string;payment_intent?:string;amount_refunded?:number};
+    const charge=event.type==='charge.refunded'
+      ? object as unknown as Stripe.Charge : await svc.stripe.charges.retrieve(object.charge!);
+    const intent=typeof charge.payment_intent==='string'?charge.payment_intent:null;
+    if(!intent)return new Response('Ignored');
+    const {error}=await svc.admin.rpc('commerce_record_refund',{p_intent:intent,p_refunded:charge.amount_refunded,p_disputed:charge.disputed});
+    if(error)return new Response('Retry later',{status:503});
+    const {data:p}=await svc.admin.from('commerce_payments').select('transfer_id').eq('intent_id',intent).maybeSingle();
+    if(p?.transfer_id){
+      try{
+        const t=await svc.stripe.transfers.retrieve(p.transfer_id);
+        if(t.amount>t.amount_reversed)await svc.stripe.transfers.createReversal(t.id,{amount:t.amount-t.amount_reversed},{idempotencyKey:`risk-reversal-${t.id}`});
+      }catch{return new Response('Retry later',{status:503});}
+    }
+    const {data:promo}=await svc.admin.from('commerce_promotions').select('id,amount_cents').eq('intent_id',intent).maybeSingle();
+    if(promo&&(charge.disputed||charge.amount_refunded>0)){
+      const {error:e}=await svc.admin.rpc('commerce_refund_promotion',{p_id:promo.id,p_amount:charge.disputed?charge.amount:charge.amount_refunded});
+      if(e)return new Response('Retry later',{status:503});
+    }
+    return new Response('OK');
+  }
+  // Saved-card payments are fulfilled only after verified Stripe success.
   if (event.type === 'payment_intent.succeeded') {
     const intent = event.data.object as Stripe.PaymentIntent;
+    if(intent.metadata?.promotion_id){
+      const {error}=await svc.admin.rpc('commerce_settle_promotion',{p_id:intent.metadata.promotion_id,p_intent:intent.id,p_amount:intent.amount_received});
+      return new Response(error?'Retry later':'OK',{status:error?503:200});
+    }
     if (!intent.metadata?.order_id) return new Response('Ignored', { status: 200 });
+    const {data:payment}=await svc.admin.from('commerce_payments').select('intent_id').eq('order_id',intent.metadata.order_id).maybeSingle();
+    if(payment){
+      const {error}=await svc.admin.rpc('commerce_settle_intent',{p_event:event.id,p_order:intent.metadata.order_id,p_intent:intent.id,p_charge:typeof intent.latest_charge==='string'?intent.latest_charge:null,p_amount:intent.amount_received,p_currency:intent.currency.toUpperCase()});
+      return new Response(error?'Retry later':'OK',{status:error?503:200});
+    }
     const { error } = await svc.admin.rpc('commerce_record_payment', {
       p_event: event.id, p_order: intent.metadata.order_id,
       p_amount: intent.amount_received, p_currency: intent.currency.toUpperCase(),
@@ -44,3 +75,4 @@ Deno.serve(async (req: Request) => {
   });
   return new Response(error ? 'Retry later' : 'OK', { status: error ? 503 : 200 });
 });
+

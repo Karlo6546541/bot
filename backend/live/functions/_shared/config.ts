@@ -1,5 +1,5 @@
 import { createClient } from 'npm:@supabase/supabase-js@2.49.8';
-const names = ['STRIPE_RESTRICTED_KEY', 'STRIPE_SECRET_KEY', 'STRIPE_WEBHOOK_SECRET',
+const names = ['STRIPE_RESTRICTED_KEY', 'STRIPE_SECRET_KEY', 'STRIPE_PUBLISHABLE_KEY', 'STRIPE_WEBHOOK_SECRET', 'STRIPE_RELEASE_JOB_SECRET',
   'LIVEKIT_URL', 'LIVEKIT_API_KEY', 'LIVEKIT_API_SECRET'] as const;
 type Config = Partial<Record<typeof names[number], string>>;
 let cached: { until: number; value: Config } | undefined;
@@ -19,3 +19,4 @@ export async function integrationConfig(): Promise<Config> {
   cached = { until: Date.now() + 30000, value };
   return value;
 }
+
