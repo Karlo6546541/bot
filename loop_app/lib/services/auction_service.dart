@@ -316,6 +316,9 @@ class AuctionService {
     DateTime? now,
   }) async {
     final at = now ?? DateTime.now();
+    // Svježi zapis (kao pri licitiranju): ponuda s drugog uređaja je možda
+    // već prešla prag "Kupi odmah" ili je aukcija završila.
+    await _storage.refreshAuction(auctionId);
     final a = _requireAuction(auctionId);
     final user = _storage.userById(userId);
     if (user == null) throw TradeException(t('Korisnik ne postoji.'));
@@ -324,6 +327,10 @@ class AuctionService {
     }
     if (a.sellerId == userId) {
       throw TradeException(t('Ne možeš kupiti svoj predmet.'));
+    }
+    // Prodavatelj je blokirao kupca (isto pravilo kao pri licitiranju).
+    if (_storage.userById(a.sellerId)?.blockedIds.contains(userId) ?? false) {
+      throw TradeException(t('Ne možeš licitirati na ovu aukciju.'));
     }
     if (!a.canBuyNow) {
       throw TradeException(t('"Kupi odmah" više nije dostupno.'));

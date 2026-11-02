@@ -40,7 +40,7 @@ Future<void> showPayoutDialog(BuildContext context, WidgetRef ref) async {
   if (amount <= 0) {
     showLoopSnackBar(
       held > 0
-          ? t('Zarada je zadržana dok traje spor oko povrata.')
+          ? t('Zarada se oslobađa kad paket stigne kupcu ili kad se riješi spor.')
           : t('Nemaš zarade za isplatu.'),
       error: true,
     );

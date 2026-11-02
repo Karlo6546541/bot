@@ -27,15 +27,7 @@ class DisputeService {
   static const businessReturnDays = 14;
 
   /// Zapis prodaje za pošiljku (zarada prodavatelja).
-  LoopTransaction? saleOf(Delivery d) => _storage.transactions
-      .where(
-        (x) =>
-            x.type == TransactionType.sell &&
-            x.deviceId == d.deviceId &&
-            x.buyerId == d.buyerId &&
-            (x.sellerId ?? x.userId) == d.sellerId,
-      )
-      .firstOrNull;
+  LoopTransaction? saleOf(Delivery d) => saleFor(d, _storage.transactions);
 
   /// Smije li kupac prijaviti problem za ovu pošiljku.
   bool canOpen(Delivery d, {DateTime? now}) {
@@ -49,15 +41,75 @@ class DisputeService {
         at.difference(d.confirmedAt!).inDays < businessReturnDays;
   }
 
-  /// Zarada prodavatelja zadržana zbog sporova u tijeku.
-  double heldFor(String sellerId) {
+  /// Nakon ovoliko dana od slanja zarada se oslobađa i bez potvrde primitka
+  /// (npr. kupac nikad ne preuzme paket iz paketomata).
+  static const releaseDays = 7;
+
+  /// Zapis prodaje za pošiljku. Isti predmet može biti prodan više puta
+  /// (povrat, pa ponovna kupnja) — vrijedi zadnja prodaja.
+  static LoopTransaction? saleFor(
+    Delivery d,
+    Iterable<LoopTransaction> transactions,
+  ) {
+    // Pošiljka nosi ID prodaje (aukcija, live) ili "del-<ID prodaje>"
+    // (Kupi odmah) — točna veza i kad je kupac dobio novi komad zalihe.
+    final linked = d.id.startsWith('del-') ? d.id.substring(4) : d.id;
+    for (final x in transactions) {
+      if (x.type == TransactionType.sell && x.id == linked) return x;
+    }
+    LoopTransaction? best;
+    for (final x in transactions) {
+      if (x.type != TransactionType.sell ||
+          x.deviceId != d.deviceId ||
+          x.buyerId != d.buyerId ||
+          (x.sellerId ?? x.userId) != d.sellerId) {
+        continue;
+      }
+      if (best == null || x.createdAt.isAfter(best.createdAt)) best = x;
+    }
+    return best;
+  }
+
+  /// Je li zarada od pošiljke oslobođena za isplatu: paket je stigao ili
+  /// je primitak potvrđen, odnosno prošlo je [releaseDays] od slanja.
+  static bool released(Delivery d, DateTime now) {
+    if (d.method == DeliveryMethod.digital) return true;
+    if (d.confirmedAt != null) return true;
+    final started = d.startedAt;
+    if (started != null && now.difference(started).inDays >= releaseDays) {
+      return true;
+    }
+    return d.method != null && d.isDelivered(now);
+  }
+
+  /// Zarada prodavatelja koja se još ne smije isplatiti: prodaje s
+  /// neisporučenim paketom i prodaje sa sporom u tijeku. Povrat prodavatelju
+  /// se oduzima od stanja, pa isplata prije isporuke ne smije biti moguća —
+  /// inače bi stanje nakon povrata otišlo u minus.
+  static double holdOf(
+    String sellerId,
+    Iterable<Delivery> deliveries,
+    Iterable<LoopTransaction> transactions,
+    DateTime now,
+  ) {
     var held = 0.0;
-    for (final d in _storage.deliveries) {
-      if (d.sellerId != sellerId || !(d.dispute?.active ?? false)) continue;
-      held += saleOf(d)?.amount ?? 0;
+    for (final d in deliveries) {
+      if (d.sellerId != sellerId) continue;
+      final dispute = d.dispute;
+      if (dispute?.status == DisputeStatus.refunded) continue;
+      final hold = (dispute?.active ?? false) || !released(d, now);
+      if (hold) held += saleFor(d, transactions)?.amount ?? 0;
     }
     return roundCredits(held);
   }
+
+  /// Zarada prodavatelja zadržana (spor u tijeku ili paket još nije stigao).
+  double heldFor(String sellerId, {DateTime? now}) => holdOf(
+    sellerId,
+    _storage.deliveries,
+    _storage.transactions,
+    now ?? DateTime.now(),
+  );
 
   /// Kupac prijavljuje problem.
   Future<Delivery> open(

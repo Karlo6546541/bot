@@ -174,9 +174,10 @@ class DeliveryService {
     String? sellerId,
     DateTime? now,
     Carrier? carrier,
+    String? id,
   }) async {
     final d = Delivery(
-      id: _uuid.v4(),
+      id: id ?? _uuid.v4(),
       deviceId: device.id,
       deviceName: '${device.name} ${device.model}',
       buyerId: userId,

@@ -2,7 +2,8 @@
 // Generirano iz popisa tekstova; nadopuni ručno kad dodaješ nove.
 
 const kEn = <String, String>{
-  'Naplata nije dovršena. Provjeri stanje prije ponovnog pokušaja.': 'Payment is incomplete. Check its status before retrying.',
+  'Naplata nije dovršena. Provjeri stanje prije ponovnog pokušaja.':
+      'Payment is incomplete. Check its status before retrying.',
   'Pošiljke': 'Shipments',
   'Otvori pošiljku za pregled i ispis otpremnice.':
       'Open a shipment to view and print its packing slip.',
@@ -3035,8 +3036,6 @@ const kEn = <String, String>{
   'Zahtjev za povrat': 'Refund request',
   'Zahtjevi za povrat ({0})': 'Refund requests ({0})',
   'Zahtjevi za povrat za odluku: {0}': 'Refund requests to decide: {0}',
-  'Zarada je zadržana dok traje spor oko povrata.':
-      'Earnings are on hold while a refund dispute is open.',
   'Zatraži povrat': 'Request a refund',
   'odbijeno od zarade': 'deducted from earnings',
   'vraćeno na karticu': 'refunded to card',
@@ -3134,20 +3133,30 @@ const kEn = <String, String>{
   'Boostaj ovaj show': 'Boost this show',
   'Boostaj show': 'Boost show',
   'Brzi boost (15 min)': 'Quick boost (15 min)',
-  'Digitalni proizvodi se u liveu kupuju odmah, bez aukcije. Kupac odmah preuzima datoteku.': 'Digital products are bought instantly in the show, without an auction. The buyer downloads the file right away.',
-  'Još nemaš digitalnih proizvoda. Dodaj ih u Seller Hubu (Kreiraj → Predmet s detaljima → Digitalno).': 'You have no digital products yet. Add them in Seller Hub (Create → Quality listing → Digital).',
+  'Digitalni proizvodi se u liveu kupuju odmah, bez aukcije. Kupac odmah preuzima datoteku.':
+      'Digital products are bought instantly in the show, without an auction. The buyer downloads the file right away.',
+  'Još nemaš digitalnih proizvoda. Dodaj ih u Seller Hubu (Kreiraj → Predmet s detaljima → Digitalno).':
+      'You have no digital products yet. Add them in Seller Hub (Create → Quality listing → Digital).',
   'Ne možeš boostati ovaj show.': 'You can\'t boost this show.',
-  'Odmah na vrh početne i kategorije dok si uživo.': 'Straight to the top of Home and the category while you\'re live.',
-  'Plaća se karticom pri objavi; show ima oznaku "Promovirano".': 'Paid by card when you publish; the show carries a "Promoted" label.',
-  'Podrži prodavača: show ide prvi na početnoj i u kategoriji, pa dođe više kupaca. Plaćaš ti.': 'Support the seller: the show goes first on Home and in its category, bringing more buyers. You pay.',
+  'Odmah na vrh početne i kategorije dok si uživo.':
+      'Straight to the top of Home and the category while you\'re live.',
+  'Plaća se karticom pri objavi; show ima oznaku "Promovirano".':
+      'Paid by card when you publish; the show carries a "Promoted" label.',
+  'Podrži prodavača: show ide prvi na početnoj i u kategoriji, pa dođe više kupaca. Plaćaš ti.':
+      'Support the seller: the show goes first on Home and in its category, bringing more buyers. You pay.',
   'Prodaješ': 'Selling',
-  'Stvari se licitiraju (aukcije u liveu).': 'Items are auctioned (live auctions).',
-  'Stvari se licitiraju, a digitalni proizvodi se kupuju odmah (Kupi odmah u liveu).': 'Items are auctioned and digital products are bought instantly (Buy Now in the show).',
-  '{0} digitalnih proizvoda bit će u Kupi odmah u liveu.': '{0} digital products will be in Buy Now in the show.',
+  'Stvari se licitiraju (aukcije u liveu).':
+      'Items are auctioned (live auctions).',
+  'Stvari se licitiraju, a digitalni proizvodi se kupuju odmah (Kupi odmah u liveu).':
+      'Items are auctioned and digital products are bought instantly (Buy Now in the show).',
+  '{0} digitalnih proizvoda bit će u Kupi odmah u liveu.':
+      '{0} digital products will be in Buy Now in the show.',
   'Što prodaješ u liveu?': 'What are you selling in the show?',
   '⬇️ Digitalno · preuzimanje odmah': '⬇️ Digital · instant download',
   'Stvari': 'Items',
   'Oboje': 'Both',
+  'Zarada se oslobađa kad paket stigne kupcu ili kad se riješi spor.':
+      'Earnings are released when the parcel reaches the buyer or a dispute is resolved.',
   'Zakaži show': 'Schedule a show',
   'Otprema': 'Shipping',
   'Nema paketa za predaju': 'No parcels to hand over',

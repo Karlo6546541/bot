@@ -791,7 +791,13 @@ class BuyerBargainCard extends ConsumerWidget {
     switch (offer.status) {
       case BargainStatus.accepted:
         text = t('✅ Dogovorena cijena {0} vrijedi do {1}. Kupi gumbom iznad.', [
-          formatCredits(buyTotal(offer.agreedPrice)),
+          formatCredits(
+            buyTotal(
+              offer.agreedPrice < device.priceAt(DateTime.now())
+                  ? offer.agreedPrice
+                  : device.priceAt(DateTime.now()),
+            ),
+          ),
           formatDateTime(offer.validUntil!),
         ]);
         actions = const [];

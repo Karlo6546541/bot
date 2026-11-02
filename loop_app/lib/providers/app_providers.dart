@@ -944,6 +944,7 @@ class AppController extends Notifier<AppState> {
       await ref
           .read(deliveryServiceProvider)
           .createPending(
+            id: TradeService.deliveryIdOfBuy(tx),
             userId: userId,
             deviceId: bought.id,
             deviceName: bought.name,
@@ -964,6 +965,7 @@ class AppController extends Notifier<AppState> {
           destination: destination,
           sellerId: tx.sellerId,
           carrier: carrier,
+          id: TradeService.deliveryIdOfBuy(tx),
         );
     _refresh();
     return tx;

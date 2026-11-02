@@ -218,7 +218,9 @@ class TradeService {
     final at = now ?? DateTime.now();
     // Dogovorena cijena (prihvaćena ponuda) ima prednost pred cijenom oglasa.
     final bargain = BargainService(_storage).usable(userId, deviceId, at);
-    final price = bargain?.agreedPrice ?? device.priceAt(at);
+    // Dogovorena cijena ne smije biti viša od trenutne (prodavač je oglas
+    // u međuvremenu mogao sniziti ili dati popust).
+    final price = _bargainPrice(bargain, device.priceAt(at));
     final fee = feeFor(price);
     final total = buyTotal(price);
     // Kupac plaća karticom preko pružatelja plaćanja (u demo verziji se
@@ -302,7 +304,9 @@ class TradeService {
     if (bargain != null) await BargainService(_storage).markUsed(bargain, at);
 
     final tx = LoopTransaction(
-      id: _uuid.v4(),
+      // Fizički komad: ID kupnje nosi ID zapisa prodaje, pa se pošiljka i
+      // povrat mogu povezati s prodajom i kad kupac dobije novi komad zalihe.
+      id: sold != null && !device.isDigital ? 'buy-${sold.id}' : _uuid.v4(),
       type: TransactionType.buy,
       userId: userId,
       deviceId: boughtId,
@@ -581,12 +585,28 @@ class TradeService {
           .length >
       1;
 
+  /// ID zapisa prodaje iz zapisa kupnje (`null` ako nije povezan).
+  static String? saleIdOfBuy(LoopTransaction buy) =>
+      buy.id.startsWith('buy-') ? buy.id.substring(4) : null;
+
+  /// ID pošiljke za kupnju u Marketu: određen prodajom, pa ponovni poziv
+  /// ne može napraviti drugu pošiljku.
+  static String? deliveryIdOfBuy(LoopTransaction buy) {
+    final sale = saleIdOfBuy(buy);
+    return sale == null ? null : 'del-$sale';
+  }
+
   /// Cijena koju bi kupac [userId] sada platio (dogovorena ili oglasa).
   double priceFor(String userId, Device d, {DateTime? now}) {
     final at = now ?? DateTime.now();
-    return BargainService(_storage).usable(userId, d.id, at)?.agreedPrice ??
-        d.priceAt(at);
+    return _bargainPrice(
+      BargainService(_storage).usable(userId, d.id, at),
+      d.priceAt(at),
+    );
   }
+
+  static double _bargainPrice(PriceOffer? bargain, double current) =>
+      bargain == null ? current : min(bargain.agreedPrice, current);
 
   /// Demo prodavatelji koji preuzimaju predmete bivšeg "Subhasto Marketa".
   static const platformHeirs = [
@@ -690,17 +710,20 @@ class TradeService {
     if (seller == null) {
       throw TradeException(t('Za isplatu ispuni podatke prodavatelja (IBAN).'));
     }
-    // Zarada od prodaja sa sporom u tijeku je zadržana.
-    final held = DisputeService(_storage).heldFor(userId);
+    // Zarada od prodaja sa sporom u tijeku ili neisporučenim paketom je
+    // zadržana (povrat se kasnije oduzima od stanja).
+    final at = now ?? DateTime.now();
+    final held = DisputeService(_storage).heldFor(userId, now: at);
     final amount = roundCredits(user.credits - held);
     if (amount <= 0) {
       throw TradeException(
         held > 0
-            ? t('Zarada je zadržana dok traje spor oko povrata.')
+            ? t(
+                'Zarada se oslobađa kad paket stigne kupcu ili kad se riješi spor.',
+              )
             : t('Nemaš zarade za isplatu.'),
       );
     }
-    final at = now ?? DateTime.now();
     await _storage.putUser(user.copyWith(credits: roundCredits(held)));
     final tx = LoopTransaction(
       id: _uuid.v4(),

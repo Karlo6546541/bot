@@ -19,6 +19,7 @@ import '../models/live_show.dart';
 import '../models/country.dart';
 import '../services/chat_service.dart';
 import '../services/delivery_service.dart';
+import '../services/dispute_service.dart';
 import '../services/live_service.dart';
 import '../services/system_messages.dart';
 import '../services/seed_data.dart';
@@ -357,7 +358,11 @@ class AppState {
   /// Cijena koju bih sada platio za predmet (dogovorena ili oglasa).
   double priceForMe(Device d) {
     final o = myBargainFor(d.id);
-    return o != null && o.usableAt(DateTime.now()) ? o.agreedPrice : d.askPrice;
+    final now = DateTime.now();
+    if (o == null || !o.usableAt(now)) return d.askPrice;
+    // Isto pravilo kao pri kupnji: nikad više od trenutne cijene oglasa.
+    final current = d.priceAt(now);
+    return o.agreedPrice < current ? o.agreedPrice : current;
   }
 
   /// Broj pratitelja korisnika.
@@ -505,26 +510,15 @@ class AppState {
         : DeliveryService.costFor(m, size);
   }
 
-  /// Zarada prodavatelja zadržana zbog zahtjeva za povrat u tijeku.
-  double heldEarnings(String sellerId) {
-    var held = 0.0;
-    for (final d in deliveries) {
-      if (d.sellerId != sellerId || !(d.dispute?.active ?? false)) continue;
-      held +=
-          transactions
-              .where(
-                (x) =>
-                    x.type == TransactionType.sell &&
-                    x.deviceId == d.deviceId &&
-                    x.buyerId == d.buyerId &&
-                    (x.sellerId ?? x.userId) == sellerId,
-              )
-              .firstOrNull
-              ?.amount ??
-          0;
-    }
-    return held;
-  }
+  /// Zarada prodavatelja koja se još ne može isplatiti: spor u tijeku ili
+  /// paket još nije stigao (vidi [DisputeService.holdOf]).
+  double heldEarnings(String sellerId, {DateTime? now}) =>
+      DisputeService.holdOf(
+        sellerId,
+        deliveries,
+        transactions,
+        now ?? DateTime.now(),
+      );
 
   /// Cijena koju je [buyerId] platio za predmet (bez zapisa plaćene
   /// dostave, koji ima cijenu 0) — za otpremnicu i "Plaćeno" u Kupljeno.
