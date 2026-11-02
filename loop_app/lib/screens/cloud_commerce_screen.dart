@@ -10,6 +10,7 @@ import '../services/live_backend.dart';
 import '../services/commerce_backend.dart';
 import '../services/stripe_backend.dart';
 import '../widgets/live_media/live_media.dart';
+import '../widgets/purchase_confirmation.dart';
 import 'login_screen.dart';
 
 /// Explicit online route. Legacy local orders and bids are never written here.
@@ -473,12 +474,13 @@ class _CloudCommerceState extends State<CloudCommerceScreen> {
                         ? null
                         : () => _run(() async {
                             if (!await _login()) return;
-                            await commerce.reserve(
-                              p['id'] as String,
-                              1,
-                              const Uuid().v4(),
+                            if (!mounted) return;
+                            await _confirmPurchase(
+                              p['title'] as String,
+                              (p['price_cents'] as num).toInt(),
+                              () => commerce.reserve(
+                                p['id'] as String, 1, const Uuid().v4()),
                             );
-                            if (mounted) setState(() => tab = 2);
                           }),
                     child: Text(p['stock'] == 0 ? 'Prodano' : 'Kupi'),
                   ),
@@ -492,7 +494,7 @@ class _CloudCommerceState extends State<CloudCommerceScreen> {
             onPressed: _login,
             child: const Text('Prijavi se za narudžbe'),
           ),
-        if (uid != null)
+        if (uid != null && orders.any((o) => o['seller_id'] == uid))
           OutlinedButton(
             onPressed: busy
                 ? null
@@ -612,22 +614,46 @@ class _CloudCommerceState extends State<CloudCommerceScreen> {
   static const _panel = Color(0xFF16171D);
   static const _liveRed = Color(0xFFE5173F);
 
-  /// Osvojeni predmet: narudžba i odabir dostave.
-  Future<void> _claim(Map<String, dynamic> lot) => _run(() async {
-    await commerce.claimAward(lot['id'] as String, const Uuid().v4());
-    if (widget.liveOnly && mounted) {
-      Navigator.of(context).pushReplacement(
-        MaterialPageRoute<void>(
-          settings: AppPlace.of('cloud', 'orders').settings,
-          builder: (_) =>
-              const CloudCommerceScreen(initialTab: 2, liveOnly: true),
-        ),
-      );
-      return;
+  Future<void> _confirmPurchase(
+    String title,
+    int cents,
+    Future<dynamic> Function() reserve,
+  ) async {
+    final stripe = StripeBackend(db);
+    String address = '';
+    if (uid != null) {
+      try {
+        final profile = await db.from('loop_users')
+            .select('address:data->>address').eq('id', uid!).maybeSingle()
+            .timeout(const Duration(seconds: 10));
+        address = profile?['address'] as String? ?? '';
+      } catch (_) { /* A missing address can be entered in the popup. */ }
     }
-    await _leave();
-    if (mounted) setState(() => tab = 2);
-    await _refresh();
+    if (!mounted) return;
+    final paid = await showPurchaseConfirmation(context, PurchaseConfirmationSheet(
+      title: title, totalCents: cents, address: address,
+      loadCard: stripe.cardStatus,
+      addCard: stripe.addCard,
+      reserve: () async => Map<String, dynamic>.from(await reserve() as Map),
+      chooseDelivery: (order, destination) => commerce.chooseShipping(
+        order, 'courier', {'address': destination}).then((_) {}),
+      charge: (order, ctx) => stripe.chargeStatus(order, context: ctx),
+    ));
+    if (paid && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Kupnja je potvrđena.')),
+      );
+    }
+  }
+
+  /// Confirm the awarded item without leaving the live room.
+  Future<void> _claim(Map<String, dynamic> lot) => _run(() async {
+    if (!await _login() || !mounted) return;
+    await _confirmPurchase(
+      lot['title'] as String,
+      ((lot['price_cents'] ?? lot['start_cents']) as num).toInt(),
+      () => commerce.claimAward(lot['id'] as String, const Uuid().v4()),
+    );
   });
 
   /// Spremljena kartica (zadnje 4 znamenke) ili `null` dok nije dodana.
