@@ -6,7 +6,7 @@ export async function services() {
   const secret = config.STRIPE_RESTRICTED_KEY ?? config.STRIPE_SECRET_KEY;
   if (!secret || !/^(rk|sk)_test_/.test(secret)) throw new Error('TEST_MODE_REQUIRED');
   const stripe = new Stripe(secret, { httpClient: Stripe.createFetchHttpClient() });
-  const platform = await stripe.accounts.retrieve();
+  const platform = await stripe.accounts.retrieve(null);
   if (platform.id !== 'acct_1UVqd9PdLAWyn74E') throw new Error('WRONG_TEST_PLATFORM');
   return {
     stripe,

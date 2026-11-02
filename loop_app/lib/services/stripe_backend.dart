@@ -9,12 +9,12 @@ class StripeBackend {
  Future<void> connectSeller() async {
   final data=await _call('stripe-connect',{});
   final url=Uri.tryParse(data['url'] as String? ?? '');
-  if(url==null||url.scheme!='https'||url.host!='connect.stripe.com')throw StateError('PAYMENTS_UNAVAILABLE');
-  if(!await launchUrl(url,webOnlyWindowName:'_self'))throw StateError('PAYMENT_PAGE_UNAVAILABLE');
+  if(url==null||url.scheme!='https'||url.host!='connect.stripe.com'){throw StateError('PAYMENTS_UNAVAILABLE');}
+  if(!await launchUrl(url,webOnlyWindowName:'_self')){throw StateError('PAYMENT_PAGE_UNAVAILABLE');}
  }
  Future<Map<String,dynamic>> _call(String name,Map<String,dynamic> body) async {
   final result=await client.functions.invoke(name,body:body);
-  if(result.status!=200||result.data is! Map)throw StateError('PAYMENTS_UNAVAILABLE');
+  if(result.status!=200||result.data is! Map){throw StateError('PAYMENTS_UNAVAILABLE');}
   return Map<String,dynamic>.from(result.data as Map);
  }
  Future<({bool hasCard,String? last4})> cardStatus() async {

@@ -17,7 +17,9 @@ window.addEventListener('message',async event=>{
  settings=data;stripe=Stripe(data.publishableKey);
  if(data.action==='authenticate'){
   document.getElementById('consent').hidden=true;button.textContent='Potvrdi plaćanje';
-  try{const result=await stripe.handleNextAction({clientSecret:data.clientSecret});
+  try{const result=data.confirmationRequired
+   ? await stripe.confirmPayment({clientSecret:data.clientSecret,confirmParams:{payment_method:data.paymentMethod,return_url:data.returnUrl},redirect:'if_required'})
+   : await stripe.handleNextAction({clientSecret:data.clientSecret});
    if(result.error)document.getElementById('error').textContent=result.error.message;
    else send('subhasto-payment-complete');
   }catch{document.getElementById('error').textContent='Potvrda nije uspjela. Pokušaj ponovno.'}

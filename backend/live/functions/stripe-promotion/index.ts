@@ -1,5 +1,6 @@
 import Stripe from 'npm:stripe@23.0.0';
 import { services,authenticate,response,failure,customerFor,savedCard } from '../_shared/stripe.ts';
+import { authenticationResponse } from '../_shared/charge.ts';
 Deno.serve(async(req:Request)=>{
  if(req.method==='OPTIONS')return response(200,{});
  if(req.method!=='POST')return response(405,{error:'METHOD_NOT_ALLOWED'});
@@ -26,7 +27,7 @@ Deno.serve(async(req:Request)=>{
    const {error:e}=await svc.admin.rpc('commerce_settle_promotion',{p_id:p.id,p_intent:intent.id,p_amount:intent.amount_received});if(e)throw e;
    return response(200,{status:'paid',mode:'test'});
   }
-  if(intent.status==='requires_action'&&svc.config.STRIPE_PUBLISHABLE_KEY?.startsWith('pk_test_'))return response(200,{status:'requires_action',clientSecret:intent.client_secret,publishableKey:svc.config.STRIPE_PUBLISHABLE_KEY,action:'authenticate',mode:'test'});
+  if(intent.status==='requires_action'||intent.last_payment_error?.code==='authentication_required')return authenticationResponse(svc,intent,card.id);
   if(intent.status==='processing')return response(200,{status:'processing'});
   return response(402,{error:'CARD_DECLINED'});
  }catch(error){return failure(error);}
