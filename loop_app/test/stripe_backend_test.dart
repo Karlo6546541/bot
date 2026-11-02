@@ -79,4 +79,25 @@ void main() {
     );
     await client.dispose();
   });
+  test('processing payment is never reported as paid', () async {
+    final client = SupabaseClient(
+      'https://test.invalid',
+      'test-key',
+      httpClient: MockClient(
+        (request) async => http.Response(
+          '{"status":"processing"}',
+          200,
+          headers: {'content-type': 'application/json'},
+          request: request,
+        ),
+      ),
+    );
+    final backend = StripeBackend(client);
+    expect(
+      await backend.chargeStatus('order-one'),
+      SavedCardChargeStatus.processing,
+    );
+    expect(await backend.charge('order-one'), isFalse);
+    await client.dispose();
+  });
 }
