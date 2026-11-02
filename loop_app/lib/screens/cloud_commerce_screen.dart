@@ -479,7 +479,10 @@ class _CloudCommerceState extends State<CloudCommerceScreen> {
                               p['title'] as String,
                               (p['price_cents'] as num).toInt(),
                               () => commerce.reserve(
-                                p['id'] as String, 1, const Uuid().v4()),
+                                p['id'] as String,
+                                1,
+                                const Uuid().v4(),
+                              ),
                             );
                           }),
                     child: Text(p['stock'] == 0 ? 'Prodano' : 'Kupi'),
@@ -623,26 +626,37 @@ class _CloudCommerceState extends State<CloudCommerceScreen> {
     String address = '';
     if (uid != null) {
       try {
-        final profile = await db.from('loop_users')
-            .select('address:data->>address').eq('id', uid!).maybeSingle()
+        final profile = await db
+            .from('loop_users')
+            .select('address:data->>address')
+            .eq('id', uid!)
+            .maybeSingle()
             .timeout(const Duration(seconds: 10));
         address = profile?['address'] as String? ?? '';
-      } catch (_) { /* A missing address can be entered in the popup. */ }
+      } catch (_) {
+        /* A missing address can be entered in the popup. */
+      }
     }
     if (!mounted) return;
-    final paid = await showPurchaseConfirmation(context, PurchaseConfirmationSheet(
-      title: title, totalCents: cents, address: address,
-      loadCard: stripe.cardStatus,
-      addCard: stripe.addCard,
-      reserve: () async => Map<String, dynamic>.from(await reserve() as Map),
-      chooseDelivery: (order, destination) => commerce.chooseShipping(
-        order, 'courier', {'address': destination}).then((_) {}),
-      charge: (order, ctx) => stripe.chargeStatus(order, context: ctx),
-    ));
+    final paid = await showPurchaseConfirmation(
+      context,
+      PurchaseConfirmationSheet(
+        title: title,
+        totalCents: cents,
+        address: address,
+        loadCard: stripe.cardStatus,
+        addCard: stripe.addCard,
+        reserve: () async => Map<String, dynamic>.from(await reserve() as Map),
+        chooseDelivery: (order, destination) => commerce
+            .chooseShipping(order, 'courier', {'address': destination})
+            .then((_) {}),
+        charge: (order, ctx) => stripe.chargeStatus(order, context: ctx),
+      ),
+    );
     if (paid && mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Kupnja je potvrđena.')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Kupnja je potvrđena.')));
     }
   }
 
