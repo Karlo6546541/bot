@@ -3088,19 +3088,39 @@ const kEn = <String, String>{
   'Dostava na {0}': 'Ships to {0}',
   'Kako šalješ "{0}"?': 'How are you shipping "{0}"?',
   'Odaberi dostavu i pošalji': 'Choose shipping and send',
-  'Poslano. Kupac je dobio broj za praćenje 🚚': 'Shipped. The buyer got the tracking number 🚚',
+  'Poslano. Kupac je dobio broj za praćenje 🚚':
+      'Shipped. The buyer got the tracking number 🚚',
   'Pošalji paket': 'Ship package',
   'Predmet ukupno': 'Item total',
-  'Prodavač priprema paket. Broj za praćenje dobit ćeš čim pošalje.': 'The seller is preparing your package. You\'ll get the tracking number as soon as it ships.',
-  'Prodavač šalje kurirom ili u paketomat. Dobit ćeš broj za praćenje (i PIN ako je paketomat).': 'The seller ships by courier or to a parcel locker. You\'ll get a tracking number (and a PIN for a locker).',
-  'Prodavač šalje paket — broj za praćenje stiže u Moje.': 'The seller ships the package — the tracking number arrives in Mine.',
+  'Prodavač priprema paket. Broj za praćenje dobit ćeš čim pošalje.':
+      'The seller is preparing your package. You\'ll get the tracking number as soon as it ships.',
+  'Prodavač šalje kurirom ili u paketomat. Dobit ćeš broj za praćenje (i PIN ako je paketomat).':
+      'The seller ships by courier or to a parcel locker. You\'ll get a tracking number (and a PIN for a locker).',
+  'Prodavač šalje paket — broj za praćenje stiže u Moje.':
+      'The seller ships the package — the tracking number arrives in Mine.',
   'Za slanje': 'To ship',
   'od {0}, prema načinu slanja': 'from {0}, depending on shipping',
   'Čeka slanje': 'Awaiting shipment',
-  '📦 Osvojio si {0} · prodavač šalje paket': '📦 You won {0} · the seller is shipping',
-  'Osvojio si aukciju "{0}" za {1}. Prodavač šalje paket, a broj za praćenje stiže ovdje.': 'You won the auction "{0}" for {1}. The seller ships the package; the tracking number arrives here.',
-  'Osvojio si "{0}" u nagradnoj igri {1}. Prodavač šalje paket, a broj za praćenje stiže ovdje.': 'You won "{0}" in the giveaway {1}. The seller ships the package; the tracking number arrives here.',
-  '{0} je poslao "{1}" ({2}). Broj za praćenje: {3}': '{0} shipped "{1}" ({2}). Tracking number: {3}',
+  '📦 Osvojio si {0} · prodavač šalje paket':
+      '📦 You won {0} · the seller is shipping',
+  'Osvojio si aukciju "{0}" za {1}. Prodavač šalje paket, a broj za praćenje stiže ovdje.':
+      'You won the auction "{0}" for {1}. The seller ships the package; the tracking number arrives here.',
+  'Osvojio si "{0}" u nagradnoj igri {1}. Prodavač šalje paket, a broj za praćenje stiže ovdje.':
+      'You won "{0}" in the giveaway {1}. The seller ships the package; the tracking number arrives here.',
+  '{0} je poslao "{1}" ({2}). Broj za praćenje: {3}':
+      '{0} shipped "{1}" ({2}). Tracking number: {3}',
+  'Aukcija · trenutno {0}': 'Auction · currently {0}',
+  'Dodirni srce na oglasu ili aukciji da ga spremiš.': 'Tap the heart on a listing or auction to save it.',
+  'Još nema kupnji': 'No purchases yet',
+  'Još nemaš spremljenih stvari': 'No saved items yet',
+  'Kad nešto kupiš ili osvojiš, pojavit će se ovdje.': 'When you buy or win something, it will show up here.',
+  'Licitacije': 'Bids',
+  'Licitiraj na aukciji i ovdje pratiš ponude i pobjede.': 'Bid on an auction and follow your bids and wins here.',
+  'Na oglasu dodirni "Ponudi cijenu" i predloži svoju.': 'On a listing, tap "Make an offer" and suggest your price.',
+  'Ovdje pratiš što si kupio, licitiraš i spremio.': 'Follow what you bought, bid on and saved here.',
+  'Prihvaćene': 'Accepted',
+  'Prijavi se za svoje kupnje i licitacije': 'Sign in for your purchases and bids',
+  'Čeka tvoj odgovor': 'Awaiting your reply',
   'Zakaži show': 'Schedule a show',
   'Otprema': 'Shipping',
   'Nema paketa za predaju': 'No parcels to hand over',

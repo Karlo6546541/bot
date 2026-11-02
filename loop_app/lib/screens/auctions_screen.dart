@@ -796,13 +796,13 @@ class BrowseCardMedia extends StatelessWidget {
 
 /// Moje aukcije kao zaseban ekran (npr. iz obavijesti).
 class MyAuctionsScreen extends StatelessWidget {
-  const MyAuctionsScreen({super.key, this.initialTab = MyTab.buying});
+  const MyAuctionsScreen({super.key, this.initialTab = MyTab.selling});
 
   final MyTab initialTab;
 
   static Future<void> open(
     BuildContext context, {
-    MyTab initialTab = MyTab.buying,
+    MyTab initialTab = MyTab.selling,
   }) => Navigator.of(context).push(
     MaterialPageRoute<void>(
       builder: (_) => MyAuctionsScreen(initialTab: initialTab),
@@ -811,7 +811,7 @@ class MyAuctionsScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Scaffold(
-    appBar: AppBar(title: Text(t('Moje'))),
+    appBar: AppBar(title: Text(t('Prodaja'))),
     body: MyAuctionsView(initialTab: initialTab),
   );
 }
@@ -821,7 +821,7 @@ class MyAuctionsView extends ConsumerStatefulWidget {
   const MyAuctionsView({
     super.key,
     this.onBrowse,
-    this.initialTab = MyTab.buying,
+    this.initialTab = MyTab.selling,
   });
 
   final MyTab initialTab;
@@ -1141,7 +1141,6 @@ class _MyAuctionsViewState extends ConsumerState<MyAuctionsView> {
       padding: const EdgeInsets.fromLTRB(10, 8, 10, 4),
       child: Row(
         children: [
-          tabButton(MyTab.buying, auc.actions.length + lv.actions.length),
           tabButton(MyTab.selling, 0),
           tabButton(
             MyTab.live,

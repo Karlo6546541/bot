@@ -10,7 +10,7 @@ import '../providers/app_providers.dart';
 
 import '../widgets/adaptive_shell.dart';
 import '../widgets/create_sheet.dart';
-import 'auctions_screen.dart';
+import 'activity_view.dart';
 import 'categories_screen.dart';
 import 'live_home_screen.dart';
 import 'live_screens.dart';
@@ -354,7 +354,7 @@ class _HomeShellState extends ConsumerState<HomeShell> {
         children: [
           LiveHomeScreen(visible: _index == 0),
           const CategoriesScreen(),
-          MyAuctionsView(onBrowse: () => _go(0)),
+          ActivityView(onBrowse: () => _go(0)),
           const ProfileScreen(),
         ],
       ),

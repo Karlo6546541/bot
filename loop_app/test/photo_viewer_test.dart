@@ -45,19 +45,15 @@ void main() {
     await tester.tap(find.text('Prijavi se'));
     await tester.pumpAndSettle();
 
-    // Moje → Prodajem → Predmeti → detalji predmeta.
-    if (find.text('Moje').evaluate().isEmpty) {
-      final menu = find.byKey(const ValueKey('home-filters'));
-      await tester.tap(
-        menu.evaluate().isNotEmpty
-            ? menu
-            : find.byKey(const ValueKey('shell-library-menu')),
-      );
-      await tester.pumpAndSettle();
-    }
-    await tester.tap(find.text('Moje').last);
+    // Seller Hub → Aukcije i predmeti → detalji predmeta.
+    await tester.tap(find.byKey(const ValueKey('nav-create')));
     await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const ValueKey('my-selling')));
+    await tester.scrollUntilVisible(
+      find.byKey(const ValueKey('seller-hub-sales')),
+      250,
+      scrollable: find.byType(Scrollable).last,
+    );
+    await tester.tap(find.byKey(const ValueKey('seller-hub-sales')));
     await tester.pumpAndSettle();
     await tester.scrollUntilVisible(
       find.text('iPhone 13'),

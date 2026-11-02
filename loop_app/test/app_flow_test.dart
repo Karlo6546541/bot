@@ -39,20 +39,16 @@ Finder vScroll() => find
     )
     .first;
 
-/// Moje → Prodajem → Predmeti.
+/// Seller Hub → Aukcije i predmeti (prodavačeva lista predmeta).
 Future<void> openMyItems(WidgetTester tester) async {
-  if (find.text('Moje').evaluate().isEmpty) {
-    final menu = find.byKey(const ValueKey('home-filters'));
-    await tester.tap(
-      menu.evaluate().isNotEmpty
-          ? menu
-          : find.byKey(const ValueKey('shell-library-menu')),
-    );
-    await tester.pumpAndSettle();
-  }
-  await tester.tap(find.text('Moje').last);
+  await tester.tap(find.byKey(const ValueKey('nav-create')));
   await tester.pumpAndSettle();
-  await tester.tap(find.byKey(const ValueKey('my-selling')));
+  await tester.scrollUntilVisible(
+    find.byKey(const ValueKey('seller-hub-sales')),
+    250,
+    scrollable: find.byType(Scrollable).last,
+  );
+  await tester.tap(find.byKey(const ValueKey('seller-hub-sales')));
   await tester.pumpAndSettle();
 }
 
@@ -156,6 +152,10 @@ void main() {
       );
       await tester.pumpAndSettle();
       expect(find.text('iPhone 13'), findsOneWidget);
+      tester
+          .state<NavigatorState>(find.byType(Navigator).first)
+          .popUntil((route) => route.isFirst);
+      await tester.pumpAndSettle();
       await tester.tap(find.text('Početna').last);
       await tester.pumpAndSettle();
 
@@ -187,33 +187,30 @@ void main() {
       }
       await tester.tap(find.text('Moje').last);
       await tester.pumpAndSettle();
-      // Kupujem: licitacije koje traju.
-      await tester.tap(find.byKey(const ValueKey('my-buying')));
+      // Licitacije: aukcije koje traju.
+      await tester.tap(find.byKey(const ValueKey('activity-tab-bids')));
       await tester.pumpAndSettle();
-      expect(find.byKey(const ValueKey('my-bought')), findsOneWidget);
       expect(find.text('Polaroid SX-70'), findsOneWidget);
       expect(find.text('Vodiš'), findsOneWidget);
-      // Brzi prečaci: Vodim pokazuje samo aukcije koje vodim; Nadmašen je
-      // prazan pa chipa nema.
-      await tester.tap(find.byKey(const ValueKey('my-chip-leading')));
+      // Čipovi: Vodim pokazuje samo aukcije koje vodim.
+      await tester.tap(find.byKey(const ValueKey('activity-chip-leading')));
       await tester.pumpAndSettle();
       expect(find.text('Polaroid SX-70'), findsOneWidget);
-      expect(find.byKey(const ValueKey('my-chip-outbid')), findsNothing);
-      await tester.tap(find.byKey(const ValueKey('my-chip-all')));
+      await tester.tap(find.byKey(const ValueKey('activity-chip-outbid')));
       await tester.pumpAndSettle();
-      // Prodajem: bez liveova nema odjeljka Moji liveovi.
-      await tester.tap(find.byKey(const ValueKey('my-selling')));
+      expect(find.text('Polaroid SX-70'), findsNothing);
+      // Ponude i Spremljeno su zasebne kartice (kao Whatnot Activity).
+      await tester.tap(find.byKey(const ValueKey('activity-tab-offers')));
       await tester.pumpAndSettle();
-      expect(find.byKey(const ValueKey('my-lives')), findsNothing);
-      // Live: kupljeno i prodano u liveu, uz gumb za pokretanje.
-      await tester.tap(find.byKey(const ValueKey('my-live')));
+      await tester.ensureVisible(
+        find.byKey(const ValueKey('activity-tab-saved')),
+      );
+      await tester.tap(find.byKey(const ValueKey('activity-tab-saved')));
       await tester.pumpAndSettle();
-      expect(find.byKey(const ValueKey('my-empty-live')), findsOneWidget);
-      expect(find.byKey(const ValueKey('my-chip-sold')), findsNothing);
-      // Otpremnice su zaseban tab.
-      await tester.tap(find.byKey(const ValueKey('my-notes-tab')));
-      await tester.pumpAndSettle();
-      expect(find.byKey(const ValueKey('my-chip-all')), findsOneWidget);
+      expect(
+        find.byKey(const ValueKey('activity-chip-auction')),
+        findsOneWidget,
+      );
     });
   }
 
@@ -262,9 +259,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('💾 Spremljeno'), findsNothing);
 
-    // Kupujem: dostava je dio kartice osvojenog predmeta (nema zasebnog taba).
-    await tester.tap(find.byKey(const ValueKey('my-buying')));
-    await tester.pumpAndSettle();
+    // Kupnje: dostava je dio kartice kupljenog predmeta (nema zasebnog taba).
     expect(find.byKey(const ValueKey('my-deliveries')), findsNothing);
   });
 

@@ -101,7 +101,10 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.byKey(const ValueKey('home-cat-my')));
     await tester.pumpAndSettle();
-    expect(find.byKey(const ValueKey('my-selling')), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('activity-tab-purchases')),
+      findsOneWidget,
+    );
     expect(find.byType(NavigationDestination), findsNWidgets(5));
     await tester.tap(find.text('Profil').last);
     await tester.pumpAndSettle();
