@@ -23,7 +23,7 @@ create table public.loop_transactions(id text primary key,data jsonb);
 alter table public.loop_devices enable row level security;
 create policy loop_write on public.loop_devices for all to authenticated using(true) with check(true);
 grant all on public.loop_devices,public.loop_live_events,public.loop_transactions to authenticated,service_role;`);
-await db.exec(readFileSync(new URL('../sql/platform_payments.sql',import.meta.url),'utf8'));
+await db.exec(readFileSync(new URL('../migrations/20261102170214_subhasto_platform_payments.sql',import.meta.url),'utf8'));
 
 const host='00000000-0000-4000-8000-000000000001',buyer='00000000-0000-4000-8000-000000000002',other='00000000-0000-4000-8000-000000000003';
 await db.query('insert into auth.users values ($1),($2),($3)',[host,buyer,other]);

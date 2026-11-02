@@ -25,13 +25,3 @@ jobs:
 
       - run: deno test --allow-env backend/live/tests/stripe_failure_test.ts
       - run: deno test --allow-env backend/live/tests/stripe_charge_test.ts
-      - uses: supabase/setup-cli@v1
-        with:
-          version: latest
-      - name: Generate payment migration with Supabase CLI
-        run: |
-          supabase --version
-          supabase migration new --help
-          mkdir -p /tmp/subhasto-migration
-          supabase migration new subhasto_platform_payments --workdir /tmp/subhasto-migration
-

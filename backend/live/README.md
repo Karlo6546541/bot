@@ -1,3 +1,5 @@
+> Current saved-card and platform-revenue integration: see [PLATFORM-PAYMENTS.md](PLATFORM-PAYMENTS.md). Older deployment notes below describe earlier stages.
+
 # Live commerce backend
 
 This is an additive production backend foundation, not Whatnot's proprietary architecture.
@@ -196,3 +198,4 @@ The Stripe Projects catalog returned no LiveKit provisioning service.
 The retention function loop_purge_deleted is now server-only because it deletes
 Auth users. Existing clients already tolerate permission denial for that maintenance
 call. No accounts were deleted. A trusted retention scheduler is separate work.
+
