@@ -9,7 +9,7 @@ import '../providers/app_providers.dart';
 import '../services/fee.dart';
 import '../services/stripe_backend.dart';
 import '../services/commerce_backend.dart';
-import '../screens/cloud_commerce_screen.dart';
+import 'purchase_confirmation.dart';
 import '../config/backend_config.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:uuid/uuid.dart';
@@ -526,16 +526,29 @@ Future<bool> confirmAndBuy(
   if (blockGuest(context)) return false;
   final user = ref.read(appProvider).currentUser;
   if (user == null) return false;
-  if (BackendConfig.cloudCommerceEnabled && ref.read(syncProvider) != null) {
-    if (!await ensureCard(context, ref) || !context.mounted) return false;
-    try {
-      final order = await CommerceBackend(Supabase.instance.client).reserveDevice(device.id, const Uuid().v4());
-      if (!context.mounted) return false;
-      await Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => CloudCommerceScreen(initialTab: 2, initialOrder: order['id'] as String)));
-    } catch (error) {
-      showLoopSnackBar(paymentActionErrorMessage(error), error: true);
-    }
+  if (device.isDigital && ref.read(appProvider).hasPurchased(device.id)) {
+    await downloadDigital(context, ref, device);
     return false;
+  }
+  if (BackendConfig.cloudCommerceEnabled && ref.read(syncProvider) != null) {
+    final stripe = StripeBackend(Supabase.instance.client);
+    final commerce = CommerceBackend(Supabase.instance.client);
+    final paid = await showPurchaseConfirmation(context, PurchaseConfirmationSheet(
+      title: '${device.name} ${device.model}'.trim(),
+      totalCents: (ref.read(appProvider).priceForMe(device) * 100).round(),
+      address: user.address ?? '',
+      digital: device.isDigital,
+      loadCard: stripe.cardStatus,
+      addCard: stripe.addCard,
+      reserve: () => commerce.reserveDevice(device.id, const Uuid().v4()),
+      chooseDelivery: (order, address) => commerce.chooseShipping(order, 'courier', {'address': address}).then((_) {}),
+      charge: (order, ctx) => stripe.chargeStatus(order, context: ctx),
+    ));
+    if (paid) {
+      try { await ref.read(syncProvider)?.catchUpNow(); } catch (_) { /* Realtime refresh remains available. */ }
+      showLoopSnackBar(t('Kupljeno! 🎉'));
+    }
+    return paid;
   }
   // Dogovorena cijena (prihvaćena ponuda) ili cijena oglasa s popustom.
   final price = ref.read(appProvider).priceForMe(device);
@@ -1190,4 +1203,3 @@ Future<void> downloadDigital(
     showLoopSnackBar(t('Preuzimanje nije uspjelo: {0}', [e]), error: true);
   }
 }
-
