@@ -1,6 +1,10 @@
 begin;
 create extension if not exists pg_net with schema extensions;
 create extension if not exists pg_cron;
+revoke all on all tables in schema net from public,anon,authenticated;
+revoke all on all sequences in schema net from public,anon,authenticated;
+revoke all on all functions in schema net from public,anon,authenticated;
+revoke all on all tables in schema cron from public,anon,authenticated;
 -- Generate in the database. The job credential is never returned to a client.
 do $$ begin
  if not exists(select 1 from vault.secrets where name='STRIPE_RELEASE_JOB_SECRET') then
