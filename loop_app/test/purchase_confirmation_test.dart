@@ -255,27 +255,52 @@ void main() {
     expect(reserves, 0);
   });
 
-  testWidgets('locker is chosen from database results and charged only after confirmation', (tester) async {
-    var charges=0;
-    DeliveryDestination? selected;
-    const locker=DeliveryLocation(id:'boxnow:HR:1692',name:'BOX NOW Dubec',address:'Zagrebačka cesta 162b',postalCode:'10360',city:'Sesvete',country:'HR');
-    await open(tester,sheet(search:(address) async {expect(address,'Testna ulica 1, Zagreb');return [locker];},delivery:(_,destination) async {selected=destination;},charge:(_,_) async {charges++;return SavedCardChargeStatus.paid;}));
-    await tester.tap(find.text('Paketomat'));
-    await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const ValueKey('purchase-pay')));
-    await tester.pumpAndSettle();
-    expect(find.text('Odaberi paketomat za dostavu.'),findsOneWidget);
-    expect(charges,0);
-    await tester.tap(find.text('Odaberi paketomat').first);
-    await tester.pumpAndSettle();
-    expect(find.text('ID paketomata'),findsNothing);
-    await tester.tap(find.text('BOX NOW Dubec'));
-    await tester.pumpAndSettle();
-    expect(charges,0);
-    await tester.tap(find.byKey(const ValueKey('purchase-pay')));
-    await tester.pumpAndSettle();
-    expect(selected?.method,'boxnow');
-    expect(selected?.data,{'locker_id':'boxnow:HR:1692'});
-    expect(charges,1);
-  });
+  testWidgets(
+    'locker is chosen from database results and charged only after confirmation',
+    (tester) async {
+      var charges = 0;
+      DeliveryDestination? selected;
+      const locker = DeliveryLocation(
+        id: 'boxnow:HR:1692',
+        name: 'BOX NOW Dubec',
+        address: 'Zagrebačka cesta 162b',
+        postalCode: '10360',
+        city: 'Sesvete',
+        country: 'HR',
+      );
+      await open(
+        tester,
+        sheet(
+          search: (address) async {
+            expect(address, 'Testna ulica 1, Zagreb');
+            return [locker];
+          },
+          delivery: (_, destination) async {
+            selected = destination;
+          },
+          charge: (_, _) async {
+            charges++;
+            return SavedCardChargeStatus.paid;
+          },
+        ),
+      );
+      await tester.tap(find.text('Paketomat'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('purchase-pay')));
+      await tester.pumpAndSettle();
+      expect(find.text('Odaberi paketomat za dostavu.'), findsOneWidget);
+      expect(charges, 0);
+      await tester.tap(find.text('Odaberi paketomat').first);
+      await tester.pumpAndSettle();
+      expect(find.text('ID paketomata'), findsNothing);
+      await tester.tap(find.text('BOX NOW Dubec'));
+      await tester.pumpAndSettle();
+      expect(charges, 0);
+      await tester.tap(find.byKey(const ValueKey('purchase-pay')));
+      await tester.pumpAndSettle();
+      expect(selected?.method, 'boxnow');
+      expect(selected?.data, {'locker_id': 'boxnow:HR:1692'});
+      expect(charges, 1);
+    },
+  );
 }

@@ -541,7 +541,9 @@ Future<bool> confirmAndBuy(
         totalCents: (ref.read(appProvider).priceForMe(device) * 100).round(),
         address: user.address ?? '',
         country: user.country,
-        searchLockers: (address) => DeliveryLocationsBackend(Supabase.instance.client).search(address, country: user.country),
+        searchLockers: (address) => DeliveryLocationsBackend(
+          Supabase.instance.client,
+        ).search(address, country: user.country),
         digital: device.isDigital,
         loadCard: stripe.cardStatus,
         addCard: stripe.addCard,

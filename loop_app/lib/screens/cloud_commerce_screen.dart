@@ -533,7 +533,7 @@ class _CloudCommerceState extends State<CloudCommerceScreen> {
           Text(labels[state] ?? '$state'),
           Text('Narudžba ${id.substring(0, 8)}'),
           const Text(
-            'Testna naplata · paketomat je demo. Naknada Subhasta: 6 % cijene predmeta.',
+            'Testna naplata i dostava. Naknada Subhasta: 6 % cijene predmeta.',
           ),
           if (!buyer && ['paid', 'shipped', 'delivered'].contains(state))
             const Text(
@@ -554,9 +554,13 @@ class _CloudCommerceState extends State<CloudCommerceScreen> {
                   : () => _run(() async {
                       final info = await _buyerDeliveryInfo();
                       if (!mounted) return;
-                      final selected = await showDeliveryChoice(context,
+                      final selected = await showDeliveryChoice(
+                        context,
                         address: info.address,
-                        search: (query) => DeliveryLocationsBackend(db).search(query, country: info.country));
+                        search: (query) => DeliveryLocationsBackend(
+                          db,
+                        ).search(query, country: info.country),
+                      );
                       if (selected == null) return;
                       await commerce.chooseDelivery(id, selected);
                     }),
@@ -619,11 +623,19 @@ class _CloudCommerceState extends State<CloudCommerceScreen> {
   Future<({String address, String country})> _buyerDeliveryInfo() async {
     if (uid == null) return (address: '', country: 'HR');
     try {
-      final profile = await db.from('loop_users')
-        .select('address:data->>address,country:data->>country').eq('id', uid!)
-        .maybeSingle().timeout(const Duration(seconds: 10));
-      return (address: profile?['address'] as String? ?? '', country: profile?['country'] as String? ?? 'HR');
-    } catch (_) { return (address: '', country: 'HR'); }
+      final profile = await db
+          .from('loop_users')
+          .select('address:data->>address,country:data->>country')
+          .eq('id', uid!)
+          .maybeSingle()
+          .timeout(const Duration(seconds: 10));
+      return (
+        address: profile?['address'] as String? ?? '',
+        country: profile?['country'] as String? ?? 'HR',
+      );
+    } catch (_) {
+      return (address: '', country: 'HR');
+    }
   }
 
   Future<void> _confirmPurchase(
@@ -641,7 +653,8 @@ class _CloudCommerceState extends State<CloudCommerceScreen> {
         totalCents: cents,
         address: info.address,
         country: info.country,
-        searchLockers: (query) => DeliveryLocationsBackend(db).search(query, country: info.country),
+        searchLockers: (query) =>
+            DeliveryLocationsBackend(db).search(query, country: info.country),
         loadCard: stripe.cardStatus,
         addCard: stripe.addCard,
         reserve: () async => Map<String, dynamic>.from(await reserve() as Map),

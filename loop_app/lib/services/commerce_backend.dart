@@ -45,7 +45,10 @@ class CommerceBackend {
     'commerce_favorite',
     params: {'p_product': product, 'p_favorite': enabled},
   );
-  Future<void> chooseDelivery(String order, DeliveryDestination destination) async {
+  Future<void> chooseDelivery(
+    String order,
+    DeliveryDestination destination,
+  ) async {
     await chooseShipping(order, destination.method, destination.data);
   }
 

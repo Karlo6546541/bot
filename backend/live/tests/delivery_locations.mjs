@@ -1,7 +1,7 @@
 import {readFileSync} from 'node:fs';
 export async function deliveryTests(db,assert,as,rpc,rejects,{host,buyer,other}) {
  await db.exec('reset role');
- await db.exec(readFileSync(new URL('../sql/delivery_locations.sql',import.meta.url),'utf8'));
+ await db.exec(readFileSync(new URL('../migrations/20261102214615_subhasto_delivery_locations.sql',import.meta.url),'utf8'));
  for(const [id,city,postal,country,active] of [['sesvete','Sesvete','10360','HR',true],['zagreb','Zagreb','10000','HR',true],['cakovec','Čakovec','40000','HR',true],['closed','Sesvete','10360','HR',false],['lj','Ljubljana','1000','SI',true]]) {
   await db.query(`insert into commerce_delivery_locations(id,provider,provider_id,name,address,postal_code,city,country_code,active,source_url) values($1,'boxnow',$1,$2,'Test street 1',$3,$2,$4,$5,'https://example.test')`,[id,city,postal,country,active]);
  }
