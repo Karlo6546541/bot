@@ -9,6 +9,7 @@ import '../providers/app_providers.dart';
 import '../services/fee.dart';
 import '../services/stripe_backend.dart';
 import '../services/commerce_backend.dart';
+import '../services/delivery_locations.dart';
 import 'purchase_confirmation.dart';
 import '../config/backend_config.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -539,13 +540,13 @@ Future<bool> confirmAndBuy(
         title: '${device.name} ${device.model}'.trim(),
         totalCents: (ref.read(appProvider).priceForMe(device) * 100).round(),
         address: user.address ?? '',
+        country: user.country,
+        searchLockers: (address) => DeliveryLocationsBackend(Supabase.instance.client).search(address, country: user.country),
         digital: device.isDigital,
         loadCard: stripe.cardStatus,
         addCard: stripe.addCard,
         reserve: () => commerce.reserveDevice(device.id, const Uuid().v4()),
-        chooseDelivery: (order, address) => commerce
-            .chooseShipping(order, 'courier', {'address': address})
-            .then((_) {}),
+        chooseDelivery: commerce.chooseDelivery,
         charge: (order, ctx) => stripe.chargeStatus(order, context: ctx),
       ),
     );

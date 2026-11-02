@@ -11,6 +11,8 @@ import '../services/commerce_backend.dart';
 import '../services/stripe_backend.dart';
 import '../widgets/live_media/live_media.dart';
 import '../widgets/purchase_confirmation.dart';
+import '../widgets/delivery_choice.dart';
+import '../services/delivery_locations.dart';
 import 'login_screen.dart';
 
 /// Explicit online route. Legacy local orders and bids are never written here.
@@ -550,18 +552,15 @@ class _CloudCommerceState extends State<CloudCommerceScreen> {
               onPressed: busy
                   ? null
                   : () => _run(() async {
-                      final locker = await _ask(
-                        'BOX NOW paketomat',
-                        hint: 'ID paketomata',
-                      );
-                      if (locker == null) return;
-                      await commerce.chooseShipping(id, 'boxnow', {
-                        'locker_id': locker,
-                      });
-                      // Whatnot: spremljena kartica se naplaćuje sama.
-                      if (state == 'awaiting_payment') await _autoCharge(id);
+                      final info = await _buyerDeliveryInfo();
+                      if (!mounted) return;
+                      final selected = await showDeliveryChoice(context,
+                        address: info.address,
+                        search: (query) => DeliveryLocationsBackend(db).search(query, country: info.country));
+                      if (selected == null) return;
+                      await commerce.chooseDelivery(id, selected);
                     }),
-              child: const Text('Odaberi paketomat'),
+              child: const Text('Odaberi dostavu'),
             ),
           if (buyer && state == 'awaiting_payment')
             FilledButton.icon(
@@ -617,39 +616,36 @@ class _CloudCommerceState extends State<CloudCommerceScreen> {
   static const _panel = Color(0xFF16171D);
   static const _liveRed = Color(0xFFE5173F);
 
+  Future<({String address, String country})> _buyerDeliveryInfo() async {
+    if (uid == null) return (address: '', country: 'HR');
+    try {
+      final profile = await db.from('loop_users')
+        .select('address:data->>address,country:data->>country').eq('id', uid!)
+        .maybeSingle().timeout(const Duration(seconds: 10));
+      return (address: profile?['address'] as String? ?? '', country: profile?['country'] as String? ?? 'HR');
+    } catch (_) { return (address: '', country: 'HR'); }
+  }
+
   Future<void> _confirmPurchase(
     String title,
     int cents,
     Future<dynamic> Function() reserve,
   ) async {
     final stripe = StripeBackend(db);
-    String address = '';
-    if (uid != null) {
-      try {
-        final profile = await db
-            .from('loop_users')
-            .select('address:data->>address')
-            .eq('id', uid!)
-            .maybeSingle()
-            .timeout(const Duration(seconds: 10));
-        address = profile?['address'] as String? ?? '';
-      } catch (_) {
-        /* A missing address can be entered in the popup. */
-      }
-    }
+    final info = await _buyerDeliveryInfo();
     if (!mounted) return;
     final paid = await showPurchaseConfirmation(
       context,
       PurchaseConfirmationSheet(
         title: title,
         totalCents: cents,
-        address: address,
+        address: info.address,
+        country: info.country,
+        searchLockers: (query) => DeliveryLocationsBackend(db).search(query, country: info.country),
         loadCard: stripe.cardStatus,
         addCard: stripe.addCard,
         reserve: () async => Map<String, dynamic>.from(await reserve() as Map),
-        chooseDelivery: (order, destination) => commerce
-            .chooseShipping(order, 'courier', {'address': destination})
-            .then((_) {}),
+        chooseDelivery: commerce.chooseDelivery,
         charge: (order, ctx) => stripe.chargeStatus(order, context: ctx),
       ),
     );

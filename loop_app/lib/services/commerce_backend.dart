@@ -1,4 +1,5 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'delivery_locations.dart';
 
 /// Authoritative marketplace commands; all amounts are EUR cents.
 /// The Supabase JWT supplies identity. Never mark an order paid from the app.
@@ -44,6 +45,10 @@ class CommerceBackend {
     'commerce_favorite',
     params: {'p_product': product, 'p_favorite': enabled},
   );
+  Future<void> chooseDelivery(String order, DeliveryDestination destination) async {
+    await chooseShipping(order, destination.method, destination.data);
+  }
+
   Future<dynamic> chooseShipping(
     String order,
     String method,

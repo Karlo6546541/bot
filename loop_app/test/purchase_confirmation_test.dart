@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:loop_app/services/stripe_backend.dart';
+import 'package:loop_app/services/delivery_locations.dart';
 import 'package:loop_app/widgets/purchase_confirmation.dart';
 
 class _Pages extends NavigatorObserver {
@@ -52,12 +53,14 @@ void main() {
   PurchaseConfirmationSheet sheet({
     Future<Map<String, dynamic>> Function()? reserve,
     Future<SavedCardChargeStatus> Function(String, BuildContext)? charge,
-    Future<void> Function(String, String)? delivery,
+    Future<void> Function(String, DeliveryDestination)? delivery,
     String address = 'Testna ulica 1, Zagreb',
+    Future<List<DeliveryLocation>> Function(String)? search,
   }) => PurchaseConfirmationSheet(
     title: 'Testni predmet',
     totalCents: 6600,
     address: address,
+    searchLockers: search,
     loadCard: () async => (hasCard: true, last4: '4242'),
     addCard: (_) async => false,
     reserve: reserve ?? () async => {'id': 'order-one', 'total_cents': 6600},
@@ -116,7 +119,7 @@ void main() {
             return {'id': 'one', 'total_cents': 6600};
           },
           delivery: (id, address) async {
-            calls.add('shipping:$id:$address');
+            calls.add('shipping:$id:${address.address}');
           },
           charge: (id, _) {
             calls.add('charge:$id');
@@ -250,5 +253,29 @@ void main() {
     expect(find.byKey(const ValueKey('purchase-address')), findsOneWidget);
     expect(find.text('Upiši adresu za dostavu.'), findsOneWidget);
     expect(reserves, 0);
+  });
+
+  testWidgets('locker is chosen from database results and charged only after confirmation', (tester) async {
+    var charges=0;
+    DeliveryDestination? selected;
+    const locker=DeliveryLocation(id:'boxnow:HR:1692',name:'BOX NOW Dubec',address:'Zagrebačka cesta 162b',postalCode:'10360',city:'Sesvete',country:'HR');
+    await open(tester,sheet(search:(address) async {expect(address,'Testna ulica 1, Zagreb');return [locker];},delivery:(_,destination) async {selected=destination;},charge:(_,_) async {charges++;return SavedCardChargeStatus.paid;}));
+    await tester.tap(find.text('Paketomat'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('purchase-pay')));
+    await tester.pumpAndSettle();
+    expect(find.text('Odaberi paketomat za dostavu.'),findsOneWidget);
+    expect(charges,0);
+    await tester.tap(find.text('Odaberi paketomat').first);
+    await tester.pumpAndSettle();
+    expect(find.text('ID paketomata'),findsNothing);
+    await tester.tap(find.text('BOX NOW Dubec'));
+    await tester.pumpAndSettle();
+    expect(charges,0);
+    await tester.tap(find.byKey(const ValueKey('purchase-pay')));
+    await tester.pumpAndSettle();
+    expect(selected?.method,'boxnow');
+    expect(selected?.data,{'locker_id':'boxnow:HR:1692'});
+    expect(charges,1);
   });
 }

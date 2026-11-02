@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import '../services/stripe_backend.dart';
+import '../services/delivery_locations.dart';
+import 'locker_picker.dart';
 import '../theme/app_theme.dart';
 import 'formatters.dart';
 
@@ -31,15 +33,19 @@ class PurchaseConfirmationSheet extends StatefulWidget {
     required this.charge,
     this.address = '',
     this.digital = false,
+    this.country = 'HR',
+    this.searchLockers,
   });
   final String title;
   final int totalCents;
   final String address;
   final bool digital;
+  final String country;
+  final Future<List<DeliveryLocation>> Function(String)? searchLockers;
   final Future<({bool hasCard, String? last4})> Function() loadCard;
   final Future<bool> Function(BuildContext) addCard;
   final Future<Map<String, dynamic>> Function() reserve;
-  final Future<void> Function(String, String) chooseDelivery;
+  final Future<void> Function(String, DeliveryDestination) chooseDelivery;
   final Future<SavedCardChargeStatus> Function(String, BuildContext) charge;
 
   @override
@@ -55,6 +61,8 @@ class _PurchaseConfirmationState extends State<PurchaseConfirmationSheet> {
   String? _last4, _error, _orderId;
   bool _hasCard = false, _loadingCard = true, _busy = false;
   bool _checkingPayment = false, _editingAddress = false;
+  bool _lockerDelivery = false;
+  DeliveryLocation? _locker;
 
   @override
   void initState() {
@@ -114,13 +122,29 @@ class _PurchaseConfirmationState extends State<PurchaseConfirmationSheet> {
     }
   }
 
+  Future<void> _pickLocker() async {
+    final search = widget.searchLockers;
+    if (search == null) {
+      setState(() => _error = 'Popis paketomata nije dostupan. Odaberi kurirsku dostavu.');
+      return;
+    }
+    final selected = await showLockerPicker(context, address: _address.text.trim(), search: search, selected: _locker);
+    if (selected != null && mounted) {
+      setState(() { _locker = selected; _error = null; });
+    }
+  }
+
   Future<void> _pay() async {
     if (_busy || _loadingCard) return;
     if (!_hasCard) {
       await _addCard();
       return;
     }
-    if (!widget.digital && _address.text.trim().isEmpty) {
+    if (!widget.digital && _lockerDelivery && _locker == null) {
+      setState(() => _error = 'Odaberi paketomat za dostavu.');
+      return;
+    }
+    if (!widget.digital && !_lockerDelivery && _address.text.trim().isEmpty) {
       setState(() {
         _editingAddress = true;
         _error = 'Upiši adresu za dostavu.';
@@ -146,7 +170,9 @@ class _PurchaseConfirmationState extends State<PurchaseConfirmationSheet> {
         }
       }
       if (!_checkingPayment && !widget.digital) {
-        await widget.chooseDelivery(_orderId!, _address.text.trim());
+        await widget.chooseDelivery(_orderId!, _lockerDelivery
+          ? DeliveryDestination.locker(_locker!)
+          : DeliveryDestination.courier(_address.text.trim()));
       }
       if (!mounted) return;
       // Retries always check the same order, including after a lost response.
@@ -231,7 +257,21 @@ class _PurchaseConfirmationState extends State<PurchaseConfirmationSheet> {
               ],
             ),
             if (!widget.digital) ...[
-              if (_editingAddress || widget.address.trim().isEmpty)
+              const SizedBox(height: 8),
+              Wrap(spacing: 8, children: [
+                ChoiceChip(key: const ValueKey('delivery-locker'), label: const Text('Paketomat'), selected: _lockerDelivery,
+                  onSelected: _busy || _checkingPayment ? null : (_) => setState(() { _lockerDelivery = true; _error = null; })),
+                ChoiceChip(key: const ValueKey('delivery-courier'), label: const Text('Kurirska dostava'), selected: !_lockerDelivery,
+                  onSelected: _busy || _checkingPayment ? null : (_) => setState(() { _lockerDelivery = false; _error = null; })),
+              ]),
+              if (_lockerDelivery)
+                ListTile(key: const ValueKey('purchase-locker'), contentPadding: EdgeInsets.zero,
+                  leading: const Icon(Icons.inventory_2_outlined),
+                  title: Text(_locker?.name ?? 'Odaberi paketomat'),
+                  subtitle: Text(_locker == null ? 'Pretraga prema tvojoj adresi, gradu ili poštanskom broju' : '${_locker!.address}, ${_locker!.postalCode} ${_locker!.city}'),
+                  trailing: const Icon(Icons.chevron_right),
+                  onTap: _busy || _checkingPayment ? null : _pickLocker)
+              else if (_editingAddress || widget.address.trim().isEmpty)
                 TextField(
                   key: const ValueKey('purchase-address'),
                   controller: _address,

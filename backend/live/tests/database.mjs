@@ -137,5 +137,6 @@ console.log('PASS: commerce reservation, stock, retry, private orders, shipping 
 console.log('PASS: permissions, ownership, bid increments, retry idempotency, chat rate limit, mute/ban, RLS, server expiry, single award');
 const { platformTests }=await import('./platform_payments.mjs');
 await platformTests(db,assert,as,rpc,rejects,{host,buyer,other});
+const {deliveryTests}=await import('./delivery_locations.mjs');
+await deliveryTests(db,assert,as,rpc,rejects,{host,buyer,other});
 await db.close();
-

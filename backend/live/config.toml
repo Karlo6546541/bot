@@ -28,3 +28,7 @@ verify_jwt = false
 [functions.stripe-release]
 verify_jwt = false
 
+
+
+[functions.delivery-lockers-sync]
+verify_jwt = false
