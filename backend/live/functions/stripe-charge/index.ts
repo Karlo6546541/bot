@@ -13,10 +13,16 @@ Deno.serve(async(req:Request)=>{
   if(order.status!=='awaiting_payment')return response(409,{error:'ORDER_NOT_PAYABLE'});
   const {data:shipping}=await svc.admin.from('commerce_shipments').select('order_id').eq('order_id',order.id).maybeSingle();
   if(!shipping)return response(409,{error:'SHIPPING_REQUIRED'});
-  const {data:seller}=await svc.admin.from('commerce_sellers').select('stripe_account_id').eq('user_id',order.seller_id).maybeSingle();
-  if(!seller)return response(409,{error:'SELLER_NOT_READY'});
-  const account=await svc.stripe.v2.core.accounts.retrieve(seller.stripe_account_id,{include:['configuration.recipient']});
-  if(account.configuration?.recipient?.capabilities?.stripe_balance?.stripe_transfers?.status!=='active')return response(409,{error:'SELLER_NOT_READY'});
+  // Kupnja se ne blokira prodavačem koji još nije završio postavljanje isplata:
+  // novac ostaje na platformi (odvojene naplate i prijenosi), a stripe-release
+  // ga prebacuje tek kad prodavač postane primatelj. Stroga provjera:
+  // REQUIRE_READY_SELLER=true.
+  if(Deno.env.get('REQUIRE_READY_SELLER')==='true'){
+   const {data:seller}=await svc.admin.from('commerce_sellers').select('stripe_account_id').eq('user_id',order.seller_id).maybeSingle();
+   if(!seller)return response(409,{error:'SELLER_NOT_READY'});
+   const account=await svc.stripe.v2.core.accounts.retrieve(seller.stripe_account_id,{include:['configuration.recipient']});
+   if(account.configuration?.recipient?.capabilities?.stripe_balance?.stripe_transfers?.status!=='active')return response(409,{error:'SELLER_NOT_READY'});
+  }
   const customer=await customerFor(svc.stripe,svc.admin,user);
   const {data:profile}=await svc.admin.from('commerce_customers').select('consent_at').eq('user_id',user.id).single();
   const card=profile?.consent_at?await savedCard(svc.stripe,customer):null;
