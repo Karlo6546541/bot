@@ -1103,7 +1103,11 @@ class _CreateLiveShowScreenState extends ConsumerState<CreateLiveShowScreen> {
           }
           final room = await backend.prepareRoom(
             title: _title.text,
-            category: (_category ?? DeviceCategory.other).name,
+            category:
+                (_category ??
+                        suggestCategory(_title.text) ??
+                        DeviceCategory.other)
+                    .name,
             cover: _cover,
             startsAt: _startsAt,
             seconds: _secs,
@@ -1144,7 +1148,7 @@ class _CreateLiveShowScreenState extends ConsumerState<CreateLiveShowScreen> {
           startsAt: _startsAt,
           video: _video,
           coverPath: _cover,
-          category: _category,
+          category: _category ?? suggestCategory(_title.text),
           // Neprodano ostaje spremljeno u Moje (ne ide samo na Kupi odmah).
           relistUnsold: false,
           sells: _sells,
@@ -1199,14 +1203,10 @@ class _CreateLiveShowScreenState extends ConsumerState<CreateLiveShowScreen> {
 
   /// Korak čarobnjaka (0…[_steps] - 1).
   int _step = 0;
-  static const _steps = 5;
+  static const _steps = 2;
 
   /// Smije li se na sljedeći korak.
-  bool get _canNext => switch (_step) {
-    0 => _title.text.trim().length >= 3,
-    1 => _category != null,
-    _ => true,
-  };
+  bool get _canNext => _step != 0 || _title.text.trim().length >= 3;
 
   void _back() {
     if (_step == 0) {
@@ -1219,50 +1219,45 @@ class _CreateLiveShowScreenState extends ConsumerState<CreateLiveShowScreen> {
     }
   }
 
-  Widget _heading(String title, String subtitle) => Padding(
-    padding: const EdgeInsets.only(bottom: 18),
+  Widget _heading(String title, [String? subtitle]) => Padding(
+    padding: const EdgeInsets.only(bottom: 20),
     child: Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
           title,
-          style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 26),
-        ),
-        const SizedBox(height: 6),
-        Text(
-          subtitle,
-          style: TextStyle(color: LoopColors.textSecondary, fontSize: 15),
-        ),
-      ],
-    ),
-  );
-
-  Widget _tip(IconData icon, String text) => Container(
-    padding: const EdgeInsets.all(14),
-    decoration: BoxDecoration(
-      color: LoopColors.surface,
-      borderRadius: BorderRadius.circular(kRadius),
-    ),
-    child: Row(
-      children: [
-        Icon(icon, color: LoopColors.accent),
-        const SizedBox(width: 12),
-        Expanded(
-          child: Text(
-            text,
-            style: const TextStyle(fontWeight: FontWeight.w700),
+          style: const TextStyle(
+            fontWeight: FontWeight.w800,
+            fontSize: 30,
+            height: 1.1,
           ),
         ),
+        if (subtitle != null) ...[
+          const SizedBox(height: 8),
+          Text(
+            subtitle,
+            style: TextStyle(color: LoopColors.textSecondary, fontSize: 15),
+          ),
+        ],
       ],
     ),
   );
 
-  /// 1. Ime i naslovnica, s pregledom kartice na početnoj.
-  List<Widget> _nameStep() => [
-    _heading(
-      t('Daj showu ime'),
-      t('Kratak naslov koji kaže što prodaješ. Možeš ga promijeniti kasnije.'),
+  Widget _label(String text) => Padding(
+    padding: const EdgeInsets.only(top: 22, bottom: 10),
+    child: Text(
+      text,
+      style: TextStyle(
+        color: LoopColors.textSecondary,
+        fontWeight: FontWeight.w700,
+        fontSize: 13,
+      ),
     ),
+  );
+
+  /// 1. Ime, naslovnica, kategorija i kada.
+  List<Widget> _basicsStep() => [
+    _heading(t('Daj showu ime')),
     Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -1289,266 +1284,93 @@ class _CreateLiveShowScreenState extends ConsumerState<CreateLiveShowScreen> {
         ),
       ],
     ),
-    const SizedBox(height: 16),
-    _tip(
-      Icons.image_outlined,
-      t('Naslovnica pomaže da se show istakne na početnoj i u kategoriji.'),
-    ),
-  ];
-
-  /// 2. Kategorija (glavna skupina pa podkategorija, kao čipovi).
-  List<Widget> _categoryStep() => [
-    _heading(
-      t('Odaberi kategoriju'),
-      t('U čemu ćeš najviše prodavati? Tako te kupci lakše pronađu.'),
-    ),
-    for (final sec in ItemSection.values)
-      if (sec != ItemSection.digital) ...[
-        Padding(
-          padding: const EdgeInsets.only(top: 6, bottom: 8),
-          child: Text(
-            sec.label,
-            style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 15),
+    _label(t('Kada kreće show?')),
+    Row(
+      children: [
+        Expanded(
+          child: ChoiceChip(
+            key: const ValueKey('live-now'),
+            showCheckmark: false,
+            label: SizedBox(
+              width: double.infinity,
+              child: Text(t('Odmah'), textAlign: TextAlign.center),
+            ),
+            selected: _startsAt == null,
+            onSelected: (_) => setState(() => _startsAt = null),
           ),
         ),
-        Wrap(
-          spacing: 8,
-          runSpacing: 8,
-          children: [
+        const SizedBox(width: 10),
+        Expanded(
+          child: ChoiceChip(
+            key: const ValueKey('live-later'),
+            showCheckmark: false,
+            label: SizedBox(
+              width: double.infinity,
+              child: Text(
+                _startsAt == null ? t('Zakaži') : formatDateTime(_startsAt!),
+                textAlign: TextAlign.center,
+              ),
+            ),
+            selected: _startsAt != null,
+            onSelected: (_) => _pickTime(),
+          ),
+        ),
+      ],
+    ),
+    if (_startsAt != null)
+      Padding(
+        padding: const EdgeInsets.only(top: 6),
+        child: TextButton(
+          key: const ValueKey('live-when'),
+          onPressed: _pickTime,
+          child: Text(t('Datum i vrijeme')),
+        ),
+      ),
+    _label(t('Kategorija')),
+    Wrap(
+      spacing: 8,
+      runSpacing: 8,
+      children: [
+        for (final sec in ItemSection.values)
+          if (sec != ItemSection.digital)
             for (final c in sec.categories)
               ChoiceChip(
                 key: ValueKey('live-cat-${c.name}'),
-                avatar: Icon(c.icon, size: 18, color: c.color),
                 label: Text(c.label),
                 showCheckmark: false,
                 selected: _category == c,
-                onSelected: (_) => setState(() => _category = c),
+                onSelected: (_) =>
+                    setState(() => _category = _category == c ? null : c),
               ),
-          ],
-        ),
-        const SizedBox(height: 10),
       ],
+    ),
   ];
 
-  /// 3. Kada: odmah ili zakazano.
-  List<Widget> _whenStep() {
-    Widget option(bool later, IconData icon, String title, String text) {
-      final selected = (_startsAt != null) == later;
-      return Padding(
-        padding: const EdgeInsets.only(bottom: 10),
-        child: Material(
-          color: LoopColors.surface,
-          borderRadius: BorderRadius.circular(kRadius),
-          child: InkWell(
-            borderRadius: BorderRadius.circular(kRadius),
-            onTap: () async {
-              if (later) {
-                await _pickTime();
-              } else {
-                setState(() => _startsAt = null);
-              }
-            },
-            child: Container(
-              padding: const EdgeInsets.all(14),
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(kRadius),
-                border: Border.all(
-                  color: selected ? LoopColors.accent : Colors.transparent,
-                  width: 2,
-                ),
-              ),
-              child: Row(
-                children: [
-                  Icon(icon, color: LoopColors.accent),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          title,
-                          key: ValueKey(later ? 'live-later' : 'live-now'),
-                          style: const TextStyle(
-                            fontWeight: FontWeight.w900,
-                            fontSize: 15,
-                          ),
-                        ),
-                        Text(
-                          text,
-                          style: TextStyle(
-                            color: LoopColors.textSecondary,
-                            fontSize: 13,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  Icon(
-                    selected
-                        ? Icons.radio_button_checked
-                        : Icons.radio_button_off,
-                    color: selected
-                        ? LoopColors.accent
-                        : LoopColors.textSecondary,
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ),
-      );
-    }
-
-    return [
-      _heading(
-        t('Kada kreće show?'),
-        t('Odaberi termin kad imaš barem 30 minuta za prodaju.'),
-      ),
-      option(
-        false,
-        Icons.bolt,
-        t('Odmah'),
-        t('Kreneš uživo čim završiš postavljanje.'),
-      ),
-      option(
-        true,
-        Icons.event,
-        t('Zakaži'),
-        t('Pratitelji dobiju obavijest i mogu predlicitirati.'),
-      ),
-      if (_startsAt != null)
-        Material(
-          color: LoopColors.surface,
-          borderRadius: BorderRadius.circular(kRadius),
-          child: InkWell(
-            key: const ValueKey('live-when'),
-            borderRadius: BorderRadius.circular(kRadius),
-            onTap: _pickTime,
-            child: Container(
-              padding: const EdgeInsets.all(14),
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(kRadius),
-                border: Border.all(color: LoopColors.surfaceHover, width: 1.5),
-              ),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          t('Datum i vrijeme'),
-                          style: TextStyle(
-                            color: LoopColors.textSecondary,
-                            fontSize: 13,
-                          ),
-                        ),
-                        Text(
-                          formatDateTime(_startsAt!),
-                          style: const TextStyle(
-                            fontWeight: FontWeight.w800,
-                            fontSize: 16,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const Icon(Icons.calendar_month_outlined),
-                ],
-              ),
-            ),
-          ),
-        ),
-    ];
-  }
-
-  /// 4. Predmeti ovog livea.
+  /// 2. Predmeti + sve dodatno sklonjeno pod "Više postavki".
   List<Widget> _itemsStep(AppState s) => [
-    Text(
-      t('Što prodaješ u liveu?'),
-      style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 18),
+    _heading(
+      t('Dodaj predmete'),
+      t('Licitiraju se redom. Možeš ih dodati i tijekom showa.'),
     ),
-    const SizedBox(height: 8),
-    SegmentedButton<LiveSells>(
-      key: const ValueKey('live-sells'),
-      showSelectedIcon: false,
-      segments: [
-        for (final v in LiveSells.values)
-          ButtonSegment(
-            value: v,
-            label: Text(v.label, key: ValueKey('live-sells-${v.name}')),
-          ),
-      ],
-      selected: {_sells},
-      onSelectionChanged: (v) => setState(() => _sells = v.first),
-    ),
-    const SizedBox(height: 6),
-    Text(switch (_sells) {
-      LiveSells.physical => t('Stvari se licitiraju (aukcije u liveu).'),
-      LiveSells.digital => t(
-        'Digitalni proizvodi se u liveu kupuju odmah, bez aukcije. Kupac odmah preuzima datoteku.',
-      ),
-      LiveSells.both => t(
-        'Stvari se licitiraju, a digitalni proizvodi se kupuju odmah (Kupi odmah u liveu).',
-      ),
-    }, style: TextStyle(color: LoopColors.textSecondary, fontSize: 13)),
-    if (_sells.hasDigital) ...[
-      const SizedBox(height: 8),
-      Builder(
-        builder: (_) {
-          final digital = s
-              .listingsOf(s.currentUserId ?? '')
-              .where((d) => d.isDigital)
-              .length;
-          return Container(
-            key: const ValueKey('live-digital-count'),
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: LoopColors.surface,
-              borderRadius: BorderRadius.circular(kRadius),
-            ),
-            child: Row(
-              children: [
-                const Text('⬇️', style: TextStyle(fontSize: 20)),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: Text(
-                    digital == 0
-                        ? t(
-                            'Još nemaš digitalnih proizvoda. Dodaj ih u Seller Hubu (Kreiraj → Predmet s detaljima → Digitalno).',
-                          )
-                        : t(
-                            '{0} digitalnih proizvoda bit će u Kupi odmah u liveu.',
-                            ['$digital'],
-                          ),
-                  ),
-                ),
-              ],
-            ),
-          );
-        },
-      ),
-    ],
-    const SizedBox(height: 20),
     if (_sells.hasPhysical) ..._lotsSection(s),
+    const SizedBox(height: 12),
+    Theme(
+      data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+      child: ExpansionTile(
+        key: const ValueKey('live-more'),
+        tilePadding: EdgeInsets.zero,
+        childrenPadding: EdgeInsets.zero,
+        title: Text(
+          t('Više postavki'),
+          style: const TextStyle(fontWeight: FontWeight.w700),
+        ),
+        children: _moreOptions(s),
+      ),
+    ),
   ];
 
   /// Predmeti za licitaciju (stvari).
   List<Widget> _lotsSection(AppState s) => [
-    _heading(
-      t('Dodaj predmete'),
-      t(
-        'Licitiraju se redom, a nakon svake prodaje dolazi sljedeći. Predmete možeš dodati i kasnije, i tijekom showa.',
-      ),
-    ),
-    Text(
-      t('Predmeti u ovom liveu ({0}/{1})', [
-        '${_selected.length + _drafts.length}',
-        '$_maxLots',
-      ]),
-      style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 15),
-    ),
-    const SizedBox(height: 10),
     Row(
       children: [
         Expanded(
@@ -1590,205 +1412,93 @@ class _CreateLiveShowScreenState extends ConsumerState<CreateLiveShowScreen> {
       ),
   ];
 
-  /// 5. Postavke i pregled prije objave.
-  List<Widget> _reviewStep() {
-    Widget line(String k, String v) => Padding(
-      padding: const EdgeInsets.symmetric(vertical: 6),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          SizedBox(
-            width: 110,
-            child: Text(k, style: TextStyle(color: LoopColors.textSecondary)),
+  /// Rijetko potrebne opcije: što se prodaje, promocija, video, sat.
+  List<Widget> _moreOptions(AppState s) => [
+    _label(t('Što prodaješ u liveu?')),
+    SegmentedButton<LiveSells>(
+      key: const ValueKey('live-sells'),
+      showSelectedIcon: false,
+      segments: [
+        for (final v in LiveSells.values)
+          ButtonSegment(
+            value: v,
+            label: Text(v.label, key: ValueKey('live-sells-${v.name}')),
           ),
-          Expanded(
-            child: Text(v, style: const TextStyle(fontWeight: FontWeight.w800)),
-          ),
-        ],
-      ),
-    );
-    return [
-      _heading(
-        t('Postavke i pregled'),
-        t('Provjeri show prije objave. Sve možeš urediti i kasnije.'),
-      ),
-      Container(
-        key: const ValueKey('live-summary'),
-        padding: const EdgeInsets.all(14),
-        decoration: BoxDecoration(
-          color: LoopColors.surface,
-          borderRadius: BorderRadius.circular(kRadius),
-        ),
-        child: Column(
-          children: [
-            line(t('Naslov'), _title.text.trim()),
-            line(t('Kategorija'), _category?.label ?? '—'),
-            line(
-              t('Početak'),
-              _startsAt == null ? t('Odmah') : formatDateTime(_startsAt!),
-            ),
-            line(t('Prodaješ'), _sells.label),
-            if (_sells.hasPhysical)
-              line(
-                t('Predmeti'),
-                '${_selected.length + _drafts.fold<int>(0, (a, l) => a + l.count)}',
-              ),
-            if (_promo > 0)
-              line(t('Promocija'), formatCredits(_promo.toDouble())),
-          ],
-        ),
-      ),
-      const SizedBox(height: 12),
-      // Promocija odmah: zakazani show → promocija do kraja showa,
-      // live odmah → brzi boost 15 min.
-      Container(
-        key: const ValueKey('live-promo'),
-        padding: const EdgeInsets.all(14),
-        decoration: BoxDecoration(
-          color: LoopColors.surface,
-          borderRadius: BorderRadius.circular(kRadius),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Icon(Icons.trending_up, color: LoopColors.accent),
-                const SizedBox(width: 8),
-                Text(
-                  _startsAt == null
-                      ? t('Brzi boost (15 min)')
-                      : t('Promocija showa'),
-                  style: const TextStyle(fontWeight: FontWeight.w900),
-                ),
-              ],
-            ),
-            const SizedBox(height: 4),
-            Text(
-              _startsAt == null
-                  ? t('Odmah na vrh početne i kategorije dok si uživo.')
-                  : t('Istaknut u "Uskoro uživo" i do kraja showa.'),
-              style: TextStyle(color: LoopColors.textSecondary, fontSize: 13),
-            ),
-            const SizedBox(height: 8),
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: [
-                for (final v in [0, if (_startsAt == null) 3, 5, 10, 20])
-                  ChoiceChip(
-                    key: ValueKey('live-promo-$v'),
-                    showCheckmark: false,
-                    label: Text(
-                      v == 0
-                          ? t('Bez promocije')
-                          : '${formatCredits(v.toDouble())} · ~${LiveBoost.estimatedReach(v.toDouble())}',
-                    ),
-                    selected: _promo == v,
-                    onSelected: (_) => setState(() => _promo = v),
-                  ),
-              ],
-            ),
-            if (_promo > 0)
-              Padding(
-                padding: const EdgeInsets.only(top: 6),
-                child: Text(
-                  t(
-                    'Plaća se karticom pri objavi; show ima oznaku "Promovirano".',
-                  ),
-                  style: TextStyle(
-                    color: LoopColors.textSecondary,
-                    fontSize: 12,
-                  ),
-                ),
-              ),
-          ],
-        ),
-      ),
-      const SizedBox(height: 12),
-      Material(
-        color: LoopColors.surface,
-        borderRadius: BorderRadius.circular(kRadius),
-        child: Column(
-          children: [
-            SwitchListTile(
-              key: const ValueKey('live-video'),
-              value: _video,
-              onChanged: (v) => setState(() => _video = v),
-              secondary: const Icon(Icons.videocam),
-              title: Text(
-                t('Video uživo s kamere'),
-                style: const TextStyle(fontWeight: FontWeight.w800),
-              ),
-              subtitle: Text(
-                _video
-                    ? t(
-                        'Gledatelji te vide i čuju dok pokazuješ predmete. Preglednik će tražiti dopuštenje za kameru i mikrofon.',
-                      )
-                    : t('Gledatelji vide samo fotografije predmeta.'),
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 4, 16, 12),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    t('Licitacija po predmetu'),
-                    style: const TextStyle(fontWeight: FontWeight.w800),
-                  ),
-                  const SizedBox(height: 6),
-                  Wrap(
-                    spacing: 8,
-                    children: [
-                      for (final sec in LiveShow.lotDurations)
-                        ChoiceChip(
-                          key: ValueKey('live-secs-$sec'),
-                          label: Text(
-                            sec <= 10
-                                ? t('{0} s', ['$sec'])
-                                : t('{0} s', ['$sec']),
-                          ),
-                          selected: _secs == sec,
-                          onSelected: (_) => setState(() => _secs = sec),
-                        ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
-      const SizedBox(height: 12),
-      Container(
-        padding: const EdgeInsets.all(14),
-        decoration: BoxDecoration(
-          color: LoopColors.surface,
-          borderRadius: BorderRadius.circular(kRadius),
-        ),
+      ],
+      selected: {_sells},
+      onSelectionChanged: (v) => setState(() => _sells = v.first),
+    ),
+    if (_sells.hasDigital)
+      Padding(
+        padding: const EdgeInsets.only(top: 8),
         child: Text(
-          t(
-            '• Live traje dok si uživo — završavaš ga ti (ili kad izađeš).\n• Ti biraš predmet i pokrećeš licitaciju od {0} s.\n• Svaka ponuda dodaje 2 s na sat (brze licitacije: 5 ili 10 s).\n• Pobjednik plaća automatski karticom, a dostava kreće na njegovu adresu.\n• Provizija je 10 % samo od razlike iznad početne cijene.',
-            ['$_secs'],
-          ),
-          style: TextStyle(color: LoopColors.textSecondary, height: 1.5),
+          key: const ValueKey('live-digital-count'),
+          t('{0} digitalnih proizvoda bit će u Kupi odmah u liveu.', [
+            '${s.listingsOf(s.currentUserId ?? '').where((d) => d.isDigital).length}',
+          ]),
+          style: TextStyle(color: LoopColors.textSecondary, fontSize: 13),
         ),
       ),
-    ];
-  }
+    SwitchListTile(
+      key: const ValueKey('live-video'),
+      contentPadding: EdgeInsets.zero,
+      value: _video,
+      onChanged: (v) => setState(() => _video = v),
+      title: Text(
+        t('Video uživo s kamere'),
+        style: const TextStyle(fontWeight: FontWeight.w700),
+      ),
+    ),
+    _label(t('Licitacija po predmetu')),
+    Wrap(
+      spacing: 8,
+      children: [
+        for (final sec in LiveShow.lotDurations)
+          ChoiceChip(
+            key: ValueKey('live-secs-$sec'),
+            label: Text(t('{0} s', ['$sec'])),
+            selected: _secs == sec,
+            onSelected: (_) => setState(() => _secs = sec),
+          ),
+      ],
+    ),
+    // Promocija odmah: zakazani show → do kraja showa, live odmah → boost.
+    _label(_startsAt == null ? t('Brzi boost (15 min)') : t('Promocija showa')),
+    Wrap(
+      key: const ValueKey('live-promo'),
+      spacing: 8,
+      runSpacing: 8,
+      children: [
+        for (final v in [0, if (_startsAt == null) 3, 5, 10, 20])
+          ChoiceChip(
+            key: ValueKey('live-promo-$v'),
+            showCheckmark: false,
+            label: Text(
+              v == 0
+                  ? t('Bez promocije')
+                  : '${formatCredits(v.toDouble())} · ~${LiveBoost.estimatedReach(v.toDouble())}',
+            ),
+            selected: _promo == v,
+            onSelected: (_) => setState(() => _promo = v),
+          ),
+      ],
+    ),
+    if (_promo > 0)
+      Padding(
+        padding: const EdgeInsets.only(top: 6),
+        child: Text(
+          t('Plaća se karticom pri objavi; show ima oznaku "Promovirano".'),
+          style: TextStyle(color: LoopColors.textSecondary, fontSize: 12),
+        ),
+      ),
+    const SizedBox(height: 8),
+  ];
 
   @override
   Widget build(BuildContext context) {
     final s = ref.watch(appProvider);
     final last = _step == _steps - 1;
-    final body = switch (_step) {
-      0 => _nameStep(),
-      1 => _categoryStep(),
-      2 => _whenStep(),
-      3 => _itemsStep(s),
-      _ => _reviewStep(),
-    };
+    final body = _step == 0 ? _basicsStep() : _itemsStep(s);
 
     return PopScope(
       canPop: _step == 0,
@@ -1820,7 +1530,7 @@ class _CreateLiveShowScreenState extends ConsumerState<CreateLiveShowScreen> {
             constraints: const BoxConstraints(maxWidth: 600),
             child: ListView(
               key: ValueKey('wizard-step-$_step'),
-              padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
+              padding: const EdgeInsets.fromLTRB(20, 8, 20, 32),
               children: [
                 ...body,
                 if (_error != null) ...[
@@ -1838,76 +1548,56 @@ class _CreateLiveShowScreenState extends ConsumerState<CreateLiveShowScreen> {
           ),
         ),
         bottomNavigationBar: SafeArea(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              // Traka napretka (kao Whatnot, u Subhasto narančastoj).
-              TweenAnimationBuilder<double>(
-                tween: Tween(end: (_step + 1) / _steps),
-                duration: const Duration(milliseconds: 250),
-                builder: (_, v, _) => LinearProgressIndicator(
-                  key: const ValueKey('wizard-progress'),
-                  value: v,
-                  minHeight: 4,
-                  color: LoopColors.accent,
-                  backgroundColor: LoopColors.surfaceHover,
-                ),
-              ),
-              Padding(
-                padding: const EdgeInsets.fromLTRB(16, 10, 16, 12),
-                child: Center(
-                  heightFactor: 1,
-                  child: ConstrainedBox(
-                    constraints: const BoxConstraints(maxWidth: 568),
-                    child: Row(
-                      children: [
-                        Text(
-                          t('{0} od {1}', ['${_step + 1}', '$_steps']),
-                          key: const ValueKey('wizard-count'),
-                          style: TextStyle(
-                            color: LoopColors.textSecondary,
-                            fontWeight: FontWeight.w800,
-                          ),
-                        ),
-                        const Spacer(),
-                        if (last)
-                          FilledButton.icon(
-                            key: const ValueKey('live-go'),
-                            style: FilledButton.styleFrom(
-                              backgroundColor: kLiveRed,
-                              foregroundColor: Colors.white,
-                              minimumSize: const Size(160, 52),
-                            ),
-                            onPressed: _submit,
-                            icon: Icon(
-                              _startsAt == null ? Icons.videocam : Icons.event,
-                            ),
-                            label: Text(
-                              _startsAt == null
-                                  ? t('Kreni uživo')
-                                  : t('Zakaži live'),
-                            ),
-                          )
-                        else
-                          FilledButton(
-                            key: const ValueKey('wizard-next'),
-                            style: FilledButton.styleFrom(
-                              minimumSize: const Size(120, 52),
-                            ),
-                            onPressed: _canNext
-                                ? () => setState(() {
-                                    _error = null;
-                                    _step++;
-                                  })
-                                : null,
-                            child: Text(t('Dalje')),
-                          ),
-                      ],
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(20, 8, 20, 12),
+            child: Center(
+              heightFactor: 1,
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 560),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      t('{0} od {1}', ['${_step + 1}', '$_steps']),
+                      key: const ValueKey('wizard-count'),
+                      style: TextStyle(
+                        color: LoopColors.textSecondary,
+                        fontWeight: FontWeight.w700,
+                        fontSize: 12,
+                      ),
                     ),
-                  ),
+                    const SizedBox(height: 8),
+                    SizedBox(
+                      width: double.infinity,
+                      child: last
+                          ? FilledButton(
+                              key: const ValueKey('live-go'),
+                              style: FilledButton.styleFrom(
+                                backgroundColor: kLiveRed,
+                                foregroundColor: Colors.white,
+                              ),
+                              onPressed: _submit,
+                              child: Text(
+                                _startsAt == null
+                                    ? t('Kreni uživo')
+                                    : t('Zakaži live'),
+                              ),
+                            )
+                          : FilledButton(
+                              key: const ValueKey('wizard-next'),
+                              onPressed: _canNext
+                                  ? () => setState(() {
+                                      _error = null;
+                                      _step++;
+                                    })
+                                  : null,
+                              child: Text(t('Dalje')),
+                            ),
+                    ),
+                  ],
                 ),
               ),
-            ],
+            ),
           ),
         ),
       ),
@@ -4202,9 +3892,6 @@ class _LiveRoomViewState extends ConsumerState<_LiveRoomBody> {
                               )
                               .length,
                       onBag: () => _showQueue(st, isHost),
-                      onBoost: isHost || !canAct || st.isOver
-                          ? null
-                          : () => showPromoteSheet(context, ref, show),
                       liked: _liked,
                       onHeart: st.isOver || isHost ? null : _toggleLike,
                       showWallet: !isHost,
@@ -6521,11 +6208,7 @@ class _DouyinBar extends StatelessWidget {
     this.showWallet = false,
     required this.guest,
     required this.onLogin,
-    this.onBoost,
   });
-
-  /// Gledatelj boosta show (plaća sam, show ide prvi na početnoj).
-  final VoidCallback? onBoost;
 
   /// Novčanik uz srce i dijeljenje (gledatelji).
   final bool showWallet;
@@ -6555,14 +6238,14 @@ class _DouyinBar extends StatelessWidget {
             color: Colors.transparent,
             child: InkWell(
               key: const ValueKey('live-queue'),
-              borderRadius: BorderRadius.circular(10),
+              borderRadius: BorderRadius.circular(99),
               onTap: onBag,
               child: Ink(
-                width: 40,
-                height: 40,
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(10),
-                  color: const Color(0xCC202127),
+                width: 44,
+                height: 44,
+                decoration: const BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: Color(0xCC000000),
                 ),
                 child: Center(
                   child: Badge(
@@ -6601,7 +6284,7 @@ class _DouyinBar extends StatelessWidget {
                     hintText: t('Reci nešto…'),
                     hintStyle: const TextStyle(color: Colors.white70),
                     filled: true,
-                    fillColor: const Color(0xA6202127),
+                    fillColor: const Color(0xA6000000),
                     // Pisanje: "Aa" lijevo, kao na Whatnotu.
                     prefixIcon: composing
                         ? Padding(
@@ -6696,19 +6379,6 @@ class _DouyinBar extends StatelessWidget {
           const Padding(
             padding: EdgeInsets.symmetric(horizontal: 2),
             child: WalletChip(dark: true),
-          ),
-        if (!composing &&
-            onBoost != null &&
-            MediaQuery.sizeOf(context).width >= 360)
-          IconButton(
-            key: const ValueKey('live-boost'),
-            tooltip: t('Boostaj show'),
-            onPressed: onBoost,
-            icon: const Icon(
-              Icons.rocket_launch_outlined,
-              color: Color(0xFFFFA24C),
-              size: 22,
-            ),
           ),
         if (!composing)
           IconButton(

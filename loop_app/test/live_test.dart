@@ -1160,24 +1160,24 @@ void main() {
         find.byKey(const ValueKey('live-title')),
         'Retro večer',
       );
-      // Čarobnjak: ime → kategorija → kada → predmeti → pregled.
+      // Čarobnjak: ime/kategorija/kada → predmeti i Kreni uživo.
       Future<void> next() async {
         await tester.tap(find.byKey(const ValueKey('wizard-next')));
         await tester.pumpAndSettle();
       }
 
-      expect(find.text('1 od 5'), findsOneWidget);
-      await tester.pumpAndSettle();
-      await next();
-      expect(find.text('2 od 5'), findsOneWidget);
+      expect(find.text('1 od 2'), findsOneWidget);
       final cat = ItemSection.values
           .firstWhere((s) => s != ItemSection.digital)
           .categories
           .first;
+      await tester.ensureVisible(find.byKey(ValueKey('live-cat-${cat.name}')));
       await tester.tap(find.byKey(ValueKey('live-cat-${cat.name}')));
       await tester.pumpAndSettle();
+      FocusManager.instance.primaryFocus?.unfocus();
+      await tester.pumpAndSettle();
       await next();
-      await next();
+      expect(find.text('2 od 2'), findsOneWidget);
       // Predmeti samo za ovaj live: brzo dodaj (sa slikom) i "items on
       // screen" (#150, #151 — bez slike).
       await tester.tap(find.byKey(const ValueKey('live-quick-item')));
@@ -1204,8 +1204,6 @@ void main() {
       // Zatvori tipkovnicu (fokusirano polje inače vraća pomak na sebe).
       FocusManager.instance.primaryFocus?.unfocus();
       await tester.pumpAndSettle();
-      await next();
-      expect(find.text('5 od 5'), findsOneWidget);
       // Popis na ekranu "Novi live" (ispod je još swipe feed).
       final form = find
           .descendant(
@@ -1213,11 +1211,15 @@ void main() {
             matching: find.byType(Scrollable),
           )
           .first;
+      await tester.ensureVisible(find.byKey(const ValueKey('live-more')));
+      await tester.tap(find.byKey(const ValueKey('live-more')));
+      await tester.pumpAndSettle();
       await tester.scrollUntilVisible(
         find.byKey(const ValueKey('live-secs-45')),
         200,
         scrollable: form,
       );
+      await tester.ensureVisible(find.byKey(const ValueKey('live-secs-45')));
       await tester.pumpAndSettle();
       await tester.tap(find.byKey(const ValueKey('live-secs-45')));
       await tester.pumpAndSettle();
