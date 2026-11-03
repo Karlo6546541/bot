@@ -21,25 +21,24 @@ Future<void> showCreateSheet(BuildContext context) async {
     builder: (ctx) {
       Widget option(
         String key,
-        String emoji,
-        Color color,
+        IconData icon,
         String title,
         String subtitle,
       ) => Padding(
-        padding: const EdgeInsets.only(bottom: 8),
+        padding: const EdgeInsets.only(bottom: 10),
         child: Material(
-          color: color,
+          color: LoopColors.surface,
           borderRadius: BorderRadius.circular(kRadius),
           child: InkWell(
             key: ValueKey('create-$key'),
             borderRadius: BorderRadius.circular(kRadius),
             onTap: () => Navigator.pop(ctx, key),
             child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
               child: Row(
                 children: [
-                  Text(emoji, style: const TextStyle(fontSize: 26)),
-                  const SizedBox(width: 12),
+                  Icon(icon, size: 26, color: LoopColors.accent),
+                  const SizedBox(width: 14),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -47,17 +46,18 @@ Future<void> showCreateSheet(BuildContext context) async {
                         Text(
                           title,
                           style: const TextStyle(
-                            fontWeight: FontWeight.w900,
-                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                            fontSize: 17,
                           ),
                         ),
+                        const SizedBox(height: 2),
                         Text(
                           subtitle,
-                          maxLines: 1,
+                          maxLines: 2,
                           overflow: TextOverflow.ellipsis,
                           style: TextStyle(
                             color: LoopColors.textSecondary,
-                            fontSize: 13,
+                            fontSize: 14,
                           ),
                         ),
                       ],
@@ -80,31 +80,29 @@ Future<void> showCreateSheet(BuildContext context) async {
               Text(
                 t('Što želiš pokrenuti?'),
                 style: const TextStyle(
-                  fontSize: 19,
-                  fontWeight: FontWeight.w900,
+                  fontSize: 24,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: -0.4,
                 ),
               ),
-              const SizedBox(height: 10),
+              const SizedBox(height: 16),
+              option(
+                'item',
+                Icons.sell_outlined,
+                t('Prodaj predmet'),
+                t('Slikaj, upiši cijenu i objavi'),
+              ),
               option(
                 'live',
-                '🔴',
-                LoopColors.rose,
+                Icons.videocam_outlined,
                 t('Live aukcija'),
                 t('Kreni odmah ili zakaži · video, chat, brze licitacije'),
               ),
               option(
                 'auction',
-                '🔨',
-                LoopColors.lilac,
+                Icons.gavel,
                 t('Aukcija'),
                 t('Traje satima ili danima, najviša ponuda pobjeđuje'),
-              ),
-              option(
-                'item',
-                '🏷️',
-                LoopColors.mint,
-                t('Prodaj predmet'),
-                t('Aukcija ili live — spremi predmet pa odluči'),
               ),
             ],
           ),

@@ -53,6 +53,8 @@ void main() {
       250,
       scrollable: find.byType(Scrollable).last,
     );
+    await tester.ensureVisible(find.byKey(const ValueKey('seller-hub-sales')));
+    await tester.pumpAndSettle();
     await tester.tap(find.byKey(const ValueKey('seller-hub-sales')));
     await tester.pumpAndSettle();
     await tester.scrollUntilVisible(

@@ -332,6 +332,78 @@ class _AddDeviceScreenState extends ConsumerState<AddDeviceScreen> {
     }
   }
 
+  /// Odabir kategorije u listiću (odjeljak pa kategorija) — ne zauzima
+  /// ekran obrasca dok nije potreban.
+  Future<void> _chooseCategory(FormFieldState<DeviceCategory> field) =>
+      showModalBottomSheet<void>(
+        context: context,
+        isScrollControlled: true,
+        showDragHandle: true,
+        constraints: const BoxConstraints(maxWidth: 560),
+        builder: (ctx) => StatefulBuilder(
+          builder: (ctx, setSheet) => SafeArea(
+            child: SingleChildScrollView(
+              key: const ValueKey('add-category-sheet'),
+              padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    t('Odaberi kategoriju'),
+                    style: const TextStyle(
+                      fontSize: 22,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  const SizedBox(height: 14),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: [
+                      for (final sec in ItemSection.values)
+                        ChoiceChip(
+                          avatar: Icon(sec.icon, size: 18),
+                          label: Text(sec.label),
+                          selected: _section == sec,
+                          onSelected: (_) {
+                            setState(() {
+                              _section = sec;
+                              _category = null;
+                            });
+                            field.didChange(null);
+                            setSheet(() {});
+                          },
+                        ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: [
+                      for (final c in _section.categories)
+                        _CategoryTile(
+                          category: c,
+                          selected: _category == c,
+                          onTap: () {
+                            setState(() {
+                              _category = c;
+                              _categoryManual = true;
+                              _pickCategory = false;
+                            });
+                            field.didChange(c);
+                            Navigator.pop(ctx);
+                          },
+                        ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      );
+
   String? _required(String? v) =>
       (v == null || v.trim().isEmpty) ? t('Obavezno polje') : null;
 
@@ -512,7 +584,7 @@ class _AddDeviceScreenState extends ConsumerState<AddDeviceScreen> {
                               title: Text(
                                 _category!.singular,
                                 style: const TextStyle(
-                                  fontWeight: FontWeight.w800,
+                                  fontWeight: FontWeight.w700,
                                 ),
                               ),
                               subtitle: Text(
@@ -522,88 +594,31 @@ class _AddDeviceScreenState extends ConsumerState<AddDeviceScreen> {
                               ),
                               trailing: TextButton(
                                 key: const ValueKey('add-category-change'),
-                                onPressed: () =>
-                                    setState(() => _pickCategory = true),
+                                onPressed: () => _chooseCategory(field),
                                 child: Text(t('Promijeni')),
                               ),
                             )
-                          : Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  t('Odjeljak'),
-                                  style: TextStyle(
-                                    color: LoopColors.textSecondary,
-                                  ),
-                                ),
-                                const SizedBox(height: 8),
-                                Wrap(
-                                  spacing: 8,
-                                  runSpacing: 8,
-                                  children: [
-                                    for (final sec in ItemSection.values)
-                                      ChoiceChip(
-                                        avatar: Icon(sec.icon, size: 18),
-                                        label: Text(sec.label),
-                                        selected: _section == sec,
-                                        onSelected: (_) {
-                                          setState(() {
-                                            _section = sec;
-                                            _category = null;
-                                          });
-                                          field.didChange(null);
-                                        },
-                                      ),
-                                  ],
-                                ),
-                                const SizedBox(height: 14),
-                                Text(
-                                  t('Kategorija'),
-                                  style: TextStyle(
-                                    color: LoopColors.textSecondary,
-                                  ),
-                                ),
-                                const SizedBox(height: 8),
-                                Wrap(
-                                  spacing: 8,
-                                  runSpacing: 8,
-                                  children: [
-                                    for (final c in _section.categories)
-                                      _CategoryTile(
-                                        category: c,
-                                        selected: _category == c,
-                                        onTap: () {
-                                          setState(() {
-                                            _category = c;
-                                            _categoryManual = true;
-                                            _pickCategory = false;
-                                          });
-                                          field.didChange(c);
-                                        },
-                                      ),
-                                  ],
-                                ),
-                                if (field.hasError)
-                                  Padding(
-                                    padding: const EdgeInsets.only(
-                                      top: 6,
-                                      left: 12,
-                                    ),
-                                    child: Text(
+                          : ListTile(
+                              key: const ValueKey('add-category-pick'),
+                              contentPadding: EdgeInsets.zero,
+                              leading: Icon(
+                                Icons.category_outlined,
+                                color: LoopColors.textSecondary,
+                              ),
+                              title: Text(t('Odaberi kategoriju')),
+                              subtitle: field.hasError
+                                  ? Text(
                                       field.errorText!,
                                       style: TextStyle(
                                         color: LoopColors.error,
                                         fontSize: 12,
                                       ),
-                                    ),
-                                  ),
-                              ],
+                                    )
+                                  : null,
+                              trailing: const Icon(Icons.chevron_right),
+                              onTap: () => _chooseCategory(field),
                             ),
                     ),
-                    if (!_digital) ...[
-                      const SizedBox(height: 14),
-                      _shippingSection(),
-                    ],
                     const SizedBox(height: 8),
                     // Sve ostalo je neobavezno — skriveno dok se ne zatraži.
                     Theme(
@@ -616,16 +631,19 @@ class _AddDeviceScreenState extends ConsumerState<AddDeviceScreen> {
                         childrenPadding: EdgeInsets.zero,
                         title: Text(
                           t('Više detalja (neobavezno)'),
-                          style: const TextStyle(fontWeight: FontWeight.w800),
+                          style: const TextStyle(fontWeight: FontWeight.w700),
                         ),
                         subtitle: Text(
-                          t('Model, opis, stanje, količina'),
+                          t('Dostava, model, opis, stanje, količina'),
                           style: TextStyle(
                             color: LoopColors.textSecondary,
                             fontSize: 12,
                           ),
                         ),
                         children: [
+                          // Dostava ima razumnu zadanu vrijednost (malo
+                          // paket) pa se ne traži od prodavača odmah.
+                          if (!_digital) ...[_shippingSection(), gap],
                           TextFormField(
                             controller: _model,
                             onChanged: (_) => setState(() {}),
@@ -749,34 +767,39 @@ class _AddDeviceScreenState extends ConsumerState<AddDeviceScreen> {
                         ),
                       ),
                       const SizedBox(height: 8),
-                      GridView.count(
-                        crossAxisCount: 2,
-                        shrinkWrap: true,
-                        physics: const NeverScrollableScrollPhysics(),
-                        mainAxisSpacing: 8,
-                        crossAxisSpacing: 8,
-                        childAspectRatio: 2.3,
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
                         children: [
                           for (final m in SellMode.values)
                             if ((kBuyNowEnabled || m != SellMode.buyNow) &&
                                 !(_digital && m == SellMode.auction))
-                              _SellModeTile(
-                                mode: m,
+                              ChoiceChip(
+                                key: ValueKey('sell-${m.name}'),
+                                label: Text(m.label),
                                 selected: _effMode == m,
-                                onTap: () => setState(() => _mode = m),
+                                onSelected: (_) => setState(() => _mode = m),
                               ),
                         ],
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        _effMode.hint,
+                        key: const ValueKey('sell-hint'),
+                        style: TextStyle(
+                          color: LoopColors.textSecondary,
+                          fontSize: 13,
+                        ),
                       ),
                     ],
                     const SizedBox(height: 16),
                     if (_effMode != SellMode.keep && !_digitalMarket) ...[
-                      OutlinedButton.icon(
+                      TextButton(
                         key: const ValueKey('add-save-draft'),
                         onPressed: _saveAsDraft,
-                        icon: const Icon(Icons.save_outlined),
-                        label: Text(t('Spremi skicu')),
+                        child: Text(t('Spremi skicu')),
                       ),
-                      const SizedBox(height: 8),
+                      const SizedBox(height: 4),
                     ],
                     FilledButton.icon(
                       key: const ValueKey('add-submit'),
@@ -803,69 +826,6 @@ class _AddDeviceScreenState extends ConsumerState<AddDeviceScreen> {
       ),
     );
   }
-}
-
-class _SellModeTile extends StatelessWidget {
-  const _SellModeTile({
-    required this.mode,
-    required this.selected,
-    required this.onTap,
-  });
-
-  final SellMode mode;
-  final bool selected;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) => Material(
-    color: selected ? LoopColors.lilac : LoopColors.surface,
-    borderRadius: BorderRadius.circular(kRadius),
-    child: InkWell(
-      key: ValueKey('sell-${mode.name}'),
-      borderRadius: BorderRadius.circular(kRadius),
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(kRadius),
-          border: Border.all(
-            color: selected ? LoopColors.accent : Colors.transparent,
-            width: 2,
-          ),
-        ),
-        child: Row(
-          children: [
-            Text(mode.emoji, style: const TextStyle(fontSize: 22)),
-            const SizedBox(width: 8),
-            Expanded(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    mode.label,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(fontWeight: FontWeight.w900),
-                  ),
-                  Text(
-                    mode.hint,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      color: LoopColors.textSecondary,
-                      fontSize: 11,
-                      height: 1.2,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
-    ),
-  );
 }
 
 class _CategoryTile extends StatelessWidget {

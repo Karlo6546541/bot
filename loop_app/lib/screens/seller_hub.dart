@@ -392,38 +392,57 @@ class SellerHubScreen extends ConsumerWidget {
     void openSales(MyTab tab) =>
         MyAuctionsScreen.open(context, initialTab: tab);
 
+    // Redak liste: bez vlastite kartice; redovi se grupiraju u jednu
+    // površinu s tankim razdjelnicima ([group]).
     Widget tile(Key key, IconData icon, String label, VoidCallback onTap) =>
-        Material(
-          color: LoopColors.surface,
-          borderRadius: BorderRadius.circular(kRadius),
-          child: InkWell(
-            key: key,
-            onTap: onTap,
-            borderRadius: BorderRadius.circular(kRadius),
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
-              child: Row(
-                children: [
-                  Icon(icon, color: LoopColors.accent),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Text(
-                      label,
-                      style: const TextStyle(fontWeight: FontWeight.w700),
+        InkWell(
+          key: key,
+          onTap: onTap,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 15),
+            child: Row(
+              children: [
+                Icon(icon, color: LoopColors.accent, size: 22),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Text(
+                    label,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.w500,
+                      fontSize: 16,
                     ),
                   ),
-                  Icon(Icons.chevron_right, color: LoopColors.textSecondary),
-                ],
-              ),
+                ),
+                Icon(Icons.chevron_right, color: LoopColors.textSecondary),
+              ],
             ),
           ),
         );
+
+    Widget group(List<Widget> rows) => Material(
+      color: LoopColors.surface,
+      borderRadius: BorderRadius.circular(kRadius),
+      clipBehavior: Clip.antiAlias,
+      child: Column(
+        children: [
+          for (var i = 0; i < rows.length; i++) ...[
+            if (i > 0)
+              Divider(height: 1, indent: 52, color: LoopColors.surfaceHover),
+            rows[i],
+          ],
+        ],
+      ),
+    );
 
     Widget heading(String title) => Padding(
       padding: const EdgeInsets.only(top: 22, bottom: 10),
       child: Text(
         title,
-        style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900),
+        style: const TextStyle(
+          fontSize: 20,
+          fontWeight: FontWeight.w700,
+          letterSpacing: -0.3,
+        ),
       ),
     );
 
@@ -480,44 +499,51 @@ class SellerHubScreen extends ConsumerWidget {
                 style: TextStyle(color: LoopColors.textSecondary),
               ),
               heading(t('Za napraviti')),
-              tile(
-                const ValueKey('seller-hub-shipping'),
-                Icons.local_shipping_outlined,
-                shipping == 0
-                    ? t('Nema paketa za slanje')
-                    : [
-                        if (awaiting > 0) t('Za slanje: {0}', ['$awaiting']),
-                        if (ready > 0) t('Za predaju: {0}', ['$ready']),
-                      ].join(' · '),
-                () => DeliveryNotesScreen.open(
-                  context,
-                  group: awaiting > 0
-                      ? ShipGroup.awaitingBuyer
-                      : ShipGroup.readyToShip,
+              group([
+                tile(
+                  const ValueKey('seller-hub-shipping'),
+                  Icons.local_shipping_outlined,
+                  shipping == 0
+                      ? t('Nema paketa za slanje')
+                      : [
+                          if (awaiting > 0) t('Za slanje: {0}', ['$awaiting']),
+                          if (ready > 0) t('Za predaju: {0}', ['$ready']),
+                        ].join(' · '),
+                  () => DeliveryNotesScreen.open(
+                    context,
+                    group: awaiting > 0
+                        ? ShipGroup.awaitingBuyer
+                        : ShipGroup.readyToShip,
+                  ),
                 ),
-              ),
-              const SizedBox(height: 8),
-              Builder(
-                builder: (_) {
-                  final waiting = state.bargainsToAnswer
-                      .where((o) => o.sellerId == state.currentUserId)
-                      .length;
-                  return tile(
-                    const ValueKey('seller-hub-offers-todo'),
-                    Icons.price_change_outlined,
-                    waiting == 0
-                        ? t('Nema ponuda za odgovor')
-                        : t('Ponude za odgovor: {0}', ['$waiting']),
-                    () => BargainsScreen.open(context),
-                  );
-                },
-              ),
+                Builder(
+                  builder: (_) {
+                    final waiting = state.bargainsToAnswer
+                        .where((o) => o.sellerId == state.currentUserId)
+                        .length;
+                    return tile(
+                      const ValueKey('seller-hub-offers-todo'),
+                      Icons.price_change_outlined,
+                      waiting == 0
+                          ? t('Nema ponuda za odgovor')
+                          : t('Ponude za odgovor: {0}', ['$waiting']),
+                      () => BargainsScreen.open(context),
+                    );
+                  },
+                ),
+              ]),
               heading(t('Brze radnje')),
               Wrap(
                 spacing: 8,
                 runSpacing: 8,
                 children: [
                   FilledButton.icon(
+                    key: const ValueKey('seller-hub-add'),
+                    onPressed: () => AddDeviceScreen.open(context),
+                    icon: const Icon(Icons.add),
+                    label: Text(t('Dodaj predmet')),
+                  ),
+                  OutlinedButton.icon(
                     key: const ValueKey('seller-hub-live'),
                     onPressed: () => CreateLiveShowScreen.open(context),
                     icon: const Icon(Icons.videocam_outlined),
@@ -528,12 +554,6 @@ class SellerHubScreen extends ConsumerWidget {
                     onPressed: () => CreateAuctionScreen.open(context),
                     icon: const Icon(Icons.gavel),
                     label: Text(t('Nova aukcija')),
-                  ),
-                  OutlinedButton.icon(
-                    key: const ValueKey('seller-hub-add'),
-                    onPressed: () => AddDeviceScreen.open(context),
-                    icon: const Icon(Icons.add),
-                    label: Text(t('Dodaj predmet')),
                   ),
                 ],
               ),
@@ -598,54 +618,50 @@ class SellerHubScreen extends ConsumerWidget {
                 ),
               ),
               heading(t('Alati za prodaju')),
-              tile(
-                const ValueKey('seller-hub-shows'),
-                Icons.live_tv_outlined,
-                t('Moji showovi'),
-                () => MyShowsScreen.open(context),
-              ),
-              const SizedBox(height: 8),
-              tile(
-                const ValueKey('seller-hub-inventory'),
-                Icons.inventory_2_outlined,
-                t('Inventar'),
-                () => InventoryScreen.open(context),
-              ),
-              const SizedBox(height: 8),
-              tile(
-                const ValueKey('seller-hub-offers'),
-                Icons.price_change_outlined,
-                t('Ponude'),
-                () => BargainsScreen.open(context),
-              ),
-              const SizedBox(height: 8),
-              tile(
-                const ValueKey('seller-hub-messages'),
-                Icons.chat_bubble_outline,
-                t('Poruke'),
-                () => MessagesScreen.open(context),
-              ),
-              const SizedBox(height: 8),
-              tile(
-                const ValueKey('seller-hub-sales'),
-                Icons.sell_outlined,
-                t('Aukcije i predmeti'),
-                () => openSales(MyTab.selling),
-              ),
-              const SizedBox(height: 8),
-              tile(
-                const ValueKey('seller-hub-shipments'),
-                Icons.inventory_2_outlined,
-                t('Otpremnice'),
-                () => DeliveryNotesScreen.open(context),
-              ),
-              const SizedBox(height: 8),
-              tile(
-                const ValueKey('seller-hub-finance'),
-                Icons.account_balance_wallet_outlined,
-                t('Financije'),
-                () => FinancialsScreen.open(context),
-              ),
+              group([
+                tile(
+                  const ValueKey('seller-hub-shows'),
+                  Icons.live_tv_outlined,
+                  t('Moji showovi'),
+                  () => MyShowsScreen.open(context),
+                ),
+                tile(
+                  const ValueKey('seller-hub-inventory'),
+                  Icons.inventory_2_outlined,
+                  t('Inventar'),
+                  () => InventoryScreen.open(context),
+                ),
+                tile(
+                  const ValueKey('seller-hub-offers'),
+                  Icons.price_change_outlined,
+                  t('Ponude'),
+                  () => BargainsScreen.open(context),
+                ),
+                tile(
+                  const ValueKey('seller-hub-messages'),
+                  Icons.chat_bubble_outline,
+                  t('Poruke'),
+                  () => MessagesScreen.open(context),
+                ),
+                tile(
+                  const ValueKey('seller-hub-sales'),
+                  Icons.sell_outlined,
+                  t('Aukcije i predmeti'),
+                  () => openSales(MyTab.selling),
+                ),
+                tile(
+                  const ValueKey('seller-hub-shipments'),
+                  Icons.inventory_2_outlined,
+                  t('Otpremnice'),
+                  () => DeliveryNotesScreen.open(context),
+                ),
+                tile(
+                  const ValueKey('seller-hub-finance'),
+                  Icons.account_balance_wallet_outlined,
+                  t('Financije'),
+                  () => FinancialsScreen.open(context),
+                ),
+              ]),
             ],
           ),
         ),

@@ -3141,6 +3141,8 @@ const kEn = <String, String>{
   'Vruće': 'Hot',
   'Danas posebna ponuda ✨': 'Special offer today ✨',
   'Novo stiglo! 👀': 'Just arrived! 👀',
+  'Slikaj, upiši cijenu i objavi': 'Take a photo, set a price and publish',
+  'Dostava, model, opis, stanje, količina': 'Delivery, model, description, condition, quantity',
   'Zakaži show': 'Schedule a show',
   'Otprema': 'Shipping',
   'Nema paketa za predaju': 'No parcels to hand over',

@@ -50,6 +50,8 @@ Future<void> openMyItems(WidgetTester tester) async {
   );
   await tester.ensureVisible(find.byKey(const ValueKey('seller-hub-sales')));
   await tester.pumpAndSettle();
+  await tester.ensureVisible(find.byKey(const ValueKey('seller-hub-sales')));
+  await tester.pumpAndSettle();
   await tester.tap(find.byKey(const ValueKey('seller-hub-sales')));
   await tester.pumpAndSettle();
 }
@@ -335,6 +337,10 @@ void main() {
       250,
       scrollable: find.byType(Scrollable).last,
     );
+    await tester.ensureVisible(
+      find.byKey(const ValueKey('seller-hub-finance')),
+    );
+    await tester.pumpAndSettle();
     await tester.tap(find.byKey(const ValueKey('seller-hub-finance')));
     await tester.pumpAndSettle();
     await tester.tap(find.byKey(const ValueKey('fin-payout')));
@@ -519,6 +525,10 @@ void main() {
       250,
       scrollable: find.byType(Scrollable).last,
     );
+    await tester.ensureVisible(
+      find.byKey(const ValueKey('seller-hub-finance')),
+    );
+    await tester.pumpAndSettle();
     await tester.tap(find.byKey(const ValueKey('seller-hub-finance')));
     await tester.pumpAndSettle();
     expect(find.textContaining('1,250'), findsWidgets);

@@ -142,16 +142,17 @@ void main() {
     await tester.enterText(find.byKey(const ValueKey('add-name')), 'iPhone 13');
     await tester.enterText(find.byType(TextFormField).at(1), '300');
     await tester.pumpAndSettle();
-    // Profil dostave iz padajućeg izbornika.
+    // Dostava je u "Više detalja"; profil dostave iz padajućeg izbornika.
+    await tester.ensureVisible(find.byKey(const ValueKey('add-more')));
+    await tester.tap(find.byKey(const ValueKey('add-more')));
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(find.byKey(const ValueKey('add-profile-null')));
     await tester.tap(find.byKey(const ValueKey('add-profile-null')));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Srednja kutija · 4 kg').last);
     await tester.pumpAndSettle();
     expect(find.byKey(const ValueKey('add-profile-summary')), findsOneWidget);
-    // Količina s + (u "Više detalja").
-    await tester.ensureVisible(find.byKey(const ValueKey('add-more')));
-    await tester.tap(find.byKey(const ValueKey('add-more')));
-    await tester.pumpAndSettle();
+    // Količina s + (u "Više detalja", već otvorenom).
     await tester.ensureVisible(find.byKey(const ValueKey('quantity-plus')));
     await tester.tap(find.byKey(const ValueKey('quantity-plus')));
     await tester.pumpAndSettle();

@@ -62,6 +62,10 @@ void main() {
       200,
       scrollable: find.byType(Scrollable).last,
     );
+    await tester.ensureVisible(
+      find.byKey(const ValueKey('seller-hub-inventory')),
+    );
+    await tester.pumpAndSettle();
     await tester.tap(find.byKey(const ValueKey('seller-hub-inventory')));
     await tester.pumpAndSettle();
     expect(find.byKey(const ValueKey('inv-tab-draft')), findsOneWidget);
