@@ -159,31 +159,6 @@ class _PayoutsTab extends ConsumerWidget {
     final seller = user.seller;
     final muted = TextStyle(color: LoopColors.textSecondary, fontSize: 13);
 
-    Widget balanceRow(String key, double amount, String text, {Widget? end}) =>
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-          child: Row(
-            children: [
-              Expanded(
-                child: Text.rich(
-                  TextSpan(
-                    children: [
-                      TextSpan(
-                        text: formatCredits(amount),
-                        style: const TextStyle(fontWeight: FontWeight.w900),
-                      ),
-                      TextSpan(text: ' $text'),
-                    ],
-                  ),
-                  key: ValueKey(key),
-                  style: const TextStyle(fontSize: 15),
-                ),
-              ),
-              ?end,
-            ],
-          ),
-        );
-
     return Column(
       children: [
         Expanded(
@@ -237,99 +212,55 @@ class _PayoutsTab extends ConsumerWidget {
                     ),
                   ),
                 ),
-              Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: LoopColors.surface,
-                  borderRadius: BorderRadius.circular(kRadius),
-                ),
+              // Jedan veliki broj: što možeš isplatiti. Ostalo tiho ispod.
+              Padding(
+                padding: const EdgeInsets.fromLTRB(4, 8, 4, 0),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      t('Stanje računa'),
-                      style: const TextStyle(
-                        fontWeight: FontWeight.w800,
-                        fontSize: 15,
-                      ),
-                    ),
+                    Text(t('Dostupno za isplatu'), style: muted),
                     const SizedBox(height: 4),
                     Text(
-                      formatCredits(balance),
-                      key: const ValueKey('fin-balance'),
+                      formatCredits(available),
+                      key: const ValueKey('fin-available'),
                       style: const TextStyle(
-                        fontWeight: FontWeight.w900,
-                        fontSize: 34,
+                        fontWeight: FontWeight.w800,
+                        fontSize: 52,
+                        height: 1.05,
                       ),
                     ),
-                    const SizedBox(height: 14),
-                    Container(
-                      decoration: BoxDecoration(
-                        color: LoopColors.surfaceHover,
-                        borderRadius: BorderRadius.circular(kRadius - 4),
-                      ),
-                      child: Column(
+                    const SizedBox(height: 16),
+                    Text.rich(
+                      TextSpan(
                         children: [
-                          balanceRow(
-                            'fin-available',
-                            available,
-                            t('dostupno za isplatu'),
-                          ),
-                          if (held > 0) ...[
-                            Divider(height: 1, color: LoopColors.surface),
-                            balanceRow(
-                              'fin-held',
-                              held,
-                              t('zadržano zbog zahtjeva za povrat'),
-                              end: Icon(
-                                Icons.lock_clock_outlined,
-                                size: 18,
-                                color: LoopColors.accent,
-                              ),
-                            ),
-                          ],
-                          Divider(height: 1, color: LoopColors.surface),
-                          balanceRow(
-                            'fin-transit',
-                            transit,
-                            t('na putu do banke'),
-                            end: Tooltip(
-                              message: t(
-                                'Isplate stižu za 1–2 radna dana nakon slanja.',
-                              ),
-                              child: Icon(
-                                Icons.info_outline,
-                                size: 18,
-                                color: LoopColors.textSecondary,
-                              ),
-                            ),
-                          ),
-                          Divider(height: 1, color: LoopColors.surface),
-                          Padding(
-                            padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
-                            child: Row(
-                              children: [
-                                Icon(
-                                  Icons.bolt,
-                                  size: 18,
-                                  color: LoopColors.buyNow,
-                                ),
-                                const SizedBox(width: 8),
-                                Expanded(
-                                  child: Text(
-                                    t(
-                                      'Isplata je besplatna i bez najmanjeg iznosa.',
-                                    ),
-                                    style: muted,
-                                  ),
-                                ),
-                              ],
-                            ),
+                          TextSpan(text: '${t('Stanje računa')} '),
+                          TextSpan(
+                            text: formatCredits(balance),
+                            style: const TextStyle(fontWeight: FontWeight.w700),
                           ),
                         ],
                       ),
+                      key: const ValueKey('fin-balance'),
+                      style: muted,
                     ),
-                    const SizedBox(height: 12),
+                    if (held > 0)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 4),
+                        child: Text(
+                          '${formatCredits(held)} ${t('zadržano zbog zahtjeva za povrat')}',
+                          key: const ValueKey('fin-held'),
+                          style: muted,
+                        ),
+                      ),
+                    Padding(
+                      padding: const EdgeInsets.only(top: 4),
+                      child: Text(
+                        '${formatCredits(transit)} ${t('na putu do banke')}',
+                        key: const ValueKey('fin-transit'),
+                        style: muted,
+                      ),
+                    ),
+                    const SizedBox(height: 14),
                     InkWell(
                       key: const ValueKey('fin-bank'),
                       borderRadius: BorderRadius.circular(8),
@@ -338,12 +269,6 @@ class _PayoutsTab extends ConsumerWidget {
                         padding: const EdgeInsets.symmetric(vertical: 6),
                         child: Row(
                           children: [
-                            Icon(
-                              Icons.account_balance_outlined,
-                              size: 20,
-                              color: LoopColors.textSecondary,
-                            ),
-                            const SizedBox(width: 10),
                             Expanded(
                               child: Text(
                                 seller == null
@@ -355,8 +280,7 @@ class _PayoutsTab extends ConsumerWidget {
                               ),
                             ),
                             Icon(
-                              Icons.edit_outlined,
-                              size: 18,
+                              Icons.chevron_right,
                               color: LoopColors.textSecondary,
                             ),
                           ],
@@ -485,7 +409,7 @@ class _PayoutRow extends StatelessWidget {
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
             decoration: BoxDecoration(
               color: color.withValues(alpha: 0.15),
-              borderRadius: BorderRadius.circular(6),
+              borderRadius: BorderRadius.circular(99),
             ),
             child: Text(
               inTransit ? t('Na putu') : t('Isplaćeno'),

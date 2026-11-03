@@ -1888,10 +1888,11 @@ class _DeliveryNotesScreenState extends ConsumerState<DeliveryNotesScreen> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          _group?.label ?? t('Sve pošiljke'),
+                          '${ready.length}',
                           style: const TextStyle(
-                            fontSize: 22,
-                            fontWeight: FontWeight.w900,
+                            fontSize: 52,
+                            fontWeight: FontWeight.w800,
+                            height: 1.05,
                           ),
                         ),
                         Text(
@@ -1965,8 +1966,22 @@ class _DeliveryNotesScreenState extends ConsumerState<DeliveryNotesScreen> {
                           )
                         : null,
                   ),
-              const SizedBox(height: 18),
-              const _LabelOptionsCard(),
+              const SizedBox(height: 12),
+              Theme(
+                data: Theme.of(
+                  context,
+                ).copyWith(dividerColor: Colors.transparent),
+                child: ExpansionTile(
+                  key: const ValueKey('ship-more'),
+                  tilePadding: EdgeInsets.zero,
+                  childrenPadding: EdgeInsets.zero,
+                  title: Text(
+                    t('Više'),
+                    style: const TextStyle(fontWeight: FontWeight.w700),
+                  ),
+                  children: const [_LabelOptionsCard()],
+                ),
+              ),
             ],
           ),
         ),
@@ -2112,7 +2127,7 @@ class _ShipmentRow extends StatelessWidget {
                     ),
                     decoration: BoxDecoration(
                       color: color.withValues(alpha: 0.15),
-                      borderRadius: BorderRadius.circular(6),
+                      borderRadius: BorderRadius.circular(99),
                     ),
                     child: Text(
                       label,
