@@ -100,5 +100,21 @@ export async function orderFixTests(db,assert,as,rpc,rejects,{host,buyer,other})
  await as(host);
  await db.query("update loop_devices set data=data||jsonb_build_object('ownerId',$1::text) where id='fix-item'",[host]);
  assert.equal(await owner('fix-item'),host);
+ // 5: an accepted price offer is the order price; it is spent by the purchase
+ await db.exec('reset role');await device('offer-item',{listPrice:30,parcelSize:'small'});
+ await db.query('insert into loop_bargains(id,data) values($1,$2)',['b1',{id:'b1',deviceId:'offer-item',buyerId:buyer,sellerId:host,amount:20,counterAmount:25,status:'accepted',updatedAt:new Date().toISOString(),validUntil:new Date(Date.now()+3600000).toISOString()}]);
+ await as(other);
+ const full=(await rpc("select (commerce_reserve_device('offer-item',gen_random_uuid())).total_cents t")).t;
+ assert.equal(Number(full),3000,'another buyer pays the listing price');
+ await db.exec('reset role');await db.query("update commerce_orders set status='cancelled' where source_device='offer-item'");
+ await as(buyer);
+ const ob=(await rpc("select (commerce_reserve_device('offer-item',gen_random_uuid())).id")).id;
+ assert.equal(Number((await rpc('select total_cents t from commerce_orders where id=$1',[ob])).t),2500,'the offer price, not the listing price');
+ await rpc(`select commerce_choose_shipping($1,'courier','{"address":"Ilica 1, Zagreb"}')`,[ob]);
+ assert.equal(Number((await rpc('select total_cents t from commerce_orders where id=$1',[ob])).t),3100);
+ await db.exec('reset role');await rpc('select commerce_begin_charge($1)',[ob]);
+ await db.query("update commerce_payments set intent_id='pi_offer' where order_id=$1",[ob]);
+ await rpc("select commerce_settle_intent('ev_offer',$1,'pi_offer','ch_offer',3100,'EUR')",[ob]);
+ assert.equal((await rpc("select data->>'status' s from loop_bargains where id='b1'")).s,'used');
  console.log('PASS: 5% fee, server shipping price, delivery record, order expiry, stuck orders, auction/live takeover and refund return');
 }

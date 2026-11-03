@@ -7,6 +7,7 @@
 --    the item. The restrictive RLS policy allowed only the current owner, so
 --    those writes were rejected and the error never surfaced.
 -- 4. The platform commission matches the app: 5 % (kBuyNowRate), not 6 %.
+-- 5. An accepted price offer (loop_bargains) is honoured by the server order.
 --
 -- Trust note for 3: auctions, bids and live events are client-written JSON in
 -- the permissive loop_* tables, so the server verifies the award against them
@@ -102,6 +103,9 @@ language plpgsql security definer set search_path=public as $$ declare o commerc
   else update loop_devices set data=d||jsonb_build_object('ownerId',o.buyer_id,'listPrice',null,'listedAt',null,'quantity',1,'discountPercent',0,'discountUntil',null) where id=o.source_device;
   end if;
  end if;
+ -- The accepted offer is spent by this purchase.
+ update loop_bargains set data=data||jsonb_build_object('status','used','updatedAt',now())
+  where data->>'deviceId'=o.source_device and data->>'buyerId'=o.buyer_id::text and data->>'status'='accepted';
  item:=o.total_cents-o.shipping_cents; fee:=commerce_fee_cents(item);
  tx:=jsonb_build_object('deviceId',bought,'deviceName',trim(coalesce(d->>'name','')||' '||coalesce(d->>'model','')),'price',item/100.0,'fee',0,'amount',o.total_cents/100.0,'buyerId',o.buyer_id,'sellerId',o.seller_id,'buyerLabel','','sellerLabel','','createdAt',now(),'isAuction',false);
  insert into loop_transactions(id,data) values('stripe-buy-'||o.id,tx||jsonb_build_object('id','stripe-buy-'||o.id,'type','buy','userId',o.buyer_id));
@@ -201,6 +205,53 @@ declare k text[]:=array['ownerId','listPrice','listedAt','quantity','discountPer
  raise exception 'AWARD_FORBIDDEN';
 end $$;
 create trigger award_guard before update on public.loop_devices for each row execute function public.commerce_award_guard();
+
+-- 5. Order price = listing price (with discount), or the accepted offer if lower ----
+create or replace function public.commerce_device_cents(p_device text,p_data jsonb,p_buyer uuid) returns bigint
+language plpgsql stable security definer set search_path=public as $$ declare cents bigint; b jsonb; agreed bigint; begin
+ cents:=round((p_data->>'listPrice')::numeric*100);
+ if coalesce((p_data->>'discountPercent')::integer,0)>0 and (p_data->>'discountUntil' is null or (p_data->>'discountUntil')::timestamptz>now()) then
+  cents:=round(cents*(100-(p_data->>'discountPercent')::integer)/100.0);
+ end if;
+ select data into b from loop_bargains where data->>'deviceId'=p_device and data->>'buyerId'=p_buyer::text
+  and data->>'status'='accepted' and (data->>'validUntil')::timestamptz>now()
+  order by data->>'updatedAt' desc limit 1;
+ if found then
+  agreed:=round(coalesce((b->>'counterAmount')::numeric,(b->>'amount')::numeric)*100);
+  if agreed>0 and agreed<cents then cents:=agreed; end if;
+ end if;
+ return cents;
+end $$;
+
+create or replace function public.commerce_reserve_device(p_device text,p_request uuid) returns public.commerce_orders
+language plpgsql security definer set search_path=public as $$ declare d jsonb; o commerce_orders; cents bigint; available integer; begin
+ if auth.uid() is null then raise exception 'AUTH_REQUIRED'; end if;
+ perform pg_advisory_xact_lock(hashtextextended(auth.uid()::text,0));
+ select * into o from commerce_orders where buyer_id=auth.uid() and request_id=p_request;
+ if found then
+  if o.source_device is distinct from p_device then raise exception 'REQUEST_CONFLICT'; end if; return o;
+ end if;
+ select data into d from loop_devices where id=p_device for update;
+ if not found or d->>'ownerId' is null or d->>'ownerId'=auth.uid()::text or d->>'listPrice' is null then raise exception 'UNAVAILABLE'; end if;
+ cents:=commerce_device_cents(p_device,d,auth.uid());
+ if cents<50 or cents>10000000 then raise exception 'INVALID_AMOUNT'; end if;
+ -- An interrupted purchase reopens the same order (re-priced while nothing is charged).
+ select * into o from commerce_orders where buyer_id=auth.uid() and source_device=p_device and status='awaiting_payment' order by created_at desc limit 1;
+ if found then
+  if not exists(select 1 from commerce_payments where order_id=o.id) then
+   update commerce_orders set total_cents=cents+o.shipping_cents where id=o.id returning * into o;
+  end if;
+  return o;
+ end if;
+ available:=coalesce((d->>'quantity')::integer,1);
+ if d->>'file' is null and (select count(*) from commerce_orders where source_device=p_device and status='awaiting_payment')>=available then raise exception 'UNAVAILABLE'; end if;
+ insert into commerce_orders(buyer_id,seller_id,quantity,total_cents,request_id,source_device,source_snapshot)
+ values(auth.uid(),(d->>'ownerId')::uuid,1,cents,p_request,p_device,d) returning * into o;
+ if d->>'file' is not null then insert into commerce_shipments(order_id,method,destination) values(o.id,'pickup','{}'); end if;
+ return o;
+end $$;
+revoke all on function public.commerce_device_cents(text,jsonb,uuid) from public,anon,authenticated;
+grant execute on function public.commerce_device_cents(text,jsonb,uuid) to service_role;
 
 do $$ declare sig text; begin
  foreach sig in array array['commerce_expire_order(uuid)','commerce_expire_orders(interval)','commerce_stuck_orders(interval)'] loop
