@@ -29,3 +29,5 @@ jobs:
       - run: deno check backend/live/functions/delivery-lockers-sync/index.ts
       - run: deno test backend/live/tests/locker_catalog_test.ts
       - run: deno test backend/live/tests/stripe_connect_test.ts
+      - run: deno test backend/live/tests/seller_onboarding_test.ts
+
