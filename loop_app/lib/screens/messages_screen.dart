@@ -554,7 +554,7 @@ class SwapOfferCard extends ConsumerWidget {
                           context,
                           () => c.acceptSwap(offer.id),
                           successMessage: t(
-                            'Zamjena prihvaćena 🤝 — odaberi dostavu u "Moje dostave".',
+                            'Zamjena prihvaćena 🤝 — paket šaljete na adresu iz računa, broj za praćenje stiže u "Moje".',
                           ),
                         );
                       },

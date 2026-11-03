@@ -11,7 +11,6 @@ import '../services/commerce_backend.dart';
 import '../services/stripe_backend.dart';
 import '../widgets/live_media/live_media.dart';
 import '../widgets/purchase_confirmation.dart';
-import '../widgets/delivery_choice.dart';
 import '../services/delivery_locations.dart';
 import 'login_screen.dart';
 
@@ -547,25 +546,6 @@ class _CloudCommerceState extends State<CloudCommerceScreen> {
               child: const Text('Prijavi problem i zadrži isplatu'),
             ),
 
-          if (buyer && (state == 'awaiting_payment' || state == 'paid'))
-            OutlinedButton(
-              onPressed: busy
-                  ? null
-                  : () => _run(() async {
-                      final info = await _buyerDeliveryInfo();
-                      if (!mounted) return;
-                      final selected = await showDeliveryChoice(
-                        context,
-                        address: info.address,
-                        search: (query) => DeliveryLocationsBackend(
-                          db,
-                        ).search(query, country: info.country),
-                      );
-                      if (selected == null) return;
-                      await commerce.chooseDelivery(id, selected);
-                    }),
-              child: const Text('Odaberi dostavu'),
-            ),
           if (buyer && state == 'awaiting_payment')
             FilledButton.icon(
               onPressed: busy ? null : () => _run(() => _autoCharge(id)),
@@ -733,8 +713,22 @@ class _CloudCommerceState extends State<CloudCommerceScreen> {
     return false;
   }
 
-  /// Nakon odabira dostave: naplati spremljenu karticu bez checkouta.
+  /// Naplati spremljenu karticu bez checkouta. Kupac ne bira dostavu:
+  /// paket ide kurirom na adresu iz njegovog računa (prodavač šalje).
   Future<void> _autoCharge(String orderId) async {
+    final info = await _buyerDeliveryInfo();
+    if (!mounted) return;
+    if (info.address.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Upiši adresu za dostavu u Profilu, pa plati.'),
+        ),
+      );
+      return;
+    }
+    await commerce.chooseShipping(orderId, 'courier', {
+      'address': info.address.trim(),
+    });
     if (!await _ensureCard() || !mounted) return;
     final paid = await StripeBackend(db).charge(orderId, context: context);
     if (paid && mounted) {
@@ -1164,7 +1158,7 @@ class _CloudCommerceState extends State<CloudCommerceScreen> {
           ),
           onPressed: busy ? null : () => _claim(won),
           icon: const Icon(Icons.local_shipping_outlined),
-          label: const Text('Osvojeno · odaberi dostavu'),
+          label: const Text('Osvojeno · plati i prati paket'),
         ),
       );
     } else if (host) {

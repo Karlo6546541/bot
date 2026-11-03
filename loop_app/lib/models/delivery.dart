@@ -132,7 +132,7 @@ enum ParcelSize {
 /// Status pošiljke. Za osobno preuzimanje koraci su drugačiji
 /// (vidi [Delivery.steps]).
 enum DeliveryStatus {
-  awaitingChoice('Odaberi dostavu'),
+  awaitingChoice('Čeka slanje'),
   ordered('Plaćeno'),
   packed('Zapakirano'),
   shipped('Poslano'),

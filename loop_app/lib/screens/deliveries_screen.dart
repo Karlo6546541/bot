@@ -436,7 +436,15 @@ Future<void> shipBySeller(
         options: options,
         size: ParcelSize.fromName(device?.parcelSize),
         savedAddress: buyer?.address,
-        saved: DeliveryChoice.saved(buyer?.lastDelivery),
+        // Kupac ne bira: zadana je njegova zadnja dostava, inače kurir na
+        // adresu iz njegovog računa.
+        saved:
+            DeliveryChoice.saved(buyer?.lastDelivery) ??
+            DeliveryChoice.saved(
+              (buyer?.address?.trim().isNotEmpty ?? false)
+                  ? '${DeliveryMethod.courier.name}|${buyer!.address!.trim()}'
+                  : null,
+            ),
       ),
     ),
   );
@@ -567,7 +575,7 @@ class DeliveryCard extends ConsumerWidget {
                     key: ValueKey('delivery-ship-${d.id}'),
                     onPressed: () => shipBySeller(context, ref, delivery),
                     icon: const Icon(Icons.local_shipping_outlined),
-                    label: Text(t('Odaberi dostavu i pošalji')),
+                    label: Text(t('Pošalji paket')),
                   )
                 else
                   Container(
@@ -1251,7 +1259,11 @@ class ShippingLabel extends ConsumerWidget {
               style: TextStyle(color: LoopColors.textSecondary, fontSize: 12),
             ),
             Text(
-              d.destination ?? '—',
+              d.destination ??
+                  ((buyer?.address?.trim().isNotEmpty ?? false)
+                      ? buyer!.address!.trim()
+                      : '—'),
+              key: const ValueKey('shipping-address'),
               style: const TextStyle(fontWeight: FontWeight.w700),
             ),
             const SizedBox(height: 12),
@@ -1411,6 +1423,15 @@ String deliveryRecipient(AppState s, Delivery d) {
       : (buyer?.handle ?? '');
 }
 
+/// Kamo ide paket: odabrano odredište, a prije slanja adresa iz kupčevog
+/// računa (kupac ne bira dostavu — prodavač šalje na tu adresu).
+String deliveryAddress(AppState s, Delivery d) {
+  final dest = d.destination?.trim() ?? '';
+  if (dest.isNotEmpty) return dest;
+  final address = s.userById(d.buyerId)?.address?.trim() ?? '';
+  return address.isEmpty ? '—' : address;
+}
+
 /// Retci otpremnice za pošiljku [d] (pošiljatelj je trenutni korisnik).
 List<(String, String)> deliveryNoteRows(AppState s, Delivery d) {
   final seller = s.currentUser!;
@@ -1432,7 +1453,7 @@ List<(String, String)> deliveryNoteRows(AppState s, Delivery d) {
     (t('Primatelj'), recipient),
     (
       d.method == DeliveryMethod.parcelLocker ? t('Paketomat') : t('Adresa'),
-      d.destination ?? '—',
+      deliveryAddress(s, d),
     ),
     (t('Način dostave'), d.method == null ? '—' : d.serviceLabel),
     (t('Predmet'), '1 × ${d.deviceName}'),
@@ -1927,6 +1948,7 @@ class _DeliveryNotesScreenState extends ConsumerState<DeliveryNotesScreen> {
                     device: s.deviceById(d.deviceId),
                     onShip: () => shipBySeller(context, ref, d),
                     buyer: s.userById(d.buyerId)?.handle ?? '',
+                    address: deliveryAddress(s, d),
                     now: now,
                     selected: _selected.contains(d.id),
                     onSelect: ShipGroup.of(d, now) == ShipGroup.readyToShip
@@ -1954,6 +1976,7 @@ class _ShipmentRow extends StatelessWidget {
     required this.buyer,
     required this.now,
     required this.selected,
+    this.address = '—',
     this.device,
     this.onSelect,
     this.onShip,
@@ -1966,6 +1989,9 @@ class _ShipmentRow extends StatelessWidget {
   final VoidCallback? onShip;
   final ShipGroup group;
   final String buyer;
+
+  /// Kamo ide paket (adresa iz kupčevog računa dok paket nije poslan).
+  final String address;
   final DateTime now;
   final bool selected;
   final ValueChanged<bool>? onSelect;
@@ -2031,6 +2057,16 @@ class _ShipmentRow extends StatelessWidget {
                           if (buyer.isNotEmpty) '@$buyer',
                           if (d.method != null) d.serviceLabel,
                         ].join(' · '),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          color: LoopColors.textSecondary,
+                          fontSize: 12,
+                        ),
+                      ),
+                      Text(
+                        address,
+                        key: ValueKey('ship-address-${d.id}'),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: TextStyle(

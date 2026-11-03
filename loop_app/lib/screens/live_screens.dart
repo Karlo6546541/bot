@@ -3269,7 +3269,7 @@ class _LiveRoomViewState extends ConsumerState<_LiveRoomBody> {
             title: l.mode == LotMode.dutch
                 ? t('Kupljeno! 🎉')
                 : t('Osvojio si! 🎉'),
-            subtitle: t('Plaćeno karticom · odaberi dostavu'),
+            subtitle: t('Plaćeno karticom · prodavač šalje paket'),
             device: device,
             amount: l.price,
           );
@@ -3854,7 +3854,7 @@ class _LiveRoomViewState extends ConsumerState<_LiveRoomBody> {
             FilledButton.icon(
               onPressed: () => DeliveriesScreen.open(context),
               icon: const Icon(Icons.local_shipping_outlined),
-              label: Text(t('Osvojio si {0} · odaberi dostavu', ['$won'])),
+              label: Text(t('Osvojio si {0} · prati pošiljku', ['$won'])),
             ),
           ],
           const SizedBox(height: 8),

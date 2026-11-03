@@ -3157,6 +3157,12 @@ const kEn = <String, String>{
   'Oboje': 'Both',
   'Zarada se oslobađa kad paket stigne kupcu ili kad se riješi spor.':
       'Earnings are released when the parcel reaches the buyer or a dispute is resolved.',
+  'Osvojio si {0} · prati pošiljku': 'You won {0} · track the parcel',
+  'Plaćeno karticom · prodavač šalje paket': 'Paid by card · the seller ships the parcel',
+  'Prati kupnju': 'Track purchase',
+  'Prodavač priprema paket': 'The seller is preparing the parcel',
+  'Prodavač priprema paket ({0})': 'The seller is preparing a parcel ({0})',
+  'Zamjena prihvaćena 🤝 — paket šaljete na adresu iz računa, broj za praćenje stiže u "Moje".': 'Swap accepted 🤝 — send the parcel to the address on the account; the tracking number arrives in "My".',
   'Zakaži show': 'Schedule a show',
   'Otprema': 'Shipping',
   'Nema paketa za predaju': 'No parcels to hand over',

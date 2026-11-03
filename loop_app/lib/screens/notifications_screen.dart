@@ -69,8 +69,8 @@ class _WonDelivery extends StatelessWidget {
             visualDensity: VisualDensity.compact,
           ),
           onPressed: () => DeliveriesScreen.open(context),
-          icon: const Icon(Icons.local_shipping_outlined, size: 16),
-          label: Text(t('Odaberi dostavu')),
+          icon: const Icon(Icons.inventory_2_outlined, size: 16),
+          label: Text(t('Prodavač priprema paket')),
         ),
       );
     }
@@ -703,7 +703,7 @@ class _AuctionActions extends ConsumerWidget {
             style: compact,
             onPressed: () => DeliveriesScreen.open(context),
             icon: const Icon(Icons.local_shipping_outlined, size: 16),
-            label: Text(t('Odaberi dostavu')),
+            label: Text(t('Prati kupnju')),
           )
         : kind.invitesBid && a.isActive && !mine && !leading
         ? FilledButton.icon(
