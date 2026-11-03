@@ -30,6 +30,9 @@ void main() {
   testWidgets(
     'saving the existing seller form automatically starts onboarding before any sale',
     (tester) async {
+      tester.view.physicalSize = const Size(390, 844);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
       var calls = 0;
       await tester.pumpWidget(
         ProviderScope(
@@ -57,7 +60,11 @@ void main() {
       );
       await tester.tap(find.text('Open seller form'));
       await tester.pumpAndSettle();
-      await tester.scrollUntilVisible(find.byKey(const ValueKey('seller-save')), 250, scrollable: find.byType(Scrollable).last);
+      await tester.scrollUntilVisible(
+        find.byKey(const ValueKey('seller-save')),
+        250,
+        scrollable: find.byType(Scrollable).first,
+      );
       await tester.tap(find.byKey(const ValueKey('seller-save')));
       await tester.pumpAndSettle();
       expect(calls, 1);
