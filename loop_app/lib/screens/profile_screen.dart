@@ -79,64 +79,46 @@ class _AccountHome extends ConsumerWidget {
     if (user == null) return const SizedBox.shrink();
     final app = ref.read(appProvider.notifier);
 
+    // Redovi su plosnati i grupirani u jednu površinu s tankim razdjelnicima.
     Widget row(String key, IconData icon, String label, VoidCallback onTap) =>
-        ListTile(
+        InkWell(
           key: ValueKey(key),
-          minTileHeight: 64,
-          contentPadding: const EdgeInsets.symmetric(horizontal: 4),
-          leading: CircleAvatar(
-            radius: 24,
-            backgroundColor: LoopColors.surfaceHover,
-            child: Icon(icon, color: LoopColors.textPrimary),
-          ),
-          title: Text(
-            label,
-            style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 17),
-          ),
-          trailing: Icon(Icons.chevron_right, color: LoopColors.textPrimary),
-          onTap: onTap,
-        );
-
-    Widget head(String text) => Padding(
-      padding: const EdgeInsets.fromLTRB(4, 20, 4, 8),
-      child: Text(
-        text,
-        style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 22),
-      ),
-    );
-
-    Widget tile(
-      String key,
-      IconData icon,
-      String title,
-      Widget subtitle,
-      VoidCallback onTap,
-    ) => Expanded(
-      child: Material(
-        color: LoopColors.surfaceHover,
-        borderRadius: BorderRadius.circular(16),
-        child: InkWell(
-          key: ValueKey(key),
-          borderRadius: BorderRadius.circular(16),
           onTap: onTap,
           child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+            child: Row(
               children: [
-                Icon(icon, size: 30),
-                const SizedBox(height: 18),
-                Text(
-                  title,
-                  style: const TextStyle(
-                    fontWeight: FontWeight.w800,
-                    fontSize: 16,
+                Icon(icon, color: LoopColors.textSecondary, size: 22),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Text(
+                    label,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.w500,
+                      fontSize: 16,
+                    ),
                   ),
                 ),
-                subtitle,
+                Icon(Icons.chevron_right, color: LoopColors.textSecondary),
               ],
             ),
           ),
+        );
+
+    Widget group(List<Widget> rows) => Padding(
+      padding: const EdgeInsets.only(top: 20),
+      child: Material(
+        color: LoopColors.surface,
+        borderRadius: BorderRadius.circular(kRadius),
+        clipBehavior: Clip.antiAlias,
+        child: Column(
+          children: [
+            for (var i = 0; i < rows.length; i++) ...[
+              if (i > 0)
+                Divider(height: 1, indent: 52, color: LoopColors.surfaceHover),
+              rows[i],
+            ],
+          ],
         ),
       ),
     );
@@ -147,145 +129,153 @@ class _AccountHome extends ConsumerWidget {
         constraints: const BoxConstraints(maxWidth: 640),
         child: ListView(
           key: const ValueKey('account-home'),
-          padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
+          padding: const EdgeInsets.fromLTRB(20, 24, 20, 40),
           children: [
             if (user.isGuest)
               const _GuestCard()
-            else
-              Row(
-                children: [
-                  UserAvatar(user: user, size: 76),
-                  const SizedBox(width: 16),
-                  Expanded(
+            else ...[
+              // Ti: avatar, ime i jedna radnja.
+              Center(child: UserAvatar(user: user, size: 88)),
+              const SizedBox(height: 14),
+              Text(
+                user.username.isNotEmpty ? user.username : user.handle,
+                textAlign: TextAlign.center,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  fontSize: 30,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: -0.6,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Center(
+                child: TextButton(
+                  key: const ValueKey('account-view-profile'),
+                  onPressed: () => MyProfileScreen.open(context),
+                  child: Text(t('Pogledaj profil')),
+                ),
+              ),
+              const SizedBox(height: 16),
+              // Zarada je glavni broj; dodir otvara isplatu.
+              Material(
+                color: LoopColors.surface,
+                borderRadius: BorderRadius.circular(28),
+                clipBehavior: Clip.antiAlias,
+                child: InkWell(
+                  key: const ValueKey('account-earnings'),
+                  onTap: () => showPayoutDialog(context, ref),
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(22, 20, 22, 22),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          user.username.isNotEmpty
-                              ? user.username
-                              : user.handle,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
-                            fontSize: 26,
-                            fontWeight: FontWeight.w900,
+                          t('Zarada').toUpperCase(),
+                          style: TextStyle(
+                            color: LoopColors.textSecondary,
+                            fontSize: 11,
+                            fontWeight: FontWeight.w600,
+                            letterSpacing: 1.3,
                           ),
                         ),
                         const SizedBox(height: 6),
-                        FilledButton(
-                          key: const ValueKey('account-view-profile'),
-                          style: FilledButton.styleFrom(
-                            backgroundColor: LoopColors.textPrimary,
-                            foregroundColor: LoopColors.background,
-                            minimumSize: const Size(0, 40),
-                            padding: const EdgeInsets.symmetric(horizontal: 20),
+                        Text(
+                          formatCredits(user.credits),
+                          key: const ValueKey('account-earnings-amount'),
+                          style: const TextStyle(
+                            fontSize: 48,
+                            fontWeight: FontWeight.w700,
+                            letterSpacing: -1.2,
+                            height: 1.05,
                           ),
-                          onPressed: () => MyProfileScreen.open(context),
-                          child: Text(t('Pogledaj profil')),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          t('Za isplatu'),
+                          style: TextStyle(
+                            color: LoopColors.textSecondary,
+                            fontSize: 14,
+                          ),
                         ),
                       ],
                     ),
                   ),
-                ],
+                ),
               ),
-            if (!user.isGuest) ...[
-              head(t('Račun')),
-              Row(
-                children: [
-                  tile(
-                    'account-earnings',
-                    Icons.account_balance_wallet_outlined,
-                    t('Zarada'),
-                    Text.rich(
-                      TextSpan(
-                        children: [
-                          TextSpan(text: '${t('Za isplatu')}: '),
-                          TextSpan(
-                            text: formatCredits(user.credits),
-                            style: TextStyle(
-                              color: LoopColors.buyNow,
-                              fontWeight: FontWeight.w900,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    () => showPayoutDialog(context, ref),
-                  ),
-                  const SizedBox(width: 12),
-                  tile(
-                    'account-seller-hub',
-                    Icons.storefront_outlined,
-                    t('Seller Hub'),
-                    Text(t('Prodaja i showovi')),
-                    () => ref.read(homeTabProvider.notifier).select(2),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 12),
-              row(
-                'account-health',
-                Icons.verified_user_outlined,
-                t('Zdravlje računa'),
-                () => AccountHealthScreen.open(context),
-              ),
-              row(
-                'profile-checkout',
-                Icons.credit_card,
-                t('Plaćanje i dostava'),
-                () => ensureCheckout(context, ref, force: true),
-              ),
-              row(
-                'account-addresses',
-                Icons.location_on_outlined,
-                t('Adrese'),
-                () => ensureCheckout(context, ref, force: true),
-              ),
-              row(
-                'open-activity',
-                Icons.receipt_long_outlined,
-                t('Povijest transakcija'),
-                () => ActivityPage.open(context),
-              ),
+              group([
+                row(
+                  'account-seller-hub',
+                  Icons.storefront_outlined,
+                  t('Seller Hub'),
+                  () => ref.read(homeTabProvider.notifier).select(2),
+                ),
+                row(
+                  'open-activity',
+                  Icons.receipt_long_outlined,
+                  t('Povijest transakcija'),
+                  () => ActivityPage.open(context),
+                ),
+              ]),
+              group([
+                row(
+                  'profile-checkout',
+                  Icons.credit_card,
+                  t('Plaćanje i dostava'),
+                  () => ensureCheckout(context, ref, force: true),
+                ),
+                row(
+                  'account-addresses',
+                  Icons.location_on_outlined,
+                  t('Adrese'),
+                  () => ensureCheckout(context, ref, force: true),
+                ),
+                row(
+                  'account-health',
+                  Icons.verified_user_outlined,
+                  t('Zdravlje računa'),
+                  () => AccountHealthScreen.open(context),
+                ),
+              ]),
             ],
-            row(
-              'profile-settings',
-              Icons.settings_outlined,
-              t('Postavke'),
-              () => ref.read(profileSettingsProvider.notifier).setOpen(true),
-            ),
-            const Divider(height: 32, thickness: 6),
-            head(t('Pomoć i pravno')),
-            row(
-              'account-contact',
-              Icons.chat_bubble_outline,
-              t('Kontaktiraj nas'),
-              () => LegalListScreen.open(context),
-            ),
-            row(
-              'open-legal',
-              Icons.description_outlined,
-              t('Uvjeti, privatnost i impresum'),
-              () => LegalListScreen.open(context),
-            ),
-            const SizedBox(height: 20),
+            group([
+              row(
+                'profile-settings',
+                Icons.settings_outlined,
+                t('Postavke'),
+                () => ref.read(profileSettingsProvider.notifier).setOpen(true),
+              ),
+              row(
+                'account-contact',
+                Icons.chat_bubble_outline,
+                t('Kontaktiraj nas'),
+                () => LegalListScreen.open(context),
+              ),
+              row(
+                'open-legal',
+                Icons.description_outlined,
+                t('Uvjeti, privatnost i impresum'),
+                () => LegalListScreen.open(context),
+              ),
+            ]),
+            const SizedBox(height: 24),
             if (user.isGuest)
-              FilledButton.icon(
+              FilledButton(
                 key: const ValueKey('account-login'),
                 onPressed: () => LoginScreen.open(context),
-                icon: const Icon(Icons.login),
-                label: Text(t('Prijava / registracija')),
+                child: Text(t('Prijava / registracija')),
               )
             else
-              FilledButton.icon(
-                key: const ValueKey('account-sign-out'),
-                style: FilledButton.styleFrom(
-                  backgroundColor: LoopColors.textPrimary,
-                  foregroundColor: LoopColors.background,
+              Center(
+                child: TextButton(
+                  key: const ValueKey('account-sign-out'),
+                  style: TextButton.styleFrom(
+                    foregroundColor: LoopColors.error,
+                    minimumSize: const Size(0, 52),
+                  ),
+                  onPressed: app.logout,
+                  child: Text(t('Odjavi se')),
                 ),
-                onPressed: app.logout,
-                icon: const Icon(Icons.logout),
-                label: Text(t('Odjavi se')),
               ),
           ],
         ),

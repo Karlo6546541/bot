@@ -27,7 +27,9 @@ Future<void> openProfileSettings(WidgetTester tester) async {
     return;
   }
   final gear = find.byKey(const ValueKey('profile-settings'));
-  await tester.scrollUntilVisible(gear, -300, scrollable: vScroll());
+  await tester.scrollUntilVisible(gear, 300, scrollable: vScroll());
+  await tester.ensureVisible(gear);
+  await tester.pumpAndSettle();
   await tester.tap(gear);
   await tester.pumpAndSettle();
 }

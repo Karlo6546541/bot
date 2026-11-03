@@ -194,40 +194,39 @@ class _ActivityViewState extends ConsumerState<ActivityView> {
       ),
     );
 
-    Widget tab(_Tab t0, String label, int badge) => Padding(
-      padding: const EdgeInsets.only(right: 16),
-      child: InkWell(
+    // Tab je dio kapsule (segmentirana kontrola): odabrani je svijetao.
+    Widget tab(_Tab t0, String label, int badge) {
+      final on = _tab == t0;
+      return InkWell(
         key: ValueKey('activity-tab-${t0.name}'),
+        borderRadius: BorderRadius.circular(99),
         onTap: () => setState(() => _tab = t0),
         child: Container(
-          padding: const EdgeInsets.symmetric(vertical: 10),
+          constraints: const BoxConstraints(minHeight: 40),
+          padding: const EdgeInsets.symmetric(horizontal: 14),
+          alignment: Alignment.center,
           decoration: BoxDecoration(
-            border: Border(
-              bottom: BorderSide(
-                color: _tab == t0 ? LoopColors.textPrimary : Colors.transparent,
-                width: 3,
-              ),
-            ),
+            color: on ? LoopColors.textPrimary : Colors.transparent,
+            borderRadius: BorderRadius.circular(99),
           ),
           child: Badge(
             isLabelVisible: badge > 0,
             label: Text('$badge'),
             backgroundColor: LoopColors.accent,
+            textColor: LoopColors.onAccent,
             offset: const Offset(10, -6),
             child: Text(
               label,
               style: TextStyle(
-                fontSize: 15,
-                fontWeight: FontWeight.w900,
-                color: _tab == t0
-                    ? LoopColors.textPrimary
-                    : LoopColors.textSecondary,
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                color: on ? LoopColors.background : LoopColors.textSecondary,
               ),
             ),
           ),
         ),
-      ),
-    );
+      );
+    }
 
     final actions = all.where((d) => d.dispute == null && _needsBuyer(d, now));
     final body = switch (_tab) {
@@ -331,13 +330,18 @@ class _ActivityViewState extends ConsumerState<ActivityView> {
 
     return Column(
       children: [
-        Align(
-          alignment: Alignment.centerLeft,
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(16, 4, 16, 0),
-            child: SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+          child: SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Container(
+              padding: const EdgeInsets.all(4),
+              decoration: BoxDecoration(
+                color: LoopColors.surface,
+                borderRadius: BorderRadius.circular(99),
+              ),
               child: Row(
+                mainAxisSize: MainAxisSize.min,
                 children: [
                   tab(_Tab.purchases, t('Kupnje'), actions.length),
                   tab(_Tab.bids, t('Licitacije'), outbid.length),
@@ -348,7 +352,6 @@ class _ActivityViewState extends ConsumerState<ActivityView> {
             ),
           ),
         ),
-        Divider(height: 1, color: LoopColors.surfaceHover),
         Expanded(
           child: ListView(
             key: ValueKey('activity-list-${_tab.name}'),
@@ -393,7 +396,10 @@ class _ActivityViewState extends ConsumerState<ActivityView> {
                           d.name,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(fontWeight: FontWeight.w800),
+                          style: const TextStyle(
+                            fontWeight: FontWeight.w600,
+                            fontSize: 16,
+                          ),
                         ),
                         Text(
                           auction != null
@@ -417,7 +423,10 @@ class _ActivityViewState extends ConsumerState<ActivityView> {
                   if (auction == null && !d.isDigital)
                     Text(
                       formatCredits(d.shownPrice),
-                      style: const TextStyle(fontWeight: FontWeight.w900),
+                      style: const TextStyle(
+                        fontWeight: FontWeight.w600,
+                        fontSize: 16,
+                      ),
                     ),
                   Icon(Icons.chevron_right, color: LoopColors.textSecondary),
                 ],
