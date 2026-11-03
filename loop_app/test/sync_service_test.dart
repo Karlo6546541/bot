@@ -110,6 +110,25 @@ void main() {
     expect(fresh.users, isEmpty);
   });
 
+  test(
+    'podaci prodavatelja se povuku nakon prijave (RLS ih ne daje bez nje)',
+    () async {
+      final me = storage.users.first.id;
+      final seller = {'tradeName': 'Karlo', 'iban': 'HR1210010051863000160'};
+      // Baza ih ima, ali početno povlačenje ih ne vrati (bez prijave).
+      remote.data['sellers'] = {me: seller};
+      final sync = SyncService(storage, remote);
+      await storage.saveSession(); // odjavljen
+      await sync.start();
+      remote.data['sellers'] = {me: seller};
+      await storage.applyRemote('sellers', me, null);
+      expect(storage.userById(me)!.seller, isNull);
+      await storage.saveSession(userId: me);
+      await sync.pullOwn(me);
+      expect(storage.userById(me)!.seller, isNotNull);
+    },
+  );
+
   test('postojeća online baza zamjenjuje lokalne podatke', () async {
     remote.data.clear();
     remote.data['users'] = {

@@ -86,6 +86,31 @@ class SyncService {
     await _connect();
   }
 
+  /// Povlači vlastite privatne retke (podaci prodavatelja i profil) iz baze.
+  /// Početno povlačenje ih ne dobije kad se aplikacija učita bez prijave
+  /// (RLS vraća prazno i lokalna kopija se isprazni), a nakon prijave ih
+  /// nitko ne bi povukao — korisnik bi opet upisivao podatke prodavatelja.
+  Future<void> pullOwn(String userId) async {
+    if (status != SyncStatus.online || !_remote.canWrite) return;
+    var changed = false;
+    for (final table in const ['sellers', 'users']) {
+      if (!_tables.contains(table) || _pending.containsKey('$table/$userId')) {
+        continue;
+      }
+      try {
+        final row = await _remote.fetch(table, userId);
+        if (row == null) continue;
+        final local = _storage.rawRow(table, userId);
+        if (local != null && _same(local, row)) continue;
+        await _storage.applyRemote(table, userId, row);
+        changed = true;
+      } catch (_) {
+        // Sljedeće osvježavanje pokušava ponovno.
+      }
+    }
+    if (changed) onRemoteChange?.call();
+  }
+
   /// Ručni "Pokušaj ponovno".
   Future<void> retry() async {
     if (status == SyncStatus.online || status == SyncStatus.connecting) return;
@@ -129,6 +154,9 @@ class SyncService {
       _setStatus(SyncStatus.online);
       onRemoteChange?.call();
       unawaited(_flush());
+      // Prijavljen korisnik: vlastiti privatni retci (vidi [pullOwn]).
+      final me = _storage.currentUserId;
+      if (me != null) unawaited(pullOwn(me));
     } catch (e) {
       // Bez mreže/baze: nastavi lokalno i pokušaj ponovno kasnije.
       lastError = '$e';

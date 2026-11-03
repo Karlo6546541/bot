@@ -301,7 +301,11 @@ class AppController extends Notifier<AppState> {
       await _storage.saveSession(userId: result.user.id);
       // Promjene koje su čekale prijavu odmah idu u online bazu.
       final sync = ref.read(syncProvider);
-      if (sync != null) unawaited(sync.flushNow());
+      if (sync != null) {
+        unawaited(sync.flushNow());
+        // Podaci prodavatelja su privatni: povuci ih tek sada, s prijavom.
+        unawaited(sync.pullOwn(result.user.id));
+      }
       if (result.restored) {
         showLoopSnackBar(t('Dobro došao natrag! Brisanje računa je otkazano.'));
       }
