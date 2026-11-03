@@ -8,8 +8,7 @@ import '../models/seller_info.dart';
 enum SavedCardChargeStatus { paid, processing, incomplete }
 
 class StripeBackend {
-  StripeBackend(this.client, {Future<bool> Function(Uri)? sellerLauncher})
-    : sellerLauncher = sellerLauncher;
+  StripeBackend(this.client, {this.sellerLauncher});
   final Future<bool> Function(Uri)? sellerLauncher;
   final SupabaseClient client;
   Future<void> connectSeller() async {

@@ -44,8 +44,9 @@ Future<bool> ensureSellerInfo(BuildContext context) async {
 
 final sellerOnboardingProvider =
     Provider<Future<bool> Function(SellerInfo, String)>((ref) {
-      if (!BackendConfig.cloudCommerceEnabled || !BackendConfig.isOnline)
+      if (!BackendConfig.cloudCommerceEnabled || !BackendConfig.isOnline) {
         return (_, _) async => true;
+      }
       return (info, country) => StripeBackend(
         Supabase.instance.client,
       ).ensureSellerReady(info, country: country);
