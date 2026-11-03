@@ -1127,34 +1127,41 @@ class _TileRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Aktivni tab je svijetla kapsula; sporedni prikazi (Kupi odmah,
+    // aukcije…) su manji i tiši — fokus je na liveu.
     Widget tab({
       required String id,
       required String label,
       required VoidCallback onTap,
       Key? key,
+      bool secondary = false,
     }) {
       final on = selected == id;
-      return InkWell(
-        key: key ?? ValueKey('tile-$id'),
-        onTap: onTap,
-        child: Container(
-          constraints: const BoxConstraints(minHeight: 48),
-          padding: const EdgeInsets.symmetric(horizontal: 14),
-          alignment: Alignment.center,
-          decoration: BoxDecoration(
-            border: Border(
-              bottom: BorderSide(
-                color: on ? LoopColors.accent : Colors.transparent,
-                width: 3,
-              ),
+      return Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 3, vertical: 7),
+        child: InkWell(
+          key: key ?? ValueKey('tile-$id'),
+          borderRadius: BorderRadius.circular(99),
+          onTap: onTap,
+          child: Container(
+            constraints: const BoxConstraints(minHeight: 36),
+            padding: const EdgeInsets.symmetric(horizontal: 14),
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              color: on ? LoopColors.textPrimary : Colors.transparent,
+              borderRadius: BorderRadius.circular(99),
             ),
-          ),
-          child: Text(
-            label,
-            style: TextStyle(
-              fontSize: 17,
-              fontWeight: on ? FontWeight.w800 : FontWeight.w500,
-              color: on ? LoopColors.textPrimary : LoopColors.textSecondary,
+            child: Text(
+              label,
+              style: TextStyle(
+                fontSize: secondary ? 14 : 16,
+                fontWeight: on ? FontWeight.w700 : FontWeight.w600,
+                color: on
+                    ? LoopColors.background
+                    : secondary
+                    ? LoopColors.textSecondary
+                    : LoopColors.textPrimary,
+              ),
             ),
           ),
         ),
@@ -1169,6 +1176,12 @@ class _TileRow extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 6),
         children: [
           tab(
+            id: 'live',
+            key: const ValueKey('home-cat-live'),
+            label: t('Live show'),
+            onTap: () => onSelect(const _LiveOnly()),
+          ),
+          tab(
             id: 'for-you',
             key: const ValueKey('home-cat-for-you'),
             label: t('Za tebe'),
@@ -1180,35 +1193,38 @@ class _TileRow extends StatelessWidget {
             label: t('Pratim'),
             onTap: () => onSelect(const _Following()),
           ),
-          tab(
-            id: 'live',
-            key: const ValueKey('home-cat-live'),
-            label: t('Live show'),
-            onTap: () => onSelect(const _LiveOnly()),
-          ),
           if (kBuyNowEnabled)
             tab(
               id: 'buy',
               label: t('Kupi odmah'),
+              secondary: true,
               onTap: () => onSelect(const _BuyNow()),
             ),
           tab(
             id: 'timed',
             label: t('Aukcije'),
+            secondary: true,
             onTap: () => onSelect(const _Timed()),
+          ),
+          tab(
+            id: 'soon',
+            label: t('Uskoro'),
+            secondary: true,
+            onTap: () => onSelect(const _Soon()),
           ),
           if (kBuyNowEnabled)
             tab(
               id: 'digital',
               label: t('Digitalno'),
+              secondary: true,
               onTap: () => onSelect(const _Digital()),
             ),
           tab(
-            id: 'soon',
-            label: t('Uskoro'),
-            onTap: () => onSelect(const _Soon()),
+            id: 'categories',
+            label: t('Kategorije'),
+            secondary: true,
+            onTap: onCategories,
           ),
-          tab(id: 'categories', label: t('Kategorije'), onTap: onCategories),
         ],
       ),
     );

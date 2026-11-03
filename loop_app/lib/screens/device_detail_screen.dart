@@ -106,14 +106,21 @@ class DeviceDetailScreen extends ConsumerWidget {
                   Text(
                     device.name,
                     style: const TextStyle(
-                      fontSize: 28,
-                      fontWeight: FontWeight.w900,
+                      fontSize: 30,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: -0.6,
                       height: 1.15,
                     ),
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    device.model,
+                    // Kupcu: model i stanje u jednom retku.
+                    isMine || device.isDigital
+                        ? device.model
+                        : [
+                            if (device.model.isNotEmpty) device.model,
+                            device.condition.label,
+                          ].join(' · '),
                     style: TextStyle(
                       color: LoopColors.textSecondary,
                       fontSize: 16,
@@ -161,16 +168,6 @@ class DeviceDetailScreen extends ConsumerWidget {
                       ),
                     ),
                   ],
-                  if (device.isListed) ...[
-                    const SizedBox(height: 6),
-                    Text(
-                      t('▶ {0} prikaza · ♥ {1}', [
-                        '${state.viewsOf(device.id)}',
-                        '${state.likesOf(device.id)}',
-                      ]),
-                      style: TextStyle(color: LoopColors.textSecondary),
-                    ),
-                  ],
                   const SizedBox(height: 20),
                 ],
               ),
@@ -196,13 +193,14 @@ class DeviceDetailScreen extends ConsumerWidget {
             Card(
               child: Column(
                 children: [
-                  _Spec(
-                    Icons.category_outlined,
-                    t('Kategorija'),
-                    cat.singular,
-                    cat.color,
-                  ),
-                  if (!device.isDigital)
+                  if (isMine)
+                    _Spec(
+                      Icons.category_outlined,
+                      t('Kategorija'),
+                      cat.singular,
+                      cat.color,
+                    ),
+                  if (!device.isDigital && isMine)
                     _Spec(
                       Icons.verified_outlined,
                       t('Stanje'),
@@ -259,67 +257,6 @@ class DeviceDetailScreen extends ConsumerWidget {
                         ],
                       ),
                     ),
-                  // Kao Whatnot: dvije kućice s ocjenom i brojem prodaja.
-                  if (owner != null && !isMine)
-                    Padding(
-                      key: const ValueKey('seller-stat-boxes'),
-                      padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
-                      child: Row(
-                        children: [
-                          for (final (icon, value, label) in [
-                            (
-                              Icons.star_border,
-                              state.ratingOf(owner.id).count == 0
-                                  ? '—'
-                                  : state
-                                        .ratingOf(owner.id)
-                                        .average
-                                        .toStringAsFixed(1),
-                              t('{0} ocjena', [
-                                '${state.ratingOf(owner.id).count}',
-                              ]),
-                            ),
-                            (
-                              Icons.sell_outlined,
-                              '${state.salesCountOf(owner.id)}',
-                              t('Prodano'),
-                            ),
-                          ]) ...[
-                            Expanded(
-                              child: Container(
-                                padding: const EdgeInsets.all(12),
-                                decoration: BoxDecoration(
-                                  color: LoopColors.surfaceHover,
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Icon(icon, size: 20),
-                                    const SizedBox(height: 6),
-                                    Text(
-                                      value,
-                                      style: const TextStyle(
-                                        fontWeight: FontWeight.w900,
-                                        fontSize: 16,
-                                      ),
-                                    ),
-                                    Text(
-                                      label,
-                                      style: TextStyle(
-                                        color: LoopColors.textSecondary,
-                                        fontSize: 12,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ),
-                            const SizedBox(width: 8),
-                          ],
-                        ],
-                      ),
-                    ),
                   // Privatna osoba ili trgovac — o tome ovise prava kupca
                   // (DSA: trgovac je jasno označen, s podacima za kontakt).
                   if (owner != null && device.isListed && !isMine)
@@ -359,42 +296,40 @@ class DeviceDetailScreen extends ConsumerWidget {
                           ),
                         ),
                       ),
-                  _Spec(
-                    Icons.schedule,
-                    t('Dodano'),
-                    formatDateTime(device.createdAt),
-                    null,
-                  ),
+                  if (isMine)
+                    _Spec(
+                      Icons.schedule,
+                      t('Dodano'),
+                      formatDateTime(device.createdAt),
+                      null,
+                    ),
                 ],
               ),
             ),
-            const SizedBox(height: 16),
-            Card(
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  children: [
-                    if (isMine) ...[
-                      _Line(
-                        t('Kupci vide cijenu'),
-                        formatCredits(buyTotal(price)),
-                      ),
-                      const Divider(height: 20),
-                      _Line(
-                        t('Dobivaš prodajom'),
-                        formatCredits(sellPayout(price)),
-                        bold: true,
-                      ),
-                    ] else
-                      _Line(
-                        t('Cijena'),
-                        formatCredits(buyTotal(price)),
-                        bold: true,
-                      ),
-                  ],
+            if (isMine) ...[
+              const SizedBox(height: 16),
+              Card(
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    children: [
+                      if (isMine) ...[
+                        _Line(
+                          t('Kupci vide cijenu'),
+                          formatCredits(buyTotal(price)),
+                        ),
+                        const Divider(height: 20),
+                        _Line(
+                          t('Dobivaš prodajom'),
+                          formatCredits(sellPayout(price)),
+                          bold: true,
+                        ),
+                      ],
+                    ],
+                  ),
                 ),
               ),
-            ),
+            ],
             const SizedBox(height: 20),
             if (isMine && auction != null) ...[
               // Predmet je zaključan dok aukcija traje.
@@ -675,17 +610,16 @@ class DeviceDetailScreen extends ConsumerWidget {
                         Text(
                           formatCredits(buyTotal(price)),
                           style: const TextStyle(
-                            fontWeight: FontWeight.w900,
-                            fontSize: 20,
+                            fontWeight: FontWeight.w700,
+                            fontSize: 24,
+                            letterSpacing: -0.5,
                           ),
                         ),
                         const SizedBox(width: 16),
                         FilledButton.icon(
                           key: const ValueKey('buy-now'),
                           style: FilledButton.styleFrom(
-                            backgroundColor: LoopColors.buyNow,
-                            foregroundColor: Colors.white,
-                            minimumSize: Size(wide ? 180 : 0, 50),
+                            minimumSize: Size(wide ? 180 : 0, 56),
                           ),
                           onPressed: () async {
                             final ok = await confirmAndBuy(

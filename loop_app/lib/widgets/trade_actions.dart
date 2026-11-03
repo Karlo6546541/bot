@@ -653,33 +653,6 @@ class _CheckoutSheetState extends ConsumerState<_CheckoutSheet> {
     final total = buyTotal(price);
     final address = st.currentUser?.address;
 
-    Widget row(String k, String v, {bool bold = false}) => Padding(
-      padding: EdgeInsets.symmetric(vertical: 3),
-      child: Row(
-        children: [
-          Expanded(
-            child: Text(
-              k,
-              style: TextStyle(
-                color: bold ? LoopColors.textPrimary : LoopColors.textSecondary,
-                fontWeight: bold ? FontWeight.w800 : FontWeight.w500,
-              ),
-            ),
-          ),
-          Flexible(
-            child: Text(
-              v,
-              textAlign: TextAlign.right,
-              style: TextStyle(
-                fontWeight: bold ? FontWeight.w900 : FontWeight.w700,
-                fontSize: bold ? 17 : 14,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-
     return Padding(
       padding: EdgeInsets.only(bottom: MediaQuery.viewInsetsOf(context).bottom),
       child: SingleChildScrollView(
@@ -689,144 +662,147 @@ class _CheckoutSheetState extends ConsumerState<_CheckoutSheet> {
           children: [
             Text(
               d.name,
-              style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900),
+              style: const TextStyle(
+                fontSize: 24,
+                fontWeight: FontWeight.w700,
+                letterSpacing: -0.4,
+              ),
             ),
             Text(
-              '${d.model} · ${d.condition.label}',
+              [if (d.model.isNotEmpty) d.model, d.condition.label].join(' · '),
               style: TextStyle(color: LoopColors.textSecondary),
             ),
-            SizedBox(height: 16),
-            Container(
-              key: ValueKey('checkout-shipping'),
-              padding: EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: LoopColors.surface,
-                borderRadius: BorderRadius.circular(14),
+            const SizedBox(height: 20),
+            // Ukupno je jedini veliki broj.
+            Text(
+              t('Predmet ukupno').toUpperCase(),
+              style: TextStyle(
+                color: LoopColors.textSecondary,
+                fontSize: 11,
+                fontWeight: FontWeight.w600,
+                letterSpacing: 1.3,
               ),
-              child: Row(
+            ),
+            Text(
+              formatCredits(total),
+              key: const ValueKey('checkout-total'),
+              style: const TextStyle(
+                fontSize: 52,
+                fontWeight: FontWeight.w700,
+                letterSpacing: -1.4,
+                height: 1.1,
+              ),
+            ),
+            if (price < d.basePrice)
+              Text(
+                '${t('Redovna cijena')}: ${formatCredits(d.shownBasePrice)}',
+                style: TextStyle(color: LoopColors.textSecondary, fontSize: 13),
+              ),
+            Text(
+              shippingFrom == 0
+                  ? '${t('Dostava')}: ${t('besplatno')}'
+                  : '${t('Dostava')}: ${t('od {0}, prema načinu slanja', [formatCredits(shippingFrom)])}',
+              style: TextStyle(color: LoopColors.textSecondary, fontSize: 13),
+            ),
+            const SizedBox(height: 20),
+            // Dva plosnata reda u jednoj površini: adresa i kartica.
+            Material(
+              color: LoopColors.surface,
+              borderRadius: BorderRadius.circular(kRadius),
+              clipBehavior: Clip.antiAlias,
+              child: Column(
                 children: [
-                  Icon(
-                    Icons.local_shipping_outlined,
-                    color: LoopColors.textSecondary,
-                  ),
-                  SizedBox(width: 10),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+                  Padding(
+                    key: const ValueKey('checkout-shipping'),
+                    padding: const EdgeInsets.fromLTRB(16, 6, 8, 6),
+                    child: Row(
                       children: [
-                        Text(
-                          t('Dostava na {0}', [address ?? '—']),
-                          style: TextStyle(fontWeight: FontWeight.w800),
+                        Icon(
+                          Icons.local_shipping_outlined,
+                          color: LoopColors.textSecondary,
                         ),
-                        Text(
-                          t(
-                            'Prodavač šalje kurirom ili u paketomat. Dobit ćeš broj za praćenje (i PIN ako je paketomat).',
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Text(
+                            t('Dostava na {0}', [address ?? '—']),
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(fontWeight: FontWeight.w500),
                           ),
-                          style: TextStyle(
-                            color: LoopColors.textSecondary,
-                            fontSize: 12,
+                        ),
+                        TextButton(
+                          key: const ValueKey('checkout-address-change'),
+                          onPressed: () async {
+                            await ensureCheckout(context, ref, force: true);
+                            if (mounted) setState(() {});
+                          },
+                          child: Text(t('Promijeni')),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Divider(
+                    height: 1,
+                    indent: 52,
+                    color: LoopColors.surfaceHover,
+                  ),
+                  Padding(
+                    key: const ValueKey('checkout-payment'),
+                    padding: const EdgeInsets.fromLTRB(16, 6, 8, 6),
+                    child: Row(
+                      children: [
+                        Icon(
+                          Icons.credit_card,
+                          color: LoopColors.textSecondary,
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Text(
+                            card ?? t('Način plaćanja nije dodan'),
+                            style: const TextStyle(fontWeight: FontWeight.w500),
+                          ),
+                        ),
+                        TextButton(
+                          key: const ValueKey('checkout-pay-change'),
+                          onPressed: _changeCard,
+                          child: Text(
+                            card == null ? t('Dodaj') : t('Promijeni'),
                           ),
                         ),
                       ],
                     ),
                   ),
-                  TextButton(
-                    key: ValueKey('checkout-address-change'),
-                    onPressed: () async {
-                      await ensureCheckout(context, ref, force: true);
-                      if (mounted) setState(() {});
-                    },
-                    child: Text(t('Promijeni')),
-                  ),
                 ],
               ),
             ),
-            SizedBox(height: 12),
-            Card(
-              child: Padding(
-                padding: EdgeInsets.all(14),
-                child: Column(
-                  children: [
-                    if (price < d.basePrice)
-                      row(t('Redovna cijena'), formatCredits(d.shownBasePrice)),
-                    row(t('Cijena'), formatCredits(buyTotal(price))),
-                    row(
-                      t('Dostava'),
-                      shippingFrom == 0
-                          ? t('besplatno')
-                          : t('od {0}, prema načinu slanja', [
-                              formatCredits(shippingFrom),
-                            ]),
-                    ),
-                    Divider(height: 16),
-                    row(t('Predmet ukupno'), formatCredits(total), bold: true),
-                  ],
-                ),
+            const SizedBox(height: 10),
+            Text(
+              t(
+                'Plaćanje obrađuje pružatelj plaćanja; Subhasto ne drži tvoj novac.',
               ),
+              style: TextStyle(color: LoopColors.textSecondary, fontSize: 12),
             ),
-            SizedBox(height: 10),
-            // Plaćanje: licencirani pružatelj (u demo verziji simulirano).
-            Container(
-              key: ValueKey('checkout-payment'),
-              padding: EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: LoopColors.surface,
-                borderRadius: BorderRadius.circular(14),
-                border: Border.all(color: LoopColors.surfaceHover),
-              ),
-              child: Row(
-                children: [
-                  Icon(Icons.credit_card, color: LoopColors.textSecondary),
-                  SizedBox(width: 10),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          card ?? t('Način plaćanja nije dodan'),
-                          style: TextStyle(fontWeight: FontWeight.w800),
-                        ),
-                        Text(
-                          t(
-                            'Plaćanje obrađuje pružatelj plaćanja; Subhasto ne drži tvoj novac.',
-                          ),
-                          style: TextStyle(
-                            color: LoopColors.textSecondary,
-                            fontSize: 12,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  TextButton(
-                    key: ValueKey('checkout-pay-change'),
-                    onPressed: _changeCard,
-                    child: Text(card == null ? t('Dodaj') : t('Promijeni')),
-                  ),
-                ],
-              ),
-            ),
-            SizedBox(height: 8),
+            const SizedBox(height: 4),
             // Prava potrošača ovise o vrsti prodavatelja.
             Text(
               buyerRightsText(
                 ref.read(appProvider).userById(widget.device.ownerId),
               ),
-              key: ValueKey('checkout-rights'),
+              key: const ValueKey('checkout-rights'),
               style: TextStyle(color: LoopColors.textSecondary, fontSize: 12),
             ),
             if (_error != null) ...[
-              SizedBox(height: 8),
+              const SizedBox(height: 8),
               Text(_error!, style: TextStyle(color: LoopColors.error)),
             ],
-            SizedBox(height: 10),
-            Align(
+            const SizedBox(height: 10),
+            const Align(
               alignment: Alignment.centerLeft,
               child: BuyerProtectionBadge(),
             ),
-            SizedBox(height: 14),
-            FilledButton.icon(
-              key: ValueKey('checkout-pay'),
+            const SizedBox(height: 16),
+            FilledButton(
+              key: const ValueKey('checkout-pay'),
               onPressed: () {
                 if (card == null) {
                   _changeCard();
@@ -834,10 +810,7 @@ class _CheckoutSheetState extends ConsumerState<_CheckoutSheet> {
                 }
                 Navigator.pop(context, true);
               },
-              icon: Icon(Icons.lock_outline),
-              label: Text(
-                t('Plati {0} i potvrdi kupnju', [formatCredits(total)]),
-              ),
+              child: Text(t('Plati {0}', [formatCredits(total)])),
             ),
           ],
         ),
