@@ -57,7 +57,7 @@ void main() {
       );
       await tester.tap(find.text('Open seller form'));
       await tester.pumpAndSettle();
-      await tester.ensureVisible(find.byKey(const ValueKey('seller-save')));
+      await tester.scrollUntilVisible(find.byKey(const ValueKey('seller-save')), 250, scrollable: find.byType(Scrollable).last);
       await tester.tap(find.byKey(const ValueKey('seller-save')));
       await tester.pumpAndSettle();
       expect(calls, 1);
