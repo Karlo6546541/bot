@@ -35,7 +35,8 @@ enum LegalForm {
 /// izvještaj Poreznoj upravi; DSA čl. 30 za trgovce). Prodavatelj je
 /// privatna osoba ili trgovac (obrt/tvrtka) — trgovac upisuje i naziv
 /// tvrtke, OIB tvrtke, kontakt i (neobavezno) PDV broj i registarski broj.
-/// U demo verziji se ništa ne šalje — samo se spremaju uz račun.
+/// Podaci ostaju u privatnoj pohrani. Pri povezivanju osnovni podaci mogu
+/// predpopuniti Stripeov obrazac; uvjeti i provjera potvrđuju se kod Stripea.
 class SellerInfo {
   const SellerInfo({
     required this.legalName,
@@ -265,3 +266,4 @@ class TraderPublic {
         )
       : null;
 }
+
