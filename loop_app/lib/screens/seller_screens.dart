@@ -16,12 +16,19 @@ import 'legal_screen.dart';
 /// Prije objave u Marketu ili na aukciji: ako podaci prodavatelja nedostaju,
 /// objasni zašto ih tražimo i otvori obrazac. Vraća `true` ako ih ima.
 Future<bool> ensureSellerInfo(BuildContext context) async {
-  final container = ProviderScope.containerOf(context,listen:false);
+  final container = ProviderScope.containerOf(context, listen: false);
   final user = container.read(appProvider).currentUser;
   if (user == null || user.isGuest) return false;
   if (user.seller != null) {
-    try { return await container.read(sellerOnboardingProvider)(user.seller!,user.country); }
-    catch(error) { if(context.mounted)showLoopSnackBar(paymentActionErrorMessage(error));return false; }
+    try {
+      return await container.read(sellerOnboardingProvider)(
+        user.seller!,
+        user.country,
+      );
+    } catch (error) {
+      if (context.mounted) showLoopSnackBar(paymentActionErrorMessage(error));
+      return false;
+    }
   }
   final go = await confirmDialog(
     context,
@@ -35,10 +42,14 @@ Future<bool> ensureSellerInfo(BuildContext context) async {
   return SellerInfoScreen.open(context);
 }
 
-final sellerOnboardingProvider=Provider<Future<bool> Function(SellerInfo,String)>((ref){
-  if(!BackendConfig.cloudCommerceEnabled || !BackendConfig.isOnline)return (_,_)async=>true;
-  return (info,country)=>StripeBackend(Supabase.instance.client).ensureSellerReady(info,country:country);
-});
+final sellerOnboardingProvider =
+    Provider<Future<bool> Function(SellerInfo, String)>((ref) {
+      if (!BackendConfig.cloudCommerceEnabled || !BackendConfig.isOnline)
+        return (_, _) async => true;
+      return (info, country) => StripeBackend(
+        Supabase.instance.client,
+      ).ensureSellerReady(info, country: country);
+    });
 
 /// Isplata zarade na IBAN (uz potvrdu).
 Future<void> showPayoutDialog(BuildContext context, WidgetRef ref) async {
@@ -190,14 +201,17 @@ class _SellerInfoScreenState extends ConsumerState<SellerInfoScreen> {
     try {
       await ref.read(appProvider.notifier).saveSellerInfo(info);
       if (!mounted) return;
-      final ready=await ref.read(sellerOnboardingProvider)(info,ref.read(appProvider).currentUser!.country);
-      if(!mounted)return;
+      final ready = await ref.read(sellerOnboardingProvider)(
+        info,
+        ref.read(appProvider).currentUser!.country,
+      );
+      if (!mounted) return;
       showLoopSnackBar(t('Podaci prodavatelja su spremljeni.'));
       Navigator.pop(context, ready);
     } on TradeException catch (e) {
-      if(mounted)setState(() => _error = e.message);
-    } catch(error) {
-      if(mounted)setState(() => _error = paymentActionErrorMessage(error));
+      if (mounted) setState(() => _error = e.message);
+    } catch (error) {
+      if (mounted) setState(() => _error = paymentActionErrorMessage(error));
     } finally {
       if (mounted) setState(() => _busy = false);
     }
@@ -402,4 +416,3 @@ class _SellerInfoScreenState extends ConsumerState<SellerInfoScreen> {
     );
   }
 }
-

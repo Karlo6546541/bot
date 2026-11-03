@@ -8,8 +8,9 @@ import '../models/seller_info.dart';
 enum SavedCardChargeStatus { paid, processing, incomplete }
 
 class StripeBackend {
-  StripeBackend(this.client,{Future<bool> Function(Uri)? sellerLauncher}):_sellerLauncher=sellerLauncher;
-  final Future<bool> Function(Uri)? _sellerLauncher;
+  StripeBackend(this.client, {Future<bool> Function(Uri)? sellerLauncher})
+    : sellerLauncher = sellerLauncher;
+  final Future<bool> Function(Uri)? sellerLauncher;
   final SupabaseClient client;
   Future<void> connectSeller() async {
     final data = await _call('stripe-connect', {});
@@ -17,20 +18,34 @@ class StripeBackend {
   }
 
   /// Automatically prepare the seller's own account and open only outstanding onboarding.
-  Future<bool> ensureSellerReady(SellerInfo seller, {required String country}) async {
-    final profile = seller.toMap()..remove('iban')..remove('oib')..remove('vatId')..remove('registryNumber');
-    final data = await _call('stripe-connect', {'action':'ensure','seller':profile,'country':country});
-    if(data['ready']==true)return true;
+  Future<bool> ensureSellerReady(
+    SellerInfo seller, {
+    required String country,
+  }) async {
+    final profile = seller.toMap()
+      ..remove('iban')
+      ..remove('oib')
+      ..remove('vatId')
+      ..remove('registryNumber');
+    final data = await _call('stripe-connect', {
+      'action': 'ensure',
+      'seller': profile,
+      'country': country,
+    });
+    if (data['ready'] == true) return true;
     await _openSellerLink(data);
     return false;
   }
 
-  Future<void> _openSellerLink(Map<String,dynamic> data) async {
+  Future<void> _openSellerLink(Map<String, dynamic> data) async {
     final url = Uri.tryParse(data['url'] as String? ?? '');
-    if (url == null || url.scheme != 'https' || url.host != 'connect.stripe.com') {
+    if (url == null ||
+        url.scheme != 'https' ||
+        url.host != 'connect.stripe.com') {
       throw StateError('PAYMENTS_UNAVAILABLE');
     }
-    if (!await (_sellerLauncher?.call(url) ?? launchUrl(url, webOnlyWindowName: '_self'))) {
+    if (!await (sellerLauncher?.call(url) ??
+        launchUrl(url, webOnlyWindowName: '_self'))) {
       throw StateError('PAYMENT_PAGE_UNAVAILABLE');
     }
   }
@@ -166,4 +181,3 @@ String paymentActionErrorMessage(Object error) {
     _ => 'Radnja nije uspjela. Osvježi stanje pa pokušaj ponovno.',
   };
 }
-
