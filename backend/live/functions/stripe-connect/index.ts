@@ -1,4 +1,5 @@
 import { services, authenticate, response, failure, appUrl } from '../_shared/stripe.ts';
+import { createOnboardingLink } from '../_shared/connect.ts';
 Deno.serve(async (req: Request) => {
   if (req.method === 'OPTIONS') return response(200, {});
   if (req.method !== 'POST') return response(405, { error: 'METHOD_NOT_ALLOWED' });
@@ -26,11 +27,7 @@ Deno.serve(async (req: Request) => {
     const account = await stripe.v2.core.accounts.retrieve(accountId, { include: ['configuration.recipient'] });
     const ready = account.configuration?.recipient?.capabilities?.stripe_balance?.stripe_transfers?.status === 'active';
     // The browser supplies no return URLs or account IDs.
-    const link = await stripe.v2.core.accountLinks.create({ account: accountId,
-      use_case: { type: 'account_onboarding', account_onboarding: {
-        return_url: appUrl(), refresh_url: appUrl(), collection_options: { fields: 'eventually_due' },
-      } },
-    });
+    const link = await createOnboardingLink(stripe, accountId, appUrl());
     return response(200, { url: link.url, ready, mode: 'test' });
   } catch (error) { return failure(error); }
 });
