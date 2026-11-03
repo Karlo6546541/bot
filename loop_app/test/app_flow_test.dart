@@ -419,9 +419,12 @@ void main() {
     await tester.pumpAndSettle();
 
     // Za live je potrebno ispuniti podatke prodavatelja.
+    // Srednji gumb je Seller Hub i za nove korisnike.
     await tester.tap(find.byKey(const ValueKey('nav-create')));
     await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const ValueKey('create-live')));
+    await tester.ensureVisible(find.byKey(const ValueKey('seller-hub-live')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('seller-hub-live')));
     await tester.pumpAndSettle();
     expect(find.text('Novi live'), findsNothing);
     expect(find.text('Podaci prodavatelja'), findsOneWidget);
@@ -429,12 +432,16 @@ void main() {
     await tester.pumpAndSettle();
 
     // I za aukciju su potrebni podaci prodavatelja.
-    await tester.tap(find.byKey(const ValueKey('nav-create')));
+    await tester.ensureVisible(
+      find.byKey(const ValueKey('seller-hub-auction')),
+    );
     await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const ValueKey('create-auction')));
+    await tester.tap(find.byKey(const ValueKey('seller-hub-auction')));
     await tester.pumpAndSettle();
     expect(find.text('Podaci prodavatelja'), findsOneWidget);
     await tester.tap(find.text('Odustani').last);
+    await tester.pumpAndSettle();
+    await tester.tap(find.byTooltip('Natrag').last);
     await tester.pumpAndSettle();
 
     // Podaci prodavatelja (za Kupi odmah i isplatu) — iz Profila.

@@ -12,6 +12,7 @@ import '../widgets/trade_actions.dart';
 import 'activity_screen.dart';
 import 'legal_screen.dart';
 import 'login_screen.dart';
+import 'seller_hub.dart';
 import 'seller_screens.dart';
 import '../l10n/tr.dart';
 import '../widgets/language_button.dart';
@@ -208,7 +209,7 @@ class _AccountHome extends ConsumerWidget {
                   'account-seller-hub',
                   Icons.storefront_outlined,
                   t('Seller Hub'),
-                  () => ref.read(homeTabProvider.notifier).select(2),
+                  () => SellerHubScreen.open(context),
                 ),
                 row(
                   'open-activity',
@@ -812,8 +813,7 @@ class _ProfileSettingsView extends ConsumerWidget {
                   OutlinedButton.icon(
                     key: const ValueKey('settings-seller-hub'),
                     onPressed: () {
-                      ref.read(profileSettingsProvider.notifier).setOpen(false);
-                      ref.read(homeTabProvider.notifier).select(2);
+                      SellerHubScreen.open(context);
                     },
                     icon: const Icon(Icons.storefront_outlined),
                     label: Text(t('Seller Hub')),

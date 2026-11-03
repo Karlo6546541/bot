@@ -72,7 +72,7 @@ void main() {
     addTearDown(tester.view.reset);
     await tester.pumpWidget(app());
     await tester.pumpAndSettle();
-    // Mobitel (Whatnot): Početna · Kategorije · Objavi · Moje · Profil.
+    // Mobitel: Početna · Kategorije · Seller Hub · Moje · Profil.
     expect(find.byType(NavigationDestination), findsNWidgets(5));
     expect(
       find.byKey(const ValueKey('home-categories-shortcut')),
@@ -101,9 +101,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.byKey(const ValueKey('home-digital')), findsOneWidget);
     expect(find.byKey(const ValueKey('home-ending')), findsNothing);
-    await tester.tap(find.byKey(const ValueKey('home-filters')));
-    await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const ValueKey('home-cat-my')));
+    await tester.tap(find.text('Moje').last);
     await tester.pumpAndSettle();
     expect(
       find.byKey(const ValueKey('activity-tab-purchases')),

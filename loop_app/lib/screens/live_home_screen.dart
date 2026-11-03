@@ -1,5 +1,4 @@
 import '../widgets/category_style.dart';
-import '../services/app_location/app_location.dart';
 import '../config/backend_config.dart';
 import 'cloud_commerce_screen.dart';
 import '../config/features.dart';
@@ -107,18 +106,8 @@ class _LiveHomeScreenState extends ConsumerState<LiveHomeScreen> {
     widget.onImmersiveChanged?.call(false);
   }
 
-  /// Glavne kategorije za tabove: najgledanije/najpopunjenije, do 6.
-  static List<DeviceCategory> _mainCategories(AppState s) {
-    final list = [for (final c in trendingCategories(s)) c.category];
-    for (final c in DeviceCategory.values) {
-      if (list.length >= 6) break;
-      if (!list.contains(c)) list.add(c);
-    }
-    return list.take(6).toList();
-  }
-
-  /// Kategorije za brzi izbor livea: prvo one s liveovima (najviše
-  /// gledatelja), zatim glavne kategorije.
+  /// Kategorije za brzi izbor livea: samo one s liveovima (najviše
+  /// gledatelja prve).
   static List<CategoryStat> _liveCategoryStats(
     AppState s, {
     DeviceCategory? keep,
@@ -128,12 +117,8 @@ class _LiveHomeScreenState extends ConsumerState<LiveHomeScreen> {
       for (final c in stats)
         if (c.viewers > 0) c,
     ]..sort((a, b) => b.viewers.compareTo(a.viewers));
-    final main = _mainCategories(s);
-    final list = [
-      ...live,
-      for (final c in stats)
-        if (c.viewers == 0 && main.contains(c.category)) c,
-    ].take(10).toList();
+    // Samo kategorije u kojima je netko uživo (bez pločica "Nema livea").
+    final list = live.take(10).toList();
     // Odabrana kategorija uvijek je u traci (i kad nema livea).
     if (keep != null && !list.any((c) => c.category == keep)) {
       list.insert(0, stats.firstWhere((c) => c.category == keep));
@@ -627,30 +612,11 @@ class _LiveHomeScreenState extends ConsumerState<LiveHomeScreen> {
                             children: [
                               for (final (id, label, icon, value)
                                   in <(String, String, IconData, Object)>[
-                                    if (BackendConfig.cloudCommerceEnabled)
-                                      (
-                                        'cloud',
-                                        'Plaćanja i narudžbe',
-                                        Icons.cloud_outlined,
-                                        'cloud',
-                                      ),
                                     (
                                       'categories',
                                       t('Kategorije'),
                                       Icons.grid_view,
                                       'categories',
-                                    ),
-                                    (
-                                      'my',
-                                      t('Moje'),
-                                      Icons.local_activity_outlined,
-                                      'my',
-                                    ),
-                                    (
-                                      'live-menu',
-                                      t('Uživo'),
-                                      Icons.videocam_outlined,
-                                      const _LiveOnly(),
                                     ),
                                     if (kBuyNowEnabled)
                                       (
@@ -685,34 +651,14 @@ class _LiveHomeScreenState extends ConsumerState<LiveHomeScreen> {
                                   title: Text(label),
                                   onTap: () => Navigator.pop(ctx, value),
                                 ),
-                              const Divider(),
-                              const Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  MessagesButton(),
-                                  NotificationBell(),
-                                ],
-                              ),
                             ],
                           ),
                         ),
                       ),
                     );
                     if (!mounted || !context.mounted) return;
-                    if (picked == 'cloud') {
-                      await Navigator.of(context).push(
-                        MaterialPageRoute<void>(
-                          settings: AppPlace.of('cloud', 'live').settings,
-                          builder: (_) => const CloudCommerceScreen(
-                            initialTab: 2,
-                            liveOnly: true,
-                          ),
-                        ),
-                      );
-                    } else if (picked == 'categories') {
+                    if (picked == 'categories') {
                       await CategoriesScreen.open(context);
-                    } else if (picked == 'my') {
-                      ref.read(homeTabProvider.notifier).select(2);
                     } else if (picked is _Filter) {
                       _select(picked);
                     }

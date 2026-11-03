@@ -111,4 +111,59 @@ void main() {
       await tester.pumpWidget(const SizedBox.shrink());
     },
   );
+  testWidgets('Stripe ne radi: spremanje i objava ipak prolaze', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(390, 844);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    bool? ready;
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          storageProvider.overrideWithValue(storage),
+          tickIntervalProvider.overrideWithValue(null),
+          sellerOnboardingProvider.overrideWithValue(
+            (seller, country) async => throw StateError('PAYMENTS_UNAVAILABLE'),
+          ),
+        ],
+        child: MaterialApp(
+          home: Scaffold(
+            body: Builder(
+              builder: (ctx) => Column(
+                children: [
+                  TextButton(
+                    onPressed: () => SellerInfoScreen.open(ctx),
+                    child: const Text('Open seller form'),
+                  ),
+                  TextButton(
+                    onPressed: () async {
+                      ready = await ensureSellerInfo(ctx);
+                    },
+                    child: const Text('Sell'),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.tap(find.text('Open seller form'));
+    await tester.pumpAndSettle();
+    await tester.scrollUntilVisible(
+      find.byKey(const ValueKey('seller-save')),
+      250,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.tap(find.byKey(const ValueKey('seller-save')));
+    await tester.pumpAndSettle();
+    expect(find.byType(SellerInfoScreen), findsNothing);
+    expect(find.textContaining('Radnja nije uspjela'), findsNothing);
+    await tester.tap(find.text('Sell'));
+    await tester.pumpAndSettle();
+    expect(ready, isTrue);
+    expect(tester.takeException(), isNull);
+    await tester.pumpWidget(const SizedBox.shrink());
+  });
 }

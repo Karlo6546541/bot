@@ -25,9 +25,11 @@ Future<bool> ensureSellerInfo(BuildContext context) async {
         user.seller!,
         user.country,
       );
-    } catch (error) {
-      if (context.mounted) showLoopSnackBar(paymentActionErrorMessage(error));
-      return false;
+    } catch (_) {
+      // Stripe trenutno ne odgovara (npr. ključ bez dopuštenja za Connect):
+      // podaci su spremljeni pa prodaja ide dalje, a zarada čeka u
+      // aplikaciji dok se isplate ne uključe.
+      return true;
     }
   }
   final go = await confirmDialog(
@@ -202,10 +204,16 @@ class _SellerInfoScreenState extends ConsumerState<SellerInfoScreen> {
     try {
       await ref.read(appProvider.notifier).saveSellerInfo(info);
       if (!mounted) return;
-      final ready = await ref.read(sellerOnboardingProvider)(
-        info,
-        ref.read(appProvider).currentUser!.country,
-      );
+      var ready = true;
+      try {
+        ready = await ref.read(sellerOnboardingProvider)(
+          info,
+          ref.read(appProvider).currentUser!.country,
+        );
+      } catch (_) {
+        // Podaci su već spremljeni; Stripe (isplate) se može uključiti
+        // kasnije, to ne smije blokirati spremanje ni objavu.
+      }
       if (!mounted) return;
       showLoopSnackBar(t('Podaci prodavatelja su spremljeni.'));
       Navigator.pop(context, ready);

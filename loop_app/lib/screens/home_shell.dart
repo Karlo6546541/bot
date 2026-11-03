@@ -9,7 +9,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../providers/app_providers.dart';
 
 import '../widgets/adaptive_shell.dart';
-import '../widgets/create_sheet.dart';
+import '../widgets/trade_actions.dart';
 import 'activity_view.dart';
 import 'categories_screen.dart';
 import 'live_home_screen.dart';
@@ -20,7 +20,6 @@ import '../l10n/tr.dart';
 import '../widgets/language_button.dart';
 import '../services/deep_link.dart';
 import '../services/app_location/app_location.dart';
-import '../widgets/loop_snackbar.dart';
 import 'add_device_screen.dart';
 import 'auction_detail_screen.dart';
 import 'device_detail_screen.dart';
@@ -95,8 +94,6 @@ class _HomeShellState extends ConsumerState<HomeShell> {
   }
 
   List<ShellDestination> get _destinations {
-    final user = ref.watch(appProvider).currentUser;
-    final isSeller = user != null && !user.isGuest && user.seller != null;
     return [
       ShellDestination(t('Početna'), Icons.home_outlined, Icons.home),
       ShellDestination(
@@ -104,10 +101,12 @@ class _HomeShellState extends ConsumerState<HomeShell> {
         Icons.grid_view_outlined,
         Icons.grid_view_rounded,
       ),
+      // Uvijek Seller Hub (i prije prvih podataka prodavatelja): gumb se
+      // ne mijenja nakon prijave ili odjave.
       ShellDestination(
-        isSeller ? t('Seller Hub') : t('Objavi'),
-        isSeller ? Icons.storefront_outlined : Icons.add,
-        isSeller ? Icons.storefront : Icons.add,
+        t('Seller Hub'),
+        Icons.storefront_outlined,
+        Icons.storefront,
         action: true,
       ),
       ShellDestination(
@@ -126,12 +125,8 @@ class _HomeShellState extends ConsumerState<HomeShell> {
 
   void _onNav(int nav) {
     if (nav == _createSlot) {
-      final user = ref.read(appProvider).currentUser;
-      if (user != null && !user.isGuest && user.seller != null) {
-        SellerHubScreen.open(context);
-      } else {
-        showCreateSheet(context);
-      }
+      if (blockGuest(context)) return;
+      SellerHubScreen.open(context);
       return;
     }
     _go(nav < _createSlot ? nav : nav - 1);

@@ -62,15 +62,25 @@ class _WonDelivery extends StatelessWidget {
     if (d.awaitingChoice) {
       return Padding(
         padding: const EdgeInsets.only(top: 8),
-        child: FilledButton.icon(
+        child: InkWell(
           key: ValueKey('notif-choose-${d.id}'),
-          style: FilledButton.styleFrom(
-            minimumSize: const Size(0, 36),
-            visualDensity: VisualDensity.compact,
+          borderRadius: BorderRadius.circular(99),
+          onTap: () => DeliveriesScreen.open(context),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+            decoration: BoxDecoration(
+              color: LoopColors.accent.withValues(alpha: 0.14),
+              borderRadius: BorderRadius.circular(99),
+            ),
+            child: Text(
+              t('Prodavač priprema paket'),
+              style: TextStyle(
+                color: LoopColors.accent,
+                fontWeight: FontWeight.w700,
+                fontSize: 12,
+              ),
+            ),
           ),
-          onPressed: () => DeliveriesScreen.open(context),
-          icon: const Icon(Icons.inventory_2_outlined, size: 16),
-          label: Text(t('Prodavač priprema paket')),
         ),
       );
     }
@@ -91,7 +101,7 @@ class _WonDelivery extends StatelessWidget {
           ),
           child: Text(
             done
-                ? t('✓ Dostavljeno')
+                ? t('Dostavljeno')
                 : t('Na dostavi · {0}', [d.status(now).label]),
             style: TextStyle(
               color: color,
@@ -414,7 +424,7 @@ class _Filters extends StatelessWidget {
             if (present.contains(g))
               chip(
                 ValueKey('notif-filter-${g.name}'),
-                '${g.emoji} ${g.label}',
+                g.label,
                 unreadBy[g] ?? 0,
                 selected == g,
                 () => onSelect(g),
@@ -442,7 +452,7 @@ class _AuctionSummary extends StatelessWidget {
         )
         .length;
     final selling = active.where((a) => a.sellerId == me).length;
-    Widget stat(String emoji, String label, int value, Color color) => Expanded(
+    Widget stat(String label, int value, Color color) => Expanded(
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 8),
         decoration: BoxDecoration(
@@ -452,8 +462,8 @@ class _AuctionSummary extends StatelessWidget {
         child: Column(
           children: [
             Text(
-              '$emoji $value',
-              style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 18),
+              '$value',
+              style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 22),
             ),
             Text(
               label,
@@ -470,11 +480,11 @@ class _AuctionSummary extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(12, 6, 12, 0),
       child: Row(
         children: [
-          stat('🏁', t('Vodiš'), leading, LoopColors.success),
+          stat(t('Vodiš'), leading, LoopColors.success),
           const SizedBox(width: 8),
-          stat('⚠️', t('Nadmašen'), outbid, const Color(0xFFFF9500)),
+          stat(t('Nadmašen'), outbid, const Color(0xFFFF9500)),
           const SizedBox(width: 8),
-          stat('🔨', t('Tvoje aukcije'), selling, LoopColors.accent),
+          stat(t('Tvoje aukcije'), selling, LoopColors.accent),
         ],
       ),
     );
@@ -529,33 +539,9 @@ class _NotificationTile extends ConsumerWidget {
               color: LoopColors.surfaceHover,
               shape: BoxShape.circle,
             ),
-            child: Text(n.kind.emoji, style: const TextStyle(fontSize: 22)),
+            child: Icon(_kindIcon(n.kind), size: 22),
           )
-        : SizedBox(
-            width: 52,
-            height: 52,
-            child: Stack(
-              clipBehavior: Clip.none,
-              children: [
-                ItemThumb(device: device, size: 52),
-                Positioned(
-                  right: -6,
-                  bottom: -6,
-                  child: Container(
-                    padding: const EdgeInsets.all(2),
-                    decoration: BoxDecoration(
-                      color: LoopColors.surface,
-                      shape: BoxShape.circle,
-                    ),
-                    child: Text(
-                      n.kind.emoji,
-                      style: const TextStyle(fontSize: 15),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          );
+        : ItemThumb(device: device, size: 52);
 
     return Dismissible(
       key: ValueKey('notif-${n.id}'),
@@ -861,7 +847,7 @@ class _SettingsSheet extends ConsumerWidget {
                 Padding(
                   padding: const EdgeInsets.fromLTRB(0, 16, 0, 4),
                   child: Text(
-                    '${g.emoji} ${g.label}',
+                    g.label,
                     style: const TextStyle(fontWeight: FontWeight.w900),
                   ),
                 ),
@@ -913,3 +899,36 @@ class NotificationBell extends ConsumerWidget {
     );
   }
 }
+
+/// Linijska ikona vrste obavijesti (umjesto emojija).
+IconData _kindIcon(NotificationKind k) => switch (k) {
+  NotificationKind.outbid || NotificationKind.outbidAuto => Icons.trending_up,
+  NotificationKind.auctionWon ||
+  NotificationKind.digitalWon ||
+  NotificationKind.giveawayWon => Icons.emoji_events_outlined,
+  NotificationKind.auctionEndingSoon => Icons.timer_outlined,
+  NotificationKind.liveStarted => Icons.videocam_outlined,
+  NotificationKind.parcelArrived ||
+  NotificationKind.parcelPickedUp ||
+  NotificationKind.shipReady ||
+  NotificationKind.soldOut => Icons.inventory_2_outlined,
+  NotificationKind.parcelShipped => Icons.local_shipping_outlined,
+  NotificationKind.disputeOpened ||
+  NotificationKind.disputeReview ||
+  NotificationKind.disputeRefunded ||
+  NotificationKind.disputeRejected ||
+  NotificationKind.contentRemoved ||
+  NotificationKind.reportResolved => Icons.shield_outlined,
+  NotificationKind.newMessage => Icons.chat_bubble_outline,
+  NotificationKind.newFollower => Icons.person_add_alt,
+  NotificationKind.newReview => Icons.star_outline,
+  NotificationKind.itemSold ||
+  NotificationKind.auctionSold => Icons.sell_outlined,
+  _ => switch (k.group) {
+    NotificationGroup.auctions => Icons.gavel,
+    NotificationGroup.trade => Icons.shopping_bag_outlined,
+    NotificationGroup.offers => Icons.euro,
+    NotificationGroup.social => Icons.people_outline,
+    NotificationGroup.messages => Icons.chat_bubble_outline,
+  },
+};
