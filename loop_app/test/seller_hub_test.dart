@@ -145,8 +145,9 @@ void main() {
       find.byKey(ValueKey('show-add-${storage.liveShows.first.id}')),
     );
     await tester.pumpAndSettle();
-    expect(find.byKey(const ValueKey('add-to-show-stock')), findsOneWidget);
-    expect(find.byKey(const ValueKey('add-to-show-new')), findsOneWidget);
+    // Jedan prozor: naziv i cijena ili svoj predmet jednim dodirom.
+    expect(find.byKey(const ValueKey('quick-name')), findsOneWidget);
+    expect(find.byKey(const ValueKey('quick-on-screen')), findsOneWidget);
     await tester.tapAt(const Offset(10, 10));
     await tester.pumpAndSettle();
     await tester.tap(find.byKey(const ValueKey('shows-tab-past')));

@@ -303,6 +303,9 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
             ),
           ),
           bottom: TabBar(
+            // Bez rezanja naziva ("Objav", "Raču"): kartice se pomiču.
+            isScrollable: true,
+            tabAlignment: TabAlignment.start,
             indicatorColor: LoopColors.textPrimary,
             labelColor: LoopColors.textPrimary,
             unselectedLabelColor: LoopColors.textSecondary,
@@ -391,31 +394,22 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                                     t('Kategorije'),
                                     () => tabs.animateTo(4),
                                   ),
-                                  SliverToBoxAdapter(
-                                    child: SizedBox(
-                                      height: 200,
-                                      child: ListView.separated(
-                                        scrollDirection: Axis.horizontal,
-                                        padding: const EdgeInsets.symmetric(
-                                          horizontal: 16,
-                                        ),
-                                        itemCount: categories.length,
-                                        separatorBuilder: (_, _) =>
-                                            const SizedBox(width: 10),
-                                        itemBuilder: (_, i) => SizedBox(
-                                          width: 150,
-                                          child: CategoryStatTile(
-                                            stat:
-                                                stats[categories[i]] ??
-                                                CategoryStat(categories[i]),
+                                  SliverPadding(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 12,
+                                    ),
+                                    sliver: SliverList.list(
+                                      children: [
+                                        for (final c in categories.take(3))
+                                          CategoryRow(
+                                            stat: stats[c] ?? CategoryStat(c),
                                             onTap: () =>
                                                 CategoryItemsScreen.open(
                                                   context,
-                                                  categories[i],
+                                                  c,
                                                 ),
                                           ),
-                                        ),
-                                      ),
+                                      ],
                                     ),
                                   ),
                                 ],

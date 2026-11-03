@@ -316,8 +316,8 @@ class _HomeShellState extends ConsumerState<HomeShell> {
                       child: LoopLogo(size: 20, onTap: _goHome),
                     ),
               actions: [
-                // Početna već ima traku za pretragu.
-                if (_index != 0)
+                // Početna i Kategorije već imaju svoju tražilicu.
+                if (_index != 0 && _index != 1)
                   IconButton(
                     key: const ValueKey('open-search'),
                     tooltip: t('Pretraži objave i račune'),

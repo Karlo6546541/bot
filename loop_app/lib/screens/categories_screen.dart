@@ -10,7 +10,8 @@ import '../widgets/category_style.dart';
 import '../widgets/empty_state.dart';
 import 'auctions_screen.dart';
 import 'live_screens.dart' show kLiveRed;
-import 'search_screen.dart';
+import '../services/market_filter.dart' show normalizeSearch;
+import '../services/smart_search.dart';
 import 'swipe_feed_screen.dart';
 
 /// Gledatelji uživo i broj predmeta po kategoriji (za Trending i pločice).
@@ -68,8 +69,66 @@ List<CategoryStat> trendingCategories(AppState s) {
   return list;
 }
 
-/// Kartica "Kategorije" (kao Whatnot): traka za pretragu, Trending danas
-/// i mreža kategorija s filterom Preporučeno / Popularno / A–Z.
+/// Jednostavna tanka tražilica (filtrira popis na istom ekranu).
+class SlimSearchField extends StatelessWidget {
+  const SlimSearchField({
+    super.key,
+    required this.controller,
+    required this.hint,
+    required this.onChanged,
+  });
+  final TextEditingController controller;
+  final String hint;
+  final ValueChanged<String> onChanged;
+
+  @override
+  Widget build(BuildContext context) => SizedBox(
+    height: 42,
+    child: TextField(
+      controller: controller,
+      onChanged: onChanged,
+      textInputAction: TextInputAction.search,
+      style: const TextStyle(fontSize: 15),
+      decoration: InputDecoration(
+        isDense: true,
+        hintText: hint,
+        prefixIcon: Icon(
+          Icons.search,
+          size: 20,
+          color: LoopColors.textSecondary,
+        ),
+        suffixIcon: controller.text.isEmpty
+            ? null
+            : IconButton(
+                tooltip: t('Očisti'),
+                icon: const Icon(Icons.close, size: 18),
+                onPressed: () {
+                  controller.clear();
+                  onChanged('');
+                },
+              ),
+        filled: true,
+        fillColor: LoopColors.surface,
+        contentPadding: const EdgeInsets.symmetric(horizontal: 12),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(99),
+          borderSide: BorderSide.none,
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(99),
+          borderSide: BorderSide.none,
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(99),
+          borderSide: BorderSide(color: LoopColors.textSecondary),
+        ),
+      ),
+    ),
+  );
+}
+
+/// Kartica "Kategorije": tanka tražilica koja traži kategorije, pa
+/// jednostavan popis (uživo sada, zatim po skupinama).
 class CategoriesScreen extends ConsumerStatefulWidget {
   const CategoriesScreen({super.key});
 
@@ -87,161 +146,138 @@ class CategoriesScreen extends ConsumerStatefulWidget {
 }
 
 class _CategoriesScreenState extends ConsumerState<CategoriesScreen> {
-  /// recommended | popular | az
-  String _order = 'recommended';
+  final _query = TextEditingController();
+
+  @override
+  void dispose() {
+    _query.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
     final s = ref.watch(appProvider);
     final stats = categoryStats(s);
-    final trending = trendingCategories(s).take(6).toList();
-    final list = [...stats];
-    switch (_order) {
-      case 'popular':
-        list.sort((a, b) {
-          final v = b.viewers.compareTo(a.viewers);
-          return v != 0 ? v : b.items.compareTo(a.items);
-        });
-      case 'az':
-        list.sort((a, b) => a.category.label.compareTo(b.category.label));
-    }
-    Widget orderChip(String id, String label) => Padding(
-      padding: const EdgeInsets.only(right: 8),
-      child: ChoiceChip(
-        key: ValueKey('categories-order-$id'),
-        label: Text(label),
-        selected: _order == id,
-        showCheckmark: false,
-        onSelected: (_) => setState(() => _order = id),
+    final q = normalizeSearch(_query.text.trim());
+    final rows = <Widget>[];
+    Widget heading(String text) => Padding(
+      padding: const EdgeInsets.fromLTRB(4, 18, 4, 6),
+      child: Text(
+        text,
+        style: TextStyle(
+          color: LoopColors.textSecondary,
+          fontWeight: FontWeight.w700,
+          fontSize: 13,
+        ),
       ),
     );
-    return CustomScrollView(
-      key: const ValueKey('categories'),
-      slivers: [
-        SliverToBoxAdapter(
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
-            child: InkWell(
-              key: const ValueKey('categories-search'),
-              borderRadius: BorderRadius.circular(99),
-              onTap: () => SearchScreen.open(context),
-              child: Container(
-                height: 48,
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(99),
-                  border: Border.all(color: LoopColors.textSecondary),
-                ),
-                child: Row(
-                  children: [
-                    Icon(Icons.search, color: LoopColors.textSecondary),
-                    const SizedBox(width: 10),
-                    Text(
-                      t('Traži na Subhastu'),
-                      style: TextStyle(
-                        color: LoopColors.textSecondary,
-                        fontSize: 16,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ),
-        ),
-        if (trending.isNotEmpty) ...[
-          SliverToBoxAdapter(
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(16, 16, 8, 8),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      t('Trending danas'),
-                      style: const TextStyle(
-                        fontSize: 22,
-                        fontWeight: FontWeight.w900,
-                      ),
-                    ),
-                  ),
-                  TextButton(
-                    key: const ValueKey('trending-all'),
-                    onPressed: () => TrendingScreen.open(context),
-                    child: Text('${t('Prikaži sve')} ›'),
-                  ),
-                ],
-              ),
-            ),
-          ),
-          SliverToBoxAdapter(
-            child: SizedBox(
-              height: 160,
-              child: GridView.builder(
-                key: const ValueKey('trending-chips'),
-                scrollDirection: Axis.horizontal,
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: 2,
-                  mainAxisSpacing: 10,
-                  crossAxisSpacing: 10,
-                  mainAxisExtent: 200,
-                ),
-                itemCount: trending.length,
-                itemBuilder: (_, i) => _TrendingChip(
-                  stat: trending[i],
-                  onTap: () =>
-                      CategoryItemsScreen.open(context, trending[i].category),
-                ),
-              ),
-            ),
-          ),
-        ],
-        SliverToBoxAdapter(
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(16, 20, 16, 8),
+    void open(DeviceCategory c) => CategoryItemsScreen.open(context, c);
+    if (q.isNotEmpty) {
+      final hits = [
+        for (final c in stats)
+          if (normalizeSearch(c.category.label).contains(q) ||
+              normalizeSearch(c.category.section.label).contains(q))
+            c,
+      ];
+      if (hits.isEmpty) {
+        rows.add(
+          Padding(
+            padding: const EdgeInsets.all(24),
             child: Text(
-              t('Kategorije'),
-              style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w900),
+              t('Nema takve kategorije.'),
+              textAlign: TextAlign.center,
+              style: TextStyle(color: LoopColors.textSecondary),
             ),
           ),
-        ),
-        SliverToBoxAdapter(
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(16, 4, 8, 12),
-            child: SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              child: Row(
-                children: [
-                  orderChip('recommended', t('Preporučeno')),
-                  orderChip('popular', t('Popularno')),
-                  orderChip('az', t('A–Z')),
-                ],
-              ),
+        );
+      }
+      for (final c in hits) {
+        rows.add(CategoryRow(stat: c, onTap: () => open(c.category)));
+      }
+    } else {
+      final live = [
+        for (final c in stats)
+          if (c.viewers > 0) c,
+      ]..sort((a, b) => b.viewers.compareTo(a.viewers));
+      if (live.isNotEmpty) {
+        rows.add(heading(t('Uživo sada')));
+        for (final c in live) {
+          rows.add(CategoryRow(stat: c, onTap: () => open(c.category)));
+        }
+      }
+      for (final sec in ItemSection.values) {
+        final inSec = [
+          for (final c in stats)
+            if (c.category.section == sec) c,
+        ];
+        if (inSec.isEmpty) continue;
+        rows.add(heading(sec.label));
+        for (final c in inSec) {
+          rows.add(CategoryRow(stat: c, onTap: () => open(c.category)));
+        }
+      }
+    }
+    return Align(
+      alignment: Alignment.topCenter,
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 680),
+        child: ListView(
+          key: const ValueKey('categories'),
+          padding: const EdgeInsets.fromLTRB(16, 10, 16, 96),
+          children: [
+            SlimSearchField(
+              key: const ValueKey('categories-search'),
+              controller: _query,
+              hint: t('Traži kategoriju'),
+              onChanged: (_) => setState(() {}),
             ),
-          ),
+            ...rows,
+          ],
         ),
-        SliverPadding(
-          padding: const EdgeInsets.symmetric(horizontal: 16),
-          sliver: SliverGrid(
-            gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-              maxCrossAxisExtent: 200,
-              mainAxisExtent: 192,
-              mainAxisSpacing: 10,
-              crossAxisSpacing: 10,
-            ),
-            delegate: SliverChildListDelegate([
-              for (final c in list)
-                CategoryStatTile(
-                  stat: c,
-                  onTap: () => CategoryItemsScreen.open(context, c.category),
-                ),
-            ]),
-          ),
-        ),
-        const SliverToBoxAdapter(child: SizedBox(height: 96)),
-      ],
+      ),
     );
   }
+}
+
+/// Redak kategorije: mala ilustracija, naziv i broj predmeta/gledatelja.
+class CategoryRow extends StatelessWidget {
+  const CategoryRow({super.key, required this.stat, required this.onTap});
+  final CategoryStat stat;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) => InkWell(
+    key: ValueKey('category-${stat.category.name}'),
+    borderRadius: BorderRadius.circular(12),
+    onTap: onTap,
+    child: Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
+      child: Row(
+        children: [
+          CategoryArt(category: stat.category, size: 32),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Text(
+              stat.category.label,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 16),
+            ),
+          ),
+          if (stat.viewers > 0) ...[
+            const _ViewersDot(),
+            const SizedBox(width: 6),
+          ],
+          Text(
+            stat.viewers > 0 || stat.items > 0 ? stat.label : '',
+            style: TextStyle(color: LoopColors.textSecondary, fontSize: 13),
+          ),
+          const SizedBox(width: 4),
+          Icon(Icons.chevron_right, color: LoopColors.textSecondary, size: 20),
+        ],
+      ),
+    ),
+  );
 }
 
 /// Zaobljena crvena oznaka gledatelja ("🔴 1,2k").
@@ -257,275 +293,9 @@ class _ViewersDot extends StatelessWidget {
   );
 }
 
-class _TrendingChip extends StatelessWidget {
-  const _TrendingChip({required this.stat, required this.onTap});
-  final CategoryStat stat;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) => Material(
-    color: LoopColors.surfaceHover,
-    borderRadius: BorderRadius.circular(16),
-    child: InkWell(
-      key: ValueKey('trending-${stat.category.name}'),
-      borderRadius: BorderRadius.circular(16),
-      onTap: onTap,
-      child: Padding(
-        padding: const EdgeInsets.all(10),
-        child: Row(
-          children: [
-            CategoryArt(category: stat.category, size: 52),
-            const SizedBox(width: 10),
-            Expanded(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    stat.category.label,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      fontWeight: FontWeight.w900,
-                      fontSize: 16,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Row(
-                    children: [
-                      if (stat.viewers > 0) ...[
-                        const _ViewersDot(),
-                        const SizedBox(width: 5),
-                      ],
-                      Flexible(
-                        child: Text(
-                          stat.label,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: TextStyle(
-                            color: LoopColors.textSecondary,
-                            fontSize: 13,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
-    ),
-  );
-}
-
-/// Pločica kategorije: naziv gore, ilustracija, dolje gledatelji.
-class CategoryStatTile extends StatelessWidget {
-  const CategoryStatTile({super.key, required this.stat, required this.onTap});
-  final CategoryStat stat;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) => Material(
-    color: LoopColors.surfaceHover,
-    borderRadius: BorderRadius.circular(16),
-    child: InkWell(
-      key: ValueKey('category-${stat.category.name}'),
-      borderRadius: BorderRadius.circular(16),
-      onTap: onTap,
-      child: Padding(
-        padding: const EdgeInsets.all(12),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              stat.category.label,
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-              style: const TextStyle(
-                fontWeight: FontWeight.w900,
-                fontSize: 15,
-                height: 1.15,
-              ),
-            ),
-            Expanded(
-              child: Center(
-                child: CategoryArt(category: stat.category, size: 56),
-              ),
-            ),
-            Row(
-              children: [
-                if (stat.viewers > 0) ...[
-                  const _ViewersDot(),
-                  const SizedBox(width: 5),
-                ],
-                Flexible(
-                  child: Text(
-                    stat.label,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      color: LoopColors.textSecondary,
-                      fontSize: 12,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ],
-        ),
-      ),
-    ),
-  );
-}
-
-/// "Prikaži sve": rang lista kategorija (najgledanije / najviše predmeta).
-class TrendingScreen extends ConsumerStatefulWidget {
-  const TrendingScreen({super.key});
-
-  static Future<void> open(BuildContext context) => Navigator.of(
-    context,
-  ).push(MaterialPageRoute<void>(builder: (_) => const TrendingScreen()));
-
-  @override
-  ConsumerState<TrendingScreen> createState() => _TrendingScreenState();
-}
-
-class _TrendingScreenState extends ConsumerState<TrendingScreen> {
-  bool _byViewers = true;
-
-  @override
-  Widget build(BuildContext context) {
-    final s = ref.watch(appProvider);
-    final list = trendingCategories(s);
-    if (!_byViewers) {
-      list.sort((a, b) => b.items.compareTo(a.items));
-    }
-    Widget chip(bool viewers, String label) => Padding(
-      padding: const EdgeInsets.only(right: 8),
-      child: ChoiceChip(
-        key: ValueKey('trending-order-${viewers ? 'viewers' : 'items'}'),
-        label: Text(label),
-        selected: _byViewers == viewers,
-        showCheckmark: false,
-        onSelected: (_) => setState(() => _byViewers = viewers),
-      ),
-    );
-    return Scaffold(
-      appBar: AppBar(),
-      body: ListView(
-        key: const ValueKey('trending-screen'),
-        padding: const EdgeInsets.fromLTRB(16, 0, 16, 32),
-        children: [
-          Text(
-            t('Trending danas'),
-            style: const TextStyle(fontSize: 30, fontWeight: FontWeight.w900),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            t('Što je trenutno popularno na Subhastu.'),
-            style: TextStyle(color: LoopColors.textSecondary, fontSize: 16),
-          ),
-          const SizedBox(height: 16),
-          Row(
-            children: [
-              chip(true, t('Najgledanije')),
-              chip(false, t('Najviše predmeta')),
-            ],
-          ),
-          const SizedBox(height: 16),
-          if (list.isEmpty)
-            Padding(
-              padding: const EdgeInsets.all(24),
-              child: Text(
-                t('Još nema aktivnosti.'),
-                style: TextStyle(color: LoopColors.textSecondary),
-              ),
-            ),
-          for (final (i, c) in list.indexed)
-            Padding(
-              padding: const EdgeInsets.only(bottom: 12),
-              child: Material(
-                color: LoopColors.surface,
-                borderRadius: BorderRadius.circular(22),
-                child: InkWell(
-                  key: ValueKey('trending-rank-${c.category.name}'),
-                  borderRadius: BorderRadius.circular(22),
-                  onTap: () => CategoryItemsScreen.open(context, c.category),
-                  child: Padding(
-                    padding: const EdgeInsets.all(14),
-                    child: Row(
-                      children: [
-                        Stack(
-                          clipBehavior: Clip.none,
-                          children: [
-                            CategoryArt(category: c.category, size: 64),
-                            Positioned(
-                              left: -6,
-                              top: -6,
-                              child: CircleAvatar(
-                                radius: 14,
-                                backgroundColor: LoopColors.accent,
-                                child: Text(
-                                  '${i + 1}',
-                                  style: TextStyle(
-                                    color: LoopColors.onAccent,
-                                    fontWeight: FontWeight.w900,
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(width: 16),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                c.category.label,
-                                style: const TextStyle(
-                                  fontWeight: FontWeight.w900,
-                                  fontSize: 18,
-                                ),
-                              ),
-                              const SizedBox(height: 4),
-                              Row(
-                                children: [
-                                  if (c.viewers > 0) ...[
-                                    const _ViewersDot(),
-                                    const SizedBox(width: 6),
-                                  ],
-                                  Text(
-                                    c.label,
-                                    style: TextStyle(
-                                      color: LoopColors.textSecondary,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ],
-                          ),
-                        ),
-                        Icon(
-                          Icons.chevron_right,
-                          color: LoopColors.textSecondary,
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-            ),
-        ],
-      ),
-    );
-  }
-}
-
-/// Jedna kategorija: mreža liveova, aukcija i Kupi odmah predmeta.
-class CategoryItemsScreen extends ConsumerWidget {
+/// Jedna kategorija: tražilica samo za tu kategoriju i mreža liveova,
+/// aukcija i Kupi odmah predmeta.
+class CategoryItemsScreen extends ConsumerStatefulWidget {
   const CategoryItemsScreen({super.key, required this.category});
   final DeviceCategory category;
 
@@ -537,39 +307,99 @@ class CategoryItemsScreen extends ConsumerWidget {
       );
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<CategoryItemsScreen> createState() =>
+      _CategoryItemsScreenState();
+}
+
+class _CategoryItemsScreenState extends ConsumerState<CategoryItemsScreen> {
+  final _query = TextEditingController();
+
+  @override
+  void dispose() {
+    _query.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final category = widget.category;
     final s = ref.watch(appProvider);
     final me = s.currentUserId ?? '';
-    final list = [
+    final all = [
       for (final i in browseItems(s))
         if (i.categories.contains(category)) i,
     ];
+    final q = SmartQuery.parse(_query.text);
+    final list = q.isEmpty
+        ? all
+        : [
+            for (final i in all)
+              if (q.matches(_textOf(i)) &&
+                  (!q.hasPrice ||
+                      (_priceOf(i) != null && q.priceOk(_priceOf(i)!))))
+                i,
+          ];
     return Scaffold(
       appBar: AppBar(title: Text(category.label)),
-      body: list.isEmpty
-          ? EmptyState(
-              icon: category.icon,
-              title: t('Ovdje još nema ničega'),
-              message: t(
-                'Kad netko objavi predmet u ovoj kategoriji, bit će ovdje.',
-              ),
-            )
-          : GridView.builder(
-              key: const ValueKey('category-items'),
-              padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
-              gridDelegate: const BrowseGridDelegate(),
-              itemCount: list.length,
-              itemBuilder: (_, i) => AuctionBrowseCard(
-                item: list[i],
-                viewerId: me,
-                onTap: () => SwipeFeedScreen.open(
-                  context,
-                  [for (final x in list) x.entry],
-                  i,
-                  title: category.label,
-                ),
+      body: Column(
+        children: [
+          if (all.isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
+              child: SlimSearchField(
+                key: const ValueKey('category-search'),
+                controller: _query,
+                hint: t('Traži u kategoriji {0}', [category.label]),
+                onChanged: (_) => setState(() {}),
               ),
             ),
+          Expanded(
+            child: list.isEmpty
+                ? EmptyState(
+                    icon: category.icon,
+                    title: all.isEmpty
+                        ? t('Ovdje još nema ničega')
+                        : t('Ništa ne odgovara pretrazi'),
+                    message: all.isEmpty
+                        ? t(
+                            'Kad netko objavi predmet u ovoj kategoriji, bit će ovdje.',
+                          )
+                        : t('Probaj drugu riječ ili očisti pretragu.'),
+                  )
+                : GridView.builder(
+                    key: const ValueKey('category-items'),
+                    padding: const EdgeInsets.fromLTRB(16, 0, 16, 32),
+                    gridDelegate: const BrowseGridDelegate(),
+                    itemCount: list.length,
+                    itemBuilder: (_, i) => AuctionBrowseCard(
+                      item: list[i],
+                      viewerId: me,
+                      onTap: () => SwipeFeedScreen.open(
+                        context,
+                        [for (final x in list) x.entry],
+                        i,
+                        title: category.label,
+                      ),
+                    ),
+                  ),
+          ),
+        ],
+      ),
     );
   }
 }
+
+/// Tekst objave za pretragu unutar kategorije.
+String _textOf(BrowseItem i) => [
+  if (i.show case final show?) ...[
+    show.title,
+    show.hostLabel,
+    for (final l in show.lots) l.deviceName,
+  ],
+  if (i.auction case final a?) ...[a.deviceName, a.sellerLabel],
+  if (i.device case final d?) ...[d.name, d.model, d.description],
+].join(' ');
+
+/// Cijena objave (live nema cijenu).
+double? _priceOf(BrowseItem i) =>
+    i.auction?.currentPrice ?? i.device?.priceAt(DateTime.now());

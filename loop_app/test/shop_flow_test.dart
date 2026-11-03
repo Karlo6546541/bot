@@ -112,6 +112,8 @@ void main() {
     expect(find.text('Objave (0)'), findsOneWidget);
     await tester.enterText(find.byKey(const ValueKey('global-search')), 'ana');
     await tester.pumpAndSettle();
+    await tester.ensureVisible(find.text('Računi (1)'));
+    await tester.pumpAndSettle();
     await tester.tap(find.text('Računi (1)'));
     await tester.pumpAndSettle();
     expect(

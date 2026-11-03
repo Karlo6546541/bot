@@ -3147,6 +3147,15 @@ const kEn = <String, String>{
   'Više postavki': 'More settings',
   'Licitiraju se redom. Možeš ih dodati i tijekom showa.':
       'Lots are auctioned in order. You can add more during the show.',
+  'Ili jednim dodirom iz svojih predmeta':
+      'Or add one of your items with one tap',
+  'Brojevi na ekranu (#150, #151…)': 'Numbers on screen (#150, #151…)',
+  'Traži kategoriju': 'Search categories',
+  'Nema takve kategorije.': 'No such category.',
+  'Traži u kategoriji {0}': 'Search in {0}',
+  'Ništa ne odgovara pretrazi': 'Nothing matches your search',
+  'Probaj drugu riječ ili očisti pretragu.':
+      'Try another word or clear the search.',
   'Zakaži show': 'Schedule a show',
   'Otprema': 'Shipping',
   'Nema paketa za predaju': 'No parcels to hand over',

@@ -1188,6 +1188,8 @@ void main() {
       );
       await tester.tap(find.byKey(const ValueKey('quick-lot-confirm')));
       await tester.pumpAndSettle();
+      await tester.ensureVisible(find.byKey(const ValueKey('live-on-screen')));
+      await tester.pumpAndSettle();
       await tester.tap(find.byKey(const ValueKey('live-on-screen')));
       await tester.pumpAndSettle();
       await tester.enterText(
@@ -1211,7 +1213,13 @@ void main() {
             matching: find.byType(Scrollable),
           )
           .first;
+      await tester.scrollUntilVisible(
+        find.byKey(const ValueKey('live-more')),
+        200,
+        scrollable: form,
+      );
       await tester.ensureVisible(find.byKey(const ValueKey('live-more')));
+      await tester.pumpAndSettle();
       await tester.tap(find.byKey(const ValueKey('live-more')));
       await tester.pumpAndSettle();
       await tester.scrollUntilVisible(
@@ -1284,9 +1292,14 @@ void main() {
       await tester.pumpAndSettle();
       await tester.tap(find.byKey(const ValueKey('live-add-item')));
       await tester.pumpAndSettle();
-      await tester.tap(find.byType(RadioListTile<String>).first);
+      // Svoj predmet: jedan dodir i već je u liveu.
+      final mine = find.descendant(
+        of: find.byKey(const ValueKey('live-mine')),
+        matching: find.byType(ListTile),
+      );
+      await tester.ensureVisible(mine.first);
       await tester.pumpAndSettle();
-      await tester.tap(find.byKey(const ValueKey('live-add-confirm')));
+      await tester.tap(mine.first);
       await tester.pumpAndSettle();
       expect(storage.liveShowById(show.id)!.lots, hasLength(3));
       // ⚡ Brzo dodaj: samo naziv i cijena, predmet ide u Moje predmete.

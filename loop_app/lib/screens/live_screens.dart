@@ -38,7 +38,6 @@ import '../widgets/live_video_view.dart';
 import '../widgets/mini_live.dart';
 import '../widgets/shop_widgets.dart';
 import '../widgets/user_avatar.dart';
-import 'add_device_screen.dart';
 import 'deliveries_screen.dart';
 import 'public_profile_screen.dart';
 import 'seller_screens.dart' show ensureSellerInfo;
@@ -733,97 +732,81 @@ class _GiveawaySheetState extends ConsumerState<_GiveawaySheet> {
   }
 }
 
-/// Zadnji brzo dodani predmet ("Ponovi zadnji") za sheet "Dodaj u show".
+/// Zadnji brzo dodani predmet ("Ponovi zadnji").
 (String, double)? _lastQuickAdd;
 
-/// "Dodaj u show": predmet iz zalihe ili potpuno novi (naziv i cijena).
-/// Radi i za zakazani show, prije nego što domaćin uđe u sobu.
+/// "Dodaj predmet" u live ili zakazani show: jedan prozor — novi predmet
+/// (naziv i cijena, sprema se sam), svoj predmet jednim dodirom ili
+/// brojevi na ekranu (#150, #151…).
 Future<void> showAddToShowSheet(
   BuildContext context,
   WidgetRef ref,
   LiveShow show,
 ) async {
-  final choice = await showModalBottomSheet<String>(
-    context: context,
-    showDragHandle: true,
-    builder: (ctx) => SafeArea(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(20, 0, 20, 8),
-            child: Align(
-              alignment: Alignment.centerLeft,
-              child: Text(
-                t('Dodaj u show'),
-                style: const TextStyle(
-                  fontWeight: FontWeight.w900,
-                  fontSize: 20,
-                ),
-              ),
-            ),
-          ),
-          ListTile(
-            key: const ValueKey('add-to-show-stock'),
-            leading: const Icon(Icons.inventory_2_outlined),
-            title: Text(t('Iz zalihe')),
-            subtitle: Text(t('Odaberi predmet koji već imaš.')),
-            onTap: () => Navigator.pop(ctx, 'stock'),
-          ),
-          ListTile(
-            key: const ValueKey('add-to-show-new'),
-            leading: const Icon(Icons.bolt),
-            title: Text(t('Novi predmet')),
-            subtitle: Text(t('Samo naziv i početna cijena.')),
-            onTap: () => Navigator.pop(ctx, 'new'),
-          ),
-        ],
-      ),
-    ),
-  );
-  if (choice == null || !context.mounted) return;
-  final app = ref.read(appProvider.notifier);
-  if (choice == 'stock') {
-    final added = await showModalBottomSheet<bool>(
-      context: context,
-      showDragHandle: true,
-      isScrollControlled: true,
-      backgroundColor: kLiveSheet,
-      constraints: const BoxConstraints(maxWidth: 520),
-      builder: (_) => _AddLotSheet(showId: show.id),
-    );
-    if (added == true) showLoopSnackBar(t('Predmet je dodan u live.'));
-    return;
-  }
-  final r = await showModalBottomSheet<(String, double)>(
+  final r = await showModalBottomSheet<_AddResult>(
     context: context,
     showDragHandle: true,
     isScrollControlled: true,
     backgroundColor: kLiveSheet,
-    constraints: const BoxConstraints(maxWidth: 520),
-    builder: (_) => _QuickAddSheet(last: _lastQuickAdd),
+    constraints: BoxConstraints(
+      maxWidth: 520,
+      maxHeight: MediaQuery.sizeOf(context).height * 0.85,
+    ),
+    builder: (_) =>
+        appThemed(_QuickAddSheet(showId: show.id, last: _lastQuickAdd)),
   );
   if (r == null || !context.mounted) return;
-  final (name, price) = r;
+  final app = ref.read(appProvider.notifier);
+  if (r.onScreen) {
+    final lot = await showModalBottomSheet<_DraftLot>(
+      context: context,
+      showDragHandle: true,
+      isScrollControlled: true,
+      constraints: const BoxConstraints(maxWidth: 520),
+      builder: (_) => appThemed(
+        _OnScreenSheet(start: LiveService.nextOnScreen(show)?.number ?? 1),
+      ),
+    );
+    if (lot == null || !context.mounted) return;
+    await runWithLoading(context, () async {
+      final d = await app.addDevice(
+        name: lot.name,
+        model: '',
+        condition: DeviceCondition.good,
+        price: lot.price,
+        category: DeviceCategory.fromName(show.category),
+        listOnMarket: false,
+      );
+      await app.liveAddLot(
+        show.id,
+        d.id,
+        lot.price,
+        name: '${lot.name} #${lot.from}',
+      );
+    }, successMessage: t('Brojevi su spremni u liveu.'));
+    return;
+  }
   final category =
-      suggestCategory(name) ??
+      suggestCategory(r.name) ??
       DeviceCategory.values.firstWhere(
         (c) => c.name == show.category,
         orElse: () => DeviceCategory.other,
       );
   final ok = await runWithLoading(context, () async {
-    final d = await app.addDevice(
-      name: name,
-      model: '',
-      condition: DeviceCondition.good,
-      price: price,
-      category: category,
-      listOnMarket: false,
-    );
-    await app.liveAddLot(show.id, d.id, price);
+    final id =
+        r.deviceId ??
+        (await app.addDevice(
+          name: r.name,
+          model: '',
+          condition: DeviceCondition.good,
+          price: r.price,
+          category: category,
+          listOnMarket: false,
+        )).id;
+    await app.liveAddLot(show.id, id, r.price);
   }, successMessage: null);
   if (!ok) return;
-  _lastQuickAdd = r;
+  if (r.deviceId == null) _lastQuickAdd = (r.name, r.price);
   showLoopSnackBar(t('Predmet je dodan u live.'));
 }
 
@@ -1196,7 +1179,7 @@ class _CreateLiveShowScreenState extends ConsumerState<CreateLiveShowScreen> {
   }
 
   /// Što se prodaje: stvari (aukcije), digitalno (Kupi odmah) ili oboje.
-  LiveSells _sells = LiveSells.physical;
+  final LiveSells _sells = LiveSells.physical;
 
   /// Promocija odmah pri kreiranju: iznos u € (0 = bez promocije).
   int _promo = 0;
@@ -1352,7 +1335,7 @@ class _CreateLiveShowScreenState extends ConsumerState<CreateLiveShowScreen> {
       t('Dodaj predmete'),
       t('Licitiraju se redom. Možeš ih dodati i tijekom showa.'),
     ),
-    if (_sells.hasPhysical) ..._lotsSection(s),
+    ..._lotsSection(s),
     const SizedBox(height: 12),
     Theme(
       data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
@@ -1369,76 +1352,59 @@ class _CreateLiveShowScreenState extends ConsumerState<CreateLiveShowScreen> {
     ),
   ];
 
-  /// Predmeti za licitaciju (stvari).
-  List<Widget> _lotsSection(AppState s) => [
-    Row(
-      children: [
-        Expanded(
-          child: _AddLotButton(
-            key: const ValueKey('live-quick-item'),
-            icon: Icons.add_a_photo_outlined,
-            title: t('Brzo dodaj'),
-            subtitle: t('Predmet sa slikom'),
-            onTap: _addQuick,
-          ),
-        ),
-        const SizedBox(width: 10),
-        Expanded(
-          child: _AddLotButton(
-            key: const ValueKey('live-on-screen'),
-            icon: Icons.tag,
-            title: t('Items on screen'),
-            subtitle: t('#150, #151… kao 1 predmet'),
-            onTap: _addOnScreen,
-          ),
-        ),
-      ],
-    ),
-    const SizedBox(height: 10),
-    for (final id in _selected)
-      if (s.deviceById(id) case final d?)
-        _LotChoice(
-          device: d,
-          order: _selected.indexOf(id) + 1,
-          price: _prices[id],
-          onTap: () => _toggle(d),
-        ),
-    for (final (i, l) in _drafts.indexed)
-      _DraftRow(
-        key: ValueKey('live-draft-$i'),
-        lot: l,
-        order: _selected.length + i + 1,
-        onRemove: () => setState(() => _drafts.removeAt(i)),
+  /// Predmeti za licitaciju: jedan gumb za novi predmet, a svoje predmete
+  /// dodaješ jednim dodirom (bez spremanja unaprijed).
+  List<Widget> _lotsSection(AppState s) {
+    final mine = s.myDevices
+        .where(
+          (d) =>
+              !d.isDigital &&
+              !_selected.contains(d.id) &&
+              s.activeAuctionFor(d.id) == null,
+        )
+        .toList();
+    return [
+      FilledButton.icon(
+        key: const ValueKey('live-quick-item'),
+        onPressed: _addQuick,
+        icon: const Icon(Icons.add_a_photo_outlined),
+        label: Text(t('Dodaj predmet')),
       ),
-  ];
+      const SizedBox(height: 12),
+      for (final id in _selected)
+        if (s.deviceById(id) case final d?)
+          _LotChoice(
+            device: d,
+            order: _selected.indexOf(id) + 1,
+            price: _prices[id],
+            onTap: () => _toggle(d),
+          ),
+      for (final (i, l) in _drafts.indexed)
+        _DraftRow(
+          key: ValueKey('live-draft-$i'),
+          lot: l,
+          order: _selected.length + i + 1,
+          onRemove: () => setState(() => _drafts.removeAt(i)),
+        ),
+      if (mine.isNotEmpty) ...[
+        _label(t('Ili jednim dodirom iz svojih predmeta')),
+        for (final d in mine)
+          _LotChoice(device: d, order: 0, price: null, onTap: () => _toggle(d)),
+      ],
+      Align(
+        alignment: Alignment.centerLeft,
+        child: TextButton(
+          key: const ValueKey('live-on-screen'),
+          onPressed: _addOnScreen,
+          child: Text(t('Brojevi na ekranu (#150, #151…)')),
+        ),
+      ),
+    ];
+  }
 
-  /// Rijetko potrebne opcije: što se prodaje, promocija, video, sat.
+  /// Rijetko potrebne opcije: video, sat, promocija. Live je samo za
+  /// licitacije — Kupi odmah proizvodi se ne prodaju u liveu.
   List<Widget> _moreOptions(AppState s) => [
-    _label(t('Što prodaješ u liveu?')),
-    SegmentedButton<LiveSells>(
-      key: const ValueKey('live-sells'),
-      showSelectedIcon: false,
-      segments: [
-        for (final v in LiveSells.values)
-          ButtonSegment(
-            value: v,
-            label: Text(v.label, key: ValueKey('live-sells-${v.name}')),
-          ),
-      ],
-      selected: {_sells},
-      onSelectionChanged: (v) => setState(() => _sells = v.first),
-    ),
-    if (_sells.hasDigital)
-      Padding(
-        padding: const EdgeInsets.only(top: 8),
-        child: Text(
-          key: const ValueKey('live-digital-count'),
-          t('{0} digitalnih proizvoda bit će u Kupi odmah u liveu.', [
-            '${s.listingsOf(s.currentUserId ?? '').where((d) => d.isDigital).length}',
-          ]),
-          style: TextStyle(color: LoopColors.textSecondary, fontSize: 13),
-        ),
-      ),
     SwitchListTile(
       key: const ValueKey('live-video'),
       contentPadding: EdgeInsets.zero,
@@ -1698,66 +1664,6 @@ class _DraftLot {
 
   /// Zadnji broj u nizu (za nastavak brojanja).
   int? get last => from == null ? null : from! + count - 1;
-}
-
-/// Veliki gumb za dodavanje predmeta u live.
-class _AddLotButton extends StatelessWidget {
-  const _AddLotButton({
-    super.key,
-    required this.icon,
-    required this.title,
-    required this.subtitle,
-    required this.onTap,
-  });
-  final IconData icon;
-  final String title;
-  final String subtitle;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) => Material(
-    color: LoopColors.surface,
-    borderRadius: BorderRadius.circular(kRadius),
-    child: InkWell(
-      borderRadius: BorderRadius.circular(kRadius),
-      onTap: onTap,
-      child: Padding(
-        padding: const EdgeInsets.all(12),
-        child: Row(
-          children: [
-            CircleAvatar(
-              radius: 20,
-              backgroundColor: kLiveRed.withValues(alpha: 0.12),
-              child: Icon(icon, color: kLiveRed, size: 20),
-            ),
-            const SizedBox(width: 10),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    title,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(fontWeight: FontWeight.w900),
-                  ),
-                  Text(
-                    subtitle,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      color: LoopColors.textSecondary,
-                      fontSize: 12,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
-    ),
-  );
 }
 
 /// Redak predmeta ovog livea (prije spremanja).
@@ -2710,9 +2616,9 @@ class _LiveRoomViewState extends ConsumerState<_LiveRoomBody> {
                     tile(
                       ctx,
                       key: 'live-add-item',
-                      icon: Icons.inventory_2_outlined,
-                      label: t('Dodaj iz mojih predmeta'),
-                      onTap: () => _addItem(show),
+                      icon: Icons.add,
+                      label: t('Dodaj predmet'),
+                      onTap: () => _quickAdd(show),
                     ),
                     tile(
                       ctx,
@@ -2741,20 +2647,6 @@ class _LiveRoomViewState extends ConsumerState<_LiveRoomBody> {
                       icon: Icons.card_giftcard,
                       label: t('Giveaway'),
                       onTap: () => showGiveawaySheet(context, ref, show),
-                    ),
-                    tile(
-                      ctx,
-                      key: 'live-quick-add-tile',
-                      icon: Icons.bolt,
-                      label: t('Brzo dodaj'),
-                      onTap: () => _quickAdd(show),
-                    ),
-                    tile(
-                      ctx,
-                      key: 'live-on-screen-tile',
-                      icon: Icons.tag,
-                      label: t('Items on screen'),
-                      onTap: () => _startOnScreen(show),
                     ),
                     tile(
                       ctx,
@@ -2816,87 +2708,9 @@ class _LiveRoomViewState extends ConsumerState<_LiveRoomBody> {
     }
   }
 
-  /// "Items on screen" usred livea: naziv, početni broj i cijena; prvi
-  /// broj ide na kraj reda, a dalje "Sljedeći #N".
-  Future<void> _startOnScreen(LiveShow show) async {
-    final lot = await showModalBottomSheet<_DraftLot>(
-      context: context,
-      showDragHandle: true,
-      isScrollControlled: true,
-      constraints: const BoxConstraints(maxWidth: 520),
-      builder: (_) => appThemed(
-        _OnScreenSheet(start: LiveService.nextOnScreen(show)?.number ?? 1),
-      ),
-    );
-    if (lot == null || !mounted) return;
-    await runWithLoading(context, () async {
-      final d = await _app.addDevice(
-        name: lot.name,
-        model: '',
-        condition: DeviceCondition.good,
-        price: lot.price,
-        category: DeviceCategory.fromName(show.category),
-        listOnMarket: false,
-      );
-      await _app.liveAddLot(
-        show.id,
-        d.id,
-        lot.price,
-        name: '${lot.name} #${lot.from}',
-      );
-    }, successMessage: t('Brojevi su spremni u liveu.'));
-  }
-
-  /// Domaćin dodaje predmet u live (iz svojih predmeta ili novi).
-  Future<void> _addItem(LiveShow show) async {
-    final added = await showModalBottomSheet<bool>(
-      context: context,
-      showDragHandle: true,
-      isScrollControlled: true,
-      backgroundColor: kLiveSheet,
-      constraints: const BoxConstraints(maxWidth: 520),
-      builder: (_) => _AddLotSheet(showId: show.id),
-    );
-    if (added == true) showLoopSnackBar(t('Predmet je dodan u live.'));
-  }
-
-  /// Zadnji brzo dodani predmet ("Ponovi zadnji").
-  (String, double)? _lastQuick;
-
-  /// Brzo dodavanje usred livea: samo naziv i početna cijena — predmet
-  /// se sam sprema u Moje predmete i stavlja na kraj reda.
-  Future<void> _quickAdd(LiveShow show) async {
-    final r = await showModalBottomSheet<(String, double)>(
-      context: context,
-      showDragHandle: true,
-      isScrollControlled: true,
-      backgroundColor: kLiveSheet,
-      constraints: const BoxConstraints(maxWidth: 520),
-      builder: (_) => _QuickAddSheet(last: _lastQuick),
-    );
-    if (r == null || !mounted) return;
-    final (name, price) = r;
-    final category =
-        suggestCategory(name) ??
-        DeviceCategory.values.firstWhere(
-          (c) => c.name == show.category,
-          orElse: () => DeviceCategory.other,
-        );
-    final ok = await runWithLoading(context, () async {
-      final d = await _app.addDevice(
-        name: name,
-        model: '',
-        condition: DeviceCondition.good,
-        price: price,
-        category: category,
-        listOnMarket: false,
-      );
-      await _app.liveAddLot(show.id, d.id, price);
-    }, successMessage: null);
-    if (!ok || !mounted) return;
-    _lastQuick = r;
-    showLoopSnackBar(t('Predmet je dodan u live.'));
-  }
+  /// Dodavanje usred livea: isti prozor kao "Dodaj u show".
+  Future<void> _quickAdd(LiveShow show) =>
+      showAddToShowSheet(context, ref, show);
 
   /// Predmeti koji su već prodani kad smo ušli ili koje smo već proslavili.
   Set<int>? _seenSold;
@@ -3883,14 +3697,7 @@ class _LiveRoomViewState extends ConsumerState<_LiveRoomBody> {
                       showChat: !st.isOver,
                       guest: !canAct,
                       onLogin: () => blockGuest(context),
-                      bagCount:
-                          st.queue.length +
-                          s
-                              .listingsOf(show.hostId)
-                              .where(
-                                (d) => !d.isDigital || show.sells.hasDigital,
-                              )
-                              .length,
+                      bagCount: st.queue.length,
                       onBag: () => _showQueue(st, isHost),
                       liked: _liked,
                       onHeart: st.isOver || isHost ? null : _toggleLike,
@@ -4979,16 +4786,27 @@ class _OutbidFlashState extends State<_OutbidFlash>
   );
 }
 
-/// Brzo dodavanje predmeta u live: naziv i početna cijena.
-class _QuickAddSheet extends StatefulWidget {
-  const _QuickAddSheet({this.last});
+/// Što domaćin dodaje u live: novi predmet (naziv), svoj predmet ili
+/// "brojeve na ekranu".
+typedef _AddResult = ({
+  String? deviceId,
+  String name,
+  double price,
+  bool onScreen,
+});
+
+/// Jedan prozor za dodavanje u live: upiši naziv i cijenu (predmet se sam
+/// sprema) ili jednim dodirom dodaj svoj predmet.
+class _QuickAddSheet extends ConsumerStatefulWidget {
+  const _QuickAddSheet({required this.showId, this.last});
+  final String showId;
   final (String, double)? last;
 
   @override
-  State<_QuickAddSheet> createState() => _QuickAddSheetState();
+  ConsumerState<_QuickAddSheet> createState() => _QuickAddSheetState();
 }
 
-class _QuickAddSheetState extends State<_QuickAddSheet> {
+class _QuickAddSheetState extends ConsumerState<_QuickAddSheet> {
   /// "Item on screen": sljedeći broj (Predmet #150 → Predmet #151).
   static String _nextName(String name) {
     final m = RegExp(r'^(.*#)(\d+)$').firstMatch(name);
@@ -5005,82 +4823,157 @@ class _QuickAddSheetState extends State<_QuickAddSheet> {
     super.dispose();
   }
 
+  double? get _priceValue =>
+      double.tryParse(_price.text.trim().replaceAll(',', '.'));
+
   void _submit() {
     final name = _name.text.trim();
-    final price = double.tryParse(_price.text.trim().replaceAll(',', '.'));
+    final price = _priceValue;
     if (name.isEmpty || price == null || price < 1) {
       showLoopSnackBar(t('Upiši naziv i cijenu (barem 1 €).'), error: true);
       return;
     }
-    Navigator.pop(context, (name, price));
+    Navigator.pop<_AddResult>(context, (
+      deviceId: null,
+      name: name,
+      price: price,
+      onScreen: false,
+    ));
+  }
+
+  void _pick(Device d) {
+    final price = _priceValue;
+    Navigator.pop<_AddResult>(context, (
+      deviceId: d.id,
+      name: d.name,
+      price: price == null || price < 1 ? 1 : price,
+      onScreen: false,
+    ));
   }
 
   @override
   Widget build(BuildContext context) {
     final last = widget.last;
-    return Padding(
-      padding: EdgeInsets.fromLTRB(
-        20,
-        0,
-        20,
-        16 + MediaQuery.viewInsetsOf(context).bottom,
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Text(
-            t('Brzo dodaj'),
-            style: const TextStyle(fontSize: 19, fontWeight: FontWeight.w900),
-          ),
-          Text(
-            t('Predmet se sprema u Moje predmete i ide na kraj reda.'),
-            style: TextStyle(color: LoopColors.textSecondary, fontSize: 13),
-          ),
-          const SizedBox(height: 12),
-          TextField(
-            key: const ValueKey('quick-name'),
-            controller: _name,
-            autofocus: true,
-            textCapitalization: TextCapitalization.sentences,
-            decoration: InputDecoration(labelText: t('Naziv')),
-          ),
-          const SizedBox(height: 10),
-          TextField(
-            key: const ValueKey('quick-price'),
-            controller: _price,
-            keyboardType: const TextInputType.numberWithOptions(decimal: true),
-            decoration: InputDecoration(
-              labelText: t('Početna cijena'),
-              suffixText: '€',
-            ),
-            onSubmitted: (_) => _submit(),
-          ),
-          if (last != null)
-            Align(
-              alignment: Alignment.centerLeft,
-              child: TextButton.icon(
-                key: const ValueKey('quick-repeat'),
-                onPressed: () => setState(() {
-                  _name.text = _nextName(last.$1);
-                  _price.text = last.$2 == last.$2.roundToDouble()
-                      ? '${last.$2.toInt()}'
-                      : '${last.$2}';
-                }),
-                icon: const Icon(Icons.replay, size: 18),
-                label: Text(t('Ponovi zadnji: {0}', [_nextName(last.$1)])),
+    final s = ref.watch(appProvider);
+    final show = s.liveShowById(widget.showId);
+    final inShow = {...?show?.lots.map((l) => l.deviceId)};
+    final mine = s.myDevices
+        .where(
+          (d) =>
+              !d.isDigital &&
+              s.activeAuctionFor(d.id) == null &&
+              !inShow.contains(d.id),
+        )
+        .toList();
+    return SafeArea(
+      child: Padding(
+        padding: EdgeInsets.fromLTRB(
+          20,
+          0,
+          20,
+          16 + MediaQuery.viewInsetsOf(context).bottom,
+        ),
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text(
+                t('Dodaj predmet'),
+                style: const TextStyle(
+                  fontSize: 24,
+                  fontWeight: FontWeight.w800,
+                ),
               ),
-            ),
-          const SizedBox(height: 10),
-          FilledButton(
-            key: const ValueKey('quick-add-confirm'),
-            style: FilledButton.styleFrom(
-              minimumSize: const Size.fromHeight(50),
-            ),
-            onPressed: _submit,
-            child: Text(t('Dodaj u live')),
+              const SizedBox(height: 14),
+              TextField(
+                key: const ValueKey('quick-name'),
+                controller: _name,
+                textCapitalization: TextCapitalization.sentences,
+                decoration: InputDecoration(labelText: t('Naziv')),
+              ),
+              const SizedBox(height: 10),
+              TextField(
+                key: const ValueKey('quick-price'),
+                controller: _price,
+                keyboardType: const TextInputType.numberWithOptions(
+                  decimal: true,
+                ),
+                decoration: InputDecoration(
+                  labelText: t('Početna cijena'),
+                  suffixText: '€',
+                ),
+                onSubmitted: (_) => _submit(),
+              ),
+              if (last != null)
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: TextButton.icon(
+                    key: const ValueKey('quick-repeat'),
+                    onPressed: () => setState(() {
+                      _name.text = _nextName(last.$1);
+                      _price.text = last.$2 == last.$2.roundToDouble()
+                          ? '${last.$2.toInt()}'
+                          : '${last.$2}';
+                    }),
+                    icon: const Icon(Icons.replay, size: 18),
+                    label: Text(t('Ponovi zadnji: {0}', [_nextName(last.$1)])),
+                  ),
+                ),
+              const SizedBox(height: 12),
+              FilledButton(
+                key: const ValueKey('quick-add-confirm'),
+                style: FilledButton.styleFrom(
+                  backgroundColor: kLiveRed,
+                  foregroundColor: Colors.white,
+                ),
+                onPressed: _submit,
+                child: Text(t('Dodaj u live')),
+              ),
+              if (mine.isNotEmpty) ...[
+                const SizedBox(height: 22),
+                Text(
+                  t('Ili jednim dodirom iz svojih predmeta'),
+                  style: TextStyle(
+                    color: LoopColors.textSecondary,
+                    fontWeight: FontWeight.w700,
+                    fontSize: 13,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Column(
+                  key: const ValueKey('live-mine'),
+                  children: [
+                    for (final d in mine)
+                      ListTile(
+                        key: ValueKey('live-add-${d.id}'),
+                        contentPadding: EdgeInsets.zero,
+                        leading: ItemThumb(device: d, size: 44),
+                        title: Text(
+                          d.name,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        trailing: const Icon(Icons.add_circle_outline),
+                        onTap: () => _pick(d),
+                      ),
+                  ],
+                ),
+              ],
+              const SizedBox(height: 6),
+              TextButton(
+                key: const ValueKey('quick-on-screen'),
+                onPressed: () => Navigator.pop<_AddResult>(context, (
+                  deviceId: null,
+                  name: '',
+                  price: 0,
+                  onScreen: true,
+                )),
+                child: Text(t('Brojevi na ekranu (#150, #151…)')),
+              ),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }
@@ -5660,249 +5553,6 @@ class _FeedLine extends StatelessWidget {
   }
 }
 
-/// Domaćin dodaje predmet u live: odabir vlastitog predmeta i početne
-/// cijene (ili novi predmet).
-class _AddLotSheet extends ConsumerStatefulWidget {
-  const _AddLotSheet({required this.showId});
-  final String showId;
-
-  @override
-  ConsumerState<_AddLotSheet> createState() => _AddLotSheetState();
-}
-
-class _AddLotSheetState extends ConsumerState<_AddLotSheet> {
-  String? _deviceId;
-  LotMode _mode = LotMode.auction;
-  final _price = TextEditingController(text: '1');
-  final _floor = TextEditingController(text: '1');
-  bool _busy = false;
-
-  @override
-  void dispose() {
-    _price.dispose();
-    _floor.dispose();
-    super.dispose();
-  }
-
-  static double? _parse(TextEditingController c) =>
-      double.tryParse(c.text.trim().replaceAll(',', '.'));
-
-  Future<void> _add() async {
-    final id = _deviceId;
-    final price = _mode == LotMode.giveaway ? 0.0 : _parse(_price);
-    final floor = _mode == LotMode.dutch ? _parse(_floor) : 1.0;
-    if (id == null || price == null || floor == null) return;
-    setState(() => _busy = true);
-    try {
-      await ref
-          .read(appProvider.notifier)
-          .liveAddLot(widget.showId, id, price, mode: _mode, floorPrice: floor);
-      if (mounted) Navigator.pop(context, true);
-    } on TradeException catch (e) {
-      showLoopSnackBar(e.message, error: true);
-    } finally {
-      if (mounted) setState(() => _busy = false);
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final s = ref.watch(appProvider);
-    final show = s.liveShowById(widget.showId);
-    final inShow = {...?show?.lots.map((l) => l.deviceId)};
-    final eligible = s.myDevices
-        .where(
-          (d) => s.activeAuctionFor(d.id) == null && !inShow.contains(d.id),
-        )
-        .toList();
-    return SafeArea(
-      child: Padding(
-        padding: EdgeInsets.fromLTRB(
-          16,
-          0,
-          16,
-          16 + MediaQuery.viewInsetsOf(context).bottom,
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Text(
-              t('Dodaj predmet u live'),
-              style: const TextStyle(fontSize: 19, fontWeight: FontWeight.w900),
-            ),
-            const SizedBox(height: 8),
-            // Popis i postavke se pomiču; gumb "Dodaj u live" je uvijek
-            // vidljiv na dnu (na mobitelu je inače bio ispod ruba ekrana).
-            Flexible(
-              child: SingleChildScrollView(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    RadioGroup<String>(
-                      groupValue: _deviceId,
-                      onChanged: (v) => setState(() => _deviceId = v),
-                      child: Column(
-                        children: [
-                          for (final d in eligible)
-                            RadioListTile<String>(
-                              key: ValueKey('live-add-${d.id}'),
-                              dense: true,
-                              contentPadding: EdgeInsets.zero,
-                              visualDensity: VisualDensity.compact,
-                              value: d.id,
-                              secondary: ItemThumb(device: d, size: 40),
-                              title: Text(
-                                d.name,
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                              subtitle: Text(
-                                t('Vrijednost {0}', [formatCredits(d.price)]),
-                              ),
-                            ),
-                          if (eligible.isEmpty)
-                            Padding(
-                              padding: const EdgeInsets.all(12),
-                              child: Text(
-                                t('Nemaš slobodnih predmeta — dodaj novi.'),
-                                style: TextStyle(
-                                  color: LoopColors.textSecondary,
-                                ),
-                              ),
-                            ),
-                        ],
-                      ),
-                    ),
-                    TextButton.icon(
-                      key: const ValueKey('live-add-new'),
-                      onPressed: () => AddDeviceScreen.open(context),
-                      icon: const Icon(Icons.add_a_photo_outlined),
-                      label: Text(t('Novi predmet')),
-                    ),
-                    const SizedBox(height: 8),
-                    // Većina koristi običnu licitaciju — posebne vrste
-                    // (pada cijena, nagradna igra) su pod "Napredno".
-                    Theme(
-                      data: Theme.of(
-                        context,
-                      ).copyWith(dividerColor: Colors.transparent),
-                      child: ExpansionTile(
-                        key: const ValueKey('lot-advanced'),
-                        tilePadding: EdgeInsets.zero,
-                        childrenPadding: EdgeInsets.zero,
-                        initiallyExpanded: _mode != LotMode.auction,
-                        title: Text(
-                          _mode == LotMode.auction
-                              ? t('Napredno: pada cijena, nagradna igra')
-                              : '${_mode.emoji} ${t(_mode.label)}',
-                          style: const TextStyle(fontSize: 14),
-                        ),
-                        children: [
-                          Wrap(
-                            spacing: 8,
-                            children: [
-                              for (final m in LotMode.values)
-                                ChoiceChip(
-                                  key: ValueKey('lot-mode-${m.name}'),
-                                  label: Text('${m.emoji} ${t(m.label)}'),
-                                  selected: _mode == m,
-                                  onSelected: (_) => setState(() => _mode = m),
-                                ),
-                            ],
-                          ),
-                          Padding(
-                            padding: const EdgeInsets.symmetric(vertical: 6),
-                            child: Text(
-                              switch (_mode) {
-                                LotMode.auction => t(
-                                  'Klasična licitacija — najviša ponuda pobjeđuje.',
-                                ),
-                                LotMode.dutch => t(
-                                  'Cijena pada svake sekunde — prvi koji klikne "Uzmi" kupuje.',
-                                ),
-                                LotMode.giveaway => t(
-                                  'Besplatno za sve koji se prijave — dobitnik se izvlači na kraju.',
-                                ),
-                              },
-                              style: TextStyle(
-                                color: LoopColors.textSecondary,
-                                fontSize: 12,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    if (_mode != LotMode.giveaway)
-                      Row(
-                        children: [
-                          Expanded(
-                            child: TextField(
-                              key: const ValueKey('live-add-price'),
-                              controller: _price,
-                              keyboardType:
-                                  const TextInputType.numberWithOptions(
-                                    decimal: true,
-                                  ),
-                              inputFormatters: [
-                                FilteringTextInputFormatter.allow(
-                                  RegExp(r'[0-9.,]'),
-                                ),
-                              ],
-                              decoration: InputDecoration(
-                                labelText: t('Početna cijena'),
-                                suffixText: t('€'),
-                              ),
-                            ),
-                          ),
-                          if (_mode == LotMode.dutch) ...[
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: TextField(
-                                key: const ValueKey('live-add-floor'),
-                                controller: _floor,
-                                keyboardType:
-                                    const TextInputType.numberWithOptions(
-                                      decimal: true,
-                                    ),
-                                inputFormatters: [
-                                  FilteringTextInputFormatter.allow(
-                                    RegExp(r'[0-9.,]'),
-                                  ),
-                                ],
-                                decoration: InputDecoration(
-                                  labelText: t('Najniža cijena'),
-                                  suffixText: t('€'),
-                                ),
-                              ),
-                            ),
-                          ],
-                        ],
-                      ),
-                  ],
-                ),
-              ),
-            ),
-            const SizedBox(height: 12),
-            FilledButton(
-              key: const ValueKey('live-add-confirm'),
-              style: FilledButton.styleFrom(
-                backgroundColor: kLiveRed,
-                foregroundColor: Colors.white,
-                minimumSize: const Size.fromHeight(48),
-              ),
-              onPressed: _deviceId == null || _busy ? null : _add,
-              child: Text(t('Dodaj u live')),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
 // ------------------------------------------------------------------- video
 
 /// Kamera domaćina se nije uključila: razlog i gumb za ponovni pokušaj.
@@ -6419,11 +6069,6 @@ class _LiveShopSheet extends ConsumerWidget {
     final st = s.liveStateOf(show, DateTime.now());
     final me = s.currentUserId;
     final host = s.userById(show.hostId);
-    // Digitalno se u liveu kupuje odmah (bez aukcije), ako ga show prodaje.
-    final shop = [
-      for (final d in s.listingsOf(show.hostId))
-        if (!d.isDigital || show.sells.hasDigital) d,
-    ];
     final h = MediaQuery.sizeOf(context).height;
 
     Widget thumb(Device? d, int n, {bool running = false}) => SizedBox(
@@ -6623,54 +6268,8 @@ class _LiveShopSheet extends ConsumerWidget {
       t('Još nema predmeta na aukciji.'),
       hint: true,
     );
-    final shopTab = ListView(
-      key: const ValueKey('live-shop'),
-      padding: const EdgeInsets.fromLTRB(14, 10, 14, 24),
-      children: [
-        Padding(
-          padding: const EdgeInsets.only(bottom: 10),
-          child: Text(
-            isHost
-                ? t(
-                    'Tvoji predmeti za Kupi odmah — gledatelji ih kupuju tijekom livea.',
-                  )
-                : t('Kupi bez licitiranja, dok live traje.'),
-            style: const TextStyle(color: _muted, fontSize: 13),
-          ),
-        ),
-        if (shop.isEmpty)
-          Text(
-            t('Prodavač nema predmeta za Kupi odmah.'),
-            style: const TextStyle(color: _muted),
-          ),
-        for (final (i, d) in shop.indexed)
-          row(
-            key: ValueKey('live-shop-row-${d.id}'),
-            image: thumb(d, i + 1),
-            title: d.name,
-            price: formatCredits(s.priceForMe(d)),
-            priceColor: const Color(0xFF4ADE80),
-            note: d.isDigital
-                ? t('⬇️ Digitalno · preuzimanje odmah')
-                : d.condition.label,
-            action: isHost
-                ? null
-                : FilledButton(
-                    key: ValueKey('live-buy-${d.id}'),
-                    style: FilledButton.styleFrom(
-                      backgroundColor: LoopColors.buyNow,
-                      foregroundColor: Colors.white,
-                      visualDensity: VisualDensity.compact,
-                    ),
-                    onPressed: () => confirmAndBuy(context, ref, d),
-                    child: Text(t('Kupi')),
-                  ),
-          ),
-      ],
-    );
-
     return DefaultTabController(
-      length: kBuyNowEnabled ? 4 : 3,
+      length: 3,
       // Digitalni show: najprije Kupi odmah.
       initialIndex: kBuyNowEnabled && !show.sells.hasPhysical ? 1 : 0,
       child: SizedBox(
@@ -6717,8 +6316,8 @@ class _LiveShopSheet extends ConsumerWidget {
                 ],
               ),
             ),
-            // Kao Whatnot Live Listings: Aukcija, Kupi odmah, Giveaway,
-            // Prodano.
+            // Live je samo za licitacije: Aukcija, Giveaway, Prodano
+            // (Kupi odmah proizvodi su samo u Kupi odmah).
             TabBar(
               isScrollable: true,
               tabAlignment: TabAlignment.start,
@@ -6735,11 +6334,6 @@ class _LiveShopSheet extends ConsumerWidget {
                   key: const ValueKey('live-tab-auction'),
                   text: t('Aukcija ({0})', ['${auctionLots.length}']),
                 ),
-                if (kBuyNowEnabled)
-                  Tab(
-                    key: const ValueKey('live-tab-shop'),
-                    text: t('Kupi odmah ({0})', ['${shop.length}']),
-                  ),
                 Tab(
                   key: const ValueKey('live-tab-giveaway'),
                   text: t('Giveaway ({0})', ['${giveawayLots.length}']),
@@ -6754,7 +6348,6 @@ class _LiveShopSheet extends ConsumerWidget {
               child: TabBarView(
                 children: [
                   auctionTab,
-                  if (kBuyNowEnabled) shopTab,
                   lotTab(giveawayLots, t('Nema giveawaya u ovom showu.')),
                   lotTab(soldLots, t('Još ništa nije prodano.')),
                 ],

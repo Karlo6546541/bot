@@ -491,7 +491,7 @@ class AuctionBrowseCard extends ConsumerWidget {
     } else if (a == null) {
       topLeft = pill(
         Text(
-          device?.isDigital ?? false ? t('⬇️ Digitalno') : t('Kupi odmah'),
+          device?.isDigital ?? false ? t('Digitalno') : t('Kupi odmah'),
           style: pillText,
         ),
         LoopColors.buyNow,
@@ -2117,7 +2117,7 @@ class _BoughtTile extends ConsumerWidget {
     final name = digital?.name ?? d!.deviceName;
     final paid = s.itemPaid(id, s.currentUserId);
     final (String label, Color color) = digital != null
-        ? (t('⬇️ Digitalno'), LoopColors.info)
+        ? (t('Digitalno'), LoopColors.info)
         : d!.isDelivered(DateTime.now())
         ? (t('✓ Stiglo'), LoopColors.buyNow)
         : (d.status(DateTime.now()).label, LoopColors.accent);
