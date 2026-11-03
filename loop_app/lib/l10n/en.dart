@@ -3165,6 +3165,7 @@ const kEn = <String, String>{
   'Zamjena prihvaćena 🤝 — paket šaljete na adresu iz računa, broj za praćenje stiže u "Moje".': 'Swap accepted 🤝 — send the parcel to the address on the account; the tracking number arrives in "My".',
   'Nema paketa za slanje': 'No parcels to ship',
   'Za slanje: {0}': 'To ship: {0}',
+  'Misliš li na "{0}"?': 'Did you mean "{0}"?',
   'Zakaži show': 'Schedule a show',
   'Otprema': 'Shipping',
   'Nema paketa za predaju': 'No parcels to hand over',

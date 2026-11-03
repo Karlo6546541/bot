@@ -1,5 +1,6 @@
 import '../models/device.dart';
 import 'fee.dart';
+import 'smart_search.dart' show termsMatch;
 
 /// Filteri Marketa, odvojeni od UI-ja kako bi se ponašanje moglo testirati.
 class MarketFilter {
@@ -46,13 +47,10 @@ class MarketFilter {
 }
 
 /// Svaki pojam mora biti početak neke riječi u tekstu ("nike" ne nalazi
-/// "početnike"). [text] se normalizira ovdje; [terms] već normalizirani.
-bool searchMatches(String text, Iterable<String> terms) {
-  final words = normalizeSearch(
-    text,
-  ).split(RegExp(r'[^\p{L}\p{N}]+', unicode: true));
-  return terms.every((t) => words.any((w) => w.startsWith(t)));
-}
+/// "početnike"), njezin sinonim ili tipfeler dulje riječi (vidi
+/// [termsMatch]). [text] se normalizira ovdje; [terms] već normalizirani.
+bool searchMatches(String text, Iterable<String> terms) =>
+    termsMatch(text, terms);
 
 /// Hrvatska dijakritika, više uzastopnih razmaka i veličina slova
 /// ne smiju spriječiti pronalazak oglasa.
