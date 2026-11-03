@@ -240,7 +240,7 @@ Future<void> showPromoteSheet(BuildContext context, WidgetRef ref) async {
   await runWithLoading(
     context,
     () => ref.read(appProvider.notifier).promote(weeks),
-    successMessage: t('Račun je istaknut ⭐ — oglasi ti se prikazuju prvi'),
+    successMessage: t('Račun je istaknut — oglasi ti se prikazuju prvi'),
   );
 }
 
@@ -266,7 +266,7 @@ class _PromoteSheetState extends ConsumerState<_PromoteSheet> {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Text(
-              t('Istakni svoj račun ⭐'),
+              t('Istakni svoj račun'),
               style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w900),
             ),
             const SizedBox(height: 6),

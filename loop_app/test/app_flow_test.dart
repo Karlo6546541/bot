@@ -48,6 +48,8 @@ Future<void> openMyItems(WidgetTester tester) async {
     250,
     scrollable: find.byType(Scrollable).last,
   );
+  await tester.ensureVisible(find.byKey(const ValueKey('seller-hub-sales')));
+  await tester.pumpAndSettle();
   await tester.tap(find.byKey(const ValueKey('seller-hub-sales')));
   await tester.pumpAndSettle();
 }
@@ -254,10 +256,10 @@ void main() {
     await tester.pumpAndSettle();
     final drafts = find.byType(DeviceCard).evaluate().length;
     expect(drafts, lessThanOrEqualTo(all));
-    if (drafts > 0) expect(find.text('💾 Spremljeno'), findsWidgets);
+    if (drafts > 0) expect(find.text('Spremljeno'), findsWidgets);
     await tester.tap(find.byKey(const ValueKey('my-items-auction')));
     await tester.pumpAndSettle();
-    expect(find.text('💾 Spremljeno'), findsNothing);
+    expect(find.text('Spremljeno'), findsNothing);
 
     // Kupnje: dostava je dio kartice kupljenog predmeta (nema zasebnog taba).
     expect(find.byKey(const ValueKey('my-deliveries')), findsNothing);

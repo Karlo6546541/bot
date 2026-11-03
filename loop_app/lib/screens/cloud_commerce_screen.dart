@@ -1100,7 +1100,7 @@ class _CloudCommerceState extends State<CloudCommerceScreen> {
                     running != null
                         ? 'Sada na aukciji'
                         : won != null
-                        ? '🏆 Osvojio si!'
+                        ? 'Osvojio si!'
                         : 'Sljedeći predmet',
                     style: const TextStyle(
                       color: Colors.white54,

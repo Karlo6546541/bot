@@ -92,7 +92,7 @@ class _WonDelivery extends StatelessWidget {
           child: Text(
             done
                 ? t('✓ Dostavljeno')
-                : t('🚚 Na dostavi · {0}', [d.status(now).label]),
+                : t('Na dostavi · {0}', [d.status(now).label]),
             style: TextStyle(
               color: color,
               fontWeight: FontWeight.w800,

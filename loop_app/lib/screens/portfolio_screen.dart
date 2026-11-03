@@ -128,10 +128,10 @@ class MyItemsView extends ConsumerStatefulWidget {
 /// Gdje je moj predmet: spremljen (čeka prodaju), Kupi odmah, na aukciji
 /// ili u liveu.
 enum ItemStatus {
-  draft('💾 Spremljeno'),
-  buyNow('🏷️ Kupi odmah'),
-  auction('⏱ Na aukciji'),
-  live('🔴 U liveu');
+  draft('Spremljeno'),
+  buyNow('Kupi odmah'),
+  auction('Na aukciji'),
+  live('U liveu');
 
   const ItemStatus(this._label);
   final String _label;
@@ -340,7 +340,7 @@ class _CreditsHero extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        t('Bok, {0} 👋 · zarada za isplatu', [name]),
+                        t('Bok, {0} · zarada za isplatu', [name]),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: TextStyle(

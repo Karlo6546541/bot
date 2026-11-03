@@ -47,7 +47,7 @@ import 'seller_screens.dart' show ensureSellerInfo;
 const kLiveRed = LoopColors.live;
 
 /// Pozadina listova u liveu (live je uvijek taman).
-const kLiveSheet = Color(0xFF17120F);
+const kLiveSheet = Color(0xFF000000);
 
 /// Glavna radnja u liveu (Licitiraj) — narančasta, crvena je samo "uživo".
 const kBidOrange = Color(0xFFF26B1D);
@@ -1746,7 +1746,7 @@ class _CreateLiveShowScreenState extends ConsumerState<CreateLiveShowScreen> {
                           key: ValueKey('live-secs-$sec'),
                           label: Text(
                             sec <= 10
-                                ? '⚡ ${t('{0} s', ['$sec'])}'
+                                ? t('{0} s', ['$sec'])
                                 : t('{0} s', ['$sec']),
                           ),
                           selected: _secs == sec,
@@ -2096,7 +2096,7 @@ class _DraftRow extends StatelessWidget {
                 fallback: Container(color: LoopColors.peach),
               )
             : Container(
-                color: const Color(0xFF17120F),
+                color: const Color(0xFF000000),
                 alignment: Alignment.center,
                 child: Text(
                   '#${number ?? order}',
@@ -2195,7 +2195,7 @@ class _QuickLotSheetState extends ConsumerState<_QuickLotSheet> {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         Text(
-          t('⚡ Brzo dodaj predmet'),
+          t('Brzo dodaj predmet'),
           style: const TextStyle(fontSize: 19, fontWeight: FontWeight.w900),
         ),
         const SizedBox(height: 12),
@@ -2338,7 +2338,7 @@ class _OnScreenSheetState extends State<_OnScreenSheet> {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Text(
-            t('🔢 Items on screen'),
+            t('Items on screen'),
             style: const TextStyle(fontSize: 19, fontWeight: FontWeight.w900),
           ),
           Text(
@@ -2838,7 +2838,7 @@ class _LiveRoomViewState extends ConsumerState<_LiveRoomBody> {
     final ok = await runWithLoading(
       context,
       () => _app.liveHeartbeat(widget.showId),
-      successMessage: t('Uživo si! 🔴'),
+      successMessage: t('Uživo si!'),
     );
     if (ok && mounted) await _startVideo();
   }
@@ -2905,7 +2905,7 @@ class _LiveRoomViewState extends ConsumerState<_LiveRoomBody> {
       required VoidCallback onTap,
       Color? color,
     }) => Material(
-      color: const Color(0xFF26272C),
+      color: const Color(0xFF1C1C1E),
       borderRadius: BorderRadius.circular(14),
       child: InkWell(
         key: ValueKey(key),
@@ -2971,7 +2971,7 @@ class _LiveRoomViewState extends ConsumerState<_LiveRoomBody> {
                     return Padding(
                       padding: const EdgeInsets.only(bottom: 10),
                       child: Material(
-                        color: const Color(0xFF26272C),
+                        color: const Color(0xFF1C1C1E),
                         borderRadius: BorderRadius.circular(14),
                         child: Padding(
                           padding: const EdgeInsets.fromLTRB(14, 8, 8, 8),
@@ -3266,9 +3266,7 @@ class _LiveRoomViewState extends ConsumerState<_LiveRoomBody> {
           if (!mounted) return;
           showCelebration(
             context,
-            title: l.mode == LotMode.dutch
-                ? t('Kupljeno! 🎉')
-                : t('Osvojio si! 🎉'),
+            title: l.mode == LotMode.dutch ? t('Kupljeno!') : t('Osvojio si!'),
             subtitle: t('Plaćeno karticom · prodavač šalje paket'),
             device: device,
             amount: l.price,
@@ -3408,7 +3406,7 @@ class _LiveRoomViewState extends ConsumerState<_LiveRoomBody> {
           error: true,
         );
       } else if (lot != null) {
-        showLoopSnackBar(t('Predlicitacija je spremljena 🔨'));
+        showLoopSnackBar(t('Predlicitacija je spremljena'));
       }
     } on TradeException catch (e) {
       showLoopSnackBar(e.message, error: true);
@@ -3538,7 +3536,7 @@ class _LiveRoomViewState extends ConsumerState<_LiveRoomBody> {
                         Padding(
                           padding: const EdgeInsets.only(bottom: 8),
                           child: Material(
-                            color: const Color(0xFF26272C),
+                            color: const Color(0xFF1C1C1E),
                             borderRadius: BorderRadius.circular(14),
                             child: ListTile(
                               key: ValueKey('live-raid-${other.id}'),
@@ -3742,7 +3740,7 @@ class _LiveRoomViewState extends ConsumerState<_LiveRoomBody> {
           else ...[
             if (s.wantsReminder(show.id))
               Text(
-                t('🔔 Javit ćemo ti kad krene'),
+                t('Javit ćemo ti kad krene'),
                 key: const ValueKey('live-reminded'),
                 style: const TextStyle(
                   color: Colors.white,
@@ -3818,7 +3816,7 @@ class _LiveRoomViewState extends ConsumerState<_LiveRoomBody> {
                 child: Column(
                   children: [
                     Text(
-                      t('🚀 Raid! {0} vas šalje u "{1}"', [
+                      t('Raid! {0} vas šalje u "{1}"', [
                         host?.handle ?? '',
                         next.title,
                       ]),
@@ -4172,7 +4170,7 @@ class _LiveRoomViewState extends ConsumerState<_LiveRoomBody> {
                           onPressed: () => DeliveriesScreen.open(context),
                           icon: const Icon(Icons.local_shipping_outlined),
                           label: Text(
-                            t('📦 Osvojio si {0} · prodavač šalje paket', [
+                            t('Osvojio si {0} · prodavač šalje paket', [
                               '${pending.length}',
                             ]),
                           ),
@@ -4367,7 +4365,7 @@ class _LiveRoomViewState extends ConsumerState<_LiveRoomBody> {
             // Brzo dodavanje: jedna kompaktna ikona (bez dugog natpisa).
             IconButton.filledTonal(
               key: const ValueKey('live-quick-add'),
-              tooltip: t('⚡ Brzo dodaj'),
+              tooltip: t('Brzo dodaj'),
               style: IconButton.styleFrom(
                 backgroundColor: Colors.white24,
                 foregroundColor: Colors.white,
@@ -4465,7 +4463,7 @@ class _LiveRoomViewState extends ConsumerState<_LiveRoomBody> {
                 ),
               ),
               onPressed: _busy ? null : _enter,
-              child: Text(t('🎁 Sudjeluj besplatno')),
+              child: Text(t('Sudjeluj besplatno')),
             );
     }
     if (cur.leader?.userId == me) return _leading(cur, me);
@@ -4731,7 +4729,7 @@ Future<void> remindMe(
   if (blockGuest(context)) return;
   try {
     await ref.read(appProvider.notifier).liveRemind(showId);
-    showLoopSnackBar(t('Javit ćemo ti kad krene uživo 🔔'));
+    showLoopSnackBar(t('Javit ćemo ti kad krene uživo'));
   } on TradeException catch (e) {
     showLoopSnackBar(e.message, error: true);
   }
@@ -5134,12 +5132,12 @@ class _HypeMeter extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final label = hype >= 0.8
-        ? t('🔥🔥 VRUĆE!')
+        ? t('VRUĆE!')
         : hype >= 0.5
-        ? t('🔥 Zagrijava se')
+        ? t('Zagrijava se')
         : hype >= 0.2
-        ? t('🙂 Živo')
-        : t('😴 Mirno');
+        ? t('Živo')
+        : t('Mirno');
     return Padding(
       key: const ValueKey('live-hype'),
       padding: const EdgeInsets.fromLTRB(16, 2, 16, 0),
@@ -5345,7 +5343,7 @@ class _QuickAddSheetState extends State<_QuickAddSheet> {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Text(
-            t('⚡ Brzo dodaj'),
+            t('Brzo dodaj'),
             style: const TextStyle(fontSize: 19, fontWeight: FontWeight.w900),
           ),
           Text(
@@ -5482,12 +5480,12 @@ class _LotCard extends StatelessWidget {
             : t('Nije prodano');
       } else if (leader.userId == me) {
         status = lot.mode == LotMode.giveaway
-            ? t('🎁 Osvojio si nagradu!')
-            : t('🏆 Osvojio si!');
+            ? t('Osvojio si nagradu!')
+            : t('Osvojio si!');
       } else {
         status = leader.userLabel;
         highlight = lot.mode == LotMode.giveaway
-            ? t(' je izvučen! 🎁')
+            ? t('je izvučen!')
             : t(' je osvojio!');
       }
     } else {
@@ -5497,10 +5495,10 @@ class _LotCard extends StatelessWidget {
         ]),
         LotMode.giveaway =>
           lot.lot.followersOnly
-              ? t('🎁 Giveaway · samo pratitelji · {0} prijava', [
+              ? t('Giveaway · samo pratitelji · {0} prijava', [
                   '${lot.entrants}',
                 ])
-              : t('🎁 Nagradna igra · {0} prijava', ['${lot.entrants}']),
+              : t('Nagradna igra · {0} prijava', ['${lot.entrants}']),
         LotMode.auction =>
           leader == null
               ? t('Predmet {0}/{1} · još nema ponuda', [
@@ -5508,10 +5506,10 @@ class _LotCard extends StatelessWidget {
                   '$total',
                 ])
               : leader.userId == me
-              ? t('🥇 Ti vodiš · tvoj maks {0}', [
+              ? t('Ti vodiš · tvoj maks {0}', [
                   formatCredits(myMax ?? lot.price),
                 ])
-              : t('🥇 {0} vodi', [leader.userLabel]),
+              : t('{0} vodi', [leader.userLabel]),
       };
     }
 
@@ -5686,7 +5684,7 @@ class _LotCard extends StatelessWidget {
                     ),
                     if (value > 0)
                       Text(
-                        t('💎 procjena {0}', [formatCredits(value)]),
+                        t('procjena {0}', [formatCredits(value)]),
                         style: const TextStyle(
                           color: Colors.white70,
                           fontSize: 11,
@@ -5698,7 +5696,7 @@ class _LotCard extends StatelessWidget {
                         leader == null
                             ? t('Nije prodano')
                             : leader.userId == me
-                            ? t('Osvojeno 🎉')
+                            ? t('Osvojeno')
                             : t('Prodano'),
                         style: TextStyle(
                           color: leader == null ? Colors.white70 : kLiveRed,
@@ -5956,7 +5954,7 @@ class _FeedLine extends StatelessWidget {
               ),
               Text(
                 bid
-                    ? t('licitira {0} 🔨', [formatCredits(event.amount)])
+                    ? t('licitira {0}', [formatCredits(event.amount)])
                     : event.text,
                 maxLines: large ? 4 : 2,
                 overflow: TextOverflow.ellipsis,
@@ -6296,7 +6294,7 @@ class _VideoStatus extends StatelessWidget {
     if (!show.video) return const SizedBox.shrink();
     if (!online) {
       return _pill(
-        t('📹 Video radi u online verziji'),
+        t('Video radi u online verziji'),
         key: const ValueKey('live-video-offline'),
       );
     }
@@ -6305,7 +6303,7 @@ class _VideoStatus extends StatelessWidget {
       return ValueListenableBuilder<int>(
         valueListenable: b.watching,
         builder: (_, n, _) => _pill(
-          t('📡 Video gleda {0}', ['$n']),
+          t('Video gleda {0}', ['$n']),
           key: const ValueKey('live-video-watching'),
         ),
       );
@@ -6316,12 +6314,12 @@ class _VideoStatus extends StatelessWidget {
       valueListenable: w.status,
       builder: (_, status, _) => switch (status) {
         LiveVideoStatus.playing => const SizedBox.shrink(),
-        LiveVideoStatus.connecting => _pill(t('📹 Spajam video…')),
-        LiveVideoStatus.offline => _pill(t('📹 Video trenutno nije uključen')),
+        LiveVideoStatus.connecting => _pill(t('Spajam video…')),
+        LiveVideoStatus.offline => _pill(t('Video trenutno nije uključen')),
         LiveVideoStatus.blocked => _pill(
           LiveVideoConfig.hasTurn
-              ? t('📹 Video se ne spaja — pokušavam ponovno…')
-              : t('📹 Video ne prolazi kroz ovu mrežu — probaj isti Wi-Fi'),
+              ? t('Video se ne spaja — pokušavam ponovno…')
+              : t('Video ne prolazi kroz ovu mrežu — probaj isti Wi-Fi'),
           key: const ValueKey('live-video-blocked'),
         ),
       },
@@ -6911,13 +6909,13 @@ class _LiveShopSheet extends ConsumerWidget {
                 ? _muted
                 : const Color(0xFFFFA24C),
             note: switch (l.status) {
-              LotStatus.running => t('🔴 Licitira se sada'),
+              LotStatus.running => t('Licitira se sada'),
               LotStatus.upcoming when l.leader != null =>
                 l.leader!.userId == me
-                    ? t('🥇 Tvoja predponuda vodi')
+                    ? t('Tvoja predponuda vodi')
                     : t('Predponuda: {0}', [l.leader!.userLabel]),
               LotStatus.upcoming => null,
-              LotStatus.sold => t('✅ Prodano · {0}', [l.leader!.userLabel]),
+              LotStatus.sold => t('Prodano · {0}', [l.leader!.userLabel]),
               LotStatus.unsold => t('Nije prodano'),
               LotStatus.skipped => t('Preskočeno'),
             },
@@ -7179,7 +7177,7 @@ class _GiveawaySpinState extends State<_GiveawaySpin>
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Text(
-                      done ? t('🎉 Dobitnik!') : t('🎁 Izvlačenje…'),
+                      done ? t('Dobitnik!') : t('Izvlačenje…'),
                       style: const TextStyle(
                         color: _gold,
                         fontWeight: FontWeight.w900,

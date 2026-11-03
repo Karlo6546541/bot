@@ -453,16 +453,32 @@ class AuctionBrowseCard extends ConsumerWidget {
     final role = a == null ? AuctionRole.none : AuctionRole.of(a, viewerId);
     const pillText = TextStyle(
       color: Colors.white,
-      fontWeight: FontWeight.w900,
+      fontWeight: FontWeight.w600,
       fontSize: 11,
     );
+    // Oznake su pilule (bez emotikona): tanka ikona + kratak tekst.
     Widget pill(Widget child, [Color color = Colors.black54]) => Container(
-      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
       decoration: BoxDecoration(
         color: color,
-        borderRadius: BorderRadius.circular(6),
+        borderRadius: BorderRadius.circular(99),
       ),
       child: child,
+    );
+    Widget iconText(IconData icon, String text) => Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(icon, size: 12, color: Colors.white),
+        const SizedBox(width: 4),
+        Flexible(
+          child: Text(
+            text,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: pillText,
+          ),
+        ),
+      ],
     );
 
     final Widget topLeft;
@@ -470,12 +486,12 @@ class AuctionBrowseCard extends ConsumerWidget {
       topLeft = const LiveBadge(small: true);
     } else if (show != null) {
       topLeft = pill(
-        Text('📅 ${formatDateTime(show.startsAt)}', style: pillText),
+        iconText(Icons.schedule_rounded, formatDateTime(show.startsAt)),
       );
     } else if (a == null) {
       topLeft = pill(
         Text(
-          device?.isDigital ?? false ? t('⬇️ Digitalno') : t('🏷️ Kupi odmah'),
+          device?.isDigital ?? false ? t('⬇️ Digitalno') : t('Kupi odmah'),
           style: pillText,
         ),
         LoopColors.buyNow,
@@ -530,7 +546,7 @@ class AuctionBrowseCard extends ConsumerWidget {
               seller?.handle ?? show?.hostLabel ?? a?.sellerLabel ?? '',
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700),
+              style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500),
             ),
           ),
           if (rating.count > 0)
@@ -593,7 +609,13 @@ class AuctionBrowseCard extends ConsumerWidget {
                                 ],
                               ),
                             ),
-                          if (hot) pill(Text(t('🔥 vruće'), style: pillText)),
+                          if (hot)
+                            pill(
+                              iconText(
+                                Icons.local_fire_department_rounded,
+                                t('Vruće'),
+                              ),
+                            ),
                           if (live != null && live.boost.active)
                             pill(
                               Text(
@@ -623,12 +645,7 @@ class AuctionBrowseCard extends ConsumerWidget {
                               color: Colors.black.withValues(alpha: 0.55),
                               borderRadius: BorderRadius.circular(99),
                             ),
-                            child: Text(
-                              '✨ $reason',
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: pillText,
-                            ),
+                            child: iconText(Icons.auto_awesome, reason!),
                           ),
                         ),
                       ),
@@ -687,8 +704,9 @@ class AuctionBrowseCard extends ConsumerWidget {
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: const TextStyle(
-                      fontWeight: FontWeight.w800,
-                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      fontSize: 15,
+                      letterSpacing: -0.2,
                       height: 1.2,
                     ),
                   ),
@@ -698,8 +716,9 @@ class AuctionBrowseCard extends ConsumerWidget {
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: TextStyle(
-                      fontWeight: FontWeight.w800,
-                      fontSize: 13,
+                      fontWeight: FontWeight.w700,
+                      fontSize: 15,
+                      letterSpacing: -0.2,
                       height: 1.2,
                       color: a == null && show == null
                           ? LoopColors.buyNow
@@ -731,7 +750,7 @@ class BrowseGridDelegate extends SliverGridDelegate {
   final double runSpacing;
 
   /// Visina prodavatelja iznad i teksta ispod slike (naziv, cijena).
-  static const textHeight = 92.0;
+  static const textHeight = 96.0;
 
   @override
   SliverGridLayout getLayout(SliverConstraints constraints) {
@@ -1170,7 +1189,7 @@ class _MyAuctionsViewState extends ConsumerState<MyAuctionsView> {
 
     // Odjeljci dostava kupca (zajednički za Licitiram i Live).
     List<Widget> actionSlivers(List<Delivery> list) => [
-      sectionBox(t('⚡ Treba tvoju akciju ({0})', ['${list.length}'])),
+      sectionBox(t('Treba tvoju akciju ({0})', ['${list.length}'])),
       SliverList.list(
         key: const ValueKey('my-actions'),
         children: [
@@ -1180,7 +1199,7 @@ class _MyAuctionsViewState extends ConsumerState<MyAuctionsView> {
       ),
     ];
     List<Widget> onWaySlivers(List<Delivery> list) => [
-      sectionBox(t('📥 Na putu do tebe ({0})', ['${list.length}'])),
+      sectionBox(t('Na putu do tebe ({0})', ['${list.length}'])),
       SliverList.list(
         key: const ValueKey('my-on-the-way'),
         children: [for (final d in list) _pad(DeliveryCard(delivery: d))],
@@ -1224,7 +1243,7 @@ class _MyAuctionsViewState extends ConsumerState<MyAuctionsView> {
       tiles([for (final d in list) _BoughtTile(delivery: d)]),
     ];
     List<Widget> digitalSlivers(List<Device> list) => [
-      sectionBox(t('💾 Digitalno ({0})', ['${list.length}'])),
+      sectionBox(t('Digitalno ({0})', ['${list.length}'])),
       tiles([for (final dev in list) _BoughtTile(digital: dev)]),
     ];
 
@@ -1287,7 +1306,7 @@ class _MyAuctionsViewState extends ConsumerState<MyAuctionsView> {
           if (auc.confirm.isEmpty)
             _note(t('Nema paketa za preuzimanje ili potvrdu.'))
           else ...[
-            sectionBox(t('📬 Potvrda paketa ({0})', ['${auc.confirm.length}'])),
+            sectionBox(t('Potvrda paketa ({0})', ['${auc.confirm.length}'])),
             SliverList.list(
               children: [
                 for (final d in auc.confirm)
@@ -1353,7 +1372,7 @@ class _MyAuctionsViewState extends ConsumerState<MyAuctionsView> {
     if (_tab == MyTab.selling) {
       final f = _sellFilter;
       final activeSlivers = <Widget>[
-        sectionBox(t('⏱ Na aukciji ({0})', ['${myActive.length}'])),
+        sectionBox(t('Na aukciji ({0})', ['${myActive.length}'])),
         _auctionGrid(myActive, me, key: const ValueKey('my-active-auctions')),
       ];
       List<Widget> endedSlivers(int? limit) => [
@@ -1434,7 +1453,7 @@ class _MyAuctionsViewState extends ConsumerState<MyAuctionsView> {
         if (digLive.isNotEmpty) ...digitalSlivers(digLive),
       ];
       final soldSlivers = <Widget>[
-        sectionBox(t('💸 Prodano u liveu ({0})', ['${soldLive.length}'])),
+        sectionBox(t('Prodano u liveu ({0})', ['${soldLive.length}'])),
         SliverList.list(
           key: const ValueKey('my-live-sold'),
           children: [for (final d in soldLive) _pad(_ToShipCard(delivery: d))],
@@ -1442,7 +1461,7 @@ class _MyAuctionsViewState extends ConsumerState<MyAuctionsView> {
       ];
       final liveSlivers = <Widget>[
         sectionBox(
-          t('🔴 Moji liveovi'),
+          t('Moji liveovi'),
           trailing: lives.length > recentLives.length || _allLives
               ? TextButton(
                   key: const ValueKey('my-lives-all'),
@@ -1559,14 +1578,14 @@ class _MyAuctionsViewState extends ConsumerState<MyAuctionsView> {
           d,
     ];
     final shipSlivers = <Widget>[
-      sectionBox(t('📦 Za poslati ({0})', ['${toShip.length}'])),
+      sectionBox(t('Za poslati ({0})', ['${toShip.length}'])),
       SliverList.list(
         key: const ValueKey('my-deliveries-list'),
         children: [for (final d in toShip) _pad(_ToShipCard(delivery: d))],
       ),
     ];
     final noteSlivers = <Widget>[
-      sectionBox(t('🧾 Sve otpremnice ({0})', ['${notes.length}'])),
+      sectionBox(t('Sve otpremnice ({0})', ['${notes.length}'])),
       SliverList.list(
         key: const ValueKey('my-notes-list'),
         children: [
@@ -1624,7 +1643,7 @@ class _MyAuctionsViewState extends ConsumerState<MyAuctionsView> {
             ? [_note(t('Još nema paketa predanih dostavljaču.'))]
             : [
                 sectionBox(
-                  t('📦 Predano dostavljaču ({0})', ['${handedNotes.length}']),
+                  t('Predano dostavljaču ({0})', ['${handedNotes.length}']),
                 ),
                 SliverList.list(
                   children: [
@@ -1729,7 +1748,7 @@ Future<void> showAuctionRules(
         const SizedBox(height: 12),
         Text(
           t(
-            '🔒  Ponuda je obvezujuća — ne može se povući ni smanjiti.\n\n🥇  Dok vodiš, ne možeš licitirati ponovno (možeš povisiti automatsku ponudu).\n\n💳  Pobjednik plaća karticom kad aukcija završi — ništa se ne blokira unaprijed.\n\n⏱️  Ponuda u zadnjoj minuti produljuje aukciju za 1 minutu.\n\n🎁  Pobjednik dobiva predmet i ne plaća naknadu. Prodavatelju se odbija 10 % samo od razlike iznad početne cijene.',
+            'Ponuda je obvezujuća — ne može se povući ni smanjiti.\n\n Dok vodiš, ne možeš licitirati ponovno (možeš povisiti automatsku ponudu).\n\n Pobjednik plaća karticom kad aukcija završi — ništa se ne blokira unaprijed.\n\n Ponuda u zadnjoj minuti produljuje aukciju za 1 minutu.\n\n Pobjednik dobiva predmet i ne plaća naknadu. Prodavatelju se odbija 10 % samo od razlike iznad početne cijene.',
           ),
           style: const TextStyle(height: 1.4, fontSize: 15),
         ),
@@ -1741,7 +1760,7 @@ Future<void> showAuctionRules(
         const SizedBox(height: 8),
         Text(
           t(
-            '🔴  Predmeti se licitiraju jedan za drugim — brze licitacije od 5 ili 10 sekundi.\n\n⚡  Svaka ponuda dodaje 2 s na sat.\n\n👆  Povuci gore ili dolje za sljedeći live ili aukciju.',
+            'Predmeti se licitiraju jedan za drugim — brze licitacije od 5 ili 10 sekundi.\n\n Svaka ponuda dodaje 2 s na sat.\n\n Povuci gore ili dolje za sljedeći live ili aukciju.',
           ),
           style: const TextStyle(height: 1.4, fontSize: 15),
         ),

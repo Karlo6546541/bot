@@ -98,6 +98,7 @@ class StorageService {
   static const _currentUserKey = 'currentUserId';
   static const _isAdminKey = 'isAdmin';
   static const _themeKey = 'themeMode';
+  static const _pozornicaKey = 'pozornicaTheme';
   static const _sellerGoalKey = 'sellerGoal';
   static const _langKey = 'lang';
   static const _howItWorksKey = 'howItWorksDismissed';
@@ -327,6 +328,12 @@ class StorageService {
     _liveEvents = await _open<Map>(_liveEventsBox, bytes);
 
     await _repairRecordIds();
+    // Novi izgled ("Pozornica") je crn: jednom vrati zadanu tamnu temu da se
+    // vidi odmah; korisnik je i dalje može prebaciti u Profilu.
+    if (_session.get(_pozornicaKey) != true) {
+      await _session.delete(_themeKey);
+      await _session.put(_pozornicaKey, true);
+    }
     if (!seed) return;
     if (_session.get(_seededKey) != true) {
       await _seed();

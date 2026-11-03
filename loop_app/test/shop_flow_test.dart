@@ -43,7 +43,7 @@ void main() {
       await tester.tap(find.text('Polaroid SX-70'));
       await tester.pumpAndSettle();
       expect(find.byKey(const ValueKey('swipe-feed')), findsOneWidget);
-      expect(find.text('🔨 AUKCIJA'), findsOneWidget);
+      expect(find.text('AUKCIJA'), findsOneWidget);
       await tester.tap(find.byKey(const ValueKey('post-watch')));
       await tester.pumpAndSettle();
       expect(

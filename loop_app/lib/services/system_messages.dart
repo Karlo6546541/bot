@@ -21,7 +21,7 @@ class SystemMessages {
       createdAt: d.startedAt ?? d.createdAt,
       text: m == DeliveryMethod.parcelLocker
           ? t(
-              '📦 Pošalji "{0}" kupcu {1}.\n{2} pošiljka {3} · paketomat: {4}\nPIN za predaju: {5}\n{6}',
+              'Pošalji "{0}" kupcu {1}.\n{2} pošiljka {3} · paketomat: {4}\nPIN za predaju: {5}\n{6}',
               [
                 d.deviceName,
                 buyerLabel,
@@ -33,7 +33,7 @@ class SystemMessages {
               ],
             )
           : t(
-              '📦 Pošalji "{0}" kupcu {1} ({2}). Kod pošiljke: {3} — otpremnica je u Moje → Otpremnice.',
+              'Pošalji "{0}" kupcu {1} ({2}). Kod pošiljke: {3} — otpremnica je u Moje → Otpremnice.',
               [d.deviceName, buyerLabel, m.label, d.trackingNumber ?? ''],
             ),
     );
@@ -48,7 +48,7 @@ class SystemMessages {
     createdAt:
         d.stepAt(d.steps.indexOf(DeliveryStatus.inLocker)) ?? at ?? d.createdAt,
     text: t(
-      '📬 "{0}" te čeka u paketomatu {1}.\nPIN za preuzimanje: {2}\nNa paketomatu odaberi "Preuzmi paket" i upiši PIN.',
+      '"{0}" te čeka u paketomatu {1}.\nPIN za preuzimanje: {2}\nNa paketomatu odaberi "Preuzmi paket" i upiši PIN.',
       [d.deviceName, d.destination ?? '', BoxNowDemo.pickupPin(d)],
     ),
   );
@@ -61,7 +61,7 @@ class SystemMessages {
     createdAt: at,
     read: true,
     text: t(
-      '👋 Ovdje ti Subhasto šalje PIN-ove za paketomate i upute za slanje. Na ove poruke ne možeš odgovoriti.',
+      'Ovdje ti Subhasto šalje PIN-ove za paketomate i upute za slanje. Na ove poruke ne možeš odgovoriti.',
     ),
   );
 

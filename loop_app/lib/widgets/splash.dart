@@ -36,8 +36,8 @@ class _LoopSplashState extends State<LoopSplash>
   double _seg(double from, double to, [Curve curve = Curves.easeOutCubic]) =>
       curve.transform(((_c.value - from) / (to - from)).clamp(0.0, 1.0));
 
-  static const _accent = Color(0xFFFF9248);
-  static const _cream = Color(0xFFF5EDE6);
+  static const _accent = Color(0xFFFF9F0A);
+  static const _cream = Color(0xFFF5F5F7);
 
   /// Trenutak udarca (udio animacije).
   static const _hit = 0.3;
@@ -45,7 +45,7 @@ class _LoopSplashState extends State<LoopSplash>
   @override
   Widget build(BuildContext context) {
     return Material(
-      color: const Color(0xFF17120F),
+      color: const Color(0xFF000000),
       child: AnimatedBuilder(
         animation: _c,
         builder: (context, _) {

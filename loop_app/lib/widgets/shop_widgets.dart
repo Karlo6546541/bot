@@ -790,7 +790,7 @@ class BuyerBargainCard extends ConsumerWidget {
     final List<Widget> actions;
     switch (offer.status) {
       case BargainStatus.accepted:
-        text = t('✅ Dogovorena cijena {0} vrijedi do {1}. Kupi gumbom iznad.', [
+        text = t('Dogovorena cijena {0} vrijedi do {1}. Kupi gumbom iznad.', [
           formatCredits(
             buyTotal(
               offer.agreedPrice < device.priceAt(DateTime.now())
@@ -826,7 +826,7 @@ class BuyerBargainCard extends ConsumerWidget {
           ),
         ];
       default:
-        text = t('⏳ Ponudio si {0} — čeka se odgovor prodavatelja.', [
+        text = t('Ponudio si {0} — čeka se odgovor prodavatelja.', [
           formatCredits(buyTotal(offer.amount)),
         ]);
         actions = [

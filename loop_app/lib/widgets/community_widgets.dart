@@ -217,7 +217,7 @@ class _ReviewDialogState extends ConsumerState<_ReviewDialog> {
         await c.reviewSeller(widget.deliveryId, _stars, _comment.text);
       }
       if (mounted) Navigator.pop(context, true);
-      showLoopSnackBar(t('Hvala na ocjeni! ⭐'));
+      showLoopSnackBar(t('Hvala na ocjeni!'));
     } on TradeException catch (e) {
       setState(() => _error = e.message);
     }

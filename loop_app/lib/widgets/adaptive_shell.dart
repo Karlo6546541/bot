@@ -31,19 +31,16 @@ class ShellDestination {
     if (!action) {
       return Icon(selected ? selectedIcon : icon, size: compact ? 25 : null);
     }
+    // Jedini istaknuti element u traci: okrugli akcent s plusom.
     return Container(
       key: const ValueKey('nav-create'),
-      width: 44,
-      height: 32,
+      width: compact ? 48 : 44,
+      height: compact ? 48 : 32,
       decoration: BoxDecoration(
         color: Theme.of(context).colorScheme.primary,
-        borderRadius: BorderRadius.circular(compact ? 8 : 12),
+        borderRadius: BorderRadius.circular(compact ? 24 : 16),
       ),
-      child: Icon(
-        icon,
-        color: compact ? Colors.white : LoopColors.onAccent,
-        size: compact ? 22 : null,
-      ),
+      child: Icon(icon, color: LoopColors.onAccent, size: compact ? 24 : null),
     );
   }
 }
@@ -76,11 +73,11 @@ class AdaptiveShell extends StatelessWidget {
       NavigationBar(
         key: ValueKey(compact ? 'feed-navigation' : 'main-navigation'),
         // Mobitel: ikone s natpisima na tamnosivoj traci.
-        height: compact ? 64 : null,
+        height: compact ? 68 : null,
         labelBehavior: compact
             ? NavigationDestinationLabelBehavior.alwaysShow
             : null,
-        backgroundColor: compact ? const Color(0xFF26272C) : null,
+        backgroundColor: compact ? LoopColors.background : null,
         surfaceTintColor: compact ? Colors.transparent : null,
         indicatorColor: compact ? Colors.transparent : null,
         selectedIndex: selectedIndex,
@@ -109,29 +106,9 @@ class AdaptiveShell extends StatelessWidget {
         appBar: appBar,
         body: SafeArea(top: false, child: body),
         floatingActionButton: floatingActionButton,
-        bottomNavigationBar: Theme(
-          data: Theme.of(context).copyWith(
-            navigationBarTheme: NavigationBarThemeData(
-              labelTextStyle: WidgetStateProperty.resolveWith(
-                (states) => TextStyle(
-                  fontFamily: kFontFamily,
-                  fontSize: 11,
-                  fontWeight: states.contains(WidgetState.selected)
-                      ? FontWeight.w800
-                      : FontWeight.w600,
-                  color: states.contains(WidgetState.selected)
-                      ? const Color(0xFFE9E9ED)
-                      : const Color(0xFF92939D),
-                ),
-              ),
-              iconTheme: WidgetStateProperty.resolveWith(
-                (states) => IconThemeData(
-                  color: states.contains(WidgetState.selected)
-                      ? const Color(0xFFE9E9ED)
-                      : const Color(0xFF92939D),
-                ),
-              ),
-            ),
+        bottomNavigationBar: DecoratedBox(
+          decoration: BoxDecoration(
+            border: Border(top: BorderSide(color: LoopColors.surfaceHover)),
           ),
           child: _navigation(context, compact: true),
         ),
@@ -196,9 +173,9 @@ class LoopLogo extends StatelessWidget {
           Text(
             kAppName.toUpperCase(),
             style: TextStyle(
-              fontSize: size * 0.9,
-              fontWeight: FontWeight.w900,
-              letterSpacing: size * 0.08,
+              fontSize: size * 0.72,
+              fontWeight: FontWeight.w800,
+              letterSpacing: size * 0.14,
               color: color ?? LoopColors.textPrimary,
             ),
           ),

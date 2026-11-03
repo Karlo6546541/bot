@@ -134,7 +134,7 @@ class DeviceDetailScreen extends ConsumerWidget {
                     const SizedBox(height: 6),
                     Text(
                       [
-                        t('🏷️ Kupi odmah'),
+                        t('Kupi odmah'),
                         if (!device.isDigital && device.quantity > 1)
                           t('na zalihi: {0} kom', ['${device.quantity}']),
                         if (device.hasDiscount) discountLabel(device),
@@ -569,7 +569,7 @@ class DeviceDetailScreen extends ConsumerWidget {
                     key: const ValueKey('item-buy-now'),
                     onPressed: () => showListDialog(context, ref, device),
                     icon: const Icon(Icons.sell_outlined),
-                    label: Text(t('🏷️ Kupi odmah · fiksna cijena')),
+                    label: Text(t('Kupi odmah · fiksna cijena')),
                   ),
                   const SizedBox(height: 10),
                 ],

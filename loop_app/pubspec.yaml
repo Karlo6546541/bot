@@ -81,6 +81,28 @@ flutter:
   # Nunito (SIL Open Font License, assets/fonts/OFL.txt) — ugrađen
   # u aplikaciju jer mora raditi offline.
   fonts:
+    # Inter (SIL Open Font License) — jedini font sučelja ("Pozornica"
+    # izgled). Težine su pomaknute prema laganijima: kod koristi w800/w900
+    # za naslove, a u Interu bi to bilo pretežko, pa w700 = SemiBold,
+    # w800 i w900 = Bold.
+    - family: Inter
+      fonts:
+        - asset: assets/fonts/Inter_200ExtraLight.ttf
+          weight: 200
+        - asset: assets/fonts/Inter_200ExtraLight.ttf
+          weight: 300
+        - asset: assets/fonts/Inter_400Regular.ttf
+          weight: 400
+        - asset: assets/fonts/Inter_500Medium.ttf
+          weight: 500
+        - asset: assets/fonts/Inter_600SemiBold.ttf
+          weight: 600
+        - asset: assets/fonts/Inter_600SemiBold.ttf
+          weight: 700
+        - asset: assets/fonts/Inter_700Bold.ttf
+          weight: 800
+        - asset: assets/fonts/Inter_700Bold.ttf
+          weight: 900
     - family: Nunito
       fonts:
         - asset: assets/fonts/Nunito_400Regular.ttf

@@ -516,7 +516,7 @@ class _BoughtPage extends StatelessWidget {
             ),
             const SizedBox(height: 16),
             Text(
-              t('Kupljeno! 🎉'),
+              t('Kupljeno!'),
               style: const TextStyle(
                 color: Colors.white,
                 fontSize: 26,
@@ -831,7 +831,7 @@ class _CornerBadge extends StatelessWidget {
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Text(t('🔨 AUKCIJA'), style: _pillText),
+                Text(t('AUKCIJA'), style: _pillText),
                 const SizedBox(width: 8),
                 AuctionCountdown(
                   endsAt: a.endsAt,

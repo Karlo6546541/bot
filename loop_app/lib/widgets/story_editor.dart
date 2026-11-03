@@ -297,7 +297,7 @@ class _CreateStoryScreenState extends ConsumerState<CreateStoryScreen> {
           );
       if (!mounted) return;
       Navigator.pop(context);
-      showLoopSnackBar(t('Priča je objavljena — vidljiva je 24 sata ✨'));
+      showLoopSnackBar(t('Priča je objavljena — vidljiva je 24 sata'));
     } on TradeException catch (e) {
       showLoopSnackBar(e.message, error: true);
     } finally {

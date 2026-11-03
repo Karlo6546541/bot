@@ -129,7 +129,7 @@ class _DeliveriesScreenState extends ConsumerState<DeliveriesScreen> {
                     const SizedBox(height: 10),
                     Text(
                       t(
-                        '🚚 Demo: dostava je ubrzana — umjesto dana traje nekoliko minuta, pa statuse možeš pratiti uživo.',
+                        'Demo: dostava je ubrzana — umjesto dana traje nekoliko minuta, pa statuse možeš pratiti uživo.',
                       ),
                       style: TextStyle(
                         color: LoopColors.textSecondary,
@@ -207,7 +207,7 @@ Future<void> pickDelivery(
           choice.destination,
           carrier: choice.carrier,
         ),
-    successMessage: t('Dostava je krenula 🚚'),
+    successMessage: t('Dostava je krenula'),
   );
 }
 
@@ -459,7 +459,7 @@ Future<void> shipBySeller(
           choice.destination,
           carrier: choice.carrier,
         ),
-    successMessage: t('Poslano. Kupac je dobio broj za praćenje 🚚'),
+    successMessage: t('Poslano. Kupac je dobio broj za praćenje'),
   );
 }
 
@@ -657,8 +657,8 @@ class DeliveryCard extends ConsumerWidget {
                     if (d.confirmedAt != null)
                       Text(
                         d.autoConfirms
-                            ? t('Preuzeto iz paketomata ✅')
-                            : t('Primitak potvrđen ✅'),
+                            ? t('Preuzeto iz paketomata')
+                            : t('Primitak potvrđen'),
                         style: TextStyle(color: LoopColors.success),
                       ),
                   ],
@@ -2425,7 +2425,7 @@ Future<void> showPickupDialog(
   await runWithLoading(
     context,
     () => ref.read(appProvider.notifier).pickUpParcel(d.id, pin),
-    successMessage: t('Pretinac je otvoren — paket je preuzet ✅'),
+    successMessage: t('Pretinac je otvoren — paket je preuzet'),
   );
 }
 

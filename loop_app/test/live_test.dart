@@ -1044,13 +1044,13 @@ void main() {
       expect(find.byKey(const ValueKey('live-end')), findsNothing);
       // Video: gledatelj se javlja domaćinu i čeka sliku s kamere.
       expect(hub.sent.first['type'], 'hello');
-      expect(find.text('📹 Spajam video…'), findsOneWidget);
+      expect(find.text('Spajam video…'), findsOneWidget);
 
       // Licitiraj 1 € → vodiš.
       await tester.tap(find.byKey(const ValueKey('live-bid')));
       await tester.pumpAndSettle();
       expect(find.byKey(const ValueKey('live-leading')), findsOneWidget);
-      expect(find.textContaining('🥇 Ti vodiš'), findsOneWidget);
+      expect(find.textContaining('Ti vodiš'), findsOneWidget);
 
       // Chat i brza reakcija.
       await tester.enterText(
@@ -1306,7 +1306,7 @@ void main() {
         DeviceCategory.tcg,
       );
       // Domaćin šalje video: oznaka gledatelja videa i gumbi za kameru.
-      expect(find.text('📡 Video gleda 0'), findsOneWidget);
+      expect(find.text('Video gleda 0'), findsOneWidget);
       expect(find.byKey(const ValueKey('live-cam-flip')), findsOneWidget);
       await tester.tap(find.byKey(const ValueKey('live-mic')));
       await tester.pumpAndSettle();
@@ -1458,7 +1458,7 @@ void main() {
       () => Future<void>.delayed(const Duration(milliseconds: 50)),
     );
     await tester.pumpAndSettle();
-    expect(find.text('🏆 Osvojio si!'), findsOneWidget);
+    expect(find.text('Osvojio si!'), findsOneWidget);
 
     // Osvojeno → u sobi gumb za odabir dostave (ništa ne kreće samo).
     final app = ProviderScope.containerOf(

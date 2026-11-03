@@ -413,7 +413,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
                   minLines: 2,
                   decoration: InputDecoration(
                     labelText: t('O meni'),
-                    hintText: t('npr. Skupljam LEGO i stare ploče 🎶'),
+                    hintText: t('npr. Skupljam LEGO i stare ploče'),
                     prefixIcon: const Icon(Icons.notes),
                   ),
                 ),

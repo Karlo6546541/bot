@@ -57,7 +57,7 @@ class MessagesScreen extends ConsumerWidget {
                           color: LoopColors.peach,
                           child: ListTile(
                             leading: CircleAvatar(
-                              backgroundColor: const Color(0xFF17120F),
+                              backgroundColor: const Color(0xFF000000),
                               child: SpearMark(
                                 size: 24,
                                 head: const Color(0xFFFF9248),
@@ -264,7 +264,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
               if (system)
                 const CircleAvatar(
                   radius: 17,
-                  backgroundColor: Color(0xFF17120F),
+                  backgroundColor: Color(0xFF000000),
                   child: SpearMark(
                     size: 22,
                     head: Color(0xFFFF9248),
@@ -495,8 +495,8 @@ class SwapOfferCard extends ConsumerWidget {
           children: [
             Text(
               incoming
-                  ? t('🔄 {0} ti nudi zamjenu', [state.userLabel(other)])
-                  : t('🔄 Tvoja ponuda za {0}', [state.userLabel(other)]),
+                  ? t('{0} ti nudi zamjenu', [state.userLabel(other)])
+                  : t('Tvoja ponuda za {0}', [state.userLabel(other)]),
               style: const TextStyle(fontWeight: FontWeight.w900),
             ),
             const SizedBox(height: 6),
@@ -554,7 +554,7 @@ class SwapOfferCard extends ConsumerWidget {
                           context,
                           () => c.acceptSwap(offer.id),
                           successMessage: t(
-                            'Zamjena prihvaćena 🤝 — paket šaljete na adresu iz računa, broj za praćenje stiže u "Moje".',
+                            'Zamjena prihvaćena — paket šaljete na adresu iz računa, broj za praćenje stiže u "Moje".',
                           ),
                         );
                       },
@@ -647,7 +647,7 @@ class _SwapSheetState extends ConsumerState<_SwapSheet> {
             message: _message.text,
           );
       if (mounted) Navigator.pop(context);
-      showLoopSnackBar(t('Ponuda zamjene poslana 🔄'));
+      showLoopSnackBar(t('Ponuda zamjene poslana'));
     } on TradeException catch (e) {
       showLoopSnackBar(e.message, error: true);
     } finally {

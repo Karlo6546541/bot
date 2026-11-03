@@ -301,7 +301,7 @@ class _AddDeviceScreenState extends ConsumerState<AddDeviceScreen> {
         }
       },
       successMessage: _digitalMarket || _listOnMarket
-          ? t('Predmet je na prodaji 🏷️')
+          ? t('Predmet je na prodaji')
           : t('Predmet dodan u Moje predmete'),
     );
     if (ok) {

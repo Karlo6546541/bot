@@ -647,8 +647,8 @@ class ProfileHeader extends ConsumerWidget {
     final Widget? sellerKind = !sells
         ? null
         : user.isTrader
-        ? chip('seller-kind-business', t('🏪 Trgovac'), LoopColors.sky)
-        : chip('seller-kind-private', t('👤 Fizička osoba'), LoopColors.peach);
+        ? chip('seller-kind-business', t('Trgovac'), LoopColors.sky)
+        : chip('seller-kind-private', t('Fizička osoba'), LoopColors.peach);
     final secondary = TextStyle(color: LoopColors.textSecondary, fontSize: 13);
     final cover = user.coverPath;
     final gradient = DecoratedBox(
@@ -849,7 +849,7 @@ class ProfileHeader extends ConsumerWidget {
                       borderRadius: BorderRadius.circular(99),
                     ),
                     child: Text(
-                      t('🏪 Trgovac · {0}', [info.name]),
+                      t('Trgovac · {0}', [info.name]),
                       style: const TextStyle(
                         fontWeight: FontWeight.w800,
                         fontSize: 12,
@@ -867,7 +867,7 @@ class ProfileHeader extends ConsumerWidget {
                   runSpacing: 2,
                   children: [
                     if ((user.city ?? '').isNotEmpty)
-                      Text('📍 ${user.city}', style: secondary),
+                      Text('${user.city}', style: secondary),
                     Text(
                       t('Član od {0}', [formatDate(user.createdAt)]),
                       style: secondary,

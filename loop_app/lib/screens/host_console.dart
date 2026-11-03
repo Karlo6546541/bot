@@ -16,8 +16,8 @@ import 'seller_finance_screens.dart';
 /// statistika i gledatelji) umjesto mobilnog rasporeda.
 const double kHostConsoleWidth = 1100;
 
-const _panel = Color(0xFF17120F);
-const _card = Color(0xFF26272C);
+const _panel = Color(0xFF000000);
+const _card = Color(0xFF1C1C1E);
 
 /// Lijevi stupac pulta: predmeti showa s filterom po vrsti i radnjama.
 class HostLotsPanel extends ConsumerStatefulWidget {

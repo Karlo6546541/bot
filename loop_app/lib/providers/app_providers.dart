@@ -1852,7 +1852,7 @@ class AppController extends Notifier<AppState> {
         final price = formatCredits(a.highestBid?.amount ?? 0);
         if (r.winnerId != null && r.winnerId == me) {
           showLoopSnackBar(
-            t('🏆 Osvojio si aukciju: {0} za {1}', [a.deviceName, price]),
+            t('Osvojio si aukciju: {0} za {1}', [a.deviceName, price]),
           );
         } else if (a.sellerId == me) {
           showLoopSnackBar(

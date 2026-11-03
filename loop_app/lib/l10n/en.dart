@@ -123,7 +123,7 @@ const kEn = <String, String>{
   'Blokirano': 'Blocked',
   'Blokirano u vodećim ponudama': 'Held in leading bids',
   'Blokirano {0}': '{0} held',
-  'Bok, {0} 👋': 'Hi, {0} 👋',
+  'Bok, {0}': 'Hi, {0}',
   'Bonus': 'Bonus',
   'Broj pošiljke kopiran': 'Tracking number copied',
   'Buyer': 'Buyer',
@@ -164,7 +164,7 @@ const kEn = <String, String>{
   'Dopune': 'Top-ups',
   'Uplati novac': 'Add money',
   'Dostava': 'Delivery',
-  'Dostava je krenula 🚚': 'Delivery is on its way 🚚',
+  'Dostava je krenula': 'Delivery is on its way',
   'Dostava je već odabrana.': 'Delivery has already been chosen.',
   'Dostave': 'Deliveries',
   'Stanje: {0} · kupac plaća 2% naknade': 'Balance: {0} · buyers pay a 2% fee',
@@ -255,7 +255,7 @@ const kEn = <String, String>{
   'Najviša ponuda': 'Highest bid',
   'Najviša ponuda (bez naknade)': 'Highest bid (no fee)',
   'Najviše {0} fotografije po predmetu.': 'At most {0} photos per item.',
-  'Najviši status — Gold 🏆': 'Top status — Gold 🏆',
+  'Najviši status — Gold': 'Top status — Gold',
   'Naknada za objavu': 'Listing fee',
   'Naknada {0} (ne vraća se)': 'Fee {0} (non-refundable)',
   'Nastavi kao gost': 'Continue as guest',
@@ -329,7 +329,7 @@ const kEn = <String, String>{
   'PREGLED': 'OVERVIEW',
   'Paketomat': 'Parcel locker',
   'Plati {0}': 'Pay {0}',
-  'Plaćanje uspješno! 🎉': 'Payment successful! 🎉',
+  'Plaćanje uspješno!': 'Payment successful!',
   'Plaćaš': 'You pay',
   'Plaćeni fee': 'Fee paid',
   'Plaćeno': 'Paid',
@@ -378,7 +378,7 @@ const kEn = <String, String>{
   'Prikaži manje': 'Show less',
   'Prikaži tablicu': 'Show table',
   'Prikaži više': 'Show more',
-  'Primitak potvrđen ✅': 'Receipt confirmed ✅',
+  'Primitak potvrđen': 'Receipt confirmed',
   'Prodaj ili licitiraj': 'Sell or bid',
   'Prodaj odmah': 'Sell now',
   'Prodaj odmah ili na aukciji — novac ide na tvoje Subhasto stanje.':
@@ -506,11 +506,11 @@ const kEn = <String, String>{
   '{0} · {1} predmeta': '{0} · {1} items',
   '• Dok aukcija traje, predmet je zaključan (ne može se prodati).\n• Aukciju možeš otkazati samo dok nema ponuda.\n• Na kraju dobivaš cijelu najvišu ponudu{0}.\n• Ako nitko ne ponudi, predmet ostaje tebi.':
       '• While the auction runs, the item is locked (it can\'t be sold).\n• You can cancel the auction only while it has no bids.\n• At the end you get the full highest bid{0}.\n• If nobody bids, the item stays yours.',
-  '🏆 Osvojio si aukciju: {0} za {1}': '🏆 You won the auction: {0} for {1}',
-  '🔒  Ponuda je obvezujuća — ne može se povući ni smanjiti.\n\n🥇  Dok vodiš, ne možeš licitirati ponovno.\n\n🪙  Ponuda ne može biti veća od tvog stanja. Iznos vodeće ponude se blokira i vraća čim te netko nadmaši.\n\n⏱️  Ponuda u zadnjoj minuti produljuje aukciju za 1 minutu.\n\n🎁  Pobjednik dobiva predmet, prodavatelj cijelu ponudu (bez naknade).':
-      '🔒  A bid is binding — it can\'t be withdrawn or lowered.\n\n🥇  While you\'re leading, you can\'t bid again.\n\n🪙  A bid can\'t exceed your balance. The leading bid amount is held and returned as soon as someone outbids you.\n\n⏱️  A bid in the last minute extends the auction by 1 minute.\n\n🎁  The winner gets the item, the seller gets the full bid (no fee).',
-  '🚚 Demo: dostava je ubrzana — umjesto dana traje nekoliko minuta, pa statuse možeš pratiti uživo.':
-      '🚚 Demo: delivery is sped up — it takes minutes instead of days, so you can follow the statuses live.',
+  'Osvojio si aukciju: {0} za {1}': 'You won the auction: {0} for {1}',
+  'Ponuda je obvezujuća — ne može se povući ni smanjiti.\n\n Dok vodiš, ne možeš licitirati ponovno.\n\n Ponuda ne može biti veća od tvog stanja. Iznos vodeće ponude se blokira i vraća čim te netko nadmaši.\n\n Ponuda u zadnjoj minuti produljuje aukciju za 1 minutu.\n\n Pobjednik dobiva predmet, prodavatelj cijelu ponudu (bez naknade).':
+      'A bid is binding — it can\'t be withdrawn or lowered.\n\n While you\'re leading, you can\'t bid again.\n\n A bid can\'t exceed your balance. The leading bid amount is held and returned as soon as someone outbids you.\n\n A bid in the last minute extends the auction by 1 minute.\n\n The winner gets the item, the seller gets the full bid (no fee).',
+  'Demo: dostava je ubrzana — umjesto dana traje nekoliko minuta, pa statuse možeš pratiti uživo.':
+      'Demo: delivery is sped up — it takes minutes instead of days, so you can follow the statuses live.',
   'Elektronika': 'Electronics',
   'Kolekcionarstvo': 'Collectibles',
   'Hobiji': 'Hobbies',
@@ -726,8 +726,7 @@ const kEn = <String, String>{
   'Zaboravljena lozinka': 'Forgot password',
   'Zaboravljena lozinka?': 'Forgot password?',
   'ili': 'or',
-  'npr. Skupljam LEGO i stare ploče 🎶':
-      'e.g. I collect LEGO and old records 🎶',
+  'npr. Skupljam LEGO i stare ploče': 'e.g. I collect LEGO and old records',
   '{0}–{1} znakova: slova, brojevi, _ i točka':
       '{0}–{1} characters: letters, numbers, _ and dot',
   'Član od {0}': 'Member since {0}',
@@ -744,7 +743,7 @@ const kEn = <String, String>{
   'Na prodaju u Marketu ({0})': 'For sale in the Market ({0})',
   'Objavi': 'Publish',
   'Objavi u Marketu': 'List in the Market',
-  'Objavljeno u Marketu 🏷️': 'Listed in the Market 🏷️',
+  'Objavljeno u Marketu': 'Listed in the Market',
   'Predmet je na aukciji — prvo otkaži aukciju (moguće dok nema ponuda).':
       'The item is on auction — cancel the auction first (possible while it has no bids).',
   'Predmet je na prodaju u Marketu — prvo ga ukloni iz Marketa.':
@@ -760,7 +759,7 @@ const kEn = <String, String>{
   'Ukloni iz Marketa': 'Remove from Market',
   'Uklonjeno iz Marketa': 'Removed from the Market',
   'Vrijednost': 'Value',
-  '🏷️ U Marketu': '🏷️ In the Market',
+  'U Marketu': 'In the Market',
   'Aukcija s ponudama: {0}': 'Auction with bids: {0}',
   'Obriši odmah, bez povratka': 'Delete now, no way back',
   'Obriši račun': 'Delete account',
@@ -794,7 +793,7 @@ const kEn = <String, String>{
   'Blokiraj': 'Block',
   'Blokirani korisnici': 'Blocked users',
   'Blokirani korisnici ({0})': 'Blocked users ({0})',
-  'Hvala na ocjeni! ⭐': 'Thanks for rating! ⭐',
+  'Hvala na ocjeni!': 'Thanks for rating!',
   'Još nema ocjena': 'No ratings yet',
   'Kasnije': 'Later',
   'Komentar (neobavezno)': 'Comment (optional)',
@@ -906,7 +905,7 @@ const kEn = <String, String>{
   'Ponuda odbijena': 'Offer declined',
   'Ponuda povučena': 'Offer withdrawn',
   'Ponuda više nije aktivna.': 'The offer is no longer active.',
-  'Ponuda zamjene poslana 🔄': 'Swap offer sent 🔄',
+  'Ponuda zamjene poslana': 'Swap offer sent',
   'Ponude zamjene ({0})': 'Swap offers ({0})',
   'Ponudi zamjenu': 'Offer a swap',
   'Ponuditi možeš samo svoj predmet.': 'You can only offer your own item.',
@@ -937,16 +936,16 @@ const kEn = <String, String>{
   'Za: {0} ({1})': 'For: {0} ({1})',
   'Zamjena je moguća samo za tuđe predmete u Marketu.':
       'Swaps are possible only for other users\' items in the Market.',
-  'Zamjena prihvaćena 🤝 — odaberi dostavu u "Moje dostave".':
-      'Swap accepted 🤝 — choose delivery in "My deliveries".',
+  'Zamjena prihvaćena — odaberi dostavu u "Moje dostave".':
+      'Swap accepted — choose delivery in "My deliveries".',
   'Zamjena više nije moguća — jedan od predmeta nije dostupan.':
       'The swap is no longer possible — one of the items isn\'t available.',
   'Zamjena · odaberi dostavu': 'Swap · choose delivery',
   '{0} više nema dovoljno novca za nadoplatu.':
       '{0} no longer has enough money for the extra payment.',
   '{0} ⇄ {1}': '{0} ⇄ {1}',
-  '🔄 Tvoja ponuda za {0}': '🔄 Your offer to {0}',
-  '🔄 {0} ti nudi zamjenu': '🔄 {0} offers you a swap',
+  'Tvoja ponuda za {0}': 'Your offer to {0}',
+  '{0} ti nudi zamjenu': '{0} offers you a swap',
   'Zamjena': 'Swap',
   'Radiš lokalno — promjene čekaju i šalju se čim veza proradi. Ponovni pokušaj je automatski.':
       'Working locally — changes wait and are sent as soon as the connection works. It retries automatically.',
@@ -955,7 +954,7 @@ const kEn = <String, String>{
       'Online database: connected, but tables are missing',
   'Pokreni supabase/schema.sql u Supabase SQL Editoru pa osvježi stranicu. Do tada ostaju samo na ovom uređaju: {0}':
       'Run supabase/schema.sql in the Supabase SQL Editor, then reload the page. Until then these stay on this device only: {0}',
-  'Predmet je objavljen u Marketu 🏷️': 'The item is listed in the Market 🏷️',
+  'Predmet je objavljen u Marketu': 'The item is listed in the Market',
   'Odmah objavi u Marketu': 'List in the Market right away',
   'Predmet ostaje tvoj dok ga netko ne kupi. Dobivaš punu cijenu — prodaja je bez naknade.':
       'The item stays yours until someone buys it. You get the full price — selling is free.',
@@ -1065,7 +1064,7 @@ const kEn = <String, String>{
   'Imaš više istih komada? Svaka kupnja skida jedan s zalihe.':
       'Have several identical pieces? Each purchase takes one from stock.',
   'Istakni račun': 'Promote account',
-  'Istakni svoj račun ⭐': 'Promote your account ⭐',
+  'Istakni svoj račun': 'Promote your account',
   'Istaknut do {0}': 'Promoted until {0}',
   'Istaknut si do {0} — novo razdoblje se nadovezuje.':
       'You\'re promoted until {0} — a new period is added on top.',
@@ -1154,8 +1153,8 @@ const kEn = <String, String>{
   'Protuponuda je poslana': 'Counteroffer sent',
   'Protuponuda mora biti između {0} i {1}.':
       'The counteroffer must be between {0} and {1}.',
-  'Račun je istaknut ⭐ — oglasi ti se prikazuju prvi':
-      'Account promoted ⭐ — your listings are shown first',
+  'Račun je istaknut — oglasi ti se prikazuju prvi':
+      'Account promoted — your listings are shown first',
   'Redovna cijena': 'Regular price',
   'S naknadom kupac plaća {0}': 'With the fee the buyer pays {0}',
   'Samo na popustu': 'On sale only',
@@ -1200,11 +1199,11 @@ const kEn = <String, String>{
   '−{0}% do {1}': '−{0}% until {1}',
   '−{0}% popust': '−{0}% off',
   '−{0}% trajno': '−{0}% permanent',
-  '⏳ Ponudio si {0} — čeka se odgovor prodavatelja.':
-      '⏳ You offered {0} — waiting for the seller.',
-  '✅ Dogovorena cijena {0} vrijedi do {1}. Kupi gumbom iznad.':
-      '✅ The agreed price {0} is valid until {1}. Buy with the button above.',
-  '⭐ Istaknuto': '⭐ Promoted',
+  'Ponudio si {0} — čeka se odgovor prodavatelja.':
+      'You offered {0} — waiting for the seller.',
+  'Dogovorena cijena {0} vrijedi do {1}. Kupi gumbom iznad.':
+      'The agreed price {0} is valid until {1}. Buy with the button above.',
+  'Istaknuto': 'Promoted',
   'Preporučeno': 'Recommended',
   'Najveći popust': 'Biggest discount',
   'Isticanje računa': 'Account promotion',
@@ -1372,10 +1371,9 @@ const kEn = <String, String>{
       'You\'re leading! We bid for you automatically up to {0} if someone tries to outbid you. Bids are binding and can\'t be withdrawn.',
   'Za ponudu treba barem {0}, a imaš {1}.':
       'A bid needs at least {0} and you have {1}.',
-  '⚡ Kupi odmah za {0}': '⚡ Buy now for {0}',
-  '🏆 Kupljeno! Odaberi dostavu u "Moje dostave".':
-      '🏆 Bought! Choose delivery in "My deliveries".',
-  '🔨 AUKCIJA': '🔨 AUCTION',
+  'Kupljeno! Odaberi dostavu u "Moje dostave".':
+      'Bought! Choose delivery in "My deliveries".',
+  'AUKCIJA': 'AUCTION',
   '{0} je pokrenuo aukciju: "{1}" od {2}.':
       '{0} started an auction: "{1}" from {2}.',
   'Aukcija "{0}" završava za manje od 10 minuta — trenutno {1}.':
@@ -1440,8 +1438,8 @@ const kEn = <String, String>{
   'Pogledaj svoju priču': 'View your story',
   'Predmeti ostaju u Marketu, briše se samo lista.':
       'Items stay in the Market, only the list is deleted.',
-  'Priča je objavljena — vidljiva je 24 sata ✨':
-      'Story posted — visible for 24 hours ✨',
+  'Priča je objavljena — vidljiva je 24 sata':
+      'Story posted — visible for 24 hours',
   'Priča će nestati za sve.': 'The story will disappear for everyone.',
   'Spremi u listu': 'Save to list',
   'Spremljeno': 'Saved',
@@ -1461,8 +1459,8 @@ const kEn = <String, String>{
   'prije {0} h': '{0} h ago',
   'prije {0} min': '{0} min ago',
   'upravo': 'just now',
-  'Danas posebna ponuda ✨': 'Special offer today ✨',
-  'Novo stiglo! 👀': 'New arrivals! 👀',
+  'Danas posebna ponuda': 'Special offer today',
+  'Novo stiglo!': 'New arrivals!',
   'Bez oglasa': 'No listing',
   'Dodaj tekst': 'Add text',
   'Dodirni pozadinu za tekst': 'Tap the background to add text',
@@ -1541,7 +1539,7 @@ const kEn = <String, String>{
   'Adresa': 'Address',
   'Adresa prebivališta': 'Home address',
   'Bez provjerene kupnje': 'No verified purchase',
-  'Bok, {0} 👋 · zarada za isplatu': 'Hi, {0} 👋 · earnings to pay out',
+  'Bok, {0} · zarada za isplatu': 'Hi, {0} · earnings to pay out',
   'DAC7 izvještaj (Porezna uprava)': 'DAC7 report (Tax Administration)',
   'Datum rođenja': 'Date of birth',
   'IBAN nije ispravan.': 'The IBAN is not valid.',
@@ -1662,8 +1660,8 @@ const kEn = <String, String>{
       'A different person reviews the appeal. You also have the right to out-of-court dispute settlement and to judicial redress.',
   'Žalbu si već poslao — javit ćemo ti odluku.':
       'You already sent an appeal — we will let you know the decision.',
-  '🔒  Ponuda je obvezujuća — ne može se povući ni smanjiti.\n\n🥇  Dok vodiš, ne možeš licitirati ponovno (možeš povisiti automatsku ponudu).\n\n💳  Pobjednik plaća karticom kad aukcija završi — ništa se ne blokira unaprijed.\n\n⏱️  Ponuda u zadnjoj minuti produljuje aukciju za 1 minutu.\n\n🎁  Pobjednik dobiva predmet, prodavatelj cijelu ponudu (bez naknade).':
-      '🔒  A bid is binding — it cannot be withdrawn or lowered.\n\n🥇  While you lead you cannot bid again (you can raise your automatic bid).\n\n💳  The winner pays by card when the auction ends — nothing is held in advance.\n\n⏱️  A bid in the last minute extends the auction by 1 minute.\n\n🎁  The winner gets the item, the seller the full bid (no fee).',
+  'Ponuda je obvezujuća — ne može se povući ni smanjiti.\n\n Dok vodiš, ne možeš licitirati ponovno (možeš povisiti automatsku ponudu).\n\n Pobjednik plaća karticom kad aukcija završi — ništa se ne blokira unaprijed.\n\n Ponuda u zadnjoj minuti produljuje aukciju za 1 minutu.\n\n Pobjednik dobiva predmet, prodavatelj cijelu ponudu (bez naknade).':
+      'A bid is binding — it cannot be withdrawn or lowered.\n\n While you lead you cannot bid again (you can raise your automatic bid).\n\n The winner pays by card when the auction ends — nothing is held in advance.\n\n A bid in the last minute extends the auction by 1 minute.\n\n The winner gets the item, the seller the full bid (no fee).',
   '✓ Provjerena kupnja': '✓ Verified purchase',
   'Isplata na račun': 'Bank payout',
   'Trgovac (obrt ili tvrtka)': 'Trader (business)',
@@ -1749,13 +1747,13 @@ const kEn = <String, String>{
   'Upiši početnu cijenu za svaki predmet.':
       'Enter a starting price for every item.',
   'UŽIVO': 'LIVE',
-  'Uživo si! 🔴': 'You\'re live! 🔴',
+  'Uživo si!': 'You\'re live!',
   'Već imaš live u tijeku ili zakazan.':
       'You already have a live show running or scheduled.',
   'Već vodiš — pričekaj da te netko nadmaši.':
       'You\'re already winning — wait until someone outbids you.',
   'Više predmeta uživo, uz chat': 'Several items live, with chat',
-  'Vodiš s {0}! 🔥': 'You\'re winning with {0}! 🔥',
+  'Vodiš s {0}!': 'You\'re winning with {0}!',
   'Vrijednost {0}': 'Value {0}',
   'ZAKAZANO': 'SCHEDULED',
   'ZAVRŠENO': 'ENDED',
@@ -1772,14 +1770,14 @@ const kEn = <String, String>{
   '{0} s': '{0} s',
   '• Predmeti idu redom, svaki se licitira {0} s.\n• Ponuda u zadnjih 10 s vraća sat na 10 s.\n• Pobjednik plaća karticom, ti dobivaš cijelu ponudu.\n• Dok traje live, predmeti nisu u Marketu.\n• Ako nitko ne ponudi, predmet ostaje tebi.':
       '• Items go one by one, each is auctioned for {0} s.\n• A bid in the last 10 s resets the clock to 10 s.\n• The winner pays by card, you get the full bid.\n• While the show runs, the items are not in the Market.\n• If nobody bids, the item stays yours.',
-  '⚡ Ponuda sada vraća sat na 10 s': '⚡ A bid now resets the clock to 10 s',
+  'Ponuda sada vraća sat na 10 s': 'A bid now resets the clock to 10 s',
   '✅ {0} · {1}': '✅ {0} · {1}',
   '✓ Vodiš s {0}': '✓ Winning with {0}',
-  '🎉 PRODANO!': '🎉 SOLD!',
-  '🏆 Osvojio si!': '🏆 You won!',
-  '🔴 Licitira se': '🔴 Bidding now',
-  '🥇 {0} vodi': '🥇 {0} is winning',
-  '🥇 Ti vodiš': '🥇 You\'re winning',
+  'PRODANO!': 'SOLD!',
+  'Osvojio si!': 'You won!',
+  'Licitira se': 'Bidding now',
+  '{0} vodi': '{0} is winning',
+  'Ti vodiš': 'You\'re winning',
   '{0} ide uživo: "{1}" ({2}).': '{0} is going live: "{1}" ({2}).',
   'Predmet je u live aukciji — pričekaj da se licitira.':
       'This item is in a live auction — wait until it has been auctioned.',
@@ -1795,8 +1793,8 @@ const kEn = <String, String>{
       'Go live — items are auctioned one after another, fast and with chat.',
   'Privatni prodavatelj (fizička osoba)': 'Private seller (individual)',
   'Uživo': 'Live',
-  '🔴  Predmeti se licitiraju jedan za drugim, svaki 20–60 sekundi.\n\n⚡  Ponuda u zadnjih 10 s vraća sat na 10 s.\n\n👆  Povuci gore ili dolje za sljedeći live ili aukciju.':
-      '🔴  Items are auctioned one after another, 20–60 seconds each.\n\n⚡  A bid in the last 10 s resets the clock to 10 s.\n\n👆  Swipe up or down for the next live show or auction.',
+  'Predmeti se licitiraju jedan za drugim, svaki 20–60 sekundi.\n\n Ponuda u zadnjih 10 s vraća sat na 10 s.\n\n Povuci gore ili dolje za sljedeći live ili aukciju.':
+      'Items are auctioned one after another, 20–60 seconds each.\n\n A bid in the last 10 s resets the clock to 10 s.\n\n Swipe up or down for the next live show or auction.',
   'Dopusti pristup kameri i mikrofonu da gledatelji vide video.':
       'Allow camera and microphone access so viewers can see your video.',
   'Gledatelji te vide i čuju dok pokazuješ predmete. Preglednik će tražiti dopuštenje za kameru i mikrofon.':
@@ -1809,10 +1807,10 @@ const kEn = <String, String>{
   'Uključi kameru': 'Turn camera on',
   'Uključi mikrofon': 'Unmute microphone',
   'Video uživo s kamere': 'Live camera video',
-  '📡 Video gleda {0}': '📡 {0} watching video',
-  '📹 Spajam video…': '📹 Connecting video…',
-  '📹 Video radi u online verziji': '📹 Video works in the online version',
-  '📹 Video trenutno nije uključen': '📹 Video is not on right now',
+  'Video gleda {0}': '{0} watching video',
+  'Spajam video…': 'Connecting video…',
+  'Video radi u online verziji': 'Video works in the online version',
+  'Video trenutno nije uključen': 'Video is not on right now',
   'Kamera se ne može okrenuti na ovom uređaju.':
       'The camera can\'t be switched on this device.',
   'Druga kamera se nije uključila. Pokušaj ponovno.':
@@ -1877,9 +1875,6 @@ const kEn = <String, String>{
   'Što želiš pokrenuti?': 'What do you want to start?',
   '• Live traje dok si uživo — završavaš ga ti (ili kad izađeš).\n• Ti biraš predmet i pokrećeš licitaciju od {0} s.\n• Ponuda u zadnjih 10 s vraća sat na 10 s.\n• Pobjednik plaća karticom, ti dobivaš cijelu ponudu.\n• Ako nitko ne ponudi, predmet ostaje tebi.':
       '• The show lasts as long as you\'re live — you end it (or it ends when you leave).\n• You pick the item and start bidding for {0} s.\n• A bid in the last 10 s resets the clock to 10 s.\n• The winner pays by card, you get the full bid.\n• If nobody bids, the item stays yours.',
-  '⏱ Završavaju uskoro': '⏱ Ending soon',
-  '📅 Uskoro': '📅 Coming up',
-  '🔴 Uživo sada': '🔴 Live now',
   'Licitacija': 'Auction',
   'Pada cijena': 'Price drop',
   'Nagradna igra': 'Giveaway',
@@ -1890,8 +1885,7 @@ const kEn = <String, String>{
   'Cijena pada svake sekunde — prvi koji klikne "Uzmi" kupuje.':
       'The price drops every second — the first to tap "Take" buys it.',
   'Gledaj "{0}" uživo na Subhastu': 'Watch "{0}" live on Subhasto',
-  'Javit ćemo ti kad krene uživo 🔔':
-      'We\'ll let you know when it goes live 🔔',
+  'Javit ćemo ti kad krene uživo': 'We\'ll let you know when it goes live',
   'Klasična licitacija — najviša ponuda pobjeđuje.':
       'Classic auction — the highest bid wins.',
   'Najbliži pogodak se objavljuje u sobi':
@@ -1918,22 +1912,20 @@ const kEn = <String, String>{
   '✓ Sudjeluješ · izvlačenje na kraju': '✓ You\'re in · draw at the end',
   '⬇️ Pada cijena · do {0}': '⬇️ Price drop · down to {0}',
   '⬇️ Uzmi za {0}': '⬇️ Take for {0}',
-  '🎁 Izvučen je dobitnik!': '🎁 Winner drawn!',
-  '🎁 Nagradna igra · {0} prijava': '🎁 Giveaway · {0} entries',
-  '🎁 Osvojio si nagradu!': '🎁 You won the giveaway!',
-  '🎁 Sudjeluj besplatno': '🎁 Enter for free',
-  '🎯 Najbliže si pogodio cijenu ({0})': '🎯 Your guess was closest ({0})',
-  '🎯 Pogodi konačnu cijenu': '🎯 Guess the final price',
-  '🎯 Tvoja procjena: {0}': '🎯 Your guess: {0}',
-  '🎯 {0} je najbliže pogodio cijenu ({1})': '🎯 {0} guessed closest ({1})',
-  '💎 Procjena {0}': '💎 Est. value {0}',
-  '🔔 Javit ćemo ti kad krene': '🔔 We\'ll remind you when it starts',
-  '🔥 Zagrijava se': '🔥 Heating up',
-  '🔥 vruće': '🔥 hot',
-  '🔥🔥 VRUĆE!': '🔥🔥 ON FIRE!',
-  '🔴 Uživo': '🔴 Live',
-  '😴 Mirno': '😴 Quiet',
-  '🙂 Živo': '🙂 Lively',
+  'Izvučen je dobitnik!': 'Winner drawn!',
+  'Nagradna igra · {0} prijava': 'Giveaway · {0} entries',
+  'Osvojio si nagradu!': 'You won the giveaway!',
+  'Sudjeluj besplatno': 'Enter for free',
+  'Najbliže si pogodio cijenu ({0})': 'Your guess was closest ({0})',
+  'Tvoja procjena: {0}': 'Your guess: {0}',
+  '{0} je najbliže pogodio cijenu ({1})': '{0} guessed closest ({1})',
+  'Procjena {0}': 'Est. value {0}',
+  'Javit ćemo ti kad krene': 'We\'ll remind you when it starts',
+  'Zagrijava se': 'Heating up',
+  'vruće': 'hot',
+  'VRUĆE!': 'ON FIRE!',
+  'Mirno': 'Quiet',
+  'Živo': 'Lively',
   'Aukcija ima ponude i ne može se otkazati. Po završetku dobivaš {0} (provizija je 10 % samo od razlike iznad početne cijene).':
       'The auction has bids and can\'t be cancelled. When it ends you get {0} (commission is 10% only on the amount above the starting price).',
   'Dalje: aukcija': 'Next: auction',
@@ -1965,7 +1957,7 @@ const kEn = <String, String>{
   'Maksimalna ponuda': 'Max bid',
   'Na Kupi odmah za {0}. Kad netko kupi, dobivaš {1} (provizija 5 %).':
       'On Buy now for {0}. When someone buys it, you get {1} (5% commission).',
-  'Na prodaji je 🏷️': 'It\'s for sale 🏷️',
+  'Na prodaji je': 'It\'s for sale',
   'Najveća ponuda je {0}.': 'The highest allowed bid is {0}.',
   'Naslovna slika': 'Cover image',
   'Nemaš predmeta na Kupi odmah.': 'You have no Buy now items.',
@@ -1988,11 +1980,11 @@ const kEn = <String, String>{
   'Pratitelji odmah dobivaju obavijest, a gledatelji mogu stisnuti "Podsjeti me" i predlicitirati.':
       'Followers are notified right away, and viewers can tap "Remind me" and pre-bid.',
   'Predlicitacija': 'Pre-bid',
-  'Predlicitacija je spremljena 🔨': 'Pre-bid saved 🔨',
+  'Predlicitacija je spremljena': 'Pre-bid saved',
   'Predlicitiraj': 'Pre-bid',
   'Predlicitiraj predmet koji tek dolazi — tvoja maksimalna ponuda vrijedi kad krene.':
       'Pre-bid on an upcoming item — your max bid counts when it starts.',
-  'Predmet je na prodaji 🏷️': 'Your item is for sale 🏷️',
+  'Predmet je na prodaji': 'Your item is for sale',
   'Predponuda {0}': 'Pre-bid {0}',
   'Prihod od provizija': 'Commission revenue',
   'Prije licitiranja dodaj karticu i adresu za dostavu.':
@@ -2025,14 +2017,11 @@ const kEn = <String, String>{
       '• While the auction runs, the item is locked (it can\'t be sold).\n• You can cancel the auction only while there are no bids.\n• Listing is free. At the end you get the highest bid minus 10% of the amount above the starting price{0}.\n• If nobody bids, the item stays yours.',
   '• Live traje dok si uživo — završavaš ga ti (ili kad izađeš).\n• Ti biraš predmet i pokrećeš licitaciju od {0} s.\n• Ponuda u zadnjih 10 s vraća sat na 10 s.\n• Pobjednik plaća automatski karticom, a dostava kreće na njegovu adresu.\n• Provizija je 10 % samo od razlike iznad početne cijene.':
       '• The show lasts while you\'re live — you end it (or it ends when you leave).\n• You pick an item and start {0} s of bidding.\n• A bid in the last 10 s resets the clock to 10 s.\n• The winner is charged automatically and the parcel ships to their address.\n• Commission is 10% only on the amount above the starting price.',
-  '🔒  Ponuda je obvezujuća — ne može se povući ni smanjiti.\n\n🥇  Dok vodiš, ne možeš licitirati ponovno (možeš povisiti automatsku ponudu).\n\n💳  Pobjednik plaća karticom kad aukcija završi — ništa se ne blokira unaprijed.\n\n⏱️  Ponuda u zadnjoj minuti produljuje aukciju za 1 minutu.\n\n🎁  Pobjednik dobiva predmet i ne plaća naknadu. Prodavatelju se odbija 10 % samo od razlike iznad početne cijene.':
-      '🔒  A bid is binding — it can\'t be withdrawn or lowered.\n\n🥇  While you\'re leading you can\'t bid again (you can raise your automatic bid).\n\n💳  The winner pays by card when the auction ends — nothing is held in advance.\n\n⏱️  A bid in the last minute extends the auction by 1 minute.\n\n🎁  The winner gets the item and pays no fee. The seller pays 10% only on the amount above the starting price.',
-  '⏱ Aukcije': '⏱ Auctions',
-  '🏷️ Kupi odmah': '🏷️ Buy now',
-  '🏷️ Kupi odmah · fiksna cijena': '🏷️ Buy now · fixed price',
-  '🛍️ Kupi odmah': '🛍️ Buy now',
-  '🥇 Ti vodiš · tvoj maks {0}': '🥇 You\'re leading · your max {0}',
-  '🥇 Ti · {0}': '🥇 You · {0}',
+  'Ponuda je obvezujuća — ne može se povući ni smanjiti.\n\n Dok vodiš, ne možeš licitirati ponovno (možeš povisiti automatsku ponudu).\n\n Pobjednik plaća karticom kad aukcija završi — ništa se ne blokira unaprijed.\n\n Ponuda u zadnjoj minuti produljuje aukciju za 1 minutu.\n\n Pobjednik dobiva predmet i ne plaća naknadu. Prodavatelju se odbija 10 % samo od razlike iznad početne cijene.':
+      'A bid is binding — it can\'t be withdrawn or lowered.\n\n While you\'re leading you can\'t bid again (you can raise your automatic bid).\n\n The winner pays by card when the auction ends — nothing is held in advance.\n\n A bid in the last minute extends the auction by 1 minute.\n\n The winner gets the item and pays no fee. The seller pays 10% only on the amount above the starting price.',
+  'Kupi odmah · fiksna cijena': 'Buy now · fixed price',
+  'Ti vodiš · tvoj maks {0}': 'You\'re leading · your max {0}',
+  'Ti · {0}': 'You · {0}',
   'Moda': 'Fashion',
   'Dom i vintage': 'Home & vintage',
   'Sportske kartice': 'Sports cards',
@@ -2064,7 +2053,7 @@ const kEn = <String, String>{
   'Fiksna cijena · provizija 5 %': 'Fixed price · 5% commission',
   '1–7 dana · 10 % od razlike': '1–7 days · 10% of the uplift',
   'Licitacija uživo · 10 % od razlike': 'Live bidding · 10% of the uplift',
-  ' je izvučen! 🎁': ' was drawn! 🎁',
+  'je izvučen!': 'was drawn!',
   ' je osvojio!': ' won!',
   '+ dostava': '+ shipping',
   'Domaćin': 'Host',
@@ -2072,19 +2061,18 @@ const kEn = <String, String>{
   'Reci nešto…': 'Say something…',
   'Srce': 'Like',
   'besplatno + dostava': 'free + shipping',
-  'licitira {0} 🔨': 'bid {0} 🔨',
+  'licitira {0}': 'bid {0}',
   'Čeka se sljedeći predmet': 'Awaiting next item',
   '★ Novo': '★ New',
-  '💎 procjena {0}': '💎 est. {0}',
-  '🚚 {0} d.': '🚚 {0} d.',
+  'procjena {0}': 'est. {0}',
+  '{0} d.': '{0} d.',
   'Preglednik nije dopustio kameru. Dopusti kameru i mikrofon (ikona lokota pokraj adrese) pa stisni "Uključi kameru".':
       'The browser didn\'t allow the camera. Allow camera and microphone (lock icon next to the address) and tap "Turn on camera".',
   'Kamera se nije uključila ({0}). Stisni "Uključi kameru".':
       'The camera didn\'t start ({0}). Tap "Turn on camera".',
-  '📹 Video se ne spaja — pokušavam ponovno…':
-      '📹 Video won\'t connect — retrying…',
-  '📹 Video ne prolazi kroz ovu mrežu — probaj isti Wi-Fi':
-      '📹 Video can\'t get through this network — try the same Wi-Fi',
+  'Video se ne spaja — pokušavam ponovno…': 'Video won\'t connect — retrying…',
+  'Video ne prolazi kroz ovu mrežu — probaj isti Wi-Fi':
+      'Video can\'t get through this network — try the same Wi-Fi',
   'Digitalni proizvod se ne prodaje Subhastu — kupci ga kupuju na Kupi odmah.':
       'A digital product isn\'t sold to Subhasto — buyers get it via Buy now.',
   'Digitalni proizvodi se ne stavljaju na aukciju — prodaju se više puta na Kupi odmah.':
@@ -2100,7 +2088,7 @@ const kEn = <String, String>{
       'You already have {0} active auctions — that\'s the maximum. Wait for one to end or sell via Buy now.',
   'Kategorija · predloženo iz naziva': 'Category · suggested from the name',
   'Kupi za {0}': 'Buy for {0}',
-  'Kupljeno! 🎉': 'Purchased! 🎉',
+  'Kupljeno!': 'Purchased!',
   'Kurir {0} · {1}': 'Courier {0} · {1}',
   'Licitiraj dok prodavač pokazuje predmet':
       'Bid while the seller shows the item',
@@ -2121,7 +2109,6 @@ const kEn = <String, String>{
   'Na predmetu na prodaji dodirni "Pošalji poruku" ili "Ponudi zamjenu".':
       'On an item for sale, tap "Send message" or "Offer a swap".',
   'Najviša ponuda kad istekne vrijeme': 'Highest bid when time runs out',
-  'Osvojio si! 🎉': 'You won! 🎉',
   'Ovaj proizvod su već kupili ({0}) — ne može se obrisati jer ga kupci preuzimaju. Makni ga iz prodaje.':
       'This product has already been bought ({0}) — it can\'t be deleted because buyers download it. Take it off sale instead.',
   'PRODANO @{0} · {1}': 'SOLD @{0} · {1}',
@@ -2155,7 +2142,7 @@ const kEn = <String, String>{
       '{0} will be deleted. Their items go back on sale and transactions stay in the history.',
   '• Briše se {0} tvojih predmeta i njihove objave na prodaji.':
       '• {0} of your items and their listings will be deleted.',
-  '⚡ Brzo dodaj': '⚡ Quick add',
+  'Brzo dodaj': 'Quick add',
   'Dodaj karticu i adresu': 'Add card and address',
   'Kupujem': 'Buying',
   'Prijava / registracija': 'Log in / sign up',
@@ -2235,7 +2222,7 @@ const kEn = <String, String>{
       'Enter the responsible person\'s full name.',
   'Upiši telefon za kupce.': 'Enter a phone number for buyers.',
   'npr. Retro Kutak j.d.o.o.': 'e.g. Retro Kutak Ltd.',
-  '🏪 Trgovac · {0}': '🏪 Trader · {0}',
+  'Trgovac · {0}': 'Trader · {0}',
   'Obrt': 'Sole trader',
   'Ostalo': 'Other',
   'Prvo odaberi način dostave': 'Choose a delivery method first',
@@ -2250,13 +2237,11 @@ const kEn = <String, String>{
   'Prodaj': 'Sell',
   'Traži liveove, aukcije, predmete i račune…':
       'Search live shows, auctions, items and accounts…',
-  '⏱ Na aukciji': '⏱ In auction',
-  '🏷️ Na prodaji': '🏷️ For sale',
-  '📦 Osvojio si {0} · Odaberi dostavu': '📦 You won {0} · Choose delivery',
+  'Na prodaji': 'For sale',
+  'Osvojio si {0} · Odaberi dostavu': 'You won {0} · Choose delivery',
   'Kupljeno': 'Bought',
   'Nije na prodaji': 'Not for sale',
   'Paket pratiš u Moje → Kupljeno': 'Track the parcel in My → Bought',
-  'Na prodaji': 'For sale',
   'Maksimalna ponuda (ili drži gumb)': 'Max bid (or hold the button)',
   'Napredno: pada cijena, nagradna igra': 'Advanced: price drop, giveaway',
   'Na predmetu na prodaji dodirni "Pošalji poruku".':
@@ -2288,7 +2273,6 @@ const kEn = <String, String>{
       'Sign in to see your purchases and sales',
   'Ovdje pratiš što si kupio, svoje ponude, predmete i pakete za poslati.':
       'Track what you bought, your bids, your items and parcels to ship.',
-  'Osvojeno 🎉': 'Won 🎉',
   'Prodano {0} za {1}': 'Sold to {0} for {1}',
   'Uđi': 'Join',
   'Zaštita kupca': 'Buyer protection',
@@ -2308,18 +2292,18 @@ const kEn = <String, String>{
   'Kartica za automatsku naplatu i adresa za dostavu — koriste se za svaku kupnju i pobjedu.':
       'Card for automatic payment and delivery address — used for every purchase and win.',
   'Još nema predmeta na aukciji.': 'No items up for auction yet.',
-  '🔴 Licitira se sada': '🔴 Bidding now',
-  '🥇 Tvoja predponuda vodi': '🥇 Your pre-bid leads',
+  'Licitira se sada': 'Bidding now',
+  'Tvoja predponuda vodi': 'Your pre-bid leads',
   'Predponuda: {0}': 'Pre-bid: {0}',
-  '✅ Prodano · {0}': '✅ Sold · {0}',
+  'Prodano · {0}': 'Sold · {0}',
   'Prodavač nema predmeta za Kupi odmah.': 'The seller has no Buy now items.',
-  '🔨 Na aukciji ({0})': '🔨 Auction ({0})',
-  '🛍️ Kupi odmah ({0})': '🛍️ Buy now ({0})',
-  '⚡ Svaka ponuda dodaje +2 s': '⚡ Every bid adds +2 s',
+  'Na aukciji ({0})': 'Auction ({0})',
+  'Kupi odmah ({0})': 'Buy now ({0})',
+  'Svaka ponuda dodaje +2 s': 'Every bid adds +2 s',
   '• Live traje dok si uživo — završavaš ga ti (ili kad izađeš).\n• Ti biraš predmet i pokrećeš licitaciju od {0} s.\n• Svaka ponuda dodaje 2 s na sat (brze licitacije: 5 ili 10 s).\n• Pobjednik plaća automatski karticom, a dostava kreće na njegovu adresu.\n• Provizija je 10 % samo od razlike iznad početne cijene.':
       '• The show lasts while you\'re live — you end it (or when you leave).\n• You pick an item and start {0} s bidding.\n• Every bid adds 2 s to the clock (quick auctions: 5 or 10 s).\n• The winner pays automatically by card and delivery goes to their address.\n• Commission is 10% only of the amount above the start price.',
-  '🔴  Predmeti se licitiraju jedan za drugim — brze licitacije od 5 ili 10 sekundi.\n\n⚡  Svaka ponuda dodaje 2 s na sat.\n\n👆  Povuci gore ili dolje za sljedeći live ili aukciju.':
-      '🔴  Items are auctioned one after another — quick 5 or 10 second auctions.\n\n⚡  Every bid adds 2 s to the clock.\n\n👆  Swipe up or down for the next show or auction.',
+  'Predmeti se licitiraju jedan za drugim — brze licitacije od 5 ili 10 sekundi.\n\n Svaka ponuda dodaje 2 s na sat.\n\n Povuci gore ili dolje za sljedeći live ili aukciju.':
+      'Items are auctioned one after another — quick 5 or 10 second auctions.\n\n Every bid adds 2 s to the clock.\n\n Swipe up or down for the next show or auction.',
   'Adresa spremljena': 'Address saved',
   'PLAĆANJE': 'PAYMENT',
   'DOSTAVA': 'DELIVERY',
@@ -2328,9 +2312,9 @@ const kEn = <String, String>{
   'Dodaj adresu za dostavu': 'Add a delivery address',
   'Kurir na adresu. BOX NOW paketomat biraš pri svakoj kupnji.':
       'Courier to your address. Pick a BOX NOW locker at each purchase.',
-  '🥇 Ti vodiš s {0}': '🥇 You lead with {0}',
-  '🎉 Dobitnik!': '🎉 Winner!',
-  '🎁 Izvlačenje…': '🎁 Drawing…',
+  'Ti vodiš s {0}': 'You lead with {0}',
+  'Dobitnik!': 'Winner!',
+  'Izvlačenje…': 'Drawing…',
   '{0} osvaja nagradu!': '{0} wins the prize!',
   '{0} prijavljenih': '{0} entered',
   '⬇️ Digitalno': '⬇️ Digital',
@@ -2341,7 +2325,6 @@ const kEn = <String, String>{
   'ukupno {0}': 'total {0}',
   '✓ Stiglo': '✓ Arrived',
   'Plaćeno {0}': 'Paid {0}',
-  '👥 Pratiš': '👥 Following',
   'Od računa koje pratiš': 'From accounts you follow',
   'Najmanje {0} · cijena odmah skače na tvoj iznos.':
       'At least {0} · the price jumps to your amount right away.',
@@ -2364,14 +2347,13 @@ const kEn = <String, String>{
   '{0} je odabrao dostavu za "{1}" — kod za paketomat je spreman.':
       '{0} chose delivery for "{1}" — the locker code is ready.',
   'Preuzeto': 'Picked up',
-  'Preuzeto iz paketomata ✅': 'Picked up from the locker ✅',
+  'Preuzeto iz paketomata': 'Picked up from the locker',
   '{0} je preuzeo "{1}" iz paketomata.': '{0} picked up "{1}" from the locker.',
   'Nema pošiljki': 'No shipments',
   'Ovdje su paketi koje šalješ i koji stižu tebi — s kodom za paketomat.':
       'Parcels you send and ones coming to you — with the locker code.',
-  '⏳ Odaberi dostavu': '⏳ Choose delivery',
-  '📤 Za poslati ({0})': '📤 To ship ({0})',
-  '📥 Stiže meni': '📥 Coming to me',
+  'Za poslati ({0})': 'To ship ({0})',
+  'Stiže meni': 'Coming to me',
   '✓ Završeno': '✓ Done',
   'Pokreni live i prodaj prvi predmet.': 'Go live and sell your first item.',
   'Još ništa ne prodaješ': 'You\'re not selling anything yet',
@@ -2424,16 +2406,16 @@ const kEn = <String, String>{
   '{0} u paketomatu — dodirni za PIN': '{0} in a locker — tap for the PIN',
   'Netko je upravo kupio ovaj komad — predmet više nije dostupan.':
       'Someone just bought this unit — the item is no longer available.',
-  '📦 Pošalji "{0}" kupcu {1}.\nBOX NOW pošiljka {2} · paketomat: {3}\nPIN za predaju: {4}\nNa bilo kojem BOX NOW paketomatu odaberi "Pošalji paket" i upiši PIN.':
-      '📦 Ship "{0}" to buyer {1}.\nBOX NOW parcel {2} · locker: {3}\nDrop-off PIN: {4}\nAt any BOX NOW locker choose "Send a parcel" and enter the PIN.',
-  '📦 Pošalji "{0}" kupcu {1} ({2}). Kod pošiljke: {3} — otpremnica je u Moje → Otpremnice.':
-      '📦 Ship "{0}" to buyer {1} ({2}). Shipment code: {3} — the delivery note is in My → Delivery notes.',
-  '📬 "{0}" te čeka u paketomatu {1}.\nPIN za preuzimanje: {2}\nNa paketomatu odaberi "Preuzmi paket" i upiši PIN.':
-      '📬 "{0}" is waiting for you at locker {1}.\nPickup PIN: {2}\nAt the locker choose "Collect parcel" and enter the PIN.',
+  'Pošalji "{0}" kupcu {1}.\nBOX NOW pošiljka {2} · paketomat: {3}\nPIN za predaju: {4}\nNa bilo kojem BOX NOW paketomatu odaberi "Pošalji paket" i upiši PIN.':
+      'Ship "{0}" to buyer {1}.\nBOX NOW parcel {2} · locker: {3}\nDrop-off PIN: {4}\nAt any BOX NOW locker choose "Send a parcel" and enter the PIN.',
+  'Pošalji "{0}" kupcu {1} ({2}). Kod pošiljke: {3} — otpremnica je u Moje → Otpremnice.':
+      'Ship "{0}" to buyer {1} ({2}). Shipment code: {3} — the delivery note is in My → Delivery notes.',
+  '"{0}" te čeka u paketomatu {1}.\nPIN za preuzimanje: {2}\nNa paketomatu odaberi "Preuzmi paket" i upiši PIN.':
+      '"{0}" is waiting for you at locker {1}.\nPickup PIN: {2}\nAt the locker choose "Collect parcel" and enter the PIN.',
   'Službene poruke Subhasta — PIN-ovi i upute za dostavu.':
       'Official Subhasto messages — PINs and delivery instructions.',
-  '👋 Ovdje ti Subhasto šalje PIN-ove za paketomate i upute za slanje. Na ove poruke ne možeš odgovoriti.':
-      '👋 Subhasto sends you parcel locker PINs and shipping instructions here. You can\'t reply to these messages.',
+  'Ovdje ti Subhasto šalje PIN-ove za paketomate i upute za slanje. Na ove poruke ne možeš odgovoriti.':
+      'Subhasto sends you parcel locker PINs and shipping instructions here. You can\'t reply to these messages.',
   'Nema veze s poslužiteljem — kupnja nije moguća. Pokušaj ponovno.':
       'No connection to the server — purchase isn\'t possible. Please try again.',
   'Uključi zvuk': 'Turn sound on',
@@ -2445,7 +2427,7 @@ const kEn = <String, String>{
   'U tvom budžetu': 'In your budget',
   'Završava za {0} min': 'Ends in {0} min',
   'Popularno': 'Popular',
-  '✨ Odabrano za tebe': '✨ Picked for you',
+  'Odabrano za tebe': 'Picked for you',
   'Gledaš puno: {0}': 'You watch a lot: {0}',
   'Još nema objava — svrati uskoro.': 'No posts yet — check back soon.',
   'Preuzmi Android aplikaciju': 'Download the Android app',
@@ -2469,15 +2451,12 @@ const kEn = <String, String>{
   'U liveu kao #{0} · upiši početnu cijenu':
       'In the live as #{0} · enter a starting price',
   'Šaljem ({0})': 'Sending ({0})',
-  '🏷️ Na Kupi odmah ({0}) — dok traje live, skidaju se s prodaje':
-      '🏷️ On Buy now ({0}) — taken off sale while the live runs',
-  '💾 Spremljeni predmeti ({0})': '💾 Saved items ({0})',
-  '📥 Na putu do tebe': '📥 On the way to you',
-  '📦 Stiglo — potvrdi primitak': '📦 Arrived — confirm receipt',
-  '💾 Spremljeno': '💾 Saved',
-  '🔴 U liveu': '🔴 In a live',
+  'Na Kupi odmah ({0}) — dok traje live, skidaju se s prodaje':
+      'On Buy now ({0}) — taken off sale while the live runs',
+  'Spremljeni predmeti ({0})': 'Saved items ({0})',
+  'Na putu do tebe': 'On the way to you',
+  'Stiglo — potvrdi primitak': 'Arrived — confirm receipt',
   '#150, #151… do 50': '#150, #151… up to 50',
-  'Brzo dodaj': 'Quick add',
   'Dodaj predmete samo za ovaj live. Licitiraju se redom — nakon svake prodaje dolazi sljedeći.':
       'Add items just for this live. They are auctioned in order — after each sale the next one comes up.',
   'Item on screen': 'Item on screen',
@@ -2493,8 +2472,7 @@ const kEn = <String, String>{
   'Upiši naziv, broj, količinu i cijenu (barem 1 €).':
       'Enter a name, number, quantity and price (at least €1).',
   '{0} #{1} … #{2}': '{0} #{1} … #{2}',
-  '⚡ Brzo dodaj predmet': '⚡ Quick add item',
-  '🔢 Items on screen': '🔢 Items on screen',
+  'Brzo dodaj predmet': 'Quick add item',
   '#150, #151… kao 1 predmet': '#150, #151… as 1 item',
   'Items on screen · {0} brojeva · od {1}':
       'Items on screen · {0} numbers · from {1}',
@@ -2505,10 +2483,7 @@ const kEn = <String, String>{
   'Kupljeno ({0})': 'Bought ({0})',
   'Još nemaš digitalnih kupnji.': 'You have no digital purchases yet.',
   '✓ Dostavljeno': '✓ Delivered',
-  '🚚 Na dostavi · {0}': '🚚 On the way · {0}',
-  '🏪 Trgovac': '🏪 Trader',
-  '👤 Fizička osoba': '👤 Private seller',
-  'Stiže meni': 'Coming to me',
+  'Na dostavi · {0}': 'On the way · {0}',
   'Šaljem': 'Sending',
   'Dostava u EU': 'Delivery in the EU',
   'Kurir na adresu u drugoj državi EU · 4–7 dana':
@@ -2592,8 +2567,8 @@ const kEn = <String, String>{
   '{0} paketomati': '{0} lockers',
   '{0} · kodovi i PIN-ovi za paketomate': '{0} · codes and PINs for lockers',
   '{0}: u transportu': '{0}: in transit',
-  '📦 Pošalji "{0}" kupcu {1}.\n{2} pošiljka {3} · paketomat: {4}\nPIN za predaju: {5}\n{6}':
-      '📦 Send "{0}" to buyer {1}.\n{2} parcel {3} · locker: {4}\nDrop-off PIN: {5}\n{6}',
+  'Pošalji "{0}" kupcu {1}.\n{2} pošiljka {3} · paketomat: {4}\nPIN za predaju: {5}\n{6}':
+      'Send "{0}" to buyer {1}.\n{2} parcel {3} · locker: {4}\nDrop-off PIN: {5}\n{6}',
   'GLS paketomat': 'GLS locker',
   'DPD Pickup paketomat': 'DPD Pickup locker',
   'Odaberi "Preuzmi paket" i upiši PIN iz poruke.':
@@ -2603,8 +2578,8 @@ const kEn = <String, String>{
   'Paket još nije u paketomatu.': 'The parcel isn\'t in the locker yet.',
   'Pogrešan PIN — pretinac se nije otvorio.':
       'Wrong PIN — the compartment didn\'t open.',
-  'Pretinac je otvoren — paket je preuzet ✅':
-      'Compartment open — parcel collected ✅',
+  'Pretinac je otvoren — paket je preuzet':
+      'Compartment open — parcel collected',
   'Preuzmi paket — upiši PIN': 'Collect parcel — enter PIN',
   '{0} paketomat': '{0} locker',
   'Prodano {0} od {1}': 'Sold {0} of {1}',
@@ -2642,11 +2617,9 @@ const kEn = <String, String>{
   'Sve otpremnice': 'All delivery notes',
   '{0} · generiraju se same za svaku prodaju':
       '{0} · created automatically for every sale',
-  '⚡ Treba tvoju akciju ({0})': '⚡ Needs your action ({0})',
+  'Treba tvoju akciju ({0})': 'Needs your action ({0})',
   '✓ Osvojeno ({0})': '✓ Won ({0})',
-  '📥 Na putu do tebe ({0})': '📥 On its way to you ({0})',
-  '📦 Za poslati ({0})': '📦 To send ({0})',
-  '🔴 Moji liveovi': '🔴 My lives',
+  'Na putu do tebe ({0})': 'On its way to you ({0})',
   'Još nema završenih aukcija.': 'No finished auctions yet.',
   'Još nisi bio uživo.': 'You haven\'t gone live yet.',
   'Na putu': 'On the way',
@@ -2660,9 +2633,8 @@ const kEn = <String, String>{
   'Treba akciju': 'Needs action',
   'Trenutno nigdje ne voziš.': 'You\'re not leading anywhere right now.',
   'Vodim': 'Leading',
-  '⏱ Na aukciji ({0})': '⏱ On auction ({0})',
   '✓ Završene aukcije ({0})': '✓ Finished auctions ({0})',
-  '📬 Potvrda paketa ({0})': '📬 Confirm parcel ({0})',
+  'Potvrda paketa ({0})': 'Confirm parcel ({0})',
   'Još nema kupnji ni prodaja u liveu. Licitiraj ili pokreni live.':
       'No live purchases or sales yet. Bid or start a live.',
   'Još nema poslanih paketa.': 'No sent parcels yet.',
@@ -2677,8 +2649,8 @@ const kEn = <String, String>{
       'Log in to see your bids and sales',
   '✓ Kupljeno u liveu ({0})': '✓ Bought in live ({0})',
   '✓ Poslano ({0})': '✓ Sent ({0})',
-  '💸 Prodano u liveu ({0})': '💸 Sold in live ({0})',
-  '🧾 Sve otpremnice ({0})': '🧾 All delivery notes ({0})',
+  'Prodano u liveu ({0})': 'Sold in live ({0})',
+  'Sve otpremnice ({0})': 'All delivery notes ({0})',
   'Licitiram': 'Bidding',
   'Traži svoje predmete…': 'Search your items…',
   'Nema predmeta za tu pretragu.': 'No items match that search.',
@@ -2689,7 +2661,7 @@ const kEn = <String, String>{
       'You already bought this digital product — download it in My.',
   'Osvojio si "{0}" za {1}. Datoteku preuzmi na stranici predmeta.':
       'You won "{0}" for {1}. Download the file on the item page.',
-  '💾 Digitalno ({0})': '💾 Digital ({0})',
+  'Digitalno ({0})': 'Digital ({0})',
   'Još nemaš kupljenih digitalnih proizvoda.':
       'You have no purchased digital products yet.',
   '1 dostupno': '1 available',
@@ -2723,7 +2695,6 @@ const kEn = <String, String>{
   'Ukloni iz showa': 'Remove from show',
   'Skini moderatora': 'Remove moderator',
   'Postavi za moderatora': 'Make moderator',
-  'licitira {0}': 'bids {0}',
   'uzima': 'takes it',
   'prijavljen na nagradnu igru': 'entered the giveaway',
   'ušao/ušla': 'joined',
@@ -2929,7 +2900,6 @@ const kEn = <String, String>{
   'Još ništa nije prodano.': 'Nothing sold yet.',
   'Količina: {0}': 'Quantity: {0}',
   'Kreiraj': 'Create',
-  'Kupi odmah ({0})': 'Buy Now ({0})',
   'Licitacija s rokom, bez livea.': 'A timed auction, without a live show.',
   'Naziv i cijena, ide u "{0}".': 'Name and price, added to "{0}".',
   'Naziv i cijena, prvo kreiraš show.': 'Name and price; create a show first.',
@@ -2948,7 +2918,7 @@ const kEn = <String, String>{
   'Trenutno nema drugih liveova uživo.':
       'There are no other live shows right now.',
   'Uvezi iz inventara': 'Import from inventory',
-  '🚀 Raid! {0} vas šalje u "{1}"': '🚀 Raid! {0} is sending you to "{1}"',
+  'Raid! {0} vas šalje u "{1}"': 'Raid! {0} is sending you to "{1}"',
   'Dimenzije': 'Dimensions',
   'Dimenzije moraju biti do 300 cm.': 'Dimensions must be up to 300 cm.',
   'Dimenzije paketa': 'Package dimensions',
@@ -3088,8 +3058,8 @@ const kEn = <String, String>{
   'Dostava na {0}': 'Ships to {0}',
   'Kako šalješ "{0}"?': 'How are you shipping "{0}"?',
   'Odaberi dostavu i pošalji': 'Choose shipping and send',
-  'Poslano. Kupac je dobio broj za praćenje 🚚':
-      'Shipped. The buyer got the tracking number 🚚',
+  'Poslano. Kupac je dobio broj za praćenje':
+      'Shipped. The buyer got the tracking number',
   'Pošalji paket': 'Ship package',
   'Predmet ukupno': 'Item total',
   'Prodavač priprema paket. Broj za praćenje dobit ćeš čim pošalje.':
@@ -3101,8 +3071,8 @@ const kEn = <String, String>{
   'Za slanje': 'To ship',
   'od {0}, prema načinu slanja': 'from {0}, depending on shipping',
   'Čeka slanje': 'Awaiting shipment',
-  '📦 Osvojio si {0} · prodavač šalje paket':
-      '📦 You won {0} · the seller is shipping',
+  'Osvojio si {0} · prodavač šalje paket':
+      'You won {0} · the seller is shipping',
   'Osvojio si aukciju "{0}" za {1}. Prodavač šalje paket, a broj za praćenje stiže ovdje.':
       'You won the auction "{0}" for {1}. The seller ships the package; the tracking number arrives here.',
   'Osvojio si "{0}" u nagradnoj igri {1}. Prodavač šalje paket, a broj za praćenje stiže ovdje.':
@@ -3158,14 +3128,19 @@ const kEn = <String, String>{
   'Zarada se oslobađa kad paket stigne kupcu ili kad se riješi spor.':
       'Earnings are released when the parcel reaches the buyer or a dispute is resolved.',
   'Osvojio si {0} · prati pošiljku': 'You won {0} · track the parcel',
-  'Plaćeno karticom · prodavač šalje paket': 'Paid by card · the seller ships the parcel',
+  'Plaćeno karticom · prodavač šalje paket':
+      'Paid by card · the seller ships the parcel',
   'Prati kupnju': 'Track purchase',
   'Prodavač priprema paket': 'The seller is preparing the parcel',
   'Prodavač priprema paket ({0})': 'The seller is preparing a parcel ({0})',
-  'Zamjena prihvaćena 🤝 — paket šaljete na adresu iz računa, broj za praćenje stiže u "Moje".': 'Swap accepted 🤝 — send the parcel to the address on the account; the tracking number arrives in "My".',
+  'Zamjena prihvaćena — paket šaljete na adresu iz računa, broj za praćenje stiže u "Moje".':
+      'Swap accepted — send the parcel to the address on the account; the tracking number arrives in "My".',
   'Nema paketa za slanje': 'No parcels to ship',
   'Za slanje: {0}': 'To ship: {0}',
   'Misliš li na "{0}"?': 'Did you mean "{0}"?',
+  'Vruće': 'Hot',
+  'Danas posebna ponuda ✨': 'Special offer today ✨',
+  'Novo stiglo! 👀': 'Just arrived! 👀',
   'Zakaži show': 'Schedule a show',
   'Otprema': 'Shipping',
   'Nema paketa za predaju': 'No parcels to hand over',
@@ -3252,12 +3227,11 @@ const kEn = <String, String>{
   'Predano': 'Handed over',
   'Još nema paketa predanih dostavljaču.':
       'No parcels handed to the carrier yet.',
-  '📦 Predano dostavljaču ({0})': '📦 Handed to the carrier ({0})',
+  'Predano dostavljaču ({0})': 'Handed to the carrier ({0})',
   'Prosj. gledanje': 'Avg. watch time',
   'Novi pratitelji': 'New followers',
   '{0} min {1} s': '{0} min {1} s',
   'Nema predmeta u ovom prikazu.': 'No items in this view.',
-  'Licitira se': 'Bidding',
   'Neprodano': 'Unsold',
   'Na redu': 'Up next',
   'Gledatelji sada': 'Viewers now',
@@ -3277,8 +3251,8 @@ const kEn = <String, String>{
       'This giveaway is for followers only — follow the host.',
   'Nagradna igra nije u tijeku.': 'No giveaway is running.',
   'Izvuci sada': 'Draw now',
-  '🎁 Giveaway · samo pratitelji · {0} prijava':
-      '🎁 Giveaway · followers only · {0} entries',
+  'Giveaway · samo pratitelji · {0} prijava':
+      'Giveaway · followers only · {0} entries',
   'Giveaway': 'Giveaway',
   'Gledatelji se prijave, a dobitnik se izvlači na kraju. Pošiljku plaćaš ti.':
       'Viewers enter and the winner is drawn at the end. You pay for shipping.',

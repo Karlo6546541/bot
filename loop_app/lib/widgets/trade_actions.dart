@@ -558,7 +558,7 @@ Future<bool> confirmAndBuy(
       } catch (_) {
         /* Realtime refresh remains available. */
       }
-      showLoopSnackBar(t('Kupljeno! 🎉'));
+      showLoopSnackBar(t('Kupljeno!'));
     }
     return paid;
   }
@@ -604,7 +604,7 @@ Future<bool> confirmAndBuy(
   if (ok && nav.mounted) {
     await showCelebration(
       nav,
-      title: t('Kupljeno! 🎉'),
+      title: t('Kupljeno!'),
       subtitle: t('Prodavač šalje paket — broj za praćenje stiže u Moje.'),
       device: device,
       amount: buyTotal(price),
@@ -1040,7 +1040,7 @@ Future<bool> showListDialog(
     () => ref
         .read(appProvider.notifier)
         .listOnMarket(device.id, price, quantity: quantity),
-    successMessage: t('Na prodaji je 🏷️'),
+    successMessage: t('Na prodaji je'),
   );
 }
 
