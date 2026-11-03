@@ -16,7 +16,7 @@ import 'live_screens.dart';
 import 'my_shows_screen.dart';
 import 'portfolio_screen.dart';
 import 'account_health_screen.dart';
-import 'deliveries_screen.dart' show DeliveryNotesScreen;
+import 'deliveries_screen.dart' show DeliveryNotesScreen, ShipGroup;
 import 'inventory_screen.dart';
 import 'messages_screen.dart';
 import 'seller_finance_screens.dart';
@@ -381,7 +381,14 @@ class SellerHubScreen extends ConsumerWidget {
       return Scaffold(appBar: AppBar(title: Text(t('Seller Hub'))));
     }
     final health = AccountHealth.of(state, user.id, DateTime.now());
-    final shipping = state.toShip.length;
+    final nowT = DateTime.now();
+    final awaiting = state.toShip
+        .where((d) => ShipGroup.of(d, nowT) == ShipGroup.awaitingBuyer)
+        .length;
+    final ready = state.toShip
+        .where((d) => ShipGroup.of(d, nowT) == ShipGroup.readyToShip)
+        .length;
+    final shipping = awaiting + ready;
     void openSales(MyTab tab) =>
         MyAuctionsScreen.open(context, initialTab: tab);
 
@@ -477,9 +484,17 @@ class SellerHubScreen extends ConsumerWidget {
                 const ValueKey('seller-hub-shipping'),
                 Icons.local_shipping_outlined,
                 shipping == 0
-                    ? t('Nema paketa za predaju')
-                    : t('Za predaju: {0}', ['$shipping']),
-                () => DeliveryNotesScreen.open(context),
+                    ? t('Nema paketa za slanje')
+                    : [
+                        if (awaiting > 0) t('Za slanje: {0}', ['$awaiting']),
+                        if (ready > 0) t('Za predaju: {0}', ['$ready']),
+                      ].join(' · '),
+                () => DeliveryNotesScreen.open(
+                  context,
+                  group: awaiting > 0
+                      ? ShipGroup.awaitingBuyer
+                      : ShipGroup.readyToShip,
+                ),
               ),
               const SizedBox(height: 8),
               Builder(
@@ -841,7 +856,7 @@ class _SellerHubPanelState extends ConsumerState<SellerHubPanel> {
                         TextSpan(
                           children: [
                             TextSpan(
-                              text: t('Za predaju: {0}', ['${toShip.length}']),
+                              text: t('Za slanje: {0}', ['${toShip.length}']),
                             ),
                             const TextSpan(text: '  ·  '),
                             TextSpan(

@@ -3163,6 +3163,8 @@ const kEn = <String, String>{
   'Prodavač priprema paket': 'The seller is preparing the parcel',
   'Prodavač priprema paket ({0})': 'The seller is preparing a parcel ({0})',
   'Zamjena prihvaćena 🤝 — paket šaljete na adresu iz računa, broj za praćenje stiže u "Moje".': 'Swap accepted 🤝 — send the parcel to the address on the account; the tracking number arrives in "My".',
+  'Nema paketa za slanje': 'No parcels to ship',
+  'Za slanje: {0}': 'To ship: {0}',
   'Zakaži show': 'Schedule a show',
   'Otprema': 'Shipping',
   'Nema paketa za predaju': 'No parcels to hand over',

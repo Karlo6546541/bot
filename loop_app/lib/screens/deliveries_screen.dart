@@ -1712,11 +1712,17 @@ enum ShipGroup {
 /// pošiljaka s odabirom, skupne radnje (otpremnice, označi kao predano) i
 /// zadane postavke otpremnice.
 class DeliveryNotesScreen extends ConsumerStatefulWidget {
-  const DeliveryNotesScreen({super.key});
+  const DeliveryNotesScreen({super.key, this.group});
 
-  static Future<void> open(BuildContext context) => Navigator.of(
-    context,
-  ).push(MaterialPageRoute<void>(builder: (_) => const DeliveryNotesScreen()));
+  /// Skupina koja se odmah prikaže (npr. iz Seller Huba).
+  final ShipGroup? group;
+
+  static Future<void> open(BuildContext context, {ShipGroup? group}) =>
+      Navigator.of(context).push(
+        MaterialPageRoute<void>(
+          builder: (_) => DeliveryNotesScreen(group: group),
+        ),
+      );
 
   @override
   ConsumerState<DeliveryNotesScreen> createState() =>
@@ -1725,7 +1731,7 @@ class DeliveryNotesScreen extends ConsumerStatefulWidget {
 
 class _DeliveryNotesScreenState extends ConsumerState<DeliveryNotesScreen> {
   /// `null` = sve pošiljke.
-  ShipGroup? _group;
+  late ShipGroup? _group = widget.group;
   final Set<String> _selected = {};
 
   Future<void> _markHandedOver(List<Delivery> list) async {
