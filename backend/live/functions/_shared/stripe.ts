@@ -39,7 +39,13 @@ export function appUrl() {
 }
 export function failure(error: unknown) {
   if (error instanceof Stripe.errors.StripeError) {
-    console.error('stripe_request_failed', { type: error.type, code: error.code, requestId: error.requestId });
+    console.error('stripe_request_failed', { type: error.type, code: error.code, status: error.statusCode,
+      param: (error as { param?: string }).param, message: error.message, requestId: error.requestId });
+  } else if (error instanceof Error && error.message !== 'AUTH_REQUIRED') {
+    // Reason for a 503 (configuration, database, ...). Messages hold no secrets.
+    console.error('payments_unavailable', { name: error.name, message: error.message });
+  } else if (!(error instanceof Error)) {
+    console.error('payments_unavailable', { detail: JSON.stringify(error)?.slice(0, 300) });
   }
 
   if (error instanceof Stripe.errors.StripeError &&

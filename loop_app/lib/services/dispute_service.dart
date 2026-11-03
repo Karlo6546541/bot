@@ -29,10 +29,14 @@ class DisputeService {
   /// Zapis prodaje za pošiljku (zarada prodavatelja).
   LoopTransaction? saleOf(Delivery d) => saleFor(d, _storage.transactions);
 
+  /// Pošiljka Stripe narudžbe (server je izradio `del-stripe-sale-<narudžba>`):
+  /// novac vodi Stripe, pa se zadržavanje i povrat ne vode u lokalnom stanju.
+  static bool isStripe(Delivery d) => d.id.startsWith('del-stripe-');
+
   /// Smije li kupac prijaviti problem za ovu pošiljku.
   bool canOpen(Delivery d, {DateTime? now}) {
     final at = now ?? DateTime.now();
-    if (d.dispute != null || d.sellerId == null) return false;
+    if (d.dispute != null || d.sellerId == null || isStripe(d)) return false;
     if (d.method == null || d.method == DeliveryMethod.digital) return false;
     if (d.confirmedAt == null) return true;
     final business =
@@ -94,7 +98,7 @@ class DisputeService {
   ) {
     var held = 0.0;
     for (final d in deliveries) {
-      if (d.sellerId != sellerId) continue;
+      if (d.sellerId != sellerId || isStripe(d)) continue;
       final dispute = d.dispute;
       if (dispute?.status == DisputeStatus.refunded) continue;
       final hold = (dispute?.active ?? false) || !released(d, now);

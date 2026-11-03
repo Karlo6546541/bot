@@ -20,9 +20,11 @@ for (const name of readdirSync(new URL('../migrations/', import.meta.url)).filte
 await db.exec(`create table public.loop_live_shows(id text primary key,data jsonb);
 create table public.loop_live_events(id text primary key,data jsonb);
 create table public.loop_transactions(id text primary key,data jsonb);
+create table public.loop_auctions(id text primary key,data jsonb);
+create table public.loop_deliveries(id text primary key,data jsonb);
 alter table public.loop_devices enable row level security;
 create policy loop_write on public.loop_devices for all to authenticated using(true) with check(true);
-grant all on public.loop_devices,public.loop_live_events,public.loop_transactions to authenticated,service_role;`);
+grant all on public.loop_devices,public.loop_live_events,public.loop_transactions,public.loop_auctions,public.loop_deliveries to authenticated,service_role;`);
 await db.exec(readFileSync(new URL('../migrations/20261102170214_subhasto_platform_payments.sql',import.meta.url),'utf8'));
 
 const host='00000000-0000-4000-8000-000000000001',buyer='00000000-0000-4000-8000-000000000002',other='00000000-0000-4000-8000-000000000003';
@@ -139,4 +141,6 @@ const { platformTests }=await import('./platform_payments.mjs');
 await platformTests(db,assert,as,rpc,rejects,{host,buyer,other});
 const {deliveryTests}=await import('./delivery_locations.mjs');
 await deliveryTests(db,assert,as,rpc,rejects,{host,buyer,other});
+const {orderFixTests}=await import('./order_fixes.mjs');
+await orderFixTests(db,assert,as,rpc,rejects,{host,buyer,other});
 await db.close();

@@ -10,13 +10,25 @@ Deno.serve(async(req:Request)=>{
  if(error)return new Response('Retry later',{status:503});
  const {data:risks,error:riskError}=await adminClient().from('commerce_payments').select('order_id,transfer_id').not('transfer_id','is',null).not('released_at','is',null).or('disputed.eq.true,refunded_cents.gt.0').limit(50);
  if(riskError)return new Response('Retry later',{status:503});
- if(!rows?.length&&!risks?.length)return Response.json({mode:'test',released:0});
+ const {data:stuck}=await adminClient().rpc('commerce_stuck_orders');
+ if(!rows?.length&&!risks?.length&&!stuck?.length)return Response.json({mode:'test',released:0});
  let svc;
  try{svc=await services();}catch{return new Response('Stripe configuration unavailable',{status:503});}
  // Reconcile risk events that raced with a successful transfer/database write.
  for(const risk of risks??[]){
   try{await reverseSellerTransfer(svc,risk);}catch{console.error('risk_reversal_pending');}
  }
+ // Orders whose PaymentIntent never succeeded would keep their listing frozen: ask Stripe, then expire.
+ try{
+  for(const s of stuck??[]){
+   try{
+    let intent=await svc.stripe.paymentIntents.retrieve(s.intent_id);
+    if(intent.status==='succeeded'||intent.status==='processing')continue;
+    if(intent.status!=='canceled')intent=await svc.stripe.paymentIntents.cancel(s.intent_id);
+    if(intent.status==='canceled')await svc.admin.rpc('commerce_expire_order',{p_order:s.order_id});
+   }catch{console.error('stuck_order_expiry_failed');}
+  }
+ }catch{console.error('stuck_order_query_failed');}
  let released=0;
  for(const row of rows??[]){
   try{

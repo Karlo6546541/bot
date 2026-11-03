@@ -315,4 +315,27 @@ void main() {
       expect(storage.userById(seller)!.credits, before);
     },
   );
+
+  test(
+    'Stripe pošiljka (server) ne ulazi u lokalno zadržavanje ni povrat',
+    () async {
+      final d = await list(100);
+      final tx = await trade.buy(userId: buyer, deviceId: d.id, now: t0);
+      final sale = storage.transactions.firstWhere(
+        (x) => x.type == TransactionType.sell && x.deviceId == d.id,
+      );
+      final stripe = await delivery.createStarted(
+        id: 'del-stripe-${sale.id}',
+        userId: buyer,
+        deviceId: tx.deviceId,
+        deviceName: d.name,
+        method: DeliveryMethod.courier,
+        destination: 'Ilica 1, 10000 Zagreb',
+        sellerId: seller,
+        now: t0,
+      );
+      expect(disputes.heldFor(seller, now: t0), 0);
+      expect(disputes.canOpen(stripe, now: t0), isFalse);
+    },
+  );
 }
