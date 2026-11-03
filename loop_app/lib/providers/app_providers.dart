@@ -202,7 +202,7 @@ class AppController extends Notifier<AppState> {
     if (sync != null) {
       sync.onRemoteChange = () {
         _remoteRefresh?.cancel();
-        _remoteRefresh = Timer(const Duration(milliseconds: 150), () {
+        _remoteRefresh = Timer(const Duration(milliseconds: 350), () {
           if (!ref.mounted) return;
           _refresh();
           unawaited(_autoListPortfolios());
@@ -231,8 +231,19 @@ class AppController extends Notifier<AppState> {
 
   Timer? _remoteRefresh;
 
-  /// Ponovno učitava stanje iz pohrane nakon svake promjene.
-  void _refresh() => state = AppState.fromStorage(_storage);
+  /// Ponovno učitava stanje iz pohrane nakon svake promjene. Čita samo
+  /// tablice koje su se promijenile, a ako se ništa nije promijenilo, stanje
+  /// ostaje isto pa se ni widgeti ne grade ponovno.
+  void _refresh() {
+    final next = AppState.fromStorage(_storage, previous: state);
+    if (next.sameAs(state)) return;
+    state = next;
+  }
+
+  /// Riječ je o istom sadržaju: ne obavještavaj slušatelje.
+  @override
+  bool updateShouldNotify(AppState previous, AppState next) =>
+      !identical(previous, next) && !next.sameAs(previous);
 
   // ------------------------------------------------------------- sesija
 
@@ -801,6 +812,8 @@ class AppController extends Notifier<AppState> {
   /// Jednokratno objavljuje stare predmete iz portfolija u Marketu.
   /// Online samo kad je veza aktivna i korisnik prijavljen (baza ne
   /// dopušta pisanje gostima).
+  int _autoListChecked = -1;
+
   Future<void> _autoListPortfolios() async {
     if (!ref.mounted || _autoListing) return;
     final sync = ref.read(syncProvider);
@@ -810,7 +823,11 @@ class AppController extends Notifier<AppState> {
         return;
       }
     }
+    // Provjera čita sve predmete: radi se samo kad su se oni promijenili.
+    final devicesVersion = _storage.version('devices');
+    if (devicesVersion == _autoListChecked) return;
     if (!_storage.devices.any((d) => d.ownerId == null || !d.marketChecked)) {
+      _autoListChecked = devicesVersion;
       return;
     }
     _autoListing = true;

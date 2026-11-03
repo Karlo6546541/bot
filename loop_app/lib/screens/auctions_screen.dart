@@ -1933,7 +1933,14 @@ String maskEmail(String email) {
 /// aukcije koje najprije završavaju.
 /// Sve kartice za pregled: liveovi (u tijeku pa zakazani), aukcije koje
 /// najprije završavaju i — uz [buyNow] — predmeti za Kupi odmah.
-List<BrowseItem> browseItems(AppState s, {bool buyNow = kBuyNowEnabled}) {
+List<BrowseItem> browseItems(AppState s, {bool buyNow = kBuyNowEnabled}) =>
+    s.memo(
+      'browse:$buyNow',
+      () => _browseItems(s, buyNow),
+      ttl: const Duration(seconds: 1),
+    );
+
+List<BrowseItem> _browseItems(AppState s, bool buyNow) {
   final now = DateTime.now();
   return [
     for (final (show, live) in s.activeLives)

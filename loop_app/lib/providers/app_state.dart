@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart' show listEquals, mapEquals, setEquals;
 import 'package:flutter/material.dart' show ThemeMode;
 
 import '../l10n/tr.dart';
@@ -25,10 +26,19 @@ import '../services/system_messages.dart';
 import '../services/seed_data.dart';
 import '../services/storage_service.dart';
 
+/// Izračuni koji se ponavljaju pri svakoj izgradnji (liveovi, tržište…)
+/// pamte se po snimci stanja. Vrijednosti koje ovise o vremenu imaju kratak
+/// rok trajanja.
+final _memo = Expando<Map<String, (Object?, DateTime)>>('appStateMemo');
+
+/// Događaji livea grupirani po showu — jednom po popisu događaja.
+final _eventsByShow = Expando<Map<String, List<LiveEvent>>>('eventsByShow');
+
 /// Nepromjenjiva snimka svih podataka. Nakon svake akcije kreira se nova
 /// snimka iz pohrane, pa se cijeli UI osvježava odmah.
 class AppState {
   const AppState({
+    this.versions = const {},
     required this.users,
     required this.devices,
     required this.transactions,
@@ -55,18 +65,73 @@ class AppState {
     this.liveEvents = const [],
   });
 
-  factory AppState.fromStorage(StorageService storage) {
-    final txs = [...storage.transactions]
-      ..sort((a, b) => b.createdAt.compareTo(a.createdAt)); // najnovije prvo
-    final devices = [...storage.devices]
-      ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
-    final users = [...storage.users]
-      ..sort((a, b) => a.createdAt.compareTo(b.createdAt));
+  /// Gradi stanje iz pohrane. Uz [previous] se popisi tablica koje se nisu
+  /// promijenile (vidi [StorageService.version]) ne čitaju i ne sortiraju
+  /// ponovno — to je glavni trošak pri svakoj promjeni podataka.
+  factory AppState.fromStorage(StorageService storage, {AppState? previous}) {
+    final versions = <String, Object>{
+      for (final t in const [
+        'users',
+        'sellers',
+        'devices',
+        'transactions',
+        'deliveries',
+        'auctions',
+        'reviews',
+        'notifications',
+        'reports',
+        'messages',
+        'offers',
+        'bargains',
+        'views',
+        'stories',
+        'live_shows',
+        'live_events',
+        'history',
+      ])
+        t: storage.version(t),
+    };
+    final me = storage.currentUserId;
+    final day = DateTime.now();
+    // Priče ovise o predmetima i o danu; povijest o prijavljenom korisniku.
+    versions['stories+'] =
+        '${versions['stories']}/${versions['devices']}/${day.year}-${day.month}-${day.day}';
+    versions['users+'] = '${versions['users']}/${versions['sellers']}';
+    versions['history+'] = '${versions['history']}/$me';
+
+    T reuse<T>(String key, T Function() build, T? Function(AppState) prev) {
+      if (previous != null && previous.versions[key] == versions[key]) {
+        final old = prev(previous);
+        if (old != null) return old;
+      }
+      return build();
+    }
+
+    final devicesList = reuse<List<Device>>(
+      'devices',
+      () =>
+          [...storage.devices]
+            ..sort((a, b) => b.createdAt.compareTo(a.createdAt)),
+      (p) => p.devices,
+    );
     return AppState(
-      users: users,
-      devices: devices,
-      transactions: txs,
-      currentUserId: storage.currentUserId,
+      versions: versions,
+      users: reuse<List<AppUser>>(
+        'users+',
+        () =>
+            [...storage.users]
+              ..sort((a, b) => a.createdAt.compareTo(b.createdAt)),
+        (p) => p.users,
+      ),
+      devices: devicesList,
+      transactions: reuse<List<LoopTransaction>>(
+        'transactions',
+        () =>
+            [...storage.transactions]
+              ..sort((a, b) => b.createdAt.compareTo(a.createdAt)),
+        (p) => p.transactions,
+      ),
+      currentUserId: me,
       isAdmin: storage.isAdmin,
       themeMode: ThemeMode.values.firstWhere(
         (m) => m.name == storage.themeMode,
@@ -77,41 +142,114 @@ class AppState {
           ? null
           : AuthIdentity.fromMap(storage.pendingAuth!),
       showHowItWorks: !storage.howItWorksDismissed,
-      deliveries: [...storage.deliveries]
-        ..sort((a, b) => b.createdAt.compareTo(a.createdAt)),
-      auctions: [...storage.auctions]
-        ..sort((a, b) => a.endsAt.compareTo(b.endsAt)),
-      reviews: [...storage.reviews]
-        ..sort((a, b) => b.createdAt.compareTo(a.createdAt)),
-      notifications: [...storage.notifications]
-        ..sort((a, b) => b.createdAt.compareTo(a.createdAt)),
-      reports: [...storage.reports]
-        ..sort((a, b) => b.createdAt.compareTo(a.createdAt)),
-      messages: [...storage.messages]
-        ..sort((a, b) => a.createdAt.compareTo(b.createdAt)),
-      offers: [...storage.offers]
-        ..sort((a, b) => b.createdAt.compareTo(a.createdAt)),
-      bargains: [...storage.bargains]
-        ..sort(
-          (a, b) => (b.updatedAt ?? b.createdAt).compareTo(
-            a.updatedAt ?? a.createdAt,
+      deliveries: reuse<List<Delivery>>(
+        'deliveries',
+        () =>
+            [...storage.deliveries]
+              ..sort((a, b) => b.createdAt.compareTo(a.createdAt)),
+        (p) => p.deliveries,
+      ),
+      auctions: reuse<List<Auction>>(
+        'auctions',
+        () =>
+            [...storage.auctions]..sort((a, b) => a.endsAt.compareTo(b.endsAt)),
+        (p) => p.auctions,
+      ),
+      reviews: reuse<List<Review>>(
+        'reviews',
+        () =>
+            [...storage.reviews]
+              ..sort((a, b) => b.createdAt.compareTo(a.createdAt)),
+        (p) => p.reviews,
+      ),
+      notifications: reuse<List<AppNotification>>(
+        'notifications',
+        () =>
+            [...storage.notifications]
+              ..sort((a, b) => b.createdAt.compareTo(a.createdAt)),
+        (p) => p.notifications,
+      ),
+      reports: reuse<List<Report>>(
+        'reports',
+        () =>
+            [...storage.reports]
+              ..sort((a, b) => b.createdAt.compareTo(a.createdAt)),
+        (p) => p.reports,
+      ),
+      messages: reuse<List<ChatMessage>>(
+        'messages',
+        () =>
+            [...storage.messages]
+              ..sort((a, b) => a.createdAt.compareTo(b.createdAt)),
+        (p) => p.messages,
+      ),
+      offers: reuse<List<SwapOffer>>(
+        'offers',
+        () =>
+            [...storage.offers]
+              ..sort((a, b) => b.createdAt.compareTo(a.createdAt)),
+        (p) => p.offers,
+      ),
+      bargains: reuse<List<PriceOffer>>(
+        'bargains',
+        () => [...storage.bargains]
+          ..sort(
+            (a, b) => (b.updatedAt ?? b.createdAt).compareTo(
+              a.updatedAt ?? a.createdAt,
+            ),
           ),
-        ),
+        (p) => p.bargains,
+      ),
       searchHistory: storage.searchHistory,
-      views: storage.views,
-      stories: [
-        ...storage.stories,
-        ...SeedData.dailyStories(storage.devices, DateTime.now()),
-      ]..sort((a, b) => a.createdAt.compareTo(b.createdAt)),
+      views: reuse<Map<String, int>>(
+        'views',
+        () => storage.views,
+        (p) => p.views,
+      ),
+      stories: reuse<List<Story>>(
+        'stories+',
+        () => [
+          ...storage.stories,
+          ...SeedData.dailyStories(devicesList, DateTime.now()),
+        ]..sort((a, b) => a.createdAt.compareTo(b.createdAt)),
+        (p) => p.stories,
+      ),
       seenStories: storage.seenStories,
-      liveShows: [...storage.liveShows]
-        ..sort((a, b) => b.startsAt.compareTo(a.startsAt)),
-      liveEvents: storage.liveEvents,
-      myHistory: storage.currentUserId == null
-          ? const []
-          : storage.historyOf(storage.currentUserId!),
+      liveShows: reuse<List<LiveShow>>(
+        'live_shows',
+        () =>
+            [...storage.liveShows]
+              ..sort((a, b) => b.startsAt.compareTo(a.startsAt)),
+        (p) => p.liveShows,
+      ),
+      liveEvents: reuse<List<LiveEvent>>(
+        'live_events',
+        () => storage.liveEvents,
+        (p) => p.liveEvents,
+      ),
+      myHistory: reuse<List<PortfolioPoint>>(
+        'history+',
+        () => me == null ? const [] : storage.historyOf(me),
+        (p) => p.myHistory,
+      ),
     );
   }
+
+  /// Brojači tablica iz kojih je stanje građeno (vidi [fromStorage]).
+  final Map<String, Object> versions;
+
+  /// Ima li [other] isti sadržaj — kad je isti, widgeti se ne grade ponovno.
+  bool sameAs(AppState other) =>
+      mapEquals(versions, other.versions) &&
+      currentUserId == other.currentUserId &&
+      isAdmin == other.isAdmin &&
+      themeMode == other.themeMode &&
+      lang == other.lang &&
+      pendingSignup?.toMap().toString() ==
+          other.pendingSignup?.toMap().toString() &&
+      showHowItWorks == other.showHowItWorks &&
+      listEquals(searchHistory, other.searchHistory) &&
+      setEquals(seenStories, other.seenStories);
 
   final List<AppUser> users;
   final List<Device> devices;
@@ -169,16 +307,49 @@ class AppState {
   LiveShow? liveShowById(String id) =>
       liveShows.where((s) => s.id == id).firstOrNull;
 
+  /// Izračun koji se pamti uz ovu snimku stanja do isteka [ttl] (bez
+  /// roka: dok stanje traje). Za izvedene popise koji se traže više puta.
+  T memo<T>(String key, T Function() build, {Duration? ttl}) {
+    final cache = _memo[this] ??= {};
+    final hit = cache[key];
+    final now = DateTime.now();
+    if (hit != null && (ttl == null || now.difference(hit.$2) < ttl)) {
+      return hit.$1 as T;
+    }
+    final value = build();
+    cache[key] = (value, now);
+    return value;
+  }
+
+  List<LiveEvent> _eventsOf(String showId) {
+    final index = _eventsByShow[liveEvents] ??= () {
+      final m = <String, List<LiveEvent>>{};
+      for (final e in liveEvents) {
+        (m[e.showId] ??= []).add(e);
+      }
+      return m;
+    }();
+    return index[showId] ?? const [];
+  }
+
   /// Izračunato stanje livea (isto na svim uređajima).
-  LiveState liveStateOf(LiveShow show, [DateTime? now]) => LiveService.compute(
-    show,
-    [
-      for (final e in liveEvents)
-        if (e.showId == show.id) e,
-    ],
-    now ?? DateTime.now(),
-    hiddenUsers: {...?currentUser?.blockedIds},
-  );
+  LiveState liveStateOf(LiveShow show, [DateTime? now]) => now != null
+      ? LiveService.compute(
+          show,
+          _eventsOf(show.id),
+          now,
+          hiddenUsers: {...?currentUser?.blockedIds},
+        )
+      : memo(
+          'liveState:${show.id}',
+          () => LiveService.compute(
+            show,
+            _eventsOf(show.id),
+            DateTime.now(),
+            hiddenUsers: {...?currentUser?.blockedIds},
+          ),
+          ttl: const Duration(seconds: 1),
+        );
 
   /// Jesam li tražio podsjetnik za zakazani live.
   bool wantsReminder(String showId) => liveEvents.any(
@@ -198,7 +369,10 @@ class AppState {
   );
 
   /// Liveovi koji su u tijeku ili zakazani (u tijeku prvo).
-  List<(LiveShow, LiveState)> get activeLives {
+  List<(LiveShow, LiveState)> get activeLives =>
+      memo('activeLives', _computeActiveLives, ttl: const Duration(seconds: 1));
+
+  List<(LiveShow, LiveState)> _computeActiveLives() {
     final now = DateTime.now();
     final out = [
       for (final s in liveShows)
@@ -609,7 +783,7 @@ class AppState {
       myDeliveries.where((d) => d.confirmedAt == null).toList();
 
   List<Auction> get activeAuctions =>
-      auctions.where((a) => a.isActive).toList();
+      memo('activeAuctions', () => auctions.where((a) => a.isActive).toList());
 
   Auction? auctionById(String id) {
     for (final a in auctions) {
@@ -648,7 +822,10 @@ class AppState {
 
   /// Predmeti u Marketu. [includeMine]: i moji oglasi (Market ih prikazuje
   /// s oznakom "Tvoj oglas"; feed i preporuke ih ne prikazuju).
-  List<Device> marketDevicesFor({bool includeMine = false}) {
+  List<Device> marketDevicesFor({bool includeMine = false}) =>
+      memo('market:$includeMine', () => _marketDevicesFor(includeMine));
+
+  List<Device> _marketDevicesFor(bool includeMine) {
     final hidden = <String>{
       ...?currentUser?.blockedIds,
       for (final u in users)

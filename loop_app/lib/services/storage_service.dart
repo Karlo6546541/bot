@@ -210,6 +210,7 @@ class StorageService {
     if (claimed == true) {
       // Već je u bazi — samo lokalno (bez ponovnog slanja).
       await _transactions.put(tx.id, data);
+      _bump(_transactionsBox);
     } else {
       await _write(_transactionsBox, tx.id, data);
     }
@@ -236,6 +237,20 @@ class StorageService {
     _liveEventsBox: _liveEvents,
   };
 
+  /// Brojač promjena po tablici: [AppState] ponovno čita i sortira samo
+  /// tablice kojima se broj promijenio (ostale popise koristi ponovno).
+  final Map<String, int> _versions = {};
+
+  int version(String table) => _versions[table] ?? 0;
+
+  void _bump(String table) => _versions[table] = version(table) + 1;
+
+  void _bumpAll() {
+    for (final t in _tables.keys) {
+      _bump(t);
+    }
+  }
+
   /// Svi zapisi prolaze ovuda kako bi ih sinkronizacija vidjela.
   Future<void> _write(
     String table,
@@ -243,11 +258,13 @@ class StorageService {
     Map<String, dynamic> data,
   ) async {
     await _tables[table]!.put(id, data);
+    _bump(table);
     onLocalChange?.call(table, id, data);
   }
 
   Future<void> _remove(String table, String id) async {
     await _tables[table]!.delete(id);
+    _bump(table);
     onLocalChange?.call(table, id, null);
   }
 
@@ -430,7 +447,9 @@ class StorageService {
     ]) {
       await b.clear();
     }
+    _bumpAll();
     await _seed();
+    _bumpAll();
   }
 
   // ---------------------------------------------------------------- čitanje
@@ -780,6 +799,7 @@ class StorageService {
     } else {
       await box.put(id, _rowData(table, id, data));
     }
+    _bump(table);
   }
 
   /// Zamjenjuje sve lokalne podatke onima iz online baze.
@@ -794,6 +814,7 @@ class StorageService {
         for (final entry in data[t]!.entries)
           entry.key: _rowData(t, entry.key, entry.value),
       });
+      _bump(t);
     }
   }
 
