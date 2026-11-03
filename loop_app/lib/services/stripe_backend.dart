@@ -148,6 +148,22 @@ class StripeBackend {
   }
 }
 
+/// Server je jasno odbio naplatu (novac sigurno nije skinut): sljedeći
+/// pokušaj je nova naplata, a ne "Provjeri plaćanje".
+bool paymentClearlyRejected(Object error) {
+  final code = error is FunctionException && error.details is Map
+      ? (error.details as Map)['error']
+      : null;
+  return const {
+    'SELLER_NOT_READY',
+    'CARD_REQUIRED',
+    'CARD_DECLINED',
+    'SHIPPING_REQUIRED',
+    'ORDER_NOT_PAYABLE',
+    'AUTH_REQUIRED',
+  }.contains(code);
+}
+
 String paymentActionErrorMessage(Object error) {
   if (error is TimeoutException) {
     return 'Provjera plaćanja traje dulje. Provjeri status prije ponovnog pokušaja.';

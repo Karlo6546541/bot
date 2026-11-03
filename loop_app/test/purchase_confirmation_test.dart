@@ -286,4 +286,25 @@ void main() {
       expect(charges, 1);
     },
   );
+  testWidgets('jasno odbijena naplata nudi ponovno plaćanje, ne provjeru', (
+    tester,
+  ) async {
+    await open(
+      tester,
+      sheet(
+        charge: (_, _) async => throw const FunctionException(
+          status: 409,
+          details: {'error': 'SELLER_NOT_READY'},
+        ),
+      ),
+    );
+    await tester.tap(find.byKey(const ValueKey('purchase-pay')));
+    await tester.pumpAndSettle();
+    expect(
+      find.text('Prodavatelj ovog oglasa još nije omogućio plaćanje.'),
+      findsOneWidget,
+    );
+    expect(find.text('Provjeri plaćanje'), findsNothing);
+    expect(find.textContaining('Potvrdi i plati'), findsOneWidget);
+  });
 }

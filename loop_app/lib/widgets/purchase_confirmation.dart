@@ -174,7 +174,10 @@ class _PurchaseConfirmationState extends State<PurchaseConfirmationSheet> {
       }
     } catch (error) {
       if (mounted) {
-        setState(() => _error = paymentActionErrorMessage(error));
+        setState(() {
+          _error = paymentActionErrorMessage(error);
+          if (paymentClearlyRejected(error)) _checkingPayment = false;
+        });
       }
     } finally {
       if (mounted) {
