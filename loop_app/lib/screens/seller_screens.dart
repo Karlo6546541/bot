@@ -1,17 +1,20 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../l10n/tr.dart';
-import '../config/backend_config.dart';
 import '../services/stripe_backend.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/seller_info.dart';
+import '../providers/seller_account_provider.dart';
+import '../widgets/quiet_ui.dart';
+export '../providers/seller_account_provider.dart'
+    show sellerOnboardingProvider, sellerPreparationProvider;
 import '../providers/app_providers.dart';
 import '../services/trade_service.dart';
 import '../theme/app_theme.dart';
 import '../widgets/formatters.dart';
 import '../widgets/trade_actions.dart';
-import 'legal_screen.dart';
 
 /// Prije objave u Marketu ili na aukciji: ako podaci prodavatelja nedostaju,
 /// objasni zašto ih tražimo i otvori obrazac. Vraća `true` ako ih ima.
@@ -26,10 +29,15 @@ Future<bool> ensureSellerInfo(BuildContext context) async {
         user.country,
       );
     } catch (_) {
-      // Stripe trenutno ne odgovara (npr. ključ bez dopuštenja za Connect):
-      // podaci su spremljeni pa prodaja ide dalje, a zarada čeka u
-      // aplikaciji dok se isplate ne uključe.
-      return true;
+      if (context.mounted) {
+        showLoopSnackBar(
+          t(
+            'Podaci su spremljeni. Povezivanje isplata trenutačno nije dostupno.',
+          ),
+          error: true,
+        );
+      }
+      return false;
     }
   }
   final go = await confirmDialog(
@@ -41,18 +49,10 @@ Future<bool> ensureSellerInfo(BuildContext context) async {
     confirmLabel: t('Ispuni podatke'),
   );
   if (!go || !context.mounted) return false;
-  return SellerInfoScreen.open(context);
+  final saved = await SellerInfoScreen.open(context);
+  if (!saved || !context.mounted) return false;
+  return ensureSellerInfo(context);
 }
-
-final sellerOnboardingProvider =
-    Provider<Future<bool> Function(SellerInfo, String)>((ref) {
-      if (!BackendConfig.cloudCommerceEnabled || !BackendConfig.isOnline) {
-        return (_, _) async => true;
-      }
-      return (info, country) => StripeBackend(
-        Supabase.instance.client,
-      ).ensureSellerReady(info, country: country);
-    });
 
 /// Isplata zarade na IBAN (uz potvrdu).
 Future<void> showPayoutDialog(BuildContext context, WidgetRef ref) async {
@@ -143,6 +143,8 @@ class _SellerInfoScreenState extends ConsumerState<SellerInfoScreen> {
   bool get _business => _kind == SellerKind.business;
   String? _error;
   bool _busy = false;
+  final _scroll = ScrollController();
+  final _formKey = GlobalKey<FormState>();
 
   @override
   void dispose() {
@@ -159,6 +161,7 @@ class _SellerInfoScreenState extends ConsumerState<SellerInfoScreen> {
     ]) {
       c.dispose();
     }
+    _scroll.dispose();
     super.dispose();
   }
 
@@ -170,10 +173,23 @@ class _SellerInfoScreenState extends ConsumerState<SellerInfoScreen> {
       firstDate: DateTime(1900),
       lastDate: now,
     );
-    if (picked != null) setState(() => _birth = picked);
+    if (picked != null && mounted) setState(() => _birth = picked);
   }
 
   Future<void> _save() async {
+    if (_busy) return;
+    if (!(_formKey.currentState?.validate() ?? false)) {
+      if (_scroll.hasClients) {
+        _scroll.animateTo(
+          0,
+          duration: const Duration(milliseconds: 220),
+          curve: Curves.easeOut,
+        );
+      }
+      return;
+    }
+    final owner = ref.read(appProvider).currentUser;
+    if (owner == null || owner.isGuest) return;
     if (_business && !_certified) {
       setState(
         () => _error = t(
@@ -202,23 +218,30 @@ class _SellerInfoScreenState extends ConsumerState<SellerInfoScreen> {
       _error = null;
     });
     try {
-      await ref.read(appProvider.notifier).saveSellerInfo(info);
-      if (!mounted) return;
-      var ready = true;
-      try {
-        ready = await ref.read(sellerOnboardingProvider)(
-          info,
-          ref.read(appProvider).currentUser!.country,
+      final synced = await ref.read(appProvider.notifier).saveSellerInfo(info);
+      if (!mounted || ref.read(appProvider).currentUser?.id != owner.id) return;
+      ref.invalidate(sellerAccountStatusProvider(owner.id));
+      if (synced) {
+        // Saving is durable before preparation and never waits for Stripe.
+        unawaited(
+          ref
+              .read(sellerAccountStatusProvider(owner.id).future)
+              .then<void>((_) {}, onError: (_) {}),
         );
-      } catch (_) {
-        // Podaci su već spremljeni; Stripe (isplate) se može uključiti
-        // kasnije, to ne smije blokirati spremanje ni objavu.
       }
-      if (!mounted) return;
-      showLoopSnackBar(t('Podaci prodavatelja su spremljeni.'));
-      Navigator.pop(context, ready);
+      showLoopSnackBar(
+        synced
+            ? t('Podaci prodavatelja su spremljeni.')
+            : t(
+                'Podaci su spremljeni na uređaju. Poslat ćemo ih kad se veza vrati.',
+              ),
+      );
+      Navigator.pop(context, true);
     } on TradeException catch (e) {
-      if (mounted) setState(() => _error = e.message);
+      if (mounted) {
+        setState(() => _error = e.message);
+        if (_scroll.hasClients) _scroll.jumpTo(0);
+      }
     } catch (error) {
       if (mounted) setState(() => _error = paymentActionErrorMessage(error));
     } finally {
@@ -228,197 +251,296 @@ class _SellerInfoScreenState extends ConsumerState<SellerInfoScreen> {
 
   @override
   Widget build(BuildContext context) {
+    Widget gap() => const SizedBox(height: 16);
+    Widget heading(String label) => Padding(
+      padding: const EdgeInsets.only(top: 24, bottom: 14),
+      child: Text(
+        label,
+        style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w600),
+      ),
+    );
+    InputDecoration field(String label, {String? hint}) =>
+        InputDecoration(labelText: label, hintText: hint, counterText: '');
     return Scaffold(
       appBar: AppBar(title: Text(t('Podaci prodavatelja'))),
+      bottomNavigationBar: AppBottomAction(
+        child: FilledButton(
+          key: const ValueKey('seller-save'),
+          onPressed: _busy ? null : _save,
+          child: _busy
+              ? const SizedBox(
+                  width: 20,
+                  height: 20,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                )
+              : Text(t('Spremi podatke')),
+        ),
+      ),
       body: Align(
         alignment: Alignment.topCenter,
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 560),
-          child: ListView(
-            padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
-            children: [
-              // Kako prodaješ: kao privatna osoba ili kao obrt/tvrtka.
-              SegmentedButton<SellerKind>(
-                key: const ValueKey('seller-kind'),
-                showSelectedIcon: false,
-                segments: [
-                  ButtonSegment(
-                    value: SellerKind.private,
-                    icon: const Icon(Icons.person_outline),
-                    label: Text(t('Privatna osoba')),
+          child: Form(
+            key: _formKey,
+            child: ListView(
+              controller: _scroll,
+              padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
+              children: [
+                ScreenHeading(
+                  title: t('Prodaja počinje ovdje.'),
+                  subtitle: t(
+                    'Unesi podatke jednom. Čuvamo ih u tvojem privatnom računu.',
                   ),
-                  ButtonSegment(
-                    value: SellerKind.business,
-                    icon: const Icon(Icons.storefront_outlined),
-                    label: Text(
-                      t('Obrt / tvrtka'),
-                      key: const ValueKey('seller-kind-business'),
+                ),
+                if (_error != null) ...[
+                  AppStatusCard(
+                    title: _error!,
+                    icon: Icons.error_outline,
+                    color: LoopColors.error,
+                  ),
+                  gap(),
+                ],
+                Wrap(
+                  key: const ValueKey('seller-kind'),
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: [
+                    ChoiceChip(
+                      key: const ValueKey('seller-kind-private'),
+                      avatar: const Icon(Icons.person_outline, size: 18),
+                      label: Text(t('Privatna osoba')),
+                      selected: !_business,
+                      onSelected: _busy
+                          ? null
+                          : (_) => setState(() {
+                              _kind = SellerKind.private;
+                              _error = null;
+                            }),
+                    ),
+                    ChoiceChip(
+                      avatar: const Icon(Icons.storefront_outlined, size: 18),
+                      label: Text(
+                        t('Obrt / tvrtka'),
+                        key: const ValueKey('seller-kind-business'),
+                      ),
+                      selected: _business,
+                      onSelected: _busy
+                          ? null
+                          : (_) => setState(() {
+                              _kind = SellerKind.business;
+                              _error = null;
+                            }),
+                    ),
+                  ],
+                ),
+                heading(_business ? t('Podaci tvrtke') : t('Osobni podaci')),
+                if (_business) ...[
+                  TextFormField(
+                    key: const ValueKey('seller-company'),
+                    controller: _company,
+                    enabled: !_busy,
+                    textCapitalization: TextCapitalization.words,
+                    validator: (v) => (v?.trim().length ?? 0) < 3
+                        ? t('Upiši naziv obrta ili tvrtke.')
+                        : null,
+                    decoration: field(t('Naziv obrta ili tvrtke')),
+                  ),
+                  gap(),
+                  DropdownButtonFormField<LegalForm>(
+                    key: const ValueKey('seller-form'),
+                    initialValue: _form,
+                    isExpanded: true,
+                    decoration: field(t('Pravni oblik')),
+                    items: [
+                      for (final form in LegalForm.values)
+                        DropdownMenuItem(value: form, child: Text(form.label)),
+                    ],
+                    onChanged: _busy
+                        ? null
+                        : (value) => setState(() => _form = value ?? _form),
+                  ),
+                  gap(),
+                ],
+                TextFormField(
+                  key: const ValueKey('seller-name'),
+                  controller: _name,
+                  enabled: !_busy,
+                  autofillHints: const [AutofillHints.name],
+                  textCapitalization: TextCapitalization.words,
+                  validator: (v) => (v?.trim().length ?? 0) < 3
+                      ? t('Upiši ime i prezime.')
+                      : null,
+                  decoration: field(
+                    _business
+                        ? t('Odgovorna osoba (ime i prezime)')
+                        : t('Ime i prezime'),
+                  ),
+                ),
+                gap(),
+                TextFormField(
+                  key: const ValueKey('seller-oib'),
+                  controller: _oib,
+                  enabled: !_busy,
+                  keyboardType: TextInputType.number,
+                  inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                  maxLength: 11,
+                  validator: (v) => SellerInfo.validOib(v ?? '')
+                      ? null
+                      : t('OIB nije ispravan (11 znamenki).'),
+                  decoration: field(
+                    _business ? t('OIB obrta / tvrtke') : t('OIB'),
+                  ),
+                ),
+                if (!_business) ...[
+                  gap(),
+                  Material(
+                    color: LoopColors.surface,
+                    borderRadius: BorderRadius.circular(12),
+                    child: ListTile(
+                      key: const ValueKey('seller-birth'),
+                      leading: const Icon(
+                        Icons.calendar_today_outlined,
+                        size: 21,
+                      ),
+                      title: Text(t('Datum rođenja')),
+                      subtitle: Text(
+                        _birth == null ? t('Odaberi') : formatDate(_birth!),
+                      ),
+                      trailing: const Icon(Icons.chevron_right),
+                      onTap: _busy ? null : _pickBirth,
                     ),
                   ),
                 ],
-                selected: {_kind},
-                onSelectionChanged: (v) => setState(() {
-                  _kind = v.first;
-                  _error = null;
-                }),
-              ),
-              const SizedBox(height: 10),
-              Text(
-                _business
-                    ? t(
-                        'Trgovac prodaje kao djelatnost — može prodavati više predmeta (veća ograničenja za aukcije i live). Kupci vide naziv tvrtke i imaju pravo na povrat u 14 dana. Platforma mora prikupiti ove podatke (DSA čl. 30, DAC7).',
-                      )
-                    : t(
-                        'Privatna osoba prodaje svoje rabljene stvari. Platforma mora prikupiti ove podatke prije prve isplate (DAC7: izvještaj Poreznoj upravi za prodavatelje s 30+ prodaja ili više od 2.000 € godišnje). Kupci ih ne vide. Ako prodaješ redovito radi zarade, odaberi Obrt / tvrtka.',
-                      ),
-                style: TextStyle(color: LoopColors.textSecondary, fontSize: 13),
-              ),
-              const SizedBox(height: 14),
-              if (_business) ...[
-                TextField(
-                  key: const ValueKey('seller-company'),
-                  controller: _company,
+                heading(t('Adresa i isplate')),
+                TextFormField(
+                  key: const ValueKey('seller-address'),
+                  controller: _address,
+                  enabled: !_busy,
+                  autofillHints: const [AutofillHints.fullStreetAddress],
                   textCapitalization: TextCapitalization.words,
-                  decoration: InputDecoration(
-                    labelText: t('Naziv obrta ili tvrtke'),
-                    hintText: t('npr. Retro Kutak j.d.o.o.'),
-                    prefixIcon: const Icon(Icons.storefront_outlined),
+                  maxLines: 2,
+                  minLines: 1,
+                  validator: (v) =>
+                      (v?.trim().length ?? 0) < 5 ? t('Upiši adresu.') : null,
+                  decoration: field(
+                    _business ? t('Adresa sjedišta') : t('Adresa prebivališta'),
                   ),
                 ),
-                const SizedBox(height: 10),
-                DropdownButtonFormField<LegalForm>(
-                  key: const ValueKey('seller-form'),
-                  initialValue: _form,
-                  decoration: InputDecoration(labelText: t('Pravni oblik')),
-                  items: [
-                    for (final f in LegalForm.values)
-                      DropdownMenuItem(value: f, child: Text(f.label)),
-                  ],
-                  onChanged: (v) => setState(() => _form = v!),
-                ),
-                const SizedBox(height: 10),
-              ],
-              TextField(
-                key: const ValueKey('seller-name'),
-                controller: _name,
-                decoration: InputDecoration(
-                  labelText: _business
-                      ? t('Odgovorna osoba (ime i prezime)')
-                      : t('Ime i prezime'),
-                ),
-              ),
-              const SizedBox(height: 10),
-              TextField(
-                key: const ValueKey('seller-oib'),
-                controller: _oib,
-                keyboardType: TextInputType.number,
-                maxLength: 11,
-                decoration: InputDecoration(
-                  labelText: _business ? t('OIB obrta / tvrtke') : t('OIB'),
-                ),
-              ),
-              if (_business) ...[
-                TextField(
-                  key: const ValueKey('seller-vat'),
-                  controller: _vat,
+                gap(),
+                TextFormField(
+                  key: const ValueKey('seller-iban'),
+                  controller: _iban,
+                  enabled: !_busy,
                   textCapitalization: TextCapitalization.characters,
-                  decoration: InputDecoration(
-                    labelText: t('PDV broj (neobavezno)'),
-                    hintText: 'HR12345678901',
+                  validator: (v) => SellerInfo.validIban(v ?? '')
+                      ? null
+                      : t('IBAN nije ispravan.'),
+                  decoration: field(
+                    t('IBAN za isplatu'),
+                    hint: 'HR12 3456 7890 1234 5678 9',
                   ),
                 ),
-                const SizedBox(height: 10),
-                TextField(
-                  key: const ValueKey('seller-registry'),
-                  controller: _registry,
-                  decoration: InputDecoration(
-                    labelText: t('MBS / MBO (neobavezno)'),
+                const SizedBox(height: 8),
+                Text(
+                  t('IBAN je privatan. Kupci ga ne vide.'),
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: LoopColors.textSecondary,
                   ),
                 ),
-              ] else
-                ListTile(
-                  key: const ValueKey('seller-birth'),
-                  contentPadding: EdgeInsets.zero,
-                  leading: const Icon(Icons.cake_outlined),
-                  title: Text(t('Datum rođenja')),
-                  subtitle: Text(
-                    _birth == null ? t('Odaberi') : formatDate(_birth!),
+                if (_business) ...[
+                  heading(t('Kontakt za kupce')),
+                  TextFormField(
+                    key: const ValueKey('seller-email'),
+                    controller: _email,
+                    enabled: !_busy,
+                    autofillHints: const [AutofillHints.email],
+                    keyboardType: TextInputType.emailAddress,
+                    validator: (v) =>
+                        RegExp(
+                          r'^[^@\s]+@[^@\s]+\.[^@\s]+$',
+                        ).hasMatch(v?.trim() ?? '')
+                        ? null
+                        : t('Upiši e-mail za kupce.'),
+                    decoration: field(t('E-mail za kupce')),
                   ),
-                  onTap: _pickBirth,
-                ),
-              const SizedBox(height: 10),
-              TextField(
-                key: const ValueKey('seller-address'),
-                controller: _address,
-                decoration: InputDecoration(
-                  labelText: _business
-                      ? t('Adresa sjedišta')
-                      : t('Adresa prebivališta'),
-                ),
-              ),
-              if (_business) ...[
-                const SizedBox(height: 10),
-                TextField(
-                  key: const ValueKey('seller-email'),
-                  controller: _email,
-                  keyboardType: TextInputType.emailAddress,
-                  decoration: InputDecoration(
-                    labelText: t('E-mail za kupce'),
-                    prefixIcon: const Icon(Icons.alternate_email),
+                  gap(),
+                  TextFormField(
+                    key: const ValueKey('seller-phone'),
+                    controller: _phone,
+                    enabled: !_busy,
+                    keyboardType: TextInputType.phone,
+                    validator: (v) =>
+                        (v ?? '').replaceAll(RegExp(r'[^0-9]'), '').length < 6
+                        ? t('Upiši telefon za kupce.')
+                        : null,
+                    decoration: field(t('Telefon za kupce')),
                   ),
-                ),
-                const SizedBox(height: 10),
-                TextField(
-                  key: const ValueKey('seller-phone'),
-                  controller: _phone,
-                  keyboardType: TextInputType.phone,
-                  decoration: InputDecoration(
-                    labelText: t('Telefon za kupce'),
-                    prefixIcon: const Icon(Icons.phone_outlined),
+                  ExpansionTile(
+                    tilePadding: EdgeInsets.zero,
+                    title: Text(t('Dodatni podaci')),
+                    children: [
+                      TextField(
+                        key: const ValueKey('seller-vat'),
+                        controller: _vat,
+                        textCapitalization: TextCapitalization.characters,
+                        decoration: field(
+                          t('PDV broj (neobavezno)'),
+                          hint: 'HR12345678901',
+                        ),
+                      ),
+                      gap(),
+                      TextField(
+                        key: const ValueKey('seller-registry'),
+                        controller: _registry,
+                        decoration: field(t('MBS / MBO (neobavezno)')),
+                      ),
+                      gap(),
+                    ],
                   ),
-                ),
-              ],
-              const SizedBox(height: 10),
-              TextField(
-                key: const ValueKey('seller-iban'),
-                controller: _iban,
-                textCapitalization: TextCapitalization.characters,
-                decoration: InputDecoration(
-                  labelText: t('IBAN za isplatu'),
-                  hintText: 'HR12 3456 7890 1234 5678 9',
-                ),
-              ),
-              if (_business)
-                CheckboxListTile(
-                  key: const ValueKey('seller-certify'),
-                  contentPadding: EdgeInsets.zero,
-                  controlAffinity: ListTileControlAffinity.leading,
-                  value: _certified,
-                  onChanged: (v) => setState(() => _certified = v ?? false),
-                  title: Text(
-                    t(
-                      'Potvrđujem da prodajem samo proizvode u skladu s propisima EU i da kupcima osiguravam pravo na povrat u 14 dana i jamstvo.',
+                  CheckboxListTile(
+                    key: const ValueKey('seller-certify'),
+                    contentPadding: EdgeInsets.zero,
+                    controlAffinity: ListTileControlAffinity.leading,
+                    value: _certified,
+                    onChanged: _busy
+                        ? null
+                        : (v) => setState(() => _certified = v ?? false),
+                    title: Text(
+                      t(
+                        'Potvrđujem da prodajem samo proizvode u skladu s propisima EU i da kupcima osiguravam pravo na povrat u 14 dana i jamstvo.',
+                      ),
+                      style: const TextStyle(fontSize: 13),
                     ),
-                    style: const TextStyle(fontSize: 13),
                   ),
+                ],
+                ExpansionTile(
+                  tilePadding: EdgeInsets.zero,
+                  title: Text(
+                    t('Zašto tražimo ove podatke?'),
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: LoopColors.textSecondary,
+                    ),
+                  ),
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 16),
+                      child: Text(
+                        t(
+                          'Podaci su potrebni za prodaju, isplate i zakonske obveze platforme. Spremanje podataka i dovršetak Stripe računa odvojeni su koraci.',
+                        ),
+                        style: TextStyle(
+                          fontSize: 13,
+                          color: LoopColors.textSecondary,
+                          height: 1.5,
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
-              if (_error != null) ...[
-                const SizedBox(height: 10),
-                Text(_error!, style: TextStyle(color: LoopColors.error)),
               ],
-              const SizedBox(height: 16),
-              FilledButton.icon(
-                key: const ValueKey('seller-save'),
-                onPressed: _busy ? null : _save,
-                icon: const Icon(Icons.lock_outline),
-                label: Text(t('Spremi')),
-              ),
-              const SizedBox(height: 8),
-              TextButton(
-                onPressed: () => LegalScreen.open(context, LegalDoc.privacy),
-                child: Text(t('Kako čuvamo podatke (Pravila privatnosti)')),
-              ),
-            ],
+            ),
           ),
         ),
       ),

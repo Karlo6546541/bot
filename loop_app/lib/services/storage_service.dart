@@ -839,7 +839,7 @@ class StorageService {
 
   Future<void> setSellerGoal(int level) => _session.put(_sellerGoalKey, level);
 
-  String get themeMode => _session.get(_themeKey) as String? ?? 'dark';
+  String get themeMode => _session.get(_themeKey) as String? ?? 'system';
 
   Future<void> setThemeMode(String mode) => _session.put(_themeKey, mode);
 

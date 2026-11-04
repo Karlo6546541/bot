@@ -20,45 +20,43 @@ class EmptyState extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(32),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              width: 112,
-              height: 112,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: LoopColors.accent.withValues(alpha: 0.08),
-              ),
-              alignment: Alignment.center,
-              child: Container(
-                width: 80,
-                height: 80,
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.all(24),
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 360),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 64,
+                height: 64,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  color: LoopColors.accent.withValues(alpha: 0.16),
+                  color: LoopColors.surfaceHover,
                 ),
-                child: Icon(icon, size: 38, color: LoopColors.accent),
+                alignment: Alignment.center,
+                child: Icon(icon, size: 28, color: LoopColors.textSecondary),
               ),
-            ),
-            const SizedBox(height: 16),
-            Text(
-              title,
-              textAlign: TextAlign.center,
-              style: Theme.of(context).textTheme.titleMedium,
-            ),
-            if (message != null) ...[
-              const SizedBox(height: 6),
+              const SizedBox(height: 20),
               Text(
-                message!,
+                title,
                 textAlign: TextAlign.center,
-                style: TextStyle(color: LoopColors.textSecondary),
+                style: Theme.of(context).textTheme.titleMedium,
               ),
+              if (message != null && message!.isNotEmpty) ...[
+                const SizedBox(height: 8),
+                Text(
+                  message!,
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    color: LoopColors.textSecondary,
+                    height: 1.5,
+                  ),
+                ),
+              ],
+              if (action != null) ...[const SizedBox(height: 24), action!],
             ],
-            if (action != null) ...[const SizedBox(height: 20), action!],
-          ],
+          ),
         ),
       ),
     );

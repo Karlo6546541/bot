@@ -1,4 +1,5 @@
 import '../widgets/category_style.dart';
+import '../widgets/adaptive_shell.dart' show LoopLogo;
 import '../config/backend_config.dart';
 import 'cloud_commerce_screen.dart';
 import '../config/features.dart';
@@ -24,6 +25,7 @@ import 'search_screen.dart';
 import 'messages_screen.dart';
 import 'notifications_screen.dart';
 import 'swipe_feed_screen.dart';
+import 'for_you_ranker.dart';
 
 /// Početna kao Whatnot: pretraga, kategorije kao "pilule" i mreža kartica —
 /// tko je uživo sada, što uskoro kreće, aukcije koje završavaju i predmeti
@@ -242,7 +244,9 @@ class _LiveHomeScreenState extends ConsumerState<LiveHomeScreen> {
           key: ValueKey(key),
           padding: const EdgeInsets.symmetric(horizontal: 16),
           sliver: SliverGrid(
-            gridDelegate: const BrowseGridDelegate(),
+            gridDelegate: BrowseGridDelegate(
+              textScale: MediaQuery.textScalerOf(context).scale(14) / 14,
+            ),
             delegate: SliverChildBuilderDelegate(
               (_, i) => AuctionBrowseCard(
                 item: list[i],
@@ -320,11 +324,19 @@ class _LiveHomeScreenState extends ConsumerState<LiveHomeScreen> {
           );
         }
       case _ForYou():
-        // Kao Whatnot: skoro sve su liveovi — prvo uživo (najgledaniji),
-        // pa nadolazeći showovi, a aukcije i ponude tek na kraju (malo).
-        final liveNow = [...allLive]..sort(_promotedFirst);
+        final storage = ref.read(storageProvider);
+        final ranked = ForYouRanker(
+          s,
+          now: DateTime.now(),
+          recentCategories: storage.recentCategories,
+          preferences: storage.feedPreferences(s.currentUserId),
+        ).rankBatch(all, limit: 60).map((pick) => pick.item).toList();
+        final liveNow = [
+          for (final i in ranked)
+            if (i.live?.isLive ?? false) i,
+        ];
         final rest = [
-          for (final i in all)
+          for (final i in ranked)
             if (i.live == null) i,
         ];
         Widget head(String text, {VoidCallback? onAll}) => SliverToBoxAdapter(
@@ -337,7 +349,7 @@ class _LiveHomeScreenState extends ConsumerState<LiveHomeScreen> {
                     text,
                     style: const TextStyle(
                       fontSize: 20,
-                      fontWeight: FontWeight.w900,
+                      fontWeight: FontWeight.w600,
                     ),
                   ),
                 ),
@@ -351,9 +363,33 @@ class _LiveHomeScreenState extends ConsumerState<LiveHomeScreen> {
           ),
         );
         if (liveNow.isNotEmpty) {
-          slivers.add(head(t('Uživo sada')));
-          slivers.add(grid('home-for-you-live', liveNow, t('Uživo')));
-        } else {
+          slivers.add(
+            head(t('Uživo sada'), onAll: () => _select(const _LiveOnly())),
+          );
+          slivers.add(
+            SliverToBoxAdapter(
+              child: SizedBox(
+                height:
+                    224 + 100 * MediaQuery.textScalerOf(context).scale(14) / 14,
+                child: ListView.separated(
+                  key: const ValueKey('home-for-you-live'),
+                  scrollDirection: Axis.horizontal,
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  itemCount: liveNow.length,
+                  separatorBuilder: (_, _) => const SizedBox(width: 12),
+                  itemBuilder: (_, i) => SizedBox(
+                    width: 160,
+                    child: AuctionBrowseCard(
+                      item: liveNow[i],
+                      viewerId: me,
+                      onTap: () => open(liveNow, i, t('Uživo')),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          );
+        } else if (rest.isEmpty) {
           slivers.add(
             SliverToBoxAdapter(
               child: _EmptyLive(
@@ -362,21 +398,9 @@ class _LiveHomeScreenState extends ConsumerState<LiveHomeScreen> {
             ),
           );
         }
-        if (soon.isNotEmpty) {
-          slivers.add(
-            head(t('Uskoro uživo'), onAll: () => _select(const _Soon())),
-          );
-          slivers.add(
-            grid('home-for-you-soon', soon.take(4).toList(), t('Uskoro')),
-          );
-        }
         if (rest.isNotEmpty) {
-          slivers.add(
-            head(t('Aukcije i ponude'), onAll: () => _select(const _Timed())),
-          );
-          slivers.add(
-            grid('home-for-you', rest.take(6).toList(), t('Za tebe')),
-          );
+          slivers.add(head(t('Odabrano za tebe')));
+          slivers.add(grid('home-for-you', rest, t('Za tebe')));
         }
       case _Timed():
         slivers.add(
@@ -536,137 +560,138 @@ class _LiveHomeScreenState extends ConsumerState<LiveHomeScreen> {
 
     // Bez TikTok prikaza na početnoj: uvijek tražilica i tabovi.
     final foreground = LoopColors.textPrimary;
+    final wideHeader = MediaQuery.sizeOf(context).width >= 840;
+    final searchBar = Padding(
+      padding: const EdgeInsets.only(top: 10, right: 8, bottom: 12),
+      child: InkWell(
+        key: const ValueKey('home-search'),
+        borderRadius: BorderRadius.circular(12),
+        onTap: () => SearchScreen.open(context),
+        child: Container(
+          height: 46,
+          padding: const EdgeInsets.symmetric(horizontal: 14),
+          decoration: BoxDecoration(
+            color: LoopColors.surfaceHover.withValues(alpha: .65),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Row(
+            children: [
+              Icon(Icons.search, size: 21, color: LoopColors.textSecondary),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  t('Traži na Subhastu'),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: LoopColors.textSecondary,
+                    fontSize: 15,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
     final chips = ColoredBox(
       color: LoopColors.background,
       child: SafeArea(
         bottom: false,
-        child: Center(
-          heightFactor: 1,
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 520),
-            child: Row(
-              key: const ValueKey('home-cats'),
-              children: [
-                // Whatnot: široka tražilica, poruke i obavijesti.
-                Expanded(
-                  child: Padding(
-                    padding: const EdgeInsets.fromLTRB(12, 8, 6, 8),
-                    child: InkWell(
-                      key: const ValueKey('home-search'),
-                      borderRadius: BorderRadius.circular(99),
-                      onTap: () => SearchScreen.open(context),
-                      child: Container(
-                        height: 44,
-                        padding: const EdgeInsets.symmetric(horizontal: 14),
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(99),
-                          border: Border.all(
-                            color: LoopColors.textSecondary.withValues(
-                              alpha: 0.6,
-                            ),
-                            width: 1.5,
-                          ),
-                        ),
-                        child: Row(
-                          children: [
-                            Icon(Icons.search, color: LoopColors.textSecondary),
-                            const SizedBox(width: 10),
-                            Expanded(
-                              child: Text(
-                                t('Traži na Subhastu'),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: TextStyle(
-                                  color: LoopColors.textSecondary,
-                                  fontSize: 15,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
+        child: Padding(
+          key: const ValueKey('home-cats'),
+          padding: const EdgeInsets.fromLTRB(20, 8, 12, 0),
+          child: Column(
+            children: [
+              Row(
+                children: [
+                  if (wideHeader)
+                    Expanded(child: searchBar)
+                  else
+                    const Expanded(
+                      child: Align(
+                        alignment: Alignment.centerLeft,
+                        child: LoopLogo(size: 25),
                       ),
                     ),
-                  ),
-                ),
-                // Šire razine već imaju poruke i obavijesti u gornjoj traci.
-                if (MediaQuery.sizeOf(context).width < 600) ...const [
-                  MessagesButton(),
-                  NotificationBell(),
-                ],
-                IconButton(
-                  key: const ValueKey('home-filters'),
-                  tooltip: t('Filteri'),
-                  color: foreground,
-                  onPressed: () async {
-                    final picked = await showModalBottomSheet<Object>(
-                      context: context,
-                      showDragHandle: true,
-                      isScrollControlled: true,
-                      constraints: BoxConstraints(
-                        maxHeight: MediaQuery.sizeOf(context).height * 0.85,
-                      ),
-                      builder: (ctx) => SafeArea(
-                        child: SingleChildScrollView(
-                          child: Column(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              for (final (id, label, icon, value)
-                                  in <(String, String, IconData, Object)>[
-                                    (
-                                      'categories',
-                                      t('Kategorije'),
-                                      Icons.grid_view,
-                                      'categories',
-                                    ),
-                                    if (kBuyNowEnabled)
+                  const MessagesButton(),
+                  const NotificationBell(),
+                  IconButton(
+                    key: const ValueKey('home-filters'),
+                    tooltip: t('Filteri'),
+                    color: foreground,
+                    onPressed: () async {
+                      final picked = await showModalBottomSheet<Object>(
+                        context: context,
+                        showDragHandle: true,
+                        isScrollControlled: true,
+                        constraints: BoxConstraints(
+                          maxHeight: MediaQuery.sizeOf(context).height * 0.85,
+                        ),
+                        builder: (ctx) => SafeArea(
+                          child: SingleChildScrollView(
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                for (final (id, label, icon, value)
+                                    in <(String, String, IconData, Object)>[
                                       (
-                                        'digital',
-                                        t('Digitalne kupnje'),
-                                        Icons.download_outlined,
-                                        const _Digital(),
+                                        'categories',
+                                        t('Kategorije'),
+                                        Icons.grid_view,
+                                        'categories',
                                       ),
-                                    (
-                                      'soon',
-                                      t('Uskoro'),
-                                      Icons.event,
-                                      const _Soon(),
-                                    ),
-                                    (
-                                      'timed',
-                                      t('Aukcije'),
-                                      Icons.gavel,
-                                      const _Timed(),
-                                    ),
-                                    if (kBuyNowEnabled)
+                                      if (kBuyNowEnabled)
+                                        (
+                                          'digital',
+                                          t('Digitalne kupnje'),
+                                          Icons.download_outlined,
+                                          const _Digital(),
+                                        ),
                                       (
-                                        'buy',
-                                        t('Kupi odmah'),
-                                        Icons.shopping_bag_outlined,
-                                        const _BuyNow(),
+                                        'soon',
+                                        t('Uskoro'),
+                                        Icons.event,
+                                        const _Soon(),
                                       ),
-                                  ])
-                                ListTile(
-                                  key: ValueKey('home-cat-$id'),
-                                  leading: Icon(icon),
-                                  title: Text(label),
-                                  onTap: () => Navigator.pop(ctx, value),
-                                ),
-                            ],
+                                      (
+                                        'timed',
+                                        t('Aukcije'),
+                                        Icons.gavel,
+                                        const _Timed(),
+                                      ),
+                                      if (kBuyNowEnabled)
+                                        (
+                                          'buy',
+                                          t('Kupi odmah'),
+                                          Icons.shopping_bag_outlined,
+                                          const _BuyNow(),
+                                        ),
+                                    ])
+                                  ListTile(
+                                    key: ValueKey('home-cat-$id'),
+                                    leading: Icon(icon),
+                                    title: Text(label),
+                                    onTap: () => Navigator.pop(ctx, value),
+                                  ),
+                              ],
+                            ),
                           ),
                         ),
-                      ),
-                    );
-                    if (!mounted || !context.mounted) return;
-                    if (picked == 'categories') {
-                      await CategoriesScreen.open(context);
-                    } else if (picked is _Filter) {
-                      _select(picked);
-                    }
-                  },
-                  icon: const Icon(Icons.tune),
-                ),
-              ],
-            ),
+                      );
+                      if (!mounted || !context.mounted) return;
+                      if (picked == 'categories') {
+                        await CategoriesScreen.open(context);
+                      } else if (picked is _Filter) {
+                        _select(picked);
+                      }
+                    },
+                    icon: const Icon(Icons.tune),
+                  ),
+                ],
+              ),
+              if (!wideHeader) searchBar,
+            ],
           ),
         ),
       ),
@@ -723,86 +748,161 @@ class _LiveHomeScreenState extends ConsumerState<LiveHomeScreen> {
       ),
     );
 
-    return Column(
-      children: [
-        chips,
-        _TileRow(
-          selected: _filter.id,
-          onSelect: (f) => _select(f),
-          onCategories: () => CategoriesScreen.open(context),
-        ),
-        // Dolje kategorije: odabrana ostaje označena i filtrira prikaz.
-        AnimatedSize(
-          duration: const Duration(milliseconds: 200),
-          curve: Curves.easeOut,
-          alignment: Alignment.topCenter,
-          child: _LiveCategoryStrip(
-            stats: _liveCategoryStats(s, keep: _cat),
-            selected: _cat,
-            compact: _catCompact,
-            onSelect: (c) => setState(() => _cat = _cat == c ? null : c),
-          ),
-        ),
-        Expanded(
-          child: GestureDetector(
-            key: const ValueKey('home-swipe'),
-            behavior: HitTestBehavior.translucent,
-            onHorizontalDragEnd: _swipe,
-            child: NotificationListener<ScrollUpdateNotification>(
-              onNotification: (n) {
-                if (n.depth != 0) return false;
-                final compact = n.metrics.pixels > 60;
-                if (compact != _catCompact) {
-                  setState(() => _catCompact = compact);
-                }
-                return false;
-              },
-              child: CustomScrollView(
-                slivers: [
-                  if (onLive || onAuctions)
-                    SliverToBoxAdapter(child: categoryFilter),
-                  if (_showHow && _filter is _ForYou)
-                    SliverToBoxAdapter(
-                      child: _HowLoopWorks(
-                        onClose: () => setState(() => _showHow = false),
-                      ),
-                    ),
-                  if (!_hideCheckout &&
-                      s.currentUser != null &&
-                      !s.currentUser!.isGuest &&
-                      !s.currentUser!.checkoutReady)
-                    SliverToBoxAdapter(
-                      child: _CheckoutBanner(
-                        onClose: () => setState(() => _hideCheckout = true),
-                      ),
-                    ),
-                  ...slivers,
-                  const SliverToBoxAdapter(child: SizedBox(height: 96)),
-                ],
+    return Center(
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 1200),
+        child: Column(
+          children: [
+            chips,
+            _TileRow(selected: _filter.id, onSelect: (f) => _select(f)),
+            // Dolje kategorije: odabrana ostaje označena i filtrira prikaz.
+            if (onLive)
+              AnimatedSize(
+                duration: const Duration(milliseconds: 200),
+                curve: Curves.easeOut,
+                alignment: Alignment.topCenter,
+                child: _LiveCategoryStrip(
+                  stats: _liveCategoryStats(s, keep: _cat),
+                  selected: _cat,
+                  compact: _catCompact,
+                  onSelect: (c) => setState(() => _cat = _cat == c ? null : c),
+                ),
+              ),
+            Expanded(
+              child: GestureDetector(
+                key: const ValueKey('home-swipe'),
+                behavior: HitTestBehavior.translucent,
+                onHorizontalDragEnd: _swipe,
+                child: NotificationListener<ScrollUpdateNotification>(
+                  onNotification: (n) {
+                    if (n.depth != 0) return false;
+                    final compact = n.metrics.pixels > 60;
+                    if (compact != _catCompact) {
+                      setState(() => _catCompact = compact);
+                    }
+                    return false;
+                  },
+                  child: CustomScrollView(
+                    slivers: [
+                      if (onLive || onAuctions)
+                        SliverToBoxAdapter(child: categoryFilter),
+                      if (_showHow && _filter is _ForYou)
+                        SliverToBoxAdapter(
+                          child: _HowLoopWorks(
+                            onClose: () => setState(() => _showHow = false),
+                          ),
+                        ),
+                      ...slivers,
+                      if (!_hideCheckout &&
+                          s.currentUser != null &&
+                          !s.currentUser!.isGuest &&
+                          !s.currentUser!.checkoutReady)
+                        SliverToBoxAdapter(
+                          child: _CheckoutBanner(
+                            onClose: () => setState(() => _hideCheckout = true),
+                          ),
+                        ),
+                      const SliverToBoxAdapter(child: SizedBox(height: 96)),
+                    ],
+                  ),
+                ),
               ),
             ),
-          ),
+          ],
         ),
-      ],
+      ),
     );
   }
 }
 
 /// Kratko objašnjenje tri načina kupnje (može se sakriti zauvijek).
 class _HowLoopWorks extends ConsumerWidget {
-  const _HowLoopWorks({required this.onClose});
+  const _HowLoopWorks({required this.onClose, this.expanded = false});
+  final bool expanded;
   final VoidCallback onClose;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final ways = [
-      ('🔴', t('Uživo'), t('Licitiraj dok prodavač pokazuje predmet')),
-      ('⏱', t('Aukcije'), t('Najviša ponuda kad istekne vrijeme')),
+      (
+        Icons.videocam_outlined,
+        t('Uživo'),
+        t('Licitiraj dok prodavač pokazuje predmet'),
+      ),
+      (
+        Icons.gavel_outlined,
+        t('Aukcije'),
+        t('Najviša ponuda kad istekne vrijeme'),
+      ),
       if (kBuyNowEnabled)
-        ('🛒', t('Kupi odmah'), t('Fiksna cijena, kupnja jednim dodirom')),
+        (
+          Icons.shopping_bag_outlined,
+          t('Kupi odmah'),
+          t('Fiksna cijena, kupnja jednim dodirom'),
+        ),
     ];
+    if (!expanded) {
+      return Padding(
+        padding: const EdgeInsets.fromLTRB(20, 0, 12, 4),
+        child: Row(
+          key: const ValueKey('home-how'),
+          children: [
+            Expanded(
+              child: InkWell(
+                onTap: () => showModalBottomSheet<void>(
+                  context: context,
+                  showDragHandle: true,
+                  builder: (ctx) => appThemed(
+                    SafeArea(
+                      child: SingleChildScrollView(
+                        child: _HowLoopWorks(
+                          expanded: true,
+                          onClose: () => Navigator.pop(ctx),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  child: Row(
+                    children: [
+                      Icon(
+                        Icons.info_outline,
+                        size: 18,
+                        color: LoopColors.textSecondary,
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          t('Kako Subhasto radi'),
+                          style: TextStyle(
+                            fontSize: 13,
+                            color: LoopColors.textSecondary,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+            IconButton(
+              key: const ValueKey('home-how-close'),
+              tooltip: t('Sakrij'),
+              onPressed: onClose,
+              icon: Icon(
+                Icons.close,
+                size: 18,
+                color: LoopColors.textSecondary,
+              ),
+            ),
+          ],
+        ),
+      );
+    }
     return Padding(
-      key: const ValueKey('home-how'),
+      key: const ValueKey('home-how-details'),
       padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
       child: Card(
         child: Padding(
@@ -829,12 +929,12 @@ class _HowLoopWorks extends ConsumerWidget {
                   ),
                 ],
               ),
-              for (final (emoji, title, text) in ways)
+              for (final (icon, title, text) in ways)
                 Padding(
                   padding: const EdgeInsets.only(top: 6, right: 10),
                   child: Row(
                     children: [
-                      Text(emoji, style: const TextStyle(fontSize: 20)),
+                      Icon(icon, size: 22, color: LoopColors.textSecondary),
                       const SizedBox(width: 10),
                       Expanded(
                         child: Text.rich(
@@ -917,39 +1017,54 @@ class _EmptyLive extends StatelessWidget {
   final VoidCallback onGoLive;
 
   @override
-  Widget build(BuildContext context) => Container(
-    padding: const EdgeInsets.all(16),
-    decoration: BoxDecoration(
-      gradient: const LinearGradient(
-        begin: Alignment.topLeft,
-        end: Alignment.bottomRight,
-        colors: [Color(0xFFC8441E), kLiveRed],
+  Widget build(BuildContext context) => Padding(
+    padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
+    child: Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: LoopColors.surface,
+        borderRadius: BorderRadius.circular(kRadius),
+        border: Border.all(color: LoopColors.surfaceHover),
       ),
-      borderRadius: BorderRadius.circular(kRadius),
-    ),
-    child: Row(
-      children: [
-        const Icon(Icons.videocam, color: Colors.white, size: 30),
-        const SizedBox(width: 12),
-        Expanded(
-          child: Text(
-            t('Nitko trenutno nije uživo — budi prvi!'),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(
+            Icons.videocam_outlined,
+            size: 28,
+            color: LoopColors.textSecondary,
+          ),
+          const SizedBox(height: 14),
+          Text(
+            t('Uživo se uskoro vraća.'),
             style: const TextStyle(
-              color: Colors.white,
-              fontWeight: FontWeight.w800,
+              fontSize: 20,
+              fontWeight: FontWeight.w600,
+              letterSpacing: -.4,
             ),
           ),
-        ),
-        FilledButton(
-          key: const ValueKey('home-go-live'),
-          style: FilledButton.styleFrom(
-            backgroundColor: Colors.white,
-            foregroundColor: kLiveRed,
+          const SizedBox(height: 6),
+          Text(
+            t('Istraži ponude ili pokreni svoj prvi live.'),
+            style: TextStyle(color: LoopColors.textSecondary),
           ),
-          onPressed: onGoLive,
-          child: Text(t('Kreni uživo')),
-        ),
-      ],
+          const SizedBox(height: 10),
+          Wrap(
+            spacing: 12,
+            children: [
+              TextButton(
+                onPressed: () => CategoriesScreen.open(context),
+                child: Text(t('Pregledaj kategorije')),
+              ),
+              TextButton(
+                key: const ValueKey('home-go-live'),
+                onPressed: onGoLive,
+                child: Text(t('Kreni uživo')),
+              ),
+            ],
+          ),
+        ],
+      ),
     ),
   );
 }
@@ -1061,15 +1176,10 @@ class _FollowingRow extends StatelessWidget {
 /// Vodoravni tekstualni tabovi vrste prikaza: aktivni je podebljan i
 /// podcrtan, ostali sivi.
 class _TileRow extends StatelessWidget {
-  const _TileRow({
-    required this.selected,
-    required this.onSelect,
-    required this.onCategories,
-  });
+  const _TileRow({required this.selected, required this.onSelect});
 
   final String selected;
   final void Function(_Filter) onSelect;
-  final VoidCallback onCategories;
 
   @override
   Widget build(BuildContext context) {
@@ -1080,7 +1190,6 @@ class _TileRow extends StatelessWidget {
       required String label,
       required VoidCallback onTap,
       Key? key,
-      bool secondary = false,
     }) {
       final on = selected == id;
       return Padding(
@@ -1094,19 +1203,20 @@ class _TileRow extends StatelessWidget {
             padding: const EdgeInsets.symmetric(horizontal: 14),
             alignment: Alignment.center,
             decoration: BoxDecoration(
-              color: on ? LoopColors.textPrimary : Colors.transparent,
-              borderRadius: BorderRadius.circular(99),
+              color: Colors.transparent,
+              border: Border(
+                bottom: BorderSide(
+                  color: on ? LoopColors.textPrimary : Colors.transparent,
+                  width: 2,
+                ),
+              ),
             ),
             child: Text(
               label,
               style: TextStyle(
-                fontSize: secondary ? 14 : 16,
-                fontWeight: on ? FontWeight.w700 : FontWeight.w600,
-                color: on
-                    ? LoopColors.background
-                    : secondary
-                    ? LoopColors.textSecondary
-                    : LoopColors.textPrimary,
+                fontSize: 14,
+                fontWeight: on ? FontWeight.w600 : FontWeight.w400,
+                color: on ? LoopColors.textPrimary : LoopColors.textSecondary,
               ),
             ),
           ),
@@ -1119,14 +1229,8 @@ class _TileRow extends StatelessWidget {
       child: ListView(
         key: const ValueKey('home-tiles'),
         scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.symmetric(horizontal: 6),
+        padding: const EdgeInsets.symmetric(horizontal: 14),
         children: [
-          tab(
-            id: 'live',
-            key: const ValueKey('home-cat-live'),
-            label: t('Live show'),
-            onTap: () => onSelect(const _LiveOnly()),
-          ),
           tab(
             id: 'for-you',
             key: const ValueKey('home-cat-for-you'),
@@ -1134,43 +1238,40 @@ class _TileRow extends StatelessWidget {
             onTap: () => onSelect(const _ForYou()),
           ),
           tab(
-            id: 'following',
-            key: const ValueKey('home-cat-following'),
-            label: t('Pratim'),
-            onTap: () => onSelect(const _Following()),
+            id: 'live',
+            key: const ValueKey('home-cat-live'),
+            label: t('Uživo'),
+            onTap: () => onSelect(const _LiveOnly()),
+          ),
+          tab(
+            id: 'timed',
+            label: t('Aukcije'),
+            onTap: () => onSelect(const _Timed()),
           ),
           if (kBuyNowEnabled)
             tab(
               id: 'buy',
               label: t('Kupi odmah'),
-              secondary: true,
               onTap: () => onSelect(const _BuyNow()),
             ),
           tab(
-            id: 'timed',
-            label: t('Aukcije'),
-            secondary: true,
-            onTap: () => onSelect(const _Timed()),
+            id: 'following',
+            key: const ValueKey('home-cat-following'),
+            label: t('Pratim'),
+            onTap: () => onSelect(const _Following()),
           ),
-          tab(
-            id: 'soon',
-            label: t('Uskoro'),
-            secondary: true,
-            onTap: () => onSelect(const _Soon()),
-          ),
-          if (kBuyNowEnabled)
+          if (selected == 'soon')
+            tab(
+              id: 'soon',
+              label: t('Uskoro'),
+              onTap: () => onSelect(const _Soon()),
+            ),
+          if (kBuyNowEnabled && selected == 'digital')
             tab(
               id: 'digital',
               label: t('Digitalno'),
-              secondary: true,
               onTap: () => onSelect(const _Digital()),
             ),
-          tab(
-            id: 'categories',
-            label: t('Kategorije'),
-            secondary: true,
-            onTap: onCategories,
-          ),
         ],
       ),
     );

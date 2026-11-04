@@ -7,6 +7,7 @@ Deno.serve(async (req: Request) => {
   try {
     const user = await authenticate(req);
     const body = await req.json();
+    if(body.expectedUserId!==undefined&&body.expectedUserId!==user.id)return response(401,{error:'AUTH_REQUIRED'});
     if(body.action!==undefined && !['ensure','prepare'].includes(body.action))return response(400,{error:'INVALID_ACTION'});
     if(body.seller!==undefined && (!body.seller || typeof body.seller!=='object' || Array.isArray(body.seller)))return response(400,{error:'INVALID_PROFILE'});
     const { stripe, admin } = await services();

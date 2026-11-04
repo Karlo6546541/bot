@@ -585,7 +585,7 @@ class DeviceDetailScreen extends ConsumerWidget {
           ? null
           : SafeArea(
               child: Container(
-                padding: const EdgeInsets.fromLTRB(24, 10, 24, 12),
+                padding: const EdgeInsets.fromLTRB(20, 12, 20, 12),
                 decoration: BoxDecoration(
                   color: LoopColors.surface,
                   boxShadow: LoopColors.softShadow,
@@ -594,28 +594,37 @@ class DeviceDetailScreen extends ConsumerWidget {
                   heightFactor: 1,
                   child: ConstrainedBox(
                     constraints: const BoxConstraints(maxWidth: 900),
-                    child: Row(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
-                        Expanded(
-                          child: Text(
-                            wide ? device.name : '',
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
-                              fontWeight: FontWeight.w800,
-                              fontSize: 16,
+                        Row(
+                          children: [
+                            Expanded(
+                              child: Text(
+                                wide ? device.name : t('Ukupno'),
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                  color: LoopColors.textSecondary,
+                                  fontSize: 14,
+                                ),
+                              ),
                             ),
-                          ),
+                            const SizedBox(width: 16),
+                            Flexible(
+                              child: Text(
+                                formatCredits(buyTotal(price)),
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.w600,
+                                  fontSize: 24,
+                                  letterSpacing: -.5,
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
-                        Text(
-                          formatCredits(buyTotal(price)),
-                          style: const TextStyle(
-                            fontWeight: FontWeight.w700,
-                            fontSize: 24,
-                            letterSpacing: -0.5,
-                          ),
-                        ),
-                        const SizedBox(width: 16),
+                        const SizedBox(height: 10),
                         FilledButton.icon(
                           key: const ValueKey('buy-now'),
                           style: FilledButton.styleFrom(

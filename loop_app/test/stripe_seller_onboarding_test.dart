@@ -16,6 +16,47 @@ void main() {
     updatedAt: DateTime(2026),
   );
   test(
+    'preparing a saved seller never launches onboarding and pins the session owner',
+    () async {
+      var launches = 0;
+      final client = SupabaseClient(
+        'https://test.invalid',
+        'test-key',
+        httpClient: MockClient((request) async {
+          final body = jsonDecode(request.body) as Map;
+          expect(body['action'], 'prepare');
+          expect(body['expectedUserId'], 'owner-1');
+          expect(body['seller']['legalName'], seller.legalName);
+          for (final key in ['iban', 'oib', 'vatId', 'registryNumber']) {
+            expect((body['seller'] as Map).containsKey(key), false);
+          }
+          return http.Response(
+            '{"ready":false,"url":"https://connect.stripe.com/setup/test"}',
+            200,
+            headers: {'content-type': 'application/json'},
+          );
+        }),
+      );
+      final backend = StripeBackend(
+        client,
+        sellerLauncher: (_) async {
+          launches++;
+          return true;
+        },
+      );
+      expect(
+        await backend.prepareSeller(
+          seller,
+          country: 'HR',
+          expectedUserId: 'owner-1',
+        ),
+        false,
+      );
+      expect(launches, 0);
+      await client.dispose();
+    },
+  );
+  test(
     'ready sellers continue without a redirect and send no payout account or tax number',
     () async {
       var launches = 0;

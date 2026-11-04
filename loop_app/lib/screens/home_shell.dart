@@ -200,7 +200,7 @@ class _HomeShellState extends ConsumerState<HomeShell> {
                   ? 1
                   : 0,
               initialRoom: cloudRoom,
-              liveOnly: true,
+              liveOnly: cloud == 'live',
             ),
           ),
         );
@@ -302,7 +302,7 @@ class _HomeShellState extends ConsumerState<HomeShell> {
         padding: const EdgeInsets.symmetric(vertical: 20),
         child: LoopLogo(size: 22, onTap: _goHome),
       ),
-      appBar: _index == 0 && phone
+      appBar: _index == 0
           ? null
           : AppBar(
               // Jednostavna traka: logo lijevo, desno samo pretraga, poruke,

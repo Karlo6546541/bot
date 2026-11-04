@@ -20,6 +20,7 @@ class StripeBackend {
   Future<bool> ensureSellerReady(
     SellerInfo seller, {
     required String country,
+    String? expectedUserId,
   }) async {
     final profile = seller.toMap()
       ..remove('iban')
@@ -30,10 +31,31 @@ class StripeBackend {
       'action': 'ensure',
       'seller': profile,
       'country': country,
+      'expectedUserId': ?expectedUserId,
     });
     if (data['ready'] == true) return true;
     await _openSellerLink(data);
     return false;
+  }
+
+  /// Prepare the account without leaving the app or accepting any terms.
+  Future<bool> prepareSeller(
+    SellerInfo seller, {
+    required String country,
+    String? expectedUserId,
+  }) async {
+    final profile = seller.toMap()
+      ..remove('iban')
+      ..remove('oib')
+      ..remove('vatId')
+      ..remove('registryNumber');
+    final data = await _call('stripe-connect', {
+      'action': 'prepare',
+      'seller': profile,
+      'country': country,
+      'expectedUserId': ?expectedUserId,
+    });
+    return data['ready'] == true;
   }
 
   Future<void> _openSellerLink(Map<String, dynamic> data) async {

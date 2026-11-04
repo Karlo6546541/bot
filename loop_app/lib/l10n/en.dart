@@ -2,6 +2,53 @@
 // Generirano iz popisa tekstova; nadopuni ručno kad dodaješ nove.
 
 const kEn = <String, String>{
+  "Adresa i isplate": "Address and payouts",
+  "Dodatni podaci": "Additional details",
+  "Dovrši povezivanje": "Finish connecting",
+  "IBAN je privatan. Kupci ga ne vide.":
+      "Your IBAN is private. Buyers cannot see it.",
+  "Istraži ponude ili pokreni svoj prvi live.":
+      "Explore listings or start your first live.",
+  "Još jedan korak do isplata": "One more step to receive payouts",
+  "Kontakt za kupce": "Contact for buyers",
+  "Osobni podaci": "Personal details",
+  "Podaci su potrebni za prodaju, isplate i zakonske obveze platforme. Spremanje podataka i dovršetak Stripe računa odvojeni su koraci.":
+      "These details are needed for selling, payouts and the platform’s legal obligations. Saving your details and completing your Stripe account are separate steps.",
+  "Podaci su spremljeni": "Details saved",
+  "Podaci su spremljeni na uređaju. Poslat ćemo ih kad se veza vrati.":
+      "Details saved on this device. We will send them when the connection returns.",
+  "Podaci su spremljeni. Dovrši potvrdu u Stripeu.":
+      "Your details are saved. Complete verification in Stripe.",
+  "Podaci su spremljeni. Povezivanje isplata trenutačno nije dostupno.":
+      "Your details are saved. Payout setup is temporarily unavailable.",
+  "Podaci tvrtke": "Business details",
+  "Podaci će se poslati kad se veza vrati.":
+      "Your details will be sent when the connection returns.",
+  "Postavi račun": "Set up account",
+  "Povezivanje isplata trenutačno nije dostupno. Pokušaj ponovno.":
+      "Payout setup is temporarily unavailable. Please try again.",
+  "Predmeti, kupci i isplate. Sve na jednom mjestu.":
+      "Items, buyers and payouts. All in one place.",
+  "Pregledaj kategorije": "Browse categories",
+  "Prijavi se ponovno za nastavak.": "Sign in again to continue.",
+  "Pripremamo račun": "Preparing your account",
+  "Prodaja počinje ovdje.": "Selling starts here.",
+  "Spremi osnovne podatke i pripremi račun za prodaju.":
+      "Save your details and prepare your seller account.",
+  "Spremi podatke": "Save details",
+  "Spremljeno na uređaju": "Saved on this device",
+  "Spremno za primanje uplata": "Ready to receive payments",
+  "Stripe račun je povezan.": "Your Stripe account is connected.",
+  "Svoje podatke možeš urediti u bilo kojem trenutku.":
+      "You can edit your details at any time.",
+  "Tvoj račun prodavatelja": "Your seller account",
+  "Tvoja prodaja": "Your sales",
+  "Tvoji podaci su spremljeni.": "Your details are saved.",
+  "Unesi podatke jednom. Čuvamo ih u tvojem privatnom računu.":
+      "Enter your details once. We keep them in your private account.",
+  "Uredi podatke": "Edit details",
+  "Uživo se uskoro vraća.": "Live shows will be back soon.",
+  "Zašto tražimo ove podatke?": "Why do we ask for these details?",
   'Naplata nije dovršena. Provjeri stanje prije ponovnog pokušaja.':
       'Payment is incomplete. Check its status before retrying.',
   'Pošiljke': 'Shipments',

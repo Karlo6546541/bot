@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -7,6 +8,8 @@ import 'package:loop_app/providers/app_providers.dart';
 import 'package:loop_app/screens/seller_screens.dart';
 import 'package:loop_app/services/seed_data.dart';
 import 'package:loop_app/services/storage_service.dart';
+import 'package:loop_app/services/sync_service.dart';
+import 'sync_service_test.dart' show FakeRemote;
 
 void main() {
   late StorageService storage;
@@ -28,51 +31,138 @@ void main() {
   });
   tearDown(Hive.close);
   testWidgets(
-    'saving the existing seller form automatically starts onboarding before any sale',
+    'double save waits for cloud persistence and prepares only once',
     (tester) async {
       tester.view.physicalSize = const Size(390, 844);
       tester.view.devicePixelRatio = 1;
       addTearDown(tester.view.reset);
-      var calls = 0;
+      final remote = FakeRemote();
+      for (final table in storage.exportAll().entries) {
+        remote.data[table.key] = Map.of(table.value);
+      }
+      final sync = SyncService(storage, remote);
+      await sync.start();
+      remote.writeGate = Completer<void>();
+      var preparations = 0;
       await tester.pumpWidget(
         ProviderScope(
           overrides: [
             storageProvider.overrideWithValue(storage),
+            syncProvider.overrideWithValue(sync),
             tickIntervalProvider.overrideWithValue(null),
-            sellerOnboardingProvider.overrideWithValue((seller, country) async {
-              calls++;
-              expect(seller.legalName, 'Test Seller');
-              expect(country, 'HR');
-              return true;
+            sellerPreparationProvider.overrideWithValue((_, _) async {
+              preparations++;
+              return false;
             }),
+            sellerOnboardingProvider.overrideWithValue(
+              (_, _) async => throw StateError('Unexpected redirect'),
+            ),
           ],
           child: MaterialApp(
             home: Scaffold(
               body: Builder(
-                builder: (ctx) => TextButton(
-                  onPressed: () => SellerInfoScreen.open(ctx),
-                  child: const Text('Open seller form'),
+                builder: (context) => TextButton(
+                  onPressed: () => SellerInfoScreen.open(context),
+                  child: const Text('Open'),
                 ),
               ),
             ),
           ),
         ),
       );
-      await tester.tap(find.text('Open seller form'));
+      await tester.tap(find.text('Open'));
       await tester.pumpAndSettle();
-      await tester.scrollUntilVisible(
-        find.byKey(const ValueKey('seller-save')),
-        250,
-        scrollable: find.byType(Scrollable).first,
-      );
       await tester.tap(find.byKey(const ValueKey('seller-save')));
+      await tester.pump();
+      await tester.tap(find.byKey(const ValueKey('seller-save')));
+      await tester.pump();
+      expect(find.byType(SellerInfoScreen), findsOneWidget);
+      expect(preparations, 0);
+      remote.writeGate!.complete();
       await tester.pumpAndSettle();
-      expect(calls, 1);
       expect(find.byType(SellerInfoScreen), findsNothing);
+      expect(preparations, 1);
+      expect(sync.hasPendingRecord('sellers', SeedData.testUserId), false);
       expect(tester.takeException(), isNull);
       await tester.pumpWidget(const SizedBox.shrink());
+      await tester.runAsync(sync.dispose);
     },
   );
+
+  testWidgets(
+    'invalid seller details stay editable and cannot replace the saved profile',
+    (tester) async {
+      var preparations = 0;
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            storageProvider.overrideWithValue(storage),
+            tickIntervalProvider.overrideWithValue(null),
+            sellerPreparationProvider.overrideWithValue((_, _) async {
+              preparations++;
+              return true;
+            }),
+          ],
+          child: MaterialApp(home: const SellerInfoScreen()),
+        ),
+      );
+      await tester.pumpAndSettle();
+      await tester.enterText(find.byKey(const ValueKey('seller-oib')), '1234');
+      await tester.tap(find.byKey(const ValueKey('seller-save')));
+      await tester.pumpAndSettle();
+      expect(find.text('OIB nije ispravan (11 znamenki).'), findsOneWidget);
+      expect(storage.userById(SeedData.testUserId)!.seller!.oib, info.oib);
+      expect(preparations, 0);
+      await tester.pumpWidget(const SizedBox.shrink());
+      expect(tester.takeException(), isNull);
+    },
+  );
+
+  testWidgets('saving prepares the seller account without opening Stripe', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(390, 844);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    var calls = 0;
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          storageProvider.overrideWithValue(storage),
+          tickIntervalProvider.overrideWithValue(null),
+          sellerPreparationProvider.overrideWithValue((seller, country) async {
+            calls++;
+            expect(seller.legalName, 'Test Seller');
+            expect(country, 'HR');
+            return true;
+          }),
+        ],
+        child: MaterialApp(
+          home: Scaffold(
+            body: Builder(
+              builder: (ctx) => TextButton(
+                onPressed: () => SellerInfoScreen.open(ctx),
+                child: const Text('Open seller form'),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.tap(find.text('Open seller form'));
+    await tester.pumpAndSettle();
+    await tester.scrollUntilVisible(
+      find.byKey(const ValueKey('seller-save')),
+      250,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.tap(find.byKey(const ValueKey('seller-save')));
+    await tester.pumpAndSettle();
+    expect(calls, 1);
+    expect(find.byType(SellerInfoScreen), findsNothing);
+    expect(tester.takeException(), isNull);
+    await tester.pumpWidget(const SizedBox.shrink());
+  });
   testWidgets(
     'an existing incomplete seller is onboarded automatically and cannot publish yet',
     (tester) async {
@@ -111,59 +201,65 @@ void main() {
       await tester.pumpWidget(const SizedBox.shrink());
     },
   );
-  testWidgets('Stripe ne radi: spremanje i objava ipak prolaze', (
-    tester,
-  ) async {
-    tester.view.physicalSize = const Size(390, 844);
-    tester.view.devicePixelRatio = 1;
-    addTearDown(tester.view.reset);
-    bool? ready;
-    await tester.pumpWidget(
-      ProviderScope(
-        overrides: [
-          storageProvider.overrideWithValue(storage),
-          tickIntervalProvider.overrideWithValue(null),
-          sellerOnboardingProvider.overrideWithValue(
-            (seller, country) async => throw StateError('PAYMENTS_UNAVAILABLE'),
-          ),
-        ],
-        child: MaterialApp(
-          home: Scaffold(
-            body: Builder(
-              builder: (ctx) => Column(
-                children: [
-                  TextButton(
-                    onPressed: () => SellerInfoScreen.open(ctx),
-                    child: const Text('Open seller form'),
-                  ),
-                  TextButton(
-                    onPressed: () async {
-                      ready = await ensureSellerInfo(ctx);
-                    },
-                    child: const Text('Sell'),
-                  ),
-                ],
+  testWidgets(
+    'Stripe unavailable: details are saved but payment readiness stays false',
+    (tester) async {
+      tester.view.physicalSize = const Size(390, 844);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
+      bool? ready;
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            storageProvider.overrideWithValue(storage),
+            tickIntervalProvider.overrideWithValue(null),
+            sellerOnboardingProvider.overrideWithValue(
+              (seller, country) async =>
+                  throw StateError('PAYMENTS_UNAVAILABLE'),
+            ),
+          ],
+          child: MaterialApp(
+            home: Scaffold(
+              body: Builder(
+                builder: (ctx) => Column(
+                  children: [
+                    TextButton(
+                      onPressed: () => SellerInfoScreen.open(ctx),
+                      child: const Text('Open seller form'),
+                    ),
+                    TextButton(
+                      onPressed: () async {
+                        ready = await ensureSellerInfo(ctx);
+                      },
+                      child: const Text('Sell'),
+                    ),
+                  ],
+                ),
               ),
             ),
           ),
         ),
-      ),
-    );
-    await tester.tap(find.text('Open seller form'));
-    await tester.pumpAndSettle();
-    await tester.scrollUntilVisible(
-      find.byKey(const ValueKey('seller-save')),
-      250,
-      scrollable: find.byType(Scrollable).first,
-    );
-    await tester.tap(find.byKey(const ValueKey('seller-save')));
-    await tester.pumpAndSettle();
-    expect(find.byType(SellerInfoScreen), findsNothing);
-    expect(find.textContaining('Radnja nije uspjela'), findsNothing);
-    await tester.tap(find.text('Sell'));
-    await tester.pumpAndSettle();
-    expect(ready, isTrue);
-    expect(tester.takeException(), isNull);
-    await tester.pumpWidget(const SizedBox.shrink());
-  });
+      );
+      await tester.tap(find.text('Open seller form'));
+      await tester.pumpAndSettle();
+      await tester.scrollUntilVisible(
+        find.byKey(const ValueKey('seller-save')),
+        250,
+        scrollable: find.byType(Scrollable).first,
+      );
+      await tester.tap(find.byKey(const ValueKey('seller-save')));
+      await tester.pumpAndSettle();
+      expect(find.byType(SellerInfoScreen), findsNothing);
+      expect(find.textContaining('Radnja nije uspjela'), findsNothing);
+      await tester.tap(find.text('Sell'));
+      await tester.pumpAndSettle();
+      expect(ready, isFalse);
+      expect(
+        storage.userById(SeedData.testUserId)!.seller!.legalName,
+        'Test Seller',
+      );
+      expect(tester.takeException(), isNull);
+      await tester.pumpWidget(const SizedBox.shrink());
+    },
+  );
 }
