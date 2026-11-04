@@ -26,7 +26,7 @@ class LoopColors {
       ? Colors.white.withValues(alpha: .18)
       : Colors.black.withValues(alpha: .10);
   static Color get glass => _dark
-      ? const Color(0xFF28282D).withValues(alpha: .65)
+      ? const Color(0xFF28282D).withValues(alpha: .45)
       : Colors.white.withValues(alpha: .8);
   static Color get gold =>
       _dark ? const Color(0xFFFFD60A) : const Color(0xFF806000);
@@ -152,7 +152,7 @@ ThemeData buildLoopTheme({Color? accent}) {
       ),
     ),
     cardTheme: CardThemeData(
-      color: LoopColors.surface,
+      color: LoopColors.glass,
       elevation: 0,
       surfaceTintColor: Colors.transparent,
       margin: EdgeInsets.zero,
@@ -162,7 +162,7 @@ ThemeData buildLoopTheme({Color? accent}) {
       ),
     ),
     dialogTheme: DialogThemeData(
-      backgroundColor: LoopColors.surface,
+      backgroundColor: LoopColors.surface.withValues(alpha: .85),
       surfaceTintColor: Colors.transparent,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(32),

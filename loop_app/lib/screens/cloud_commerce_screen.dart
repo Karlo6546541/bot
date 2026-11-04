@@ -1,3 +1,4 @@
+import '../widgets/vision_live_controls.dart';
 import '../widgets/vision_glass.dart';
 import 'package:flutter/services.dart';
 import 'live_screens.dart';
@@ -61,6 +62,7 @@ class _CloudCommerceState extends State<CloudCommerceScreen> {
   bool _following = false;
   StreamSubscription<AuthState>? auth;
   RealtimeChannel? channel;
+  final _shopDrawer = GlobalKey<VisionLiveShopOverlayState>();
   final input = TextEditingController();
   @override
   void initState() {
@@ -597,7 +599,7 @@ class _CloudCommerceState extends State<CloudCommerceScreen> {
 
   // ------------------------------------------------------------- live soba
 
-  static const _ink = Color(0xFF0B0C11);
+  static const _ink = Color(0xFF000000);
   static const _panel = Color(0xFF16171D);
   static const _liveRed = Color(0xFFE5173F);
 
@@ -808,18 +810,42 @@ class _CloudCommerceState extends State<CloudCommerceScreen> {
   }
 
   /// Svi predmeti livea (redoslijed, status, pokretanje za voditelja).
-  void _showLots(
+  void _showLots(Map<String, dynamic>? room, bool host) =>
+      _shopDrawer.currentState?.open();
+
+  Widget _roomCatalog(
     Map<String, dynamic>? room,
     bool host,
-  ) => showModalBottomSheet<void>(
-    context: context,
-    backgroundColor: _panel,
-    showDragHandle: true,
-    builder: (ctx) => SafeArea(
+    VoidCallback onClose,
+  ) {
+    return SafeArea(
       child: ListView(
         shrinkWrap: true,
         padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
         children: [
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 12),
+            child: Row(
+              children: [
+                for (final emoji in const ['🔥', '😮', '💸', '👏', '😍'])
+                  IconButton(
+                    tooltip: 'Pošalji reakciju $emoji',
+                    visualDensity: VisualDensity.compact,
+                    onPressed: busy
+                        ? null
+                        : () => _run(() async {
+                            if (!await _login()) return;
+                            await live.sendMessage(
+                              roomId!,
+                              emoji,
+                              const Uuid().v4(),
+                            );
+                          }),
+                    icon: Text(emoji, style: const TextStyle(fontSize: 24)),
+                  ),
+              ],
+            ),
+          ),
           const Text(
             'Predmeti',
             style: TextStyle(
@@ -857,7 +883,7 @@ class _CloudCommerceState extends State<CloudCommerceScreen> {
                       onPressed: busy
                           ? null
                           : () {
-                              Navigator.pop(ctx);
+                              onClose();
                               _run(
                                 () => live.startLot(
                                   lot['id'] as String,
@@ -871,8 +897,8 @@ class _CloudCommerceState extends State<CloudCommerceScreen> {
             ),
         ],
       ),
-    ),
-  );
+    );
+  }
 
   /// Moderacija poruke (samo voditelj).
   void _moderate(Map<String, dynamic> m) => showModalBottomSheet<void>(
@@ -1129,9 +1155,9 @@ class _CloudCommerceState extends State<CloudCommerceScreen> {
                 Text(
                   money(lot['price_cents'] ?? lot['start_cents']),
                   style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 30,
-                    fontWeight: FontWeight.w900,
+                    color: Color(0xFFFFD60A),
+                    fontSize: 24,
+                    fontWeight: FontWeight.w700,
                   ),
                 ),
                 if (running != null)
@@ -1227,22 +1253,13 @@ class _CloudCommerceState extends State<CloudCommerceScreen> {
           ? running['start_cents'] as int
           : price + (running['increment_cents'] as int);
       primary.add(
-        FilledButton(
-          style: FilledButton.styleFrom(
-            backgroundColor: const Color(0xFFF46B16),
-            foregroundColor: Colors.white,
-            minimumSize: const Size.fromHeight(52),
-            textStyle: const TextStyle(
-              fontSize: 17,
-              fontWeight: FontWeight.w900,
-            ),
-          ),
-          onPressed: busy ? null : () => _bid(running),
-          child: Text(
-            uid == null
-                ? 'Prijavi se za licitiranje'
-                : 'Licitiraj ${money(nextBid)}',
-          ),
+        VisionBidSlider(
+          key: const ValueKey('cloud-live-bid'),
+          confirmationKey: (running['id'], nextBid),
+          label: uid == null
+              ? 'Prijavi se za licitiranje'
+              : 'Povuci za ponudu (${money(nextBid)})',
+          onConfirm: busy ? null : () => _bid(running),
         ),
       );
     }
@@ -1342,279 +1359,248 @@ class _CloudCommerceState extends State<CloudCommerceScreen> {
 
   Widget _room(Map<String, dynamic>? room, bool host) {
     final keyboard = MediaQuery.viewInsetsOf(context).bottom > 0;
-    return ColoredBox(
-      color: _ink,
-      child: Stack(
-        fit: StackFit.expand,
-        children: [
-          if (room?['video_enabled'] != false && connection != null)
-            CloudLiveMedia(
-              key: ValueKey('$roomId:$uid'),
-              connection: connection!,
-            )
-          else
-            _stagePlaceholder(room, host),
-          const IgnorePointer(
-            child: DecoratedBox(
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  colors: [
-                    Color(0xAA000000),
-                    Colors.transparent,
-                    Color(0xEE000000),
-                  ],
-                  stops: [0, .4, 1],
+    return VisionLiveShopOverlay(
+      key: _shopDrawer,
+      drawerBuilder: (_, close) => _roomCatalog(room, host, close),
+      child: ColoredBox(
+        color: _ink,
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            if (room?['video_enabled'] != false && connection != null)
+              CloudLiveMedia(
+                key: ValueKey('$roomId:$uid'),
+                connection: connection!,
+              )
+            else
+              _stagePlaceholder(room, host),
+            const IgnorePointer(
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [
+                      Color(0xAA000000),
+                      Colors.transparent,
+                      Color(0xEE000000),
+                    ],
+                    stops: [0, .4, 1],
+                  ),
                 ),
               ),
             ),
-          ),
-          SafeArea(
-            child: Column(
-              children: [
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(12, 4, 4, 0),
-                  child: Row(
-                    children: [
-                      const CircleAvatar(
-                        radius: 22,
-                        backgroundColor: Color(0xFFFFDF4D),
-                        child: Icon(
-                          Icons.storefront,
-                          color: Colors.black,
-                          size: 24,
-                        ),
-                      ),
-                      const SizedBox(width: 9),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              room?['title'] as String? ?? 'Prijenos uživo',
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 14,
-                                fontWeight: FontWeight.w800,
-                              ),
-                            ),
-                            Text(
-                              switch (room?['status']) {
-                                'live' => '● UŽIVO',
-                                'scheduled' => 'ZAKAZANO',
-                                _ => 'ZAVRŠENO',
-                              },
-                              style: const TextStyle(
-                                color: Color(0xFFFFDF4D),
-                                fontSize: 10,
-                                fontWeight: FontWeight.w700,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      if (!host && uid != null)
-                        TextButton(
-                          style: TextButton.styleFrom(
-                            backgroundColor: const Color(0xFFF46B16),
-                            foregroundColor: Colors.white,
-                          ),
-                          onPressed: busy
-                              ? null
-                              : () => _run(() async {
-                                  if (!await _login()) return;
-                                  await commerce.follow(
-                                    room!['host_id'] as String,
-                                    !_following,
-                                  );
-                                  if (mounted) {
-                                    setState(() => _following = !_following);
-                                  }
-                                }),
-                          child: Text(_following ? 'Pratim' : 'Prati'),
-                        ),
-                      if (uid == null)
-                        TextButton(
-                          onPressed: _login,
-                          child: const Text('Prijava'),
-                        ),
-                      PopupMenuButton<String>(
-                        icon: const Icon(Icons.more_horiz, color: Colors.white),
-                        onSelected: (value) => _run(() async {
-                          if (value == 'refresh') {
-                            await _refresh();
-                          } else {
-                            await Clipboard.setData(
-                              ClipboardData(
-                                text: Uri.base
-                                    .replace(
-                                      queryParameters: {
-                                        'cloud': 'live',
-                                        'room': roomId!,
-                                      },
-                                    )
-                                    .toString(),
-                              ),
-                            );
-                            if (mounted) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                  content: Text('Poveznica livea je kopirana.'),
-                                ),
-                              );
-                            }
-                          }
-                        }),
-                        itemBuilder: (_) => const [
-                          PopupMenuItem(
-                            value: 'share',
-                            child: Text('Podijeli live'),
-                          ),
-                          PopupMenuItem(
-                            value: 'refresh',
-                            child: Text('Osvježi live'),
-                          ),
-                        ],
-                      ),
-                      IconButton(
-                        tooltip: 'Zatvori live',
-                        onPressed: _leave,
-                        icon: const Icon(
-                          Icons.close,
-                          color: Colors.white,
-                          size: 23,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                const Spacer(),
-                Flexible(
-                  flex: 2,
-                  child: Align(
-                    alignment: Alignment.bottomLeft,
-                    child: _chatOverlay(room, host),
-                  ),
-                ),
-                if (!keyboard)
+            SafeArea(
+              child: Column(
+                children: [
                   Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 12),
+                    padding: const EdgeInsets.fromLTRB(12, 4, 4, 0),
                     child: Row(
                       children: [
-                        for (final emoji in const [
-                          '🔥',
-                          '😮',
-                          '💸',
-                          '👏',
-                          '😍',
-                        ])
-                          IconButton(
-                            tooltip: 'Pošalji reakciju $emoji',
-                            visualDensity: VisualDensity.compact,
+                        const CircleAvatar(
+                          radius: 22,
+                          backgroundColor: Color(0x7328282D),
+                          child: Icon(
+                            Icons.storefront,
+                            color: Colors.white,
+                            size: 24,
+                          ),
+                        ),
+                        const SizedBox(width: 9),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                room?['title'] as String? ?? 'Prijenos uživo',
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w800,
+                                ),
+                              ),
+                              Text(
+                                switch (room?['status']) {
+                                  'live' => '● UŽIVO',
+                                  'scheduled' => 'ZAKAZANO',
+                                  _ => 'ZAVRŠENO',
+                                },
+                                style: const TextStyle(
+                                  color: Color(0xFFFFDF4D),
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        if (!host && uid != null)
+                          TextButton(
+                            style: TextButton.styleFrom(
+                              backgroundColor: const Color(0xFF0A84FF),
+                              foregroundColor: Colors.white,
+                            ),
                             onPressed: busy
                                 ? null
                                 : () => _run(() async {
                                     if (!await _login()) return;
-                                    await live.sendMessage(
-                                      roomId!,
-                                      emoji,
-                                      const Uuid().v4(),
+                                    await commerce.follow(
+                                      room!['host_id'] as String,
+                                      !_following,
                                     );
+                                    if (mounted) {
+                                      setState(() => _following = !_following);
+                                    }
                                   }),
-                            icon: Text(
-                              emoji,
-                              style: const TextStyle(fontSize: 24),
+                            child: Text(_following ? 'Pratim' : 'Prati'),
+                          ),
+                        if (uid == null)
+                          TextButton(
+                            onPressed: _login,
+                            child: const Text('Prijava'),
+                          ),
+                        PopupMenuButton<String>(
+                          icon: const Icon(
+                            Icons.more_horiz,
+                            color: Colors.white,
+                          ),
+                          onSelected: (value) => _run(() async {
+                            if (value == 'refresh') {
+                              await _refresh();
+                            } else {
+                              await Clipboard.setData(
+                                ClipboardData(
+                                  text: Uri.base
+                                      .replace(
+                                        queryParameters: {
+                                          'cloud': 'live',
+                                          'room': roomId!,
+                                        },
+                                      )
+                                      .toString(),
+                                ),
+                              );
+                              if (mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                    content: Text(
+                                      'Poveznica livea je kopirana.',
+                                    ),
+                                  ),
+                                );
+                              }
+                            }
+                          }),
+                          itemBuilder: (_) => const [
+                            PopupMenuItem(
+                              value: 'share',
+                              child: Text('Podijeli live'),
+                            ),
+                            PopupMenuItem(
+                              value: 'refresh',
+                              child: Text('Osvježi live'),
+                            ),
+                          ],
+                        ),
+                        IconButton(
+                          tooltip: 'Zatvori live',
+                          onPressed: _leave,
+                          icon: const Icon(
+                            Icons.close,
+                            color: Colors.white,
+                            size: 23,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const Spacer(),
+                  Flexible(
+                    flex: 2,
+                    child: Align(
+                      alignment: Alignment.bottomLeft,
+                      child: _chatOverlay(room, host),
+                    ),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(12, 6, 8, 8),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: TextField(
+                            controller: input,
+                            readOnly: uid == null,
+                            onTap: uid == null ? _login : null,
+                            maxLength: 500,
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 14,
+                            ),
+                            textInputAction: TextInputAction.send,
+                            onSubmitted: (_) => _sendChat(),
+                            decoration: InputDecoration(
+                              hintText: uid == null
+                                  ? 'Prijavi se za komentar'
+                                  : 'Reci nešto…',
+                              hintStyle: const TextStyle(color: Colors.white60),
+                              counterText: '',
+                              isDense: true,
+                              filled: true,
+                              fillColor: const Color(0x7328282D),
+                              contentPadding: const EdgeInsets.symmetric(
+                                horizontal: 14,
+                                vertical: 11,
+                              ),
+                              enabledBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(24),
+                                borderSide: const BorderSide(
+                                  color: Colors.white30,
+                                ),
+                              ),
+                              focusedBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(24),
+                                borderSide: const BorderSide(
+                                  color: Color(0xFFFFDF4D),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                        IconButton(
+                          tooltip: 'Pošalji komentar',
+                          onPressed: busy ? null : _sendChat,
+                          icon: const Icon(
+                            Icons.send,
+                            color: Colors.white,
+                            size: 22,
+                          ),
+                        ),
+                        if (keyboard)
+                          IconButton(
+                            tooltip: 'Zatvori tipkovnicu',
+                            onPressed: () => FocusScope.of(context).unfocus(),
+                            icon: const Icon(
+                              Icons.keyboard_hide_outlined,
+                              color: Colors.white,
                             ),
                           ),
                       ],
                     ),
                   ),
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(12, 6, 8, 8),
-                  child: Row(
-                    children: [
-                      IconButton(
-                        tooltip: 'Predmeti u liveu',
-                        onPressed: () => _showLots(room, host),
-                        style: IconButton.styleFrom(
-                          backgroundColor: const Color(0xFFF46B16),
-                          foregroundColor: Colors.white,
-                        ),
-                        icon: Badge(
-                          label: Text('${lots.length}'),
-                          child: const Icon(Icons.shopping_bag_outlined),
-                        ),
-                      ),
-                      const SizedBox(width: 6),
-                      Expanded(
-                        child: TextField(
-                          controller: input,
-                          readOnly: uid == null,
-                          onTap: uid == null ? _login : null,
-                          maxLength: 500,
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 14,
-                          ),
-                          textInputAction: TextInputAction.send,
-                          onSubmitted: (_) => _sendChat(),
-                          decoration: InputDecoration(
-                            hintText: uid == null
-                                ? 'Prijavi se za komentar'
-                                : 'Reci nešto…',
-                            hintStyle: const TextStyle(color: Colors.white60),
-                            counterText: '',
-                            isDense: true,
-                            filled: true,
-                            fillColor: const Color(0x33000000),
-                            contentPadding: const EdgeInsets.symmetric(
-                              horizontal: 14,
-                              vertical: 11,
-                            ),
-                            enabledBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(24),
-                              borderSide: const BorderSide(
-                                color: Colors.white30,
-                              ),
-                            ),
-                            focusedBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(24),
-                              borderSide: const BorderSide(
-                                color: Color(0xFFFFDF4D),
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-                      IconButton(
-                        tooltip: 'Pošalji komentar',
-                        onPressed: busy ? null : _sendChat,
-                        icon: const Icon(
-                          Icons.send,
-                          color: Colors.white,
-                          size: 22,
-                        ),
-                      ),
-                      if (keyboard)
-                        IconButton(
-                          tooltip: 'Zatvori tipkovnicu',
-                          onPressed: () => FocusScope.of(context).unfocus(),
-                          icon: const Icon(
-                            Icons.keyboard_hide_outlined,
-                            color: Colors.white,
-                          ),
-                        ),
-                    ],
-                  ),
-                ),
-                if (!keyboard) _lotPanel(room, host),
-              ],
+                  if (!keyboard) _lotPanel(room, host),
+                  if (!keyboard)
+                    VisionShopHandle(
+                      key: const ValueKey('cloud-live-shop-handle'),
+                      label: 'Povuci gore za shop · ${lots.length} predmeta',
+                      onOpen: () => _showLots(room, host),
+                    ),
+                ],
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

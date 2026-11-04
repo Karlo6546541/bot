@@ -94,7 +94,7 @@ Future<void> main() async {
     model: 'Vintage kolekcija',
     condition: DeviceCondition.good,
     price: 55,
-    category: DeviceCategory.console,
+    category: DeviceCategory.watches,
     imagePaths: const [
       'https://images.unsplash.com/photo-1523275335684-37898b6baf30?auto=format&fit=crop&w=900&q=85',
     ],
@@ -106,14 +106,14 @@ Future<void> main() async {
     coverPath:
         'https://images.unsplash.com/photo-1523275335684-37898b6baf30?auto=format&fit=crop&w=900&q=85',
     title: 'Satovi s pričom.',
-    category: DeviceCategory.console.name,
+    category: DeviceCategory.watches.name,
   );
   final secondLive = await lives.create(
     hostId: SeedData.demoUserId,
     title: 'Sneaker kolekcija',
     coverPath:
         'https://images.unsplash.com/photo-1552346154-21d32810aba3?auto=format&fit=crop&w=600&q=85',
-    category: DeviceCategory.books.name,
+    category: DeviceCategory.sneakers.name,
   );
   await storage.putUser(
     AppUser(

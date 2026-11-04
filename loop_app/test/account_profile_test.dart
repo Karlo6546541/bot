@@ -1,3 +1,4 @@
+import 'helpers/vision_navigation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -53,7 +54,7 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Profil').last);
+    await mainTab(tester, 'Profil');
     await tester.pumpAndSettle();
     // Račun (kao Whatnot): objave su iza "Pogledaj profil".
     expect(find.byKey(const ValueKey('account-home')), findsOneWidget);

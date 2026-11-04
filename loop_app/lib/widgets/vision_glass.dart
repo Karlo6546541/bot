@@ -11,12 +11,16 @@ class VisionGlass extends StatelessWidget {
     this.padding = EdgeInsets.zero,
     this.blur = true,
     this.dark,
+    this.heavy = false,
+    this.opacity,
   });
   final Widget child;
   final double radius;
   final EdgeInsetsGeometry padding;
   final bool blur;
   final bool? dark;
+  final bool heavy;
+  final double? opacity;
 
   @override
   Widget build(BuildContext context) {
@@ -24,11 +28,13 @@ class VisionGlass extends StatelessWidget {
     final decoration = BoxDecoration(
       borderRadius: BorderRadius.circular(radius),
       color: isDark
-          ? const Color(0xFF28282D).withValues(alpha: .66)
+          ? (heavy
+                ? const Color(0xFF19191E).withValues(alpha: opacity ?? .65)
+                : const Color(0xFF28282D).withValues(alpha: opacity ?? .45))
           : Colors.white.withValues(alpha: .86),
       border: Border.all(
         color: isDark
-            ? Colors.white.withValues(alpha: .20)
+            ? Colors.white.withValues(alpha: .22)
             : Colors.black.withValues(alpha: .10),
       ),
     );
@@ -40,7 +46,10 @@ class VisionGlass extends StatelessWidget {
       borderRadius: BorderRadius.circular(radius),
       child: blur && !MediaQuery.disableAnimationsOf(context)
           ? BackdropFilter(
-              filter: ImageFilter.blur(sigmaX: 18, sigmaY: 18),
+              filter: ImageFilter.blur(
+                sigmaX: heavy ? 40 : 25,
+                sigmaY: heavy ? 40 : 25,
+              ),
               child: panel,
             )
           : panel,

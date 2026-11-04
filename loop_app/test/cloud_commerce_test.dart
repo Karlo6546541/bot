@@ -1,3 +1,4 @@
+import 'helpers/vision_navigation.dart';
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -119,16 +120,20 @@ void main() {
     expect(find.text('Dobrodošli u live!'), findsOneWidget);
     final bid = find.text('Prijavi se za licitiranje');
     await tester.ensureVisible(bid);
-    await tester.tap(bid);
+    await slideBid(tester, key: 'cloud-live-bid');
     await tester.pumpAndSettle();
     expect(logins, 1);
     await tester.tap(find.byIcon(Icons.send));
     await tester.pumpAndSettle();
     expect(logins, 2);
+    await tester.tap(find.byKey(const ValueKey('cloud-live-shop-handle')));
+    await tester.pumpAndSettle();
     await tester.tap(find.byTooltip('Pošalji reakciju 🔥'));
     await tester.pumpAndSettle();
     expect(logins, 3);
     expect(mutations.where((p) => p.contains('/rpc/')), isEmpty);
+    await tester.tap(find.byKey(const ValueKey('live-shop-close')));
+    await tester.pumpAndSettle();
     tester.view.viewInsets = const FakeViewPadding(bottom: 320);
     await tester.pumpAndSettle();
     expect(find.text('Dobrodošli u live!'), findsOneWidget);

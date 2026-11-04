@@ -1,3 +1,4 @@
+import 'helpers/vision_navigation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -48,7 +49,7 @@ void main() {
     addTearDown(tester.view.reset);
     await tester.pumpWidget(app());
     await tester.pumpAndSettle();
-    await tester.tap(find.byIcon(Icons.storefront_outlined).first);
+    await tester.tap(find.byKey(const ValueKey('nav-create')));
     await tester.pumpAndSettle();
     expect(find.byKey(const ValueKey('seller-hub-live')), findsOneWidget);
     expect(find.byKey(const ValueKey('seller-hub-auction')), findsOneWidget);
@@ -85,7 +86,7 @@ void main() {
     await tester.pumpWidget(app());
     await tester.pumpAndSettle();
     // Mobitel: Početna · Kategorije · Seller Hub · Moje · Profil.
-    expect(find.byType(NavigationDestination), findsNWidgets(5));
+    expect(find.byType(NavigationDestination), findsNothing);
     expect(
       find.byKey(const ValueKey('home-categories-shortcut')),
       findsNothing,
@@ -113,14 +114,14 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.byKey(const ValueKey('home-digital')), findsOneWidget);
     expect(find.byKey(const ValueKey('home-ending')), findsNothing);
-    await tester.tap(find.text('Moje').last);
+    await mainTab(tester, 'Moje');
     await tester.pumpAndSettle();
     expect(
       find.byKey(const ValueKey('activity-tab-purchases')),
       findsOneWidget,
     );
     expect(find.byType(NavigationDestination), findsNWidgets(5));
-    await tester.tap(find.text('Profil').last);
+    await mainTab(tester, 'Profil');
     await tester.pumpAndSettle();
     await tester.tap(find.byKey(const ValueKey('shell-library-menu')));
     await tester.pumpAndSettle();

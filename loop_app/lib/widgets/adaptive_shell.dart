@@ -63,6 +63,7 @@ class AdaptiveShell extends StatelessWidget {
     this.floatingActionButton,
     this.railHeader,
     this.immersiveNavigation = false,
+    this.showNavigation = true,
   });
 
   final List<ShellDestination> destinations;
@@ -73,6 +74,7 @@ class AdaptiveShell extends StatelessWidget {
   final Widget? floatingActionButton;
   final Widget? railHeader;
   final bool immersiveNavigation;
+  final bool showNavigation;
 
   Widget _navigation(BuildContext context, {bool compact = false}) =>
       NavigationBar(
@@ -112,14 +114,16 @@ class AdaptiveShell extends StatelessWidget {
         extendBody: true,
         body: SafeArea(top: false, child: body),
         floatingActionButton: floatingActionButton,
-        bottomNavigationBar: SafeArea(
-          top: false,
-          minimum: const EdgeInsets.fromLTRB(12, 0, 12, 10),
-          child: VisionGlass(
-            radius: 30,
-            child: _navigation(context, compact: true),
-          ),
-        ),
+        bottomNavigationBar: !showNavigation
+            ? null
+            : SafeArea(
+                top: false,
+                minimum: const EdgeInsets.fromLTRB(12, 0, 12, 10),
+                child: VisionGlass(
+                  radius: 30,
+                  child: _navigation(context, compact: true),
+                ),
+              ),
       );
     }
 

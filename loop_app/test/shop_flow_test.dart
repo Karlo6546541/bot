@@ -1,3 +1,4 @@
+import 'helpers/vision_navigation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -83,7 +84,7 @@ void main() {
     await tester.tap(find.text('Prijavi se'));
     await tester.pumpAndSettle();
 
-    await tester.tap(find.byKey(const ValueKey('home-search')));
+    await globalSearch(tester);
     await tester.pumpAndSettle();
     await tester.enterText(
       find.byKey(const ValueKey('global-search')),

@@ -2,6 +2,17 @@
 // Generirano iz popisa tekstova; nadopuni ručno kad dodaješ nove.
 
 const kEn = <String, String>{
+  'Obrada…': 'Processing…',
+  'Računi': 'Receipts',
+  'Povuci za ponudu ({0})': 'Slide to bid ({0})',
+  'Povuci gore za shop · {0} predmeta': 'Swipe up for shop · {0} items',
+  'Povuci dolje za puni video': 'Swipe down for full video',
+  'Zatvori shop': 'Close shop',
+  'Pitaj prodavača uživo…': 'Ask the seller live…',
+  'Pronađi predmet u prijenosima uživo…': 'Find an item in live streams…',
+  'Sljedeće u prijenosu': 'More live stages',
+  'Sve uživo': 'All live',
+  'Trenutno': 'Current',
   'Pretraži': 'Search',
   'Pozornica uživo': 'Live stage',
   'Uđi u prijenos': 'Enter live',

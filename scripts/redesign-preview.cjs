@@ -5,13 +5,13 @@ const path = require('node:path');
 const base = process.env.PREVIEW_BASE_URL || 'http://127.0.0.1:8765/bot/';
 const output = process.env.PREVIEW_ARTIFACT_DIR || '/tmp/feed-preview/screenshots';
 const scenarios = [
-  ['home', 320, 740, 'light', 'Traži na Subhastu'],
-  ['home', 390, 844, 'light', 'Uživo'],
-  ['home', 1440, 1000, 'light', 'Uživo'],
-  ['home', 390, 844, 'dark', 'Uživo'],
-  ['live', 320, 740, 'light', 'Shop'],
-  ['live', 390, 844, 'light', 'Shop'],
-  ['host', 390, 844, 'dark', 'Shop'],
+  ['home', 320, 740, 'light', 'Sve uživo'],
+  ['home', 390, 844, 'light', 'Sve uživo'],
+  ['home', 1440, 1000, 'light', 'Sve uživo'],
+  ['home', 390, 844, 'dark', 'Sve uživo'],
+  ['live', 320, 740, 'light', 'Povuci gore za shop'],
+  ['live', 390, 844, 'light', 'Povuci gore za shop'],
+  ['host', 390, 844, 'dark', 'Povuci gore za shop'],
   ['shop', 390, 844, 'light', 'Shop ('],
   ['shop', 1440, 900, 'light', 'Shop ('],
   ['categories', 390, 844, 'light', 'Konzole'],
@@ -68,10 +68,31 @@ const scenarios = [
         await page.getByRole('button',{name:'Natrag',exact:true}).waitFor();
       }
       if (route === 'live' && width === 390) {
-        await page.getByRole('button',{name:/^Shop/}).first().click();
-        await page.getByRole('tab',{name:/^Shop/}).click();
-        await page.getByRole('button',{name:'Kupi',exact:true}).first().waitFor();
+        const handle = page.getByRole('button',{name:/Povuci gore za shop/}).first();
+        const box = await handle.boundingBox();
+        await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+        await page.mouse.down(); await page.mouse.move(box.x + box.width / 2, box.y - 140,{steps:12}); await page.mouse.up();
+        await page.getByRole('tab',{name:/^Kupi odmah/}).click();
+        await page.getByRole('button',{name:'Kupi odmah',exact:true}).first().waitFor();
         await page.screenshot({path:path.join(output,'live-shop-drawer.png')});
+        const closeHandle = await page.getByRole('button',{name:'Zatvori shop',exact:true}).boundingBox();
+        await page.mouse.move(width / 2, closeHandle.y + closeHandle.height / 2);
+        await page.mouse.down(); await page.mouse.move(width / 2,closeHandle.y+160,{steps:12}); await page.mouse.up();
+        await handle.waitFor();
+      }
+      if (route === 'home' && width === 390 && theme === 'dark') {
+        await page.getByRole('button',{name:'Prodavač',exact:true}).click();
+        await page.getByRole('button',{name:'Pokreni live',exact:true}).waitFor();
+        await page.screenshot({path:path.join(output,'home-seller-drawer.png')});
+        await page.mouse.click(8,8);
+        await page.getByRole('button',{name:'Računi',exact:true}).click();
+        await page.getByRole('button',{name:/Kupnje/}).first().waitFor();
+        await page.screenshot({path:path.join(output,'home-receipts-drawer.png')});
+        await page.mouse.click(8,8);
+        await page.getByRole('button',{name:'Pretraži',exact:true}).click();
+        await page.getByRole('textbox').first().fill('Satovi');
+        await page.waitForTimeout(300);
+        await page.screenshot({path:path.join(output,'home-inline-search.png')});
       }
       if (route === 'home' && width === 390 && theme === 'light') {
         await page.getByRole('button',{name:'Filteri',exact:true}).click();
