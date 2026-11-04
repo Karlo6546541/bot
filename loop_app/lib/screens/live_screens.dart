@@ -1,5 +1,6 @@
 import 'device_detail_screen.dart';
 import '../widgets/live_shop_widgets.dart' show liveShopProducts;
+import '../widgets/vision_glass.dart';
 import 'host_console.dart';
 import '../config/backend_config.dart';
 import 'cloud_commerce_screen.dart';
@@ -48,11 +49,11 @@ import 'seller_screens.dart' show ensureSellerInfo;
 const kLiveRed = LoopColors.live;
 
 /// Pozadina listova u liveu (live je uvijek taman).
-const kLiveSheet = Color(0xFF000000);
+const kLiveSheet = Color(0xF21C1C22);
 
-/// Glavna radnja u liveu (Licitiraj) — narančasta, crvena je samo "uživo".
-const kBidOrange = Color(0xFFF26B1D);
-const _defaultStage = [Color(0xFF3A1C71), Color(0xFFD76D77)];
+/// Plava za radnje u liveu; crvena označava emitiranje uživo.
+const kBidOrange = Color(0xFF0066CC);
+const _defaultStage = [Color(0xFF28282D), Color(0xFF08080A)];
 
 /// Gradijent pozornice prema kategoriji predmeta.
 List<Color> _stageGradient(Device? d) => d == null
@@ -3097,31 +3098,35 @@ class _LiveRoomViewState extends ConsumerState<_LiveRoomBody> {
     context: context,
     showDragHandle: true,
     isScrollControlled: true,
-    backgroundColor: kLiveSheet,
+    backgroundColor: Colors.transparent,
     constraints: const BoxConstraints(maxWidth: 520),
-    builder: (ctx) => _LiveShopSheet(
-      showId: st.show.id,
-      isHost: isHost,
-      onStart: (i) {
-        Navigator.pop(ctx);
-        _startLot(i);
-      },
-      onPreBid: (l) async {
-        final mine = l.leader?.userId == ref.read(appProvider).currentUserId;
-        final min = mine
-            ? (l.maxOf(l.leader!.userId) ?? l.price) +
-                  LiveLot.increment(l.price)
-            : l.minNext;
-        final amount = await showMaxBidDialog(
-          ctx,
-          min: min,
-          preBid: true,
-          raise: mine,
-        );
-        if (amount == null || !ctx.mounted) return;
-        Navigator.pop(ctx);
-        await _bid(amount, lot: l.index);
-      },
+    builder: (ctx) => VisionGlass(
+      dark: true,
+      radius: 32,
+      child: _LiveShopSheet(
+        showId: st.show.id,
+        isHost: isHost,
+        onStart: (i) {
+          Navigator.pop(ctx);
+          _startLot(i);
+        },
+        onPreBid: (l) async {
+          final mine = l.leader?.userId == ref.read(appProvider).currentUserId;
+          final min = mine
+              ? (l.maxOf(l.leader!.userId) ?? l.price) +
+                    LiveLot.increment(l.price)
+              : l.minNext;
+          final amount = await showMaxBidDialog(
+            ctx,
+            min: min,
+            preBid: true,
+            raise: mine,
+          );
+          if (amount == null || !ctx.mounted) return;
+          Navigator.pop(ctx);
+          await _bid(amount, lot: l.index);
+        },
+      ),
     ),
   );
 
@@ -3521,6 +3526,14 @@ class _LiveRoomViewState extends ConsumerState<_LiveRoomBody> {
                   device: stageDevice,
                 ),
               ),
+              _ when stageDevice != null && stageDevice.imagePaths.isNotEmpty =>
+                LocalPhoto(
+                  path: stageDevice.imagePaths.first,
+                  fallback: StoryBackdrop(
+                    gradient: _stageGradient(stageDevice),
+                    device: stageDevice,
+                  ),
+                ),
               _ => StoryBackdrop(
                 gradient: _stageGradient(stageDevice),
                 device: stageDevice,
@@ -3575,7 +3588,9 @@ class _LiveRoomViewState extends ConsumerState<_LiveRoomBody> {
                                 st.isOver ? 16 : 72,
                                 16,
                               ),
-                              child: center,
+                              child: composing
+                                  ? const SizedBox.shrink()
+                                  : center,
                             ),
                           ),
                           if (showSweep) ...[
@@ -3771,32 +3786,59 @@ class _LiveRoomViewState extends ConsumerState<_LiveRoomBody> {
                       ),
                     if (!composing && !st.isOver)
                       _FlashBar(hostId: show.hostId, now: now),
-                    if (!composing && cur != null)
-                      _LotCard(
-                        lot: cur,
-                        device: s.deviceById(cur.lot.deviceId),
-                        total: show.lots.length,
-                        lotSeconds: cur.lot.seconds ?? show.lotSeconds,
-                        now: now,
-                        me: me?.id,
-                        leaderUser: s.userById(cur.leader?.userId),
-                        isHost: isHost,
-                      )
-                    else if (!composing && done != null && !st.isOver)
-                      _LotCard(
-                        lot: done,
-                        device: s.deviceById(done.lot.deviceId),
-                        total: show.lots.length,
-                        lotSeconds: done.lot.seconds ?? show.lotSeconds,
-                        now: now,
-                        me: me?.id,
-                        leaderUser: s.userById(done.leader?.userId),
-                        result: true,
-                      ),
                     if (!composing)
                       Padding(
-                        padding: const EdgeInsets.fromLTRB(12, 10, 12, 0),
-                        child: _actions(show, st, cur, isHost, canAct, me?.id),
+                        padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
+                        child: VisionGlass(
+                          dark: true,
+                          radius: 28,
+                          padding: const EdgeInsets.fromLTRB(4, 4, 4, 14),
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              if (cur != null)
+                                _LotCard(
+                                  lot: cur,
+                                  device: s.deviceById(cur.lot.deviceId),
+                                  total: show.lots.length,
+                                  lotSeconds:
+                                      cur.lot.seconds ?? show.lotSeconds,
+                                  now: now,
+                                  me: me?.id,
+                                  leaderUser: s.userById(cur.leader?.userId),
+                                  isHost: isHost,
+                                )
+                              else if (done != null && !st.isOver)
+                                _LotCard(
+                                  lot: done,
+                                  device: s.deviceById(done.lot.deviceId),
+                                  total: show.lots.length,
+                                  lotSeconds:
+                                      done.lot.seconds ?? show.lotSeconds,
+                                  now: now,
+                                  me: me?.id,
+                                  leaderUser: s.userById(done.leader?.userId),
+                                  result: true,
+                                ),
+                              Padding(
+                                padding: const EdgeInsets.fromLTRB(
+                                  12,
+                                  10,
+                                  12,
+                                  0,
+                                ),
+                                child: _actions(
+                                  show,
+                                  st,
+                                  cur,
+                                  isHost,
+                                  canAct,
+                                  me?.id,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
                       ),
                     _DouyinBar(
                       controller: _chat,
@@ -5060,13 +5102,15 @@ class _Panel extends StatelessWidget {
   final List<Widget> children;
 
   @override
-  Widget build(BuildContext context) => Container(
-    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-    decoration: BoxDecoration(
-      color: Colors.black54,
-      borderRadius: BorderRadius.circular(kRadius),
+  Widget build(BuildContext context) => SingleChildScrollView(
+    child: Container(
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+      decoration: BoxDecoration(
+        color: Colors.black54,
+        borderRadius: BorderRadius.circular(kRadius),
+      ),
+      child: Column(mainAxisSize: MainAxisSize.min, children: children),
     ),
-    child: Column(mainAxisSize: MainAxisSize.min, children: children),
   );
 }
 
@@ -5183,11 +5227,7 @@ class _LotCard extends StatelessWidget {
     // Velika kartica trenutnog predmeta na dnu (tamni poluprozirni panel).
     return Container(
       key: ValueKey(result ? 'live-result' : 'live-lot'),
-      margin: const EdgeInsets.fromLTRB(10, 2, 10, 0),
-      padding: const EdgeInsets.fromLTRB(10, 8, 10, 8),
-      decoration: const BoxDecoration(
-        border: Border(top: BorderSide(color: Colors.white24)),
-      ),
+      padding: const EdgeInsets.fromLTRB(12, 10, 12, 8),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -5213,7 +5253,7 @@ class _LotCard extends StatelessWidget {
                   overflow: TextOverflow.ellipsis,
                   style: const TextStyle(
                     color: Colors.white,
-                    fontWeight: FontWeight.w900,
+                    fontWeight: FontWeight.w600,
                     fontSize: 13,
                     shadows: _shadow,
                   ),
@@ -5322,8 +5362,8 @@ class _LotCard extends StatelessWidget {
                               : formatCredits(price),
                           key: const ValueKey('live-price'),
                           style: const TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.w900,
+                            color: Color(0xFFFFD60A),
+                            fontWeight: FontWeight.w700,
                             fontSize: 25,
                             height: 1.05,
                             shadows: _shadow,
@@ -5340,7 +5380,7 @@ class _LotCard extends StatelessWidget {
                             : t('Prodano'),
                         style: TextStyle(
                           color: leader == null ? Colors.white70 : kLiveRed,
-                          fontWeight: FontWeight.w900,
+                          fontWeight: FontWeight.w600,
                           fontSize: 11,
                           shadows: _shadow,
                         ),
@@ -5933,13 +5973,13 @@ class _DouyinBar extends StatelessWidget {
             child: InkWell(
               key: const ValueKey('live-queue'),
               onTap: onBag,
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BorderRadius.circular(99),
               child: Container(
                 constraints: const BoxConstraints(minHeight: 44),
                 padding: const EdgeInsets.symmetric(horizontal: 10),
                 decoration: BoxDecoration(
                   color: Colors.white.withValues(alpha: .13),
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(99),
                 ),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
@@ -5996,7 +6036,7 @@ class _DouyinBar extends StatelessWidget {
                     hintText: t('Reci nešto…'),
                     hintStyle: const TextStyle(color: Colors.white70),
                     filled: true,
-                    fillColor: const Color(0xA6000000),
+                    fillColor: const Color(0x9928282D),
                     // Pisanje: "Aa" lijevo, kao na Whatnotu.
                     prefixIcon: composing
                         ? Padding(
@@ -6104,8 +6144,8 @@ class _LiveShopSheet extends ConsumerWidget {
   final void Function(int index) onStart;
   final Future<void> Function(LotState lot) onPreBid;
 
-  static const _white = Color(0xFFF5EDE6);
-  static const _muted = Color(0xFFB3A69B);
+  static const _white = Color(0xFFF5F5F7);
+  static const _muted = Color(0xFFAEAEB6);
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -6146,7 +6186,7 @@ class _LiveShopSheet extends ConsumerWidget {
                 running ? t('UŽIVO') : '$n',
                 style: const TextStyle(
                   color: Colors.white,
-                  fontWeight: FontWeight.w900,
+                  fontWeight: FontWeight.w600,
                   fontSize: 11,
                 ),
               ),
@@ -6167,9 +6207,11 @@ class _LiveShopSheet extends ConsumerWidget {
     }) => Container(
       key: key,
       margin: const EdgeInsets.only(bottom: 10),
-      padding: const EdgeInsets.symmetric(vertical: 12),
-      decoration: const BoxDecoration(
-        border: Border(bottom: BorderSide(color: Colors.white12)),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: .06),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: Colors.white.withValues(alpha: .15)),
       ),
       child: Row(
         children: [
@@ -6185,7 +6227,7 @@ class _LiveShopSheet extends ConsumerWidget {
                   overflow: TextOverflow.ellipsis,
                   style: const TextStyle(
                     color: _white,
-                    fontWeight: FontWeight.w800,
+                    fontWeight: FontWeight.w600,
                     height: 1.2,
                   ),
                 ),
@@ -6194,7 +6236,7 @@ class _LiveShopSheet extends ConsumerWidget {
                   price,
                   style: TextStyle(
                     color: priceColor,
-                    fontWeight: FontWeight.w900,
+                    fontWeight: FontWeight.w600,
                     fontSize: 18,
                   ),
                 ),
@@ -6374,7 +6416,7 @@ class _LiveShopSheet extends ConsumerWidget {
                           style: const TextStyle(
                             color: _white,
                             fontSize: 18,
-                            fontWeight: FontWeight.w900,
+                            fontWeight: FontWeight.w600,
                           ),
                         ),
                         Text(
@@ -6408,7 +6450,7 @@ class _LiveShopSheet extends ConsumerWidget {
               dividerColor: Colors.white12,
               labelStyle: const TextStyle(
                 fontFamily: kFontFamily,
-                fontWeight: FontWeight.w900,
+                fontWeight: FontWeight.w600,
               ),
               tabs: [
                 Tab(

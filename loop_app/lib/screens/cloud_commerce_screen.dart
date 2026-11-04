@@ -1,3 +1,4 @@
+import '../widgets/vision_glass.dart';
 import 'package:flutter/services.dart';
 import 'live_screens.dart';
 import '../widgets/item_image.dart';
@@ -1308,17 +1309,16 @@ class _CloudCommerceState extends State<CloudCommerceScreen> {
         );
     }
     if (children.isEmpty) return const SizedBox.shrink();
-    return Container(
-      margin: const EdgeInsets.fromLTRB(12, 0, 12, 10),
-      padding: const EdgeInsets.fromLTRB(14, 12, 14, 8),
-      decoration: BoxDecoration(
-        color: Colors.black.withValues(alpha: .7),
-        border: Border.all(color: Colors.white12),
-        borderRadius: BorderRadius.circular(24),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: children,
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 0, 16, 10),
+      child: VisionGlass(
+        dark: true,
+        radius: 28,
+        padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: children,
+        ),
       ),
     );
   }

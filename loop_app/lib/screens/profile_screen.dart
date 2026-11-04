@@ -25,6 +25,7 @@ import 'shop_screens.dart';
 import '../widgets/shop_widgets.dart';
 import '../widgets/user_avatar.dart';
 import '../widgets/live_shop_widgets.dart';
+import '../widgets/vision_glass.dart';
 import 'add_device_screen.dart';
 import '../models/device.dart';
 import '../widgets/item_image.dart';
@@ -112,16 +113,24 @@ class _AccountHome extends ConsumerWidget {
 
     Widget group(List<Widget> rows) => Padding(
       padding: const EdgeInsets.only(top: 20),
-      child: Material(
-        color: Colors.transparent,
-        child: Column(
-          children: [
-            for (var i = 0; i < rows.length; i++) ...[
-              if (i > 0)
-                Divider(height: 1, indent: 52, color: LoopColors.surfaceHover),
-              rows[i],
+      child: VisionGlass(
+        radius: 24,
+        blur: false,
+        child: Material(
+          color: Colors.transparent,
+          child: Column(
+            children: [
+              for (var i = 0; i < rows.length; i++) ...[
+                if (i > 0)
+                  Divider(
+                    height: 1,
+                    indent: 52,
+                    color: LoopColors.surfaceHover,
+                  ),
+                rows[i],
+              ],
             ],
-          ],
+          ),
         ),
       ),
     );

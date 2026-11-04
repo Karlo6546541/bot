@@ -111,15 +111,15 @@ class SlimSearchField extends StatelessWidget {
         fillColor: LoopColors.surface,
         contentPadding: const EdgeInsets.symmetric(horizontal: 12),
         border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(99),
           borderSide: BorderSide.none,
         ),
         enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(99),
           borderSide: BorderSide.none,
         ),
         focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(99),
           borderSide: BorderSide(color: LoopColors.textSecondary),
         ),
       ),
@@ -248,7 +248,7 @@ class CategoryRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) => InkWell(
     key: ValueKey('category-${stat.category.name}'),
-    borderRadius: BorderRadius.circular(12),
+    borderRadius: BorderRadius.circular(99),
     onTap: onTap,
     child: Padding(
       padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),

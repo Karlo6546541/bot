@@ -9,6 +9,7 @@ import '../providers/app_providers.dart';
 import '../providers/app_state.dart';
 import '../theme/app_theme.dart';
 import '../widgets/live_shop_widgets.dart';
+import '../widgets/vision_glass.dart';
 import '../widgets/seller_account_card.dart';
 import '../widgets/formatters.dart';
 import 'add_device_screen.dart';
@@ -421,29 +422,26 @@ class SellerHubScreen extends ConsumerWidget {
           ),
         );
 
-    Widget group(List<Widget> rows) => Material(
-      color: Colors.transparent,
-      child: Column(
-        children: [
-          for (var i = 0; i < rows.length; i++) ...[
-            if (i > 0)
-              Divider(height: 1, indent: 52, color: LoopColors.surfaceHover),
-            rows[i],
+    Widget group(List<Widget> rows) => VisionGlass(
+      radius: 24,
+      blur: false,
+      child: Material(
+        color: Colors.transparent,
+        child: Column(
+          children: [
+            for (var i = 0; i < rows.length; i++) ...[
+              if (i > 0)
+                Divider(height: 1, indent: 52, color: LoopColors.surfaceHover),
+              rows[i],
+            ],
           ],
-        ],
+        ),
       ),
     );
 
     Widget heading(String title) => Padding(
       padding: const EdgeInsets.only(top: 22, bottom: 10),
-      child: Text(
-        title,
-        style: const TextStyle(
-          fontSize: 20,
-          fontWeight: FontWeight.w700,
-          letterSpacing: -0.3,
-        ),
-      ),
+      child: VisionSectionLabel(title),
     );
 
     return Scaffold(

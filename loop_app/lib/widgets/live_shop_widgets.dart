@@ -9,6 +9,7 @@ import '../screens/auctions_screen.dart' show BrowseCardMedia;
 import '../theme/app_theme.dart';
 import 'formatters.dart';
 import 'item_image.dart';
+import 'vision_glass.dart';
 
 /// Product rows keep browsing quiet; payment still happens in the item flow.
 class ShopProductRow extends StatelessWidget {
@@ -26,12 +27,18 @@ class ShopProductRow extends StatelessWidget {
     button: true,
     child: InkWell(
       onTap: onTap,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 12),
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 10),
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: LoopColors.glass.withValues(alpha: .45),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: LoopColors.glassBorder),
+        ),
         child: Row(
           children: [
             ClipRRect(
-              borderRadius: BorderRadius.circular(10),
+              borderRadius: BorderRadius.circular(14),
               child: ItemThumb(device: device, size: 68),
             ),
             const SizedBox(width: 14),
@@ -51,8 +58,9 @@ class ShopProductRow extends StatelessWidget {
                   const SizedBox(height: 5),
                   Text(
                     formatCredits(price ?? device.askPrice),
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontWeight: FontWeight.w600,
+                      color: LoopColors.gold,
                       fontSize: 16,
                     ),
                   ),
@@ -72,7 +80,7 @@ class ShopProductRow extends StatelessWidget {
   );
 }
 
-/// One featured broadcast is the entry point to live shopping.
+/// The live stage follows the supplied VisionOS reference.
 class LiveShopFeature extends StatelessWidget {
   const LiveShopFeature({
     super.key,
@@ -88,23 +96,28 @@ class LiveShopFeature extends StatelessWidget {
   final int viewers;
   final VoidCallback onTap;
   @override
-  Widget build(BuildContext context) => Semantics(
-    button: true,
-    label: t('Uđi u live'),
-    child: InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(18),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(18),
-        child: AspectRatio(
-          aspectRatio: MediaQuery.sizeOf(context).width >= 840
-              ? 2.8
-              : 16 /
-                    (10 +
-                        6 *
-                            (MediaQuery.textScalerOf(context).scale(14) / 14 -
-                                    1)
-                                .clamp(0, 2)),
+  Widget build(BuildContext context) {
+    final width = MediaQuery.sizeOf(context).width;
+    final scale = MediaQuery.textScalerOf(context).scale(14) / 14;
+    return Semantics(
+      button: true,
+      label: t('Uđi u live'),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(32),
+        child: Container(
+          height:
+              (width >= 840
+                  ? 440.0
+                  : width < 350
+                  ? 380.0
+                  : 460.0) +
+              100 * (scale - 1).clamp(0, 2),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(32),
+            border: Border.all(color: LoopColors.glassBorder),
+          ),
+          clipBehavior: Clip.antiAlias,
           child: Stack(
             fit: StackFit.expand,
             children: [
@@ -115,91 +128,104 @@ class LiveShopFeature extends StatelessWidget {
                     begin: Alignment.topCenter,
                     end: Alignment.bottomCenter,
                     colors: [
-                      Colors.black26,
+                      Colors.black38,
                       Colors.transparent,
-                      Colors.black87,
+                      Color(0xF2000000),
                     ],
-                    stops: [0, .3, 1],
+                    stops: [0, .35, 1],
                   ),
                 ),
               ),
-              Positioned(
-                left: 18,
-                top: 16,
-                child: Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 9,
-                    vertical: 5,
-                  ),
-                  decoration: BoxDecoration(
-                    color: LoopColors.live,
-                    borderRadius: BorderRadius.circular(6),
-                  ),
-                  child: Text(
-                    t('UŽIVO'),
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 11,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                ),
-              ),
-              Positioned(
-                left: 18,
-                right: 18,
-                bottom: 18,
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.end,
+              Padding(
+                padding: const EdgeInsets.all(22),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            host?.shopTitle ?? show.hostLabel,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
-                              color: Colors.white70,
-                              fontSize: 13,
-                            ),
+                    Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 7,
                           ),
-                          const SizedBox(height: 4),
-                          Text(
-                            show.title,
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
+                          decoration: BoxDecoration(
+                            color: LoopColors.live,
+                            borderRadius: BorderRadius.circular(99),
+                          ),
+                          child: Text(
+                            '${t('UŽIVO')} · $viewers',
                             style: const TextStyle(
                               color: Colors.white,
-                              fontSize: 24,
-                              fontWeight: FontWeight.w600,
-                              height: 1.1,
-                              letterSpacing: -.5,
+                              fontSize: 11,
+                              fontWeight: FontWeight.w700,
                             ),
                           ),
-                          const SizedBox(height: 10),
-                          Text(
-                            t('{0} gledatelja', ['$viewers']),
-                            style: const TextStyle(
-                              color: Colors.white70,
-                              fontSize: 12,
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Align(
+                            alignment: Alignment.centerRight,
+                            child: VisionGlass(
+                              radius: 99,
+                              dark: true,
+                              blur: false,
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 6,
+                              ),
+                              child: Text(
+                                host?.handle ?? show.hostLabel,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 12,
+                                ),
+                              ),
                             ),
                           ),
-                        ],
+                        ),
+                      ],
+                    ),
+                    const Spacer(),
+                    Text(
+                      show.title,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 27,
+                        fontWeight: FontWeight.w700,
+                        height: 1.12,
+                        letterSpacing: -.7,
                       ),
                     ),
-                    const SizedBox(width: 12),
-                    Container(
-                      width: 44,
-                      height: 44,
-                      decoration: const BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: Colors.white,
+                    const SizedBox(height: 7),
+                    Text(
+                      host?.shopTitle ?? show.hostLabel,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        color: Colors.white70,
+                        fontSize: 14,
                       ),
-                      child: const Icon(
-                        Icons.arrow_forward,
-                        color: Colors.black,
+                    ),
+                    const SizedBox(height: 18),
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.symmetric(vertical: 15),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: .96),
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: Text(
+                        t('Uđi u prijenos'),
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(
+                          color: Colors.black,
+                          fontSize: 15,
+                          fontWeight: FontWeight.w600,
+                        ),
                       ),
                     ),
                   ],
@@ -207,6 +233,105 @@ class LiveShopFeature extends StatelessWidget {
               ),
             ],
           ),
+        ),
+      ),
+    );
+  }
+}
+
+class LiveShopMini extends StatelessWidget {
+  const LiveShopMini({
+    super.key,
+    required this.show,
+    this.device,
+    required this.viewers,
+    required this.onTap,
+  });
+  final LiveShow show;
+  final Device? device;
+  final int viewers;
+  final VoidCallback onTap;
+  @override
+  Widget build(BuildContext context) => Semantics(
+    button: true,
+    child: InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(24),
+      child: Container(
+        height:
+            230 +
+            64 *
+                (MediaQuery.textScalerOf(context).scale(14) / 14 - 1).clamp(
+                  0,
+                  2,
+                ),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(24),
+          border: Border.all(color: LoopColors.glassBorder),
+        ),
+        clipBehavior: Clip.antiAlias,
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            BrowseCardMedia(device: device, cover: show.coverPath),
+            const DecoratedBox(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [Colors.black26, Colors.transparent, Colors.black87],
+                ),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.all(14),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 4,
+                    ),
+                    decoration: BoxDecoration(
+                      color: LoopColors.live,
+                      borderRadius: BorderRadius.circular(99),
+                    ),
+                    child: Text(
+                      '● $viewers',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 10,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ),
+                  const Spacer(),
+                  Text(
+                    show.title,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 15,
+                      height: 1.2,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  const SizedBox(height: 5),
+                  Text(
+                    show.hostLabel,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      color: Color(0xFFFFD60A),
+                      fontSize: 12,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
         ),
       ),
     ),
@@ -238,7 +363,7 @@ class LiveShopRow extends StatelessWidget {
               width: 64,
               height: 64,
               child: ClipRRect(
-                borderRadius: BorderRadius.circular(10),
+                borderRadius: BorderRadius.circular(14),
                 child: BrowseCardMedia(device: device, cover: show.coverPath),
               ),
             ),

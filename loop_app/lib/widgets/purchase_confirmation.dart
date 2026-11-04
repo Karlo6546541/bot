@@ -14,7 +14,7 @@ Future<bool> showPurchaseConfirmation(
       showDragHandle: true,
       enableDrag: false,
       constraints: const BoxConstraints(maxWidth: 520),
-      backgroundColor: LoopColors.background,
+      backgroundColor: LoopColors.surface.withValues(alpha: .97),
       builder: (_) => appThemed(sheet),
     ) ??
     false;
