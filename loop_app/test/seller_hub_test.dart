@@ -44,11 +44,18 @@ void main() {
       ('seller-hub-finance', FinancialsScreen),
     ];
     for (final (key, screen) in links) {
+      tester
+          .state<ScrollableState>(find.byType(Scrollable).last)
+          .position
+          .jumpTo(0);
+      await tester.pumpAndSettle();
       await tester.scrollUntilVisible(
         find.byKey(ValueKey(key)),
         200,
         scrollable: find.byType(Scrollable).last,
       );
+      await tester.ensureVisible(find.byKey(ValueKey(key)));
+      await tester.pumpAndSettle();
       await tester.tap(find.byKey(ValueKey(key)));
       await tester.pumpAndSettle();
       expect(find.byType(screen), findsOneWidget, reason: key);

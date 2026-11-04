@@ -60,6 +60,13 @@ class _FakeSignaling implements LiveSignaling {
 }
 
 /// Live aukcije (kao Whatnot).
+Future<void> openLiveBrowse(WidgetTester tester) async {
+  await tester.tap(find.byKey(const ValueKey('home-filters')));
+  await tester.pumpAndSettle();
+  await tester.tap(find.byKey(const ValueKey('home-cat-live')));
+  await tester.pumpAndSettle();
+}
+
 void main() {
   const host = SeedData.demoUserId;
   const bob = SeedData.testUserId;
@@ -1031,8 +1038,7 @@ void main() {
       await tester.pumpAndSettle();
 
       // Početna: pilula "Uživo" pokazuje samo liveove.
-      await tester.tap(find.byKey(const ValueKey('home-cat-live')));
-      await tester.pumpAndSettle();
+      await openLiveBrowse(tester);
       final card = find.byKey(ValueKey('browse-live-$bobShow'));
       expect(card, findsOneWidget);
 
@@ -1391,8 +1397,7 @@ void main() {
     await tester.ensureVisible(find.text('Prijavi se'));
     await tester.tap(find.text('Prijavi se'));
     await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const ValueKey('home-cat-live')));
-    await tester.pumpAndSettle();
+    await openLiveBrowse(tester);
     await tester.tap(find.byKey(ValueKey('browse-live-$id')));
     await tester.pumpAndSettle();
     expect(find.byKey(const ValueKey('mini-live')), findsNothing);
@@ -1478,8 +1483,7 @@ void main() {
     // "Za tebe" (mreža kao Whatnot): live uživo je prvi, u odjeljku Uživo sada.
     expect(find.byKey(ValueKey('home-featured-live-$id')), findsOneWidget);
     expect(find.byKey(const ValueKey('home-go-live')), findsNothing);
-    await tester.tap(find.byKey(const ValueKey('home-cat-live')));
-    await tester.pumpAndSettle();
+    await openLiveBrowse(tester);
     final card = find.byKey(ValueKey('browse-live-$id'));
     expect(card, findsOneWidget);
 
@@ -1604,10 +1608,8 @@ void main() {
       await tester.tap(find.byKey(const ValueKey('home-cat-buy')));
       await tester.pumpAndSettle();
       expect(find.byKey(const ValueKey('home-buy')), findsOneWidget);
-      await tester.ensureVisible(find.byKey(const ValueKey('home-cat-live')));
-      await tester.pumpAndSettle();
-      await tester.tap(find.byKey(const ValueKey('home-cat-live')));
-      await tester.pumpAndSettle();
+
+      await openLiveBrowse(tester);
       await tester.tap(find.byKey(ValueKey('browse-live-$id')));
       await tester.pumpAndSettle();
 

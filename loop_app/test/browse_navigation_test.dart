@@ -13,6 +13,13 @@ import 'package:loop_app/services/seed_data.dart';
 import 'package:loop_app/services/storage_service.dart';
 import 'package:loop_app/services/trade_service.dart';
 
+Future<void> openLiveBrowse(WidgetTester tester) async {
+  await tester.tap(find.byKey(const ValueKey('home-filters')));
+  await tester.pumpAndSettle();
+  await tester.tap(find.byKey(const ValueKey('home-cat-live')));
+  await tester.pumpAndSettle();
+}
+
 void main() {
   late StorageService storage;
   setUp(() async {
@@ -47,6 +54,11 @@ void main() {
     expect(find.byKey(const ValueKey('seller-hub-auction')), findsOneWidget);
     await tester.ensureVisible(find.byKey(const ValueKey('hub-health')));
     expect(find.byKey(const ValueKey('hub-health')), findsOneWidget);
+    tester
+        .state<ScrollableState>(find.byType(Scrollable).last)
+        .position
+        .jumpTo(0);
+    await tester.pumpAndSettle();
     await tester.scrollUntilVisible(
       find.byKey(const ValueKey('seller-hub-shipments')),
       250,
@@ -137,8 +149,7 @@ void main() {
     });
     await tester.pumpWidget(app());
     await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const ValueKey('home-cat-live')));
-    await tester.pumpAndSettle();
+    await openLiveBrowse(tester);
     expect(find.byKey(ValueKey('browse-live-${ids![0]}')), findsOneWidget);
     expect(find.byKey(ValueKey('browse-live-${ids[1]}')), findsOneWidget);
     await tester.tap(find.byKey(const ValueKey('live-category-filter')));

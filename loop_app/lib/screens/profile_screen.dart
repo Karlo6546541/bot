@@ -272,7 +272,7 @@ class _AccountHome extends ConsumerWidget {
                 row(
                   'account-seller-hub',
                   Icons.storefront_outlined,
-                  t('Seller Hub'),
+                  t('Prodavač'),
                   () => SellerHubScreen.open(context),
                 ),
                 row(
@@ -882,7 +882,7 @@ class _ProfileSettingsView extends ConsumerWidget {
                       SellerHubScreen.open(context);
                     },
                     icon: const Icon(Icons.storefront_outlined),
-                    label: Text(t('Seller Hub')),
+                    label: Text(t('Prodavač')),
                   ),
                   _SectionTitle(t('Općenito'), Icons.manage_accounts_outlined),
                   _ShopCard(user: user),
