@@ -61,7 +61,7 @@ const scenarios = [
       if (route === 'live' && width === 390) {
         await page.getByRole('button',{name:/^Shop/}).first().click();
         await page.getByRole('tab',{name:/^Shop/}).click();
-        await page.getByRole('button',{name:'Otvori shop',exact:true}).waitFor();
+        await page.getByRole('button',{name:'Kupi',exact:true}).first().waitFor();
         await page.screenshot({path:path.join(output,'live-shop-drawer.png')});
       }
       if (route === 'home' && width === 390 && theme === 'light') {
