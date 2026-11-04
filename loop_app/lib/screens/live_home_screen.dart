@@ -29,7 +29,6 @@ import 'swipe_feed_screen.dart';
 import 'for_you_ranker.dart';
 import '../widgets/live_shop_widgets.dart';
 import '../widgets/formatters.dart';
-import 'device_detail_screen.dart';
 
 /// Početna kao Whatnot: pretraga, kategorije kao "pilule" i mreža kartica —
 /// tko je uživo sada, što uskoro kreće, aukcije koje završavaju i predmeti
@@ -135,9 +134,8 @@ class _LiveHomeScreenState extends ConsumerState<LiveHomeScreen> {
   Timer? _timer;
   _Filter get _filter => _Filter.of(ref.read(homeFilterProvider));
 
-  /// Swipe lijevo/desno između gornjih tabova (kao TikTok): Pratim ·
-  /// Za tebe · Uživo · Pretraga.
-  static const _swipeTabs = ['following', 'for-you', 'live'];
+  /// Swipe follows the visible Live, Shop and Following tabs.
+  static const _swipeTabs = ['for-you', 'buy', 'following'];
 
   void _swipe(DragEndDetails d) {
     final v = d.primaryVelocity ?? 0;
@@ -168,20 +166,10 @@ class _LiveHomeScreenState extends ConsumerState<LiveHomeScreen> {
   bool _catCompact = false;
   DeviceCategory? _auctionCategory;
 
-  /// "Kako Subhasto radi" vidi se samo pri prvom otvaranju — odmah se bilježi
-  /// kao viđeno, a do kraja ove sesije ostaje (dok ga ne zatvoriš).
-  late bool _showHow = ref.read(appProvider).showHowItWorks;
-
   @override
   void initState() {
     super.initState();
 
-    if (_showHow) {
-      WidgetsBinding.instance.addPostFrameCallback(
-        (_) => ref.read(appProvider.notifier).dismissHowItWorks(),
-      );
-    }
-    // Liveovi počinju i završavaju sami (domaćin dođe ili ode).
     if (ref.read(tickIntervalProvider) != null) {
       _timer = Timer.periodic(const Duration(seconds: 5), (_) {
         // The swipe feed manages its own queue. Avoid rebuilding it every 5 s.
@@ -332,12 +320,19 @@ class _LiveHomeScreenState extends ConsumerState<LiveHomeScreen> {
         }
       case _ForYou():
         final storage = ref.read(storageProvider);
-        final ranked = ForYouRanker(
-          s,
-          now: DateTime.now(),
-          recentCategories: storage.recentCategories,
-          preferences: storage.feedPreferences(s.currentUserId),
-        ).rankBatch(all, limit: 60).map((p) => p.item).toList();
+        final ranked =
+            ForYouRanker(
+                  s,
+                  now: DateTime.now(),
+                  recentCategories: storage.recentCategories,
+                  preferences: storage.feedPreferences(s.currentUserId),
+                )
+                .rankBatch(
+                  all.where((item) => item.live != null).toList(),
+                  limit: 60,
+                )
+                .map((p) => p.item)
+                .toList();
         final liveNow = [
           for (final i in ranked)
             if (i.live?.isLive ?? false) i,
@@ -345,10 +340,6 @@ class _LiveHomeScreenState extends ConsumerState<LiveHomeScreen> {
         final upcoming = [
           for (final i in ranked)
             if (i.live?.isScheduled ?? false) i,
-        ];
-        final products = [
-          for (final i in ranked)
-            if (i.isBuyNow && !reserved.contains(i.device?.id)) i,
         ];
         Widget section(Widget child, {Key? key}) => SliverPadding(
           key: key,
@@ -375,33 +366,9 @@ class _LiveHomeScreenState extends ConsumerState<LiveHomeScreen> {
           ),
         );
         slivers.add(
-          section(
-            key: const ValueKey('home-for-you'),
-            Padding(
-              padding: const EdgeInsets.only(top: 18, bottom: 18),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    t('Trgovina koja živi.'),
-                    style: const TextStyle(
-                      fontSize: 32,
-                      fontWeight: FontWeight.w600,
-                      letterSpacing: -1.1,
-                      height: 1.1,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    t('Upoznaj prodavatelja. Otkrij nešto svoje.'),
-                    style: TextStyle(
-                      color: LoopColors.textSecondary,
-                      fontSize: 14,
-                    ),
-                  ),
-                ],
-              ),
-            ),
+          const SliverToBoxAdapter(
+            key: ValueKey('home-for-you'),
+            child: SizedBox(height: 12),
           ),
         );
         if (liveNow.isNotEmpty) {
@@ -439,10 +406,13 @@ class _LiveHomeScreenState extends ConsumerState<LiveHomeScreen> {
               ),
             );
           }
-        } else {
+        } else if (upcoming.isEmpty) {
           slivers.add(
             section(
-              _EmptyLive(onGoLive: () => CreateLiveShowScreen.open(context)),
+              _EmptyLive(
+                onGoLive: () => CreateLiveShowScreen.open(context),
+                onShop: () => _select(const _BuyNow()),
+              ),
             ),
           );
         }
@@ -456,7 +426,7 @@ class _LiveHomeScreenState extends ConsumerState<LiveHomeScreen> {
             section(
               Column(
                 children: [
-                  for (final item in upcoming.take(3))
+                  for (final item in upcoming)
                     LiveShopRow(
                       show: item.show!,
                       device: item.device,
@@ -465,33 +435,6 @@ class _LiveHomeScreenState extends ConsumerState<LiveHomeScreen> {
                     ),
                 ],
               ),
-            ),
-          );
-        }
-        if (products.isNotEmpty) {
-          slivers.add(
-            section(
-              heading(
-                t('Shop zajednice'),
-                onAll: () => _select(const _BuyNow()),
-              ),
-            ),
-          );
-          slivers.add(
-            section(
-              Column(
-                children: [
-                  for (final item in products.take(3))
-                    ShopProductRow(
-                      key: ValueKey('home-shop-${item.device!.id}'),
-                      device: item.device!,
-                      price: s.priceForMe(item.device!),
-                      onTap: () =>
-                          DeviceDetailScreen.open(context, item.device!),
-                    ),
-                ],
-              ),
-              key: const ValueKey('home-shop-preview'),
             ),
           );
         }
@@ -754,8 +697,20 @@ class _LiveHomeScreenState extends ConsumerState<LiveHomeScreen> {
                             child: Column(
                               mainAxisSize: MainAxisSize.min,
                               children: [
+                                ListTile(
+                                  key: const ValueKey('home-help'),
+                                  leading: const Icon(Icons.help_outline),
+                                  title: Text(t('Kako Subhasto radi')),
+                                  onTap: () => Navigator.pop(ctx, 'help'),
+                                ),
                                 for (final (id, label, icon, value)
                                     in <(String, String, IconData, Object)>[
+                                      (
+                                        'live',
+                                        t('Uživo po kategoriji'),
+                                        Icons.videocam_outlined,
+                                        const _LiveOnly(),
+                                      ),
                                       (
                                         'categories',
                                         t('Kategorije'),
@@ -801,7 +756,16 @@ class _LiveHomeScreenState extends ConsumerState<LiveHomeScreen> {
                         ),
                       );
                       if (!mounted || !context.mounted) return;
-                      if (picked == 'categories') {
+                      if (picked == 'help') {
+                        await showModalBottomSheet<void>(
+                          context: context,
+                          showDragHandle: true,
+                          builder: (_) => _HowLoopWorks(
+                            expanded: true,
+                            onClose: () => Navigator.pop(context),
+                          ),
+                        );
+                      } else if (picked == 'categories') {
                         await CategoriesScreen.open(context);
                       } else if (picked is _Filter) {
                         _select(picked);
@@ -907,12 +871,6 @@ class _LiveHomeScreenState extends ConsumerState<LiveHomeScreen> {
                     slivers: [
                       if (onLive || onAuctions)
                         SliverToBoxAdapter(child: categoryFilter),
-                      if (_showHow && _filter is _ForYou)
-                        SliverToBoxAdapter(
-                          child: _HowLoopWorks(
-                            onClose: () => setState(() => _showHow = false),
-                          ),
-                        ),
                       ...slivers,
                       if (!_hideCheckout &&
                           s.currentUser != null &&
@@ -1134,8 +1092,9 @@ class _CheckoutBanner extends ConsumerWidget {
 }
 
 class _EmptyLive extends StatelessWidget {
-  const _EmptyLive({required this.onGoLive});
+  const _EmptyLive({required this.onGoLive, this.onShop});
   final VoidCallback onGoLive;
+  final VoidCallback? onShop;
 
   @override
   Widget build(BuildContext context) => Padding(
@@ -1169,8 +1128,10 @@ class _EmptyLive extends StatelessWidget {
             spacing: 12,
             children: [
               TextButton(
-                onPressed: () => CategoriesScreen.open(context),
-                child: Text(t('Pregledaj kategorije')),
+                onPressed: onShop ?? () => CategoriesScreen.open(context),
+                child: Text(
+                  onShop == null ? t('Pregledaj kategorije') : t('Otvori shop'),
+                ),
               ),
               TextButton(
                 key: const ValueKey('home-go-live'),
@@ -1350,15 +1311,16 @@ class _TileRow extends StatelessWidget {
           tab(
             id: 'for-you',
             key: const ValueKey('home-cat-for-you'),
-            label: t('Live shop'),
+            label: t('Uživo'),
             onTap: () => onSelect(const _ForYou()),
           ),
-          tab(
-            id: 'live',
-            key: const ValueKey('home-cat-live'),
-            label: t('Uživo'),
-            onTap: () => onSelect(const _LiveOnly()),
-          ),
+          if (selected == 'live')
+            tab(
+              id: 'live',
+              key: const ValueKey('home-cat-live-selected'),
+              label: t('Po kategoriji'),
+              onTap: () => onSelect(const _LiveOnly()),
+            ),
           if (selected == 'timed')
             tab(
               id: 'timed',

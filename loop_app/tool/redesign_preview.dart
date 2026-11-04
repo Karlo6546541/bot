@@ -105,10 +105,20 @@ Future<void> main() async {
     title: 'Konzole uživo',
     category: DeviceCategory.console.name,
   );
-  await lives.create(
+  final secondLive = await lives.create(
     hostId: SeedData.demoUserId,
     title: 'Knjige uživo',
     category: DeviceCategory.books.name,
+  );
+  final upcomingLive = await lives.create(
+    hostId: SeedData.anaUserId,
+    title: 'Vintage pronalasci',
+    startsAt: DateTime.now().add(const Duration(hours: 2)),
+  );
+  await lives.create(
+    hostId: SeedData.testUserId,
+    title: 'Moj sljedeći live',
+    startsAt: DateTime.now().add(const Duration(hours: 3)),
   );
   await lives.startLot(SeedData.markoUserId, previewLive.id);
   await lives.chat(SeedData.anaUserId, previewLive.id, 'Prvi put sam tu 👋');
@@ -149,7 +159,12 @@ Future<void> main() async {
 
   final prefs = FeedPreferences();
   for (final i in browseItems(AppState.fromStorage(storage))) {
-    if (!samples.contains(i.device?.id) && i.show?.id != previewLive.id) {
+    if (!samples.contains(i.device?.id) &&
+        !{
+          previewLive.id,
+          secondLive.id,
+          upcomingLive.id,
+        }.contains(i.show?.id)) {
       prefs.hide(ForYouRanker.keyOf(i));
     }
   }

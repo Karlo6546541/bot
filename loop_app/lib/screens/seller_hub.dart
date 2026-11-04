@@ -8,7 +8,7 @@ import '../models/report.dart';
 import '../providers/app_providers.dart';
 import '../providers/app_state.dart';
 import '../theme/app_theme.dart';
-import '../widgets/quiet_ui.dart';
+import '../widgets/live_shop_widgets.dart';
 import '../widgets/seller_account_card.dart';
 import '../widgets/formatters.dart';
 import 'add_device_screen.dart';
@@ -380,7 +380,7 @@ class SellerHubScreen extends ConsumerWidget {
     final state = ref.watch(appProvider);
     final user = state.currentUser;
     if (user == null || user.isGuest) {
-      return Scaffold(appBar: AppBar(title: Text(t('Seller Hub'))));
+      return Scaffold(appBar: AppBar(title: Text(t('Prodavač'))));
     }
     final health = AccountHealth.of(state, user.id, DateTime.now());
     final nowT = DateTime.now();
@@ -422,9 +422,7 @@ class SellerHubScreen extends ConsumerWidget {
         );
 
     Widget group(List<Widget> rows) => Material(
-      color: LoopColors.surface,
-      borderRadius: BorderRadius.circular(kRadius),
-      clipBehavior: Clip.antiAlias,
+      color: Colors.transparent,
       child: Column(
         children: [
           for (var i = 0; i < rows.length; i++) ...[
@@ -450,7 +448,7 @@ class SellerHubScreen extends ConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(t('Seller Hub')),
+        title: Text(t('Prodavač')),
         actions: [
           PopupMenuButton<int>(
             key: const ValueKey('seller-hub-menu'),
@@ -488,34 +486,63 @@ class SellerHubScreen extends ConsumerWidget {
           child: ListView(
             padding: const EdgeInsets.fromLTRB(16, 12, 16, 36),
             children: [
-              ScreenHeading(
-                title: t('Tvoja prodaja'),
-                subtitle: t('Predmeti, kupci i isplate. Sve na jednom mjestu.'),
+              FilledButton.icon(
+                key: const ValueKey('seller-hub-live'),
+                onPressed: () => CreateLiveShowScreen.open(context),
+                icon: const Icon(Icons.videocam_outlined),
+                label: Text(t('Pokreni live')),
               ),
+              const SizedBox(height: 10),
               Wrap(
                 spacing: 8,
                 runSpacing: 8,
                 children: [
-                  FilledButton.icon(
+                  OutlinedButton.icon(
                     key: const ValueKey('seller-hub-add'),
                     onPressed: () => AddDeviceScreen.open(context),
                     icon: const Icon(Icons.add),
-                    label: Text(t('Dodaj predmet')),
+                    label: Text(t('Dodaj proizvod')),
                   ),
-                  OutlinedButton.icon(
-                    key: const ValueKey('seller-hub-live'),
-                    onPressed: () => CreateLiveShowScreen.open(context),
-                    icon: const Icon(Icons.videocam_outlined),
-                    label: Text(t('Pokreni ili zakaži live')),
-                  ),
-                  OutlinedButton.icon(
+                  TextButton.icon(
                     key: const ValueKey('seller-hub-auction'),
                     onPressed: () => CreateAuctionScreen.open(context),
-                    icon: const Icon(Icons.gavel),
+                    icon: const Icon(Icons.gavel, size: 18),
                     label: Text(t('Nova aukcija')),
                   ),
                 ],
               ),
+              for (final (show, live) in state.activeLives.where(
+                (entry) => entry.$1.hostId == user.id,
+              ))
+                LiveShopRow(
+                  key: ValueKey('seller-room-${show.id}'),
+                  show: show,
+                  subtitle: live.isLive
+                      ? t('Uživo sada')
+                      : formatDateTime(show.startsAt),
+                  onTap: () => LiveRoomScreen.open(context, show.id),
+                ),
+              const SizedBox(height: 16),
+              group([
+                tile(
+                  const ValueKey('seller-hub-shipments'),
+                  Icons.local_shipping_outlined,
+                  t('Narudžbe'),
+                  () => DeliveryNotesScreen.open(context),
+                ),
+                tile(
+                  const ValueKey('seller-hub-inventory'),
+                  Icons.inventory_2_outlined,
+                  t('Proizvodi'),
+                  () => InventoryScreen.open(context),
+                ),
+                tile(
+                  const ValueKey('seller-hub-finance'),
+                  Icons.account_balance_wallet_outlined,
+                  t('Isplate'),
+                  () => FinancialsScreen.open(context),
+                ),
+              ]),
               const SizedBox(height: 20),
               const SellerAccountCard(),
               const SizedBox(height: 20),
@@ -559,64 +586,19 @@ class SellerHubScreen extends ConsumerWidget {
                   ),
                 ]),
               ],
-              heading(t('Zdravlje računa')),
-              Material(
+              Container(
                 key: const ValueKey('hub-health'),
-                color: LoopColors.surface,
-                borderRadius: BorderRadius.circular(kRadius),
-                child: InkWell(
+                child: ListTile(
                   key: const ValueKey('seller-hub-health-details'),
-                  borderRadius: BorderRadius.circular(kRadius),
-                  onTap: () => AccountHealthScreen.open(context),
-                  child: Padding(
-                    padding: const EdgeInsets.all(16),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          children: [
-                            Icon(
-                              Icons.health_and_safety_outlined,
-                              color: health.level.color,
-                            ),
-                            const SizedBox(width: 10),
-                            Expanded(
-                              child: Text(
-                                health.level.label,
-                                style: TextStyle(
-                                  color: health.level.color,
-                                  fontWeight: FontWeight.w900,
-                                  fontSize: 17,
-                                ),
-                              ),
-                            ),
-                            Icon(
-                              Icons.chevron_right,
-                              color: LoopColors.textSecondary,
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 10),
-                        Text(
-                          health.ratingCount == 0
-                              ? t('Još nema ocjena kupaca.')
-                              : t('Ocjena kupaca: {0}', [
-                                  '★ ${health.ratingAverage.toStringAsFixed(1)} (${health.ratingCount})',
-                                ]),
-                          style: TextStyle(color: LoopColors.textSecondary),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          health.onTimeRate == null
-                              ? t('Nema podataka o pravovremenoj predaji.')
-                              : t('Pravovremena predaja: {0}', [
-                                  '${(health.onTimeRate! * 100).round()} %',
-                                ]),
-                          style: TextStyle(color: LoopColors.textSecondary),
-                        ),
-                      ],
-                    ),
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 16),
+                  leading: Icon(
+                    Icons.verified_user_outlined,
+                    color: health.level.color,
                   ),
+                  title: Text(t('Zdravlje računa')),
+                  subtitle: Text(health.level.label),
+                  trailing: const Icon(Icons.chevron_right),
+                  onTap: () => AccountHealthScreen.open(context),
                 ),
               ),
               heading(t('Alati za prodaju')),
@@ -627,12 +609,7 @@ class SellerHubScreen extends ConsumerWidget {
                   t('Moji showovi'),
                   () => MyShowsScreen.open(context),
                 ),
-                tile(
-                  const ValueKey('seller-hub-inventory'),
-                  Icons.inventory_2_outlined,
-                  t('Inventar'),
-                  () => InventoryScreen.open(context),
-                ),
+
                 tile(
                   const ValueKey('seller-hub-offers'),
                   Icons.price_change_outlined,
@@ -650,18 +627,6 @@ class SellerHubScreen extends ConsumerWidget {
                   Icons.sell_outlined,
                   t('Aukcije i predmeti'),
                   () => openSales(MyTab.selling),
-                ),
-                tile(
-                  const ValueKey('seller-hub-shipments'),
-                  Icons.inventory_2_outlined,
-                  t('Otpremnice'),
-                  () => DeliveryNotesScreen.open(context),
-                ),
-                tile(
-                  const ValueKey('seller-hub-finance'),
-                  Icons.account_balance_wallet_outlined,
-                  t('Financije'),
-                  () => FinancialsScreen.open(context),
                 ),
               ]),
             ],

@@ -104,7 +104,7 @@ class _HomeShellState extends ConsumerState<HomeShell> {
       // Uvijek Seller Hub (i prije prvih podataka prodavatelja): gumb se
       // ne mijenja nakon prijave ili odjave.
       ShellDestination(
-        t('Seller Hub'),
+        t('Prodavač'),
         Icons.storefront_outlined,
         Icons.storefront,
         action: true,

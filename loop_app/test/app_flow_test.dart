@@ -108,6 +108,13 @@ Future<Widget> buildApp(WidgetTester tester) async {
   );
 }
 
+Future<void> openLiveBrowse(WidgetTester tester) async {
+  await tester.tap(find.byKey(const ValueKey('home-filters')));
+  await tester.pumpAndSettle();
+  await tester.tap(find.byKey(const ValueKey('home-cat-live')));
+  await tester.pumpAndSettle();
+}
+
 void main() {
   accountTests();
   listingTests();
@@ -132,8 +139,7 @@ void main() {
       expect(find.byKey(const ValueKey('home-cat-for-you')), findsOneWidget);
       expect(find.byKey(const ValueKey('for-you-feed')), findsNothing);
       // Uživo: poziv na live; Aukcije: one koje završavaju.
-      await tester.tap(find.byKey(const ValueKey('home-cat-live')));
-      await tester.pumpAndSettle();
+      await openLiveBrowse(tester);
       await reveal(tester, find.byKey(const ValueKey('home-go-live')));
       expect(find.byKey(const ValueKey('home-go-live')), findsOneWidget);
       expect(find.text('Uživo se uskoro vraća.'), findsOneWidget);
@@ -510,7 +516,7 @@ void main() {
     await tester.tap(find.text('Log in').last);
     await tester.pumpAndSettle();
     // Početna na engleskom.
-    expect(find.text('Live shop'), findsWidgets);
+    expect(find.text('Live'), findsWidgets);
 
     // Swipe feed aukcija na engleskom.
     await openAuctionsPill(tester);
@@ -633,8 +639,7 @@ void accountTests() {
     await tester.ensureVisible(find.byKey(const ValueKey('register-submit')));
     await tester.tap(find.byKey(const ValueKey('register-submit')));
     await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const ValueKey('home-cat-live')));
-    await tester.pumpAndSettle();
+    await openLiveBrowse(tester);
     await reveal(tester, find.byKey(const ValueKey('home-go-live')));
     expect(find.byKey(const ValueKey('home-go-live')), findsOneWidget);
 
@@ -1105,8 +1110,7 @@ void logoTests() {
     expect(find.byKey(const ValueKey('home-cat-for-you')), findsOneWidget);
 
     // Za tebe → Uživo → Pratim (dodirom), zatim natrag dvaput.
-    await tester.tap(find.byKey(const ValueKey('home-cat-live')));
-    await tester.pumpAndSettle();
+    await openLiveBrowse(tester);
     await tester.scrollUntilVisible(
       find.byKey(const ValueKey('home-cat-following')),
       200,
@@ -1132,7 +1136,7 @@ void logoTests() {
       1500,
     );
     await tester.pumpAndSettle();
-    expect(find.byKey(const ValueKey('home-go-live')), findsOneWidget);
+    expect(find.byKey(const ValueKey('home-buy')), findsOneWidget);
     await tester.binding.handlePopRoute();
     await tester.pumpAndSettle();
     expect(find.byKey(const ValueKey('home-for-you')), findsOneWidget);

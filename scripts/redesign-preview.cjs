@@ -6,9 +6,9 @@ const base = process.env.PREVIEW_BASE_URL || 'http://127.0.0.1:8765/bot/';
 const output = process.env.PREVIEW_ARTIFACT_DIR || '/tmp/feed-preview/screenshots';
 const scenarios = [
   ['home', 320, 740, 'light', 'Traži na Subhastu'],
-  ['home', 390, 844, 'light', 'Trgovina koja živi.'],
-  ['home', 1440, 1000, 'light', 'Trgovina koja živi.'],
-  ['home', 390, 844, 'dark', 'Trgovina koja živi.'],
+  ['home', 390, 844, 'light', 'Uživo'],
+  ['home', 1440, 1000, 'light', 'Uživo'],
+  ['home', 390, 844, 'dark', 'Uživo'],
   ['live', 320, 740, 'light', 'Shop'],
   ['live', 390, 844, 'light', 'Shop'],
   ['host', 390, 844, 'dark', 'Shop'],
@@ -17,7 +17,7 @@ const scenarios = [
   ['categories', 390, 844, 'light', 'Konzole'],
   ['activity', 390, 844, 'light', 'Kupnje'],
   ['profile', 390, 844, 'light', 'Pogledaj profil'],
-  ['seller', 390, 844, 'light', 'Tvoja prodaja'],
+  ['seller', 390, 844, 'light', 'Prodavač'],
   ['form', 390, 844, 'light', 'Spremi podatke'],
   ['form', 1440, 900, 'light', 'Spremi podatke'],
   ['listing', 390, 844, 'light', 'Kupi odmah'],
