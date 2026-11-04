@@ -8,6 +8,8 @@ import '../models/report.dart';
 import '../providers/app_providers.dart';
 import '../providers/app_state.dart';
 import '../theme/app_theme.dart';
+import '../widgets/quiet_ui.dart';
+import '../widgets/seller_account_card.dart';
 import '../widgets/formatters.dart';
 import 'add_device_screen.dart';
 import 'auctions_screen.dart' show BrowseCardMedia, MyAuctionsScreen, MyTab;
@@ -486,53 +488,10 @@ class SellerHubScreen extends ConsumerWidget {
           child: ListView(
             padding: const EdgeInsets.fromLTRB(16, 12, 16, 36),
             children: [
-              Text(
-                t('Pregled prodaje'),
-                style: const TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.w900,
-                ),
+              ScreenHeading(
+                title: t('Tvoja prodaja'),
+                subtitle: t('Predmeti, kupci i isplate. Sve na jednom mjestu.'),
               ),
-              const SizedBox(height: 4),
-              Text(
-                t('Sve za tvoju prodaju na jednom mjestu.'),
-                style: TextStyle(color: LoopColors.textSecondary),
-              ),
-              heading(t('Za napraviti')),
-              group([
-                tile(
-                  const ValueKey('seller-hub-shipping'),
-                  Icons.local_shipping_outlined,
-                  shipping == 0
-                      ? t('Nema paketa za slanje')
-                      : [
-                          if (awaiting > 0) t('Za slanje: {0}', ['$awaiting']),
-                          if (ready > 0) t('Za predaju: {0}', ['$ready']),
-                        ].join(' · '),
-                  () => DeliveryNotesScreen.open(
-                    context,
-                    group: awaiting > 0
-                        ? ShipGroup.awaitingBuyer
-                        : ShipGroup.readyToShip,
-                  ),
-                ),
-                Builder(
-                  builder: (_) {
-                    final waiting = state.bargainsToAnswer
-                        .where((o) => o.sellerId == state.currentUserId)
-                        .length;
-                    return tile(
-                      const ValueKey('seller-hub-offers-todo'),
-                      Icons.price_change_outlined,
-                      waiting == 0
-                          ? t('Nema ponuda za odgovor')
-                          : t('Ponude za odgovor: {0}', ['$waiting']),
-                      () => BargainsScreen.open(context),
-                    );
-                  },
-                ),
-              ]),
-              heading(t('Brze radnje')),
               Wrap(
                 spacing: 8,
                 runSpacing: 8,
@@ -557,6 +516,49 @@ class SellerHubScreen extends ConsumerWidget {
                   ),
                 ],
               ),
+              const SizedBox(height: 20),
+              const SellerAccountCard(),
+              const SizedBox(height: 20),
+              if (shipping > 0 ||
+                  state.bargainsToAnswer.any(
+                    (o) => o.sellerId == state.currentUserId,
+                  )) ...[
+                heading(t('Za napraviti')),
+                group([
+                  tile(
+                    const ValueKey('seller-hub-shipping'),
+                    Icons.local_shipping_outlined,
+                    shipping == 0
+                        ? t('Nema paketa za slanje')
+                        : [
+                            if (awaiting > 0)
+                              t('Za slanje: {0}', ['$awaiting']),
+                            if (ready > 0) t('Za predaju: {0}', ['$ready']),
+                          ].join(' · '),
+                    () => DeliveryNotesScreen.open(
+                      context,
+                      group: awaiting > 0
+                          ? ShipGroup.awaitingBuyer
+                          : ShipGroup.readyToShip,
+                    ),
+                  ),
+                  Builder(
+                    builder: (_) {
+                      final waiting = state.bargainsToAnswer
+                          .where((o) => o.sellerId == state.currentUserId)
+                          .length;
+                      return tile(
+                        const ValueKey('seller-hub-offers-todo'),
+                        Icons.price_change_outlined,
+                        waiting == 0
+                            ? t('Nema ponuda za odgovor')
+                            : t('Ponude za odgovor: {0}', ['$waiting']),
+                        () => BargainsScreen.open(context),
+                      );
+                    },
+                  ),
+                ]),
+              ],
               heading(t('Zdravlje računa')),
               Material(
                 key: const ValueKey('hub-health'),

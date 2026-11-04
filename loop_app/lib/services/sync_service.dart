@@ -39,6 +39,7 @@ class SyncService {
   final _pending = <String, (String, String, Map<String, dynamic>?)>{};
   Timer? _retry;
   bool _flushing = false;
+  Completer<void>? _flushDone;
   bool _again = false;
 
   /// Uzastopni neuspjesi slanja (za postupno dulje čekanje).
@@ -133,11 +134,18 @@ class SyncService {
         // Vlastiti profil koji online još ne postoji (napravljen dok veza
         // nije radila) ne smije nestati.
         final me = _storage.currentUserId;
-        final myLocal = me == null ? null : _storage.exportAll()['users']?[me];
+        final myLocal = me == null ? null : _storage.rawRow('users', me);
+        // An anonymous RLS snapshot is not evidence that a private row was deleted.
+        final ownSeller = me == null || _remote.canWrite
+            ? null
+            : _storage.rawRow('sellers', me);
         await _storage.replaceAllFromRemote(remote);
         if (myLocal != null && remote['users']?[me] == null) {
           await _storage.applyRemote('users', me!, myLocal);
           _pending['users/$me'] = ('users', me, myLocal);
+        }
+        if (ownSeller != null && remote['sellers']?[me] == null) {
+          await _storage.applyRemote('sellers', me!, ownSeller);
         }
         // Promjene napravljene dok nije bilo veze vrijede i dalje.
         for (final (table, id, data) in _pending.values) {
@@ -232,6 +240,26 @@ class SyncService {
     await _flush();
   }
 
+  /// Wait for this record's current write, including a flush already in progress.
+  /// A false result leaves the local record queued for a later retry.
+  Future<bool> flushRecord(
+    String table,
+    String id, {
+    Duration timeout = const Duration(seconds: 10),
+  }) async {
+    if (status != SyncStatus.online ||
+        !_remote.canWrite ||
+        !_tables.contains(table)) {
+      return false;
+    }
+    try {
+      await flushNow().timeout(timeout);
+      return !_pending.containsKey('$table/$id');
+    } on TimeoutException {
+      return false;
+    }
+  }
+
   void _scheduleRetry() {
     if (_retry != null) return;
     // 5 s, 10 s, 20 s… najviše 1 min.
@@ -246,6 +274,7 @@ class SyncService {
     if (status != SyncStatus.online) return; // čeka vezu
     if (_flushing) {
       _again = true;
+      await _flushDone?.future;
       return;
     }
     if (_pending.isEmpty) return;
@@ -255,6 +284,7 @@ class SyncService {
       return;
     }
     _flushing = true;
+    final done = _flushDone = Completer<void>();
     var failed = false;
     try {
       do {
@@ -280,6 +310,7 @@ class SyncService {
     } finally {
       _flushing = false;
       _changed();
+      done.complete();
     }
     if (failed) {
       _failedRounds++;
@@ -356,6 +387,8 @@ class SyncService {
   }
 
   int get pendingCount => _pending.length;
+  bool hasPendingRecord(String table, String id) =>
+      _pending.containsKey('$table/$id');
 
   Future<void> dispose() async {
     _catchUp?.cancel();

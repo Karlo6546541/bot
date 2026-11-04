@@ -22,6 +22,7 @@ import 'public_profile_screen.dart';
 import 'shop_screens.dart';
 import '../widgets/shop_widgets.dart';
 import '../widgets/user_avatar.dart';
+import '../widgets/seller_account_card.dart';
 import '../models/device.dart';
 import '../widgets/item_image.dart';
 import '../widgets/formatters.dart';
@@ -136,25 +137,53 @@ class _AccountHome extends ConsumerWidget {
               const _GuestCard()
             else ...[
               // Ti: avatar, ime i jedna radnja.
-              Center(child: UserAvatar(user: user, size: 88)),
-              const SizedBox(height: 14),
-              Text(
-                user.username.isNotEmpty ? user.username : user.handle,
-                textAlign: TextAlign.center,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
-                  fontSize: 30,
-                  fontWeight: FontWeight.w700,
-                  letterSpacing: -0.6,
-                ),
-              ),
-              const SizedBox(height: 4),
-              Center(
-                child: TextButton(
+              Material(
+                color: LoopColors.surface,
+                borderRadius: BorderRadius.circular(kRadius),
+                clipBehavior: Clip.antiAlias,
+                child: InkWell(
                   key: const ValueKey('account-view-profile'),
-                  onPressed: () => MyProfileScreen.open(context),
-                  child: Text(t('Pogledaj profil')),
+                  onTap: () => MyProfileScreen.open(context),
+                  child: Padding(
+                    padding: const EdgeInsets.all(18),
+                    child: Row(
+                      children: [
+                        UserAvatar(user: user, size: 56),
+                        const SizedBox(width: 16),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                user.username.isNotEmpty
+                                    ? user.username
+                                    : user.handle,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(
+                                  fontSize: 22,
+                                  fontWeight: FontWeight.w600,
+                                  letterSpacing: -.5,
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                t('Pogledaj profil'),
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  color: LoopColors.textSecondary,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        Icon(
+                          Icons.chevron_right,
+                          color: LoopColors.textSecondary,
+                        ),
+                      ],
+                    ),
+                  ),
                 ),
               ),
               const SizedBox(height: 16),
@@ -185,8 +214,8 @@ class _AccountHome extends ConsumerWidget {
                           formatCredits(user.credits),
                           key: const ValueKey('account-earnings-amount'),
                           style: const TextStyle(
-                            fontSize: 48,
-                            fontWeight: FontWeight.w700,
+                            fontSize: 36,
+                            fontWeight: FontWeight.w600,
                             letterSpacing: -1.2,
                             height: 1.05,
                           ),
@@ -204,7 +233,15 @@ class _AccountHome extends ConsumerWidget {
                   ),
                 ),
               ),
+              const SizedBox(height: 16),
+              const SellerAccountCard(),
               group([
+                row(
+                  'account-seller-info',
+                  Icons.badge_outlined,
+                  t('Podaci prodavatelja'),
+                  () => SellerInfoScreen.open(context),
+                ),
                 row(
                   'account-seller-hub',
                   Icons.storefront_outlined,
@@ -223,12 +260,6 @@ class _AccountHome extends ConsumerWidget {
                   'profile-checkout',
                   Icons.credit_card,
                   t('Plaćanje i dostava'),
-                  () => ensureCheckout(context, ref, force: true),
-                ),
-                row(
-                  'account-addresses',
-                  Icons.location_on_outlined,
-                  t('Adrese'),
                   () => ensureCheckout(context, ref, force: true),
                 ),
                 row(

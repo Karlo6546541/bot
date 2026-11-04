@@ -136,10 +136,7 @@ void main() {
       await tester.pumpAndSettle();
       await reveal(tester, find.byKey(const ValueKey('home-go-live')));
       expect(find.byKey(const ValueKey('home-go-live')), findsOneWidget);
-      expect(
-        find.text('Nitko trenutno nije uživo — budi prvi!'),
-        findsOneWidget,
-      );
+      expect(find.text('Uživo se uskoro vraća.'), findsOneWidget);
       await tester.tap(find.byKey(const ValueKey('home-filters')));
       await tester.pumpAndSettle();
       await tester.tap(find.byKey(const ValueKey('home-cat-timed')));
@@ -1223,6 +1220,7 @@ void logoTests() {
       find.byKey(const ValueKey('seller-company')),
       'Retro Kutak j.d.o.o.',
     );
+    await reveal(tester, find.byKey(const ValueKey('seller-phone')));
     await tester.enterText(
       find.byKey(const ValueKey('seller-phone')),
       '+385 91 123 4567',

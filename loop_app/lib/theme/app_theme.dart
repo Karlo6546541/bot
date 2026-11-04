@@ -3,11 +3,8 @@ import 'package:flutter/material.dart';
 /// Paleta boja Subhasta. Vrijednosti ovise o aktivnoj temi (svijetla/tamna),
 /// koju postavlja [LoopColors.use] prije izgradnje [MaterialApp].
 ///
-/// Smjer dizajna "Pozornica": čista crna, jedan predmet na ekranu, jedan
-/// veliki gumb, jedan topli akcent (amber) i puno praznog prostora. Tamna
-/// tema je izvorni izgled; svijetla je njezin pandan (hladna bijela umjesto
-/// crne, tamniji amber radi kontrasta). Kontrast teksta je provjeren
-/// (WCAG AA ≥ 4.5:1 za tekst).
+/// Fotografije i sadržaj imaju prednost pred ukrasima. Neutralne glavne
+/// radnje, plave poveznice te zasebne semantičke boje za stanje i pogreške.
 class LoopColors {
   static bool _dark = false;
 
@@ -18,24 +15,18 @@ class LoopColors {
       _dark = brightness == Brightness.dark;
 
   static Color get background =>
-      _dark ? const Color(0xFF000000) : const Color(0xFFF5F5F7);
+      _dark ? const Color(0xFF111113) : const Color(0xFFF7F8FA);
   static Color get surface =>
-      _dark ? const Color(0xFF1C1C1E) : const Color(0xFFFFFFFF);
+      _dark ? const Color(0xFF1C1C20) : const Color(0xFFFFFFFF);
   static Color get surfaceHover =>
-      _dark ? const Color(0xFF2C2C2E) : const Color(0xFFE8E8ED);
+      _dark ? const Color(0xFF2A2A30) : const Color(0xFFEBEDF1);
 
-  // Pravila boja (nikad se ne miješaju):
-  //  * amber [accent] — glavne radnje: Licitiraj, Kupi, Objavi;
-  //  * crvena [live] — samo "uživo";
-  //  * zelena [buyNow] — Kupi odmah, dostavljeno, zaštita kupca.
-
-  /// Glavni akcent (gumbi, odabrano) — amber. Tamna: crni tekst 10:1;
-  /// svijetla: bijeli tekst 4.8:1.
+  /// Poveznice, odabir i fokus polja.
   static Color get accent =>
-      _dark ? const Color(0xFFFF9F0A) : const Color(0xFFB85600);
+      _dark ? const Color(0xFF96C4FF) : const Color(0xFF0066CC);
 
   /// Uživo (oznaka UŽIVO, live gumbi i bljesak) — isključivo za live.
-  static const Color live = Color(0xFFFF453A);
+  static const Color live = Color(0xFFD70015);
 
   /// Kupi odmah, dostavljeno, zaštita kupca.
   static Color get buyNow =>
@@ -48,7 +39,7 @@ class LoopColors {
   static Color get textPrimary =>
       _dark ? const Color(0xFFF5F5F7) : const Color(0xFF1D1D1F);
   static Color get textSecondary =>
-      _dark ? const Color(0xFF8E8E93) : const Color(0xFF636366);
+      _dark ? const Color(0xFFA6A6AE) : const Color(0xFF646871);
   static Color get error =>
       _dark ? const Color(0xFFFF453A) : const Color(0xFFD70015);
   static Color get success =>
@@ -78,13 +69,13 @@ class LoopColors {
   static Color get rose =>
       _dark ? const Color(0xFF2E1519) : const Color(0xFFFFDDE2);
 
-  /// Whatnot nema vidljivih sjena: slojevi se odvajaju bojom podloge.
+  /// Slojevi se odvajaju podlogom i tankim obrubom.
   /// Ostaje kao prazan popis da postojeći zapisi (`...softShadow`) rade.
   static List<BoxShadow> get softShadow => const [];
 }
 
 /// Kartice i polja: velike, mekano zaobljene (Apple stil).
-const double kRadius = 20;
+const double kRadius = 16;
 const String kFontFamily = 'Inter';
 
 /// Live je uvijek taman (kao TikTok/Whatnot), neovisno o temi aplikacije:
@@ -102,10 +93,12 @@ ThemeData buildLiveTheme() {
 /// Material 3 tema za trenutno aktivnu paletu ([LoopColors.use]).
 ThemeData buildLoopTheme({Color? accent}) {
   final dark = LoopColors.isDark;
-  final primary = accent ?? LoopColors.accent;
-  final onPrimary = accent == null || !dark
-      ? LoopColors.onAccent
-      : const Color(0xFF14122B);
+  final primary = accent ?? LoopColors.textPrimary;
+  final onPrimary = accent == null
+      ? LoopColors.background
+      : ThemeData.estimateBrightnessForColor(primary) == Brightness.dark
+      ? Colors.white
+      : const Color(0xFF111113);
 
   final scheme =
       ColorScheme.fromSeed(
@@ -142,8 +135,8 @@ ThemeData buildLoopTheme({Color? accent}) {
       titleTextStyle: TextStyle(
         fontFamily: kFontFamily,
         fontSize: 20,
-        fontWeight: FontWeight.w700,
-        letterSpacing: -0.2,
+        fontWeight: FontWeight.w600,
+        letterSpacing: -0.5,
         color: LoopColors.textPrimary,
       ),
     ),
@@ -152,19 +145,22 @@ ThemeData buildLoopTheme({Color? accent}) {
       elevation: 0,
       surfaceTintColor: Colors.transparent,
       margin: EdgeInsets.zero,
-      shape: rounded,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(kRadius),
+        side: BorderSide(color: LoopColors.surfaceHover.withValues(alpha: 0.7)),
+      ),
     ),
     dialogTheme: DialogThemeData(
       backgroundColor: LoopColors.surface,
       surfaceTintColor: Colors.transparent,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
     ),
     bottomSheetTheme: BottomSheetThemeData(
       backgroundColor: LoopColors.surface,
       surfaceTintColor: Colors.transparent,
       showDragHandle: true,
       shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
     ),
     switchTheme: SwitchThemeData(
@@ -181,33 +177,34 @@ ThemeData buildLoopTheme({Color? accent}) {
         backgroundColor: primary,
         foregroundColor: onPrimary,
         // Jedan veliki gumb: visina 56, puna pilula.
-        minimumSize: const Size(64, 56),
+        minimumSize: const Size(64, 52),
         textStyle: const TextStyle(
           fontFamily: kFontFamily,
           fontWeight: FontWeight.w700,
           fontSize: 17,
           letterSpacing: -0.1,
         ),
-        shape: const StadiumBorder(),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
       ),
     ),
     outlinedButtonTheme: OutlinedButtonThemeData(
       style: OutlinedButton.styleFrom(
         foregroundColor: LoopColors.textPrimary,
-        backgroundColor: LoopColors.surfaceHover,
-        minimumSize: const Size(64, 52),
+        backgroundColor: Colors.transparent,
+        minimumSize: const Size(64, 48),
         textStyle: const TextStyle(
           fontFamily: kFontFamily,
           fontWeight: FontWeight.w600,
           fontSize: 16,
         ),
-        side: BorderSide.none,
-        shape: const StadiumBorder(),
+        side: BorderSide(color: LoopColors.surfaceHover),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
       ),
     ),
     textButtonTheme: TextButtonThemeData(
       style: TextButton.styleFrom(
-        foregroundColor: primary,
+        foregroundColor: LoopColors.accent,
+        minimumSize: const Size(44, 44),
         textStyle: const TextStyle(
           fontFamily: kFontFamily,
           fontWeight: FontWeight.w700,
@@ -241,23 +238,23 @@ ThemeData buildLoopTheme({Color? accent}) {
       helperMaxLines: 3,
       errorMaxLines: 3,
       filled: true,
-      fillColor: LoopColors.surface,
+      fillColor: LoopColors.surfaceHover.withValues(alpha: 0.55),
       labelStyle: TextStyle(color: LoopColors.textSecondary),
       hintStyle: TextStyle(color: LoopColors.textSecondary),
       border: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(kRadius),
+        borderRadius: BorderRadius.circular(12),
         borderSide: BorderSide(color: LoopColors.surfaceHover, width: 1),
       ),
       enabledBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(kRadius),
+        borderRadius: BorderRadius.circular(12),
         borderSide: BorderSide(color: LoopColors.surfaceHover, width: 1),
       ),
       focusedBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(kRadius),
-        borderSide: BorderSide(color: primary, width: 2),
+        borderRadius: BorderRadius.circular(12),
+        borderSide: BorderSide(color: LoopColors.accent, width: 1.5),
       ),
       errorBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(kRadius),
+        borderRadius: BorderRadius.circular(12),
         borderSide: BorderSide(color: LoopColors.error),
       ),
       contentPadding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
@@ -280,7 +277,9 @@ ThemeData buildLoopTheme({Color? accent}) {
         (s) => TextStyle(
           fontFamily: kFontFamily,
           fontSize: 11,
-          fontWeight: FontWeight.w600,
+          fontWeight: s.contains(WidgetState.selected)
+              ? FontWeight.w600
+              : FontWeight.w400,
           color: s.contains(WidgetState.selected)
               ? primary
               : LoopColors.textSecondary,
@@ -302,7 +301,7 @@ ThemeData buildLoopTheme({Color? accent}) {
       selectedLabelTextStyle: TextStyle(
         fontFamily: kFontFamily,
         color: LoopColors.textPrimary,
-        fontWeight: FontWeight.w800,
+        fontWeight: FontWeight.w600,
       ),
       unselectedLabelTextStyle: TextStyle(
         fontFamily: kFontFamily,
@@ -312,7 +311,7 @@ ThemeData buildLoopTheme({Color? accent}) {
     ),
     segmentedButtonTheme: SegmentedButtonThemeData(
       style: SegmentedButton.styleFrom(
-        selectedBackgroundColor: primary.withValues(alpha: 0.16),
+        selectedBackgroundColor: LoopColors.surface,
         selectedForegroundColor: LoopColors.textPrimary,
         foregroundColor: LoopColors.textSecondary,
         side: BorderSide(color: LoopColors.surfaceHover, width: 1),
@@ -322,7 +321,27 @@ ThemeData buildLoopTheme({Color? accent}) {
         ),
       ),
     ),
-    dividerTheme: DividerThemeData(color: LoopColors.surfaceHover),
+    dividerTheme: DividerThemeData(
+      color: LoopColors.surfaceHover,
+      thickness: 0.7,
+      space: 1,
+    ),
+    listTileTheme: ListTileThemeData(
+      iconColor: LoopColors.textSecondary,
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+      titleTextStyle: TextStyle(
+        fontFamily: kFontFamily,
+        fontSize: 16,
+        fontWeight: FontWeight.w500,
+        color: LoopColors.textPrimary,
+      ),
+      subtitleTextStyle: TextStyle(
+        fontFamily: kFontFamily,
+        fontSize: 13,
+        height: 1.45,
+        color: LoopColors.textSecondary,
+      ),
+    ),
     textTheme: base.textTheme
         .apply(
           fontFamily: kFontFamily,
@@ -330,6 +349,16 @@ ThemeData buildLoopTheme({Color? accent}) {
           displayColor: LoopColors.textPrimary,
         )
         .copyWith(
+          bodyLarge: base.textTheme.bodyLarge?.copyWith(
+            fontSize: 16,
+            height: 1.5,
+            color: LoopColors.textPrimary,
+          ),
+          bodyMedium: base.textTheme.bodyMedium?.copyWith(
+            fontSize: 14,
+            height: 1.45,
+            color: LoopColors.textPrimary,
+          ),
           displayLarge: _tight(base.textTheme.displayLarge, -1.2),
           displayMedium: _tight(base.textTheme.displayMedium, -1),
           displaySmall: _tight(base.textTheme.displaySmall, -0.8),

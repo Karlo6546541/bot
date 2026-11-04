@@ -83,7 +83,7 @@ class SlimSearchField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => SizedBox(
-    height: 42,
+    height: 48,
     child: TextField(
       controller: controller,
       onChanged: onChanged,
@@ -111,15 +111,15 @@ class SlimSearchField extends StatelessWidget {
         fillColor: LoopColors.surface,
         contentPadding: const EdgeInsets.symmetric(horizontal: 12),
         border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(99),
+          borderRadius: BorderRadius.circular(12),
           borderSide: BorderSide.none,
         ),
         enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(99),
+          borderRadius: BorderRadius.circular(12),
           borderSide: BorderSide.none,
         ),
         focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(99),
+          borderRadius: BorderRadius.circular(12),
           borderSide: BorderSide(color: LoopColors.textSecondary),
         ),
       ),
@@ -369,7 +369,10 @@ class _CategoryItemsScreenState extends ConsumerState<CategoryItemsScreen> {
                 : GridView.builder(
                     key: const ValueKey('category-items'),
                     padding: const EdgeInsets.fromLTRB(16, 0, 16, 32),
-                    gridDelegate: const BrowseGridDelegate(),
+                    gridDelegate: BrowseGridDelegate(
+                      textScale:
+                          MediaQuery.textScalerOf(context).scale(14) / 14,
+                    ),
                     itemCount: list.length,
                     itemBuilder: (_, i) => AuctionBrowseCard(
                       item: list[i],

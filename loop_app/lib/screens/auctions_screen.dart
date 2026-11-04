@@ -315,7 +315,9 @@ class _AuctionsScreenState extends ConsumerState<AuctionsScreen> {
           SliverPadding(
             padding: const EdgeInsets.fromLTRB(16, 0, 16, 96),
             sliver: SliverGrid(
-              gridDelegate: const BrowseGridDelegate(),
+              gridDelegate: BrowseGridDelegate(
+                textScale: MediaQuery.textScalerOf(context).scale(14) / 14,
+              ),
               delegate: SliverChildBuilderDelegate(
                 (context, i) => AuctionBrowseCard(
                   item: list[i],
@@ -494,7 +496,7 @@ class AuctionBrowseCard extends ConsumerWidget {
           device?.isDigital ?? false ? t('Digitalno') : t('Kupi odmah'),
           style: pillText,
         ),
-        LoopColors.buyNow,
+        const Color(0xFF1E7E34),
       );
     } else {
       topLeft = pill(
@@ -506,7 +508,7 @@ class AuctionBrowseCard extends ConsumerWidget {
             style: pillText,
           ),
         ),
-        LoopColors.accent,
+        const Color(0xFF0066CC),
       );
     }
 
@@ -529,10 +531,10 @@ class AuctionBrowseCard extends ConsumerWidget {
     // Kao Whatnot: prodavatelj iznad slike 4:5 s oznakama, ispod naziv
     // i cijena — sve kartice iste visine (vidi [BrowseGridDelegate]).
     final sellerRow = Padding(
-      padding: const EdgeInsets.fromLTRB(2, 0, 2, 6),
+      padding: const EdgeInsets.fromLTRB(1, 7, 1, 0),
       child: Row(
         children: [
-          UserAvatar(user: seller, size: 20),
+          UserAvatar(user: seller, size: 16),
           const SizedBox(width: 6),
           if (seller != null) ...[
             CountryBadge(
@@ -546,7 +548,11 @@ class AuctionBrowseCard extends ConsumerWidget {
               seller?.handle ?? show?.hostLabel ?? a?.sellerLabel ?? '',
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500),
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w400,
+                color: LoopColors.textSecondary,
+              ),
             ),
           ),
           if (rating.count > 0)
@@ -576,7 +582,6 @@ class AuctionBrowseCard extends ConsumerWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            sellerRow,
             AspectRatio(
               aspectRatio: 4 / 5,
               child: ClipRRect(
@@ -623,7 +628,7 @@ class AuctionBrowseCard extends ConsumerWidget {
                                 key: ValueKey('promoted-${show!.id}'),
                                 style: pillText,
                               ),
-                              LoopColors.accent.withValues(alpha: 0.9),
+                              Colors.black.withValues(alpha: 0.65),
                             ),
                         ],
                       ),
@@ -701,11 +706,11 @@ class AuctionBrowseCard extends ConsumerWidget {
                 children: [
                   Text(
                     title,
-                    maxLines: 1,
+                    maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                     style: const TextStyle(
-                      fontWeight: FontWeight.w600,
-                      fontSize: 15,
+                      fontWeight: FontWeight.w500,
+                      fontSize: 14,
                       letterSpacing: -0.2,
                       height: 1.2,
                     ),
@@ -716,15 +721,14 @@ class AuctionBrowseCard extends ConsumerWidget {
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: TextStyle(
-                      fontWeight: FontWeight.w700,
-                      fontSize: 15,
+                      fontWeight: FontWeight.w600,
+                      fontSize: 17,
                       letterSpacing: -0.2,
                       height: 1.2,
-                      color: a == null && show == null
-                          ? LoopColors.buyNow
-                          : LoopColors.textSecondary,
+                      color: LoopColors.textPrimary,
                     ),
                   ),
+                  sellerRow,
                 ],
               ),
             ),
@@ -742,12 +746,14 @@ class BrowseGridDelegate extends SliverGridDelegate {
   const BrowseGridDelegate({
     this.maxTileWidth = 240,
     this.spacing = 12,
-    this.runSpacing = 18,
+    this.runSpacing = 20,
+    this.textScale = 1,
   });
 
   final double maxTileWidth;
   final double spacing;
   final double runSpacing;
+  final double textScale;
 
   /// Visina prodavatelja iznad i teksta ispod slike (naziv, cijena).
   static const textHeight = 96.0;
@@ -757,7 +763,7 @@ class BrowseGridDelegate extends SliverGridDelegate {
     final w = constraints.crossAxisExtent;
     final cols = ((w + spacing) / (maxTileWidth + spacing)).ceil().clamp(2, 99);
     final tileW = (w - spacing * (cols - 1)) / cols;
-    final tileH = tileW * 5 / 4 + textHeight;
+    final tileH = tileW * 5 / 4 + textHeight * textScale;
     return SliverGridRegularTileLayout(
       crossAxisCount: cols,
       mainAxisStride: tileH + runSpacing,
@@ -772,7 +778,8 @@ class BrowseGridDelegate extends SliverGridDelegate {
   bool shouldRelayout(BrowseGridDelegate oldDelegate) =>
       oldDelegate.maxTileWidth != maxTileWidth ||
       oldDelegate.spacing != spacing ||
-      oldDelegate.runSpacing != runSpacing;
+      oldDelegate.runSpacing != runSpacing ||
+      oldDelegate.textScale != textScale;
 }
 
 /// Fotografija predmeta preko cijele kartice (ili ilustracija kategorije).
@@ -797,9 +804,12 @@ class BrowseCardMedia extends StatelessWidget {
       );
     }
     if (d == null) {
-      return const DecoratedBox(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(colors: [Color(0xFF3A1C71), kLiveRed]),
+      return ColoredBox(
+        color: LoopColors.surfaceHover,
+        child: Icon(
+          Icons.videocam_outlined,
+          size: 36,
+          color: LoopColors.textSecondary,
         ),
       );
     }

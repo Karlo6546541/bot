@@ -248,7 +248,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
       key: ValueKey(key),
       padding: const EdgeInsets.symmetric(horizontal: 16),
       sliver: SliverGrid(
-        gridDelegate: const BrowseGridDelegate(),
+        gridDelegate: BrowseGridDelegate(textScale: MediaQuery.textScalerOf(context).scale(14) / 14),
         delegate: SliverChildBuilderDelegate(
           (ctx, i) => AuctionBrowseCard(
             item: list[i],

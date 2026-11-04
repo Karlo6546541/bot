@@ -34,13 +34,17 @@ class ShellDestination {
     // Jedini istaknuti element u traci: okrugli akcent s plusom.
     return Container(
       key: const ValueKey('nav-create'),
-      width: compact ? 48 : 44,
-      height: compact ? 48 : 32,
+      width: compact ? 46 : 44,
+      height: compact ? 40 : 36,
       decoration: BoxDecoration(
         color: Theme.of(context).colorScheme.primary,
-        borderRadius: BorderRadius.circular(compact ? 24 : 16),
+        borderRadius: BorderRadius.circular(14),
       ),
-      child: Icon(icon, color: LoopColors.onAccent, size: compact ? 24 : null),
+      child: Icon(
+        icon,
+        color: Theme.of(context).colorScheme.onPrimary,
+        size: compact ? 23 : null,
+      ),
     );
   }
 }
@@ -73,11 +77,11 @@ class AdaptiveShell extends StatelessWidget {
       NavigationBar(
         key: ValueKey(compact ? 'feed-navigation' : 'main-navigation'),
         // Mobitel: ikone s natpisima na tamnosivoj traci.
-        height: compact ? 68 : null,
+        height: compact ? 72 : null,
         labelBehavior: compact
             ? NavigationDestinationLabelBehavior.alwaysShow
             : null,
-        backgroundColor: compact ? LoopColors.background : null,
+        backgroundColor: compact ? LoopColors.surface : null,
         surfaceTintColor: compact ? Colors.transparent : null,
         indicatorColor: compact ? Colors.transparent : null,
         selectedIndex: selectedIndex,
@@ -104,7 +108,7 @@ class AdaptiveShell extends StatelessWidget {
     if (!isDesktop) {
       return Scaffold(
         appBar: appBar,
-        body: SafeArea(top: false, child: body),
+        body: SafeArea(top: false, bottom: false, child: body),
         floatingActionButton: floatingActionButton,
         bottomNavigationBar: DecoratedBox(
           decoration: BoxDecoration(
@@ -120,7 +124,7 @@ class AdaptiveShell extends StatelessWidget {
         children: [
           NavigationRail(
             extended: width >= 1100,
-            minExtendedWidth: 220,
+            minExtendedWidth: 224,
             selectedIndex: selectedIndex,
             onDestinationSelected: onSelect,
             leading: railHeader,
@@ -171,11 +175,11 @@ class LoopLogo extends StatelessWidget {
           ),
           SizedBox(width: size * 0.25),
           Text(
-            kAppName.toUpperCase(),
+            kAppName,
             style: TextStyle(
-              fontSize: size * 0.72,
+              fontSize: size * 0.9,
               fontWeight: FontWeight.w800,
-              letterSpacing: size * 0.14,
+              letterSpacing: -size * 0.045,
               color: color ?? LoopColors.textPrimary,
             ),
           ),

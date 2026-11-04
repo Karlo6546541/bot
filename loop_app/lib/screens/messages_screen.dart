@@ -54,13 +54,13 @@ class MessagesScreen extends ConsumerWidget {
                       if (c.otherId == ChatService.systemId)
                         Card(
                           key: const ValueKey('chat-system'),
-                          color: LoopColors.peach,
+                          color: LoopColors.surface,
                           child: ListTile(
                             leading: CircleAvatar(
                               backgroundColor: const Color(0xFF000000),
                               child: SpearMark(
                                 size: 24,
-                                head: const Color(0xFFFF9248),
+                                head: const Color(0xFFF5F5F7),
                                 shaft: const Color(0xFFF5EDE6),
                               ),
                             ),

@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hive/hive.dart';
 import 'package:loop_app/services/remote_store.dart';
+import 'package:loop_app/models/seller_info.dart';
 import 'package:loop_app/services/seed_data.dart';
 import 'package:loop_app/services/storage_service.dart';
 import 'package:loop_app/services/sync_service.dart';
@@ -33,6 +34,7 @@ class FakeRemote implements RemoteStore {
   }
 
   int upserts = 0;
+  Completer<void>? writeGate;
 
   @override
   bool canWrite = true;
@@ -50,6 +52,7 @@ class FakeRemote implements RemoteStore {
 
   @override
   Future<void> upsert(String table, String id, Map<String, dynamic> d) async {
+    await writeGate?.future;
     if (rejected.contains('$table/$id')) throw Exception('odbijeno');
     upserts++;
     (data[table] ??= {})[id] = d;
@@ -93,6 +96,87 @@ void main() {
   });
 
   tearDown(() => Hive.close());
+
+  final seller = SellerInfo(
+    legalName: 'Test Seller',
+    oib: '12345678903',
+    address: 'Ulica 1, Zagreb',
+    iban: 'HR1723600001101234565',
+    birthDate: DateTime(1990),
+    updatedAt: DateTime(2026),
+  );
+
+  test(
+    'seller flush waits for an in-flight write before reporting success',
+    () async {
+      await storage.saveSession(userId: SeedData.testUserId);
+      final sync = SyncService(storage, remote);
+      await sync.start();
+      remote.writeGate = Completer<void>();
+      await storage.putUser(
+        storage.userById(SeedData.testUserId)!.copyWith(seller: seller),
+      );
+      var finished = false;
+      final write = sync.flushRecord('sellers', SeedData.testUserId).then((ok) {
+        finished = true;
+        return ok;
+      });
+      await Future<void>.delayed(Duration.zero);
+      expect(finished, false);
+      expect(sync.hasPendingRecord('sellers', SeedData.testUserId), true);
+      remote.writeGate!.complete();
+      expect(await write, true);
+      expect(
+        remote.data['sellers']![SeedData.testUserId]!['legalName'],
+        'Test Seller',
+      );
+      expect(
+        remote.data['users']![SeedData.testUserId]!.containsKey('iban'),
+        false,
+      );
+      expect(
+        remote.data['users']![SeedData.testUserId]!.containsKey('seller'),
+        false,
+      );
+      await sync.dispose();
+    },
+  );
+
+  test(
+    'rejected seller save stays private locally and can be retried',
+    () async {
+      final sync = SyncService(storage, remote);
+      await sync.start();
+      remote.rejected.add('sellers/${SeedData.testUserId}');
+      await storage.putUser(
+        storage.userById(SeedData.testUserId)!.copyWith(seller: seller),
+      );
+      expect(await sync.flushRecord('sellers', SeedData.testUserId), false);
+      expect(storage.userById(SeedData.testUserId)!.seller!.iban, seller.iban);
+      expect(sync.hasPendingRecord('sellers', SeedData.testUserId), true);
+      remote.rejected.clear();
+      expect(await sync.flushRecord('sellers', SeedData.testUserId), true);
+      expect(sync.hasPendingRecord('sellers', SeedData.testUserId), false);
+      await sync.dispose();
+    },
+  );
+
+  test(
+    'anonymous initial RLS snapshot does not erase or upload own seller details',
+    () async {
+      final id = SeedData.testUserId;
+      await storage.saveSession(userId: id);
+      await storage.putUser(storage.userById(id)!.copyWith(seller: seller));
+      remote.data['sellers'] = {};
+      remote.canWrite = false;
+      final sync = SyncService(storage, remote);
+      await sync.start();
+      expect(storage.userById(id)!.seller!.legalName, 'Test Seller');
+      expect(sync.hasPendingRecord('sellers', id), false);
+      expect(remote.data['sellers'], isEmpty);
+      await sync.dispose();
+    },
+  );
 
   test('demo podaci se nikad sami ne šalju u online bazu', () async {
     remote.data.clear();

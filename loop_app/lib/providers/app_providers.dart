@@ -1285,9 +1285,13 @@ class AppController extends Notifier<AppState> {
     }
   }
 
-  Future<void> saveSellerInfo(SellerInfo info) async {
+  /// True means saved to the selected storage (or confirmed by the cloud).
+  /// False means safely saved on this device and still queued for the cloud.
+  Future<bool> saveSellerInfo(SellerInfo info) async {
     final user = _storage.userById(_requireUserId());
-    if (user == null) return;
+    if (user == null) {
+      throw TradeException(t('Prijavi se ponovno za nastavak.'));
+    }
     final error = SellerInfo.validate(
       legalName: info.legalName,
       oib: info.oib,
@@ -1310,6 +1314,13 @@ class AppController extends Notifier<AppState> {
       ),
     );
     _refresh();
+    final sync = ref.read(syncProvider);
+    if (sync == null) return true;
+    final saved = await Future.wait([
+      sync.flushRecord('sellers', user.id),
+      sync.flushRecord('users', user.id),
+    ]);
+    return saved.every((value) => value);
   }
 
   /// Isplata zarade na IBAN prodavatelja (demo: ništa se ne šalje).

@@ -97,7 +97,7 @@ flutter:
           weight: 500
         - asset: assets/fonts/Inter_600SemiBold.ttf
           weight: 600
-        - asset: assets/fonts/Inter_600SemiBold.ttf
+        - asset: assets/fonts/Inter_700Bold.ttf
           weight: 700
         - asset: assets/fonts/Inter_700Bold.ttf
           weight: 800

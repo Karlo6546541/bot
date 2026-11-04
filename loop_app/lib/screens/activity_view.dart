@@ -199,7 +199,7 @@ class _ActivityViewState extends ConsumerState<ActivityView> {
       final on = _tab == t0;
       return InkWell(
         key: ValueKey('activity-tab-${t0.name}'),
-        borderRadius: BorderRadius.circular(99),
+        borderRadius: BorderRadius.circular(12),
         onTap: () => setState(() => _tab = t0),
         child: Container(
           constraints: const BoxConstraints(minHeight: 40),
@@ -207,7 +207,7 @@ class _ActivityViewState extends ConsumerState<ActivityView> {
           alignment: Alignment.center,
           decoration: BoxDecoration(
             color: on ? LoopColors.textPrimary : Colors.transparent,
-            borderRadius: BorderRadius.circular(99),
+            borderRadius: BorderRadius.circular(12),
           ),
           child: Badge(
             isLabelVisible: badge > 0,
@@ -219,7 +219,7 @@ class _ActivityViewState extends ConsumerState<ActivityView> {
               label,
               style: TextStyle(
                 fontSize: 14,
-                fontWeight: FontWeight.w600,
+                fontWeight: on ? FontWeight.w600 : FontWeight.w400,
                 color: on ? LoopColors.background : LoopColors.textSecondary,
               ),
             ),
@@ -338,7 +338,7 @@ class _ActivityViewState extends ConsumerState<ActivityView> {
               padding: const EdgeInsets.all(4),
               decoration: BoxDecoration(
                 color: LoopColors.surface,
-                borderRadius: BorderRadius.circular(99),
+                borderRadius: BorderRadius.circular(12),
               ),
               child: Row(
                 mainAxisSize: MainAxisSize.min,
