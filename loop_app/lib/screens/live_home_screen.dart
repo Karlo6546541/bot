@@ -632,7 +632,22 @@ class _LiveHomeScreenState extends ConsumerState<LiveHomeScreen> {
                           ),
                   ),
                 )
-              : grid('home-live', live, t('Uživo sada')),
+              : SliverPadding(
+                  key: const ValueKey('home-live'),
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  sliver: SliverList.builder(
+                    itemCount: live.length,
+                    itemBuilder: (_, i) => LiveShopRow(
+                      key: ValueKey('browse-live-${live[i].show!.id}'),
+                      show: live[i].show!,
+                      device: live[i].device,
+                      subtitle: t('{0} gledatelja', [
+                        '${live[i].live!.viewers}',
+                      ]),
+                      onTap: () => open(live, i, t('Uživo sada')),
+                    ),
+                  ),
+                ),
         );
       case _Soon():
         slivers.add(const SliverToBoxAdapter(child: SizedBox(height: 12)));
@@ -647,7 +662,20 @@ class _LiveHomeScreenState extends ConsumerState<LiveHomeScreen> {
                     ),
                   ),
                 )
-              : grid('home-soon', soon, t('Uskoro')),
+              : SliverPadding(
+                  key: const ValueKey('home-soon'),
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  sliver: SliverList.builder(
+                    itemCount: soon.length,
+                    itemBuilder: (_, i) => LiveShopRow(
+                      key: ValueKey('browse-live-${soon[i].show!.id}'),
+                      show: soon[i].show!,
+                      device: soon[i].device,
+                      subtitle: formatDateTime(soon[i].show!.startsAt),
+                      onTap: () => open(soon, i, t('Uskoro')),
+                    ),
+                  ),
+                ),
         );
     }
 
