@@ -1076,6 +1076,7 @@ void main() {
         find.byKey(const ValueKey('live-chat')),
         'Koliko je star?',
       );
+      await tester.pump();
       await tester.tap(find.byKey(const ValueKey('live-send')));
       await tester.pumpAndSettle();
       expect(
@@ -1543,6 +1544,7 @@ void main() {
       await live.startLot(bob, id);
     });
     await tester.enterText(find.byKey(const ValueKey('live-chat')), 'Ja!');
+    await tester.pump();
     await tester.runAsync(
       () => tester.tap(find.byKey(const ValueKey('live-send'))),
     );
