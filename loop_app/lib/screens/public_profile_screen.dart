@@ -1,9 +1,13 @@
 import '../services/app_location/app_location.dart';
+
 import 'package:flutter/material.dart';
+
 import '../widgets/country_widgets.dart';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../widgets/trust_widgets.dart';
+import '../widgets/live_shop_widgets.dart';
 
 import '../l10n/tr.dart';
 import '../models/app_user.dart';
@@ -26,7 +30,6 @@ import 'auctions_screen.dart';
 import 'device_detail_screen.dart';
 import 'live_screens.dart';
 import 'messages_screen.dart';
-import '../widgets/device_card.dart';
 import '../widgets/trade_actions.dart';
 
 /// Javni profil korisnika kao mini webshop: naziv trgovine, pratitelji,
@@ -73,8 +76,15 @@ enum _ShopTab { items, auctions, reviews }
 
 class _PublicProfileScreenState extends ConsumerState<PublicProfileScreen> {
   String _query = '';
+  final _search = TextEditingController();
+  @override
+  void dispose() {
+    _search.dispose();
+    super.dispose();
+  }
+
   _ShopSort _sort = _ShopSort.newest;
-  _ShopTab _tab = _ShopTab.auctions;
+  _ShopTab _tab = _ShopTab.items;
 
   /// Kategorija iz filtra trgovine (`null` = sve).
   DeviceCategory? _category;
@@ -125,7 +135,7 @@ class _PublicProfileScreenState extends ConsumerState<PublicProfileScreen> {
     }
     final viewer = state.currentUserId ?? '';
     final isMe = viewer == user.id;
-    final allListings = state.listingsOf(user.id);
+    final allListings = liveShopProducts(state, user.id);
     final listings = _shopItems(allListings);
     final auctions = state.activeAuctions
         .where((a) => a.sellerId == user!.id)
@@ -149,6 +159,21 @@ class _PublicProfileScreenState extends ConsumerState<PublicProfileScreen> {
       appBar: AppBar(
         title: Text(user.shopTitle, overflow: TextOverflow.ellipsis),
         actions: [
+          IconButton(
+            tooltip: t('O prodavatelju'),
+            icon: const Icon(Icons.info_outline),
+            onPressed: () => showModalBottomSheet<void>(
+              context: context,
+              showDragHandle: true,
+              isScrollControlled: true,
+              builder: (_) => SafeArea(
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.all(20),
+                  child: SellerTrustCard(user: other),
+                ),
+              ),
+            ),
+          ),
           if (user.username.isNotEmpty)
             ShareButton(
               url: publicLink(shop: user.username),
@@ -211,6 +236,7 @@ class _PublicProfileScreenState extends ConsumerState<PublicProfileScreen> {
                     user: user,
                     rating: state.ratingOf(user.id),
                     editable: isMe,
+                    shopfront: true,
                   ),
                   const SizedBox(height: 10),
                   _ShopStats(
@@ -222,7 +248,6 @@ class _PublicProfileScreenState extends ConsumerState<PublicProfileScreen> {
                     promoted: user.isPromoted,
                   ),
                   const SizedBox(height: 10),
-                  SellerTrustCard(user: user),
                   if (!isMe && !blocked) ...[
                     const SizedBox(height: 10),
                     Row(
@@ -244,6 +269,22 @@ class _PublicProfileScreenState extends ConsumerState<PublicProfileScreen> {
               ),
             ),
           ),
+          if (_tab != _ShopTab.auctions)
+            for (final (show, live)
+                in ref
+                    .watch(appProvider)
+                    .activeLives
+                    .where((e) => e.$1.hostId == widget.userId))
+              box(
+                LiveShopRow(
+                  key: ValueKey('profile-live-${show.id}'),
+                  show: show,
+                  subtitle: live.isLive
+                      ? t('Uživo sada')
+                      : formatDateTime(show.startsAt),
+                  onTap: () => LiveRoomScreen.open(context, show.id),
+                ),
+              ),
           // Odabir dijela trgovine.
           box(
             Padding(
@@ -252,6 +293,11 @@ class _PublicProfileScreenState extends ConsumerState<PublicProfileScreen> {
                 key: const ValueKey('shop-tabs'),
                 children: [
                   for (final (tab, label, tip) in [
+                    (
+                      _ShopTab.items,
+                      t('Shop ({0})', ['${allListings.length}']),
+                      null,
+                    ),
                     (
                       _ShopTab.auctions,
                       t('Aukcije ({0})', [auctions.length]),
@@ -268,6 +314,7 @@ class _PublicProfileScreenState extends ConsumerState<PublicProfileScreen> {
                         message: tip ?? '',
                         excludeFromSemantics: tip == null,
                         child: InkWell(
+                          key: ValueKey('shop-tab-${tab.name}'),
                           onTap: () => setState(() => _tab = tab),
                           child: Container(
                             height: 46,
@@ -310,6 +357,7 @@ class _PublicProfileScreenState extends ConsumerState<PublicProfileScreen> {
                     Expanded(
                       child: TextField(
                         key: const ValueKey('shop-search'),
+                        controller: _search,
                         onChanged: (v) => setState(() => _query = v),
                         decoration: InputDecoration(
                           isDense: true,
@@ -412,25 +460,19 @@ class _PublicProfileScreenState extends ConsumerState<PublicProfileScreen> {
                 ),
               )
             else
-              DeviceGrid(
-                devices: listings,
+              SliverPadding(
                 padding: const EdgeInsets.symmetric(horizontal: 16),
-                itemBuilder: (context, d) => DeviceCard(
-                  device: d,
-                  actionLabel: isMe ? t('Detalji') : t('Kupi odmah'),
-                  actionIcon: isMe
-                      ? Icons.info_outline
-                      : Icons.shopping_bag_outlined,
-                  onAction: isMe
-                      ? () => DeviceDetailScreen.open(context, d)
-                      : () => confirmAndBuy(context, ref, d),
-                  onTap: () => DeviceDetailScreen.open(context, d),
-                  promoted: user!.isPromoted,
-                  sellerView: isMe,
-                  isFavorite: state.isFavorite(d.id),
-                  onFavorite: isMe
-                      ? null
-                      : () => toggleFavorite(ref, d, context: context),
+                sliver: SliverList.builder(
+                  itemCount: listings.length,
+                  itemBuilder: (context, index) {
+                    final d = listings[index];
+                    return ShopProductRow(
+                      key: ValueKey('shop-item-${d.id}'),
+                      device: d,
+                      price: state.priceForMe(d),
+                      onTap: () => DeviceDetailScreen.open(context, d),
+                    );
+                  },
                 ),
               ),
           ],
@@ -442,37 +484,13 @@ class _PublicProfileScreenState extends ConsumerState<PublicProfileScreen> {
                     .activeLives
                     .where((e) => e.$1.hostId == widget.userId))
               box(
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 10),
-                  child: Material(
-                    color: kLiveRed,
-                    borderRadius: BorderRadius.circular(kRadius),
-                    child: ListTile(
-                      key: ValueKey('profile-live-${show.id}'),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(kRadius),
-                      ),
-                      leading: const Icon(Icons.videocam, color: Colors.white),
-                      title: Text(
-                        show.title,
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.w900,
-                        ),
-                      ),
-                      subtitle: Text(
-                        live.isLive
-                            ? t('Uživo sada')
-                            : formatDateTime(show.startsAt),
-                        style: const TextStyle(color: Colors.white),
-                      ),
-                      trailing: const Icon(
-                        Icons.chevron_right,
-                        color: Colors.white,
-                      ),
-                      onTap: () => LiveRoomScreen.open(context, show.id),
-                    ),
-                  ),
+                LiveShopRow(
+                  key: ValueKey('profile-live-${show.id}'),
+                  show: show,
+                  subtitle: live.isLive
+                      ? t('Uživo sada')
+                      : formatDateTime(show.startsAt),
+                  onTap: () => LiveRoomScreen.open(context, show.id),
                 ),
               ),
             if (auctions.isEmpty)
@@ -553,6 +571,7 @@ class ProfileHeader extends ConsumerWidget {
     this.rating,
     this.editable = false,
     this.compact = false,
+    this.shopfront = false,
   });
 
   final AppUser user;
@@ -564,6 +583,7 @@ class ProfileHeader extends ConsumerWidget {
   /// Vlastiti profil: gumbi za promjenu naslovne i profilne slike.
   final bool editable;
   final bool compact;
+  final bool shopfront;
 
   Future<void> _photoMenu(
     BuildContext context,
@@ -649,6 +669,75 @@ class ProfileHeader extends ConsumerWidget {
         : user.isTrader
         ? chip('seller-kind-business', t('Trgovac'), LoopColors.sky)
         : chip('seller-kind-private', t('Fizička osoba'), LoopColors.peach);
+    if (shopfront) {
+      return Padding(
+        padding: const EdgeInsets.symmetric(vertical: 12),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                UserAvatar(user: user, size: 56),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        user.shopTitle,
+                        style: const TextStyle(
+                          fontSize: 25,
+                          fontWeight: FontWeight.w600,
+                          letterSpacing: -.7,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        user.handle,
+                        style: TextStyle(
+                          color: LoopColors.textSecondary,
+                          fontSize: 13,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 6,
+                        children: [
+                          ?sellerKind,
+                          CountryBadge(
+                            key: const ValueKey('profile-country'),
+                            code: user.country,
+                            withName: true,
+                            style: const TextStyle(fontSize: 12),
+                          ),
+                          if (rating != null && rating!.count > 0)
+                            RatingBadge(rating: rating!),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            if (user.bio.isNotEmpty)
+              Padding(
+                padding: const EdgeInsets.only(top: 12),
+                child: Text(
+                  user.bio,
+                  maxLines: 3,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: LoopColors.textSecondary,
+                    fontSize: 14,
+                  ),
+                ),
+              ),
+          ],
+        ),
+      );
+    }
     final secondary = TextStyle(color: LoopColors.textSecondary, fontSize: 13);
     final cover = user.coverPath;
     final gradient = DecoratedBox(
@@ -720,12 +809,16 @@ class ProfileHeader extends ConsumerWidget {
       ),
     );
     return Card(
+      color: Colors.transparent,
+      margin: EdgeInsets.zero,
+      elevation: 0,
+      shape: const RoundedRectangleBorder(),
       clipBehavior: Clip.antiAlias,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           SizedBox(
-            height: compact ? 132 : 184,
+            height: cover == null ? 96 : (compact ? 132 : 168),
             child: Stack(
               clipBehavior: Clip.none,
               children: [
@@ -734,7 +827,7 @@ class ProfileHeader extends ConsumerWidget {
                 Positioned.fill(
                   bottom: 44,
                   child: cover == null
-                      ? gradient
+                      ? ColoredBox(color: LoopColors.surfaceHover)
                       : LocalPhoto(
                           path: cover,
                           cacheWidth: 1200,

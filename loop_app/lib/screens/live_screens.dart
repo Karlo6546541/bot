@@ -1,3 +1,5 @@
+import 'device_detail_screen.dart';
+import '../widgets/live_shop_widgets.dart' show liveShopProducts;
 import 'host_console.dart';
 import '../config/backend_config.dart';
 import 'cloud_commerce_screen.dart';
@@ -3123,6 +3125,101 @@ class _LiveRoomViewState extends ConsumerState<_LiveRoomBody> {
     ),
   );
 
+  void _showRoomTools(LiveShow show, LiveState st, bool canAct) {
+    _chatFocus.unfocus();
+    showModalBottomSheet<void>(
+      context: context,
+      showDragHandle: true,
+      backgroundColor: kLiveSheet,
+      constraints: const BoxConstraints(maxWidth: 520),
+      builder: (ctx) => SafeArea(
+        child: StatefulBuilder(
+          builder: (ctx, setLocal) => SingleChildScrollView(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(16, 4, 16, 20),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Text(
+                    t('Live opcije'),
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 20,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  _QuickReactions(
+                    emojis: _quick,
+                    onReact: (emoji) {
+                      Navigator.pop(ctx);
+                      _react(emoji);
+                    },
+                    muted: _muted,
+                    onSound: () {
+                      _toggleSound();
+                      setLocal(() {});
+                    },
+                  ),
+                  if (st.hype >= .2) _HypeMeter(st.hype),
+                  if (show.canModerate(ref.read(appProvider).currentUserId))
+                    _ChatFilterChips(
+                      value: _chatFilter,
+                      onChanged: (value) {
+                        setState(() => _chatFilter = value);
+                        setLocal(() {});
+                      },
+                    ),
+                  ListTile(
+                    key: const ValueKey('live-share'),
+                    leading: const Icon(Icons.ios_share, color: Colors.white),
+                    title: Text(
+                      t('Podijeli'),
+                      style: const TextStyle(color: Colors.white),
+                    ),
+                    onTap: () {
+                      Navigator.pop(ctx);
+                      if (ref.read(appProvider).currentUserId != show.hostId) {
+                        _app.liveShared(show.id);
+                      }
+                      shareLink(
+                        context,
+                        publicLink(live: show.id),
+                        text: t('Gledaj "{0}" uživo na Subhastu', [show.title]),
+                      );
+                    },
+                  ),
+                  if (!canAct)
+                    ListTile(
+                      key: const ValueKey('live-wallet-login'),
+                      leading: const Icon(
+                        Icons.account_balance_wallet_outlined,
+                        color: Colors.white,
+                      ),
+                      title: Text(
+                        t('Novčanik'),
+                        style: const TextStyle(color: Colors.white),
+                      ),
+                      onTap: () {
+                        Navigator.pop(ctx);
+                        blockGuest(context);
+                      },
+                    )
+                  else
+                    const Align(
+                      alignment: Alignment.centerLeft,
+                      child: WalletChip(dark: true),
+                    ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final s = ref.watch(appProvider);
@@ -3457,8 +3554,7 @@ class _LiveRoomViewState extends ConsumerState<_LiveRoomBody> {
                       host: host,
                       hostName: host?.handle ?? show.hostLabel,
                     ),
-                    // Mjerač samo kad se nešto događa (inače je šum).
-                    if (st.isLive && st.hype >= 0.2) _HypeMeter(st.hype),
+
                     Expanded(
                       child: Stack(
                         children: [
@@ -3637,13 +3733,6 @@ class _LiveRoomViewState extends ConsumerState<_LiveRoomBody> {
                                             c.maxHeight * (isHost ? 0.7 : 0.55),
                                           ),
                                         ),
-                                        if (show.canModerate(me?.id) &&
-                                            !composing)
-                                          _ChatFilterChips(
-                                            value: _chatFilter,
-                                            onChanged: (f) =>
-                                                setState(() => _chatFilter = f),
-                                          ),
                                       ],
                                     ),
                                   ),
@@ -3667,7 +3756,7 @@ class _LiveRoomViewState extends ConsumerState<_LiveRoomBody> {
                         child: FilledButton.icon(
                           key: const ValueKey('live-choose-delivery'),
                           style: FilledButton.styleFrom(
-                            backgroundColor: LoopColors.buyNow,
+                            backgroundColor: const Color(0xFF1E7E34),
                             foregroundColor: Colors.white,
                             minimumSize: const Size.fromHeight(42),
                           ),
@@ -3680,41 +3769,6 @@ class _LiveRoomViewState extends ConsumerState<_LiveRoomBody> {
                           ),
                         ),
                       ),
-                    // Voditelju reakcije ne trebaju (srca i tako lete preko
-                    // videa) — više mjesta za chat i upravljanje.
-                    if (!st.isOver && !composing && !isHost)
-                      _QuickReactions(
-                        emojis: _quick,
-                        onReact: _react,
-                        muted: _muted,
-                        onSound: _toggleSound,
-                      ),
-                    // Douyin: dolje trgovina (vrećica), chat, srce, dijeljenje.
-                    _DouyinBar(
-                      controller: _chat,
-                      focusNode: _chatFocus,
-                      onSend: _send,
-                      showChat: !st.isOver,
-                      guest: !canAct,
-                      onLogin: () => blockGuest(context),
-                      bagCount: st.queue.length,
-                      onBag: () => _showQueue(st, isHost),
-                      liked: _liked,
-                      onHeart: st.isOver || isHost ? null : _toggleLike,
-                      showWallet: !isHost,
-                      onShare: () {
-                        if (!isHost) {
-                          ref.read(appProvider.notifier).liveShared(show.id);
-                        }
-                        shareLink(
-                          context,
-                          publicLink(live: show.id),
-                          text: t('Gledaj "{0}" uživo na Subhastu', [
-                            show.title,
-                          ]),
-                        );
-                      },
-                    ),
                     if (!composing && !st.isOver)
                       _FlashBar(hostId: show.hostId, now: now),
                     if (!composing && cur != null)
@@ -3744,6 +3798,27 @@ class _LiveRoomViewState extends ConsumerState<_LiveRoomBody> {
                         padding: const EdgeInsets.fromLTRB(12, 10, 12, 0),
                         child: _actions(show, st, cur, isHost, canAct, me?.id),
                       ),
+                    _DouyinBar(
+                      controller: _chat,
+                      focusNode: _chatFocus,
+                      onSend: _send,
+                      showChat: !st.isOver,
+                      guest: !canAct,
+                      onLogin: () => blockGuest(context),
+                      bagCount:
+                          st.lots
+                              .where(
+                                (lot) =>
+                                    lot.status == LotStatus.upcoming ||
+                                    lot.status == LotStatus.running,
+                              )
+                              .length +
+                          liveShopProducts(s, show.hostId).length,
+                      onBag: () => _showQueue(st, isHost),
+                      liked: _liked,
+                      onHeart: st.isOver || isHost ? null : _toggleLike,
+                      onMore: () => _showRoomTools(show, st, canAct),
+                    ),
                     const SizedBox(height: 8),
                   ],
                 ),
@@ -3910,7 +3985,7 @@ class _LiveRoomViewState extends ConsumerState<_LiveRoomBody> {
       return FilledButton(
         key: const ValueKey('live-take'),
         style: FilledButton.styleFrom(
-          backgroundColor: LoopColors.buyNow,
+          backgroundColor: const Color(0xFF1E7E34),
           foregroundColor: Colors.white,
           minimumSize: const Size.fromHeight(52),
           textStyle: const TextStyle(
@@ -3933,7 +4008,7 @@ class _LiveRoomViewState extends ConsumerState<_LiveRoomBody> {
               height: 52,
               alignment: Alignment.center,
               decoration: BoxDecoration(
-                color: LoopColors.success.withValues(alpha: 0.9),
+                color: const Color(0xFF1E7E34),
                 borderRadius: BorderRadius.circular(kRadius),
               ),
               child: Text(
@@ -3969,7 +4044,7 @@ class _LiveRoomViewState extends ConsumerState<_LiveRoomBody> {
     height: 54,
     alignment: Alignment.center,
     decoration: BoxDecoration(
-      color: LoopColors.success.withValues(alpha: 0.9),
+      color: const Color(0xFF1E7E34),
       borderRadius: BorderRadius.circular(kRadius),
     ),
     child: Text(
@@ -4012,8 +4087,8 @@ class _LiveRoomViewState extends ConsumerState<_LiveRoomBody> {
           child: FilledButton(
             key: const ValueKey('live-bid'),
             style: FilledButton.styleFrom(
-              backgroundColor: kBidOrange,
-              foregroundColor: Colors.white,
+              backgroundColor: Colors.white,
+              foregroundColor: Colors.black,
               minimumSize: const Size.fromHeight(52),
               shape: const StadiumBorder(),
               textStyle: const TextStyle(
@@ -4386,9 +4461,9 @@ class _TopBar extends ConsumerWidget {
               key: const ValueKey('live-follow'),
               // Kao Whatnot: "Prati" je pilula u boji akcenta.
               style: FilledButton.styleFrom(
-                backgroundColor: kBidOrange,
+                backgroundColor: Colors.white.withValues(alpha: .16),
                 foregroundColor: Colors.white,
-                disabledBackgroundColor: Colors.white.withValues(alpha: 0.16),
+                disabledBackgroundColor: Colors.white.withValues(alpha: 0.10),
                 disabledForegroundColor: Colors.white,
                 minimumSize: const Size(56, 30),
                 visualDensity: VisualDensity.compact,
@@ -5045,10 +5120,6 @@ class _LotCard extends StatelessWidget {
       LotMode.giveaway => 0.0,
     };
     // Procjena vrijednosti (vrijednost predmeta) — toga na Whatnotu nema.
-    final value = d?.price ?? 0;
-    final below = value > 0 && price > 0 && price < value
-        ? ((1 - price / value) * 100).round()
-        : 0;
 
     // Statusni redak (avatar + tekst).
     final String status;
@@ -5114,10 +5185,8 @@ class _LotCard extends StatelessWidget {
       key: ValueKey(result ? 'live-result' : 'live-lot'),
       margin: const EdgeInsets.fromLTRB(10, 2, 10, 0),
       padding: const EdgeInsets.fromLTRB(10, 8, 10, 8),
-      decoration: BoxDecoration(
-        color: const Color(0xE6131419),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.white12),
+      decoration: const BoxDecoration(
+        border: Border(top: BorderSide(color: Colors.white24)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -5178,9 +5247,9 @@ class _LotCard extends StatelessWidget {
                       overflow: TextOverflow.ellipsis,
                       style: const TextStyle(
                         color: Colors.white,
-                        fontWeight: FontWeight.w900,
-                        fontSize: 13,
-                        height: 1.15,
+                        fontWeight: FontWeight.w600,
+                        fontSize: 14,
+                        height: 1.2,
                         shadows: _shadow,
                       ),
                     ),
@@ -5238,7 +5307,7 @@ class _LotCard extends StatelessWidget {
               ),
               const SizedBox(width: 8),
               SizedBox(
-                width: 112,
+                width: 84,
                 child: Column(
                   key: const ValueKey('live-value'),
                   crossAxisAlignment: CrossAxisAlignment.end,
@@ -5262,15 +5331,6 @@ class _LotCard extends StatelessWidget {
                         ),
                       ),
                     ),
-                    if (value > 0)
-                      Text(
-                        t('procjena {0}', [formatCredits(value)]),
-                        style: const TextStyle(
-                          color: Colors.white70,
-                          fontSize: 11,
-                          shadows: _shadow,
-                        ),
-                      ),
                     if (result)
                       Text(
                         leader == null
@@ -5284,20 +5344,7 @@ class _LotCard extends StatelessWidget {
                           fontSize: 11,
                           shadows: _shadow,
                         ),
-                      )
-                    else ...[
-                      // Samo kad je razlika velika (inače je šum).
-                      if (below >= 30)
-                        Text(
-                          t('−{0}% ispod procjene', ['$below']),
-                          style: const TextStyle(
-                            color: Color(0xFF4ADE80),
-                            fontSize: 11.5,
-                            fontWeight: FontWeight.w900,
-                            shadows: _shadow,
-                          ),
-                        ),
-                    ],
+                      ),
                   ],
                 ),
               ),
@@ -5854,14 +5901,11 @@ class _DouyinBar extends StatelessWidget {
     required this.onBag,
     required this.liked,
     required this.onHeart,
-    required this.onShare,
-    this.showWallet = false,
+    required this.onMore,
     required this.guest,
     required this.onLogin,
   });
 
-  /// Novčanik uz srce i dijeljenje (gledatelji).
-  final bool showWallet;
   final bool guest;
   final VoidCallback onLogin;
 
@@ -5876,7 +5920,7 @@ class _DouyinBar extends StatelessWidget {
   final VoidCallback onBag;
   final bool liked;
   final VoidCallback? onHeart;
-  final VoidCallback onShare;
+  final VoidCallback onMore;
 
   @override
   Widget build(BuildContext context) => Padding(
@@ -5884,30 +5928,48 @@ class _DouyinBar extends StatelessWidget {
     child: Row(
       children: [
         if (!composing) ...[
-          Material(
-            color: Colors.transparent,
+          Semantics(
+            button: true,
             child: InkWell(
               key: const ValueKey('live-queue'),
-              borderRadius: BorderRadius.circular(99),
               onTap: onBag,
-              child: Ink(
-                width: 44,
-                height: 44,
-                decoration: const BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: Color(0xCC000000),
+              borderRadius: BorderRadius.circular(12),
+              child: Container(
+                constraints: const BoxConstraints(minHeight: 44),
+                padding: const EdgeInsets.symmetric(horizontal: 10),
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: .13),
+                  borderRadius: BorderRadius.circular(12),
                 ),
-                child: Center(
-                  child: Badge(
-                    isLabelVisible: bagCount > 0,
-                    label: Text('$bagCount'),
-                    backgroundColor: kLiveRed,
-                    child: const Icon(
-                      Icons.shopping_bag,
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(
+                      Icons.shopping_bag_outlined,
                       color: Colors.white,
-                      size: 24,
+                      size: 20,
                     ),
-                  ),
+                    const SizedBox(width: 5),
+                    Text(
+                      t('Shop'),
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    if (bagCount > 0)
+                      Padding(
+                        padding: const EdgeInsets.only(left: 4),
+                        child: Text(
+                          '$bagCount',
+                          style: const TextStyle(
+                            color: Colors.white60,
+                            fontSize: 11,
+                          ),
+                        ),
+                      ),
+                  ],
                 ),
               ),
             ),
@@ -6014,28 +6076,12 @@ class _DouyinBar extends StatelessWidget {
                     ),
             ),
           ),
-        if (showWallet && !composing && guest)
-          IconButton(
-            key: const ValueKey('live-wallet-login'),
-            tooltip: t('Novčanik'),
-            onPressed: onLogin,
-            icon: const Icon(
-              Icons.account_balance_wallet_rounded,
-              color: Colors.white,
-              size: 22,
-            ),
-          ),
-        if (showWallet && !composing && !guest)
-          const Padding(
-            padding: EdgeInsets.symmetric(horizontal: 2),
-            child: WalletChip(dark: true),
-          ),
         if (!composing)
           IconButton(
-            key: const ValueKey('live-share'),
-            tooltip: t('Podijeli'),
-            onPressed: onShare,
-            icon: const Icon(Icons.ios_share, color: Colors.white, size: 22),
+            key: const ValueKey('live-room-tools'),
+            tooltip: t('Više'),
+            onPressed: onMore,
+            icon: const Icon(Icons.more_horiz, color: Colors.white, size: 24),
           ),
       ],
     ),
@@ -6121,10 +6167,9 @@ class _LiveShopSheet extends ConsumerWidget {
     }) => Container(
       key: key,
       margin: const EdgeInsets.only(bottom: 10),
-      padding: const EdgeInsets.all(8),
-      decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.06),
-        borderRadius: BorderRadius.circular(16),
+      padding: const EdgeInsets.symmetric(vertical: 12),
+      decoration: const BoxDecoration(
+        border: Border(bottom: BorderSide(color: Colors.white12)),
       ),
       child: Row(
         children: [
@@ -6268,10 +6313,47 @@ class _LiveShopSheet extends ConsumerWidget {
       t('Još nema predmeta na aukciji.'),
       hint: true,
     );
+    final products = liveShopProducts(s, show.hostId);
+    final shopTab = ListView(
+      padding: const EdgeInsets.fromLTRB(16, 10, 16, 24),
+      children: [
+        if (products.isEmpty)
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 24),
+            child: Text(
+              t('Trgovina još nema oglasa.'),
+              style: const TextStyle(color: _muted),
+            ),
+          ),
+        for (final device in products)
+          row(
+            key: ValueKey('live-shop-product-${device.id}'),
+            image: thumb(device, products.indexOf(device) + 1),
+            title: device.name,
+            price: formatCredits(s.priceForMe(device)),
+            priceColor: _white,
+            action: TextButton(
+              key: ValueKey('live-shop-buy-${device.id}'),
+              style: TextButton.styleFrom(foregroundColor: Colors.white),
+              onPressed: () => isHost
+                  ? DeviceDetailScreen.open(context, device)
+                  : confirmAndBuy(context, ref, device),
+              child: Text(isHost ? t('Detalji') : t('Kupi')),
+            ),
+          ),
+        TextButton.icon(
+          key: const ValueKey('live-open-seller-shop'),
+          style: TextButton.styleFrom(foregroundColor: Colors.white70),
+          onPressed: () => PublicProfileScreen.open(context, show.hostId),
+          icon: const Icon(Icons.storefront_outlined, size: 18),
+          label: Text(t('Otvori shop')),
+        ),
+      ],
+    );
     return DefaultTabController(
-      length: 3,
+      length: 4,
       // Digitalni show: najprije Kupi odmah.
-      initialIndex: kBuyNowEnabled && !show.sells.hasPhysical ? 1 : 0,
+      initialIndex: isHost || st.current != null ? 1 : 0,
       child: SizedBox(
         height: h * 0.72,
         child: Column(
@@ -6316,8 +6398,7 @@ class _LiveShopSheet extends ConsumerWidget {
                 ],
               ),
             ),
-            // Live je samo za licitacije: Aukcija, Giveaway, Prodano
-            // (Kupi odmah proizvodi su samo u Kupi odmah).
+            // Shop and auction queue stay inside the broadcast.
             TabBar(
               isScrollable: true,
               tabAlignment: TabAlignment.start,
@@ -6330,6 +6411,10 @@ class _LiveShopSheet extends ConsumerWidget {
                 fontWeight: FontWeight.w900,
               ),
               tabs: [
+                Tab(
+                  key: const ValueKey('live-tab-shop'),
+                  text: t('Shop ({0})', ['${products.length}']),
+                ),
                 Tab(
                   key: const ValueKey('live-tab-auction'),
                   text: t('Aukcija ({0})', ['${auctionLots.length}']),
@@ -6347,6 +6432,7 @@ class _LiveShopSheet extends ConsumerWidget {
             Expanded(
               child: TabBarView(
                 children: [
+                  shopTab,
                   auctionTab,
                   lotTab(giveawayLots, t('Nema giveawaya u ovom showu.')),
                   lotTab(soldLots, t('Još ništa nije prodano.')),

@@ -2,6 +2,19 @@
 // Generirano iz popisa tekstova; nadopuni ručno kad dodaješ nove.
 
 const kEn = <String, String>{
+  "Uđi u live": "Join live",
+  "Trgovina koja živi.": "Shopping comes alive.",
+  "Upoznaj prodavatelja. Otkrij nešto svoje.":
+      "Meet the seller. Find something you love.",
+  "Shop zajednice": "Community shop",
+  "Shop": "Shop",
+  "O prodavatelju": "About the seller",
+  "Shop ({0})": "Shop ({0})",
+  "Moj shop": "My shop",
+  "Otvori shop": "Open shop",
+  "Tvoj shop je spreman za prvi predmet.":
+      "Your shop is ready for its first item.",
+  "Otvori moj shop": "Open my shop",
   "Adresa i isplate": "Address and payouts",
   "Dodatni podaci": "Additional details",
   "Dovrši povezivanje": "Finish connecting",

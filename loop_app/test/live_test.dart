@@ -957,14 +957,23 @@ void main() {
       for (final key in [
         'live-follow',
         'live-chat',
-        'live-wallet-login',
         'live-react-0',
-        'live-reaction-🔥',
-        'live-share',
         'live-queue',
       ]) {
         expect(find.byKey(ValueKey(key)), findsOneWidget, reason: key);
       }
+      expect(find.byKey(const ValueKey('live-reaction-🔥')), findsNothing);
+      await tester.tap(find.byKey(const ValueKey('live-room-tools')));
+      await tester.pumpAndSettle();
+      for (final key in [
+        'live-wallet-login',
+        'live-reaction-🔥',
+        'live-share',
+      ]) {
+        expect(find.byKey(ValueKey(key)), findsOneWidget);
+      }
+      await tester.binding.handlePopRoute();
+      await tester.pumpAndSettle();
       expect(
         tester
             .widget<TextField>(find.byKey(const ValueKey('live-chat')))
@@ -1032,7 +1041,12 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.byKey(const ValueKey('swipe-feed')), findsOneWidget);
       expect(find.byKey(const ValueKey('live-lot')), findsOneWidget);
+      expect(find.byKey(const ValueKey('wallet')), findsNothing);
+      await tester.tap(find.byKey(const ValueKey('live-room-tools')));
+      await tester.pumpAndSettle();
       expect(find.byKey(const ValueKey('wallet')), findsOneWidget);
+      await tester.binding.handlePopRoute();
+      await tester.pumpAndSettle();
       expect(find.byKey(const ValueKey('live-follow')), findsOneWidget);
       expect(
         find.descendant(
@@ -1090,6 +1104,8 @@ void main() {
         findsOneWidget,
       );
       // Brza reakcija: više emojija leti, a ostalima ide jedna poruka.
+      await tester.tap(find.byKey(const ValueKey('live-room-tools')));
+      await tester.pumpAndSettle();
       await tester.tap(find.byKey(const ValueKey('live-reaction-🔥')));
       await tester.pump(const Duration(milliseconds: 300));
       expect(find.text('🔥'), findsAtLeastNWidgets(3));
@@ -1100,7 +1116,9 @@ void main() {
             .where((e) => e.userId == host && e.text == '🔥'),
         hasLength(1),
       );
-      // Zvuk se utišava i to se pamti.
+      // Sound and reactions are available on demand.
+      await tester.tap(find.byKey(const ValueKey('live-room-tools')));
+      await tester.pumpAndSettle();
       await tester.tap(find.byKey(const ValueKey('live-sound')));
       await tester.pump();
       expect(storage.liveMuted, isTrue);
@@ -1108,6 +1126,8 @@ void main() {
       await tester.tap(find.byKey(const ValueKey('live-sound')));
       await tester.pump();
       expect(storage.liveMuted, isFalse);
+      await tester.binding.handlePopRoute();
+      await tester.pumpAndSettle();
       // Dodir bilo gdje po pozadini pušta srca.
       await tester.tap(find.byKey(const ValueKey('live-stage-tap')));
       await tester.pump(const Duration(milliseconds: 300));
@@ -1282,12 +1302,16 @@ void main() {
       await tester.tapAt(const Offset(10, 10));
       await tester.pumpAndSettle();
       // Filteri chata (samo voditelj).
+      await tester.tap(find.byKey(const ValueKey('live-room-tools')));
+      await tester.pumpAndSettle();
       expect(find.byKey(const ValueKey('chat-filter-all')), findsOneWidget);
       await tester.tap(find.byKey(const ValueKey('chat-filter-questions')));
       await tester.pumpAndSettle();
       await tester.tap(find.byKey(const ValueKey('chat-filter-all')));
       await tester.pumpAndSettle();
       // Novi predmet usred livea.
+      await tester.binding.handlePopRoute();
+      await tester.pumpAndSettle();
       await tester.tap(find.byKey(const ValueKey('live-host-menu')));
       await tester.pumpAndSettle();
       await tester.tap(find.byKey(const ValueKey('live-add-item')));
@@ -1452,7 +1476,7 @@ void main() {
     // pretraga preko objave tada nije prikazana).
     expect(find.byKey(const ValueKey('home-cat-for-you')), findsOneWidget);
     // "Za tebe" (mreža kao Whatnot): live uživo je prvi, u odjeljku Uživo sada.
-    expect(find.byKey(ValueKey('browse-live-$id')), findsOneWidget);
+    expect(find.byKey(ValueKey('home-featured-live-$id')), findsOneWidget);
     expect(find.byKey(const ValueKey('home-go-live')), findsNothing);
     await tester.tap(find.byKey(const ValueKey('home-cat-live')));
     await tester.pumpAndSettle();

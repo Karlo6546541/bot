@@ -510,7 +510,7 @@ void main() {
     await tester.tap(find.text('Log in').last);
     await tester.pumpAndSettle();
     // Početna na engleskom.
-    expect(find.text('For you'), findsWidgets);
+    expect(find.text('Live shop'), findsWidgets);
 
     // Swipe feed aukcija na engleskom.
     await openAuctionsPill(tester);
