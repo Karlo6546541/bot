@@ -370,11 +370,24 @@ class _SellerGoalsCardState extends ConsumerState<SellerGoalsCard> {
 
 /// Prodajni centar okuplja postojeće alate za liveove, aukcije i otpremu.
 class SellerHubScreen extends ConsumerWidget {
-  const SellerHubScreen({super.key});
+  const SellerHubScreen({super.key, this.embedded = false});
+  final bool embedded;
 
-  static Future<void> open(BuildContext context) => Navigator.of(
-    context,
-  ).push(MaterialPageRoute<void>(builder: (_) => const SellerHubScreen()));
+  static Future<void> open(BuildContext context) => showModalBottomSheet<void>(
+    context: context,
+    isScrollControlled: true,
+    backgroundColor: Colors.transparent,
+    showDragHandle: false,
+    constraints: const BoxConstraints(maxWidth: 480),
+    builder: (ctx) => SizedBox(
+      height: MediaQuery.sizeOf(ctx).height * .80,
+      child: const VisionGlass(
+        heavy: true,
+        radius: 32,
+        child: SellerHubScreen(embedded: true),
+      ),
+    ),
+  );
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -445,7 +458,9 @@ class SellerHubScreen extends ConsumerWidget {
     );
 
     return Scaffold(
+      backgroundColor: embedded ? Colors.transparent : null,
       appBar: AppBar(
+        backgroundColor: embedded ? Colors.transparent : null,
         title: Text(t('Prodavač')),
         actions: [
           PopupMenuButton<int>(

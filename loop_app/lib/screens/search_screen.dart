@@ -24,17 +24,26 @@ import 'swipe_feed_screen.dart';
 
 /// Pretraga objava (oglasi i aukcije) i korisničkih računa (trgovina).
 class SearchScreen extends ConsumerStatefulWidget {
-  const SearchScreen({super.key, this.accounts = false});
+  const SearchScreen({
+    super.key,
+    this.accounts = false,
+    this.initialQuery = '',
+  });
+  final String initialQuery;
 
   /// Otvori odmah karticu "Računi".
   final bool accounts;
 
-  static Future<void> open(BuildContext context, {bool accounts = false}) =>
-      Navigator.of(context).push(
-        MaterialPageRoute<void>(
-          builder: (_) => SearchScreen(accounts: accounts),
-        ),
-      );
+  static Future<void> open(
+    BuildContext context, {
+    bool accounts = false,
+    String initialQuery = '',
+  }) => Navigator.of(context).push(
+    MaterialPageRoute<void>(
+      builder: (_) =>
+          SearchScreen(accounts: accounts, initialQuery: initialQuery),
+    ),
+  );
 
   @override
   ConsumerState<SearchScreen> createState() => _SearchScreenState();
@@ -43,6 +52,12 @@ class SearchScreen extends ConsumerStatefulWidget {
 class _SearchScreenState extends ConsumerState<SearchScreen> {
   final _c = TextEditingController();
   String _q = '';
+  @override
+  void initState() {
+    super.initState();
+    _q = widget.initialQuery;
+    _c.text = _q;
+  }
 
   /// Čip vrste (Aukcije / Kupi odmah / Uživo); `null` = sve.
   SearchKind? _kind;
@@ -248,7 +263,9 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
       key: ValueKey(key),
       padding: const EdgeInsets.symmetric(horizontal: 16),
       sliver: SliverGrid(
-        gridDelegate: BrowseGridDelegate(textScale: MediaQuery.textScalerOf(context).scale(14) / 14),
+        gridDelegate: BrowseGridDelegate(
+          textScale: MediaQuery.textScalerOf(context).scale(14) / 14,
+        ),
         delegate: SliverChildBuilderDelegate(
           (ctx, i) => AuctionBrowseCard(
             item: list[i],

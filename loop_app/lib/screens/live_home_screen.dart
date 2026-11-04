@@ -1,3 +1,5 @@
+import 'activity_view.dart';
+import 'seller_hub.dart';
 import '../widgets/category_style.dart';
 import '../widgets/adaptive_shell.dart' show LoopLogo;
 import '../config/backend_config.dart';
@@ -133,6 +135,9 @@ class _LiveHomeScreenState extends ConsumerState<LiveHomeScreen> {
   }
 
   Timer? _timer;
+  bool _searchOpen = false;
+  String _query = '';
+  final _inlineSearch = TextEditingController();
   _Filter get _filter => _Filter.of(ref.read(homeFilterProvider));
 
   /// Swipe follows the visible Live, Shop and Following tabs.
@@ -184,6 +189,7 @@ class _LiveHomeScreenState extends ConsumerState<LiveHomeScreen> {
   @override
   void dispose() {
     _timer?.cancel();
+    _inlineSearch.dispose();
     super.dispose();
   }
 
@@ -194,7 +200,12 @@ class _LiveHomeScreenState extends ConsumerState<LiveHomeScreen> {
     final me = s.currentUserId ?? '';
     final all = [
       for (final i in browseItems(s))
-        if (_cat == null || i.categories.contains(_cat)) i,
+        if ((_cat == null || i.categories.contains(_cat)) &&
+            (_query.trim().isEmpty ||
+                '${i.show?.title ?? ''} ${i.show?.hostLabel ?? ''} ${i.device?.name ?? ''}'
+                    .toLowerCase()
+                    .contains(_query.trim().toLowerCase())))
+          i,
     ];
     final allLive = all.where((i) => i.live?.isLive ?? false).toList();
     final live = _promotedOnTop(
@@ -387,6 +398,7 @@ class _LiveHomeScreenState extends ConsumerState<LiveHomeScreen> {
             ),
           );
           if (liveNow.length > 1) {
+            slivers.add(section(heading(t('Sljedeće u prijenosu'))));
             slivers.add(
               section(
                 LayoutBuilder(
@@ -630,172 +642,270 @@ class _LiveHomeScreenState extends ConsumerState<LiveHomeScreen> {
         );
     }
 
-    // Bez TikTok prikaza na početnoj: uvijek tražilica i tabovi.
-    final foreground = LoopColors.textPrimary;
-    final wideHeader = MediaQuery.sizeOf(context).width >= 840;
-    final searchBar = Padding(
-      padding: const EdgeInsets.only(right: 4),
-      child: InkWell(
-        key: const ValueKey('home-search'),
-        borderRadius: BorderRadius.circular(99),
-        onTap: () => SearchScreen.open(context),
-        child: Container(
-          height: 46,
-          padding: const EdgeInsets.symmetric(horizontal: 14),
-          decoration: BoxDecoration(
-            color: LoopColors.glass,
-            border: Border.all(color: LoopColors.glassBorder),
-            borderRadius: BorderRadius.circular(99),
-          ),
-          child: Row(
-            children: [
-              Icon(Icons.search, size: 21, color: LoopColors.textSecondary),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Text(
-                  wideHeader ? t('Traži na Subhastu') : t('Pretraži'),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    color: LoopColors.textSecondary,
-                    fontSize: 15,
-                  ),
+    Future<void> filters() async {
+      final picked = await showModalBottomSheet<Object>(
+        context: context,
+        showDragHandle: true,
+        isScrollControlled: true,
+        constraints: BoxConstraints(
+          maxHeight: MediaQuery.sizeOf(context).height * 0.85,
+        ),
+        builder: (ctx) => SafeArea(
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                ListTile(
+                  key: const ValueKey('home-help'),
+                  leading: const Icon(Icons.help_outline),
+                  title: Text(t('Kako Subhasto radi')),
+                  onTap: () => Navigator.pop(ctx, 'help'),
                 ),
-              ),
-            ],
+                ListTile(
+                  key: const ValueKey('home-profile'),
+                  leading: const Icon(Icons.person_outline),
+                  title: Text(t('Profil')),
+                  onTap: () => Navigator.pop(ctx, 'profile'),
+                ),
+                ListTile(
+                  leading: const Icon(Icons.chat_bubble_outline),
+                  title: Text(t('Poruke')),
+                  onTap: () => Navigator.pop(ctx, 'messages'),
+                ),
+                ListTile(
+                  leading: const Icon(Icons.notifications_outlined),
+                  title: Text(t('Obavijesti')),
+                  onTap: () => Navigator.pop(ctx, 'notifications'),
+                ),
+                for (final (id, label, icon, value)
+                    in <(String, String, IconData, Object)>[
+                      (
+                        'live',
+                        t('Uživo po kategoriji'),
+                        Icons.videocam_outlined,
+                        const _LiveOnly(),
+                      ),
+                      (
+                        'categories',
+                        t('Kategorije'),
+                        Icons.grid_view,
+                        'categories',
+                      ),
+                      if (kBuyNowEnabled)
+                        (
+                          'digital',
+                          t('Digitalne kupnje'),
+                          Icons.download_outlined,
+                          const _Digital(),
+                        ),
+                      ('soon', t('Uskoro'), Icons.event, const _Soon()),
+                      ('timed', t('Aukcije'), Icons.gavel, const _Timed()),
+                      if (kBuyNowEnabled)
+                        (
+                          'buy',
+                          t('Kupi odmah'),
+                          Icons.shopping_bag_outlined,
+                          const _BuyNow(),
+                        ),
+                    ])
+                  ListTile(
+                    key: ValueKey('home-cat-$id'),
+                    leading: Icon(icon),
+                    title: Text(label),
+                    onTap: () => Navigator.pop(ctx, value),
+                  ),
+              ],
+            ),
           ),
+        ),
+      );
+      if (!mounted || !context.mounted) return;
+      if (picked == 'help') {
+        await showModalBottomSheet<void>(
+          context: context,
+          showDragHandle: true,
+          builder: (_) => _HowLoopWorks(
+            expanded: true,
+            onClose: () => Navigator.pop(context),
+          ),
+        );
+      } else if (picked == 'profile') {
+        ref.read(homeTabProvider.notifier).select(3);
+      } else if (picked == 'messages') {
+        await MessagesScreen.open(context);
+      } else if (picked == 'notifications') {
+        await NotificationsScreen.open(context);
+      } else if (picked == 'categories') {
+        await CategoriesScreen.open(context);
+      } else if (picked is _Filter) {
+        _select(picked);
+      }
+    }
+
+    final width = MediaQuery.sizeOf(context).width;
+    final small = width < 375;
+    Widget headerButton(String label, Key key, VoidCallback action) => Padding(
+      padding: const EdgeInsets.only(left: 6),
+      child: VisionGlass(
+        radius: 99,
+        child: TextButton(
+          key: key,
+          style: TextButton.styleFrom(
+            foregroundColor: LoopColors.textPrimary,
+            minimumSize: const Size(0, 34),
+            padding: EdgeInsets.symmetric(horizontal: small ? 9 : 12),
+            textStyle: TextStyle(
+              fontSize: small ? 11 : 12,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+          onPressed: action,
+          child: Text(label),
         ),
       ),
     );
-    final chips = ColoredBox(
-      color: LoopColors.background,
-      child: SafeArea(
-        bottom: false,
-        child: Padding(
-          key: const ValueKey('home-cats'),
-          padding: const EdgeInsets.fromLTRB(24, 16, 16, 16),
-          child: Column(
-            children: [
-              Row(
-                children: [
-                  if (wideHeader)
-                    Expanded(child: searchBar)
-                  else
-                    const Expanded(
+    final chips = SafeArea(
+      bottom: false,
+      child: Padding(
+        key: const ValueKey('home-cats'),
+        padding: EdgeInsets.fromLTRB(small ? 16 : 24, 20, small ? 16 : 24, 12),
+        child: Column(
+          children: [
+            LayoutBuilder(
+              builder: (context, box) {
+                final logo = LoopLogo(size: small ? 22 : 25);
+                final actions = <Widget>[
+                  headerButton(
+                    t('Prodavač'),
+                    ValueKey(
+                      _filter is _ForYou && width < 840
+                          ? 'nav-create'
+                          : 'home-seller',
+                    ),
+                    () {
+                      if (!blockGuest(context)) SellerHubScreen.open(context);
+                    },
+                  ),
+                  headerButton(
+                    t('Računi'),
+                    const ValueKey('home-accounts'),
+                    () => showModalBottomSheet<void>(
+                      context: context,
+                      isScrollControlled: true,
+                      backgroundColor: Colors.transparent,
+                      showDragHandle: false,
+                      constraints: const BoxConstraints(maxWidth: 480),
+                      builder: (ctx) => SizedBox(
+                        height: MediaQuery.sizeOf(ctx).height * .8,
+                        child: VisionGlass(
+                          heavy: true,
+                          radius: 32,
+                          child: Scaffold(
+                            backgroundColor: Colors.transparent,
+                            appBar: AppBar(
+                              backgroundColor: Colors.transparent,
+                              title: Text(t('Računi')),
+                            ),
+                            body: const ActivityView(),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                  headerButton(
+                    t('Pretraži'),
+                    const ValueKey('home-search'),
+                    () => setState(() => _searchOpen = !_searchOpen),
+                  ),
+                ];
+                if (MediaQuery.textScalerOf(context).scale(14) / 14 > 1.2) {
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      logo,
+                      const SizedBox(height: 10),
+                      Row(
+                        children: [
+                          for (final action in actions) Expanded(child: action),
+                        ],
+                      ),
+                    ],
+                  );
+                }
+                return Row(
+                  children: [
+                    SizedBox(
+                      width: box.maxWidth * .28,
                       child: Align(
                         alignment: Alignment.centerLeft,
-                        child: LoopLogo(size: 25),
+                        child: logo,
                       ),
                     ),
-                  if (!wideHeader)
-                    SizedBox(
-                      width: 44,
-                      child: IconButton(
-                        key: const ValueKey('home-search'),
-                        tooltip: t('Traži na Subhastu'),
-                        onPressed: () => SearchScreen.open(context),
-                        icon: const Icon(Icons.search, size: 21),
-                      ),
-                    ),
-                  const MessagesButton(),
-                  const NotificationBell(),
-                  IconButton(
-                    key: const ValueKey('home-filters'),
-                    tooltip: t('Filteri'),
-                    color: foreground,
-                    onPressed: () async {
-                      final picked = await showModalBottomSheet<Object>(
-                        context: context,
-                        showDragHandle: true,
-                        isScrollControlled: true,
-                        constraints: BoxConstraints(
-                          maxHeight: MediaQuery.sizeOf(context).height * 0.85,
+                    Expanded(
+                      child: FittedBox(
+                        fit: BoxFit.scaleDown,
+                        alignment: Alignment.centerRight,
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: actions,
                         ),
-                        builder: (ctx) => SafeArea(
-                          child: SingleChildScrollView(
-                            child: Column(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                ListTile(
-                                  key: const ValueKey('home-help'),
-                                  leading: const Icon(Icons.help_outline),
-                                  title: Text(t('Kako Subhasto radi')),
-                                  onTap: () => Navigator.pop(ctx, 'help'),
+                      ),
+                    ),
+                  ],
+                );
+              },
+            ),
+            AnimatedSize(
+              duration: const Duration(milliseconds: 250),
+              curve: Curves.easeOutCubic,
+              child: !_searchOpen
+                  ? const SizedBox.shrink()
+                  : Padding(
+                      padding: const EdgeInsets.only(top: 14),
+                      child: Column(
+                        children: [
+                          TextField(
+                            key: const ValueKey('home-inline-search'),
+                            controller: _inlineSearch,
+                            autofocus: true,
+                            onChanged: (value) =>
+                                setState(() => _query = value),
+                            textInputAction: TextInputAction.search,
+                            onSubmitted: (value) =>
+                                SearchScreen.open(context, initialQuery: value),
+                            decoration: InputDecoration(
+                              hintText: t(
+                                'Pronađi predmet u prijenosima uživo…',
+                              ),
+                              suffixIcon: IconButton(
+                                tooltip: t('Pretraži objave i račune'),
+                                icon: const Icon(Icons.arrow_forward),
+                                onPressed: () => SearchScreen.open(
+                                  context,
+                                  initialQuery: _query,
                                 ),
-                                for (final (id, label, icon, value)
-                                    in <(String, String, IconData, Object)>[
-                                      (
-                                        'live',
-                                        t('Uživo po kategoriji'),
-                                        Icons.videocam_outlined,
-                                        const _LiveOnly(),
-                                      ),
-                                      (
-                                        'categories',
-                                        t('Kategorije'),
-                                        Icons.grid_view,
-                                        'categories',
-                                      ),
-                                      if (kBuyNowEnabled)
-                                        (
-                                          'digital',
-                                          t('Digitalne kupnje'),
-                                          Icons.download_outlined,
-                                          const _Digital(),
-                                        ),
-                                      (
-                                        'soon',
-                                        t('Uskoro'),
-                                        Icons.event,
-                                        const _Soon(),
-                                      ),
-                                      (
-                                        'timed',
-                                        t('Aukcije'),
-                                        Icons.gavel,
-                                        const _Timed(),
-                                      ),
-                                      if (kBuyNowEnabled)
-                                        (
-                                          'buy',
-                                          t('Kupi odmah'),
-                                          Icons.shopping_bag_outlined,
-                                          const _BuyNow(),
-                                        ),
-                                    ])
-                                  ListTile(
-                                    key: ValueKey('home-cat-$id'),
-                                    leading: Icon(icon),
-                                    title: Text(label),
-                                    onTap: () => Navigator.pop(ctx, value),
-                                  ),
-                              ],
+                              ),
                             ),
                           ),
-                        ),
-                      );
-                      if (!mounted || !context.mounted) return;
-                      if (picked == 'help') {
-                        await showModalBottomSheet<void>(
-                          context: context,
-                          showDragHandle: true,
-                          builder: (_) => _HowLoopWorks(
-                            expanded: true,
-                            onClose: () => Navigator.pop(context),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.end,
+                            children: [
+                              const MessagesButton(),
+                              const NotificationBell(),
+                              IconButton(
+                                tooltip: t('Profil'),
+                                icon: const Icon(Icons.person_outline),
+                                onPressed: () => ref
+                                    .read(homeTabProvider.notifier)
+                                    .select(3),
+                              ),
+                            ],
                           ),
-                        );
-                      } else if (picked == 'categories') {
-                        await CategoriesScreen.open(context);
-                      } else if (picked is _Filter) {
-                        _select(picked);
-                      }
-                    },
-                    icon: const Icon(Icons.tune),
-                  ),
-                ],
-              ),
-            ],
-          ),
+                        ],
+                      ),
+                    ),
+            ),
+          ],
         ),
       ),
     );
@@ -853,11 +963,29 @@ class _LiveHomeScreenState extends ConsumerState<LiveHomeScreen> {
 
     return Center(
       child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 1200),
+        constraints: BoxConstraints(maxWidth: _filter is _ForYou ? 480 : 1200),
         child: Column(
           children: [
             chips,
-            _TileRow(selected: _filter.id, onSelect: (f) => _select(f)),
+            Row(
+              children: [
+                Expanded(
+                  child: _TileRow(
+                    selected: _filter.id,
+                    category: _cat,
+                    onCategory: (category) => setState(() => _cat = category),
+                    onSelect: (f) => _select(f),
+                  ),
+                ),
+                IconButton(
+                  key: const ValueKey('home-filters'),
+                  tooltip: t('Filteri'),
+                  onPressed: filters,
+                  icon: const Icon(Icons.tune, size: 20),
+                ),
+                const SizedBox(width: 8),
+              ],
+            ),
             // Dolje kategorije: odabrana ostaje označena i filtrira prikaz.
             if (onLive)
               AnimatedSize(
@@ -1271,7 +1399,14 @@ class _FollowingRow extends StatelessWidget {
 /// Vodoravni tekstualni tabovi vrste prikaza: aktivni je podebljan i
 /// podcrtan, ostali sivi.
 class _TileRow extends StatelessWidget {
-  const _TileRow({required this.selected, required this.onSelect});
+  const _TileRow({
+    required this.selected,
+    required this.onSelect,
+    this.category,
+    this.onCategory,
+  });
+  final DeviceCategory? category;
+  final ValueChanged<DeviceCategory?>? onCategory;
 
   final String selected;
   final void Function(_Filter) onSelect;
@@ -1286,7 +1421,9 @@ class _TileRow extends StatelessWidget {
       required VoidCallback onTap,
       Key? key,
     }) {
-      final on = selected == id;
+      final on =
+          selected == id && (id != 'for-you' || category == null) ||
+          id == 'cat-${category?.name}';
       return Padding(
         padding: const EdgeInsets.only(right: 10, top: 4, bottom: 4),
         child: InkWell(
@@ -1327,9 +1464,26 @@ class _TileRow extends StatelessWidget {
           tab(
             id: 'for-you',
             key: const ValueKey('home-cat-for-you'),
-            label: t('Uživo'),
-            onTap: () => onSelect(const _ForYou()),
+            label: selected == 'for-you' ? t('Sve uživo') : t('Uživo'),
+            onTap: () {
+              onCategory?.call(null);
+              onSelect(const _ForYou());
+            },
           ),
+          if (selected == 'for-you')
+            for (final (categoryValue, label) in <(DeviceCategory, String)>[
+              (DeviceCategory.watches, t('Satovi')),
+              (DeviceCategory.sneakers, t('Tenisice')),
+              (DeviceCategory.vintage, t('Vintage')),
+              (DeviceCategory.cards, t('Kolekcionarstvo')),
+            ])
+              tab(
+                id: 'cat-${categoryValue.name}',
+                label: label,
+                onTap: () => onCategory?.call(
+                  category == categoryValue ? null : categoryValue,
+                ),
+              ),
           if (selected == 'live')
             tab(
               id: 'live',

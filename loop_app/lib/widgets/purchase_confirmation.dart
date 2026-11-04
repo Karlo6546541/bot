@@ -1,3 +1,4 @@
+import 'vision_glass.dart';
 import 'package:flutter/material.dart';
 import '../services/stripe_backend.dart';
 import '../services/delivery_locations.dart';
@@ -11,11 +12,32 @@ Future<bool> showPurchaseConfirmation(
     await showModalBottomSheet<bool>(
       context: context,
       isScrollControlled: true,
-      showDragHandle: true,
+      showDragHandle: false,
       enableDrag: false,
       constraints: const BoxConstraints(maxWidth: 520),
-      backgroundColor: LoopColors.surface.withValues(alpha: .97),
-      builder: (_) => appThemed(sheet),
+      backgroundColor: Colors.transparent,
+      builder: (_) => VisionGlass(
+        heavy: true,
+        opacity: .85,
+        radius: 32,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: Container(
+                width: 42,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: LoopColors.textSecondary,
+                  borderRadius: BorderRadius.circular(99),
+                ),
+              ),
+            ),
+            Flexible(child: appThemed(sheet)),
+          ],
+        ),
+      ),
     ) ??
     false;
 

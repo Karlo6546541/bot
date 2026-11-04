@@ -1,3 +1,4 @@
+import 'helpers/vision_navigation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -961,18 +962,14 @@ void main() {
         ),
       );
       await tester.pumpAndSettle();
-      for (final key in [
-        'live-follow',
-        'live-chat',
-        'live-react-0',
-        'live-queue',
-      ]) {
+      for (final key in ['live-follow', 'live-chat', 'live-queue']) {
         expect(find.byKey(ValueKey(key)), findsOneWidget, reason: key);
       }
       expect(find.byKey(const ValueKey('live-reaction-🔥')), findsNothing);
       await tester.tap(find.byKey(const ValueKey('live-room-tools')));
       await tester.pumpAndSettle();
       for (final key in [
+        'live-react-0',
         'live-wallet-login',
         'live-reaction-🔥',
         'live-share',
@@ -988,6 +985,8 @@ void main() {
         isTrue,
       );
       final before = storage.liveEventsOf(showId).length;
+      await tester.tap(find.byKey(const ValueKey('live-room-tools')));
+      await tester.pumpAndSettle();
       await tester.tap(find.byKey(const ValueKey('live-react-0')));
       await tester.pumpAndSettle();
       expect(storage.liveEventsOf(showId).length, before);
@@ -1057,7 +1056,7 @@ void main() {
       expect(
         find.descendant(
           of: find.byKey(const ValueKey('live-compact-header')),
-          matching: find.textContaining('Vinili i gramofoni'),
+          matching: find.byTooltip('Vinili i gramofoni'),
         ),
         findsOneWidget,
       );
@@ -1067,7 +1066,7 @@ void main() {
       expect(find.text('Spajam video…'), findsOneWidget);
 
       // Licitiraj 1 € → vodiš.
-      await tester.tap(find.byKey(const ValueKey('live-bid')));
+      await slideBid(tester);
       await tester.pumpAndSettle();
       expect(find.byKey(const ValueKey('live-leading')), findsOneWidget);
       expect(find.textContaining('Ti vodiš'), findsOneWidget);
@@ -1157,7 +1156,7 @@ void main() {
       // Red predmeta.
       await tester.tap(find.byKey(const ValueKey('live-queue')));
       await tester.pumpAndSettle();
-      expect(find.text('Predmeti u liveu'), findsOneWidget);
+      expect(find.byKey(const ValueKey('live-tab-shop')), findsOneWidget);
       await tester.tapAt(const Offset(10, 10));
       await tester.pumpAndSettle();
 
@@ -1614,7 +1613,7 @@ void main() {
       await tester.pumpAndSettle();
 
       // Prva ponuda (jedan veliki gumb) → prvo način plaćanja.
-      await tester.tap(find.byKey(const ValueKey('live-bid')));
+      await slideBid(tester);
       await tester.pumpAndSettle();
       // Live traži samo način plaćanja (bez adrese) — odmah se otvara
       // novčanik. Testna kartica: odbijena pa uspješna.

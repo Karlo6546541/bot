@@ -1,3 +1,4 @@
+import '../widgets/vision_live_controls.dart';
 import 'device_detail_screen.dart';
 import '../widgets/live_shop_widgets.dart' show liveShopProducts;
 import '../widgets/vision_glass.dart';
@@ -17,7 +18,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../l10n/tr.dart';
 import '../widgets/trust_widgets.dart';
 import '../models/app_user.dart';
-import '../models/country.dart';
 import '../models/device.dart';
 import '../models/live_show.dart';
 import '../providers/app_providers.dart';
@@ -821,39 +821,6 @@ class ViewersPanel extends StatelessWidget {
   @override
   Widget build(BuildContext context) =>
       _ViewersSheet(showId: showId, embedded: true);
-}
-
-class _ViewersChip extends StatelessWidget {
-  const _ViewersChip(this.count);
-  final int count;
-
-  @override
-  Widget build(BuildContext context) => Tooltip(
-    message: '$count',
-    child: Container(
-      key: const ValueKey('live-viewers'),
-      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 5),
-      decoration: BoxDecoration(
-        color: kLiveRed,
-        borderRadius: BorderRadius.circular(99),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          const Icon(Icons.bar_chart, size: 14, color: Colors.white),
-          const SizedBox(width: 4),
-          Text(
-            count >= 1000 ? '${(count / 1000).toStringAsFixed(1)}k' : '$count',
-            style: const TextStyle(
-              color: Colors.white,
-              fontWeight: FontWeight.w600,
-              fontSize: 11,
-            ),
-          ),
-        ],
-      ),
-    ),
-  );
 }
 
 // ---------------------------------------------------------- pokretanje livea
@@ -2232,6 +2199,7 @@ class _LiveRoomViewState extends ConsumerState<_LiveRoomBody> {
   DateTime _watchAt = DateTime.now();
   DateTime _joinedAt = DateTime.now();
   DateTime _beatAt = DateTime.now();
+  final _shopDrawer = GlobalKey<VisionLiveShopOverlayState>();
   final _chat = TextEditingController();
   late final _chatFocus = FocusNode()..addListener(_chatFocusChanged);
   void _chatFocusChanged() {
@@ -3094,41 +3062,35 @@ class _LiveRoomViewState extends ConsumerState<_LiveRoomBody> {
 
   /// Trgovina livea (kao Douyin): predmeti na aukciji (predlicitacija) i
   /// prodavačevi predmeti za Kupi odmah, u dvije kartice.
-  void _showQueue(LiveState st, bool isHost) => showModalBottomSheet<void>(
-    context: context,
-    showDragHandle: true,
-    isScrollControlled: true,
-    backgroundColor: Colors.transparent,
-    constraints: const BoxConstraints(maxWidth: 520),
-    builder: (ctx) => VisionGlass(
-      dark: true,
-      radius: 32,
-      child: _LiveShopSheet(
-        showId: st.show.id,
-        isHost: isHost,
-        onStart: (i) {
-          Navigator.pop(ctx);
-          _startLot(i);
-        },
-        onPreBid: (l) async {
-          final mine = l.leader?.userId == ref.read(appProvider).currentUserId;
-          final min = mine
-              ? (l.maxOf(l.leader!.userId) ?? l.price) +
-                    LiveLot.increment(l.price)
-              : l.minNext;
-          final amount = await showMaxBidDialog(
-            ctx,
-            min: min,
-            preBid: true,
-            raise: mine,
-          );
-          if (amount == null || !ctx.mounted) return;
-          Navigator.pop(ctx);
-          await _bid(amount, lot: l.index);
-        },
-      ),
-    ),
-  );
+  void _showQueue(LiveState st, bool isHost) =>
+      _shopDrawer.currentState?.open();
+
+  Widget _shopContent(LiveState st, bool isHost, VoidCallback onClose) {
+    return _LiveShopSheet(
+      showId: st.show.id,
+      isHost: isHost,
+      onStart: (i) {
+        onClose();
+        _startLot(i);
+      },
+      onPreBid: (l) async {
+        final mine = l.leader?.userId == ref.read(appProvider).currentUserId;
+        final min = mine
+            ? (l.maxOf(l.leader!.userId) ?? l.price) +
+                  LiveLot.increment(l.price)
+            : l.minNext;
+        final amount = await showMaxBidDialog(
+          context,
+          min: min,
+          preBid: true,
+          raise: mine,
+        );
+        if (amount == null || !mounted) return;
+        onClose();
+        await _bid(amount, lot: l.index);
+      },
+    );
+  }
 
   void _showRoomTools(LiveShow show, LiveState st, bool canAct) {
     _chatFocus.unfocus();
@@ -3155,6 +3117,51 @@ class _LiveRoomViewState extends ConsumerState<_LiveRoomBody> {
                     ),
                   ),
                   const SizedBox(height: 16),
+                  if (st.current != null && st.current!.mode == LotMode.auction)
+                    ListTile(
+                      key: const ValueKey('live-bid-custom'),
+                      leading: const Icon(Icons.tune, color: Colors.white),
+                      title: Text(
+                        t('Tvoja ponuda'),
+                        style: const TextStyle(color: Colors.white),
+                      ),
+                      onTap: () {
+                        Navigator.pop(ctx);
+                        _customBid(st.current!);
+                      },
+                    ),
+                  if (ref.read(appProvider).currentUserId != show.hostId)
+                    ListTile(
+                      key: const ValueKey('live-shop-boost'),
+                      leading: const Icon(
+                        Icons.rocket_launch_outlined,
+                        color: Colors.white,
+                      ),
+                      title: Text(
+                        t('Boostaj show'),
+                        style: const TextStyle(color: Colors.white),
+                      ),
+                      onTap: () {
+                        Navigator.pop(ctx);
+                        showPromoteSheet(context, ref, show);
+                      },
+                    ),
+                  if (ref.read(appProvider).currentUserId != show.hostId)
+                    ListTile(
+                      key: const ValueKey('live-react-0'),
+                      leading: Icon(
+                        _liked ? Icons.favorite : Icons.favorite_border,
+                        color: Colors.white,
+                      ),
+                      title: Text(
+                        t('Srce'),
+                        style: const TextStyle(color: Colors.white),
+                      ),
+                      onTap: () {
+                        Navigator.pop(ctx);
+                        _toggleLike();
+                      },
+                    ),
                   _QuickReactions(
                     emojis: _quick,
                     onReact: (emoji) {
@@ -3508,366 +3515,385 @@ class _LiveRoomViewState extends ConsumerState<_LiveRoomBody> {
       center = const SizedBox.shrink();
     }
 
-    return ColoredBox(
-      color: Colors.black,
-      child: Stack(
-        fit: StackFit.expand,
-        children: [
-          LiveVideoStage(
-            broadcaster: _broadcaster,
-            watcher: _watcher,
-            fallback: switch ((cur, show.coverPath)) {
-              // Dok se ništa ne licitira: naslovna slika livea.
-              (null, final cover?) => LocalPhoto(
-                key: const ValueKey('live-cover-stage'),
-                path: cover,
-                fallback: StoryBackdrop(
-                  gradient: _stageGradient(stageDevice),
-                  device: stageDevice,
-                ),
-              ),
-              _ when stageDevice != null && stageDevice.imagePaths.isNotEmpty =>
-                LocalPhoto(
-                  path: stageDevice.imagePaths.first,
+    return VisionLiveShopOverlay(
+      key: _shopDrawer,
+      drawerBuilder: (_, close) => _shopContent(st, isHost, close),
+      child: ColoredBox(
+        color: Colors.black,
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            LiveVideoStage(
+              broadcaster: _broadcaster,
+              watcher: _watcher,
+              fallback: switch ((cur, show.coverPath)) {
+                // Dok se ništa ne licitira: naslovna slika livea.
+                (null, final cover?) => LocalPhoto(
+                  key: const ValueKey('live-cover-stage'),
+                  path: cover,
                   fallback: StoryBackdrop(
                     gradient: _stageGradient(stageDevice),
                     device: stageDevice,
                   ),
                 ),
-              _ => StoryBackdrop(
-                gradient: _stageGradient(stageDevice),
-                device: stageDevice,
-              ),
-            },
-          ),
-          const DecoratedBox(
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-                colors: [
-                  Colors.black54,
-                  Colors.transparent,
-                  Colors.transparent,
-                  Colors.black87,
-                ],
-                stops: [0, 0.22, 0.45, 1],
+                _
+                    when stageDevice != null &&
+                        stageDevice.imagePaths.isNotEmpty =>
+                  LocalPhoto(
+                    path: stageDevice.imagePaths.first,
+                    fallback: StoryBackdrop(
+                      gradient: _stageGradient(stageDevice),
+                      device: stageDevice,
+                    ),
+                  ),
+                _ => StoryBackdrop(
+                  gradient: _stageGradient(stageDevice),
+                  device: stageDevice,
+                ),
+              },
+            ),
+            const DecoratedBox(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [
+                    Colors.black54,
+                    Colors.transparent,
+                    Colors.transparent,
+                    Colors.black87,
+                  ],
+                  stops: [0, 0.22, 0.45, 1],
+                ),
               ),
             ),
-          ),
-          SafeArea(
-            child: Center(
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 520),
-                child: Column(
-                  children: [
-                    _TopBar(
-                      show: show,
-                      state: st,
-                      host: host,
-                      hostName: host?.handle ?? show.hostLabel,
-                    ),
+            SafeArea(
+              child: Center(
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 520),
+                  child: Column(
+                    children: [
+                      _TopBar(
+                        show: show,
+                        state: st,
+                        host: host,
+                        hostName: host?.handle ?? show.hostLabel,
+                      ),
 
-                    Expanded(
-                      child: Stack(
-                        children: [
-                          // Dodir bilo gdje po pozadini: srca; dvostruki = lajk.
-                          Positioned.fill(
-                            child: GestureDetector(
-                              key: const ValueKey('live-stage-tap'),
-                              behavior: HitTestBehavior.opaque,
-                              onTapUp: st.isOver ? null : _tapStage,
-                            ),
-                          ),
-                          Center(
-                            child: Padding(
-                              // Završen live: sažetak točno u sredini.
-                              padding: EdgeInsets.fromLTRB(
-                                16,
-                                16,
-                                st.isOver ? 16 : 72,
-                                16,
-                              ),
-                              child: composing
-                                  ? const SizedBox.shrink()
-                                  : center,
-                            ),
-                          ),
-                          if (showSweep) ...[
+                      Expanded(
+                        child: Stack(
+                          children: [
+                            // Dodir bilo gdje po pozadini: srca; dvostruki = lajk.
                             Positioned.fill(
-                              child: IgnorePointer(
-                                child: ConfettiBurst(
-                                  key: ValueKey('live-confetti-${sweep.index}'),
+                              child: GestureDetector(
+                                key: const ValueKey('live-stage-tap'),
+                                behavior: HitTestBehavior.opaque,
+                                onTapUp: st.isOver ? null : _tapStage,
+                              ),
+                            ),
+                            Center(
+                              child: Padding(
+                                // Završen live: sažetak točno u sredini.
+                                padding: EdgeInsets.fromLTRB(
+                                  16,
+                                  16,
+                                  st.isOver ? 16 : 72,
+                                  16,
                                 ),
+                                child: composing
+                                    ? const SizedBox.shrink()
+                                    : center,
                               ),
                             ),
-                            Positioned(
-                              left: 0,
-                              right: 0,
-                              top: 48,
-                              child: IgnorePointer(
-                                child: _SoldSweep(
-                                  key: ValueKey('live-sold-${sweep.index}'),
-                                  text: t('Prodano {0} za {1}', [
-                                    s.userById(sweep.leader!.userId)?.handle ??
-                                        '?',
-                                    formatCredits(sweep.price),
-                                  ]),
-                                ),
-                              ),
-                            ),
-                          ],
-                          if (showSpin)
-                            Positioned.fill(
-                              child: IgnorePointer(
-                                child: _GiveawaySpin(
-                                  key: ValueKey('live-spin-${spin.$1.index}'),
-                                  names: spin.$2,
-                                  winner: spin.$3,
-                                ),
-                              ),
-                            ),
-                          if (flash)
-                            Positioned.fill(
-                              child: IgnorePointer(
-                                child: _OutbidFlash(
-                                  key: ValueKey('live-outbid-$_outbids'),
-                                ),
-                              ),
-                            ),
-                          if (_cameraError != null &&
-                              isHost &&
-                              _broadcaster == null)
-                            Positioned(
-                              left: 12,
-                              right: 12,
-                              top: 4,
-                              child: _CameraRetry(
-                                message: _cameraError!,
-                                onRetry: _startVideo,
-                              ),
-                            )
-                          else
-                            Positioned(
-                              left: 12,
-                              top: 4,
-                              child: _VideoStatus(
-                                show: show,
-                                broadcaster: _broadcaster,
-                                watcher: _watcher,
-                                online:
-                                    ref.watch(liveSignalingProvider) != null,
-                              ),
-                            ),
-                          if (_broadcaster case final b?)
-                            Positioned(
-                              right: 8,
-                              top: 4,
-                              child: _HostControls(
-                                broadcaster: b,
-                                onMore: () => _showHostOptions(show),
-                              ),
-                            ),
-                          Positioned(
-                            right: 0,
-                            bottom: 0,
-                            width: 130,
-                            height: 380,
-                            child: IgnorePointer(
-                              child: _FloatingReactions(
-                                // Svoja srca crtam odmah (lokalno).
-                                events: [
-                                  for (final e in st.feed)
-                                    if (isReaction(e) && e.userId != me?.id) e,
-                                ],
-                                local: [
-                                  for (final b in _bursts)
-                                    if (b.at == null) b,
-                                ],
-                                onLocalDone: (b) =>
-                                    setState(() => _bursts.remove(b)),
-                              ),
-                            ),
-                          ),
-                          Positioned.fill(
-                            child: IgnorePointer(
-                              child: Stack(
-                                clipBehavior: Clip.none,
-                                children: [
-                                  for (final b in _bursts)
-                                    if (b.at != null)
-                                      _FloatUp(
-                                        key: ValueKey('burst-${b.id}'),
-                                        emoji: b.emoji,
-                                        seed: b.id * 7919,
-                                        origin: b.at,
-                                        onDone: () {
-                                          if (mounted) {
-                                            setState(() => _bursts.remove(b));
-                                          }
-                                        },
-                                      ),
-                                ],
-                              ),
-                            ),
-                          ),
-                          // Chat zauzima najviše pola slobodnog prostora;
-                          // kad je live gotov, ostaje samo sažetak.
-                          if (!st.isOver)
-                            Positioned(
-                              left: 12,
-                              right: 12,
-                              top: 0,
-                              bottom: 4,
-                              child: LayoutBuilder(
-                                builder: (_, c) => Align(
-                                  alignment: Alignment.bottomLeft,
-                                  child: ConstrainedBox(
-                                    // Voditelj čita chat dok vodi live: veći
-                                    // i širi prozor, veći tekst.
-                                    constraints: BoxConstraints(
-                                      maxWidth: isHost ? 300 : 220,
-                                    ),
-                                    child: Column(
-                                      mainAxisSize: MainAxisSize.min,
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      children: [
-                                        _ChatFeed(
-                                          show: show,
-                                          muted: st.muted,
-                                          banned: st.banned,
-                                          moderator: show.canModerate(me?.id),
-                                          feed: st.feed,
-                                          me: me?.id,
-                                          hostId: show.hostId,
-                                          filter: _chatFilter,
-                                          large: isHost,
-                                          maxHeight: math.min(
-                                            isHost ? 280 : 150,
-                                            c.maxHeight * (isHost ? 0.7 : 0.55),
-                                          ),
-                                        ),
-                                      ],
+                            if (showSweep) ...[
+                              Positioned.fill(
+                                child: IgnorePointer(
+                                  child: ConfettiBurst(
+                                    key: ValueKey(
+                                      'live-confetti-${sweep.index}',
                                     ),
                                   ),
                                 ),
                               ),
-                            ),
-                        ],
-                      ),
-                    ),
-                    // Osvojeno u ovom liveu, a dostava još nije odabrana.
-                    if (s.myDeliveries
-                            .where(
-                              (d) =>
-                                  d.awaitingChoice &&
-                                  d.id.startsWith('live-${show.id}-'),
-                            )
-                            .toList()
-                        case final pending when pending.isNotEmpty)
-                      Padding(
-                        padding: const EdgeInsets.fromLTRB(12, 0, 12, 6),
-                        child: FilledButton.icon(
-                          key: const ValueKey('live-choose-delivery'),
-                          style: FilledButton.styleFrom(
-                            backgroundColor: const Color(0xFF1E7E34),
-                            foregroundColor: Colors.white,
-                            minimumSize: const Size.fromHeight(42),
-                          ),
-                          onPressed: () => DeliveriesScreen.open(context),
-                          icon: const Icon(Icons.local_shipping_outlined),
-                          label: Text(
-                            t('Osvojio si {0} · prodavač šalje paket', [
-                              '${pending.length}',
-                            ]),
-                          ),
-                        ),
-                      ),
-                    if (!composing && !st.isOver)
-                      _FlashBar(hostId: show.hostId, now: now),
-                    if (!composing)
-                      Padding(
-                        padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
-                        child: VisionGlass(
-                          dark: true,
-                          radius: 28,
-                          padding: const EdgeInsets.fromLTRB(4, 4, 4, 14),
-                          child: Column(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              if (cur != null)
-                                _LotCard(
-                                  lot: cur,
-                                  device: s.deviceById(cur.lot.deviceId),
-                                  total: show.lots.length,
-                                  lotSeconds:
-                                      cur.lot.seconds ?? show.lotSeconds,
-                                  now: now,
-                                  me: me?.id,
-                                  leaderUser: s.userById(cur.leader?.userId),
-                                  isHost: isHost,
-                                )
-                              else if (done != null && !st.isOver)
-                                _LotCard(
-                                  lot: done,
-                                  device: s.deviceById(done.lot.deviceId),
-                                  total: show.lots.length,
-                                  lotSeconds:
-                                      done.lot.seconds ?? show.lotSeconds,
-                                  now: now,
-                                  me: me?.id,
-                                  leaderUser: s.userById(done.leader?.userId),
-                                  result: true,
-                                ),
-                              Padding(
-                                padding: const EdgeInsets.fromLTRB(
-                                  12,
-                                  10,
-                                  12,
-                                  0,
-                                ),
-                                child: _actions(
-                                  show,
-                                  st,
-                                  cur,
-                                  isHost,
-                                  canAct,
-                                  me?.id,
+                              Positioned(
+                                left: 0,
+                                right: 0,
+                                top: 48,
+                                child: IgnorePointer(
+                                  child: _SoldSweep(
+                                    key: ValueKey('live-sold-${sweep.index}'),
+                                    text: t('Prodano {0} za {1}', [
+                                      s
+                                              .userById(sweep.leader!.userId)
+                                              ?.handle ??
+                                          '?',
+                                      formatCredits(sweep.price),
+                                    ]),
+                                  ),
                                 ),
                               ),
                             ],
-                          ),
+                            if (showSpin)
+                              Positioned.fill(
+                                child: IgnorePointer(
+                                  child: _GiveawaySpin(
+                                    key: ValueKey('live-spin-${spin.$1.index}'),
+                                    names: spin.$2,
+                                    winner: spin.$3,
+                                  ),
+                                ),
+                              ),
+                            if (flash)
+                              Positioned.fill(
+                                child: IgnorePointer(
+                                  child: _OutbidFlash(
+                                    key: ValueKey('live-outbid-$_outbids'),
+                                  ),
+                                ),
+                              ),
+                            if (_cameraError != null &&
+                                isHost &&
+                                _broadcaster == null)
+                              Positioned(
+                                left: 12,
+                                right: 12,
+                                top: 4,
+                                child: _CameraRetry(
+                                  message: _cameraError!,
+                                  onRetry: _startVideo,
+                                ),
+                              )
+                            else
+                              Positioned(
+                                left: 12,
+                                top: 4,
+                                child: _VideoStatus(
+                                  show: show,
+                                  broadcaster: _broadcaster,
+                                  watcher: _watcher,
+                                  online:
+                                      ref.watch(liveSignalingProvider) != null,
+                                ),
+                              ),
+                            if (_broadcaster case final b?)
+                              Positioned(
+                                right: 8,
+                                top: 4,
+                                child: _HostControls(
+                                  broadcaster: b,
+                                  onMore: () => _showHostOptions(show),
+                                ),
+                              ),
+                            Positioned(
+                              right: 0,
+                              bottom: 0,
+                              width: 130,
+                              height: 380,
+                              child: IgnorePointer(
+                                child: _FloatingReactions(
+                                  // Svoja srca crtam odmah (lokalno).
+                                  events: [
+                                    for (final e in st.feed)
+                                      if (isReaction(e) && e.userId != me?.id)
+                                        e,
+                                  ],
+                                  local: [
+                                    for (final b in _bursts)
+                                      if (b.at == null) b,
+                                  ],
+                                  onLocalDone: (b) =>
+                                      setState(() => _bursts.remove(b)),
+                                ),
+                              ),
+                            ),
+                            Positioned.fill(
+                              child: IgnorePointer(
+                                child: Stack(
+                                  clipBehavior: Clip.none,
+                                  children: [
+                                    for (final b in _bursts)
+                                      if (b.at != null)
+                                        _FloatUp(
+                                          key: ValueKey('burst-${b.id}'),
+                                          emoji: b.emoji,
+                                          seed: b.id * 7919,
+                                          origin: b.at,
+                                          onDone: () {
+                                            if (mounted) {
+                                              setState(() => _bursts.remove(b));
+                                            }
+                                          },
+                                        ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                            // Chat zauzima najviše pola slobodnog prostora;
+                            // kad je live gotov, ostaje samo sažetak.
+                            if (!st.isOver)
+                              Positioned(
+                                left: 12,
+                                right: 12,
+                                top: 0,
+                                bottom: 4,
+                                child: LayoutBuilder(
+                                  builder: (_, c) => Align(
+                                    alignment: Alignment.bottomLeft,
+                                    child: ConstrainedBox(
+                                      // Voditelj čita chat dok vodi live: veći
+                                      // i širi prozor, veći tekst.
+                                      constraints: BoxConstraints(
+                                        maxWidth: isHost ? 300 : 220,
+                                      ),
+                                      child: Column(
+                                        mainAxisSize: MainAxisSize.min,
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          _ChatFeed(
+                                            show: show,
+                                            muted: st.muted,
+                                            banned: st.banned,
+                                            moderator: show.canModerate(me?.id),
+                                            feed: st.feed,
+                                            me: me?.id,
+                                            hostId: show.hostId,
+                                            filter: _chatFilter,
+                                            large: isHost,
+                                            maxHeight: math.min(
+                                              isHost ? 280 : 150,
+                                              c.maxHeight *
+                                                  (isHost ? 0.7 : 0.55),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                          ],
                         ),
                       ),
-                    _DouyinBar(
-                      controller: _chat,
-                      focusNode: _chatFocus,
-                      onSend: _send,
-                      showChat: !st.isOver,
-                      guest: !canAct,
-                      onLogin: () => blockGuest(context),
-                      bagCount:
-                          st.lots
+                      // Osvojeno u ovom liveu, a dostava još nije odabrana.
+                      if (s.myDeliveries
                               .where(
-                                (lot) =>
-                                    lot.status == LotStatus.upcoming ||
-                                    lot.status == LotStatus.running,
+                                (d) =>
+                                    d.awaitingChoice &&
+                                    d.id.startsWith('live-${show.id}-'),
                               )
-                              .length +
-                          liveShopProducts(s, show.hostId).length,
-                      onBag: () => _showQueue(st, isHost),
-                      liked: _liked,
-                      onHeart: st.isOver || isHost ? null : _toggleLike,
-                      onMore: () => _showRoomTools(show, st, canAct),
-                    ),
-                    const SizedBox(height: 8),
-                  ],
+                              .toList()
+                          case final pending when pending.isNotEmpty)
+                        Padding(
+                          padding: const EdgeInsets.fromLTRB(12, 0, 12, 6),
+                          child: FilledButton.icon(
+                            key: const ValueKey('live-choose-delivery'),
+                            style: FilledButton.styleFrom(
+                              backgroundColor: const Color(0xFF1E7E34),
+                              foregroundColor: Colors.white,
+                              minimumSize: const Size.fromHeight(42),
+                            ),
+                            onPressed: () => DeliveriesScreen.open(context),
+                            icon: const Icon(Icons.local_shipping_outlined),
+                            label: Text(
+                              t('Osvojio si {0} · prodavač šalje paket', [
+                                '${pending.length}',
+                              ]),
+                            ),
+                          ),
+                        ),
+                      if (!composing && !st.isOver)
+                        _FlashBar(hostId: show.hostId, now: now),
+                      _DouyinBar(
+                        controller: _chat,
+                        focusNode: _chatFocus,
+                        onSend: _send,
+                        showChat: !st.isOver,
+                        guest: !canAct,
+                        onLogin: () => blockGuest(context),
+                        bagCount:
+                            st.lots
+                                .where(
+                                  (lot) =>
+                                      lot.status == LotStatus.upcoming ||
+                                      lot.status == LotStatus.running,
+                                )
+                                .length +
+                            liveShopProducts(s, show.hostId).length,
+                        onBag: () => _showQueue(st, isHost),
+                        liked: _liked,
+                        onHeart: st.isOver || isHost ? null : _toggleLike,
+                        onMore: () => _showRoomTools(show, st, canAct),
+                      ),
+                      if (!composing)
+                        Padding(
+                          padding: const EdgeInsets.fromLTRB(20, 0, 20, 0),
+                          child: VisionGlass(
+                            dark: true,
+                            radius: 28,
+                            padding: const EdgeInsets.fromLTRB(0, 0, 0, 18),
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                if (cur != null)
+                                  _LotCard(
+                                    lot: cur,
+                                    device: s.deviceById(cur.lot.deviceId),
+                                    total: show.lots.length,
+                                    lotSeconds:
+                                        cur.lot.seconds ?? show.lotSeconds,
+                                    now: now,
+                                    me: me?.id,
+                                    leaderUser: s.userById(cur.leader?.userId),
+                                    isHost: isHost,
+                                  )
+                                else if (done != null && !st.isOver)
+                                  _LotCard(
+                                    lot: done,
+                                    device: s.deviceById(done.lot.deviceId),
+                                    total: show.lots.length,
+                                    lotSeconds:
+                                        done.lot.seconds ?? show.lotSeconds,
+                                    now: now,
+                                    me: me?.id,
+                                    leaderUser: s.userById(done.leader?.userId),
+                                    result: true,
+                                  ),
+                                Padding(
+                                  padding: const EdgeInsets.fromLTRB(
+                                    12,
+                                    10,
+                                    12,
+                                    0,
+                                  ),
+                                  child: _actions(
+                                    show,
+                                    st,
+                                    cur,
+                                    isHost,
+                                    canAct,
+                                    me?.id,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      VisionShopHandle(
+                        key: const ValueKey('live-queue'),
+                        label: t('Povuci gore za shop · {0} predmeta', [
+                          '${st.queue.length + liveShopProducts(s, show.hostId).length}',
+                        ]),
+                        onOpen: () => _showQueue(st, isHost),
+                      ),
+                      const SizedBox(height: 8),
+                    ],
+                  ),
                 ),
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -4099,55 +4125,13 @@ class _LiveRoomViewState extends ConsumerState<_LiveRoomBody> {
     ),
   );
 
-  Widget _bidRow(LotState cur) {
-    // Kao Whatnot: lijevo bijela obrubljena pilula "Iznos" (vlastita
-    // ponuda), desno široka pilula "Licitiraj: X »".
-    return Row(
-      children: [
-        SizedBox(
-          height: 52,
-          child: OutlinedButton(
-            key: const ValueKey('live-bid-custom'),
-            style: OutlinedButton.styleFrom(
-              foregroundColor: Colors.white,
-              backgroundColor: Colors.transparent,
-              side: const BorderSide(color: Colors.white70, width: 1.5),
-              shape: const StadiumBorder(),
-              padding: const EdgeInsets.symmetric(horizontal: 22),
-              textStyle: const TextStyle(
-                fontFamily: kFontFamily,
-                fontWeight: FontWeight.w800,
-                fontSize: 16,
-              ),
-            ),
-            onPressed: _busy ? null : () => _customBid(cur),
-            child: Text(t('Iznos')),
-          ),
-        ),
-        const SizedBox(width: 10),
-        Expanded(
-          child: FilledButton(
-            key: const ValueKey('live-bid'),
-            style: FilledButton.styleFrom(
-              backgroundColor: Colors.white,
-              foregroundColor: Colors.black,
-              minimumSize: const Size.fromHeight(52),
-              shape: const StadiumBorder(),
-              textStyle: const TextStyle(
-                fontFamily: kFontFamily,
-                fontWeight: FontWeight.w900,
-                fontSize: 17,
-              ),
-            ),
-            onPressed: _busy ? null : () => _bid(cur.minNext),
-            child: Text(
-              '${t('Licitiraj {0}', [formatCredits(cur.minNext)])}  »',
-            ),
-          ),
-        ),
-      ],
-    );
-  }
+  Widget _bidRow(LotState cur) => VisionBidSlider(
+    key: const ValueKey('live-bid'),
+    confirmationKey: (cur.index, cur.minNext),
+    label: t('Povuci za ponudu ({0})', [formatCredits(cur.minNext)]),
+    semanticLabel: t('Licitiraj {0}', [formatCredits(cur.minNext)]),
+    onConfirm: _busy ? null : () => _bid(cur.minNext),
+  );
 
   /// Vlastiti iznos ponude: cijena na ekranu odmah skoči na taj iznos.
   Future<void> _customBid(LotState cur) async {
@@ -4438,133 +4422,111 @@ class _TopBar extends ConsumerWidget {
   final AppUser? host;
   final String hostName;
 
-  static const _shadow = [Shadow(blurRadius: 6, color: Colors.black54)];
-
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final s = ref.watch(appProvider);
     final me = s.currentUserId;
     final following = s.isFollowing(show.hostId);
-    final rating = s.ratingOf(show.hostId);
-    final meta = rating.count > 0
-        ? '★ ${rating.average.toStringAsFixed(1)}'
-        : t('★ Novo');
     return Padding(
       key: const ValueKey('live-compact-header'),
-      padding: const EdgeInsets.fromLTRB(10, 2, 2, 2),
+      padding: const EdgeInsets.fromLTRB(20, 20, 20, 8),
       child: Row(
         children: [
-          GestureDetector(
-            onTap: () => PublicProfileScreen.open(context, show.hostId),
-            child: UserAvatar(user: host, size: 30),
-          ),
-          const SizedBox(width: 7),
           Expanded(
-            child: GestureDetector(
-              onTap: () => PublicProfileScreen.open(context, show.hostId),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
+            child: VisionGlass(
+              dark: true,
+              radius: 99,
+              padding: const EdgeInsets.only(left: 14, right: 4),
+              child: Row(
                 children: [
-                  Text(
-                    // Zastavica države domaćina.
-                    host == null
-                        ? hostName
-                        : '${countryOf(host!.country).flag} $hostName',
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.w700,
-                      fontSize: 13,
-                      shadows: _shadow,
+                  Expanded(
+                    child: InkWell(
+                      onTap: () =>
+                          PublicProfileScreen.open(context, show.hostId),
+                      child: Tooltip(
+                        message: show.title,
+                        child: Text(
+                          hostName,
+                          key: const ValueKey('live-host-meta'),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 13,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ),
                     ),
                   ),
-                  Text(
-                    show.verifiedOnly
-                        ? '$meta · ${t('Provjereni kupci')} · ${show.title}'
-                        : '$meta · ${show.title}',
-                    key: const ValueKey('live-host-meta'),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      color: Colors.white70,
-                      fontSize: 10,
-                      shadows: _shadow,
-                    ),
-                  ),
+                  if (me != show.hostId)
+                    TextButton(
+                      key: const ValueKey('live-follow'),
+                      style: TextButton.styleFrom(
+                        foregroundColor: Colors.white,
+                        minimumSize: const Size(44, 36),
+                        padding: const EdgeInsets.symmetric(horizontal: 8),
+                        textStyle: const TextStyle(fontSize: 12),
+                      ),
+                      onPressed: following
+                          ? null
+                          : () async {
+                              if (blockGuest(context)) return;
+                              await ref
+                                  .read(appProvider.notifier)
+                                  .toggleFollow(show.hostId);
+                              await ref
+                                  .read(appProvider.notifier)
+                                  .liveFollowedFromShow(show.id);
+                            },
+                      child: Text(t(following ? 'Pratim' : 'Prati')),
+                    )
+                  else
+                    const SizedBox(height: 36),
                 ],
               ),
             ),
           ),
-          if (me != show.hostId) ...[
-            const SizedBox(width: 6),
-            FilledButton(
-              key: const ValueKey('live-follow'),
-              // Kao Whatnot: "Prati" je pilula u boji akcenta.
-              style: FilledButton.styleFrom(
-                backgroundColor: Colors.white.withValues(alpha: .16),
-                foregroundColor: Colors.white,
-                disabledBackgroundColor: Colors.white.withValues(alpha: 0.10),
-                disabledForegroundColor: Colors.white,
-                minimumSize: const Size(56, 30),
-                visualDensity: VisualDensity.compact,
-                padding: const EdgeInsets.symmetric(horizontal: 12),
-                textStyle: const TextStyle(
-                  fontFamily: kFontFamily,
-                  fontSize: 12,
-                  fontWeight: FontWeight.w800,
-                ),
-                shape: const StadiumBorder(),
-              ),
-              onPressed: following
-                  ? null
-                  : () async {
-                      if (blockGuest(context)) return;
-                      await ref
-                          .read(appProvider.notifier)
-                          .toggleFollow(show.hostId);
-                      await ref
-                          .read(appProvider.notifier)
-                          .liveFollowedFromShow(show.id);
-                      showLoopSnackBar(t('Pratiš {0}', [hostName]));
-                    },
-              child: Text(t(following ? 'Pratim' : 'Prati')),
-            ),
-          ],
-          const SizedBox(width: 6),
+          const SizedBox(width: 10),
           if (state.isLive)
             InkWell(
               key: const ValueKey('live-viewers-open'),
-              borderRadius: BorderRadius.circular(8),
               onTap: () => showModalBottomSheet<void>(
                 context: context,
                 showDragHandle: true,
-                isScrollControlled: true,
                 backgroundColor: kLiveSheet,
-                constraints: const BoxConstraints(maxWidth: 520),
                 builder: (_) => _ViewersSheet(showId: show.id),
               ),
-              child: _ViewersChip(state.viewers),
-            )
-          else
-            Text(
-              state.isScheduled ? t('ZAKAZANO') : t('ZAVRŠENO'),
-              style: const TextStyle(
-                color: Colors.white70,
-                fontSize: 10,
-                fontWeight: FontWeight.w600,
+              child: Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 7,
+                ),
+                decoration: BoxDecoration(
+                  color: kLiveRed,
+                  borderRadius: BorderRadius.circular(99),
+                ),
+                child: Text(
+                  '● ${state.viewers}',
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
               ),
             ),
-          IconButton(
-            key: const ValueKey('live-close'),
-            tooltip: t('Zatvori'),
-            visualDensity: VisualDensity.compact,
-            onPressed: () => Navigator.maybePop(context),
-            icon: const Icon(
-              Icons.keyboard_arrow_down,
-              color: Colors.white,
-              size: 24,
+          const SizedBox(width: 10),
+          VisionGlass(
+            dark: true,
+            radius: 99,
+            child: IconButton(
+              key: const ValueKey('live-close'),
+              tooltip: t('Zatvori'),
+              constraints: const BoxConstraints.tightFor(width: 38, height: 38),
+              padding: EdgeInsets.zero,
+              onPressed: () => Navigator.maybePop(context),
+              icon: const Icon(Icons.close, color: Colors.white, size: 20),
             ),
           ),
         ],
@@ -5146,9 +5108,6 @@ class _LotCard extends StatelessWidget {
   /// Predmet je završen: prikazuje se dobitnik i "Prodano".
   final bool result;
 
-  static const _shadow = [Shadow(blurRadius: 6, color: Colors.black87)];
-  static const _yellow = Color(0xFFFFD166);
-
   @override
   Widget build(BuildContext context) {
     final left = lot.left(now);
@@ -5208,75 +5167,23 @@ class _LotCard extends StatelessWidget {
       };
     }
 
-    Widget chip(String text, {Color color = Colors.white24}) => Container(
-      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
-      decoration: BoxDecoration(
-        color: color,
-        borderRadius: BorderRadius.circular(6),
-      ),
-      child: Text(
-        text,
-        style: const TextStyle(
-          color: Colors.white,
-          fontSize: 11.5,
-          fontWeight: FontWeight.w800,
-        ),
-      ),
-    );
-
-    // Velika kartica trenutnog predmeta na dnu (tamni poluprozirni panel).
-    return Container(
+    return Column(
       key: ValueKey(result ? 'live-result' : 'live-lot'),
-      padding: const EdgeInsets.fromLTRB(12, 10, 12, 8),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              if (leader != null) ...[
-                UserAvatar(user: leaderUser, size: 18),
-                const SizedBox(width: 6),
-              ],
-              Flexible(
-                child: Text.rich(
-                  TextSpan(
-                    children: [
-                      TextSpan(text: status),
-                      if (highlight.isNotEmpty)
-                        TextSpan(
-                          text: highlight,
-                          style: const TextStyle(color: _yellow),
-                        ),
-                    ],
-                  ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.w600,
-                    fontSize: 13,
-                    shadows: _shadow,
-                  ),
-                ),
-              ),
-            ],
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        if (!result && lot.mode == LotMode.auction)
+          _TimeBar(
+            left: left,
+            total: Duration(seconds: lotSeconds),
+            end: lot.end,
+            hot: hot,
           ),
-          const SizedBox(height: 8),
-          Row(
+        Padding(
+          padding: const EdgeInsets.fromLTRB(18, 16, 18, 0),
+          child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              ClipRRect(
-                borderRadius: BorderRadius.circular(10),
-                child: d != null
-                    ? ItemThumb(device: d, size: 44)
-                    : Container(
-                        width: 44,
-                        height: 44,
-                        color: Colors.white12,
-                        child: const Icon(Icons.inventory_2_outlined),
-                      ),
-              ),
-              const SizedBox(width: 12),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -5288,101 +5195,84 @@ class _LotCard extends StatelessWidget {
                       style: const TextStyle(
                         color: Colors.white,
                         fontWeight: FontWeight.w600,
-                        fontSize: 14,
+                        fontSize: 17,
                         height: 1.2,
-                        shadows: _shadow,
                       ),
                     ),
-                    // Digitalni proizvod u liveu: odmah nakon pobjede/plaćanja.
-                    if (d != null && d.isDigital)
+                    const SizedBox(height: 4),
+                    Text(
+                      '$status$highlight',
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        color: Color(0xFFAEAEB6),
+                        fontSize: 12,
+                      ),
+                    ),
+                    if (d?.isDigital ?? false)
                       Padding(
                         key: const ValueKey('lot-digital-badge'),
-                        padding: const EdgeInsets.only(top: 2),
+                        padding: const EdgeInsets.only(top: 4),
                         child: Text(
                           t('⬇️ Digitalno · preuzimanje odmah, bez dostave'),
                           style: const TextStyle(
-                            color: Color(0xFF6CB4FF),
-                            fontWeight: FontWeight.w800,
+                            color: Color(0xFF64B0FF),
                             fontSize: 11,
                           ),
                         ),
                       ),
-                    if (d != null)
-                      Row(
-                        children: [
-                          Flexible(
-                            child: Text(
-                              '${d.condition.label} · ${d.category.singular}',
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(
-                                color: Colors.white70,
-                                fontSize: 11,
-                                shadows: _shadow,
-                              ),
-                            ),
-                          ),
-                          if (!result && !isHost) ...[
-                            const SizedBox(width: 6),
-                            // Zaštita kupca: mali štit, dodir objašnjava.
-                            InkWell(
-                              key: const ValueKey('buyer-protection'),
-                              onTap: () =>
-                                  BuyerProtectionBadge.explain(context),
-                              child: const Icon(
-                                Icons.verified_user,
-                                size: 16,
-                                color: Color(0xFF4ADE80),
-                              ),
-                            ),
-                          ],
-                        ],
-                      ),
-                    const SizedBox(height: 4),
-                    // Samo kad je predmet posebne vrste (pada cijena, igra).
-                    if (lot.mode != LotMode.auction)
-                      chip('${lot.mode.emoji} ${lot.mode.label}'),
                   ],
                 ),
               ),
-              const SizedBox(width: 8),
+              const SizedBox(width: 10),
               SizedBox(
                 width: 84,
                 child: Column(
                   key: const ValueKey('live-value'),
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
-                    ConstrainedBox(
-                      constraints: const BoxConstraints(maxWidth: 120),
-                      child: FittedBox(
-                        fit: BoxFit.scaleDown,
-                        child: Text(
-                          lot.mode == LotMode.giveaway
-                              ? t('Besplatno')
-                              : formatCredits(price),
-                          key: const ValueKey('live-price'),
-                          style: const TextStyle(
-                            color: Color(0xFFFFD60A),
-                            fontWeight: FontWeight.w700,
-                            fontSize: 25,
-                            height: 1.05,
-                            shadows: _shadow,
-                          ),
+                    Text(
+                      t('Trenutno').toUpperCase(),
+                      style: const TextStyle(
+                        color: Color(0xFF98989F),
+                        fontSize: 9,
+                        letterSpacing: .5,
+                      ),
+                    ),
+                    FittedBox(
+                      fit: BoxFit.scaleDown,
+                      child: Text(
+                        lot.mode == LotMode.giveaway
+                            ? t('Besplatno')
+                            : formatCredits(price),
+                        key: const ValueKey('live-price'),
+                        style: const TextStyle(
+                          color: Color(0xFFFFD60A),
+                          fontWeight: FontWeight.w700,
+                          fontSize: 24,
                         ),
                       ),
                     ),
-                    if (result)
+                    if (!result && lot.mode == LotMode.auction)
                       Text(
-                        leader == null
-                            ? t('Nije prodano')
-                            : leader.userId == me
-                            ? t('Osvojeno')
-                            : t('Prodano'),
+                        '${(left.inMilliseconds / 1000).ceil()} s',
+                        key: const ValueKey('live-secs'),
                         style: TextStyle(
-                          color: leader == null ? Colors.white70 : kLiveRed,
-                          fontWeight: FontWeight.w600,
+                          color: hot ? kLiveRed : Colors.white70,
                           fontSize: 11,
-                          shadows: _shadow,
+                        ),
+                      ),
+                    if (!result && !isHost)
+                      InkWell(
+                        key: const ValueKey('buyer-protection'),
+                        onTap: () => BuyerProtectionBadge.explain(context),
+                        child: const Padding(
+                          padding: EdgeInsets.only(top: 4),
+                          child: Icon(
+                            Icons.verified_user_outlined,
+                            color: Color(0xFF30D158),
+                            size: 14,
+                          ),
                         ),
                       ),
                   ],
@@ -5390,20 +5280,8 @@ class _LotCard extends StatelessWidget {
               ),
             ],
           ),
-          // Traka vremena: smanjuje se, u zadnjim sekundama crveno treperi,
-          // a svaka ponuda iskoči kao "+2 s".
-          if (!result && lot.mode == LotMode.auction)
-            Padding(
-              padding: const EdgeInsets.only(top: 8),
-              child: _TimeBar(
-                left: left,
-                total: Duration(seconds: lotSeconds),
-                end: lot.end,
-                hot: hot,
-              ),
-            ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 }
@@ -5964,58 +5842,9 @@ class _DouyinBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Padding(
-    padding: EdgeInsets.fromLTRB(10, 4, composing ? 10 : 6, 6),
+    padding: const EdgeInsets.fromLTRB(20, 0, 20, 14),
     child: Row(
       children: [
-        if (!composing) ...[
-          Semantics(
-            button: true,
-            child: InkWell(
-              key: const ValueKey('live-queue'),
-              onTap: onBag,
-              borderRadius: BorderRadius.circular(99),
-              child: Container(
-                constraints: const BoxConstraints(minHeight: 44),
-                padding: const EdgeInsets.symmetric(horizontal: 10),
-                decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: .13),
-                  borderRadius: BorderRadius.circular(99),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const Icon(
-                      Icons.shopping_bag_outlined,
-                      color: Colors.white,
-                      size: 20,
-                    ),
-                    const SizedBox(width: 5),
-                    Text(
-                      t('Shop'),
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 13,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                    if (bagCount > 0)
-                      Padding(
-                        padding: const EdgeInsets.only(left: 4),
-                        child: Text(
-                          '$bagCount',
-                          style: const TextStyle(
-                            color: Colors.white60,
-                            fontSize: 11,
-                          ),
-                        ),
-                      ),
-                  ],
-                ),
-              ),
-            ),
-          ),
-          const SizedBox(width: 8),
-        ],
         Expanded(
           child: showChat
               ? TextField(
@@ -6033,7 +5862,7 @@ class _DouyinBar extends StatelessWidget {
                   decoration: InputDecoration(
                     isDense: true,
                     counterText: '',
-                    hintText: t('Reci nešto…'),
+                    hintText: t('Pitaj prodavača uživo…'),
                     hintStyle: const TextStyle(color: Colors.white70),
                     filled: true,
                     fillColor: const Color(0x9928282D),
@@ -6074,12 +5903,16 @@ class _DouyinBar extends StatelessWidget {
                       borderSide: const BorderSide(color: Colors.white38),
                     ),
                     suffixIcon: IconButton(
-                      key: const ValueKey('live-send'),
-                      tooltip: t('Pošalji'),
-                      onPressed: () => onSend(controller.text),
-                      icon: const Icon(
-                        Icons.send,
-                        color: Colors.white,
+                      key: ValueKey(
+                        composing ? 'live-send' : 'live-room-tools',
+                      ),
+                      tooltip: composing ? t('Pošalji') : t('Više'),
+                      onPressed: composing
+                          ? () => onSend(controller.text)
+                          : onMore,
+                      icon: Icon(
+                        composing ? Icons.send : Icons.more_horiz,
+                        color: Colors.white70,
                         size: 20,
                       ),
                     ),
@@ -6087,42 +5920,6 @@ class _DouyinBar extends StatelessWidget {
                 )
               : const SizedBox.shrink(),
         ),
-        if (onHeart != null && !composing)
-          IconButton(
-            key: const ValueKey('live-react-0'),
-            tooltip: t('Srce'),
-            onPressed: onHeart,
-            icon: AnimatedSwitcher(
-              duration: const Duration(milliseconds: 250),
-              transitionBuilder: (c, a) => ScaleTransition(
-                scale: Tween(
-                  begin: 0.4,
-                  end: 1.0,
-                ).animate(CurvedAnimation(parent: a, curve: Curves.elasticOut)),
-                child: c,
-              ),
-              child: liked
-                  ? const Icon(
-                      Icons.favorite,
-                      key: ValueKey('liked'),
-                      color: Color(0xFFFF4D6D),
-                      size: 24,
-                    )
-                  : const Icon(
-                      Icons.favorite_border,
-                      key: ValueKey('not-liked'),
-                      color: Colors.white,
-                      size: 24,
-                    ),
-            ),
-          ),
-        if (!composing)
-          IconButton(
-            key: const ValueKey('live-room-tools'),
-            tooltip: t('Više'),
-            onPressed: onMore,
-            icon: const Icon(Icons.more_horiz, color: Colors.white, size: 24),
-          ),
       ],
     ),
   );
@@ -6154,19 +5951,17 @@ class _LiveShopSheet extends ConsumerWidget {
     if (show == null) return const SizedBox.shrink();
     final st = s.liveStateOf(show, DateTime.now());
     final me = s.currentUserId;
-    final host = s.userById(show.hostId);
-    final h = MediaQuery.sizeOf(context).height;
 
     Widget thumb(Device? d, int n, {bool running = false}) => SizedBox(
-      width: 72,
-      height: 72,
+      width: 56,
+      height: 56,
       child: Stack(
         children: [
           Positioned.fill(
             child: ClipRRect(
               borderRadius: BorderRadius.circular(12),
               child: d != null
-                  ? ItemThumb(device: d, size: 72)
+                  ? ItemThumb(device: d, size: 56)
                   : const ColoredBox(color: Colors.white12),
             ),
           ),
@@ -6373,14 +6168,23 @@ class _LiveShopSheet extends ConsumerWidget {
             image: thumb(device, products.indexOf(device) + 1),
             title: device.name,
             price: formatCredits(s.priceForMe(device)),
-            priceColor: _white,
-            action: TextButton(
+            priceColor: const Color(0xFFFFD60A),
+            action: FilledButton(
               key: ValueKey('live-shop-buy-${device.id}'),
-              style: TextButton.styleFrom(foregroundColor: Colors.white),
+              style: FilledButton.styleFrom(
+                backgroundColor: const Color(0xFF0A84FF),
+                foregroundColor: Colors.white,
+                minimumSize: const Size(70, 40),
+                textStyle: const TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                ),
+                shape: const StadiumBorder(),
+              ),
               onPressed: () => isHost
                   ? DeviceDetailScreen.open(context, device)
                   : confirmAndBuy(context, ref, device),
-              child: Text(isHost ? t('Detalji') : t('Kupi')),
+              child: Text(isHost ? t('Detalji') : t('Kupi odmah')),
             ),
           ),
         TextButton.icon(
@@ -6393,91 +6197,76 @@ class _LiveShopSheet extends ConsumerWidget {
       ],
     );
     return DefaultTabController(
-      length: 4,
+      length:
+          2 + (giveawayLots.isNotEmpty ? 1 : 0) + (soldLots.isNotEmpty ? 1 : 0),
       // Digitalni show: najprije Kupi odmah.
-      initialIndex: isHost || st.current != null ? 1 : 0,
+      initialIndex: isHost ? 1 : 0,
       child: SizedBox(
-        height: h * 0.72,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 0, 16, 4),
-              child: Row(
-                children: [
-                  UserAvatar(user: host, size: 34),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          t('Predmeti u liveu'),
-                          style: const TextStyle(
-                            color: _white,
-                            fontSize: 18,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                        Text(
-                          host?.handle ?? show.hostLabel,
-                          style: const TextStyle(color: _muted, fontSize: 12),
-                        ),
-                      ],
-                    ),
+            // Shop and auction queue stay inside the broadcast.
+            Container(
+              margin: const EdgeInsets.fromLTRB(20, 0, 20, 16),
+              padding: const EdgeInsets.all(4),
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: .10),
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(color: Colors.white.withValues(alpha: .10)),
+              ),
+              child: TabBar(
+                isScrollable: giveawayLots.isNotEmpty || soldLots.isNotEmpty,
+                tabAlignment: giveawayLots.isNotEmpty || soldLots.isNotEmpty
+                    ? TabAlignment.start
+                    : TabAlignment.fill,
+                labelColor: _white,
+                unselectedLabelColor: _muted,
+                indicatorColor: kBidOrange,
+                indicator: BoxDecoration(
+                  color: Colors.white.withValues(alpha: .16),
+                  borderRadius: BorderRadius.circular(11),
+                ),
+                indicatorSize: TabBarIndicatorSize.tab,
+                dividerColor: Colors.transparent,
+                labelStyle: const TextStyle(
+                  fontFamily: kFontFamily,
+                  fontWeight: FontWeight.w600,
+                ),
+                tabs: [
+                  Tab(
+                    height: 36,
+                    key: const ValueKey('live-tab-shop'),
+                    text: t('Kupi odmah ({0})', ['${products.length}']),
                   ),
-                  if (!isHost && !st.isOver && me != null)
-                    IconButton(
-                      key: const ValueKey('live-shop-boost'),
-                      tooltip: t('Boostaj show'),
-                      onPressed: () => showPromoteSheet(context, ref, show),
-                      icon: const Icon(
-                        Icons.rocket_launch_outlined,
-                        color: Color(0xFFFFA24C),
-                      ),
+                  Tab(
+                    height: 36,
+                    key: const ValueKey('live-tab-auction'),
+                    text: t('Aukcija ({0})', ['${auctionLots.length}']),
+                  ),
+                  if (giveawayLots.isNotEmpty)
+                    Tab(
+                      height: 36,
+                      key: const ValueKey('live-tab-giveaway'),
+                      text: t('Giveaway ({0})', ['${giveawayLots.length}']),
                     ),
-                  if (!isHost) const WalletChip(dark: true),
+                  if (soldLots.isNotEmpty)
+                    Tab(
+                      height: 36,
+                      key: const ValueKey('live-tab-sold'),
+                      text: t('Prodano ({0})', ['${soldLots.length}']),
+                    ),
                 ],
               ),
-            ),
-            // Shop and auction queue stay inside the broadcast.
-            TabBar(
-              isScrollable: true,
-              tabAlignment: TabAlignment.start,
-              labelColor: _white,
-              unselectedLabelColor: _muted,
-              indicatorColor: kBidOrange,
-              dividerColor: Colors.white12,
-              labelStyle: const TextStyle(
-                fontFamily: kFontFamily,
-                fontWeight: FontWeight.w600,
-              ),
-              tabs: [
-                Tab(
-                  key: const ValueKey('live-tab-shop'),
-                  text: t('Shop ({0})', ['${products.length}']),
-                ),
-                Tab(
-                  key: const ValueKey('live-tab-auction'),
-                  text: t('Aukcija ({0})', ['${auctionLots.length}']),
-                ),
-                Tab(
-                  key: const ValueKey('live-tab-giveaway'),
-                  text: t('Giveaway ({0})', ['${giveawayLots.length}']),
-                ),
-                Tab(
-                  key: const ValueKey('live-tab-sold'),
-                  text: t('Prodano ({0})', ['${soldLots.length}']),
-                ),
-              ],
             ),
             Expanded(
               child: TabBarView(
                 children: [
                   shopTab,
                   auctionTab,
-                  lotTab(giveawayLots, t('Nema giveawaya u ovom showu.')),
-                  lotTab(soldLots, t('Još ništa nije prodano.')),
+                  if (giveawayLots.isNotEmpty)
+                    lotTab(giveawayLots, t('Nema giveawaya u ovom showu.')),
+                  if (soldLots.isNotEmpty)
+                    lotTab(soldLots, t('Još ništa nije prodano.')),
                 ],
               ),
             ),
@@ -6707,7 +6496,6 @@ class _TimeBarState extends State<_TimeBar> with TickerProviderStateMixin {
 
   @override
   Widget build(BuildContext context) {
-    final secs = (widget.left.inMilliseconds / 1000).ceil();
     final f = widget.total.inMilliseconds == 0
         ? 0.0
         : (widget.left.inMilliseconds / widget.total.inMilliseconds).clamp(
@@ -6716,127 +6504,41 @@ class _TimeBarState extends State<_TimeBar> with TickerProviderStateMixin {
           );
     return AnimatedBuilder(
       animation: Listenable.merge([_blink, _bonus]),
-      builder: (context, _) {
-        final color = widget.hot
-            ? Color.lerp(kLiveRed, const Color(0xFFFFB3C1), _blink.value)!
-            : kBidOrange;
-        final b = _bonus.value;
-        return SizedBox(
-          height: 22,
-          child: Stack(
-            clipBehavior: Clip.none,
-            alignment: Alignment.centerLeft,
-            children: [
-              Positioned.fill(
-                child: Container(
-                  decoration: BoxDecoration(
-                    color: Colors.white12,
-                    borderRadius: BorderRadius.circular(99),
-                  ),
+      builder: (context, _) => Stack(
+        clipBehavior: Clip.none,
+        children: [
+          Container(height: 3, color: Colors.white12),
+          FractionallySizedBox(
+            widthFactor: f,
+            child: Container(
+              height: 3,
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: widget.hot
+                      ? [kLiveRed, const Color(0xFFFFD60A)]
+                      : [const Color(0xFF0A84FF), const Color(0xFFFFD60A)],
                 ),
               ),
-              // Glatko smanjivanje između otkucaja.
-              TweenAnimationBuilder<double>(
-                tween: Tween(end: f),
-                duration: const Duration(milliseconds: 400),
-                builder: (context, v, _) => FractionallySizedBox(
-                  widthFactor: v,
-                  child: Container(
-                    height: 22,
-                    decoration: BoxDecoration(
-                      color: color,
-                      borderRadius: BorderRadius.circular(99),
-                      boxShadow: widget.hot
-                          ? [
-                              BoxShadow(
-                                color: kLiveRed.withValues(
-                                  alpha: 0.6 * (1 - _blink.value),
-                                ),
-                                blurRadius: 12,
-                              ),
-                            ]
-                          : null,
-                    ),
-                  ),
-                ),
-              ),
-              Positioned.fill(
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 10),
-                  child: Row(
-                    children: [
-                      Icon(
-                        widget.hot ? Icons.bolt : Icons.timer_outlined,
-                        size: 14,
-                        color: Colors.white,
-                      ),
-                      const SizedBox(width: 4),
-                      Expanded(
-                        child: Text(
-                          // Kratko — na uskom ekranu se dugi tekst rezao.
-                          widget.hot ? t('Ponuda +2 s!') : t('Preostalo'),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.w800,
-                            fontSize: 11.5,
-                          ),
-                        ),
-                      ),
-                      Text(
-                        '$secs s',
-                        key: const ValueKey('live-secs'),
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.w900,
-                          fontSize: 13,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-              // "+2 s" iskoči iznad trake i odleti gore.
-              if (_bonus.isAnimating)
-                Positioned(
-                  right: 6,
-                  top: -18 - 22 * b,
-                  child: Opacity(
-                    opacity: (1 - b).clamp(0.0, 1.0),
-                    child: Transform.scale(
-                      scale:
-                          0.8 +
-                          0.6 *
-                              Curves.elasticOut.transform(
-                                (b * 2).clamp(0.0, 1.0),
-                              ),
-                      child: Container(
-                        key: const ValueKey('live-bonus'),
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 8,
-                          vertical: 2,
-                        ),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFF4ADE80),
-                          borderRadius: BorderRadius.circular(99),
-                        ),
-                        child: Text(
-                          '+$_added s',
-                          style: const TextStyle(
-                            color: Colors.black,
-                            fontWeight: FontWeight.w900,
-                            fontSize: 13,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-            ],
+            ),
           ),
-        );
-      },
+          if (_bonus.isAnimating)
+            Positioned(
+              right: 12,
+              top: -18,
+              child: Opacity(
+                opacity: 1 - _bonus.value,
+                child: Text(
+                  '+$_added s',
+                  key: const ValueKey('live-bonus'),
+                  style: const TextStyle(
+                    color: Color(0xFFFFD60A),
+                    fontSize: 12,
+                  ),
+                ),
+              ),
+            ),
+        ],
+      ),
     );
   }
 }

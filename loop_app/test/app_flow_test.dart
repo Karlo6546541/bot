@@ -1,3 +1,4 @@
+import 'helpers/vision_navigation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -76,7 +77,7 @@ Future<void> openAuctionsPill(WidgetTester tester) async {
 
 /// Profil → Povijest transakcija.
 Future<void> openActivity(WidgetTester tester) async {
-  await tester.tap(find.text('Profil').last);
+  await mainTab(tester, 'Profil');
   await tester.pumpAndSettle();
   await openProfileSettings(tester);
   await reveal(tester, find.byKey(const ValueKey('open-activity')));
@@ -165,7 +166,7 @@ void main() {
           .state<NavigatorState>(find.byType(Navigator).first)
           .popUntil((route) => route.isFirst);
       await tester.pumpAndSettle();
-      await tester.tap(find.text('Početna').last);
+      await mainTab(tester, 'Početna');
       await tester.pumpAndSettle();
 
       // Aukcije → kartica → swipe feed → licitiraj.
@@ -194,7 +195,7 @@ void main() {
         );
         await tester.pumpAndSettle();
       }
-      await tester.tap(find.text('Moje').last);
+      await mainTab(tester, 'Moje');
       await tester.pumpAndSettle();
       // Licitacije: aukcije koje traju.
       await tester.tap(find.byKey(const ValueKey('activity-tab-bids')));
@@ -362,7 +363,7 @@ void main() {
         .state<NavigatorState>(find.byType(Navigator).first)
         .popUntil((route) => route.isFirst);
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Profil').last);
+    await mainTab(tester, 'Profil');
     await tester.pumpAndSettle();
     await openProfileSettings(tester);
     await tester.scrollUntilVisible(
@@ -378,7 +379,7 @@ void main() {
       Theme.of(tester.element(find.text('Tamna'))).brightness,
       Brightness.dark,
     );
-    await tester.tap(find.text('Početna').last);
+    await mainTab(tester, 'Početna');
     await tester.pumpAndSettle();
     expect(tester.takeException(), isNull);
   });
@@ -448,7 +449,7 @@ void main() {
     await tester.pumpAndSettle();
 
     // Podaci prodavatelja (za Kupi odmah i isplatu) — iz Profila.
-    await tester.tap(find.text('Profil').last);
+    await mainTab(tester, 'Profil');
     await tester.pumpAndSettle();
     await openProfileSettings(tester);
     await reveal(tester, find.byKey(const ValueKey('seller-info')));
@@ -486,7 +487,7 @@ void main() {
     expect(find.byKey(const ValueKey('seller-save')), findsNothing);
 
     // Profil → Pravno → svi dokumenti.
-    await tester.tap(find.text('Profil').last);
+    await mainTab(tester, 'Profil');
     await tester.pumpAndSettle();
     await openProfileSettings(tester);
     await reveal(tester, find.byKey(const ValueKey('open-legal')));
@@ -516,7 +517,7 @@ void main() {
     await tester.tap(find.text('Log in').last);
     await tester.pumpAndSettle();
     // Početna na engleskom.
-    expect(find.text('Live'), findsWidgets);
+    expect(find.text('All live'), findsWidgets);
 
     // Swipe feed aukcija na engleskom.
     await openAuctionsPill(tester);
@@ -644,7 +645,7 @@ void accountTests() {
     expect(find.byKey(const ValueKey('home-go-live')), findsOneWidget);
 
     // Profil prikazuje @ime; odjava.
-    await tester.tap(find.text('Profil').last);
+    await mainTab(tester, 'Profil');
     await tester.pumpAndSettle();
     expect(find.textContaining('novi_korisnik'), findsWidgets);
     await openProfileSettings(tester);
@@ -809,7 +810,7 @@ void deletionTests() {
     await tester.ensureVisible(find.text('Prijavi se'));
     await tester.tap(find.text('Prijavi se'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Profil').last);
+    await mainTab(tester, 'Profil');
     await tester.pumpAndSettle();
     await openProfileSettings(tester);
     await tester.scrollUntilVisible(
@@ -872,7 +873,7 @@ void communityTests() {
     }
 
     Future<void> logout() async {
-      await tester.tap(find.text('Profil').last);
+      await mainTab(tester, 'Profil');
       await tester.pumpAndSettle();
       await openProfileSettings(tester);
       await tester.scrollUntilVisible(
@@ -904,6 +905,7 @@ void communityTests() {
 
     // Marko vidi obavijest na zvonu.
     await login('@marko');
+    await homeUtilities(tester);
     final bell = find.byKey(const ValueKey('notification-bell'));
     expect(find.descendant(of: bell, matching: find.text('1')), findsOneWidget);
     await tester.tap(bell);
@@ -993,7 +995,7 @@ void chatTests() {
     }
 
     Future<void> logout() async {
-      await tester.tap(find.text('Profil').last);
+      await mainTab(tester, 'Profil');
       await tester.pumpAndSettle();
       await openProfileSettings(tester);
       await tester.scrollUntilVisible(
@@ -1013,7 +1015,7 @@ void chatTests() {
 
     // Marko pita prodavatelja (pretraga → profil → Poruka).
     await login('@marko');
-    await tester.tap(find.byKey(const ValueKey('home-search')));
+    await globalSearch(tester);
     await tester.pumpAndSettle();
     await tester.enterText(find.byType(TextField).first, 'demo');
     await tester.pumpAndSettle();
@@ -1042,6 +1044,7 @@ void chatTests() {
 
     // Demo vidi poruku i odgovara.
     await login('@demo');
+    await homeUtilities(tester);
     final messages = find.byKey(const ValueKey('messages-button'));
     expect(
       find.descendant(of: messages, matching: find.text('1')),
@@ -1080,20 +1083,14 @@ void logoTests() {
       await tester.pumpAndSettle();
       expect(find.byKey(const ValueKey('home-search')), findsOneWidget);
 
-      // Moje → logo → natrag na početnu.
-      if (find.text('Moje').evaluate().isEmpty) {
-        final menu = find.byKey(const ValueKey('home-filters'));
-        await tester.tap(
-          menu.evaluate().isNotEmpty
-              ? menu
-              : find.byKey(const ValueKey('shell-library-menu')),
-        );
-        await tester.pumpAndSettle();
-      }
-      await tester.tap(find.text('Moje').last);
-      await tester.pumpAndSettle();
+      // Profile keeps the global logo; receipts dismiss back to the live home.
+      await mainTab(tester, 'Profil');
       expect(find.byKey(const ValueKey('home-search')), findsNothing);
       await tester.tap(find.byKey(const ValueKey('logo-home')));
+      await tester.pumpAndSettle();
+      expect(find.byKey(const ValueKey('home-search')), findsOneWidget);
+      await mainTab(tester, 'Moje');
+      await tester.binding.handlePopRoute();
       await tester.pumpAndSettle();
       expect(find.byKey(const ValueKey('home-search')), findsOneWidget);
     });
@@ -1212,7 +1209,7 @@ void logoTests() {
     await tester.ensureVisible(find.text('Prijavi se'));
     await tester.tap(find.text('Prijavi se'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Profil').last);
+    await mainTab(tester, 'Profil');
     await tester.pumpAndSettle();
     await openProfileSettings(tester);
     await reveal(tester, find.byKey(const ValueKey('seller-info')));
@@ -1292,7 +1289,7 @@ void logoTests() {
       );
       await tester.pumpAndSettle();
     }
-    await tester.tap(find.text('Kategorije').last);
+    await mainTab(tester, 'Kategorije');
     await tester.pumpAndSettle();
     expect(find.byKey(const ValueKey('categories')), findsOneWidget);
     // Samo kategorije — bez liveova, aukcija i predmeta.

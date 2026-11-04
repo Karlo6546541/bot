@@ -292,6 +292,7 @@ class _HomeShellState extends ConsumerState<HomeShell> {
     final phone = width < 600;
 
     final shell = AdaptiveShell(
+      showNavigation: !(_index == 0 && feedSelected),
       immersiveNavigation: _index == 0 && feedSelected,
       // Isto na mobitelu i na računalu (Whatnot): Početna · Kategorije ·
       // Objavi · Moje (aktivnost) · Profil.
