@@ -1086,12 +1086,15 @@ void main() {
         ),
         findsOneWidget,
       );
-      // Srce: šalje se kao reakcija i leti uz desni rub (ne ide u chat).
+      // Likes live in More; their result is still reflected in the room.
+      await tester.tap(find.byKey(const ValueKey('live-room-tools')));
+      await tester.pumpAndSettle();
       await tester.tap(find.byKey(const ValueKey('live-react-0')));
       await tester.pump(const Duration(milliseconds: 300));
       expect(find.text('❤️'), findsWidgets);
       await tester.pumpAndSettle();
-      // Srce postaje crveno tek nakon lajka.
+      await tester.tap(find.byKey(const ValueKey('live-room-tools')));
+      await tester.pumpAndSettle();
       expect(
         find.descendant(
           of: find.byKey(const ValueKey('live-react-0')),
@@ -1099,8 +1102,9 @@ void main() {
         ),
         findsOneWidget,
       );
-      // Ponovni dodir na crveno srce poništava lajk (opet prozirno).
       await tester.tap(find.byKey(const ValueKey('live-react-0')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('live-room-tools')));
       await tester.pumpAndSettle();
       expect(
         find.descendant(
@@ -1109,6 +1113,8 @@ void main() {
         ),
         findsOneWidget,
       );
+      await tester.binding.handlePopRoute();
+      await tester.pumpAndSettle();
       // Brza reakcija: više emojija leti, a ostalima ide jedna poruka.
       await tester.tap(find.byKey(const ValueKey('live-room-tools')));
       await tester.pumpAndSettle();

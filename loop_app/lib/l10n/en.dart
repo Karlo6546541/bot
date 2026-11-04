@@ -2,6 +2,7 @@
 // Generirano iz popisa tekstova; nadopuni ručno kad dodaješ nove.
 
 const kEn = <String, String>{
+  'Obrada…': 'Processing…',
   'Računi': 'Receipts',
   'Povuci za ponudu ({0})': 'Slide to bid ({0})',
   'Povuci gore za shop · {0} predmeta': 'Swipe up for shop · {0} items',

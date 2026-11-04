@@ -17,6 +17,7 @@ Future<bool> showPurchaseConfirmation(
       constraints: const BoxConstraints(maxWidth: 520),
       backgroundColor: Colors.transparent,
       builder: (_) => VisionGlass(
+        dark: LoopColors.isDark,
         heavy: true,
         opacity: .85,
         radius: 32,

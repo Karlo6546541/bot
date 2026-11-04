@@ -1,3 +1,5 @@
+import 'package:loop_app/widgets/vision_glass.dart';
+import 'package:loop_app/theme/app_theme.dart';
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -66,6 +68,60 @@ void main() {
     reserve: reserve ?? () async => {'id': 'order-one', 'total_cents': 6600},
     chooseDelivery: delivery ?? (_, _) async {},
     charge: charge ?? (_, _) async => SavedCardChargeStatus.paid,
+  );
+
+  testWidgets(
+    'payment opened from a dark live remains readable in a light app',
+    (tester) async {
+      final previous = LoopColors.isDark;
+      addTearDown(
+        () => LoopColors.use(previous ? Brightness.dark : Brightness.light),
+      );
+      LoopColors.use(Brightness.light);
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: buildLoopTheme(),
+          home: Theme(
+            data: buildLiveTheme(),
+            child: Scaffold(
+              body: Builder(
+                builder: (ctx) => TextButton(
+                  onPressed: () => showPurchaseConfirmation(ctx, sheet()),
+                  child: const Text('Kupi'),
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.tap(find.text('Kupi'));
+      await tester.pumpAndSettle();
+      final popup = find.byType(PurchaseConfirmationSheet);
+      expect(Theme.of(tester.element(popup)).brightness, Brightness.light);
+      final panel = find.ancestor(
+        of: popup,
+        matching: find.byType(VisionGlass),
+      );
+      final decoration =
+          tester
+                  .widget<DecoratedBox>(
+                    find
+                        .descendant(
+                          of: panel,
+                          matching: find.byType(DecoratedBox),
+                        )
+                        .first,
+                  )
+                  .decoration
+              as BoxDecoration;
+      expect(
+        ThemeData.estimateBrightnessForColor(decoration.color!),
+        Brightness.light,
+      );
+      await tester.tap(find.byKey(const ValueKey('purchase-close')));
+      await tester.pumpAndSettle();
+      expect(tester.takeException(), isNull);
+    },
   );
 
   testWidgets(
