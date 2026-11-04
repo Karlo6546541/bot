@@ -34,7 +34,7 @@ jobs:
       - name: Formatting patch
         run: cat /tmp/feed-format.patch
       - name: Format redesign files
-        run: dart format --output=none --set-exit-if-changed lib/providers/seller_account_provider.dart lib/widgets/quiet_ui.dart lib/widgets/seller_account_card.dart test/redesign_layout_test.dart tool/redesign_preview.dart
+        run: dart format --output=none --set-exit-if-changed lib/providers/seller_account_provider.dart lib/widgets/quiet_ui.dart lib/widgets/seller_account_card.dart test/redesign_layout_test.dart tool/redesign_preview.dart lib/widgets/live_shop_widgets.dart test/live_shop_navigation_test.dart
       - name: Analyze
         run: flutter analyze
       - name: Test

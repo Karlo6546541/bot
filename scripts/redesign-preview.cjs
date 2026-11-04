@@ -6,9 +6,14 @@ const base = process.env.PREVIEW_BASE_URL || 'http://127.0.0.1:8765/bot/';
 const output = process.env.PREVIEW_ARTIFACT_DIR || '/tmp/feed-preview/screenshots';
 const scenarios = [
   ['home', 320, 740, 'light', 'Traži na Subhastu'],
-  ['home', 390, 844, 'light', 'Odabrano za tebe'],
-  ['home', 1440, 1000, 'light', 'Odabrano za tebe'],
-  ['home', 390, 844, 'dark', 'Odabrano za tebe'],
+  ['home', 390, 844, 'light', 'Trgovina koja živi.'],
+  ['home', 1440, 1000, 'light', 'Trgovina koja živi.'],
+  ['home', 390, 844, 'dark', 'Trgovina koja živi.'],
+  ['live', 320, 740, 'light', 'Shop'],
+  ['live', 390, 844, 'light', 'Shop'],
+  ['host', 390, 844, 'dark', 'Shop'],
+  ['shop', 390, 844, 'light', 'Shop ('],
+  ['shop', 1440, 900, 'light', 'Shop ('],
   ['categories', 390, 844, 'light', 'Konzole'],
   ['activity', 390, 844, 'light', 'Kupnje'],
   ['profile', 390, 844, 'light', 'Pogledaj profil'],
@@ -51,7 +56,13 @@ const scenarios = [
         await page.getByRole('button',{name:/Pogledaj profil/}).click();
         await page.getByRole('button',{name:'Sviđa mi se',exact:true}).waitFor();
         await page.getByRole('button',{name:'Postavke',exact:true}).click();
-        await page.getByText('Postavke',{exact:true}).waitFor();
+        await page.getByRole('button',{name:'Natrag',exact:true}).waitFor();
+      }
+      if (route === 'live' && width === 390) {
+        await page.getByRole('button',{name:/^Shop/}).first().click();
+        await page.getByRole('tab',{name:/^Shop/}).click();
+        await page.getByRole('button',{name:'Otvori shop',exact:true}).waitFor();
+        await page.screenshot({path:path.join(output,'live-shop-drawer.png')});
       }
       if (route === 'home' && width === 390 && theme === 'light') {
         await page.getByRole('button',{name:'Filteri',exact:true}).click();

@@ -1,8 +1,10 @@
 import '../config/features.dart';
 import 'account_health_screen.dart';
+
 import 'package:flutter/material.dart';
 
 import '../config/backend_config.dart';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../providers/app_providers.dart';
@@ -22,7 +24,8 @@ import 'public_profile_screen.dart';
 import 'shop_screens.dart';
 import '../widgets/shop_widgets.dart';
 import '../widgets/user_avatar.dart';
-import '../widgets/seller_account_card.dart';
+import '../widgets/live_shop_widgets.dart';
+import 'add_device_screen.dart';
 import '../models/device.dart';
 import '../widgets/item_image.dart';
 import '../widgets/formatters.dart';
@@ -110,9 +113,7 @@ class _AccountHome extends ConsumerWidget {
     Widget group(List<Widget> rows) => Padding(
       padding: const EdgeInsets.only(top: 20),
       child: Material(
-        color: LoopColors.surface,
-        borderRadius: BorderRadius.circular(kRadius),
-        clipBehavior: Clip.antiAlias,
+        color: Colors.transparent,
         child: Column(
           children: [
             for (var i = 0; i < rows.length; i++) ...[
@@ -138,9 +139,7 @@ class _AccountHome extends ConsumerWidget {
             else ...[
               // Ti: avatar, ime i jedna radnja.
               Material(
-                color: LoopColors.surface,
-                borderRadius: BorderRadius.circular(kRadius),
-                clipBehavior: Clip.antiAlias,
+                color: Colors.transparent,
                 child: InkWell(
                   key: const ValueKey('account-view-profile'),
                   onTap: () => MyProfileScreen.open(context),
@@ -186,55 +185,83 @@ class _AccountHome extends ConsumerWidget {
                   ),
                 ),
               ),
-              const SizedBox(height: 16),
-              // Zarada je glavni broj; dodir otvara isplatu.
-              Material(
-                color: LoopColors.surface,
-                borderRadius: BorderRadius.circular(28),
-                clipBehavior: Clip.antiAlias,
-                child: InkWell(
-                  key: const ValueKey('account-earnings'),
-                  onTap: () => showPayoutDialog(context, ref),
-                  child: Padding(
-                    padding: const EdgeInsets.fromLTRB(22, 20, 22, 22),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          t('Zarada').toUpperCase(),
-                          style: TextStyle(
-                            color: LoopColors.textSecondary,
-                            fontSize: 11,
-                            fontWeight: FontWeight.w600,
-                            letterSpacing: 1.3,
-                          ),
-                        ),
-                        const SizedBox(height: 6),
-                        Text(
-                          formatCredits(user.credits),
-                          key: const ValueKey('account-earnings-amount'),
-                          style: const TextStyle(
-                            fontSize: 36,
-                            fontWeight: FontWeight.w600,
-                            letterSpacing: -1.2,
-                            height: 1.05,
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          t('Za isplatu'),
-                          style: TextStyle(
-                            color: LoopColors.textSecondary,
-                            fontSize: 14,
-                          ),
-                        ),
-                      ],
+              const SizedBox(height: 24),
+              Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      t('Moj shop'),
+                      style: const TextStyle(
+                        fontSize: 24,
+                        fontWeight: FontWeight.w600,
+                        letterSpacing: -.6,
+                      ),
                     ),
                   ),
-                ),
+                  TextButton(
+                    key: const ValueKey('account-open-shop'),
+                    onPressed: () => PublicProfileScreen.open(context, user.id),
+                    child: Text(t('Otvori shop')),
+                  ),
+                ],
               ),
-              const SizedBox(height: 16),
-              const SellerAccountCard(),
+              for (final (show, live) in s.activeLives.where(
+                (entry) => entry.$1.hostId == user.id,
+              ))
+                LiveShopRow(
+                  key: ValueKey('account-shop-live-${show.id}'),
+                  show: show,
+                  subtitle: live.isLive ? t('Uživo sada') : t('Uskoro'),
+                  onTap: () => LiveRoomScreen.open(context, show.id),
+                ),
+              if (liveShopProducts(s, user.id).isEmpty)
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        t('Tvoj shop je spreman za prvi predmet.'),
+                        style: TextStyle(color: LoopColors.textSecondary),
+                      ),
+                      const SizedBox(height: 10),
+                      OutlinedButton.icon(
+                        key: const ValueKey('account-shop-add'),
+                        onPressed: () => AddDeviceScreen.open(context),
+                        icon: const Icon(Icons.add, size: 18),
+                        label: Text(t('Dodaj predmet')),
+                      ),
+                    ],
+                  ),
+                )
+              else
+                for (final device in liveShopProducts(s, user.id).take(3))
+                  ShopProductRow(
+                    key: ValueKey('account-shop-item-${device.id}'),
+                    device: device,
+                    onTap: () => DeviceDetailScreen.open(context, device),
+                  ),
+              const SizedBox(height: 22),
+              const Divider(),
+              ListTile(
+                key: const ValueKey('account-earnings'),
+                contentPadding: EdgeInsets.zero,
+                leading: Icon(
+                  Icons.account_balance_outlined,
+                  color: LoopColors.textSecondary,
+                ),
+                title: Text(t('Zarada')),
+                subtitle: Text(t('Za isplatu')),
+                trailing: Text(
+                  formatCredits(user.credits),
+                  key: const ValueKey('account-earnings-amount'),
+                  style: const TextStyle(
+                    fontSize: 22,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                onTap: () => showPayoutDialog(context, ref),
+              ),
               group([
                 row(
                   'account-seller-info',
@@ -432,6 +459,14 @@ class _ProfileScreenState extends ConsumerState<_MyPostsView> {
                         ],
                       ),
                     ],
+                    if (!user.isGuest)
+                      TextButton.icon(
+                        key: const ValueKey('profile-open-shop'),
+                        onPressed: () =>
+                            PublicProfileScreen.open(context, user.id),
+                        icon: const Icon(Icons.storefront_outlined),
+                        label: Text(t('Otvori moj shop')),
+                      ),
                     const SizedBox(height: 14),
                     Row(
                       children: [

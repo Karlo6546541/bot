@@ -13,6 +13,8 @@ import 'package:loop_app/screens/notifications_screen.dart';
 import 'package:loop_app/screens/seller_finance_screens.dart';
 import 'package:loop_app/screens/device_detail_screen.dart';
 import 'package:loop_app/screens/login_screen.dart';
+import 'package:loop_app/screens/public_profile_screen.dart';
+import 'package:loop_app/screens/live_screens.dart';
 import 'package:loop_app/models/device.dart';
 import 'package:loop_app/models/delivery.dart';
 import 'package:loop_app/services/delivery_service.dart';
@@ -68,7 +70,7 @@ Future<void> main() async {
   ];
   for (var index = 0; index < products.length; index++) {
     final sample = await trade.addDevice(
-      userId: SeedData.anaUserId,
+      userId: index < 2 ? SeedData.testUserId : SeedData.anaUserId,
       name: products[index].$1,
       model: products[index].$2,
       condition: DeviceCondition.good,
@@ -147,7 +149,9 @@ Future<void> main() async {
 
   final prefs = FeedPreferences();
   for (final i in browseItems(AppState.fromStorage(storage))) {
-    if (!samples.contains(i.device?.id)) prefs.hide(ForYouRanker.keyOf(i));
+    if (!samples.contains(i.device?.id) && i.show?.id != previewLive.id) {
+      prefs.hide(ForYouRanker.keyOf(i));
+    }
   }
   await storage.saveFeedPreferences(SeedData.testUserId, prefs);
   await storage.putUser(
@@ -164,6 +168,7 @@ Future<void> main() async {
           ),
         ),
   );
+  if (route == 'host') await storage.saveSession(userId: SeedData.markoUserId);
   runApp(
     ProviderScope(
       overrides: [
@@ -180,19 +185,27 @@ Future<void> main() async {
       ],
       child: _PreviewRoot(
         route: route,
-        item: storage.deviceById(samples.first)!,
+        item: storage.deviceById(samples.skip(2).first)!,
+        showId: previewLive.id,
       ),
     ),
   );
 }
 
 class _PreviewRoot extends StatelessWidget {
-  const _PreviewRoot({required this.route, required this.item});
+  const _PreviewRoot({
+    required this.route,
+    required this.item,
+    required this.showId,
+  });
   final String route;
   final Device item;
+  final String showId;
   @override
   Widget build(BuildContext context) {
     final page = switch (route) {
+      'shop' => const PublicProfileScreen(userId: SeedData.anaUserId),
+      'live' || 'host' => LiveRoomScreen(showId: showId),
       'seller' => const SellerHubScreen(),
       'form' => const SellerInfoScreen(),
       'messages' => const MessagesScreen(),
