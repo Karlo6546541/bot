@@ -1,3 +1,4 @@
+import 'package:loop_app/models/app_user.dart';
 import 'package:loop_app/widgets/purchase_confirmation.dart';
 import 'package:loop_app/services/stripe_backend.dart';
 // Isolated screenshot fixture. Production continues to start at lib/main.dart.
@@ -114,8 +115,19 @@ Future<void> main() async {
         'https://images.unsplash.com/photo-1552346154-21d32810aba3?auto=format&fit=crop&w=600&q=85',
     category: DeviceCategory.books.name,
   );
+  await storage.putUser(
+    AppUser(
+      id: 'preview-retro-host',
+      email: 'retro@example.test',
+      name: 'Retro Studio',
+      username: 'retro.studio',
+      credits: 0,
+      createdAt: DateTime(2026),
+      seller: storage.userById(SeedData.anaUserId)!.seller,
+    ),
+  );
   final thirdLive = await lives.create(
-    hostId: SeedData.anaUserId,
+    hostId: 'preview-retro-host',
     title: 'Analogni klasici',
     coverPath:
         'https://images.unsplash.com/photo-1516035069371-29a1b244cc32?auto=format&fit=crop&w=600&q=85',
