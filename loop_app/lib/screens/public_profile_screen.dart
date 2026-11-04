@@ -8,6 +8,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../widgets/trust_widgets.dart';
 import '../widgets/live_shop_widgets.dart';
+import '../widgets/vision_glass.dart';
 
 import '../l10n/tr.dart';
 import '../models/app_user.dart';
@@ -670,8 +671,10 @@ class ProfileHeader extends ConsumerWidget {
         ? chip('seller-kind-business', t('Trgovac'), LoopColors.sky)
         : chip('seller-kind-private', t('Fizička osoba'), LoopColors.peach);
     if (shopfront) {
-      return Padding(
-        padding: const EdgeInsets.symmetric(vertical: 12),
+      return VisionGlass(
+        blur: false,
+        radius: 28,
+        padding: const EdgeInsets.all(20),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [

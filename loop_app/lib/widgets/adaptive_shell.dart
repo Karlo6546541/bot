@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'brand.dart';
+import 'vision_glass.dart';
 
 import '../l10n/tr.dart';
 
@@ -38,7 +39,7 @@ class ShellDestination {
       height: compact ? 40 : 36,
       decoration: BoxDecoration(
         color: Theme.of(context).colorScheme.primary,
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(99),
       ),
       child: Icon(
         icon,
@@ -81,7 +82,7 @@ class AdaptiveShell extends StatelessWidget {
         labelBehavior: compact
             ? NavigationDestinationLabelBehavior.alwaysShow
             : null,
-        backgroundColor: compact ? LoopColors.surface : null,
+        backgroundColor: Colors.transparent,
         surfaceTintColor: compact ? Colors.transparent : null,
         indicatorColor: compact ? Colors.transparent : null,
         selectedIndex: selectedIndex,
@@ -108,13 +109,16 @@ class AdaptiveShell extends StatelessWidget {
     if (!isDesktop) {
       return Scaffold(
         appBar: appBar,
-        body: SafeArea(top: false, bottom: false, child: body),
+        extendBody: true,
+        body: SafeArea(top: false, child: body),
         floatingActionButton: floatingActionButton,
-        bottomNavigationBar: DecoratedBox(
-          decoration: BoxDecoration(
-            border: Border(top: BorderSide(color: LoopColors.surfaceHover)),
+        bottomNavigationBar: SafeArea(
+          top: false,
+          minimum: const EdgeInsets.fromLTRB(12, 0, 12, 10),
+          child: VisionGlass(
+            radius: 30,
+            child: _navigation(context, compact: true),
           ),
-          child: _navigation(context, compact: true),
         ),
       );
     }
@@ -162,18 +166,11 @@ class LoopLogo extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final c = color ?? Theme.of(context).colorScheme.primary;
     final logo = FittedBox(
       fit: BoxFit.scaleDown,
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          SpearMark(
-            size: size * 1.25,
-            head: c,
-            shaft: color ?? LoopColors.textPrimary,
-          ),
-          SizedBox(width: size * 0.25),
           Text(
             kAppName,
             style: TextStyle(

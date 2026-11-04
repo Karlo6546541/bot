@@ -35,10 +35,9 @@
 
   <title>Subhasto — live aukcije i Kupi odmah</title>
   <link rel="manifest" href="manifest.json">
-  <meta name="theme-color" content="#F7F8FA">
+  <meta name="theme-color" content="#000000">
   <style>
-    :root { color-scheme: light dark; --page: #F7F8FA; --ink: #1D1D1F; }
-    @media (prefers-color-scheme: dark) { :root { --page: #111113; --ink: #F5F5F7; } }
+    :root { color-scheme: dark; --page: #000000; --ink: #F5F5F7; }
     html, body { margin: 0; height: 100%; background: var(--page); color: var(--ink); }
     #pre-splash { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; }
     #pre-splash svg { width: 56px; height: 56px; opacity: .85; }
@@ -53,7 +52,6 @@
     </svg>
   </div>
   <script>
-    document.querySelector('meta[name=theme-color]').content = matchMedia('(prefers-color-scheme: dark)').matches ? '#111113' : '#F7F8FA';
     window.addEventListener('flutter-first-frame', function () {
       var el = document.getElementById('pre-splash');
       if (el) el.remove();

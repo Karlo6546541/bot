@@ -28,6 +28,7 @@ import 'notifications_screen.dart';
 import 'swipe_feed_screen.dart';
 import 'for_you_ranker.dart';
 import '../widgets/live_shop_widgets.dart';
+import '../widgets/vision_glass.dart';
 import '../widgets/formatters.dart';
 
 /// Početna kao Whatnot: pretraga, kategorije kao "pilule" i mreža kartica —
@@ -343,23 +344,14 @@ class _LiveHomeScreenState extends ConsumerState<LiveHomeScreen> {
         ];
         Widget section(Widget child, {Key? key}) => SliverPadding(
           key: key,
-          padding: const EdgeInsets.symmetric(horizontal: 20),
+          padding: const EdgeInsets.symmetric(horizontal: 24),
           sliver: SliverToBoxAdapter(child: child),
         );
         Widget heading(String title, {VoidCallback? onAll}) => Padding(
           padding: const EdgeInsets.only(top: 24, bottom: 12),
           child: Row(
             children: [
-              Expanded(
-                child: Text(
-                  title,
-                  style: const TextStyle(
-                    fontSize: 22,
-                    fontWeight: FontWeight.w600,
-                    letterSpacing: -.5,
-                  ),
-                ),
-              ),
+              Expanded(child: VisionSectionLabel(title)),
               if (onAll != null)
                 TextButton(onPressed: onAll, child: Text(t('Prikaži sve'))),
             ],
@@ -373,6 +365,14 @@ class _LiveHomeScreenState extends ConsumerState<LiveHomeScreen> {
         );
         if (liveNow.isNotEmpty) {
           final featured = liveNow.first;
+          slivers.add(
+            section(
+              Padding(
+                padding: const EdgeInsets.only(bottom: 12),
+                child: VisionSectionLabel(t('Pozornica uživo')),
+              ),
+            ),
+          );
           slivers.add(
             section(
               LiveShopFeature(
@@ -389,19 +389,27 @@ class _LiveHomeScreenState extends ConsumerState<LiveHomeScreen> {
           if (liveNow.length > 1) {
             slivers.add(
               section(
-                Column(
-                  children: [
-                    for (final item in liveNow.skip(1))
-                      LiveShopRow(
-                        show: item.show!,
-                        device: item.device,
-                        subtitle: t('{0} gledatelja', [
-                          '${item.live!.viewers}',
-                        ]),
-                        onTap: () =>
-                            LiveRoomScreen.open(context, item.show!.id),
-                      ),
-                  ],
+                LayoutBuilder(
+                  builder: (context, constraints) => Padding(
+                    padding: const EdgeInsets.only(top: 16),
+                    child: Wrap(
+                      spacing: 16,
+                      runSpacing: 16,
+                      children: [
+                        for (final item in liveNow.skip(1))
+                          SizedBox(
+                            width: (constraints.maxWidth - 16) / 2,
+                            child: LiveShopMini(
+                              show: item.show!,
+                              device: item.device,
+                              viewers: item.live!.viewers,
+                              onTap: () =>
+                                  LiveRoomScreen.open(context, item.show!.id),
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
                 ),
               ),
             );
@@ -626,17 +634,18 @@ class _LiveHomeScreenState extends ConsumerState<LiveHomeScreen> {
     final foreground = LoopColors.textPrimary;
     final wideHeader = MediaQuery.sizeOf(context).width >= 840;
     final searchBar = Padding(
-      padding: const EdgeInsets.only(top: 10, right: 8, bottom: 12),
+      padding: const EdgeInsets.only(right: 4),
       child: InkWell(
         key: const ValueKey('home-search'),
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(99),
         onTap: () => SearchScreen.open(context),
         child: Container(
           height: 46,
           padding: const EdgeInsets.symmetric(horizontal: 14),
           decoration: BoxDecoration(
-            color: LoopColors.surfaceHover.withValues(alpha: .65),
-            borderRadius: BorderRadius.circular(12),
+            color: LoopColors.glass,
+            border: Border.all(color: LoopColors.glassBorder),
+            borderRadius: BorderRadius.circular(99),
           ),
           child: Row(
             children: [
@@ -644,7 +653,7 @@ class _LiveHomeScreenState extends ConsumerState<LiveHomeScreen> {
               const SizedBox(width: 10),
               Expanded(
                 child: Text(
-                  t('Traži na Subhastu'),
+                  wideHeader ? t('Traži na Subhastu') : t('Pretraži'),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
@@ -664,7 +673,7 @@ class _LiveHomeScreenState extends ConsumerState<LiveHomeScreen> {
         bottom: false,
         child: Padding(
           key: const ValueKey('home-cats'),
-          padding: const EdgeInsets.fromLTRB(20, 8, 12, 0),
+          padding: const EdgeInsets.fromLTRB(24, 16, 16, 16),
           child: Column(
             children: [
               Row(
@@ -676,6 +685,16 @@ class _LiveHomeScreenState extends ConsumerState<LiveHomeScreen> {
                       child: Align(
                         alignment: Alignment.centerLeft,
                         child: LoopLogo(size: 25),
+                      ),
+                    ),
+                  if (!wideHeader)
+                    SizedBox(
+                      width: 44,
+                      child: IconButton(
+                        key: const ValueKey('home-search'),
+                        tooltip: t('Traži na Subhastu'),
+                        onPressed: () => SearchScreen.open(context),
+                        icon: const Icon(Icons.search, size: 21),
                       ),
                     ),
                   const MessagesButton(),
@@ -775,7 +794,6 @@ class _LiveHomeScreenState extends ConsumerState<LiveHomeScreen> {
                   ),
                 ],
               ),
-              if (!wideHeader) searchBar,
             ],
           ),
         ),
@@ -1270,22 +1288,20 @@ class _TileRow extends StatelessWidget {
     }) {
       final on = selected == id;
       return Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 3, vertical: 7),
+        padding: const EdgeInsets.only(right: 10, top: 4, bottom: 4),
         child: InkWell(
           key: key ?? ValueKey('tile-$id'),
           borderRadius: BorderRadius.circular(99),
           onTap: onTap,
           child: Container(
-            constraints: const BoxConstraints(minHeight: 36),
+            constraints: const BoxConstraints(minHeight: 42),
             padding: const EdgeInsets.symmetric(horizontal: 14),
             alignment: Alignment.center,
             decoration: BoxDecoration(
-              color: Colors.transparent,
-              border: Border(
-                bottom: BorderSide(
-                  color: on ? LoopColors.textPrimary : Colors.transparent,
-                  width: 2,
-                ),
+              color: on ? LoopColors.textPrimary : LoopColors.glass,
+              borderRadius: BorderRadius.circular(99),
+              border: Border.all(
+                color: on ? LoopColors.textPrimary : LoopColors.glassBorder,
               ),
             ),
             child: Text(
@@ -1293,7 +1309,7 @@ class _TileRow extends StatelessWidget {
               style: TextStyle(
                 fontSize: 14,
                 fontWeight: on ? FontWeight.w600 : FontWeight.w400,
-                color: on ? LoopColors.textPrimary : LoopColors.textSecondary,
+                color: on ? LoopColors.background : LoopColors.textSecondary,
               ),
             ),
           ),
@@ -1306,7 +1322,7 @@ class _TileRow extends StatelessWidget {
       child: ListView(
         key: const ValueKey('home-tiles'),
         scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.symmetric(horizontal: 14),
+        padding: const EdgeInsets.symmetric(horizontal: 24),
         children: [
           tab(
             id: 'for-you',

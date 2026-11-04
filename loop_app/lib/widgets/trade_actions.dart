@@ -588,7 +588,7 @@ Future<bool> confirmAndBuy(
     context: context,
     isScrollControlled: true,
     showDragHandle: true,
-    backgroundColor: LoopColors.background,
+    backgroundColor: LoopColors.surface.withValues(alpha: .97),
     constraints: BoxConstraints(maxWidth: 560),
     builder: (_) => appThemed(_CheckoutSheet(device: device, price: price)),
   );

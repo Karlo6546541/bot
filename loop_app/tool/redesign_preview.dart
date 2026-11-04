@@ -1,3 +1,5 @@
+import 'package:loop_app/widgets/purchase_confirmation.dart';
+import 'package:loop_app/services/stripe_backend.dart';
 // Isolated screenshot fixture. Production continues to start at lib/main.dart.
 import 'package:flutter/material.dart';
 import 'package:flutter/semantics.dart';
@@ -87,13 +89,13 @@ Future<void> main() async {
   final lives = LiveService(storage);
   final liveItem = await trade.addDevice(
     userId: SeedData.markoUserId,
-    name: 'Game Boy Pocket',
-    model: 'srebrni',
+    name: 'Seiko Automatic',
+    model: 'Vintage kolekcija',
     condition: DeviceCondition.good,
     price: 55,
     category: DeviceCategory.console,
     imagePaths: const [
-      'https://upload.wikimedia.org/wikipedia/commons/5/5d/Sony-PSP-1000-Body.png',
+      'https://images.unsplash.com/photo-1523275335684-37898b6baf30?auto=format&fit=crop&w=900&q=85',
     ],
   );
   final previewLive = await lives.create(
@@ -101,14 +103,22 @@ Future<void> main() async {
     items: [(liveItem.id, 21)],
     lotSeconds: 60,
     coverPath:
-        'https://upload.wikimedia.org/wikipedia/commons/5/5d/Sony-PSP-1000-Body.png',
-    title: 'Konzole uživo',
+        'https://images.unsplash.com/photo-1523275335684-37898b6baf30?auto=format&fit=crop&w=900&q=85',
+    title: 'Satovi s pričom.',
     category: DeviceCategory.console.name,
   );
   final secondLive = await lives.create(
     hostId: SeedData.demoUserId,
-    title: 'Knjige uživo',
+    title: 'Sneaker kolekcija',
+    coverPath:
+        'https://images.unsplash.com/photo-1552346154-21d32810aba3?auto=format&fit=crop&w=600&q=85',
     category: DeviceCategory.books.name,
+  );
+  final thirdLive = await lives.create(
+    hostId: SeedData.anaUserId,
+    title: 'Analogni klasici',
+    coverPath:
+        'https://images.unsplash.com/photo-1516035069371-29a1b244cc32?auto=format&fit=crop&w=600&q=85',
   );
   final upcomingLive = await lives.create(
     hostId: SeedData.anaUserId,
@@ -163,6 +173,7 @@ Future<void> main() async {
         !{
           previewLive.id,
           secondLive.id,
+          thirdLive.id,
           upcomingLive.id,
         }.contains(i.show?.id)) {
       prefs.hide(ForYouRanker.keyOf(i));
@@ -219,6 +230,7 @@ class _PreviewRoot extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final page = switch (route) {
+      'purchase' => _PurchasePreview(item: item),
       'shop' => const PublicProfileScreen(userId: SeedData.anaUserId),
       'live' || 'host' => LiveRoomScreen(showId: showId),
       'seller' => const SellerHubScreen(),
@@ -245,4 +257,39 @@ class _PreviewRoot extends StatelessWidget {
       home: page,
     );
   }
+}
+
+// An isolated visual confirmation. It cannot contact a payment provider.
+class _PurchasePreview extends StatefulWidget {
+  const _PurchasePreview({required this.item});
+  final Device item;
+  @override
+  State<_PurchasePreview> createState() => _PurchasePreviewState();
+}
+
+class _PurchasePreviewState extends State<_PurchasePreview> {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      showPurchaseConfirmation(
+        context,
+        PurchaseConfirmationSheet(
+          title: widget.item.name,
+          totalCents: 6600,
+          address: 'Ilica 1, 10000 Zagreb',
+          loadCard: () async => (hasCard: true, last4: '4242'),
+          addCard: (_) async => false,
+          reserve: () async => {'id': 'preview-only', 'total_cents': 6600},
+          chooseDelivery: (_, _) async {},
+          charge: (_, _) async => SavedCardChargeStatus.processing,
+        ),
+      );
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) =>
+      DeviceDetailScreen(deviceId: widget.item.id);
 }

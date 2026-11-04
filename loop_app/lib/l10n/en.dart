@@ -2,6 +2,9 @@
 // Generirano iz popisa tekstova; nadopuni ručno kad dodaješ nove.
 
 const kEn = <String, String>{
+  'Pretraži': 'Search',
+  'Pozornica uživo': 'Live stage',
+  'Uđi u prijenos': 'Enter live',
   'Proizvodi': 'Products',
   "Prodavač": "Seller",
   "Dodaj proizvod": "Add product",

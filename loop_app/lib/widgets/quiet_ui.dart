@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../theme/app_theme.dart';
+import 'vision_glass.dart';
 
 class ScreenHeading extends StatelessWidget {
   const ScreenHeading({
@@ -75,9 +76,9 @@ class AppStatusCard extends StatelessWidget {
     child: Container(
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
-        color: LoopColors.surface,
+        color: LoopColors.glass,
         borderRadius: BorderRadius.circular(kRadius),
-        border: Border.all(color: LoopColors.surfaceHover),
+        border: Border.all(color: LoopColors.glassBorder),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -128,11 +129,8 @@ class AppBottomAction extends StatelessWidget {
   const AppBottomAction({super.key, required this.child});
   final Widget child;
   @override
-  Widget build(BuildContext context) => Container(
-    decoration: BoxDecoration(
-      color: LoopColors.background,
-      border: Border(top: BorderSide(color: LoopColors.surfaceHover)),
-    ),
+  Widget build(BuildContext context) => VisionGlass(
+    radius: 0,
     child: SafeArea(
       top: false,
       child: Center(

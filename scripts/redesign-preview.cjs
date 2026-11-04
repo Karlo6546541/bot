@@ -25,6 +25,15 @@ const scenarios = [
   ['notifications', 390, 844, 'light', 'Obavijesti'],
   ['finance', 390, 844, 'light', 'Financije'],
   ['login', 390, 844, 'light', 'Prijavi se'],
+  ['seller', 390, 844, 'dark', 'Prodavač'],
+  ['profile', 390, 844, 'dark', 'Pogledaj profil'],
+  ['shop', 390, 844, 'dark', 'Shop ('],
+  ['form', 390, 844, 'dark', 'Spremi podatke'],
+  ['listing', 390, 844, 'dark', 'Kupi odmah'],
+  ['categories', 390, 844, 'dark', 'Konzole'],
+  ['activity', 390, 844, 'dark', 'Kupnje'],
+  ['purchase', 390, 844, 'dark', 'Potvrdi kupnju'],
+  ['purchase', 320, 740, 'light', 'Potvrdi kupnju'],
 ];
 (async () => {
   fs.mkdirSync(output, {recursive:true});
