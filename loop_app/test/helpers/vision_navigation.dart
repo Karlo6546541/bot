@@ -41,6 +41,10 @@ Future<void> mainTab(WidgetTester tester, String label) async {
   if (label == 'Profil') {
     await tester.tap(find.byKey(const ValueKey('vault-account')));
   } else if (label == 'Kategorije') {
+    if (find.byKey(const ValueKey('home-filters')).evaluate().isEmpty) {
+      await tester.tap(find.byKey(const ValueKey('home-search')));
+      await tester.pumpAndSettle();
+    }
     await tester.tap(find.byKey(const ValueKey('home-filters')));
     await tester.pumpAndSettle();
     await tester.tap(find.byKey(const ValueKey('home-cat-categories')));

@@ -17,7 +17,7 @@ class LoopColors {
       _dark = brightness == Brightness.dark;
 
   static Color get background => _dark
-      ? (kSimpleDesign ? const Color(0xFF101112) : const Color(0xFF000000))
+      ? const Color(0xFF000000)
       : (kSimpleDesign ? const Color(0xFFFAFAF8) : const Color(0xFFF2F2F7));
   static Color get surface =>
       _dark ? const Color(0xFF1C1C1E) : const Color(0xFFFFFFFF);
