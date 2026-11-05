@@ -1,4 +1,7 @@
+import '../config/design_variant.dart';
+
 import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import 'brand.dart';
@@ -30,8 +33,13 @@ class ShellDestination {
     bool selected = false,
     bool compact = false,
   }) {
-    if (!action) {
-      return Icon(selected ? selectedIcon : icon, size: compact ? 25 : null);
+    if (!action || kSimpleDesign) {
+      return Icon(
+        selected ? selectedIcon : icon,
+        key: action ? const ValueKey('nav-create') : null,
+        color: action && selected ? LoopColors.live : null,
+        size: compact ? 25 : null,
+      );
     }
     // Jedini istaknuti element u traci: okrugli akcent s plusom.
     return Container(
@@ -190,6 +198,7 @@ class _AdaptiveShellState extends State<AdaptiveShell> {
                                     label: t('Otvori navigaciju'),
                                     child: Center(
                                       child: VisionGlass(
+                                        heavy: kSimpleDesign,
                                         radius: 99,
                                         child: SizedBox(
                                           width: 104,
@@ -208,6 +217,7 @@ class _AdaptiveShellState extends State<AdaptiveShell> {
                                 ),
                               )
                             : VisionGlass(
+                                heavy: kSimpleDesign,
                                 radius: 99,
                                 child: _navigation(context, compact: true),
                               ),

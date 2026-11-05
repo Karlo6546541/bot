@@ -53,6 +53,7 @@ class WalletTicket extends StatelessWidget {
         '${date.day.toString().padLeft(2, '0')}.${date.month.toString().padLeft(2, '0')}.'
         '${date.year == DateTime.now().year ? '' : date.year}';
     return VisionGlass(
+      quiet: true,
       radius: 28,
       child: Material(
         color: Colors.transparent,

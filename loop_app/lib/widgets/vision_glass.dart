@@ -1,4 +1,7 @@
+import '../config/design_variant.dart';
+
 import 'dart:ui';
+
 import 'package:flutter/material.dart';
 
 /// Bounded glass: blur only the navigation, live dock and open drawers.
@@ -13,6 +16,7 @@ class VisionGlass extends StatelessWidget {
     this.dark,
     this.heavy = false,
     this.opacity,
+    this.quiet = false,
   });
   final Widget child;
   final double radius;
@@ -20,20 +24,26 @@ class VisionGlass extends StatelessWidget {
   final bool blur;
   final bool? dark;
   final bool heavy;
+  final bool quiet;
   final double? opacity;
 
   @override
   Widget build(BuildContext context) {
     final isDark = dark ?? Theme.of(context).brightness == Brightness.dark;
+    final flat = kSimpleDesign && quiet && !heavy && dark == null;
     final decoration = BoxDecoration(
       borderRadius: BorderRadius.circular(radius),
-      color: isDark
+      color: flat
+          ? Colors.transparent
+          : isDark
           ? (heavy
                 ? const Color(0xFF19191E).withValues(alpha: opacity ?? .65)
                 : const Color(0xFF28282D).withValues(alpha: opacity ?? .45))
           : Colors.white.withValues(alpha: .86),
       border: Border.all(
-        color: isDark
+        color: flat
+            ? Colors.transparent
+            : isDark
             ? Colors.white.withValues(alpha: .22)
             : Colors.black.withValues(alpha: .10),
       ),
@@ -44,7 +54,7 @@ class VisionGlass extends StatelessWidget {
     );
     return ClipRRect(
       borderRadius: BorderRadius.circular(radius),
-      child: blur && !MediaQuery.disableAnimationsOf(context)
+      child: !flat && blur && !MediaQuery.disableAnimationsOf(context)
           ? BackdropFilter(
               filter: ImageFilter.blur(
                 sigmaX: heavy ? 40 : 25,
@@ -64,11 +74,11 @@ class VisionSectionLabel extends StatelessWidget {
   Widget build(BuildContext context) => Semantics(
     header: true,
     child: Text(
-      label.toUpperCase(),
+      kSimpleDesign ? label : label.toUpperCase(),
       style: TextStyle(
-        fontSize: 11,
+        fontSize: kSimpleDesign ? 21 : 11,
         fontWeight: FontWeight.w600,
-        letterSpacing: 1.25,
+        letterSpacing: kSimpleDesign ? -.5 : 1.25,
         color: Theme.of(context).colorScheme.onSurfaceVariant,
       ),
     ),

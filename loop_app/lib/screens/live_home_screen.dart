@@ -1,3 +1,4 @@
+import '../config/design_variant.dart';
 import '../widgets/category_style.dart';
 import '../widgets/adaptive_shell.dart' show LoopLogo;
 import '../config/backend_config.dart';
@@ -374,14 +375,16 @@ class _LiveHomeScreenState extends ConsumerState<LiveHomeScreen> {
         );
         if (liveNow.isNotEmpty) {
           final featured = liveNow.first;
-          slivers.add(
-            section(
-              Padding(
-                padding: const EdgeInsets.only(bottom: 12),
-                child: VisionSectionLabel(t('Pozornica uživo')),
+          if (!kSimpleDesign) {
+            slivers.add(
+              section(
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 12),
+                  child: VisionSectionLabel(t('Pozornica uživo')),
+                ),
               ),
-            ),
-          );
+            );
+          }
           slivers.add(
             section(
               LiveShopFeature(
@@ -454,6 +457,16 @@ class _LiveHomeScreenState extends ConsumerState<LiveHomeScreen> {
                 ],
               ),
             ),
+          );
+        }
+        if (kSimpleDesign && liveNow.isEmpty && buyNow.isNotEmpty) {
+          slivers.add(
+            section(
+              heading(t('Iz shopa'), onAll: () => _select(const _BuyNow())),
+            ),
+          );
+          slivers.add(
+            grid('home-shop-discovery', buyNow.take(4).toList(), t('Shop')),
           );
         }
       case _Timed():
@@ -659,24 +672,35 @@ class _LiveHomeScreenState extends ConsumerState<LiveHomeScreen> {
                   title: Text(t('Kako Subhasto radi')),
                   onTap: () => Navigator.pop(ctx, 'help'),
                 ),
-                ListTile(
-                  key: const ValueKey('home-profile'),
-                  leading: const Icon(Icons.person_outline),
-                  title: Text(t('Profil')),
-                  onTap: () => Navigator.pop(ctx, 'profile'),
-                ),
-                ListTile(
-                  leading: const Icon(Icons.chat_bubble_outline),
-                  title: Text(t('Poruke')),
-                  onTap: () => Navigator.pop(ctx, 'messages'),
-                ),
-                ListTile(
-                  leading: const Icon(Icons.notifications_outlined),
-                  title: Text(t('Obavijesti')),
-                  onTap: () => Navigator.pop(ctx, 'notifications'),
-                ),
+                if (!kSimpleDesign)
+                  ListTile(
+                    key: const ValueKey('home-profile'),
+                    leading: const Icon(Icons.person_outline),
+                    title: Text(t('Profil')),
+                    onTap: () => Navigator.pop(ctx, 'profile'),
+                  ),
+                if (!kSimpleDesign)
+                  ListTile(
+                    leading: const Icon(Icons.chat_bubble_outline),
+                    title: Text(t('Poruke')),
+                    onTap: () => Navigator.pop(ctx, 'messages'),
+                  ),
+                if (!kSimpleDesign)
+                  ListTile(
+                    leading: const Icon(Icons.notifications_outlined),
+                    title: Text(t('Obavijesti')),
+                    onTap: () => Navigator.pop(ctx, 'notifications'),
+                  ),
                 for (final (id, label, icon, value)
                     in <(String, String, IconData, Object)>[
+                      if (kSimpleDesign) ...[
+                        (
+                          'following',
+                          t('Pratim'),
+                          Icons.people_outline,
+                          const _Following(),
+                        ),
+                      ],
                       (
                         'live',
                         t('Uživo po kategoriji'),
@@ -769,53 +793,74 @@ class _LiveHomeScreenState extends ConsumerState<LiveHomeScreen> {
         padding: EdgeInsets.fromLTRB(small ? 16 : 24, 20, small ? 16 : 24, 12),
         child: Column(
           children: [
-            LayoutBuilder(
-              builder: (context, box) {
-                final logo = LoopLogo(size: small ? 22 : 25);
-                final actions = <Widget>[
-                  headerButton(
-                    t('Pretraži'),
-                    const ValueKey('home-search'),
-                    () => setState(() => _searchOpen = !_searchOpen),
+            if (kSimpleDesign)
+              Row(
+                children: [
+                  Expanded(
+                    child: Align(
+                      alignment: Alignment.centerLeft,
+                      child: LoopLogo(size: 28),
+                    ),
                   ),
-                ];
-                if (MediaQuery.textScalerOf(context).scale(14) / 14 > 1.2) {
-                  return Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+                  IconButton(
+                    key: const ValueKey('home-search'),
+                    tooltip: t('Pretraži'),
+                    onPressed: () => setState(() => _searchOpen = !_searchOpen),
+                    icon: const Icon(Icons.search),
+                  ),
+                  const MessagesButton(),
+                  const NotificationBell(),
+                ],
+              )
+            else
+              LayoutBuilder(
+                builder: (context, box) {
+                  final logo = LoopLogo(size: small ? 22 : 25);
+                  final actions = <Widget>[
+                    headerButton(
+                      t('Pretraži'),
+                      const ValueKey('home-search'),
+                      () => setState(() => _searchOpen = !_searchOpen),
+                    ),
+                  ];
+                  if (MediaQuery.textScalerOf(context).scale(14) / 14 > 1.2) {
+                    return Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        logo,
+                        const SizedBox(height: 10),
+                        Row(
+                          children: [
+                            for (final action in actions)
+                              Expanded(child: action),
+                          ],
+                        ),
+                      ],
+                    );
+                  }
+                  return Row(
                     children: [
-                      logo,
-                      const SizedBox(height: 10),
-                      Row(
-                        children: [
-                          for (final action in actions) Expanded(child: action),
-                        ],
+                      SizedBox(
+                        width: box.maxWidth * .28,
+                        child: Align(
+                          alignment: Alignment.centerLeft,
+                          child: logo,
+                        ),
+                      ),
+                      Expanded(
+                        child: FittedBox(
+                          fit: BoxFit.scaleDown,
+                          alignment: Alignment.centerRight,
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: actions,
+                          ),
+                        ),
                       ),
                     ],
                   );
-                }
-                return Row(
-                  children: [
-                    SizedBox(
-                      width: box.maxWidth * .28,
-                      child: Align(
-                        alignment: Alignment.centerLeft,
-                        child: logo,
-                      ),
-                    ),
-                    Expanded(
-                      child: FittedBox(
-                        fit: BoxFit.scaleDown,
-                        alignment: Alignment.centerRight,
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: actions,
-                        ),
-                      ),
-                    ),
-                  ],
-                );
-              },
-            ),
+                },
+              ),
             AnimatedSize(
               duration: const Duration(milliseconds: 250),
               curve: Curves.easeOutCubic,
@@ -848,20 +893,21 @@ class _LiveHomeScreenState extends ConsumerState<LiveHomeScreen> {
                               ),
                             ),
                           ),
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.end,
-                            children: [
-                              const MessagesButton(),
-                              const NotificationBell(),
-                              IconButton(
-                                tooltip: t('Profil'),
-                                icon: const Icon(Icons.person_outline),
-                                onPressed: () => ref
-                                    .read(homeTabProvider.notifier)
-                                    .select(3),
-                              ),
-                            ],
-                          ),
+                          if (!kSimpleDesign)
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.end,
+                              children: [
+                                const MessagesButton(),
+                                const NotificationBell(),
+                                IconButton(
+                                  tooltip: t('Profil'),
+                                  icon: const Icon(Icons.person_outline),
+                                  onPressed: () => ref
+                                      .read(homeTabProvider.notifier)
+                                      .select(3),
+                                ),
+                              ],
+                            ),
                         ],
                       ),
                     ),
@@ -924,7 +970,9 @@ class _LiveHomeScreenState extends ConsumerState<LiveHomeScreen> {
 
     return Center(
       child: ConstrainedBox(
-        constraints: BoxConstraints(maxWidth: _filter is _ForYou ? 480 : 1200),
+        constraints: BoxConstraints(
+          maxWidth: _filter is _ForYou ? (kSimpleDesign ? 780 : 480) : 1200,
+        ),
         child: Column(
           children: [
             chips,
@@ -948,7 +996,7 @@ class _LiveHomeScreenState extends ConsumerState<LiveHomeScreen> {
               ],
             ),
             // Dolje kategorije: odabrana ostaje označena i filtrira prikaz.
-            if (onLive)
+            if (onLive && !kSimpleDesign)
               AnimatedSize(
                 duration: const Duration(milliseconds: 200),
                 curve: Curves.easeOut,
@@ -976,6 +1024,38 @@ class _LiveHomeScreenState extends ConsumerState<LiveHomeScreen> {
                   },
                   child: CustomScrollView(
                     slivers: [
+                      if (kSimpleDesign &&
+                          _filter is! _ForYou &&
+                          _filter is! _BuyNow)
+                        SliverToBoxAdapter(
+                          child: Padding(
+                            padding: const EdgeInsets.fromLTRB(20, 12, 16, 4),
+                            child: Row(
+                              children: [
+                                Expanded(
+                                  child: Text(
+                                    switch (_filter) {
+                                      _Following() => t('Pratim'),
+                                      _Soon() => t('Uskoro'),
+                                      _Timed() => t('Aukcije'),
+                                      _Digital() => t('Digitalno'),
+                                      _ => t('Uživo po kategoriji'),
+                                    },
+                                    style: const TextStyle(
+                                      fontSize: 20,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                ),
+                                TextButton(
+                                  key: const ValueKey('simple-context-clear'),
+                                  onPressed: () => _select(const _ForYou()),
+                                  child: Text(t('Sve uživo')),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
                       if (onLive || onAuctions)
                         SliverToBoxAdapter(child: categoryFilter),
                       ...slivers,
@@ -1374,6 +1454,56 @@ class _TileRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    if (kSimpleDesign) {
+      final modes = [
+        ('for-you', t('Sve uživo'), const _ForYou()),
+        ('buy', t('Shop'), const _BuyNow()),
+      ];
+      return Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 20),
+        child: Row(
+          key: const ValueKey('home-tiles'),
+          children: [
+            for (final (id, label, filter) in modes)
+              Expanded(
+                child: InkWell(
+                  key: ValueKey('home-cat-$id'),
+                  onTap: () {
+                    onCategory?.call(null);
+                    onSelect(filter);
+                  },
+                  child: Container(
+                    alignment: Alignment.center,
+                    constraints: const BoxConstraints(minHeight: 52),
+                    decoration: BoxDecoration(
+                      border: Border(
+                        bottom: BorderSide(
+                          width: 2,
+                          color: selected == id
+                              ? LoopColors.textPrimary
+                              : Colors.transparent,
+                        ),
+                      ),
+                    ),
+                    child: Text(
+                      label,
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: selected == id
+                            ? FontWeight.w700
+                            : FontWeight.w400,
+                        color: selected == id
+                            ? LoopColors.textPrimary
+                            : LoopColors.textSecondary,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+          ],
+        ),
+      );
+    }
     // Aktivni tab je svijetla kapsula; sporedni prikazi (Kupi odmah,
     // aukcije…) su manji i tiši — fokus je na liveu.
     Widget tab({
