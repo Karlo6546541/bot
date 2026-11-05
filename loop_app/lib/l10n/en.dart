@@ -494,6 +494,7 @@ const kEn = <String, String>{
   '{0} čeka odgovor': '{0} awaiting a reply',
   'Čeka plaćanje': 'Awaiting payment',
   'Tjedni izvještaji': 'Weekly reports',
+  'Iz shopa': 'From the shop',
   'Moje kupnje': 'My purchases',
   'Pozornica': 'Stage',
   'Studio': 'Studio',

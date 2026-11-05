@@ -127,6 +127,7 @@ class _AccountHome extends ConsumerWidget {
     Widget group(List<Widget> rows) => Padding(
       padding: const EdgeInsets.only(top: 20),
       child: VisionGlass(
+        quiet: true,
         radius: 24,
         blur: false,
         child: Material(
@@ -253,6 +254,7 @@ class _AccountHome extends ConsumerWidget {
               const SizedBox(height: 16),
               Center(
                 child: VisionGlass(
+                  quiet: true,
                   radius: 99,
                   child: TextButton(
                     key: const ValueKey('account-open-shop'),
@@ -861,6 +863,7 @@ class _ProfileSettingsView extends ConsumerWidget {
           child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 560),
             child: VisionGlass(
+              quiet: true,
               radius: 28,
               blur: false,
               padding: const EdgeInsets.all(16),

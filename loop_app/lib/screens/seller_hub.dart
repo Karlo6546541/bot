@@ -1,3 +1,5 @@
+import '../config/design_variant.dart';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -11,6 +13,7 @@ import '../theme/app_theme.dart';
 import '../widgets/live_shop_widgets.dart';
 import '../widgets/vision_glass.dart';
 import '../widgets/user_avatar.dart';
+import '../widgets/trade_actions.dart';
 import '../widgets/seller_account_card.dart';
 import '../widgets/formatters.dart';
 import 'add_device_screen.dart';
@@ -395,7 +398,18 @@ class SellerHubScreen extends ConsumerWidget {
     final state = ref.watch(appProvider);
     final user = state.currentUser;
     if (user == null || user.isGuest) {
-      return Scaffold(appBar: AppBar(title: Text(t('Prodavač'))));
+      return Scaffold(
+        appBar: AppBar(title: Text(t('Prodavač'))),
+        body: !kSimpleDesign
+            ? null
+            : Center(
+                child: FilledButton.icon(
+                  onPressed: () => blockGuest(context),
+                  icon: const Icon(Icons.login),
+                  label: Text(t('Prijavi se')),
+                ),
+              ),
+      );
     }
     final health = AccountHealth.of(state, user.id, DateTime.now());
     final nowT = DateTime.now();
@@ -430,6 +444,28 @@ class SellerHubScreen extends ConsumerWidget {
         ]),
         _ => '',
       };
+      if (kSimpleDesign) {
+        return ListTile(
+          key: key,
+          contentPadding: const EdgeInsets.symmetric(
+            horizontal: 4,
+            vertical: 10,
+          ),
+          leading: id == 'seller-hub-messages' && state.conversations.isNotEmpty
+              ? UserAvatar(
+                  user: state.userById(state.conversations.first.otherId),
+                  size: 36,
+                )
+              : Icon(icon, color: LoopColors.textSecondary),
+          title: Text(
+            label,
+            style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w500),
+          ),
+          subtitle: detail.isEmpty ? null : Text(detail),
+          trailing: const Icon(Icons.chevron_right, size: 18),
+          onTap: onTap,
+        );
+      }
       return VisionGlass(
         radius: 26,
         child: Material(
@@ -482,6 +518,16 @@ class SellerHubScreen extends ConsumerWidget {
 
     Widget group(List<Widget> rows) => LayoutBuilder(
       builder: (context, box) {
+        if (kSimpleDesign) {
+          return Column(
+            children: [
+              for (var i = 0; i < rows.length; i++) ...[
+                if (i > 0) Divider(height: 1, color: LoopColors.glassBorder),
+                rows[i],
+              ],
+            ],
+          );
+        }
         final columns = box.maxWidth < 310 ? 1 : 2;
         final width = (box.maxWidth - (columns - 1) * 12) / columns;
         return Wrap(
@@ -514,33 +560,34 @@ class SellerHubScreen extends ConsumerWidget {
           ],
         ),
         actions: [
-          PopupMenuButton<int>(
-            key: const ValueKey('seller-hub-menu'),
-            onSelected: (value) {
-              switch (value) {
-                case 0:
-                  MyItemsScreen.open(context);
-                case 1:
-                  MyShowsScreen.open(context);
-                case 2:
-                  openSales(MyTab.selling);
-                case 3:
-                  DeliveryNotesScreen.open(context);
-                case 4:
-                  FinancialsScreen.open(context);
-                case 5:
-                  MessagesScreen.open(context);
-              }
-            },
-            itemBuilder: (_) => [
-              PopupMenuItem(value: 0, child: Text(t('Moji predmeti'))),
-              PopupMenuItem(value: 1, child: Text(t('Moji showovi'))),
-              PopupMenuItem(value: 2, child: Text(t('Aukcije i predmeti'))),
-              PopupMenuItem(value: 3, child: Text(t('Otpremnice'))),
-              PopupMenuItem(value: 4, child: Text(t('Financije'))),
-              PopupMenuItem(value: 5, child: Text(t('Poruke'))),
-            ],
-          ),
+          if (!kSimpleDesign)
+            PopupMenuButton<int>(
+              key: const ValueKey('seller-hub-menu'),
+              onSelected: (value) {
+                switch (value) {
+                  case 0:
+                    MyItemsScreen.open(context);
+                  case 1:
+                    MyShowsScreen.open(context);
+                  case 2:
+                    openSales(MyTab.selling);
+                  case 3:
+                    DeliveryNotesScreen.open(context);
+                  case 4:
+                    FinancialsScreen.open(context);
+                  case 5:
+                    MessagesScreen.open(context);
+                }
+              },
+              itemBuilder: (_) => [
+                PopupMenuItem(value: 0, child: Text(t('Moji predmeti'))),
+                PopupMenuItem(value: 1, child: Text(t('Moji showovi'))),
+                PopupMenuItem(value: 2, child: Text(t('Aukcije i predmeti'))),
+                PopupMenuItem(value: 3, child: Text(t('Otpremnice'))),
+                PopupMenuItem(value: 4, child: Text(t('Financije'))),
+                PopupMenuItem(value: 5, child: Text(t('Poruke'))),
+              ],
+            ),
         ],
       ),
       body: Align(
@@ -550,7 +597,7 @@ class SellerHubScreen extends ConsumerWidget {
           child: ListView(
             padding: EdgeInsets.fromLTRB(16, 12, 16, embedded ? 112 : 36),
             children: [
-              if (embedded) ...[
+              if (embedded && !kSimpleDesign) ...[
                 Container(
                   padding: const EdgeInsets.all(24),
                   decoration: BoxDecoration(
@@ -596,6 +643,7 @@ class SellerHubScreen extends ConsumerWidget {
                 style: FilledButton.styleFrom(
                   backgroundColor: LoopColors.live,
                   foregroundColor: Colors.white,
+                  minimumSize: kSimpleDesign ? const Size.fromHeight(54) : null,
                 ),
                 onPressed: () => CreateLiveShowScreen.open(context),
                 icon: const _LiveCameraPulse(),
@@ -612,12 +660,13 @@ class SellerHubScreen extends ConsumerWidget {
                     icon: const Icon(Icons.add),
                     label: Text(t('Dodaj proizvod')),
                   ),
-                  TextButton.icon(
-                    key: const ValueKey('seller-hub-auction'),
-                    onPressed: () => CreateAuctionScreen.open(context),
-                    icon: const Icon(Icons.gavel, size: 18),
-                    label: Text(t('Nova aukcija')),
-                  ),
+                  if (!kSimpleDesign)
+                    TextButton.icon(
+                      key: const ValueKey('seller-hub-auction'),
+                      onPressed: () => CreateAuctionScreen.open(context),
+                      icon: const Icon(Icons.gavel, size: 18),
+                      label: Text(t('Nova aukcija')),
+                    ),
                 ],
               ),
               for (final (show, live) in state.activeLives.where(
@@ -655,10 +704,11 @@ class SellerHubScreen extends ConsumerWidget {
               const SizedBox(height: 20),
               const SellerAccountCard(),
               const SizedBox(height: 20),
-              if (shipping > 0 ||
-                  state.bargainsToAnswer.any(
-                    (o) => o.sellerId == state.currentUserId,
-                  )) ...[
+              if (!kSimpleDesign &&
+                  (shipping > 0 ||
+                      state.bargainsToAnswer.any(
+                        (o) => o.sellerId == state.currentUserId,
+                      ))) ...[
                 heading(t('Za napraviti')),
                 group([
                   tile(
@@ -712,6 +762,13 @@ class SellerHubScreen extends ConsumerWidget {
               ),
               heading(t('Alati za prodaju')),
               group([
+                if (kSimpleDesign)
+                  tile(
+                    const ValueKey('seller-hub-auction'),
+                    Icons.gavel,
+                    t('Nova aukcija'),
+                    () => CreateAuctionScreen.open(context),
+                  ),
                 tile(
                   const ValueKey('seller-hub-shows'),
                   Icons.live_tv_outlined,

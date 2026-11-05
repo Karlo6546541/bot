@@ -1,3 +1,5 @@
+import '../config/design_variant.dart';
+
 import 'package:flutter/material.dart';
 
 /// Paleta boja Subhasta. Vrijednosti ovise o aktivnoj temi (svijetla/tamna),
@@ -14,8 +16,9 @@ class LoopColors {
   static void use(Brightness brightness) =>
       _dark = brightness == Brightness.dark;
 
-  static Color get background =>
-      _dark ? const Color(0xFF000000) : const Color(0xFFF2F2F7);
+  static Color get background => _dark
+      ? (kSimpleDesign ? const Color(0xFF101112) : const Color(0xFF000000))
+      : (kSimpleDesign ? const Color(0xFFFAFAF8) : const Color(0xFFF2F2F7));
   static Color get surface =>
       _dark ? const Color(0xFF1C1C1E) : const Color(0xFFFFFFFF);
   static Color get surfaceHover =>
@@ -152,13 +155,15 @@ ThemeData buildLoopTheme({Color? accent}) {
       ),
     ),
     cardTheme: CardThemeData(
-      color: LoopColors.glass,
+      color: kSimpleDesign ? Colors.transparent : LoopColors.glass,
       elevation: 0,
       surfaceTintColor: Colors.transparent,
       margin: EdgeInsets.zero,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(kRadius),
-        side: BorderSide(color: LoopColors.glassBorder),
+        side: BorderSide(
+          color: kSimpleDesign ? Colors.transparent : LoopColors.glassBorder,
+        ),
       ),
     ),
     dialogTheme: DialogThemeData(

@@ -1,3 +1,4 @@
+import '../config/design_variant.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -218,8 +219,8 @@ class _ActivityViewState extends ConsumerState<ActivityView> {
         ),
       ),
     );
-    final body = switch (_tab) {
-      _Tab.purchases => [
+    final panels = <_Tab, List<Widget>>{
+      _Tab.purchases: [
         const MyOnlineActivityPanel(
           filter: 'bought',
           walletStyle: true,
@@ -272,8 +273,10 @@ class _ActivityViewState extends ConsumerState<ActivityView> {
             for (final d in digital) _savedRow(d, key: 'dig-${d.id}'),
           ]),
       ],
-      _Tab.bids => [
-        if (bidding.isEmpty && ended.isEmpty)
+      _Tab.bids: [
+        if (bidding.isEmpty &&
+            ended.isEmpty &&
+            (!kSimpleDesign || offers.isEmpty))
           _empty(
             t('Još nisi licitirao'),
             message: t('Licitiraj na aukciji i ovdje pratiš ponude i pobjede.'),
@@ -285,8 +288,8 @@ class _ActivityViewState extends ConsumerState<ActivityView> {
         if (ended.isNotEmpty)
           section(t('Završene'), [for (final a in ended) auction(a)]),
       ],
-      _Tab.offers => [
-        if (offers.isEmpty)
+      _Tab.offers: [
+        if (offers.isEmpty && !kSimpleDesign)
           _empty(
             t('Još nema ponuda'),
             message: t('Na oglasu dodirni "Ponudi cijenu" i predloži svoju.'),
@@ -318,7 +321,7 @@ class _ActivityViewState extends ConsumerState<ActivityView> {
                 offer(o),
             ]),
       ],
-      _Tab.saved => [
+      _Tab.saved: [
         if (saved.isEmpty)
           _empty(
             t('Još nemaš spremljenih stvari'),
@@ -340,6 +343,9 @@ class _ActivityViewState extends ConsumerState<ActivityView> {
       ],
     };
 
+    final body = kSimpleDesign && (_tab == _Tab.bids || _tab == _Tab.offers)
+        ? [...panels[_Tab.bids]!, ...panels[_Tab.offers]!]
+        : panels[_tab]!;
     return Align(
       alignment: Alignment.topCenter,
       child: ConstrainedBox(
@@ -351,14 +357,20 @@ class _ActivityViewState extends ConsumerState<ActivityView> {
               child: SingleChildScrollView(
                 scrollDirection: Axis.horizontal,
                 child: VisionGlass(
+                  quiet: true,
                   radius: 18,
                   padding: const EdgeInsets.all(4),
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       tab(_Tab.purchases, t('Kupnje'), actions.length),
-                      tab(_Tab.bids, t('Licitacije'), outbid.length),
-                      tab(_Tab.offers, t('Ponude'), toAnswer.length),
+                      if (!kSimpleDesign)
+                        tab(_Tab.bids, t('Licitacije'), outbid.length),
+                      tab(
+                        _Tab.offers,
+                        t('Ponude'),
+                        toAnswer.length + (kSimpleDesign ? outbid.length : 0),
+                      ),
                       tab(_Tab.saved, t('Spremljeno'), 0),
                     ],
                   ),

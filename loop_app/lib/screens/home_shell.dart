@@ -1,3 +1,4 @@
+import '../config/design_variant.dart';
 import '../config/backend_config.dart';
 import 'cloud_commerce_screen.dart';
 import 'dart:async';
@@ -29,7 +30,7 @@ import 'search_screen.dart';
 import 'wishlists_screen.dart';
 import 'notifications_screen.dart';
 
-/// Glavni okvir: Početna · Kategorije · [+ Objavi] · Moje · Profil.
+/// Three destinations keep browsing, selling and personal activity together.
 class HomeShell extends ConsumerStatefulWidget {
   const HomeShell({super.key});
 
@@ -319,7 +320,7 @@ class _HomeShellState extends ConsumerState<HomeShell> {
                     ),
               actions: [
                 // Početna i Kategorije već imaju svoju tražilicu.
-                if (_index != 0 && _index != 1)
+                if (!kSimpleDesign && _index != 0 && _index != 1)
                   IconButton(
                     key: const ValueKey('open-search'),
                     tooltip: t('Pretraži objave i račune'),
@@ -339,7 +340,7 @@ class _HomeShellState extends ConsumerState<HomeShell> {
                     ),
                     onPressed: () => _go(_index == 3 ? 2 : 3),
                   ),
-                const MessagesButton(),
+                if (!kSimpleDesign) const MessagesButton(),
                 const NotificationBell(),
                 if (!phone) ...[
                   const LanguageButton(compact: true),
