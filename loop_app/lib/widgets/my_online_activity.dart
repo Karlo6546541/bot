@@ -1,3 +1,6 @@
+import 'reference_sheet.dart';
+import '../config/design_variant.dart';
+import 'formatters.dart';
 import 'purchase_confirmation.dart';
 import '../l10n/tr.dart';
 import 'package:flutter/material.dart';
@@ -43,16 +46,25 @@ class MyOnlineActivityPanel extends ConsumerWidget {
   }) async {
     final client = ref.read(preparedLiveBackendProvider)?.client;
     if (client == null) return;
-    await Navigator.of(context).push(
-      MaterialPageRoute<void>(
-        builder: (_) => CloudCommerceScreen(
-          client: client,
-          initialTab: 2,
-          liveOnly: true,
-          initialOrder: id,
-        ),
-      ),
+    Widget orders(BuildContext _) => CloudCommerceScreen(
+      client: client,
+      initialTab: 2,
+      liveOnly: true,
+      initialOrder: id,
+      embedded: kSimpleDesign,
     );
+    if (kSimpleDesign) {
+      await openReferenceSheet<void>(
+        context,
+        title: t('Detalji narudžbe'),
+        scaffoldContent: true,
+        builder: orders,
+      );
+    } else {
+      await Navigator.of(
+        context,
+      ).push(MaterialPageRoute<void>(builder: orders));
+    }
     if (context.mounted) ref.invalidate(myOnlineActivityProvider);
   }
 
@@ -195,7 +207,7 @@ class MyOnlineActivityPanel extends ConsumerWidget {
           for (final order in orders)
             if (walletStyle)
               Padding(
-                padding: const EdgeInsets.fromLTRB(16, 0, 16, 18),
+                padding: EdgeInsets.fromLTRB(16, 0, 16, kSimpleDesign ? 2 : 18),
                 child: _walletOrder(context, ref, order),
               )
             else
@@ -279,11 +291,15 @@ class MyOnlineActivityPanel extends ConsumerWidget {
           'Narudžba #${id.substring(0, id.length.clamp(0, 8))}',
       date: DateTime.parse(order['created_at'] as String).toLocal(),
       status: groupForOrder(order),
-      price: '${((order['total_cents'] as num) / 100).toStringAsFixed(2)} €',
+      price: kSimpleDesign
+          ? formatCredits((order['total_cents'] as num) / 100)
+          : '${((order['total_cents'] as num) / 100).toStringAsFixed(2)} €',
       device: device,
       imagePath: image,
-      onTap: () => _orders(context, ref, id: id),
-      footer: inlinePayments && order['status'] == 'awaiting_payment'
+      onTap: kSimpleDesign ? null : () => _orders(context, ref, id: id),
+      footer:
+          (inlinePayments || kSimpleDesign) &&
+              order['status'] == 'awaiting_payment'
           ? _InlineOrderPayment(order: order)
           : Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,

@@ -1,3 +1,5 @@
+import '../widgets/reference_sheet.dart';
+import '../config/design_variant.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -151,9 +153,16 @@ Future<void> showCreateSheet(BuildContext context, WidgetRef ref) async {
 class InventoryScreen extends ConsumerStatefulWidget {
   const InventoryScreen({super.key});
 
-  static Future<void> open(BuildContext context) => Navigator.of(
-    context,
-  ).push(MaterialPageRoute<void>(builder: (_) => const InventoryScreen()));
+  static Future<void> open(BuildContext context) => kSimpleDesign
+      ? openReferenceSheet<void>(
+          context,
+          title: t('Inventar'),
+          scaffoldContent: true,
+          builder: (_) => const InventoryScreen(),
+        )
+      : Navigator.of(context).push(
+          MaterialPageRoute<void>(builder: (_) => const InventoryScreen()),
+        );
 
   @override
   ConsumerState<InventoryScreen> createState() => _InventoryScreenState();

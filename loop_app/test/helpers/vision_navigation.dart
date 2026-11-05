@@ -86,7 +86,7 @@ Future<void> mainTab(WidgetTester tester, String label) async {
 
 Future<void> globalSearch(WidgetTester tester) async {
   if (kSimpleDesign) {
-    await tester.tap(find.byKey(const ValueKey('home-search-submit')));
+    await tester.tap(find.byKey(const ValueKey('home-search')));
     await tester.pumpAndSettle();
     return;
   }

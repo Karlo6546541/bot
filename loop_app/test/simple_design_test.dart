@@ -1,3 +1,7 @@
+import 'package:loop_app/widgets/reference_sheet.dart';
+import 'package:loop_app/widgets/reference_order_row.dart';
+import 'package:loop_app/widgets/wallet_ticket.dart';
+import 'package:loop_app/theme/app_theme.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -41,6 +45,101 @@ void main() {
         : MaterialApp(home: Scaffold(body: home)),
   );
 
+  testWidgets('several purchases fit on the phone; tracking opens on demand', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(390, 844);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    var openedOriginalDetails = false;
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: buildLoopTheme(),
+        home: Builder(
+          builder: (context) => Scaffold(
+            body: TextButton(
+              onPressed: () => openReferenceSheet<void>(
+                context,
+                title: 'Moje',
+                builder: (_) => ListView(
+                  padding: const EdgeInsets.symmetric(horizontal: 24),
+                  children: [
+                    for (var i = 0; i < 6; i++)
+                      WalletTicket(
+                        title: 'Kupnja $i',
+                        status: 'Čeka slanje',
+                        date: DateTime(2026, 11, 5),
+                        price: '42 €',
+                        onTap: () => openedOriginalDetails = true,
+                        footer: const CinematicTracking(
+                          stage: 0,
+                          animate: false,
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+              child: const Text('Otvori kupnje'),
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.tap(find.text('Otvori kupnje'));
+    await tester.pumpAndSettle();
+    expect(find.byType(ReferenceOrderRow).hitTestable(), findsNWidgets(6));
+    expect(find.byType(CinematicTracking), findsNothing);
+    expect(
+      tester.getSize(find.byType(ReferenceOrderRow).first).height,
+      lessThanOrEqualTo(72),
+    );
+    await tester.tap(find.text('Kupnja 0'));
+    await tester.pumpAndSettle();
+    expect(find.text('Detalji narudžbe'), findsOneWidget);
+    expect(
+      tester.widget<CinematicTracking>(find.byType(CinematicTracking)).stage,
+      0,
+    );
+    await tester.tap(find.text('Pogledaj'));
+    expect(openedOriginalDetails, isTrue);
+    await tester.tap(find.byKey(const ValueKey('reference-sheet-close')).last);
+    await tester.pumpAndSettle();
+    expect(find.byType(CinematicTracking), findsNothing);
+    expect(find.text('Kupnja 5'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('a sheet remains usable above the mobile keyboard', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(390, 844);
+    tester.view.devicePixelRatio = 1;
+    tester.view.viewInsets = const FakeViewPadding(bottom: 320);
+    addTearDown(tester.view.reset);
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: buildLoopTheme(),
+        home: const Scaffold(
+          resizeToAvoidBottomInset: false,
+          body: ReferenceSheet(
+            title: 'Pretraži',
+            child: Padding(
+              padding: EdgeInsets.all(24),
+              child: TextField(key: ValueKey('keyboard-search')),
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    final field = find.byKey(const ValueKey('keyboard-search'));
+    expect(tester.getTopLeft(field).dy, lessThan(180));
+    expect(tester.getBottomRight(find.byType(ReferenceSheet)).dy, 844);
+    expect(tester.getBottomRight(field).dy, lessThan(524));
+    expect(buildLoopTheme().textTheme.bodyMedium?.fontFamily, kFontFamily);
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets(
     'reference home keeps all four destinations and discovery routes accessible',
     (tester) async {
@@ -54,7 +153,7 @@ void main() {
       }
       expect(find.byKey(const ValueKey('home-shop-discovery')), findsOneWidget);
       expect(find.byKey(const ValueKey('home-shops')), findsOneWidget);
-      expect(find.byKey(const ValueKey('home-inline-search')), findsOneWidget);
+      expect(find.byKey(const ValueKey('home-search')), findsOneWidget);
       await mainTab(tester, 'Moje');
       expect(
         find.byKey(const ValueKey('activity-tab-purchases')),
@@ -99,14 +198,17 @@ void main() {
     expect(shops, findsWidgets);
     final key = tester.widget<InkWell>(shops.first).key! as ValueKey<String>;
     final owner = storage.userById(key.value.substring('home-shop-'.length))!;
+    await tester.tap(find.byKey(const ValueKey('home-search')));
+    await tester.pumpAndSettle();
     await tester.enterText(
-      find.byKey(const ValueKey('home-inline-search')),
+      find.byKey(const ValueKey('reference-search-input')),
       owner.username,
     );
     await tester.pumpAndSettle();
-    expect(find.byKey(key), findsOneWidget);
-    await tester.ensureVisible(find.byKey(key));
-    await tester.tap(find.byKey(key));
+    final result = find.byKey(ValueKey('reference-shop-${owner.id}'));
+    expect(result, findsOneWidget);
+    await tester.ensureVisible(result);
+    await tester.tap(result);
     await tester.pumpAndSettle();
     expect(
       tester
@@ -114,6 +216,8 @@ void main() {
           .userId,
       owner.id,
     );
+    expect(find.byTooltip('O prodavatelju').hitTestable(), findsOneWidget);
+    expect(find.byTooltip('Podijeli trgovinu').hitTestable(), findsOneWidget);
     expect(tester.takeException(), isNull);
     await tester.pumpWidget(const SizedBox());
   });

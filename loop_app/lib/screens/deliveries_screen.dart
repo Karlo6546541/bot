@@ -1,3 +1,5 @@
+import '../config/design_variant.dart';
+import '../widgets/reference_sheet.dart';
 import 'dart:async';
 import 'dart:convert';
 
@@ -569,12 +571,18 @@ class DeliveryDetailScreen extends ConsumerWidget {
   const DeliveryDetailScreen({super.key, required this.deliveryId});
   final String deliveryId;
 
-  static Future<void> open(BuildContext context, String id) =>
-      Navigator.of(context).push(
-        MaterialPageRoute<void>(
+  static Future<void> open(BuildContext context, String id) => kSimpleDesign
+      ? openReferenceSheet<void>(
+          context,
+          title: t('Praćenje pošiljke'),
+          scaffoldContent: true,
           builder: (_) => DeliveryDetailScreen(deliveryId: id),
-        ),
-      );
+        )
+      : Navigator.of(context).push(
+          MaterialPageRoute<void>(
+            builder: (_) => DeliveryDetailScreen(deliveryId: id),
+          ),
+        );
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -1558,11 +1566,18 @@ class DeliveryNotesScreen extends ConsumerStatefulWidget {
   final ShipGroup? group;
 
   static Future<void> open(BuildContext context, {ShipGroup? group}) =>
-      Navigator.of(context).push(
-        MaterialPageRoute<void>(
+      kSimpleDesign
+      ? openReferenceSheet<void>(
+          context,
+          title: t('Otprema'),
+          scaffoldContent: true,
           builder: (_) => DeliveryNotesScreen(group: group),
-        ),
-      );
+        )
+      : Navigator.of(context).push(
+          MaterialPageRoute<void>(
+            builder: (_) => DeliveryNotesScreen(group: group),
+          ),
+        );
 
   @override
   ConsumerState<DeliveryNotesScreen> createState() =>

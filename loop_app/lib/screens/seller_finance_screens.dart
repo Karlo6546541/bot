@@ -1,3 +1,5 @@
+import '../widgets/reference_sheet.dart';
+import '../config/design_variant.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -89,9 +91,16 @@ bool payoutInTransit(LoopTransaction tx, DateTime now) =>
 class FinancialsScreen extends ConsumerWidget {
   const FinancialsScreen({super.key});
 
-  static Future<void> open(BuildContext context) => Navigator.of(
-    context,
-  ).push(MaterialPageRoute<void>(builder: (_) => const FinancialsScreen()));
+  static Future<void> open(BuildContext context) => kSimpleDesign
+      ? openReferenceSheet<void>(
+          context,
+          title: t('Financije'),
+          scaffoldContent: true,
+          builder: (_) => const FinancialsScreen(),
+        )
+      : Navigator.of(context).push(
+          MaterialPageRoute<void>(builder: (_) => const FinancialsScreen()),
+        );
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {

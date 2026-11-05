@@ -1,3 +1,4 @@
+import 'package:loop_app/config/design_variant.dart';
 import 'helpers/vision_navigation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -73,7 +74,13 @@ void main() {
       await tester.tap(find.byKey(const ValueKey('my-profile-settings')));
       await tester.pumpAndSettle();
       expect(find.byKey(const ValueKey('seller-info')), findsOneWidget);
-      await tester.tap(find.byKey(const ValueKey('profile-settings-close')));
+      await tester.tap(
+        find.byKey(
+          ValueKey(
+            kSimpleDesign ? 'reference-sheet-close' : 'profile-settings-close',
+          ),
+        ),
+      );
       await tester.pumpAndSettle();
       expect(find.byKey(const ValueKey('account-home')), findsOneWidget);
       expect(tester.takeException(), isNull);

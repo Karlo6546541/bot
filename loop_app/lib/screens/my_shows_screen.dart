@@ -1,3 +1,5 @@
+import '../widgets/reference_sheet.dart';
+import '../config/design_variant.dart';
 import 'package:flutter/material.dart';
 import 'live_promote_sheet.dart';
 import 'show_checklist_screen.dart';
@@ -22,9 +24,16 @@ import 'seller_finance_screens.dart';
 class MyShowsScreen extends ConsumerWidget {
   const MyShowsScreen({super.key});
 
-  static Future<void> open(BuildContext context) => Navigator.of(
-    context,
-  ).push(MaterialPageRoute<void>(builder: (_) => const MyShowsScreen()));
+  static Future<void> open(BuildContext context) => kSimpleDesign
+      ? openReferenceSheet<void>(
+          context,
+          title: t('Moji showovi'),
+          scaffoldContent: true,
+          builder: (_) => const MyShowsScreen(),
+        )
+      : Navigator.of(
+          context,
+        ).push(MaterialPageRoute<void>(builder: (_) => const MyShowsScreen()));
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {

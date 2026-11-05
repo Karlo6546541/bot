@@ -1,3 +1,5 @@
+import '../widgets/reference_sheet.dart';
+import '../config/design_variant.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -13,9 +15,16 @@ import '../l10n/tr.dart';
 class ActivityPage extends StatelessWidget {
   const ActivityPage({super.key});
 
-  static Future<void> open(BuildContext context) => Navigator.of(
-    context,
-  ).push(MaterialPageRoute<void>(builder: (_) => const ActivityPage()));
+  static Future<void> open(BuildContext context) => kSimpleDesign
+      ? openReferenceSheet<void>(
+          context,
+          title: t('Povijest transakcija'),
+          scaffoldContent: true,
+          builder: (_) => const ActivityPage(),
+        )
+      : Navigator.of(
+          context,
+        ).push(MaterialPageRoute<void>(builder: (_) => const ActivityPage()));
 
   @override
   Widget build(BuildContext context) => Scaffold(

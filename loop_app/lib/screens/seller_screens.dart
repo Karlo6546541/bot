@@ -1,3 +1,5 @@
+import '../widgets/reference_sheet.dart';
+import '../config/design_variant.dart';
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -92,9 +94,16 @@ class SellerInfoScreen extends ConsumerStatefulWidget {
   final bool embedded;
 
   static Future<bool> open(BuildContext context) async {
-    final saved = await Navigator.of(
-      context,
-    ).push<bool>(MaterialPageRoute(builder: (_) => const SellerInfoScreen()));
+    final saved = kSimpleDesign
+        ? await openReferenceSheet<bool>(
+            context,
+            title: t('Podaci prodavatelja'),
+            scaffoldContent: true,
+            builder: (_) => const SellerInfoScreen(),
+          )
+        : await Navigator.of(context).push<bool>(
+            MaterialPageRoute(builder: (_) => const SellerInfoScreen()),
+          );
     return saved ?? false;
   }
 

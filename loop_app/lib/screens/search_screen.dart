@@ -1,3 +1,6 @@
+import '../config/design_variant.dart';
+import '../widgets/reference_sheet.dart';
+import '../widgets/reference_order_row.dart';
 import 'dart:ui';
 import '../widgets/vision_glass.dart';
 import 'show_filters.dart';
@@ -40,16 +43,26 @@ class SearchScreen extends ConsumerStatefulWidget {
     BuildContext context, {
     bool accounts = false,
     String initialQuery = '',
-  }) => Navigator.of(context).push(
-    PageRouteBuilder<void>(
-      opaque: false,
-      barrierDismissible: false,
-      pageBuilder: (_, _, _) => BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 24, sigmaY: 24),
-        child: SearchScreen(accounts: accounts, initialQuery: initialQuery),
-      ),
-    ),
-  );
+  }) => kSimpleDesign
+      ? openReferenceSheet<void>(
+          context,
+          title: t('Pretraži'),
+          builder: (_) =>
+              SearchScreen(accounts: accounts, initialQuery: initialQuery),
+        )
+      : Navigator.of(context).push(
+          PageRouteBuilder<void>(
+            opaque: false,
+            barrierDismissible: false,
+            pageBuilder: (_, _, _) => BackdropFilter(
+              filter: ImageFilter.blur(sigmaX: 24, sigmaY: 24),
+              child: SearchScreen(
+                accounts: accounts,
+                initialQuery: initialQuery,
+              ),
+            ),
+          ),
+        );
 
   @override
   ConsumerState<SearchScreen> createState() => _SearchScreenState();
@@ -164,9 +177,269 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
     return list;
   }
 
+  Widget _referenceBody(AppState state) {
+    final posts = _posts(state);
+    final accounts = _q.trim().isEmpty ? <AppUser>[] : _accounts(state);
+    final entries = {
+      for (final entry in posts)
+        entry.liveId ?? entry.auctionId ?? entry.deviceId,
+    };
+    final candidates = browseItems(state);
+    final filteredShows = _filters
+        .apply(candidates, state)
+        .map((item) => item.show!.id)
+        .toSet();
+    final items = candidates
+        .where(
+          (item) => item.show == null || filteredShows.contains(item.show!.id),
+        )
+        .where(
+          (item) => entries.contains(
+            item.show?.id ?? item.auction?.id ?? item.device?.id,
+          ),
+        )
+        .toList();
+    final suggestions = <String>{
+      ...state.searchHistory.take(2),
+      DeviceCategory.watches.label,
+      DeviceCategory.vinyl.label,
+      ...state.users
+          .where(
+            (user) =>
+                !user.isGuest &&
+                user.shopName.trim().isNotEmpty &&
+                !state.isBlocked(user.id),
+          )
+          .take(2)
+          .map((user) => user.shopTitle),
+      DeviceCategory.camera.label,
+      DeviceCategory.audio.label,
+    }.take(6);
+    Widget heading(String text) => Padding(
+      padding: const EdgeInsets.only(top: 16, bottom: 10),
+      child: Text(
+        text,
+        style: const TextStyle(
+          fontSize: 19,
+          fontWeight: FontWeight.w600,
+          letterSpacing: -.3,
+        ),
+      ),
+    );
+    return Column(
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(24, 4, 24, 16),
+          child: SizedBox(
+            height: 52,
+            child: TextField(
+              key: const ValueKey('reference-search-input'),
+              controller: _c,
+              focusNode: _focus,
+              autofocus: true,
+              onChanged: (value) => setState(() => _q = value),
+              textInputAction: TextInputAction.search,
+              onSubmitted: (value) {
+                if (value.trim().isNotEmpty) {
+                  ref.read(appProvider.notifier).addSearch(value);
+                }
+              },
+              style: const TextStyle(fontSize: 16, height: 1.2),
+              decoration: InputDecoration(
+                hintText: t('Pretraži predmete i shopove'),
+                filled: true,
+                fillColor: LoopColors.textPrimary.withValues(alpha: .07),
+                isDense: true,
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 20,
+                  vertical: 14,
+                ),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(99),
+                  borderSide: BorderSide(color: LoopColors.glassBorder),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(99),
+                  borderSide: BorderSide(color: LoopColors.glassBorder),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(99),
+                  borderSide: BorderSide(
+                    color: LoopColors.textPrimary.withValues(alpha: .30),
+                  ),
+                ),
+                suffixIcon: _q.isEmpty
+                    ? null
+                    : IconButton(
+                        tooltip: t('Filteri'),
+                        icon: const Icon(Icons.tune, size: 19),
+                        onPressed: () => openReferenceSheet<void>(
+                          context,
+                          title: t('Filteri'),
+                          builder: (ctx) => Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 24),
+                            child: Wrap(
+                              spacing: 8,
+                              runSpacing: 8,
+                              children: [
+                                for (final entry in <(SearchKind?, String)>[
+                                  (null, t('Sve')),
+                                  (SearchKind.auction, t('Aukcije')),
+                                  (SearchKind.buyNow, t('Kupi odmah')),
+                                  (SearchKind.live, t('Uživo')),
+                                ])
+                                  ActionChip(
+                                    key: ValueKey(
+                                      'search-kind-${entry.$1?.name ?? 'all'}',
+                                    ),
+                                    label: Text(entry.$2),
+                                    onPressed: () {
+                                      setState(() => _kind = entry.$1);
+                                      Navigator.pop(ctx);
+                                    },
+                                  ),
+                                ActionChip(
+                                  key: const ValueKey('shows-filter'),
+                                  label: Text(t('Filteri showova')),
+                                  onPressed: () async {
+                                    final result = await showShowFilterSheet(
+                                      ctx,
+                                      initial: _filters,
+                                      items: candidates
+                                          .where((item) => item.show != null)
+                                          .toList(),
+                                      state: state,
+                                    );
+                                    if (result != null &&
+                                        mounted &&
+                                        ctx.mounted) {
+                                      setState(() => _filters = result);
+                                      Navigator.pop(ctx);
+                                    }
+                                  },
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+              ),
+            ),
+          ),
+        ),
+        Expanded(
+          child: ListView(
+            key: const ValueKey('reference-search-results'),
+            padding: const EdgeInsets.fromLTRB(24, 0, 24, 28),
+            children: [
+              if (_q.trim().isEmpty)
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: [
+                    for (final term in suggestions)
+                      Material(
+                        color: LoopColors.textPrimary.withValues(alpha: .08),
+                        borderRadius: BorderRadius.circular(99),
+                        child: InkWell(
+                          borderRadius: BorderRadius.circular(99),
+                          onTap: () => _set(term),
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 18,
+                              vertical: 14,
+                            ),
+                            child: Text(
+                              term,
+                              style: const TextStyle(
+                                fontSize: 15,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                  ],
+                )
+              else ...[
+                if (accounts.isNotEmpty) ...[
+                  heading(t('Shopovi')),
+                  for (final user in accounts.take(10))
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 8),
+                      child: ReferenceOrderRow(
+                        key: ValueKey('reference-shop-${user.id}'),
+                        title: user.shopTitle,
+                        subtitle: [
+                          t('Shop'),
+                          if (user.city != null) user.city!,
+                        ].join(' · '),
+                        artwork: UserAvatar(user: user, size: 52),
+                        onTap: () => PublicProfileScreen.open(context, user.id),
+                      ),
+                    ),
+                ],
+                if (items.isNotEmpty) ...[
+                  heading(t('Predmeti')),
+                  for (var i = 0; i < items.length; i++)
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 8),
+                      child: ReferenceOrderRow(
+                        title:
+                            items[i].show?.title ??
+                            items[i].auction?.deviceName ??
+                            items[i].device!.name,
+                        subtitle:
+                            items[i].show?.hostLabel ??
+                            state
+                                .userById(
+                                  items[i].device?.ownerId ??
+                                      items[i].auction?.sellerId,
+                                )
+                                ?.shopTitle ??
+                            '',
+                        amount: items[i].live?.current?.price != null
+                            ? formatCredits(items[i].live!.current!.price)
+                            : items[i].auction != null
+                            ? formatCredits(items[i].auction!.currentPrice)
+                            : items[i].device != null
+                            ? formatCredits(items[i].device!.shownPrice)
+                            : null,
+                        artwork: BrowseCardMedia(
+                          device: items[i].device,
+                          cover: items[i].show?.coverPath,
+                        ),
+                        onTap: () {
+                          ref.read(appProvider.notifier).addSearch(_q);
+                          SwipeFeedScreen.open(
+                            context,
+                            items.map((item) => item.entry).toList(),
+                            i,
+                          );
+                        },
+                      ),
+                    ),
+                ],
+                if (accounts.isEmpty && items.isEmpty)
+                  Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 24),
+                    child: Text(
+                      t('Nema rezultata'),
+                      style: TextStyle(color: LoopColors.textSecondary),
+                    ),
+                  ),
+              ],
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final s = ref.watch(appProvider);
+    if (kSimpleDesign) return _referenceBody(s);
     final posts = _posts(s);
     final accounts = _accounts(s);
     final shows = [

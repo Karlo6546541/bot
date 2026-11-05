@@ -1,3 +1,5 @@
+import '../widgets/reference_sheet.dart';
+import '../config/design_variant.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -25,9 +27,16 @@ import 'public_profile_screen.dart';
 class MessagesScreen extends ConsumerWidget {
   const MessagesScreen({super.key});
 
-  static Future<void> open(BuildContext context) => Navigator.of(
-    context,
-  ).push(MaterialPageRoute<void>(builder: (_) => const MessagesScreen()));
+  static Future<void> open(BuildContext context) => kSimpleDesign
+      ? openReferenceSheet<void>(
+          context,
+          title: t('Poruke'),
+          scaffoldContent: true,
+          builder: (_) => const MessagesScreen(),
+        )
+      : Navigator.of(
+          context,
+        ).push(MaterialPageRoute<void>(builder: (_) => const MessagesScreen()));
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {

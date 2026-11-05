@@ -1,3 +1,5 @@
+import '../widgets/reference_sheet.dart';
+import '../config/design_variant.dart';
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
@@ -16,9 +18,16 @@ import 'seller_hub.dart' show AccountHealth, HealthLevel;
 class AccountHealthScreen extends ConsumerWidget {
   const AccountHealthScreen({super.key});
 
-  static Future<void> open(BuildContext context) => Navigator.of(
-    context,
-  ).push(MaterialPageRoute<void>(builder: (_) => const AccountHealthScreen()));
+  static Future<void> open(BuildContext context) => kSimpleDesign
+      ? openReferenceSheet<void>(
+          context,
+          title: t('Zdravlje računa'),
+          scaffoldContent: true,
+          builder: (_) => const AccountHealthScreen(),
+        )
+      : Navigator.of(context).push(
+          MaterialPageRoute<void>(builder: (_) => const AccountHealthScreen()),
+        );
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
