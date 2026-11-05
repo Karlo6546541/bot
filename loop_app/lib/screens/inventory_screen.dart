@@ -10,7 +10,8 @@ import '../providers/app_state.dart';
 import '../services/live_service.dart';
 import '../theme/app_theme.dart';
 import '../widgets/formatters.dart';
-import '../widgets/item_image.dart';
+import '../widgets/product_poster.dart';
+import '../widgets/vision_glass.dart';
 import 'add_device_screen.dart';
 import 'create_auction_screen.dart';
 import 'device_detail_screen.dart';
@@ -190,7 +191,6 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> {
             _match(tx.deviceName))
           tx,
     ]..sort((a, b) => b.createdAt.compareTo(a.createdAt));
-    final muted = TextStyle(color: LoopColors.textSecondary, fontSize: 12);
 
     Widget empty(String text) => Padding(
       padding: const EdgeInsets.only(top: 48),
@@ -212,90 +212,50 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> {
       String emptyText,
     ) => list.isEmpty
         ? ListView(children: [empty(emptyText)])
-        : ListView.separated(
-            padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+        : GridView.builder(
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 100),
+            gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+              maxCrossAxisExtent: 280,
+              mainAxisSpacing: 14,
+              crossAxisSpacing: 14,
+              childAspectRatio: .72,
+            ),
             itemCount: list.length,
-            separatorBuilder: (_, _) =>
-                Divider(height: 1, color: LoopColors.surfaceHover),
             itemBuilder: (_, i) {
               final (d, _, label) = list[i];
-              return InkWell(
+              return ProductPoster(
                 key: ValueKey('inv-${d.id}'),
+                device: d,
+                title: d.name,
+                status: '$label · ${d.quantity}',
+                price: formatCredits(d.listPrice ?? d.price),
                 onTap: () => DeviceDetailScreen.open(context, d),
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 10),
-                  child: Row(
-                    children: [
-                      ItemThumb(device: d, size: 56),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              d.name,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(
-                                fontWeight: FontWeight.w800,
-                              ),
-                            ),
-                            Text(
-                              '$label · ${t('Količina: {0}', ['${d.quantity}'])}',
-                              style: muted,
-                            ),
-                          ],
-                        ),
-                      ),
-                      Text(
-                        formatCredits(d.listPrice ?? d.price),
-                        style: const TextStyle(fontWeight: FontWeight.w900),
-                      ),
-                      Icon(
-                        Icons.chevron_right,
-                        color: LoopColors.textSecondary,
-                      ),
-                    ],
-                  ),
-                ),
               );
             },
           );
-
     final soldList = sold.isEmpty
         ? ListView(children: [empty(t('Još ništa nije prodano.'))])
-        : ListView.separated(
-            padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+        : GridView.builder(
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 100),
+            gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+              maxCrossAxisExtent: 280,
+              mainAxisSpacing: 14,
+              crossAxisSpacing: 14,
+              childAspectRatio: .72,
+            ),
             itemCount: sold.length,
-            separatorBuilder: (_, _) =>
-                Divider(height: 1, color: LoopColors.surfaceHover),
             itemBuilder: (_, i) {
               final tx = sold[i];
-              return ListTile(
+              final d = s.deviceById(tx.deviceId);
+              return ProductPoster(
                 key: ValueKey('inv-sold-${tx.id}'),
-                contentPadding: EdgeInsets.zero,
-                leading: Container(
-                  width: 44,
-                  height: 44,
-                  decoration: BoxDecoration(
-                    color: LoopColors.surfaceHover,
-                    shape: BoxShape.circle,
-                  ),
-                  child: const Icon(Icons.sell_outlined, size: 20),
-                ),
-                title: Text(
-                  tx.deviceName,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(fontWeight: FontWeight.w800),
-                ),
-                subtitle: Text(
-                  '${formatDate(tx.createdAt)} · ${s.userLabel(tx.buyerId)}',
-                ),
-                trailing: Text(
-                  formatCredits(tx.price),
-                  style: const TextStyle(fontWeight: FontWeight.w900),
-                ),
+                device: d,
+                title: tx.deviceName,
+                price: formatCredits(tx.price),
+                status: '${t('Prodano')} · ${formatDate(tx.createdAt)}',
+                onTap: d == null
+                    ? null
+                    : () => DeviceDetailScreen.open(context, d),
               );
             },
           );
@@ -325,26 +285,29 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> {
                     ),
                   ),
                 ),
-                TabBar(
-                  dividerColor: LoopColors.surfaceHover,
-                  indicatorColor: LoopColors.textPrimary,
-                  labelColor: LoopColors.textPrimary,
-                  unselectedLabelColor: LoopColors.textSecondary,
-                  labelStyle: const TextStyle(fontWeight: FontWeight.w900),
-                  tabs: [
-                    Tab(
-                      key: const ValueKey('inv-tab-active'),
-                      text: t('Aktivno ({0})', ['${active.length}']),
-                    ),
-                    Tab(
-                      key: const ValueKey('inv-tab-draft'),
-                      text: t('Spremljeno ({0})', ['${drafts.length}']),
-                    ),
-                    Tab(
-                      key: const ValueKey('inv-tab-sold'),
-                      text: t('Prodano ({0})', ['${sold.length}']),
-                    ),
-                  ],
+                VisionGlass(
+                  radius: 99,
+                  child: TabBar(
+                    dividerColor: LoopColors.surfaceHover,
+                    indicatorColor: LoopColors.textPrimary,
+                    labelColor: LoopColors.textPrimary,
+                    unselectedLabelColor: LoopColors.textSecondary,
+                    labelStyle: const TextStyle(fontWeight: FontWeight.w900),
+                    tabs: [
+                      Tab(
+                        key: const ValueKey('inv-tab-active'),
+                        text: t('Aktivno ({0})', ['${active.length}']),
+                      ),
+                      Tab(
+                        key: const ValueKey('inv-tab-draft'),
+                        text: t('Spremljeno ({0})', ['${drafts.length}']),
+                      ),
+                      Tab(
+                        key: const ValueKey('inv-tab-sold'),
+                        text: t('Prodano ({0})', ['${sold.length}']),
+                      ),
+                    ],
+                  ),
                 ),
               ],
             ),
@@ -357,18 +320,15 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> {
             soldList,
           ],
         ),
-        bottomNavigationBar: SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
-            child: SizedBox(
-              height: 52,
-              child: FilledButton.icon(
-                key: const ValueKey('inv-create'),
-                onPressed: () => showCreateSheet(context, ref),
-                icon: const Icon(Icons.add),
-                label: Text(t('Kreiraj')),
-              ),
-            ),
+        floatingActionButton: VisionGlass(
+          radius: 99,
+          child: FloatingActionButton(
+            key: const ValueKey('inv-create'),
+            tooltip: t('Novi predmet'),
+            elevation: 0,
+            backgroundColor: Colors.transparent,
+            onPressed: () => showCreateSheet(context, ref),
+            child: const Icon(Icons.add),
           ),
         ),
       ),

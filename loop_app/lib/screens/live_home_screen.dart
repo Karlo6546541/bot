@@ -1,5 +1,3 @@
-import 'activity_view.dart';
-import 'seller_hub.dart';
 import '../widgets/category_style.dart';
 import '../widgets/adaptive_shell.dart' show LoopLogo;
 import '../config/backend_config.dart';
@@ -775,43 +773,6 @@ class _LiveHomeScreenState extends ConsumerState<LiveHomeScreen> {
               builder: (context, box) {
                 final logo = LoopLogo(size: small ? 22 : 25);
                 final actions = <Widget>[
-                  headerButton(
-                    t('Prodavač'),
-                    ValueKey(
-                      _filter is _ForYou && width < 840
-                          ? 'nav-create'
-                          : 'home-seller',
-                    ),
-                    () {
-                      if (!blockGuest(context)) SellerHubScreen.open(context);
-                    },
-                  ),
-                  headerButton(
-                    t('Računi'),
-                    const ValueKey('home-accounts'),
-                    () => showModalBottomSheet<void>(
-                      context: context,
-                      isScrollControlled: true,
-                      backgroundColor: Colors.transparent,
-                      showDragHandle: false,
-                      constraints: const BoxConstraints(maxWidth: 480),
-                      builder: (ctx) => SizedBox(
-                        height: MediaQuery.sizeOf(ctx).height * .8,
-                        child: VisionGlass(
-                          heavy: true,
-                          radius: 32,
-                          child: Scaffold(
-                            backgroundColor: Colors.transparent,
-                            appBar: AppBar(
-                              backgroundColor: Colors.transparent,
-                              title: Text(t('Računi')),
-                            ),
-                            body: const ActivityView(),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
                   headerButton(
                     t('Pretraži'),
                     const ValueKey('home-search'),

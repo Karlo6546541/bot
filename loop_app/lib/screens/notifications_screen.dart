@@ -1,4 +1,7 @@
+import '../providers/my_activity_provider.dart';
+import '../widgets/my_online_activity.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../l10n/tr.dart';
@@ -223,8 +226,6 @@ class _Cluster {
 }
 
 class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
-  NotificationGroup? _filter;
-
   /// Danas / Jučer / Ovaj tjedan / Ranije.
   static String _section(DateTime at, DateTime now) {
     final today = DateTime(now.year, now.month, now.day);
@@ -241,26 +242,41 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
     final state = ref.watch(appProvider);
     final all = [...state.myNotifications]
       ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
+    final online = ref.watch(myOnlineActivityProvider).asData?.value;
+    final onlinePending =
+        online?.orders.any(
+          (o) =>
+              o['buyer_id'] == state.currentUserId &&
+              o['status'] == 'awaiting_payment',
+        ) ??
+        false;
     final unread = all.where((n) => !n.read).length;
-    final unreadBy = <NotificationGroup, int>{};
-    final present = <NotificationGroup>{};
-    for (final n in all) {
-      present.add(n.kind.group);
-      if (!n.read) {
-        unreadBy.update(n.kind.group, (v) => v + 1, ifAbsent: () => 1);
-      }
-    }
-    final filter = present.contains(_filter) ? _filter : null;
-    final shown = filter == null
-        ? all
-        : all.where((n) => n.kind.group == filter).toList();
+    bool important(AppNotification n) => switch (n.kind) {
+      NotificationKind.auctionWon ||
+      NotificationKind.digitalWon ||
+      NotificationKind.giveawayWon ||
+      NotificationKind.bargainNew ||
+      NotificationKind.bargainAccepted ||
+      NotificationKind.bargainCountered ||
+      NotificationKind.disputeOpened ||
+      NotificationKind.disputeReview ||
+      NotificationKind.parcelArrived => true,
+      _ => false,
+    };
+    final shown = [...all]
+      ..sort((a, b) {
+        final priority = (important(b) ? 1 : 0) - (important(a) ? 1 : 0);
+        return priority != 0 ? priority : b.createdAt.compareTo(a.createdAt);
+      });
 
     // Sekcije po danima; unutar dana spoji istu vrstu za isti cilj.
     final now = DateTime.now();
     final sections = <String, List<_Cluster>>{};
     final index = <String, _Cluster>{};
     for (final n in shown) {
-      final sec = _section(n.createdAt, now);
+      final sec = important(n)
+          ? t('Važne radnje')
+          : '${t('Novosti')} · ${_section(n.createdAt, now)}';
       // Aukcije: jedna kartica po aukciji; ostalo: ista vrsta za isti cilj.
       final key = n.targetId == null
           ? n.id
@@ -295,7 +311,7 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
           ),
         ],
       ),
-      body: all.isEmpty
+      body: all.isEmpty && !onlinePending
           ? EmptyState(
               icon: Icons.notifications_none,
               title: t('Nema obavijesti'),
@@ -309,17 +325,15 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
                 constraints: const BoxConstraints(maxWidth: 720),
                 child: CustomScrollView(
                   slivers: [
-                    SliverToBoxAdapter(
-                      child: _Filters(
-                        present: present,
-                        unreadBy: unreadBy,
-                        unreadAll: unread,
-                        selected: filter,
-                        onSelect: (g) => setState(() => _filter = g),
+                    if (onlinePending)
+                      SliverToBoxAdapter(
+                        child: MyOnlineActivityPanel(
+                          filter: 'bought',
+                          walletStyle: true,
+                          walletGroup: t('Čeka plaćanje'),
+                          inlinePayments: true,
+                        ),
                       ),
-                    ),
-                    if (filter == NotificationGroup.auctions)
-                      SliverToBoxAdapter(child: _AuctionSummary(state: state)),
                     for (final e in sections.entries) ...[
                       SliverToBoxAdapter(
                         child: Padding(
@@ -352,146 +366,6 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
   }
 }
 
-/// Filteri: Sve · Aukcije · Kupnje i prodaje · Ponude · Društvo · Poruke.
-class _Filters extends StatelessWidget {
-  const _Filters({
-    required this.present,
-    required this.unreadBy,
-    required this.unreadAll,
-    required this.selected,
-    required this.onSelect,
-  });
-
-  final Set<NotificationGroup> present;
-  final Map<NotificationGroup, int> unreadBy;
-  final int unreadAll;
-  final NotificationGroup? selected;
-  final ValueChanged<NotificationGroup?> onSelect;
-
-  @override
-  Widget build(BuildContext context) {
-    Widget chip(Key key, String label, int count, bool on, VoidCallback tap) =>
-        Padding(
-          padding: const EdgeInsets.only(right: 8),
-          child: ChoiceChip(
-            key: key,
-            selected: on,
-            onSelected: (_) => tap(),
-            showCheckmark: false,
-            label: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(label),
-                if (count > 0) ...[
-                  const SizedBox(width: 6),
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 6,
-                      vertical: 1,
-                    ),
-                    decoration: BoxDecoration(
-                      color: LoopColors.accent,
-                      borderRadius: BorderRadius.circular(99),
-                    ),
-                    child: Text(
-                      '$count',
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 11,
-                        fontWeight: FontWeight.w900,
-                      ),
-                    ),
-                  ),
-                ],
-              ],
-            ),
-          ),
-        );
-    return SizedBox(
-      height: 52,
-      child: ListView(
-        scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.fromLTRB(12, 8, 4, 4),
-        children: [
-          chip(
-            const ValueKey('notif-filter-all'),
-            t('Sve'),
-            unreadAll,
-            selected == null,
-            () => onSelect(null),
-          ),
-          for (final g in NotificationGroup.values)
-            if (present.contains(g))
-              chip(
-                ValueKey('notif-filter-${g.name}'),
-                g.label,
-                unreadBy[g] ?? 0,
-                selected == g,
-                () => onSelect(g),
-              ),
-        ],
-      ),
-    );
-  }
-}
-
-/// Sažetak mojih aktivnih aukcija (na filteru "Aukcije").
-class _AuctionSummary extends StatelessWidget {
-  const _AuctionSummary({required this.state});
-  final AppState state;
-
-  @override
-  Widget build(BuildContext context) {
-    final me = state.currentUserId;
-    final active = state.auctions.where((a) => a.isActive).toList();
-    final leading = active.where((a) => a.highestBid?.userId == me).length;
-    final outbid = active
-        .where(
-          (a) =>
-              a.highestBid?.userId != me && a.bids.any((b) => b.userId == me),
-        )
-        .length;
-    final selling = active.where((a) => a.sellerId == me).length;
-    Widget stat(String label, int value, Color color) => Expanded(
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 8),
-        decoration: BoxDecoration(
-          color: color.withValues(alpha: 0.12),
-          borderRadius: BorderRadius.circular(14),
-        ),
-        child: Column(
-          children: [
-            Text(
-              '$value',
-              style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 22),
-            ),
-            Text(
-              label,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: TextStyle(fontSize: 12, color: LoopColors.textSecondary),
-            ),
-          ],
-        ),
-      ),
-    );
-    return Padding(
-      key: const ValueKey('auction-summary'),
-      padding: const EdgeInsets.fromLTRB(12, 6, 12, 0),
-      child: Row(
-        children: [
-          stat(t('Vodiš'), leading, LoopColors.success),
-          const SizedBox(width: 8),
-          stat(t('Nadmašen'), outbid, const Color(0xFFFF9500)),
-          const SizedBox(width: 8),
-          stat(t('Tvoje aukcije'), selling, LoopColors.accent),
-        ],
-      ),
-    );
-  }
-}
-
-/// "prije 5 min", "prije 3 h", inače datum i vrijeme.
 String _when(DateTime at) {
   final d = DateTime.now().difference(at);
   if (d.inMinutes < 1) return t('upravo');
@@ -522,6 +396,7 @@ class _NotificationTile extends ConsumerWidget {
     final more = cluster.all.length - 1;
 
     Future<void> open() async {
+      HapticFeedback.selectionClick();
       for (final x in cluster.all.where((x) => !x.read)) {
         await c.markNotificationsRead(id: x.id);
       }
@@ -557,7 +432,9 @@ class _NotificationTile extends ConsumerWidget {
       ),
       onDismissed: (_) => c.deleteNotifications(cluster.all.map((x) => x.id)),
       child: Material(
-        color: cluster.unread ? LoopColors.peach : LoopColors.surface,
+        color: cluster.unread
+            ? LoopColors.accent.withValues(alpha: .06)
+            : Colors.transparent,
         borderRadius: BorderRadius.circular(kRadius),
         child: InkWell(
           key: ValueKey('notif-tile-${n.id}'),
@@ -578,7 +455,7 @@ class _NotificationTile extends ConsumerWidget {
                         _wonText(n, won),
                         style: TextStyle(
                           fontWeight: cluster.unread
-                              ? FontWeight.w800
+                              ? FontWeight.w700
                               : FontWeight.w500,
                         ),
                       ),

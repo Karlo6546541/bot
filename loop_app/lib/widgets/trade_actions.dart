@@ -24,6 +24,8 @@ import 'formatters.dart';
 import 'loop_snackbar.dart';
 import '../l10n/tr.dart';
 import 'trust_widgets.dart';
+import 'digital_payment_card.dart';
+import 'vision_glass.dart';
 
 export 'loop_snackbar.dart';
 
@@ -291,28 +293,34 @@ class _WalletSheet extends ConsumerWidget {
       required String subtitle,
       required bool done,
       required VoidCallback onTap,
-    }) => Material(
-      color: LoopColors.surface,
-      borderRadius: BorderRadius.circular(kRadius),
-      child: ListTile(
-        key: key,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(kRadius),
-        ),
-        leading: CircleAvatar(
-          backgroundColor: done ? LoopColors.mint : LoopColors.peach,
-          child: Icon(icon, color: LoopColors.textPrimary),
-        ),
-        title: Text(title, style: const TextStyle(fontWeight: FontWeight.w800)),
-        subtitle: Text(subtitle),
-        trailing: Text(
-          done ? t('Promijeni') : t('Dodaj'),
-          style: TextStyle(
-            color: LoopColors.accent,
-            fontWeight: FontWeight.w900,
+    }) => VisionGlass(
+      radius: 28,
+      child: Material(
+        color: Colors.transparent,
+        borderRadius: BorderRadius.circular(kRadius),
+        child: ListTile(
+          key: key,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(kRadius),
           ),
+          leading: CircleAvatar(
+            backgroundColor: done ? LoopColors.mint : LoopColors.peach,
+            child: Icon(icon, color: LoopColors.textPrimary),
+          ),
+          title: Text(
+            title,
+            style: const TextStyle(fontWeight: FontWeight.w800),
+          ),
+          subtitle: Text(subtitle),
+          trailing: Text(
+            done ? t('Promijeni') : t('Dodaj'),
+            style: TextStyle(
+              color: LoopColors.accent,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+          onTap: onTap,
         ),
-        onTap: onTap,
       ),
     );
     return SafeArea(
@@ -337,14 +345,9 @@ class _WalletSheet extends ConsumerWidget {
               ],
             ),
             section(t('PLAĆANJE')),
-            tile(
+            DigitalPaymentCard(
               key: const ValueKey('wallet-card'),
-              icon: Icons.credit_card,
-              title: card ?? t('Dodaj karticu, Google Pay ili Apple Pay'),
-              subtitle: card == null
-                  ? t('Testni način — koristi testnu karticu 4242.')
-                  : t('Naplaćuje se automatski kad kupiš ili pobijediš.'),
-              done: card != null,
+              label: card,
               onTap: () => changeCard(context, ref),
             ),
             section(t('DOSTAVA')),
@@ -418,7 +421,7 @@ class _CheckoutSetupSheetState extends ConsumerState<_CheckoutSetupSheet> {
 
   @override
   Widget build(BuildContext context) => SafeArea(
-    child: Padding(
+    child: SingleChildScrollView(
       padding: EdgeInsets.fromLTRB(
         16,
         0,
@@ -457,33 +460,13 @@ class _CheckoutSetupSheetState extends ConsumerState<_CheckoutSetupSheet> {
             style: TextStyle(color: LoopColors.textSecondary),
           ),
           const SizedBox(height: 14),
-          Material(
-            color: _card != null ? LoopColors.mint : LoopColors.surface,
-            borderRadius: BorderRadius.circular(kRadius),
-            child: ListTile(
-              key: const ValueKey('checkout-card'),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(kRadius),
-              ),
-              leading: const Icon(Icons.credit_card),
-              title: Text(
-                _card ?? t('Dodaj karticu, Google Pay ili Apple Pay'),
-                style: const TextStyle(fontWeight: FontWeight.w800),
-              ),
-              subtitle: Text(
-                _card == null
-                    ? t('Testni način — koristi testnu karticu 4242.')
-                    : t('Dodirni za promjenu'),
-              ),
-              trailing: Icon(
-                _card != null ? Icons.check_circle : Icons.add_circle_outline,
-                color: _card != null ? LoopColors.success : null,
-              ),
-              onTap: () async {
-                final card = await addPaymentMethod(context);
-                if (card != null && mounted) setState(() => _card = card);
-              },
-            ),
+          DigitalPaymentCard(
+            key: const ValueKey('checkout-card'),
+            label: _card,
+            onTap: () async {
+              final card = await addPaymentMethod(context);
+              if (card != null && mounted) setState(() => _card = card);
+            },
           ),
           const SizedBox(height: 12),
           TextField(
@@ -510,7 +493,7 @@ class _CheckoutSetupSheetState extends ConsumerState<_CheckoutSetupSheet> {
               minimumSize: const Size.fromHeight(50),
             ),
             onPressed: _card == null || _busy ? null : _save,
-            child: Text(t('Spremi i nastavi')),
+            child: Text(t('Potvrdi podatke')),
           ),
         ],
       ),

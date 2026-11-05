@@ -93,43 +93,35 @@ class _HomeShellState extends ConsumerState<HomeShell> {
     _go(0);
   }
 
-  List<ShellDestination> get _destinations {
-    return [
-      ShellDestination(t('Početna'), Icons.home_outlined, Icons.home),
-      ShellDestination(
-        t('Kategorije'),
-        Icons.grid_view_outlined,
-        Icons.grid_view_rounded,
-      ),
-      // Uvijek Seller Hub (i prije prvih podataka prodavatelja): gumb se
-      // ne mijenja nakon prijave ili odjave.
-      ShellDestination(
-        t('Prodavač'),
-        Icons.storefront_outlined,
-        Icons.storefront,
-        action: true,
-      ),
-      ShellDestination(
-        t('Moje'),
-        Icons.local_activity_outlined,
-        Icons.local_activity,
-      ),
-      ShellDestination(t('Profil'), Icons.person_outline, Icons.person),
-    ];
-  }
+  List<ShellDestination> get _destinations => [
+    ShellDestination(
+      t('Pozornica'),
+      Icons.play_circle_outline,
+      Icons.play_circle,
+    ),
+    ShellDestination(
+      t('Studio'),
+      Icons.sensors_outlined,
+      Icons.sensors,
+      action: true,
+    ),
+    ShellDestination(t('Trezor'), Icons.wallet_outlined, Icons.wallet),
+  ];
 
-  /// Kartice: 0 Početna, 1 Kategorije, 2 Moje, 3 Profil. U traci je "+"
-  /// na mjestu 2 pa su Moje i Profil pomaknuti za jedan.
-  static const _createSlot = 2;
-  static int _navIndex(int tab) => tab < _createSlot ? tab : tab + 1;
+  // Legacy deep links keep their meaning; three destinations collect those views.
+  static int _navIndex(int tab) => switch (tab) {
+    4 => 1,
+    2 || 3 => 2,
+    _ => 0,
+  };
 
   void _onNav(int nav) {
-    if (nav == _createSlot) {
-      if (blockGuest(context)) return;
-      SellerHubScreen.open(context);
-      return;
-    }
-    _go(nav < _createSlot ? nav : nav - 1);
+    if (nav == 1 && blockGuest(context)) return;
+    _go(switch (nav) {
+      1 => 4,
+      2 => 2,
+      _ => 0,
+    });
   }
 
   /// Tab početne u adresi (`?tab=live`…); Za tebe je bez upita.
@@ -141,6 +133,7 @@ class _HomeShellState extends ConsumerState<HomeShell> {
       0 => 'tab=$filter',
       1 => 'tab=kategorije',
       2 => 'tab=moje',
+      4 => 'tab=studio',
       _ => 'tab=profil',
     });
   }
@@ -223,6 +216,9 @@ class _HomeShellState extends ConsumerState<HomeShell> {
           _go(2);
         case 'profil':
           _go(3);
+        case 'studio':
+        case 'prodavac':
+          _go(4);
         default:
           _go(0);
           ref.read(homeFilterProvider.notifier).select(tab);
@@ -292,7 +288,7 @@ class _HomeShellState extends ConsumerState<HomeShell> {
     final phone = width < 600;
 
     final shell = AdaptiveShell(
-      showNavigation: !(_index == 0 && feedSelected),
+      showNavigation: true,
       immersiveNavigation: _index == 0 && feedSelected,
       // Isto na mobitelu i na računalu (Whatnot): Početna · Kategorije ·
       // Objavi · Moje (aktivnost) · Profil.
@@ -303,7 +299,7 @@ class _HomeShellState extends ConsumerState<HomeShell> {
         padding: const EdgeInsets.symmetric(vertical: 20),
         child: LoopLogo(size: 22, onTap: _goHome),
       ),
-      appBar: _index == 0
+      appBar: _index == 0 || _index == 4
           ? null
           : AppBar(
               // Jednostavna traka: logo lijevo, desno samo pretraga, poruke,
@@ -311,10 +307,15 @@ class _HomeShellState extends ConsumerState<HomeShell> {
               titleSpacing: phone ? 8 : null,
               title: isDesktop
                   ? Text(_destinations[_navIndex(_index)].label)
-                  : FittedBox(
-                      fit: BoxFit.scaleDown,
-                      alignment: Alignment.centerLeft,
-                      child: LoopLogo(size: 20, onTap: _goHome),
+                  : InkWell(
+                      key: const ValueKey('logo-home'),
+                      onTap: _goHome,
+                      child: Text(
+                        _index == 2 || _index == 3
+                            ? t('Trezor')
+                            : t('Pozornica'),
+                        style: const TextStyle(fontWeight: FontWeight.w800),
+                      ),
                     ),
               actions: [
                 // Početna i Kategorije već imaju svoju tražilicu.
@@ -325,16 +326,19 @@ class _HomeShellState extends ConsumerState<HomeShell> {
                     icon: const Icon(Icons.search),
                     onPressed: () => SearchScreen.open(context),
                   ),
-                PopupMenuButton<int>(
-                  key: const ValueKey('shell-library-menu'),
-                  tooltip: t('Filteri'),
-                  icon: const Icon(Icons.tune),
-                  onSelected: _go,
-                  itemBuilder: (_) => [
-                    PopupMenuItem(value: 1, child: Text(t('Kategorije'))),
-                    PopupMenuItem(value: 2, child: Text(t('Moje'))),
-                  ],
-                ),
+                if (_index == 2 || _index == 3)
+                  IconButton(
+                    key: const ValueKey('vault-account'),
+                    tooltip: t(
+                      _index == 3 ? 'Moje kupnje' : 'Profil i postavke',
+                    ),
+                    icon: Icon(
+                      _index == 3
+                          ? Icons.wallet_outlined
+                          : Icons.account_circle_outlined,
+                    ),
+                    onPressed: () => _go(_index == 3 ? 2 : 3),
+                  ),
                 const MessagesButton(),
                 const NotificationBell(),
                 if (!phone) ...[
@@ -350,8 +354,15 @@ class _HomeShellState extends ConsumerState<HomeShell> {
         children: [
           LiveHomeScreen(visible: _index == 0),
           const CategoriesScreen(),
-          ActivityView(onBrowse: () => _go(0)),
+          TickerMode(
+            enabled: _index == 2,
+            child: ActivityView(onBrowse: () => _go(0)),
+          ),
           const ProfileScreen(),
+          TickerMode(
+            enabled: _index == 4,
+            child: const SellerHubScreen(embedded: true),
+          ),
         ],
       ),
     );

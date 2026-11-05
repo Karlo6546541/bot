@@ -1,3 +1,12 @@
+import 'package:loop_app/models/loop_transaction.dart';
+import 'package:loop_app/models/app_notification.dart';
+import 'package:loop_app/screens/account_health_screen.dart';
+import 'package:loop_app/screens/inventory_screen.dart';
+import 'package:loop_app/screens/deliveries_screen.dart';
+import 'package:loop_app/screens/activity_screen.dart';
+import 'package:loop_app/screens/search_screen.dart';
+import 'package:loop_app/screens/profile_screen.dart';
+import 'package:loop_app/widgets/trade_actions.dart';
 import 'package:loop_app/models/app_user.dart';
 import 'package:loop_app/widgets/purchase_confirmation.dart';
 import 'package:loop_app/services/stripe_backend.dart';
@@ -44,7 +53,13 @@ class _PreviewTab extends HomeTab {
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   final route = Uri.base.queryParameters['preview'] ?? 'home';
-  final profilePreview = ['profile', 'categories', 'activity'].contains(route);
+  final profilePreview = [
+    'profile',
+    'categories',
+    'activity',
+    'studio',
+    'settings',
+  ].contains(route);
   previewSemanticsHandle = SemanticsBinding.instance.ensureSemantics();
   final storage = StorageService();
   await storage.init(inMemory: true);
@@ -206,15 +221,86 @@ Future<void> main() async {
           ),
         ),
   );
+
+  // Additional records belong only to the in-memory visual fixture.
+  final previewNow = DateTime.now();
+  for (var i = 0; i < 4; i++) {
+    final device = storage.deviceById(samples.elementAt(i % 2))!;
+    await storage.putDelivery(
+      Delivery(
+        id: 'preview-seller-$i',
+        deviceId: device.id,
+        deviceName: device.name,
+        buyerId: SeedData.anaUserId,
+        sellerId: SeedData.testUserId,
+        createdAt: previewNow.subtract(Duration(hours: i)),
+        method: DeliveryMethod.courier,
+        destination: 'Ilica 1, Zagreb',
+        startedAt: previewNow,
+        trackingNumber: 'DEMO-$i',
+        handedOverAt: i >= 2 ? previewNow : null,
+        confirmedAt: i == 3 ? previewNow : null,
+      ),
+    );
+    await storage.putTransaction(
+      LoopTransaction(
+        id: 'preview-sale-$i',
+        type: TransactionType.sell,
+        userId: SeedData.testUserId,
+        sellerId: SeedData.testUserId,
+        buyerId: SeedData.anaUserId,
+        deviceId: device.id,
+        deviceName: device.name,
+        price: device.price,
+        fee: device.price * .06,
+        amount: device.price * .94,
+        buyerLabel: 'Ana',
+        sellerLabel: 'Test',
+        createdAt: previewNow.subtract(Duration(days: i)),
+      ),
+    );
+  }
+  final boughtDevice = storage.deviceById(samples.elementAt(2))!;
+  await shipping.createPending(
+    id: 'preview-wallet-ticket',
+    userId: SeedData.testUserId,
+    deviceId: boughtDevice.id,
+    deviceName: boughtDevice.name,
+    sellerId: SeedData.anaUserId,
+  );
+  await storage.putNotification(
+    AppNotification(
+      id: 'preview-important',
+      userId: SeedData.testUserId,
+      kind: NotificationKind.bargainAccepted,
+      createdAt: previewNow,
+      targetId: boughtDevice.id,
+      args: const ['Ana', '25 €', 'Canon EOS'],
+    ),
+  );
+  await storage.putNotification(
+    AppNotification(
+      id: 'preview-update',
+      userId: SeedData.testUserId,
+      kind: NotificationKind.newFollower,
+      createdAt: previewNow.subtract(const Duration(hours: 2)),
+      targetId: SeedData.anaUserId,
+      args: const ['Ana'],
+    ),
+  );
   if (route == 'host') await storage.saveSession(userId: SeedData.markoUserId);
   runApp(
     ProviderScope(
       overrides: [
+        if (route == 'settings')
+          profileSettingsProvider.overrideWith(_PreviewSettings.new),
         if (profilePreview)
           homeTabProvider.overrideWith(
             () => _PreviewTab(switch (route) {
               'categories' => 1,
               'activity' => 2,
+              'studio' => 4,
+              'settings' => 3,
               _ => 3,
             }),
           ),
@@ -246,6 +332,13 @@ class _PreviewRoot extends StatelessWidget {
       'shop' => const PublicProfileScreen(userId: SeedData.anaUserId),
       'live' || 'host' => LiveRoomScreen(showId: showId),
       'seller' => const SellerHubScreen(),
+      'inventory' => const InventoryScreen(),
+      'shipping' => const DeliveryNotesScreen(),
+      'health' => const AccountHealthScreen(),
+      'history' => const ActivityPage(),
+      'search' => const SearchScreen(),
+      'sales' => const MyAuctionsScreen(),
+      'wallet' => const _WalletPreview(),
       'form' => const SellerInfoScreen(),
       'messages' => const MessagesScreen(),
       'notifications' => const NotificationsScreen(),
@@ -304,4 +397,28 @@ class _PurchasePreviewState extends State<_PurchasePreview> {
   @override
   Widget build(BuildContext context) =>
       DeviceDetailScreen(deviceId: widget.item.id);
+}
+
+class _PreviewSettings extends ProfileSettingsController {
+  @override
+  bool build() => true;
+}
+
+class _WalletPreview extends ConsumerStatefulWidget {
+  const _WalletPreview();
+  @override
+  ConsumerState<_WalletPreview> createState() => _WalletPreviewState();
+}
+
+class _WalletPreviewState extends ConsumerState<_WalletPreview> {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) showWallet(context, ref);
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) => const Scaffold();
 }

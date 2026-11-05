@@ -3881,6 +3881,19 @@ class _LiveRoomViewState extends ConsumerState<_LiveRoomBody> {
                         ),
                       VisionShopHandle(
                         key: const ValueKey('live-queue'),
+                        onNavigate: (index) {
+                          if (index == 1 && blockGuest(context)) return;
+                          ref.read(homeTabProvider.notifier).select(
+                            switch (index) {
+                              1 => 4,
+                              2 => 2,
+                              _ => 0,
+                            },
+                          );
+                          Navigator.of(
+                            context,
+                          ).popUntil((route) => route.isFirst);
+                        },
                         label: t('Povuci gore za shop · {0} predmeta', [
                           '${st.queue.length + liveShopProducts(s, show.hostId).length}',
                         ]),

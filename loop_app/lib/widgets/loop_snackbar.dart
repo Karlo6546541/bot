@@ -21,14 +21,22 @@ void showLoopSnackBar(
   String? actionLabel,
   VoidCallback? onAction,
 }) {
+  final media = rootMessengerKey.currentContext == null
+      ? null
+      : MediaQuery.maybeOf(rootMessengerKey.currentContext!);
+  final room = media == null
+      ? 800.0
+      : media.size.height - media.viewInsets.bottom;
+  final bottom = (_liftHolders > 0 ? 240.0 : 96.0).clamp(
+    16.0,
+    room > 50 ? room * .35 : 16.0,
+  );
   rootMessengerKey.currentState
     ?..hideCurrentSnackBar()
     ..showSnackBar(
       SnackBar(
-        behavior: _liftHolders > 0 ? SnackBarBehavior.floating : null,
-        margin: _liftHolders > 0
-            ? const EdgeInsets.fromLTRB(16, 0, 16, 240)
-            : null,
+        behavior: SnackBarBehavior.floating,
+        margin: EdgeInsets.fromLTRB(16, 0, 16, bottom),
         action: actionLabel == null || onAction == null
             ? null
             : SnackBarAction(label: actionLabel, onPressed: onAction),

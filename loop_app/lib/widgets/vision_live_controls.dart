@@ -201,15 +201,79 @@ class VisionShopHandle extends StatefulWidget {
     super.key,
     required this.onOpen,
     required this.label,
+    this.onNavigate,
   });
   final VoidCallback onOpen;
   final String label;
+  final ValueChanged<int>? onNavigate;
   @override
   State<VisionShopHandle> createState() => _VisionShopHandleState();
 }
 
 class _VisionShopHandleState extends State<VisionShopHandle> {
   double _distance = 0;
+
+  Future<void> _navigation() async {
+    final selected = await showGeneralDialog<int>(
+      context: context,
+      barrierDismissible: true,
+      barrierLabel: t('Zatvori navigaciju'),
+      barrierColor: Colors.black26,
+      transitionDuration: MediaQuery.disableAnimationsOf(context)
+          ? Duration.zero
+          : const Duration(milliseconds: 180),
+      pageBuilder: (ctx, _, _) => Align(
+        alignment: Alignment.bottomCenter,
+        child: SafeArea(
+          minimum: const EdgeInsets.fromLTRB(20, 0, 20, 18),
+          child: SizedBox(
+            width: 320,
+            child: VisionGlass(
+              dark: true,
+              heavy: true,
+              radius: 99,
+              child: Material(
+                color: Colors.transparent,
+                child: Row(
+                  children: [
+                    for (final (index, label, icon) in [
+                      (0, t('Pozornica'), Icons.play_circle_outline),
+                      (1, t('Studio'), Icons.sensors),
+                      (2, t('Trezor'), Icons.wallet_outlined),
+                    ])
+                      Expanded(
+                        child: TextButton(
+                          onPressed: () => Navigator.pop(ctx, index),
+                          style: TextButton.styleFrom(
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(vertical: 12),
+                          ),
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                icon,
+                                color: index == 1
+                                    ? const Color(0xFFFF6961)
+                                    : Colors.white,
+                              ),
+                              const SizedBox(height: 4),
+                              Text(label, style: const TextStyle(fontSize: 11)),
+                            ],
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+    if (mounted && selected != null) widget.onNavigate?.call(selected);
+  }
+
   @override
   Widget build(BuildContext context) => Semantics(
     button: true,
@@ -227,12 +291,26 @@ class _VisionShopHandleState extends State<VisionShopHandle> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Container(
-              width: 42,
-              height: 4,
-              decoration: BoxDecoration(
-                color: Colors.white54,
-                borderRadius: BorderRadius.circular(99),
+            Semantics(
+              button: widget.onNavigate != null,
+              label: widget.onNavigate == null ? null : t('Otvori navigaciju'),
+              child: GestureDetector(
+                onTap: widget.onNavigate == null ? widget.onOpen : _navigation,
+                behavior: HitTestBehavior.opaque,
+                child: SizedBox(
+                  width: 104,
+                  height: 24,
+                  child: Center(
+                    child: Container(
+                      width: 48,
+                      height: 4,
+                      decoration: BoxDecoration(
+                        color: Colors.white54,
+                        borderRadius: BorderRadius.circular(99),
+                      ),
+                    ),
+                  ),
+                ),
               ),
             ),
             const SizedBox(height: 7),

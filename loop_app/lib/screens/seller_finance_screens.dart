@@ -10,6 +10,8 @@ import '../providers/app_state.dart';
 import '../services/live_service.dart';
 import '../theme/app_theme.dart';
 import '../widgets/empty_state.dart';
+import '../widgets/vision_glass.dart';
+import '../widgets/wallet_ticket.dart';
 import '../widgets/formatters.dart';
 import '../widgets/loop_snackbar.dart';
 import 'seller_screens.dart' show SellerInfoScreen, showPayoutDialog;
@@ -216,16 +218,18 @@ class _PayoutsTab extends ConsumerWidget {
               Padding(
                 padding: const EdgeInsets.fromLTRB(4, 8, 4, 0),
                 child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+                  crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
                     Text(t('Dostupno za isplatu'), style: muted),
                     const SizedBox(height: 4),
                     Text(
                       formatCredits(available),
                       key: const ValueKey('fin-available'),
-                      style: const TextStyle(
-                        fontWeight: FontWeight.w800,
-                        fontSize: 52,
+                      style: TextStyle(
+                        color: LoopColors.gold,
+                        fontWeight: FontWeight.w600,
+                        letterSpacing: -3,
+                        fontSize: 72,
                         height: 1.05,
                       ),
                     ),
@@ -440,6 +444,13 @@ class _TransactionsTab extends StatefulWidget {
 
 class _TransactionsTabState extends State<_TransactionsTab> {
   _TxFilter _filter = _TxFilter.all;
+  final _pages = PageController(viewportFraction: .88);
+  int _page = 0;
+  @override
+  void dispose() {
+    _pages.dispose();
+    super.dispose();
+  }
 
   bool _matches(LoopTransaction tx) => switch (_filter) {
     _TxFilter.all => true,
@@ -460,126 +471,137 @@ class _TransactionsTabState extends State<_TransactionsTab> {
       _TxFilter.payouts: t('Isplate'),
       _TxFilter.fees: t('Naknade i promocije'),
     };
-    final rows = <Widget>[];
-    String? day;
-    for (final tx in list) {
-      final d = formatDate(tx.createdAt);
-      if (d != day) {
-        day = d;
-        rows.add(
-          Padding(
-            padding: const EdgeInsets.fromLTRB(0, 14, 0, 4),
-            child: Text(
-              d,
-              style: TextStyle(
-                color: LoopColors.textSecondary,
-                fontWeight: FontWeight.w800,
-                fontSize: 13,
-              ),
-            ),
-          ),
-        );
-      }
-      rows.add(_TxRow(tx: tx));
-    }
-    return ListView(
-      key: const ValueKey('fin-transactions'),
-      padding: const EdgeInsets.fromLTRB(16, 12, 16, 32),
+    return Column(
       children: [
-        SingleChildScrollView(
-          scrollDirection: Axis.horizontal,
-          child: Row(
-            children: [
-              for (final f in _TxFilter.values)
-                Padding(
-                  padding: const EdgeInsets.only(right: 8),
-                  child: ChoiceChip(
-                    key: ValueKey('fin-filter-${f.name}'),
-                    label: Text(labels[f]!),
-                    selected: _filter == f,
-                    showCheckmark: false,
-                    onSelected: (_) => setState(() => _filter = f),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
+          child: SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Row(
+              children: [
+                for (final f in _TxFilter.values)
+                  Padding(
+                    padding: const EdgeInsets.only(right: 8),
+                    child: VisionGlass(
+                      radius: 99,
+                      child: ChoiceChip(
+                        key: ValueKey('fin-filter-${f.name}'),
+                        label: Text(labels[f]!),
+                        selected: _filter == f,
+                        showCheckmark: false,
+                        onSelected: (_) {
+                          setState(() {
+                            _filter = f;
+                            _page = 0;
+                          });
+                          if (_pages.hasClients) _pages.jumpToPage(0);
+                        },
+                      ),
+                    ),
                   ),
-                ),
-            ],
+              ],
+            ),
           ),
         ),
         if (list.isEmpty)
-          Padding(
-            padding: const EdgeInsets.only(top: 40),
+          Expanded(
             child: EmptyState(
               icon: Icons.receipt_long_outlined,
               title: t('Još nema prodaja ni isplata.'),
               message: '',
             ),
           )
-        else
-          ...rows,
+        else ...[
+          Expanded(
+            child: PageView.builder(
+              key: const ValueKey('fin-transactions'),
+              controller: _pages,
+              itemCount: list.length,
+              onPageChanged: (i) {
+                HapticFeedback.selectionClick();
+                setState(() => _page = i);
+              },
+              itemBuilder: (context, i) => AnimatedBuilder(
+                animation: _pages,
+                builder: (context, child) {
+                  final delta =
+                      _pages.hasClients && _pages.position.haveDimensions
+                      ? ((_pages.page ?? _page.toDouble()) - i).clamp(-1.0, 1.0)
+                      : 0.0;
+                  return Transform.rotate(
+                    angle: delta * .035,
+                    child: Transform.scale(
+                      scale: 1 - delta.abs() * .06,
+                      child: child,
+                    ),
+                  );
+                },
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(6, 8, 6, 16),
+                  child: SingleChildScrollView(
+                    child: _TransactionPass(tx: list[i]),
+                  ),
+                ),
+              ),
+            ),
+          ),
+          SafeArea(
+            top: false,
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                IconButton(
+                  tooltip: t('Prethodna transakcija'),
+                  onPressed: _page == 0
+                      ? null
+                      : () => _pages.previousPage(
+                          duration: const Duration(milliseconds: 260),
+                          curve: Curves.easeOutCubic,
+                        ),
+                  icon: const Icon(Icons.chevron_left),
+                ),
+                Text(
+                  '${_page + 1} / ${list.length}',
+                  style: TextStyle(color: LoopColors.textSecondary),
+                ),
+                IconButton(
+                  tooltip: t('Sljedeća transakcija'),
+                  onPressed: _page >= list.length - 1
+                      ? null
+                      : () => _pages.nextPage(
+                          duration: const Duration(milliseconds: 260),
+                          curve: Curves.easeOutCubic,
+                        ),
+                  icon: const Icon(Icons.chevron_right),
+                ),
+              ],
+            ),
+          ),
+        ],
       ],
     );
   }
 }
 
-class _TxRow extends StatelessWidget {
-  const _TxRow({required this.tx});
+class _TransactionPass extends ConsumerWidget {
+  const _TransactionPass({required this.tx});
   final LoopTransaction tx;
-
   @override
-  Widget build(BuildContext context) {
-    final out = tx.type != TransactionType.sell;
-    final icon = switch (tx.type) {
-      TransactionType.sell => Icons.sell_outlined,
-      TransactionType.payout => Icons.account_balance_outlined,
-      TransactionType.promotion => Icons.trending_up,
-      _ => Icons.receipt_outlined,
-    };
-    return Padding(
-      key: ValueKey('fin-tx-${tx.id}'),
-      padding: const EdgeInsets.symmetric(vertical: 8),
-      child: Row(
-        children: [
-          Container(
-            width: 40,
-            height: 40,
-            decoration: BoxDecoration(
-              color: LoopColors.surfaceHover,
-              shape: BoxShape.circle,
-            ),
-            child: Icon(icon, size: 20),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  tx.deviceName,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(fontWeight: FontWeight.w700),
-                ),
-                Text(
-                  '${tx.type.label} · ${formatDateTime(tx.createdAt).split(' ').last}'
-                  '${tx.type == TransactionType.sell && tx.fee > 0 ? ' · ${t('naknada {0}', [formatCredits(tx.fee)])}' : ''}',
-                  style: TextStyle(
-                    color: LoopColors.textSecondary,
-                    fontSize: 12,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          Text(
-            '${out ? '−' : '+'}${formatCredits(tx.amount.abs())}',
-            style: TextStyle(
-              fontWeight: FontWeight.w900,
-              color: out ? LoopColors.textPrimary : LoopColors.buyNow,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
+  Widget build(BuildContext context, WidgetRef ref) => WalletTicket(
+    key: ValueKey('fin-tx-${tx.id}'),
+    title: tx.deviceName,
+    status: tx.type.label,
+    device: ref.watch(appProvider).deviceById(tx.deviceId),
+    date: tx.createdAt,
+    price:
+        '${tx.type == TransactionType.sell ? '+' : '−'}${formatCredits(tx.amount.abs())}',
+    footer: tx.fee > 0
+        ? Text(
+            t('Naknada {0}', [formatCredits(tx.fee)]),
+            style: TextStyle(color: LoopColors.textSecondary, fontSize: 13),
+          )
+        : null,
+  );
 }
 
 /// Tjedni izvještaji narudžbi: zadnjih 12 tjedana, CSV se kopira.
@@ -597,59 +619,223 @@ class _Reports extends ConsumerWidget {
     return ListView(
       padding: const EdgeInsets.fromLTRB(16, 4, 16, 32),
       children: [
-        Padding(
-          padding: const EdgeInsets.only(bottom: 8),
-          child: Text(
-            t(
-              'Tjedni izvještaj narudžbi: prodaja, naknade i zarada po tjednu (ponedjeljak – nedjelja).',
-            ),
-            style: TextStyle(color: LoopColors.textSecondary, fontSize: 12),
-          ),
-        ),
-        for (final w in weeks)
+        for (var i = 0; i < 6; i++)
           Builder(
-            builder: (_) {
-              final end = w.add(const Duration(days: 7));
-              final n = sales
+            builder: (context) {
+              final start = DateTime(
+                DateTime.now().year,
+                DateTime.now().month - i,
+              );
+              final end = DateTime(start.year, start.month + 1);
+              final rows = sales
                   .where(
                     (tx) =>
-                        !tx.createdAt.isBefore(w) && tx.createdAt.isBefore(end),
+                        !tx.createdAt.isBefore(start) &&
+                        tx.createdAt.isBefore(end),
                   )
-                  .length;
-              final current = w == thisWeek;
+                  .toList();
+              final label =
+                  '${const ['Siječanj', 'Veljača', 'Ožujak', 'Travanj', 'Svibanj', 'Lipanj', 'Srpanj', 'Kolovoz', 'Rujan', 'Listopad', 'Studeni', 'Prosinac'][start.month - 1]} ${start.year}.';
               return ListTile(
-                key: ValueKey('fin-report-${w.toIso8601String()}'),
-                contentPadding: EdgeInsets.zero,
+                key: ValueKey('fin-month-${start.toIso8601String()}'),
                 title: Text(
-                  '${formatDateTime(w).split(' ').first} – '
-                  '${formatDateTime(end.subtract(const Duration(days: 1))).split(' ').first}',
-                  style: const TextStyle(fontWeight: FontWeight.w700),
+                  label,
+                  style: const TextStyle(
+                    fontSize: 24,
+                    fontWeight: FontWeight.w500,
+                  ),
                 ),
-                subtitle: Text(
-                  current
-                      ? t('Tjedan je u tijeku · {0} narudžbi', ['$n'])
-                      : t('{0} narudžbi', ['$n']),
+                subtitle: Text('${rows.length} ${t('narudžbi')}'),
+                trailing: IconButton(
+                  tooltip: t('Pregled izvještaja'),
+                  icon: const Icon(Icons.insights),
+                  onPressed: () =>
+                      _peek(context, start, rows, label, s.userLabel),
                 ),
-                trailing: TextButton.icon(
-                  onPressed: n == 0
-                      ? null
-                      : () async {
-                          await Clipboard.setData(
-                            ClipboardData(
-                              text: weeklyReportCsv(sales, w, s.userLabel),
-                            ),
-                          );
-                          showLoopSnackBar(t('CSV je kopiran u međuspremnik.'));
-                        },
-                  icon: const Icon(Icons.copy_outlined, size: 18),
-                  label: Text(t('Kopiraj CSV')),
-                ),
+                onTap: () => _peek(context, start, rows, label, s.userLabel),
+                onLongPress: () {
+                  HapticFeedback.lightImpact();
+                  _peek(context, start, rows, label, s.userLabel);
+                },
               );
             },
           ),
+
+        ExpansionTile(
+          key: const ValueKey('fin-weekly-reports'),
+          title: Text(t('Tjedni izvještaji')),
+          children: [
+            Padding(
+              padding: const EdgeInsets.only(bottom: 8),
+              child: Text(
+                t(
+                  'Tjedni izvještaj narudžbi: prodaja, naknade i zarada po tjednu (ponedjeljak – nedjelja).',
+                ),
+                style: TextStyle(color: LoopColors.textSecondary, fontSize: 12),
+              ),
+            ),
+            for (final w in weeks)
+              Builder(
+                builder: (_) {
+                  final end = w.add(const Duration(days: 7));
+                  final n = sales
+                      .where(
+                        (tx) =>
+                            !tx.createdAt.isBefore(w) &&
+                            tx.createdAt.isBefore(end),
+                      )
+                      .length;
+                  final current = w == thisWeek;
+                  return ListTile(
+                    key: ValueKey('fin-report-${w.toIso8601String()}'),
+                    contentPadding: EdgeInsets.zero,
+                    title: Text(
+                      '${formatDateTime(w).split(' ').first} – '
+                      '${formatDateTime(end.subtract(const Duration(days: 1))).split(' ').first}',
+                      style: const TextStyle(fontWeight: FontWeight.w700),
+                    ),
+                    subtitle: Text(
+                      current
+                          ? t('Tjedan je u tijeku · {0} narudžbi', ['$n'])
+                          : t('{0} narudžbi', ['$n']),
+                    ),
+                    trailing: TextButton.icon(
+                      onPressed: n == 0
+                          ? null
+                          : () async {
+                              await Clipboard.setData(
+                                ClipboardData(
+                                  text: weeklyReportCsv(sales, w, s.userLabel),
+                                ),
+                              );
+                              showLoopSnackBar(
+                                t('CSV je kopiran u međuspremnik.'),
+                              );
+                            },
+                      icon: const Icon(Icons.copy_outlined, size: 18),
+                      label: Text(t('Kopiraj CSV')),
+                    ),
+                  );
+                },
+              ),
+          ],
+        ),
       ],
     );
   }
+
+  Future<void> _peek(
+    BuildContext context,
+    DateTime start,
+    List<LoopTransaction> rows,
+    String label,
+    String Function(String) userLabel,
+  ) => showModalBottomSheet<void>(
+    context: context,
+    backgroundColor: Colors.transparent,
+    isScrollControlled: true,
+    builder: (ctx) => SafeArea(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: VisionGlass(
+          heavy: true,
+          radius: 32,
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text(
+                label,
+                style: const TextStyle(
+                  fontSize: 24,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              const SizedBox(height: 12),
+              Text(
+                formatCredits(rows.fold(0.0, (v, tx) => v + tx.amount)),
+                style: TextStyle(
+                  fontSize: 44,
+                  fontWeight: FontWeight.w600,
+                  color: LoopColors.gold,
+                ),
+              ),
+              const SizedBox(height: 20),
+              Semantics(
+                label: t('Dnevna zarada za odabrani mjesec'),
+                child: SizedBox(
+                  height: 90,
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      for (
+                        var day = 1;
+                        day <= DateTime(start.year, start.month + 1, 0).day;
+                        day++
+                      )
+                        Expanded(
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 1),
+                            child: Container(
+                              height: rows.isEmpty
+                                  ? 2
+                                  : 2 +
+                                        80 *
+                                            rows
+                                                .where(
+                                                  (tx) =>
+                                                      tx.createdAt.day == day,
+                                                )
+                                                .fold(
+                                                  0.0,
+                                                  (v, tx) => v + tx.amount,
+                                                ) /
+                                            rows.fold(
+                                              1.0,
+                                              (v, tx) => v + tx.amount.abs(),
+                                            ),
+                              decoration: BoxDecoration(
+                                color: LoopColors.accent,
+                                borderRadius: BorderRadius.circular(4),
+                              ),
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 24),
+              FilledButton.icon(
+                key: const ValueKey('fin-month-export'),
+                onPressed: () async {
+                  final out = StringBuffer(
+                    'datum,predmet,cijena,naknada,zarada\n',
+                  );
+                  for (final tx in rows) {
+                    out.writeln(
+                      [
+                        tx.createdAt.toIso8601String(),
+                        '"${tx.deviceName.replaceAll('"', '""')}"',
+                        tx.price.toStringAsFixed(2),
+                        tx.fee.toStringAsFixed(2),
+                        tx.amount.toStringAsFixed(2),
+                      ].join(','),
+                    );
+                  }
+                  await Clipboard.setData(ClipboardData(text: out.toString()));
+                  showLoopSnackBar(t('CSV je kopiran u međuspremnik.'));
+                },
+                icon: const Icon(Icons.ios_share),
+                label: Text(t('Izvezi CSV')),
+              ),
+            ],
+          ),
+        ),
+      ),
+    ),
+  );
 }
 
 /// Metrike jednog showa, izračunate iz prodaja i događaja u sobi.

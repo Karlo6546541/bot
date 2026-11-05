@@ -29,6 +29,7 @@ import '../widgets/vision_glass.dart';
 import 'add_device_screen.dart';
 import '../models/device.dart';
 import '../widgets/item_image.dart';
+import '../widgets/product_poster.dart';
 import '../widgets/formatters.dart';
 import '../widgets/create_sheet.dart';
 import 'device_detail_screen.dart';
@@ -105,7 +106,19 @@ class _AccountHome extends ConsumerWidget {
                     ),
                   ),
                 ),
-                Icon(Icons.chevron_right, color: LoopColors.textSecondary),
+                if (key == 'account-health')
+                  Container(
+                    width: 10,
+                    height: 10,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: AccountHealth.of(
+                        s,
+                        user.id,
+                        DateTime.now(),
+                      ).level.color,
+                    ),
+                  ),
               ],
             ),
           ),
@@ -141,79 +154,53 @@ class _AccountHome extends ConsumerWidget {
         constraints: const BoxConstraints(maxWidth: 640),
         child: ListView(
           key: const ValueKey('account-home'),
-          padding: const EdgeInsets.fromLTRB(20, 24, 20, 40),
+          padding: const EdgeInsets.fromLTRB(20, 24, 20, 112),
           children: [
             if (user.isGuest)
               const _GuestCard()
             else ...[
               // Ti: avatar, ime i jedna radnja.
-              Material(
-                color: Colors.transparent,
-                child: InkWell(
-                  key: const ValueKey('account-view-profile'),
-                  onTap: () => MyProfileScreen.open(context),
-                  child: Padding(
-                    padding: const EdgeInsets.all(18),
-                    child: Row(
-                      children: [
-                        UserAvatar(user: user, size: 56),
-                        const SizedBox(width: 16),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                user.username.isNotEmpty
-                                    ? user.username
-                                    : user.handle,
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: const TextStyle(
-                                  fontSize: 22,
-                                  fontWeight: FontWeight.w600,
-                                  letterSpacing: -.5,
-                                ),
-                              ),
-                              const SizedBox(height: 4),
-                              Text(
-                                t('Pogledaj profil'),
-                                style: TextStyle(
-                                  fontSize: 13,
-                                  color: LoopColors.textSecondary,
-                                ),
-                              ),
-                            ],
-                          ),
+              InkWell(
+                key: const ValueKey('account-view-profile'),
+                onTap: () => MyProfileScreen.open(context),
+                borderRadius: BorderRadius.circular(28),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 24),
+                  child: Column(
+                    children: [
+                      UserAvatar(user: user, size: 88),
+                      const SizedBox(height: 16),
+                      Text(
+                        user.name.isNotEmpty ? user.name : user.username,
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(
+                          fontSize: 30,
+                          fontWeight: FontWeight.w400,
+                          letterSpacing: -.8,
                         ),
-                        Icon(
-                          Icons.chevron_right,
+                      ),
+                      const SizedBox(height: 5),
+                      Text(
+                        t('Pogledaj profil'),
+                        style: TextStyle(
                           color: LoopColors.textSecondary,
+                          fontSize: 13,
                         ),
-                      ],
-                    ),
+                      ),
+                    ],
                   ),
                 ),
               ),
               const SizedBox(height: 24),
-              Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      t('Moj shop'),
-                      style: const TextStyle(
-                        fontSize: 24,
-                        fontWeight: FontWeight.w600,
-                        letterSpacing: -.6,
-                      ),
-                    ),
-                  ),
-                  TextButton(
-                    key: const ValueKey('account-open-shop'),
-                    onPressed: () => PublicProfileScreen.open(context, user.id),
-                    child: Text(t('Otvori shop')),
-                  ),
-                ],
+              Text(
+                t('Moj shop'),
+                style: const TextStyle(
+                  fontSize: 24,
+                  fontWeight: FontWeight.w600,
+                  letterSpacing: -.6,
+                ),
               ),
+              const SizedBox(height: 16),
               for (final (show, live) in s.activeLives.where(
                 (entry) => entry.$1.hostId == user.id,
               ))
@@ -244,12 +231,42 @@ class _AccountHome extends ConsumerWidget {
                   ),
                 )
               else
-                for (final device in liveShopProducts(s, user.id).take(3))
-                  ShopProductRow(
-                    key: ValueKey('account-shop-item-${device.id}'),
-                    device: device,
-                    onTap: () => DeviceDetailScreen.open(context, device),
+                SizedBox(
+                  height: 360,
+                  child: PageView(
+                    children: [
+                      for (final device in liveShopProducts(s, user.id))
+                        Padding(
+                          padding: const EdgeInsets.only(right: 10),
+                          child: ProductPoster(
+                            key: ValueKey('account-shop-item-${device.id}'),
+                            device: device,
+                            title: device.name,
+                            price: formatCredits(device.shownPrice),
+                            onTap: () =>
+                                DeviceDetailScreen.open(context, device),
+                          ),
+                        ),
+                    ],
                   ),
+                ),
+              const SizedBox(height: 16),
+              Center(
+                child: VisionGlass(
+                  radius: 99,
+                  child: TextButton(
+                    key: const ValueKey('account-open-shop'),
+                    onPressed: () => PublicProfileScreen.open(context, user.id),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 24,
+                        vertical: 6,
+                      ),
+                      child: Text(t('Otvori shop')),
+                    ),
+                  ),
+                ),
+              ),
               const SizedBox(height: 22),
               const Divider(),
               ListTile(
@@ -271,18 +288,28 @@ class _AccountHome extends ConsumerWidget {
                 ),
                 onTap: () => showPayoutDialog(context, ref),
               ),
-              group([
-                row(
-                  'account-seller-info',
-                  Icons.badge_outlined,
-                  t('Podaci prodavatelja'),
-                  () => SellerInfoScreen.open(context),
+            ],
+            group([
+              if (!user.isGuest) ...[
+                ExpansionTile(
+                  key: const ValueKey('account-seller-info'),
+                  leading: const Icon(Icons.badge_outlined),
+                  title: Text(
+                    user.seller?.legalName ?? t('Podaci prodavatelja'),
+                  ),
+                  subtitle: Text(t('Privatni podaci')),
+                  children: [
+                    SizedBox(
+                      height: MediaQuery.sizeOf(context).height * .8,
+                      child: const SellerInfoScreen(embedded: true),
+                    ),
+                  ],
                 ),
                 row(
                   'account-seller-hub',
                   Icons.storefront_outlined,
                   t('Prodavač'),
-                  () => SellerHubScreen.open(context),
+                  () => ref.read(homeTabProvider.notifier).select(4),
                 ),
                 row(
                   'open-activity',
@@ -290,8 +317,6 @@ class _AccountHome extends ConsumerWidget {
                   t('Povijest transakcija'),
                   () => ActivityPage.open(context),
                 ),
-              ]),
-              group([
                 row(
                   'profile-checkout',
                   Icons.credit_card,
@@ -304,9 +329,7 @@ class _AccountHome extends ConsumerWidget {
                   t('Zdravlje računa'),
                   () => AccountHealthScreen.open(context),
                 ),
-              ]),
-            ],
-            group([
+              ],
               row(
                 'profile-settings',
                 Icons.settings_outlined,
@@ -837,166 +860,200 @@ class _ProfileSettingsView extends ConsumerWidget {
         Center(
           child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 560),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Row(
-                  children: [
-                    IconButton(
-                      key: const ValueKey('profile-settings-close'),
-                      tooltip: t('Natrag'),
-                      onPressed: () => ref
-                          .read(profileSettingsProvider.notifier)
-                          .setOpen(false),
-                      icon: const Icon(Icons.arrow_back),
+            child: VisionGlass(
+              radius: 28,
+              blur: false,
+              padding: const EdgeInsets.all(16),
+              child: Material(
+                color: Colors.transparent,
+                child: Theme(
+                  data: Theme.of(context).copyWith(
+                    cardTheme: const CardThemeData(
+                      color: Colors.transparent,
+                      elevation: 0,
+                      margin: EdgeInsets.zero,
+                      shape: RoundedRectangleBorder(),
                     ),
-                    Text(
-                      t('Postavke'),
-                      style: const TextStyle(
-                        fontSize: 22,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                  ],
-                ),
-                // Račun i postavke odvojeni su od objava na profilu.
-                if (user.isGuest)
-                  const _GuestCard()
-                else ...[
-                  // Kao Whatnot: na vrhu profil s poveznicom "Pogledaj profil".
-                  ListTile(
-                    key: const ValueKey('settings-profile-row'),
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 4),
-                    leading: UserAvatar(user: user, size: 48),
-                    title: Text(
-                      user.name.isNotEmpty ? user.name : user.handle,
-                      style: const TextStyle(
-                        fontWeight: FontWeight.w800,
-                        fontSize: 17,
-                      ),
-                    ),
-                    subtitle: Text(
-                      t('Pogledaj profil'),
-                      style: TextStyle(
-                        color: LoopColors.accent,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                    onTap: () => PublicProfileScreen.open(context, user.id),
                   ),
-                  const SizedBox(height: 4),
-                  OutlinedButton.icon(
-                    key: const ValueKey('settings-seller-hub'),
-                    onPressed: () {
-                      SellerHubScreen.open(context);
-                    },
-                    icon: const Icon(Icons.storefront_outlined),
-                    label: Text(t('Prodavač')),
-                  ),
-                  _SectionTitle(t('Općenito'), Icons.manage_accounts_outlined),
-                  _ShopCard(user: user),
-                  const SizedBox(height: 8),
-                  Card(
-                    child: Column(
-                      children: [
-                        _NavTile(
-                          key: const ValueKey('profile-checkout'),
-                          icon: Icons.credit_card,
-                          title: user.checkoutReady
-                              ? '${user.paymentCard} · ${user.address}'
-                              : t('Dodaj karticu i adresu'),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Row(
+                        children: [
+                          IconButton(
+                            key: const ValueKey('profile-settings-close'),
+                            tooltip: t('Natrag'),
+                            onPressed: () => ref
+                                .read(profileSettingsProvider.notifier)
+                                .setOpen(false),
+                            icon: const Icon(Icons.arrow_back),
+                          ),
+                          Text(
+                            t('Postavke'),
+                            style: const TextStyle(
+                              fontSize: 22,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ],
+                      ),
+                      // Račun i postavke odvojeni su od objava na profilu.
+                      if (user.isGuest)
+                        const _GuestCard()
+                      else ...[
+                        // Kao Whatnot: na vrhu profil s poveznicom "Pogledaj profil".
+                        ListTile(
+                          key: const ValueKey('settings-profile-row'),
+                          contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 4,
+                          ),
+                          leading: UserAvatar(user: user, size: 48),
+                          title: Text(
+                            user.name.isNotEmpty ? user.name : user.handle,
+                            style: const TextStyle(
+                              fontWeight: FontWeight.w800,
+                              fontSize: 17,
+                            ),
+                          ),
+                          subtitle: Text(
+                            t('Pogledaj profil'),
+                            style: TextStyle(
+                              color: LoopColors.accent,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
                           onTap: () =>
-                              ensureCheckout(context, ref, force: true),
+                              PublicProfileScreen.open(context, user.id),
                         ),
-                        const Divider(height: 1),
-                        _NavTile(
-                          key: const ValueKey('open-activity'),
-                          icon: Icons.receipt_long_outlined,
-                          title: t('Povijest transakcija'),
-                          onTap: () => ActivityPage.open(context),
+                        const SizedBox(height: 4),
+                        OutlinedButton.icon(
+                          key: const ValueKey('settings-seller-hub'),
+                          onPressed: () {
+                            SellerHubScreen.open(context);
+                          },
+                          icon: const Icon(Icons.storefront_outlined),
+                          label: Text(t('Prodavač')),
                         ),
+                        _SectionTitle(
+                          t('Općenito'),
+                          Icons.manage_accounts_outlined,
+                        ),
+                        _ShopCard(user: user),
+                        const SizedBox(height: 8),
+                        Card(
+                          child: Column(
+                            children: [
+                              _NavTile(
+                                key: const ValueKey('profile-checkout'),
+                                icon: Icons.credit_card,
+                                title: user.checkoutReady
+                                    ? '${user.paymentCard} · ${user.address}'
+                                    : t('Dodaj karticu i adresu'),
+                                onTap: () =>
+                                    ensureCheckout(context, ref, force: true),
+                              ),
+                              const Divider(height: 1),
+                              _NavTile(
+                                key: const ValueKey('open-activity'),
+                                icon: Icons.receipt_long_outlined,
+                                title: t('Povijest transakcija'),
+                                onTap: () => ActivityPage.open(context),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        _AccountCard(user: user),
                       ],
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  _AccountCard(user: user),
-                ],
-                _SectionTitle(t('Pomoć i pravno'), Icons.help_outline),
-                Card(
-                  child: _NavTile(
-                    key: const ValueKey('open-legal'),
-                    icon: Icons.description_outlined,
-                    title: t('Uvjeti, privatnost i impresum'),
-                    onTap: () => LegalListScreen.open(context),
+                      _SectionTitle(t('Pomoć i pravno'), Icons.help_outline),
+                      Card(
+                        child: _NavTile(
+                          key: const ValueKey('open-legal'),
+                          icon: Icons.description_outlined,
+                          title: t('Uvjeti, privatnost i impresum'),
+                          onTap: () => LegalListScreen.open(context),
+                        ),
+                      ),
+                      // Gost ne sprema ništa — stanje sinkronizacije ga ne zanima.
+                      if (!user.isGuest) const _SyncStatusTile(),
+                      SizedBox(height: 12),
+                      Text(
+                        t('Izgled'),
+                        style: TextStyle(
+                          fontWeight: FontWeight.w800,
+                          fontSize: 16,
+                        ),
+                      ),
+                      SizedBox(height: 8),
+                      SingleChildScrollView(
+                        scrollDirection: Axis.horizontal,
+                        child: SegmentedButton<ThemeMode>(
+                          showSelectedIcon: false,
+                          segments: [
+                            ButtonSegment(
+                              value: ThemeMode.light,
+                              label: Text(t('Svijetla')),
+                              icon: Icon(Icons.light_mode_outlined),
+                            ),
+                            ButtonSegment(
+                              value: ThemeMode.dark,
+                              label: Text(t('Tamna')),
+                              icon: Icon(Icons.dark_mode_outlined),
+                            ),
+                            ButtonSegment(
+                              value: ThemeMode.system,
+                              label: Text(t('Sustav')),
+                              icon: Icon(Icons.settings_suggest_outlined),
+                            ),
+                          ],
+                          selected: {state.themeMode},
+                          onSelectionChanged: (m) => ref
+                              .read(appProvider.notifier)
+                              .setThemeMode(m.first),
+                        ),
+                      ),
+                      const SizedBox(height: 20),
+                      Text(
+                        Tr.lang == AppLang.hr
+                            ? 'Jezik / Language'
+                            : 'Language / Jezik',
+                        style: const TextStyle(
+                          fontWeight: FontWeight.w800,
+                          fontSize: 16,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      const LanguageSelector(),
+                      const SizedBox(height: 24),
+                      if (!user.isGuest) ...[
+                        OutlinedButton.icon(
+                          onPressed: () {
+                            ref
+                                .read(profileSettingsProvider.notifier)
+                                .setOpen(false);
+                            ref.read(appProvider.notifier).logout();
+                          },
+                          icon: const Icon(Icons.logout),
+                          label: Text(t('Odjavi se')),
+                        ),
+                        const SizedBox(height: 12),
+                      ],
+                      // Reset briše samo lokalne demo podatke; uz online bazu
+                      // ga nema, da nitko ne može prebrisati zajedničke podatke.
+                      if (!BackendConfig.isOnline)
+                        OutlinedButton.icon(
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: LoopColors.error,
+                            side: BorderSide(color: LoopColors.error),
+                          ),
+                          onPressed: () => _reset(context, ref),
+                          icon: const Icon(Icons.restart_alt),
+                          label: Text(t('Resetiraj demo podatke')),
+                        ),
+                    ],
                   ),
                 ),
-                // Gost ne sprema ništa — stanje sinkronizacije ga ne zanima.
-                if (!user.isGuest) const _SyncStatusTile(),
-                SizedBox(height: 12),
-                Text(
-                  t('Izgled'),
-                  style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16),
-                ),
-                SizedBox(height: 8),
-                SegmentedButton<ThemeMode>(
-                  segments: [
-                    ButtonSegment(
-                      value: ThemeMode.light,
-                      label: Text(t('Svijetla')),
-                      icon: Icon(Icons.light_mode_outlined),
-                    ),
-                    ButtonSegment(
-                      value: ThemeMode.dark,
-                      label: Text(t('Tamna')),
-                      icon: Icon(Icons.dark_mode_outlined),
-                    ),
-                    ButtonSegment(
-                      value: ThemeMode.system,
-                      label: Text(t('Sustav')),
-                      icon: Icon(Icons.settings_suggest_outlined),
-                    ),
-                  ],
-                  selected: {state.themeMode},
-                  onSelectionChanged: (m) =>
-                      ref.read(appProvider.notifier).setThemeMode(m.first),
-                ),
-                const SizedBox(height: 20),
-                Text(
-                  Tr.lang == AppLang.hr
-                      ? 'Jezik / Language'
-                      : 'Language / Jezik',
-                  style: const TextStyle(
-                    fontWeight: FontWeight.w800,
-                    fontSize: 16,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                const LanguageSelector(),
-                const SizedBox(height: 24),
-                if (!user.isGuest) ...[
-                  OutlinedButton.icon(
-                    onPressed: () {
-                      ref.read(profileSettingsProvider.notifier).setOpen(false);
-                      ref.read(appProvider.notifier).logout();
-                    },
-                    icon: const Icon(Icons.logout),
-                    label: Text(t('Odjavi se')),
-                  ),
-                  const SizedBox(height: 12),
-                ],
-                // Reset briše samo lokalne demo podatke; uz online bazu
-                // ga nema, da nitko ne može prebrisati zajedničke podatke.
-                if (!BackendConfig.isOnline)
-                  OutlinedButton.icon(
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: LoopColors.error,
-                      side: BorderSide(color: LoopColors.error),
-                    ),
-                    onPressed: () => _reset(context, ref),
-                    icon: const Icon(Icons.restart_alt),
-                    label: Text(t('Resetiraj demo podatke')),
-                  ),
-              ],
+              ),
             ),
           ),
         ),
@@ -1355,9 +1412,11 @@ class _SectionTitle extends StatelessWidget {
       children: [
         Icon(icon, size: 20, color: LoopColors.textSecondary),
         const SizedBox(width: 8),
-        Text(
-          text,
-          style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 17),
+        Expanded(
+          child: Text(
+            text,
+            style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 17),
+          ),
         ),
       ],
     ),

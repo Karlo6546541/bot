@@ -186,15 +186,6 @@ void main() {
       await tester.pumpAndSettle();
 
       // Moje → Kupljeno (prvo), pa Ponude.
-      if (find.text('Moje').evaluate().isEmpty) {
-        final menu = find.byKey(const ValueKey('home-filters'));
-        await tester.tap(
-          menu.evaluate().isNotEmpty
-              ? menu
-              : find.byKey(const ValueKey('shell-library-menu')),
-        );
-        await tester.pumpAndSettle();
-      }
       await mainTab(tester, 'Moje');
       await tester.pumpAndSettle();
       // Licitacije: aukcije koje traju.
@@ -202,13 +193,12 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.text('Polaroid SX-70'), findsOneWidget);
       expect(find.text('Vodiš'), findsOneWidget);
-      // Čipovi: Vodim pokazuje samo aukcije koje vodim.
-      await tester.tap(find.byKey(const ValueKey('activity-chip-leading')));
-      await tester.pumpAndSettle();
-      expect(find.text('Polaroid SX-70'), findsOneWidget);
-      await tester.tap(find.byKey(const ValueKey('activity-chip-outbid')));
-      await tester.pumpAndSettle();
-      expect(find.text('Polaroid SX-70'), findsNothing);
+      // Status is a section, so leading and outbid auctions stay visible together.
+      expect(
+        find.byKey(const ValueKey('activity-section-Vodim')),
+        findsOneWidget,
+      );
+      expect(find.byKey(const ValueKey('activity-chip-leading')), findsNothing);
       // Ponude i Spremljeno su zasebne kartice (kao Whatnot Activity).
       await tester.tap(find.byKey(const ValueKey('activity-tab-offers')));
       await tester.pumpAndSettle();
@@ -217,10 +207,7 @@ void main() {
       );
       await tester.tap(find.byKey(const ValueKey('activity-tab-saved')));
       await tester.pumpAndSettle();
-      expect(
-        find.byKey(const ValueKey('activity-chip-auction')),
-        findsOneWidget,
-      );
+      expect(find.byType(ChoiceChip), findsNothing);
     });
   }
 
@@ -374,7 +361,10 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.text('Tamna'));
     await tester.pumpAndSettle();
-    expect(find.text('Profil'), findsWidgets); // ostali smo na istom tabu
+    expect(
+      find.byKey(const ValueKey('vault-account')),
+      findsOneWidget,
+    ); // ostali smo na istom tabu
     expect(
       Theme.of(tester.element(find.text('Tamna'))).brightness,
       Brightness.dark,
@@ -445,8 +435,7 @@ void main() {
     expect(find.text('Podaci prodavatelja'), findsOneWidget);
     await tester.tap(find.text('Odustani').last);
     await tester.pumpAndSettle();
-    await tester.tap(find.byTooltip('Natrag').last);
-    await tester.pumpAndSettle();
+    await mainTab(tester, 'Početna');
 
     // Podaci prodavatelja (za Kupi odmah i isplatu) — iz Profila.
     await mainTab(tester, 'Profil');
@@ -549,7 +538,7 @@ void main() {
         .state<NavigatorState>(find.byType(Navigator).first)
         .popUntil((route) => route.isFirst);
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Profile').last);
+    await mainTab(tester, 'Profil');
     await tester.pumpAndSettle();
     // Račun (kao Whatnot): profil se otvara s "View profile".
     await tester.tap(find.byKey(const ValueKey('account-view-profile')));
@@ -578,7 +567,7 @@ void main() {
     await tester.tap(find.text('🇭🇷 Hrvatski'));
     await tester.pumpAndSettle();
     // Promjena jezika ponovno gradi sučelje; ostaje na Profilu.
-    expect(find.text('Profil'), findsWidgets);
+    expect(find.byKey(const ValueKey('vault-account')), findsOneWidget);
     await openProfileSettings(tester);
     await tester.scrollUntilVisible(
       find.text('Jezik / Language'),
@@ -917,9 +906,9 @@ void communityTests() {
     expect(find.text('Nadmašen'), findsOneWidget);
     expect(find.text('Povisi ponudu'), findsOneWidget);
     // Filter "Aukcije" sa sažetkom mojih aukcija.
-    await tester.tap(find.byKey(const ValueKey('notif-filter-auctions')));
+    expect(find.byKey(const ValueKey('notif-filter-auctions')), findsNothing);
     await tester.pumpAndSettle();
-    expect(find.byKey(const ValueKey('auction-summary')), findsOneWidget);
+    expect(find.byKey(const ValueKey('auction-summary')), findsNothing);
     expect(find.text(text), findsOneWidget);
     // Postavke: isključi "Netko me nadmašio".
     await tester.tap(find.byKey(const ValueKey('notification-settings')));
@@ -1017,7 +1006,7 @@ void chatTests() {
     await login('@marko');
     await globalSearch(tester);
     await tester.pumpAndSettle();
-    await tester.enterText(find.byType(TextField).first, 'demo');
+    await tester.enterText(find.byKey(const ValueKey('global-search')), 'demo');
     await tester.pumpAndSettle();
     await tester.tap(find.textContaining('Računi'));
     await tester.pumpAndSettle();
@@ -1280,15 +1269,6 @@ void logoTests() {
     await tester.ensureVisible(find.text('Prijavi se'));
     await tester.tap(find.text('Prijavi se'));
     await tester.pumpAndSettle();
-    if (find.text('Kategorije').evaluate().isEmpty) {
-      final menu = find.byKey(const ValueKey('home-filters'));
-      await tester.tap(
-        menu.evaluate().isNotEmpty
-            ? menu
-            : find.byKey(const ValueKey('shell-library-menu')),
-      );
-      await tester.pumpAndSettle();
-    }
     await mainTab(tester, 'Kategorije');
     await tester.pumpAndSettle();
     expect(find.byKey(const ValueKey('categories')), findsOneWidget);

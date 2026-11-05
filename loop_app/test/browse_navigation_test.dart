@@ -53,6 +53,11 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.byKey(const ValueKey('seller-hub-live')), findsOneWidget);
     expect(find.byKey(const ValueKey('seller-hub-auction')), findsOneWidget);
+    await tester.scrollUntilVisible(
+      find.byKey(const ValueKey('hub-health')),
+      200,
+      scrollable: find.byType(Scrollable).last,
+    );
     await tester.ensureVisible(find.byKey(const ValueKey('hub-health')));
     expect(find.byKey(const ValueKey('hub-health')), findsOneWidget);
     tester
@@ -86,7 +91,7 @@ void main() {
     await tester.pumpWidget(app());
     await tester.pumpAndSettle();
     // Mobitel: Početna · Kategorije · Seller Hub · Moje · Profil.
-    expect(find.byType(NavigationDestination), findsNothing);
+    expect(find.byType(NavigationDestination), findsNWidgets(3));
     expect(
       find.byKey(const ValueKey('home-categories-shortcut')),
       findsNothing,
@@ -120,14 +125,11 @@ void main() {
       find.byKey(const ValueKey('activity-tab-purchases')),
       findsOneWidget,
     );
-    expect(find.byType(NavigationDestination), findsNWidgets(5));
+    expect(find.byType(NavigationDestination), findsNWidgets(3));
     await mainTab(tester, 'Profil');
     await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const ValueKey('shell-library-menu')));
-    await tester.pumpAndSettle();
-    // Izbornik + donja traka.
-    expect(find.text('Kategorije'), findsWidgets);
-    expect(find.text('Moje'), findsWidgets);
+    expect(find.byKey(const ValueKey('vault-account')), findsOneWidget);
+    expect(find.byType(NavigationDestination), findsNWidgets(3));
     await tester.pumpWidget(const SizedBox.shrink());
   });
 

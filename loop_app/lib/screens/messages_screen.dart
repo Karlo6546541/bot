@@ -52,9 +52,14 @@ class MessagesScreen extends ConsumerWidget {
                     // Službene poruke od Subhasta — zaključane na vrhu.
                     for (final c in conversations)
                       if (c.otherId == ChatService.systemId)
-                        Card(
+                        Ink(
                           key: const ValueKey('chat-system'),
-                          color: LoopColors.surface,
+                          decoration: BoxDecoration(
+                            color: LoopColors.accent.withValues(alpha: .05),
+                            border: Border(
+                              bottom: BorderSide(color: LoopColors.glassBorder),
+                            ),
+                          ),
                           child: ListTile(
                             leading: CircleAvatar(
                               backgroundColor: const Color(0xFF000000),
@@ -79,12 +84,6 @@ class MessagesScreen extends ConsumerWidget {
                                   Icons.verified,
                                   size: 16,
                                   color: LoopColors.info,
-                                ),
-                                const Spacer(),
-                                Icon(
-                                  Icons.push_pin,
-                                  size: 16,
-                                  color: LoopColors.textSecondary,
                                 ),
                               ],
                             ),
@@ -114,11 +113,20 @@ class MessagesScreen extends ConsumerWidget {
                       _Section(t('Razgovori')),
                     for (final c in conversations)
                       if (c.otherId != ChatService.systemId)
-                        Card(
+                        Container(
+                          decoration: BoxDecoration(
+                            border: Border(
+                              bottom: BorderSide(color: LoopColors.glassBorder),
+                            ),
+                          ),
                           child: ListTile(
+                            contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 14,
+                            ),
                             leading: UserAvatar(
                               user: state.userById(c.otherId),
-                              size: 40,
+                              size: 54,
                             ),
                             title: Text(
                               state.userLabel(c.otherId),

@@ -1,3 +1,5 @@
+import 'purchase_confirmation.dart';
+import '../l10n/tr.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../providers/app_providers.dart';
@@ -5,6 +7,7 @@ import '../providers/my_activity_provider.dart';
 import '../screens/cloud_commerce_screen.dart';
 import '../services/commerce_backend.dart';
 import '../services/stripe_backend.dart';
+import 'wallet_ticket.dart';
 
 /// Online records stay in their authoritative tables, alongside legacy history.
 class MyOnlineActivityPanel extends ConsumerWidget {
@@ -12,9 +15,26 @@ class MyOnlineActivityPanel extends ConsumerWidget {
     super.key,
     this.shipmentsOnly = false,
     this.filter = 'all',
+    this.walletStyle = false,
+    this.walletGroup,
+    this.inlinePayments = false,
   });
   final bool shipmentsOnly;
   final String filter;
+  final bool walletStyle;
+  final bool inlinePayments;
+  final String? walletGroup;
+
+  static String groupForOrder(Map<String, dynamic> order) =>
+      t(switch (order['status']) {
+        'awaiting_payment' => 'Čeka plaćanje',
+        'paid' => 'Čeka slanje',
+        'shipped' => 'Na putu',
+        'delivered' => 'Stiglo',
+        'refunded' => 'Povrati',
+        'cancelled' => 'Otkazano',
+        _ => 'Ostale narudžbe',
+      });
 
   Future<void> _orders(
     BuildContext context,
@@ -52,6 +72,9 @@ class MyOnlineActivityPanel extends ConsumerWidget {
       data: (data) {
         if (data == null) return const SizedBox.shrink();
         final orders = data.orders.where((o) {
+          if (walletGroup != null && groupForOrder(o) != walletGroup) {
+            return false;
+          }
           if (shipmentsOnly) {
             if (o['seller_id'] != uid) return false;
             if (filter == 'ship') return o['status'] == 'paid';
@@ -68,7 +91,9 @@ class MyOnlineActivityPanel extends ConsumerWidget {
             !shipmentsOnly && (filter == 'all' || filter == 'mine');
         final showBids = !shipmentsOnly && filter == 'all';
         final showAwards =
-            !shipmentsOnly && (filter == 'all' || filter == 'bought');
+            !shipmentsOnly &&
+            (filter == 'all' || filter == 'bought') &&
+            (walletGroup == null || walletGroup == 'awards');
         final cards = <Widget>[
           if (showRooms)
             for (final room in data.rooms)
@@ -168,29 +193,41 @@ class MyOnlineActivityPanel extends ConsumerWidget {
                 },
               ),
           for (final order in orders)
-            ListTile(
-              key: ValueKey('online-order-${order['id']}'),
-              leading: Icon(
-                shipmentsOnly
-                    ? Icons.local_shipping_outlined
-                    : Icons.shopping_bag_outlined,
+            if (walletStyle)
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 0, 16, 18),
+                child: _walletOrder(context, ref, order),
+              )
+            else
+              ListTile(
+                key: ValueKey('online-order-${order['id']}'),
+                leading: Icon(
+                  shipmentsOnly
+                      ? Icons.local_shipping_outlined
+                      : Icons.shopping_bag_outlined,
+                ),
+                title: Text(
+                  '${order['buyer_id'] == uid ? 'Kupnja' : 'Prodaja'} · ${((order['total_cents'] as num) / 100).toStringAsFixed(2)} €',
+                ),
+                subtitle: Text(switch (order['status']) {
+                  'awaiting_payment' => 'Čeka plaćanje',
+                  'paid' => 'Plaćeno · priprema dostave',
+                  'shipped' => 'Poslano',
+                  'delivered' => 'Dostavljeno',
+                  'refunded' => 'Vraćeno',
+                  _ => 'Otkazano',
+                }),
+                trailing: const Icon(Icons.chevron_right),
+                onTap: () => _orders(context, ref, id: order['id'] as String),
               ),
-              title: Text(
-                '${order['buyer_id'] == uid ? 'Kupnja' : 'Prodaja'} · ${((order['total_cents'] as num) / 100).toStringAsFixed(2)} €',
-              ),
-              subtitle: Text(switch (order['status']) {
-                'awaiting_payment' => 'Čeka plaćanje',
-                'paid' => 'Plaćeno · priprema dostave',
-                'shipped' => 'Poslano',
-                'delivered' => 'Dostavljeno',
-                'refunded' => 'Vraćeno',
-                _ => 'Otkazano',
-              }),
-              trailing: const Icon(Icons.chevron_right),
-              onTap: () => _orders(context, ref, id: order['id'] as String),
-            ),
         ];
         if (cards.isEmpty) return const SizedBox.shrink();
+        if (walletStyle) {
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: cards,
+          );
+        }
         return Padding(
           padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
           child: Card(
@@ -214,6 +251,98 @@ class MyOnlineActivityPanel extends ConsumerWidget {
             ),
           ),
         );
+      },
+    );
+  }
+
+  Widget _walletOrder(
+    BuildContext context,
+    WidgetRef ref,
+    Map<String, dynamic> order,
+  ) {
+    final snapshot = order['source_snapshot'] is Map
+        ? order['source_snapshot'] as Map
+        : const {};
+    final id = order['id'] as String;
+    final device = ref
+        .watch(appProvider)
+        .deviceById(order['source_device']?.toString() ?? '');
+    final images = snapshot['imagePaths'];
+    final image = images is List && images.isNotEmpty && images.first is String
+        ? images.first as String
+        : null;
+    return WalletTicket(
+      key: ValueKey('online-order-$id'),
+      title:
+          snapshot['name']?.toString() ??
+          device?.name ??
+          'Narudžba #${id.substring(0, id.length.clamp(0, 8))}',
+      date: DateTime.parse(order['created_at'] as String).toLocal(),
+      status: groupForOrder(order),
+      price: '${((order['total_cents'] as num) / 100).toStringAsFixed(2)} €',
+      device: device,
+      imagePath: image,
+      onTap: () => _orders(context, ref, id: id),
+      footer: inlinePayments && order['status'] == 'awaiting_payment'
+          ? _InlineOrderPayment(order: order)
+          : Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                CinematicTracking(
+                  stage: CinematicTracking.stageForOrder(
+                    order['status'] as String,
+                  ),
+                  animate: ref.watch(tickIntervalProvider) != null,
+                ),
+                const SizedBox(height: 14),
+                TextButton.icon(
+                  onPressed: () => _orders(context, ref, id: id),
+                  icon: const Icon(Icons.arrow_forward, size: 16),
+                  label: Text(
+                    order['status'] == 'awaiting_payment'
+                        ? 'Dovrši kupnju'
+                        : 'Detalji narudžbe',
+                  ),
+                ),
+              ],
+            ),
+    );
+  }
+}
+
+class _InlineOrderPayment extends ConsumerWidget {
+  const _InlineOrderPayment({required this.order});
+  final Map<String, dynamic> order;
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final client = ref.watch(preparedLiveBackendProvider)?.client;
+    final user = ref.watch(appProvider).currentUser;
+    if (client == null ||
+        user == null ||
+        client.auth.currentUser?.id != user.id ||
+        order['buyer_id'] != user.id) {
+      return const SizedBox.shrink();
+    }
+    final stripe = StripeBackend(client);
+    final commerce = CommerceBackend(client);
+    final snapshot = order['source_snapshot'] as Map?;
+    return PurchaseConfirmationSheet(
+      key: ValueKey('inline-payment-${order['id']}'),
+      embedded: true,
+      title: snapshot?['name']?.toString() ?? 'Narudžba',
+      totalCents: (order['total_cents'] as num).toInt(),
+      address: user.address ?? '',
+      digital: snapshot?['file'] != null,
+      loadCard: stripe.cardStatus,
+      addCard: stripe.addCard,
+      reserve: () async {
+        final rows = await commerce.orders(id: order['id'] as String);
+        return rows.single;
+      },
+      chooseDelivery: commerce.chooseDelivery,
+      charge: (id, ctx) => stripe.chargeStatus(id, context: ctx),
+      onResult: (paid) {
+        if (paid) ref.invalidate(myOnlineActivityProvider);
       },
     );
   }

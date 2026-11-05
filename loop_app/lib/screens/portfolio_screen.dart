@@ -197,30 +197,6 @@ class _MyItemsViewState extends ConsumerState<MyItemsView> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                // Objašnjenje u jednoj rečenici + novi predmet.
-                Row(
-                  children: [
-                    Expanded(
-                      child: Text(
-                        t(
-                          'Spremljeni predmeti čekaju — stavi ih na aukciju ili u live.',
-                        ),
-                        style: TextStyle(
-                          color: LoopColors.textSecondary,
-                          fontSize: 13,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    FilledButton.tonalIcon(
-                      key: const ValueKey('my-items-new'),
-                      onPressed: () => AddDeviceScreen.open(context),
-                      icon: const Icon(Icons.add, size: 18),
-                      label: Text(t('Novi predmet')),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 8),
                 if (widget.fixedFilter == null)
                   SingleChildScrollView(
                     scrollDirection: Axis.horizontal,

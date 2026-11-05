@@ -7,6 +7,7 @@ import '../l10n/tr.dart';
 import '../models/delivery.dart';
 import '../providers/app_providers.dart';
 import '../theme/app_theme.dart';
+import '../widgets/vision_glass.dart';
 import 'seller_hub.dart' show AccountHealth, HealthLevel;
 
 /// Zdravlje računa kao Whatnot: poruka o stanju, prstenovi učinka
@@ -68,16 +69,43 @@ class AccountHealthScreen extends ConsumerWidget {
             ),
           ),
           const SizedBox(height: 22),
-          Text(
-            t('Učinak prodavača'),
-            style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 18),
-          ),
-          const SizedBox(height: 6),
-          Text(
-            t(
-              'Udio narudžbi u kojima je kupac imao dobro iskustvo: paket predan dostavljaču u roku od 48 sati i uspješno isporučen. Rijetko je 100 %, jer kupce štiti Zaštita kupca i kad greška nije tvoja.',
-            ),
-            style: muted,
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  t('Učinak prodavača'),
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w600,
+                    fontSize: 24,
+                  ),
+                ),
+              ),
+              IconButton(
+                key: const ValueKey('health-info'),
+                tooltip: t('Kako se računa učinak'),
+                icon: const Icon(Icons.info_outline),
+                onPressed: () => showModalBottomSheet<void>(
+                  context: context,
+                  backgroundColor: Colors.transparent,
+                  builder: (_) => SafeArea(
+                    child: Padding(
+                      padding: const EdgeInsets.all(16),
+                      child: VisionGlass(
+                        heavy: true,
+                        radius: 28,
+                        padding: const EdgeInsets.all(24),
+                        child: Text(
+                          t(
+                            'Udio narudžbi u kojima je kupac imao dobro iskustvo: paket predan dostavljaču u roku od 48 sati i uspješno isporučen. Rijetko je 100 %, jer kupce štiti Zaštita kupca i kad greška nije tvoja.',
+                          ),
+                          style: muted,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ],
           ),
           const SizedBox(height: 18),
           Wrap(
@@ -132,7 +160,13 @@ class AccountHealthScreen extends ConsumerWidget {
                 key: ValueKey('policy-${h.policy.name}'),
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                 decoration: BoxDecoration(
-                  color: h.policy.color.withValues(alpha: 0.15),
+                  color: h.policy.color.withValues(alpha: 0.10),
+                  boxShadow: [
+                    BoxShadow(
+                      color: h.policy.color.withValues(alpha: .16),
+                      blurRadius: 16,
+                    ),
+                  ],
                   borderRadius: BorderRadius.circular(6),
                 ),
                 child: Text(
@@ -226,21 +260,28 @@ class _Ring extends StatelessWidget {
           SizedBox(
             width: 96,
             height: 96,
-            child: CustomPaint(
-              painter: _RingPainter(
-                value: v ?? 0,
-                color: color,
-                track: LoopColors.surfaceHover,
-              ),
-              child: Center(
-                child: Text(
-                  text ??
-                      (v == null
-                          ? '—'
-                          : '${(v * 100).toStringAsFixed(v == 1 ? 0 : 1)} %'),
-                  style: const TextStyle(
-                    fontWeight: FontWeight.w900,
-                    fontSize: 17,
+            child: TweenAnimationBuilder<double>(
+              tween: Tween(begin: 0, end: v ?? 0),
+              duration: MediaQuery.disableAnimationsOf(context)
+                  ? Duration.zero
+                  : const Duration(milliseconds: 900),
+              curve: Curves.easeOutCubic,
+              builder: (context, progress, child) => CustomPaint(
+                painter: _RingPainter(
+                  value: progress,
+                  color: color,
+                  track: LoopColors.surfaceHover,
+                ),
+                child: Center(
+                  child: Text(
+                    text ??
+                        (v == null
+                            ? '—'
+                            : '${(v * 100).toStringAsFixed(v == 1 ? 0 : 1)} %'),
+                    style: const TextStyle(
+                      fontWeight: FontWeight.w900,
+                      fontSize: 17,
+                    ),
                   ),
                 ),
               ),
