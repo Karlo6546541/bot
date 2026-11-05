@@ -1,5 +1,8 @@
 # Simplified Flutter preview
 
+The subsequent screenshot-based visual refinement is documented in
+[glass-stage-2026-11-05.md](glass-stage-2026-11-05.md).
+
 The user requested an improvised redesign in the current Flutter/Dart stack,
 with a separate link alongside the existing application. The Claude artifact
 required sign-in, so no claim is made to reproduce its private contents.

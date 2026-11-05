@@ -5,10 +5,10 @@ const path = require('node:path');
 const base = process.env.PREVIEW_BASE_URL || 'http://127.0.0.1:8765/bot/';
 const output = process.env.PREVIEW_ARTIFACT_DIR || '/tmp/feed-preview/screenshots';
 const scenarios = [
-  ['home', 320, 740, 'light', 'Sve uživo'],
-  ['home', 390, 844, 'light', 'Sve uživo'],
-  ['home', 1440, 1000, 'light', 'Sve uživo'],
-  ['home', 390, 844, 'dark', 'Sve uživo'],
+  ['home', 320, 740, 'light', 'Subhasto'],
+  ['home', 390, 844, 'light', 'Subhasto'],
+  ['home', 1440, 1000, 'light', 'Subhasto'],
+  ['home', 390, 844, 'dark', 'Subhasto'],
   ['live', 320, 740, 'light', 'Povuci gore za shop'],
   ['live', 390, 844, 'light', 'Povuci gore za shop'],
   ['host', 390, 844, 'dark', 'Povuci gore za shop'],
@@ -137,6 +137,7 @@ const scenarios = [
         await page.screenshot({path:path.join(output,'spotlight-results.png')});
       }
       if (route === 'home' && width === 390 && theme === 'light') {
+        if (await page.getByRole('button',{name:'Računi',exact:true}).count()) await page.getByRole('button',{name:'Pretraži',exact:true}).click();
         await page.getByRole('button',{name:'Filteri',exact:true}).click();
         await page.getByText('Digitalne kupnje',{exact:true}).waitFor();
       }

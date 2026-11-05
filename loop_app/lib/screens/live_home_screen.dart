@@ -280,6 +280,7 @@ class _LiveHomeScreenState extends ConsumerState<LiveHomeScreen> {
           i,
     ];
 
+    var stageHasHero = false;
     final slivers = <Widget>[];
     switch (_filter) {
       case _Following():
@@ -361,7 +362,19 @@ class _LiveHomeScreenState extends ConsumerState<LiveHomeScreen> {
           padding: const EdgeInsets.only(top: 24, bottom: 12),
           child: Row(
             children: [
-              Expanded(child: VisionSectionLabel(title)),
+              Expanded(
+                child: kSimpleDesign
+                    ? Text(
+                        title.toUpperCase(),
+                        style: TextStyle(
+                          fontSize: 12,
+                          letterSpacing: 1.4,
+                          fontWeight: FontWeight.w600,
+                          color: LoopColors.textSecondary,
+                        ),
+                      )
+                    : VisionSectionLabel(title),
+              ),
               if (onAll != null)
                 TextButton(onPressed: onAll, child: Text(t('Prikaži sve'))),
             ],
@@ -374,6 +387,7 @@ class _LiveHomeScreenState extends ConsumerState<LiveHomeScreen> {
           ),
         );
         if (liveNow.isNotEmpty) {
+          stageHasHero = true;
           final featured = liveNow.first;
           if (!kSimpleDesign) {
             slivers.add(
@@ -393,6 +407,7 @@ class _LiveHomeScreenState extends ConsumerState<LiveHomeScreen> {
                 host: s.userById(featured.show!.hostId),
                 device: featured.device,
                 viewers: featured.live!.viewers,
+                price: featured.live!.current?.price,
                 onTap: () => LiveRoomScreen.open(context, featured.show!.id),
               ),
               key: const ValueKey('home-for-you-live'),
@@ -416,6 +431,7 @@ class _LiveHomeScreenState extends ConsumerState<LiveHomeScreen> {
                               show: item.show!,
                               device: item.device,
                               viewers: item.live!.viewers,
+                              price: item.live!.current?.price,
                               onTap: () =>
                                   LiveRoomScreen.open(context, item.show!.id),
                             ),
@@ -427,6 +443,22 @@ class _LiveHomeScreenState extends ConsumerState<LiveHomeScreen> {
               ),
             );
           }
+        } else if (kSimpleDesign && buyNow.isNotEmpty) {
+          stageHasHero = true;
+          final product = buyNow.first.device!;
+          slivers.add(
+            section(
+              StageFeatureCard(
+                key: const ValueKey('stage-shop-feature'),
+                media: BrowseCardMedia(device: product),
+                title: product.name,
+                subtitle:
+                    '${t('Shop')} · ${formatCredits(s.priceForMe(product))}',
+                actionLabel: t('Pogledaj'),
+                onTap: () => open(buyNow, 0, t('Shop')),
+              ),
+            ),
+          );
         } else if (upcoming.isEmpty) {
           slivers.add(
             section(
@@ -786,6 +818,77 @@ class _LiveHomeScreenState extends ConsumerState<LiveHomeScreen> {
         ),
       ),
     );
+    final browseControls = Row(
+      children: [
+        Expanded(
+          child: _TileRow(
+            selected: _filter.id,
+            category: _cat,
+            onCategory: (category) => setState(() => _cat = category),
+            onSelect: _select,
+          ),
+        ),
+        IconButton(
+          key: const ValueKey('home-filters'),
+          tooltip: t('Filteri'),
+          onPressed: filters,
+          icon: const Icon(Icons.tune, size: 20),
+        ),
+        const SizedBox(width: 8),
+      ],
+    );
+    Widget glassHeader() {
+      final actions = <Widget>[
+        headerButton(t('Prodavač'), const ValueKey('stage-seller'), () {
+          if (!blockGuest(context)) {
+            ref.read(homeTabProvider.notifier).select(4);
+          }
+        }),
+        headerButton(
+          t('Računi'),
+          const ValueKey('stage-account'),
+          () => ref.read(homeTabProvider.notifier).select(2),
+        ),
+        headerButton(
+          t('Pretraži'),
+          const ValueKey('home-search'),
+          () => setState(() => _searchOpen = !_searchOpen),
+        ),
+      ];
+      final logo = LoopLogo(size: width < 600 ? 25 : 30);
+      if (MediaQuery.textScalerOf(context).scale(14) > 18) {
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            logo,
+            const SizedBox(height: 10),
+            Wrap(children: actions),
+          ],
+        );
+      }
+      return Row(
+        children: [
+          Expanded(
+            flex: 3,
+            child: Align(
+              alignment: Alignment.centerLeft,
+              child: FittedBox(fit: BoxFit.scaleDown, child: logo),
+            ),
+          ),
+          Expanded(
+            flex: 7,
+            child: Align(
+              alignment: Alignment.centerRight,
+              child: FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Row(mainAxisSize: MainAxisSize.min, children: actions),
+              ),
+            ),
+          ),
+        ],
+      );
+    }
+
     final chips = SafeArea(
       bottom: false,
       child: Padding(
@@ -794,24 +897,7 @@ class _LiveHomeScreenState extends ConsumerState<LiveHomeScreen> {
         child: Column(
           children: [
             if (kSimpleDesign)
-              Row(
-                children: [
-                  Expanded(
-                    child: Align(
-                      alignment: Alignment.centerLeft,
-                      child: LoopLogo(size: 28),
-                    ),
-                  ),
-                  IconButton(
-                    key: const ValueKey('home-search'),
-                    tooltip: t('Pretraži'),
-                    onPressed: () => setState(() => _searchOpen = !_searchOpen),
-                    icon: const Icon(Icons.search),
-                  ),
-                  const MessagesButton(),
-                  const NotificationBell(),
-                ],
-              )
+              glassHeader()
             else
               LayoutBuilder(
                 builder: (context, box) {
@@ -893,25 +979,26 @@ class _LiveHomeScreenState extends ConsumerState<LiveHomeScreen> {
                               ),
                             ),
                           ),
-                          if (!kSimpleDesign)
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.end,
-                              children: [
-                                const MessagesButton(),
-                                const NotificationBell(),
-                                IconButton(
-                                  tooltip: t('Profil'),
-                                  icon: const Icon(Icons.person_outline),
-                                  onPressed: () => ref
-                                      .read(homeTabProvider.notifier)
-                                      .select(3),
-                                ),
-                              ],
-                            ),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.end,
+                            children: [
+                              const MessagesButton(),
+                              const NotificationBell(),
+                              IconButton(
+                                tooltip: t('Profil'),
+                                icon: const Icon(Icons.person_outline),
+                                onPressed: () => ref
+                                    .read(homeTabProvider.notifier)
+                                    .select(3),
+                              ),
+                            ],
+                          ),
                         ],
                       ),
                     ),
             ),
+            if (kSimpleDesign && (_searchOpen || _filter is! _ForYou))
+              browseControls,
           ],
         ),
       ),
@@ -968,33 +1055,15 @@ class _LiveHomeScreenState extends ConsumerState<LiveHomeScreen> {
       ),
     );
 
-    return Center(
+    final content = Center(
       child: ConstrainedBox(
         constraints: BoxConstraints(
           maxWidth: _filter is _ForYou ? (kSimpleDesign ? 780 : 480) : 1200,
         ),
         child: Column(
           children: [
-            chips,
-            Row(
-              children: [
-                Expanded(
-                  child: _TileRow(
-                    selected: _filter.id,
-                    category: _cat,
-                    onCategory: (category) => setState(() => _cat = category),
-                    onSelect: (f) => _select(f),
-                  ),
-                ),
-                IconButton(
-                  key: const ValueKey('home-filters'),
-                  tooltip: t('Filteri'),
-                  onPressed: filters,
-                  icon: const Icon(Icons.tune, size: 20),
-                ),
-                const SizedBox(width: 8),
-              ],
-            ),
+            if (!kSimpleDesign) chips,
+            if (!kSimpleDesign) browseControls,
             // Dolje kategorije: odabrana ostaje označena i filtrira prikaz.
             if (onLive && !kSimpleDesign)
               AnimatedSize(
@@ -1024,6 +1093,16 @@ class _LiveHomeScreenState extends ConsumerState<LiveHomeScreen> {
                   },
                   child: CustomScrollView(
                     slivers: [
+                      if (kSimpleDesign && (!stageHasHero || _searchOpen))
+                        SliverToBoxAdapter(
+                          child: SizedBox(
+                            height: _searchOpen
+                                ? 290
+                                : _filter is _ForYou
+                                ? 90
+                                : 145,
+                          ),
+                        ),
                       if (kSimpleDesign &&
                           _filter is! _ForYou &&
                           _filter is! _BuyNow)
@@ -1077,6 +1156,28 @@ class _LiveHomeScreenState extends ConsumerState<LiveHomeScreen> {
           ],
         ),
       ),
+    );
+    if (!kSimpleDesign) return content;
+    return Stack(
+      children: [
+        Positioned.fill(child: content),
+        Positioned(
+          top: 0,
+          left: 0,
+          right: 0,
+          child: Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 1200),
+              child: VisionGlass(
+                radius: 0,
+                heavy: true,
+                opacity: .40,
+                child: chips,
+              ),
+            ),
+          ),
+        ),
+      ],
     );
   }
 }

@@ -49,6 +49,18 @@ void main() {
     await tester.pumpWidget(app());
     await tester.pumpAndSettle();
     expect(find.byType(NavigationDestination), findsNWidgets(3));
+    expect(find.byKey(const ValueKey('stage-shop-feature')), findsOneWidget);
+    expect(find.byKey(const ValueKey('stage-seller')), findsOneWidget);
+    await tester.tap(find.byKey(const ValueKey('stage-account')));
+    await tester.pumpAndSettle();
+    expect(
+      find.byKey(const ValueKey('activity-tab-purchases')),
+      findsOneWidget,
+    );
+    await mainTab(tester, 'Početna');
+    expect(find.byKey(const ValueKey('home-cat-for-you')), findsNothing);
+    await tester.tap(find.byKey(const ValueKey('home-search')));
+    await tester.pumpAndSettle();
     expect(find.byKey(const ValueKey('home-cat-for-you')), findsOneWidget);
     expect(find.byKey(const ValueKey('home-cat-buy')), findsOneWidget);
     expect(find.text('Tenisice'), findsNothing);
