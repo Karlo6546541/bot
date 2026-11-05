@@ -1,3 +1,4 @@
+import '../config/design_variant.dart';
 import '../widgets/vision_live_controls.dart';
 import 'device_detail_screen.dart';
 import '../widgets/live_shop_widgets.dart' show liveShopProducts;
@@ -3880,13 +3881,21 @@ class _LiveRoomViewState extends ConsumerState<_LiveRoomBody> {
                           ),
                         ),
                       VisionShopHandle(
-                        key: const ValueKey('live-queue'),
+                        key: ValueKey(
+                          kSimpleDesign ? 'live-controls' : 'live-queue',
+                        ),
                         onNavigate: (index) {
+                          if (kSimpleDesign && index == 3) return;
+                          if (kSimpleDesign && index == 0) {
+                            ref
+                                .read(homeFilterProvider.notifier)
+                                .select('for-you');
+                          }
                           if (index == 1 && blockGuest(context)) return;
                           ref.read(homeTabProvider.notifier).select(
                             switch (index) {
                               1 => 4,
-                              2 => 2,
+                              2 => kSimpleDesign ? 3 : 2,
                               _ => 0,
                             },
                           );
@@ -5180,6 +5189,124 @@ class _LotCard extends StatelessWidget {
       };
     }
 
+    if (kSimpleDesign) {
+      final progress = (left.inMilliseconds / (lotSeconds * 1000)).clamp(
+        0.0,
+        1.0,
+      );
+      return Padding(
+        key: ValueKey(result ? 'live-result' : 'live-lot'),
+        padding: const EdgeInsets.fromLTRB(18, 12, 18, 0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    lot.lot.deviceName,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(color: Colors.white70, fontSize: 14),
+                  ),
+                ),
+                if (!result && !isHost)
+                  IconButton(
+                    key: const ValueKey('buyer-protection'),
+                    tooltip: t('Zaštita kupca'),
+                    onPressed: () => BuyerProtectionBadge.explain(context),
+                    icon: const Icon(
+                      Icons.verified_user_outlined,
+                      color: Color(0xFF86F6D3),
+                      size: 17,
+                    ),
+                    constraints: const BoxConstraints(
+                      minWidth: 32,
+                      minHeight: 32,
+                    ),
+                    padding: EdgeInsets.zero,
+                  ),
+              ],
+            ),
+            Row(
+              children: [
+                Expanded(
+                  child: Align(
+                    alignment: Alignment.centerLeft,
+                    child: FittedBox(
+                      fit: BoxFit.scaleDown,
+                      child: Text(
+                        lot.mode == LotMode.giveaway
+                            ? t('Besplatno')
+                            : formatCredits(price),
+                        key: const ValueKey('live-price'),
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w200,
+                          fontSize: 48,
+                          letterSpacing: -1.8,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+                if (!result && lot.mode == LotMode.auction)
+                  SizedBox(
+                    width: 54,
+                    height: 54,
+                    child: Stack(
+                      alignment: Alignment.center,
+                      children: [
+                        Positioned.fill(
+                          child: TweenAnimationBuilder<double>(
+                            tween: Tween(begin: progress, end: progress),
+                            duration: MediaQuery.disableAnimationsOf(context)
+                                ? Duration.zero
+                                : const Duration(milliseconds: 350),
+                            builder: (_, value, _) => CircularProgressIndicator(
+                              value: value,
+                              strokeWidth: 2.5,
+                              backgroundColor: Colors.white12,
+                              color: hot ? kLiveRed : Colors.white,
+                            ),
+                          ),
+                        ),
+                        Text(
+                          '${(left.inMilliseconds / 1000).ceil()}',
+                          key: const ValueKey('live-secs'),
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 17,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+              ],
+            ),
+            Text(
+              '$status$highlight',
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(color: Colors.white60, fontSize: 11),
+            ),
+            if (d?.isDigital ?? false)
+              Padding(
+                key: const ValueKey('lot-digital-badge'),
+                padding: const EdgeInsets.only(top: 4),
+                child: Text(
+                  t('⬇️ Digitalno · preuzimanje odmah, bez dostave'),
+                  style: const TextStyle(
+                    color: Color(0xFF64B0FF),
+                    fontSize: 11,
+                  ),
+                ),
+              ),
+          ],
+        ),
+      );
+    }
     return Column(
       key: ValueKey(result ? 'live-result' : 'live-lot'),
       crossAxisAlignment: CrossAxisAlignment.stretch,

@@ -20,7 +20,7 @@ const scenarios = [
   ['studio', 390, 844, 'dark', 'Pokreni live'],
   ['studio', 320, 740, 'light', 'Pokreni live'],
   ['profile', 390, 844, 'light', 'Pogledaj profil'],
-  ['seller', 390, 844, 'light', 'Prodavač'],
+  ['seller', 390, 844, 'light', 'Pokreni live'],
   ['form', 390, 844, 'light', 'Spremi podatke'],
   ['form', 1440, 900, 'light', 'Spremi podatke'],
   ['listing', 390, 844, 'light', 'Kupi odmah'],
@@ -28,7 +28,7 @@ const scenarios = [
   ['notifications', 390, 844, 'light', 'Obavijesti'],
   ['finance', 390, 844, 'light', 'Financije'],
   ['login', 390, 844, 'light', 'Prijavi se'],
-  ['seller', 390, 844, 'dark', 'Prodavač'],
+  ['seller', 390, 844, 'dark', 'Pokreni live'],
   ['profile', 390, 844, 'dark', 'Pogledaj profil'],
   ['shop', 390, 844, 'dark', 'Shop ('],
   ['form', 390, 844, 'dark', 'Spremi podatke'],
@@ -72,6 +72,11 @@ const scenarios = [
       await page.goto(`${base}?preview=${route}&theme=${theme}`,{waitUntil:'networkidle'});
       await page.waitForSelector('flutter-view');
       try { await page.waitForFunction(text => (document.body.innerText + ' ' + Array.from(document.querySelectorAll('[aria-label]')).map(e=>e.getAttribute('aria-label')).join(' ')).includes(text), expected, {timeout:20000}); } catch (error) { console.error(await page.locator('body').ariaSnapshot()); await page.screenshot({path:path.join(output,`failed-${route}.png`)}); throw error; }
+      const navControl = label => {
+        const legacy = page.getByRole('tab',{name:new RegExp(label)}).last();
+        const mapped = {Pozornica:'Početna', Studio:'Prodaj', Trezor:'Profil'}[label] || label;
+        return legacy.or(page.getByRole('button',{name:mapped,exact:true})).last();
+      };
       await page.mouse.move(1,1);
       await page.waitForTimeout(3000);
       await page.screenshot({path:path.join(output,`${route}-${width}-${theme}.png`)});
@@ -96,13 +101,13 @@ const scenarios = [
       }
       if (route === 'home' && width === 390 && theme === 'dark') {
         // Three destinations are real top-level tabs. No modal is needed.
-        await page.getByRole('tab',{name:/Studio/}).last().click();
+        await navControl('Studio').click();
         await page.getByRole('button',{name:'Pokreni live',exact:true}).waitFor();
         await page.screenshot({path:path.join(output,'home-studio.png')});
-        await page.getByRole('tab',{name:/Trezor/}).last().click();
+        await navControl('Trezor').click();
         await page.getByRole('button',{name:/Kupnje/}).first().waitFor();
         await page.screenshot({path:path.join(output,'home-vault.png')});
-        await page.getByRole('tab',{name:/Pozornica/}).last().click();
+        await navControl('Pozornica').click();
         await page.getByRole('button',{name:'Pretraži',exact:true}).click();
         await page.getByRole('textbox').first().fill('Satovi');
         await page.waitForTimeout(300);
@@ -116,7 +121,7 @@ const scenarios = [
         await page.getByRole('button',{name:'Otvori navigaciju',exact:true}).waitFor();
         await page.screenshot({path:path.join(output,'vault-dock-collapsed.png')});
         await touch.send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});
-        await page.getByRole('tab',{name:/Trezor/}).waitFor();
+        await navControl('Trezor').waitFor();
         await page.screenshot({path:path.join(output,'vault-dock-idle.png')});
         await touch.detach();
       }

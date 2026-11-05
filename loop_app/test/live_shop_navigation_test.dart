@@ -1,3 +1,4 @@
+import 'package:loop_app/config/design_variant.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -15,7 +16,6 @@ import 'package:loop_app/services/seed_data.dart';
 import 'package:loop_app/services/storage_service.dart';
 import 'package:loop_app/services/trade_service.dart';
 import 'package:loop_app/theme/app_theme.dart';
-import 'package:loop_app/widgets/live_shop_widgets.dart';
 
 void main() {
   late StorageService storage;
@@ -82,10 +82,14 @@ void main() {
     await storage.saveSession(userId: SeedData.anaUserId);
     await tester.pumpWidget(app(const Scaffold(body: ProfileScreen())));
     await tester.pumpAndSettle();
-    expect(
-      find.byKey(ValueKey('account-shop-item-${item.id}')),
-      findsOneWidget,
-    );
+    if (!kSimpleDesign) {
+      expect(
+        find.byKey(ValueKey('account-shop-item-${item.id}')),
+        findsOneWidget,
+      );
+    } else {
+      expect(find.byKey(const ValueKey('account-purchases')), findsOneWidget);
+    }
     await tester.scrollUntilVisible(
       find.byKey(const ValueKey('account-open-shop')),
       200,
@@ -172,9 +176,10 @@ void main() {
           app(const Scaffold(body: LiveHomeScreen()), textScale: config.$2),
         );
         await tester.pumpAndSettle();
-        expect(find.byType(LiveShopFeature), findsOneWidget);
-        await tester.ensureVisible(find.byType(LiveShopFeature));
-        await tester.tap(find.byType(LiveShopFeature));
+        final card = find.byKey(ValueKey('home-featured-live-${show.id}'));
+        expect(card, findsOneWidget);
+        await tester.ensureVisible(card);
+        await tester.tap(card);
         await tester.pumpAndSettle();
         expect(find.byType(LiveRoomScreen), findsOneWidget);
         expect(find.byKey(const ValueKey('live-bid')), findsOneWidget);

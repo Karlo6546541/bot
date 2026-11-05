@@ -1,3 +1,4 @@
+import '../config/design_variant.dart';
 import '../widgets/vision_live_controls.dart';
 import '../widgets/vision_glass.dart';
 import 'package:flutter/services.dart';
@@ -1594,8 +1595,16 @@ class _CloudCommerceState extends State<CloudCommerceScreen> {
                   if (!keyboard) _lotPanel(room, host),
                   if (!keyboard)
                     VisionShopHandle(
-                      key: const ValueKey('cloud-live-shop-handle'),
+                      key: ValueKey(
+                        kSimpleDesign
+                            ? 'cloud-live-controls'
+                            : 'cloud-live-shop-handle',
+                      ),
+                      shopHandleKey: kSimpleDesign
+                          ? const ValueKey('cloud-live-shop-handle')
+                          : null,
                       onNavigate: (index) async {
+                        if (kSimpleDesign && index == 3) return;
                         if (index == 1 && !await _login()) return;
                         if (!mounted) return;
                         ProviderScope.containerOf(
@@ -1603,7 +1612,7 @@ class _CloudCommerceState extends State<CloudCommerceScreen> {
                           listen: false,
                         ).read(homeTabProvider.notifier).select(switch (index) {
                           1 => 4,
-                          2 => 2,
+                          2 => kSimpleDesign ? 3 : 2,
                           _ => 0,
                         });
                         Navigator.of(

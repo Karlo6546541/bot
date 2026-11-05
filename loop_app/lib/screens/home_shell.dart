@@ -10,6 +10,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../providers/app_providers.dart';
 
 import '../widgets/adaptive_shell.dart';
+import '../widgets/jednostavno_ui.dart';
 import '../widgets/trade_actions.dart';
 import 'activity_view.dart';
 import 'categories_screen.dart';
@@ -30,7 +31,7 @@ import 'search_screen.dart';
 import 'wishlists_screen.dart';
 import 'notifications_screen.dart';
 
-/// Three destinations keep browsing, selling and personal activity together.
+/// The preview follows the four destinations in the supplied design.
 class HomeShell extends ConsumerStatefulWidget {
   const HomeShell({super.key});
 
@@ -94,29 +95,68 @@ class _HomeShellState extends ConsumerState<HomeShell> {
     _go(0);
   }
 
-  List<ShellDestination> get _destinations => [
-    ShellDestination(
-      t('Pozornica'),
-      Icons.play_circle_outline,
-      Icons.play_circle,
-    ),
-    ShellDestination(
-      t('Studio'),
-      Icons.sensors_outlined,
-      Icons.sensors,
-      action: true,
-    ),
-    ShellDestination(t('Trezor'), Icons.wallet_outlined, Icons.wallet),
-  ];
+  List<ShellDestination> get _destinations => kSimpleDesign
+      ? [
+          ShellDestination(t('Početna'), Icons.home_outlined, Icons.home),
+          ShellDestination(t('Uživo'), Icons.sensors_outlined, Icons.sensors),
+          ShellDestination(
+            t('Prodaj'),
+            Icons.add_circle_outline,
+            Icons.add_circle,
+            action: true,
+          ),
+          ShellDestination(t('Profil'), Icons.person_outline, Icons.person),
+        ]
+      : [
+          ShellDestination(
+            t('Pozornica'),
+            Icons.play_circle_outline,
+            Icons.play_circle,
+          ),
+          ShellDestination(
+            t('Studio'),
+            Icons.sensors_outlined,
+            Icons.sensors,
+            action: true,
+          ),
+          ShellDestination(t('Trezor'), Icons.wallet_outlined, Icons.wallet),
+        ];
 
   // Legacy deep links keep their meaning; three destinations collect those views.
-  static int _navIndex(int tab) => switch (tab) {
-    4 => 1,
-    2 || 3 => 2,
-    _ => 0,
-  };
+  int _navIndex(int tab) => kSimpleDesign
+      ? switch (tab) {
+          4 => 2,
+          2 || 3 => 3,
+          0 when ref.read(homeFilterProvider) == 'live' => 1,
+          _ => 0,
+        }
+      : switch (tab) {
+          4 => 1,
+          2 || 3 => 2,
+          _ => 0,
+        };
 
   void _onNav(int nav) {
+    if (kSimpleDesign) {
+      if (nav == 2 && blockGuest(context)) return;
+      if (nav == 0 || nav == 1) {
+        ref
+            .read(homeFilterProvider.notifier)
+            .select(nav == 1 ? 'live' : 'for-you');
+        _go(0);
+        if (nav == 1) {
+          final live = ref
+              .read(appProvider)
+              .activeLives
+              .where((entry) => entry.$2.isLive)
+              .firstOrNull;
+          if (live != null) LiveRoomScreen.open(context, live.$1.id);
+        }
+      } else {
+        _go(nav == 2 ? 4 : 3);
+      }
+      return;
+    }
     if (nav == 1 && blockGuest(context)) return;
     _go(switch (nav) {
       1 => 4,
@@ -300,7 +340,7 @@ class _HomeShellState extends ConsumerState<HomeShell> {
         padding: const EdgeInsets.symmetric(vertical: 20),
         child: LoopLogo(size: 22, onTap: _goHome),
       ),
-      appBar: _index == 0 || _index == 4
+      appBar: _index == 0 || _index == 4 || (kSimpleDesign && _index == 3)
           ? null
           : AppBar(
               // Jednostavna traka: logo lijevo, desno samo pretraga, poruke,
@@ -313,7 +353,7 @@ class _HomeShellState extends ConsumerState<HomeShell> {
                       onTap: _goHome,
                       child: Text(
                         _index == 2 || _index == 3
-                            ? t('Trezor')
+                            ? t(kSimpleDesign ? 'Kupnje' : 'Trezor')
                             : t('Pozornica'),
                         style: const TextStyle(fontWeight: FontWeight.w800),
                       ),
@@ -350,22 +390,9 @@ class _HomeShellState extends ConsumerState<HomeShell> {
               ],
             ),
       // IndexedStack čuva stanje (npr. odabranu kategoriju) pri promjeni taba.
-      body: IndexedStack(
-        index: _index,
-        children: [
-          LiveHomeScreen(visible: _index == 0),
-          const CategoriesScreen(),
-          TickerMode(
-            enabled: _index == 2,
-            child: ActivityView(onBrowse: () => _go(0)),
-          ),
-          const ProfileScreen(),
-          TickerMode(
-            enabled: _index == 4,
-            child: const SellerHubScreen(embedded: true),
-          ),
-        ],
-      ),
+      body: kSimpleDesign
+          ? JednostavnoBackdrop(seller: _index == 4, child: _body())
+          : _body(),
     );
     // Natrag: kronološki kroz otvorene kartice, pa na Početnu, pa izlaz.
     return PopScope(
@@ -376,4 +403,21 @@ class _HomeShellState extends ConsumerState<HomeShell> {
       child: shell,
     );
   }
+
+  Widget _body() => IndexedStack(
+    index: _index,
+    children: [
+      LiveHomeScreen(visible: _index == 0),
+      const CategoriesScreen(),
+      TickerMode(
+        enabled: _index == 2,
+        child: ActivityView(onBrowse: () => _go(0)),
+      ),
+      const ProfileScreen(),
+      TickerMode(
+        enabled: _index == 4,
+        child: const SellerHubScreen(embedded: true),
+      ),
+    ],
+  );
 }
