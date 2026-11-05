@@ -55,7 +55,7 @@ account identity or payment fee calculation is changed by this UI release.
 ## Verification
 
 Flutter analysis is clean, all 366 tests pass, and the release-web fixture builds.
-The browser matrix contains 42 phone/desktop and light/dark configurations, plus
+All 42 phone/desktop and light/dark browser configurations pass, including
 interactions for the live shop, floating dock, monthly reports and Spotlight.
 Browser previews use only `tool/redesign_preview.dart` and an isolated in-memory
 fixture. They do not create production users, shipments or charges.

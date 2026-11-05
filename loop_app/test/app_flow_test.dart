@@ -361,7 +361,10 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.text('Tamna'));
     await tester.pumpAndSettle();
-    expect(find.byKey(const ValueKey('vault-account')), findsOneWidget); // ostali smo na istom tabu
+    expect(
+      find.byKey(const ValueKey('vault-account')),
+      findsOneWidget,
+    ); // ostali smo na istom tabu
     expect(
       Theme.of(tester.element(find.text('Tamna'))).brightness,
       Brightness.dark,

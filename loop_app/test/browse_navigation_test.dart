@@ -53,7 +53,11 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.byKey(const ValueKey('seller-hub-live')), findsOneWidget);
     expect(find.byKey(const ValueKey('seller-hub-auction')), findsOneWidget);
-    await tester.scrollUntilVisible(find.byKey(const ValueKey('hub-health')), 200, scrollable: find.byType(Scrollable).last);
+    await tester.scrollUntilVisible(
+      find.byKey(const ValueKey('hub-health')),
+      200,
+      scrollable: find.byType(Scrollable).last,
+    );
     await tester.ensureVisible(find.byKey(const ValueKey('hub-health')));
     expect(find.byKey(const ValueKey('hub-health')), findsOneWidget);
     tester

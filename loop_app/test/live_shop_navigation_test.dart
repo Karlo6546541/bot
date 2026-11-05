@@ -86,7 +86,11 @@ void main() {
       find.byKey(ValueKey('account-shop-item-${item.id}')),
       findsOneWidget,
     );
-    await tester.scrollUntilVisible(find.byKey(const ValueKey('account-open-shop')), 200, scrollable: find.byType(Scrollable).first);
+    await tester.scrollUntilVisible(
+      find.byKey(const ValueKey('account-open-shop')),
+      200,
+      scrollable: find.byType(Scrollable).first,
+    );
     await tester.ensureVisible(find.byKey(const ValueKey('account-open-shop')));
     await tester.pumpAndSettle();
     await tester.tap(find.byKey(const ValueKey('account-open-shop')));
