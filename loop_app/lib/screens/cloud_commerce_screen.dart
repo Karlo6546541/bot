@@ -6,6 +6,8 @@ import '../widgets/item_image.dart';
 import '../services/app_location/app_location.dart';
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../providers/app_providers.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:uuid/uuid.dart';
 import '../services/live_backend.dart';
@@ -1593,6 +1595,21 @@ class _CloudCommerceState extends State<CloudCommerceScreen> {
                   if (!keyboard)
                     VisionShopHandle(
                       key: const ValueKey('cloud-live-shop-handle'),
+                      onNavigate: (index) async {
+                        if (index == 1 && !await _login()) return;
+                        if (!mounted) return;
+                        ProviderScope.containerOf(
+                          context,
+                          listen: false,
+                        ).read(homeTabProvider.notifier).select(switch (index) {
+                          1 => 4,
+                          2 => 2,
+                          _ => 0,
+                        });
+                        Navigator.of(
+                          context,
+                        ).popUntil((route) => route.isFirst);
+                      },
                       label: 'Povuci gore za shop · ${lots.length} predmeta',
                       onOpen: () => _showLots(room, host),
                     ),

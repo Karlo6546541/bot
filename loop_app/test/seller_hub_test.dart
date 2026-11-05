@@ -137,6 +137,16 @@ void main() {
     expect(find.text('Još nema isplata.'), findsOneWidget);
     await tester.tap(find.byKey(const ValueKey('fin-tab-reports')));
     await tester.pumpAndSettle();
+    await tester.scrollUntilVisible(
+      find.byKey(const ValueKey('fin-weekly-reports')),
+      200,
+      scrollable: find.byType(Scrollable).last,
+    );
+    await tester.ensureVisible(
+      find.byKey(const ValueKey('fin-weekly-reports')),
+    );
+    await tester.tap(find.byKey(const ValueKey('fin-weekly-reports')));
+    await tester.pumpAndSettle();
     expect(find.textContaining('Tjedan je u tijeku'), findsOneWidget);
     await tester.pageBack();
     await tester.pumpAndSettle();

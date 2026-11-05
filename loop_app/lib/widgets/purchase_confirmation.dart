@@ -1,3 +1,4 @@
+import 'vision_live_controls.dart';
 import 'vision_glass.dart';
 import 'package:flutter/material.dart';
 import '../services/stripe_backend.dart';
@@ -57,7 +58,11 @@ class PurchaseConfirmationSheet extends StatefulWidget {
     this.digital = false,
     this.country = 'HR',
     this.searchLockers,
+    this.embedded = false,
+    this.onResult,
   });
+  final bool embedded;
+  final ValueChanged<bool>? onResult;
   final String title;
   final int totalCents;
   final String address;
@@ -82,6 +87,7 @@ class _PurchaseConfirmationState extends State<PurchaseConfirmationSheet> {
   late int _totalCents = widget.totalCents;
   String? _last4, _error, _orderId;
   bool _hasCard = false, _loadingCard = true, _busy = false;
+  bool _completed = false;
   bool _checkingPayment = false, _editingAddress = false;
 
   @override
@@ -143,6 +149,7 @@ class _PurchaseConfirmationState extends State<PurchaseConfirmationSheet> {
   }
 
   Future<void> _pay() async {
+    if (_busy || _completed) return;
     if (_busy || _loadingCard) return;
     if (!_hasCard) {
       await _addCard();
@@ -187,7 +194,12 @@ class _PurchaseConfirmationState extends State<PurchaseConfirmationSheet> {
       final status = await widget.charge(_orderId!, context);
       if (!mounted) return;
       if (status == SavedCardChargeStatus.paid) {
-        Navigator.pop(context, true);
+        setState(() => _completed = true);
+        if (widget.embedded) {
+          widget.onResult?.call(true);
+        } else {
+          Navigator.pop(context, true);
+        }
       } else {
         setState(
           () => _error = status == SavedCardChargeStatus.processing
@@ -216,35 +228,45 @@ class _PurchaseConfirmationState extends State<PurchaseConfirmationSheet> {
       child: SingleChildScrollView(
         key: const ValueKey('purchase-confirmation'),
         padding: EdgeInsets.fromLTRB(
-          20,
+          widget.embedded ? 0 : 20,
           0,
-          20,
-          20 + MediaQuery.viewInsetsOf(context).bottom,
+          widget.embedded ? 0 : 20,
+          (widget.embedded ? 0 : 20) + MediaQuery.viewInsetsOf(context).bottom,
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           mainAxisSize: MainAxisSize.min,
           children: [
-            Row(
-              children: [
-                const Expanded(
-                  child: Text(
-                    'Potvrdi kupnju',
-                    style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900),
+            if (!widget.embedded)
+              Row(
+                children: [
+                  const Expanded(
+                    child: Text(
+                      'Potvrdi kupnju',
+                      style: TextStyle(
+                        fontSize: 22,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
                   ),
+                  IconButton(
+                    key: const ValueKey('purchase-close'),
+                    onPressed: _busy
+                        ? null
+                        : () => Navigator.pop(context, false),
+                    icon: const Icon(Icons.close),
+                  ),
+                ],
+              ),
+            if (!widget.embedded) const SizedBox(height: 8),
+            if (!widget.embedded)
+              Text(
+                widget.title,
+                style: const TextStyle(
+                  fontSize: 17,
+                  fontWeight: FontWeight.w700,
                 ),
-                IconButton(
-                  key: const ValueKey('purchase-close'),
-                  onPressed: _busy ? null : () => Navigator.pop(context, false),
-                  icon: const Icon(Icons.close),
-                ),
-              ],
-            ),
-            const SizedBox(height: 8),
-            Text(
-              widget.title,
-              style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w700),
-            ),
+              ),
             const SizedBox(height: 16),
             Row(
               children: [
@@ -338,26 +360,47 @@ class _PurchaseConfirmationState extends State<PurchaseConfirmationSheet> {
                 ),
               ),
             const SizedBox(height: 18),
-            FilledButton.icon(
-              key: const ValueKey('purchase-pay'),
-              onPressed: _busy || _loadingCard ? null : _pay,
-              icon: _busy
-                  ? const SizedBox(
-                      width: 18,
-                      height: 18,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    )
-                  : const Icon(Icons.lock_outline),
-              label: Text(
-                _busy
-                    ? 'Obrada…'
-                    : !_hasCard
-                    ? 'Dodaj karticu'
-                    : _checkingPayment
-                    ? 'Provjeri plaćanje'
-                    : 'Potvrdi i plati ${formatCredits(_totalCents / 100)}',
+            if (_completed)
+              const Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.check_circle_outline),
+                  SizedBox(width: 8),
+                  Text('Plaćeno'),
+                ],
+              )
+            else if (widget.embedded &&
+                _hasCard &&
+                !_loadingCard &&
+                !_busy &&
+                !_checkingPayment)
+              VisionBidSlider(
+                key: const ValueKey('purchase-slide'),
+                label: 'Potvrdi i plati ${formatCredits(_totalCents / 100)}',
+                confirmationKey: (_orderId, _totalCents),
+                onConfirm: _pay,
+              )
+            else
+              FilledButton.icon(
+                key: const ValueKey('purchase-pay'),
+                onPressed: _busy || _loadingCard ? null : _pay,
+                icon: _busy
+                    ? const SizedBox(
+                        width: 18,
+                        height: 18,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const Icon(Icons.lock_outline),
+                label: Text(
+                  _busy
+                      ? 'Obrada…'
+                      : !_hasCard
+                      ? 'Dodaj karticu'
+                      : _checkingPayment
+                      ? 'Provjeri plaćanje'
+                      : 'Potvrdi i plati ${formatCredits(_totalCents / 100)}',
+                ),
               ),
-            ),
             const SizedBox(height: 8),
             Text(
               'Testni način',

@@ -133,7 +133,7 @@ class _ActivityScreenState extends ConsumerState<ActivityScreen> {
               ),
             for (var i = 0; i < txs.length; i++)
               Padding(
-                padding: const EdgeInsets.only(bottom: 10),
+                padding: EdgeInsets.zero,
                 child: FadeSlideIn(
                   key: ValueKey(txs[i].id),
                   index: i,
@@ -167,12 +167,8 @@ class _SummaryTile extends StatelessWidget {
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(kRadius),
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [color.withValues(alpha: 0.18), LoopColors.surface],
-        ),
-        border: Border.all(color: color.withValues(alpha: 0.3)),
+        color: LoopColors.glass,
+        border: Border.all(color: LoopColors.glassBorder),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -213,7 +209,7 @@ class TransactionTile extends StatelessWidget {
         (type == TransactionType.refund && tx.buyerId == viewerId) ||
         // Zamjena: nadoplatu dobiva vlasnik traženog predmeta.
         (type == TransactionType.swap && tx.sellerId == viewerId);
-    final color = isSell ? LoopColors.success : LoopColors.textPrimary;
+    final color = isSell ? LoopColors.success : LoopColors.error;
     final icon = switch (type) {
       TransactionType.sell => Icons.north_east,
       TransactionType.buy => Icons.shopping_bag_outlined,
@@ -225,7 +221,15 @@ class TransactionTile extends StatelessWidget {
       TransactionType.promotion => Icons.campaign_outlined,
       TransactionType.refund => Icons.undo,
     };
-    return Card(
+    return Container(
+      decoration: BoxDecoration(
+        border: Border(
+          left: BorderSide(
+            color: LoopColors.accent.withValues(alpha: .4),
+            width: 2,
+          ),
+        ),
+      ),
       child: Padding(
         padding: const EdgeInsets.all(14),
         child: Row(
@@ -234,7 +238,7 @@ class TransactionTile extends StatelessWidget {
               width: 44,
               height: 44,
               decoration: BoxDecoration(
-                color: color.withValues(alpha: 0.12),
+                color: LoopColors.surfaceHover,
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Icon(icon, color: color),
@@ -268,7 +272,16 @@ class TransactionTile extends StatelessWidget {
               children: [
                 Text(
                   '${isSell ? '+' : '−'}${formatCredits(tx.amountFor(viewerId))}',
-                  style: TextStyle(color: color, fontWeight: FontWeight.w800),
+                  style: TextStyle(
+                    color: color,
+                    fontWeight: FontWeight.w700,
+                    shadows: [
+                      Shadow(
+                        color: color.withValues(alpha: .25),
+                        blurRadius: 10,
+                      ),
+                    ],
+                  ),
                 ),
                 Text(
                   switch (type) {

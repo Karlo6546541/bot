@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 
 import 'brand.dart';
@@ -38,12 +39,14 @@ class ShellDestination {
       width: compact ? 46 : 44,
       height: compact ? 40 : 36,
       decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.primary,
+        color: selected
+            ? LoopColors.live
+            : LoopColors.live.withValues(alpha: .12),
         borderRadius: BorderRadius.circular(99),
       ),
       child: Icon(
         icon,
-        color: Theme.of(context).colorScheme.onPrimary,
+        color: selected ? Colors.white : LoopColors.live,
         size: compact ? 23 : null,
       ),
     );
@@ -52,7 +55,7 @@ class ShellDestination {
 
 /// Zajednički okvir: Bottom Navigation Bar na mobitelu,
 /// Navigation Rail (sidebar) na širim ekranima (Windows desktop).
-class AdaptiveShell extends StatelessWidget {
+class AdaptiveShell extends StatefulWidget {
   const AdaptiveShell({
     super.key,
     required this.destinations,
@@ -76,21 +79,58 @@ class AdaptiveShell extends StatelessWidget {
   final bool immersiveNavigation;
   final bool showNavigation;
 
+  @override
+  State<AdaptiveShell> createState() => _AdaptiveShellState();
+}
+
+class _AdaptiveShellState extends State<AdaptiveShell> {
+  Timer? _idle;
+  bool _collapsed = false;
+
+  void _expand() {
+    _idle?.cancel();
+    if (_collapsed) setState(() => _collapsed = false);
+  }
+
+  bool _scroll(ScrollNotification n) {
+    if (n.metrics.axis != Axis.vertical) return false;
+    if (n is ScrollStartNotification || n is ScrollUpdateNotification) {
+      _idle?.cancel();
+      if (!_collapsed) setState(() => _collapsed = true);
+    } else if (n is ScrollEndNotification) {
+      _idle?.cancel();
+      _idle = Timer(const Duration(milliseconds: 280), _expand);
+    }
+    return false;
+  }
+
+  @override
+  void didUpdateWidget(covariant AdaptiveShell oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.selectedIndex != widget.selectedIndex) _expand();
+  }
+
+  @override
+  void dispose() {
+    _idle?.cancel();
+    super.dispose();
+  }
+
   Widget _navigation(BuildContext context, {bool compact = false}) =>
       NavigationBar(
         key: ValueKey(compact ? 'feed-navigation' : 'main-navigation'),
         // Mobitel: ikone s natpisima na tamnosivoj traci.
-        height: compact ? 72 : null,
+        height: compact ? 68 : null,
         labelBehavior: compact
             ? NavigationDestinationLabelBehavior.alwaysShow
             : null,
         backgroundColor: Colors.transparent,
         surfaceTintColor: compact ? Colors.transparent : null,
         indicatorColor: compact ? Colors.transparent : null,
-        selectedIndex: selectedIndex,
-        onDestinationSelected: onSelect,
+        selectedIndex: widget.selectedIndex,
+        onDestinationSelected: widget.onSelect,
         destinations: [
-          for (final d in destinations)
+          for (final d in widget.destinations)
             NavigationDestination(
               icon: d.iconWidget(context, compact: compact),
               selectedIcon: d.iconWidget(
@@ -110,20 +150,75 @@ class AdaptiveShell extends StatelessWidget {
 
     if (!isDesktop) {
       return Scaffold(
-        appBar: appBar,
+        appBar: widget.appBar,
         extendBody: true,
-        body: SafeArea(top: false, child: body),
-        floatingActionButton: floatingActionButton,
-        bottomNavigationBar: !showNavigation
-            ? null
-            : SafeArea(
-                top: false,
-                minimum: const EdgeInsets.fromLTRB(12, 0, 12, 10),
-                child: VisionGlass(
-                  radius: 30,
-                  child: _navigation(context, compact: true),
+        body: Stack(
+          children: [
+            Positioned.fill(
+              child: NotificationListener<ScrollNotification>(
+                onNotification: _scroll,
+                child: SafeArea(top: false, child: widget.body),
+              ),
+            ),
+            if (widget.showNavigation)
+              Positioned(
+                left: 20,
+                right: 20,
+                bottom: 10,
+                child: SafeArea(
+                  top: false,
+                  child: Center(
+                    child: AnimatedSize(
+                      key: const ValueKey('floating-dock'),
+                      alignment: Alignment.bottomCenter,
+                      duration: MediaQuery.disableAnimationsOf(context)
+                          ? Duration.zero
+                          : const Duration(milliseconds: 240),
+                      curve: Curves.easeOutCubic,
+                      child: SizedBox(
+                        width: _collapsed ? 104 : 320,
+                        height: _collapsed ? 44 : 68,
+                        child: _collapsed
+                            ? Material(
+                                color: Colors.transparent,
+                                child: InkWell(
+                                  key: const ValueKey('dock-expand'),
+                                  onTap: _expand,
+                                  borderRadius: BorderRadius.circular(99),
+                                  child: Semantics(
+                                    button: true,
+                                    label: t('Otvori navigaciju'),
+                                    child: Center(
+                                      child: VisionGlass(
+                                        radius: 99,
+                                        child: SizedBox(
+                                          width: 104,
+                                          height: 10,
+                                          child: Center(
+                                            child: Container(
+                                              width: 48,
+                                              height: 3,
+                                              color: LoopColors.textSecondary,
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              )
+                            : VisionGlass(
+                                radius: 99,
+                                child: _navigation(context, compact: true),
+                              ),
+                      ),
+                    ),
+                  ),
                 ),
               ),
+          ],
+        ),
+        floatingActionButton: widget.floatingActionButton,
       );
     }
 
@@ -133,11 +228,11 @@ class AdaptiveShell extends StatelessWidget {
           NavigationRail(
             extended: width >= 1100,
             minExtendedWidth: 224,
-            selectedIndex: selectedIndex,
-            onDestinationSelected: onSelect,
-            leading: railHeader,
+            selectedIndex: widget.selectedIndex,
+            onDestinationSelected: widget.onSelect,
+            leading: widget.railHeader,
             destinations: [
-              for (final d in destinations)
+              for (final d in widget.destinations)
                 NavigationRailDestination(
                   icon: d.iconWidget(context),
                   selectedIcon: d.iconWidget(context, selected: true),
@@ -148,9 +243,9 @@ class AdaptiveShell extends StatelessWidget {
           VerticalDivider(width: 1, color: LoopColors.surfaceHover),
           Expanded(
             child: Scaffold(
-              appBar: appBar,
-              body: body,
-              floatingActionButton: floatingActionButton,
+              appBar: widget.appBar,
+              body: widget.body,
+              floatingActionButton: widget.floatingActionButton,
             ),
           ),
         ],

@@ -16,6 +16,9 @@ const scenarios = [
   ['shop', 1440, 900, 'light', 'Shop ('],
   ['categories', 390, 844, 'light', 'Konzole'],
   ['activity', 390, 844, 'light', 'Kupnje'],
+  ['activity', 320, 740, 'dark', 'Kupnje'],
+  ['studio', 390, 844, 'dark', 'Pokreni live'],
+  ['studio', 320, 740, 'light', 'Pokreni live'],
   ['profile', 390, 844, 'light', 'Pogledaj profil'],
   ['seller', 390, 844, 'light', 'Prodavač'],
   ['form', 390, 844, 'light', 'Spremi podatke'],
@@ -32,6 +35,16 @@ const scenarios = [
   ['listing', 390, 844, 'dark', 'Kupi odmah'],
   ['categories', 390, 844, 'dark', 'Konzole'],
   ['activity', 390, 844, 'dark', 'Kupnje'],
+  ['inventory', 390, 844, 'dark', 'Inventar'],
+  ['inventory', 320, 740, 'light', 'Inventar'],
+  ['shipping', 390, 844, 'dark', 'Otprema'],
+  ['health', 390, 844, 'dark', 'Zdravlje računa'],
+  ['history', 390, 844, 'dark', 'Povijest transakcija'],
+  ['search', 390, 844, 'dark', 'Pretraži'],
+  ['wallet', 390, 844, 'dark', 'Novčanik'],
+  ['wallet', 320, 740, 'light', 'Novčanik'],
+  ['sales', 390, 844, 'dark', 'Prodaja'],
+  ['settings', 390, 844, 'dark', 'Postavke'],
   ['purchase', 390, 844, 'dark', 'Potvrdi kupnju'],
   ['purchase', 320, 740, 'light', 'Potvrdi kupnju'],
 ];
@@ -59,6 +72,7 @@ const scenarios = [
       await page.goto(`${base}?preview=${route}&theme=${theme}`,{waitUntil:'networkidle'});
       await page.waitForSelector('flutter-view');
       try { await page.waitForFunction(text => (document.body.innerText + ' ' + Array.from(document.querySelectorAll('[aria-label]')).map(e=>e.getAttribute('aria-label')).join(' ')).includes(text), expected, {timeout:20000}); } catch (error) { console.error(await page.locator('body').ariaSnapshot()); await page.screenshot({path:path.join(output,`failed-${route}.png`)}); throw error; }
+      await page.mouse.move(1,1);
       await page.waitForTimeout(3000);
       await page.screenshot({path:path.join(output,`${route}-${width}-${theme}.png`)});
       if (route === 'profile') {
@@ -81,18 +95,46 @@ const scenarios = [
         await handle.waitFor();
       }
       if (route === 'home' && width === 390 && theme === 'dark') {
-        await page.getByRole('button',{name:'Prodavač',exact:true}).click();
+        // Three destinations are real top-level tabs. No modal is needed.
+        await page.getByRole('tab',{name:/Studio/}).last().click();
         await page.getByRole('button',{name:'Pokreni live',exact:true}).waitFor();
-        await page.screenshot({path:path.join(output,'home-seller-drawer.png')});
-        await page.mouse.click(8,8);
-        await page.getByRole('button',{name:'Računi',exact:true}).click();
+        await page.screenshot({path:path.join(output,'home-studio.png')});
+        await page.getByRole('tab',{name:/Trezor/}).last().click();
         await page.getByRole('button',{name:/Kupnje/}).first().waitFor();
-        await page.screenshot({path:path.join(output,'home-receipts-drawer.png')});
-        await page.mouse.click(8,8);
+        await page.screenshot({path:path.join(output,'home-vault.png')});
+        await page.getByRole('tab',{name:/Pozornica/}).last().click();
         await page.getByRole('button',{name:'Pretraži',exact:true}).click();
         await page.getByRole('textbox').first().fill('Satovi');
         await page.waitForTimeout(300);
         await page.screenshot({path:path.join(output,'home-inline-search.png')});
+      }
+      if (route === 'activity' && width === 390 && theme === 'light') {
+        const touch = await context.newCDPSession(page);
+        await touch.send('Emulation.setTouchEmulationEnabled',{enabled:true});
+        await touch.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[{x:180,y:550}]});
+        await touch.send('Input.dispatchTouchEvent',{type:'touchMove',touchPoints:[{x:180,y:350}]});
+        await page.getByRole('button',{name:'Otvori navigaciju',exact:true}).waitFor();
+        await page.screenshot({path:path.join(output,'vault-dock-collapsed.png')});
+        await touch.send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});
+        await page.getByRole('tab',{name:/Trezor/}).waitFor();
+        await page.screenshot({path:path.join(output,'vault-dock-idle.png')});
+        await touch.detach();
+      }
+      if (route === 'finance') {
+        await page.getByRole('tab',{name:'Transakcije',exact:true}).click();
+        await page.mouse.move(1,1);
+        await page.waitForTimeout(350);
+        await page.screenshot({path:path.join(output,'finance-transaction-deck.png')});
+        await page.getByRole('tab',{name:'Izvještaji',exact:true}).click();
+        await page.getByRole('button',{name:'Pregled izvještaja',exact:true}).first().click();
+        await page.getByRole('button',{name:'Izvezi CSV',exact:true}).waitFor();
+        await page.mouse.move(1,1);
+        await page.screenshot({path:path.join(output,'finance-monthly-peek.png')});
+      }
+      if (route === 'search') {
+        await page.getByRole('textbox').first().fill('sat');
+        await page.getByRole('tab',{name:'Top',exact:true}).waitFor();
+        await page.screenshot({path:path.join(output,'spotlight-results.png')});
       }
       if (route === 'home' && width === 390 && theme === 'light') {
         await page.getByRole('button',{name:'Filteri',exact:true}).click();

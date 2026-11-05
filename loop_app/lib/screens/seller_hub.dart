@@ -10,6 +10,7 @@ import '../providers/app_state.dart';
 import '../theme/app_theme.dart';
 import '../widgets/live_shop_widgets.dart';
 import '../widgets/vision_glass.dart';
+import '../widgets/user_avatar.dart';
 import '../widgets/seller_account_card.dart';
 import '../widgets/formatters.dart';
 import 'add_device_screen.dart';
@@ -410,46 +411,87 @@ class SellerHubScreen extends ConsumerWidget {
 
     // Redak liste: bez vlastite kartice; redovi se grupiraju u jednu
     // površinu s tankim razdjelnicima ([group]).
-    Widget tile(Key key, IconData icon, String label, VoidCallback onTap) =>
-        InkWell(
-          key: key,
-          onTap: onTap,
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 15),
-            child: Row(
-              children: [
-                Icon(icon, color: LoopColors.accent, size: 22),
-                const SizedBox(width: 14),
-                Expanded(
-                  child: Text(
+    Widget tile(Key key, IconData icon, String label, VoidCallback onTap) {
+      final id = key is ValueKey ? key.value : '';
+      final detail = switch (id) {
+        'seller-hub-shipments' => t('{0} paketa čeka slanje', ['$shipping']),
+        'seller-hub-inventory' => t('{0} predmeta', [
+          '${state.myDevices.length}',
+        ]),
+        'seller-hub-finance' => formatCredits(user.credits),
+        'seller-hub-messages' => t('{0} razgovora', [
+          '${state.conversations.length}',
+        ]),
+        'seller-hub-shows' => t('{0} showova', [
+          '${state.liveShows.where((x) => x.hostId == user.id).length}',
+        ]),
+        'seller-hub-offers' => t('{0} čeka odgovor', [
+          '${state.bargainsToAnswer.where((x) => x.sellerId == user.id).length}',
+        ]),
+        _ => '',
+      };
+      return VisionGlass(
+        radius: 26,
+        child: Material(
+          color: Colors.transparent,
+          child: InkWell(
+            key: key,
+            borderRadius: BorderRadius.circular(26),
+            onTap: onTap,
+            child: Padding(
+              padding: const EdgeInsets.all(18),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  if (id == 'seller-hub-messages' &&
+                      state.conversations.isNotEmpty)
+                    Wrap(
+                      spacing: 4,
+                      children: [
+                        for (final c in state.conversations.take(3))
+                          UserAvatar(user: state.userById(c.otherId), size: 30),
+                      ],
+                    )
+                  else
+                    Icon(icon, color: LoopColors.accent, size: 28),
+                  const SizedBox(height: 18),
+                  Text(
                     label,
                     style: const TextStyle(
-                      fontWeight: FontWeight.w500,
-                      fontSize: 16,
+                      fontSize: 17,
+                      fontWeight: FontWeight.w600,
                     ),
                   ),
-                ),
-                Icon(Icons.chevron_right, color: LoopColors.textSecondary),
-              ],
+                  if (detail.isNotEmpty) ...[
+                    const SizedBox(height: 4),
+                    Text(
+                      detail,
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: LoopColors.textSecondary,
+                      ),
+                    ),
+                  ],
+                ],
+              ),
             ),
           ),
-        );
-
-    Widget group(List<Widget> rows) => VisionGlass(
-      radius: 24,
-      blur: false,
-      child: Material(
-        color: Colors.transparent,
-        child: Column(
-          children: [
-            for (var i = 0; i < rows.length; i++) ...[
-              if (i > 0)
-                Divider(height: 1, indent: 52, color: LoopColors.surfaceHover),
-              rows[i],
-            ],
-          ],
         ),
-      ),
+      );
+    }
+
+    Widget group(List<Widget> rows) => LayoutBuilder(
+      builder: (context, box) {
+        final columns = box.maxWidth < 310 ? 1 : 2;
+        final width = (box.maxWidth - (columns - 1) * 12) / columns;
+        return Wrap(
+          spacing: 12,
+          runSpacing: 12,
+          children: [
+            for (final row in rows) SizedBox(width: width, child: row),
+          ],
+        );
+      },
     );
 
     Widget heading(String title) => Padding(
@@ -461,7 +503,16 @@ class SellerHubScreen extends ConsumerWidget {
       backgroundColor: embedded ? Colors.transparent : null,
       appBar: AppBar(
         backgroundColor: embedded ? Colors.transparent : null,
-        title: Text(t('Prodavač')),
+        title: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (embedded) ...[
+              const Icon(Icons.sensors, color: LoopColors.live),
+              const SizedBox(width: 10),
+            ],
+            Text(t(embedded ? 'Studio' : 'Prodavač')),
+          ],
+        ),
         actions: [
           PopupMenuButton<int>(
             key: const ValueKey('seller-hub-menu'),
@@ -497,12 +548,57 @@ class SellerHubScreen extends ConsumerWidget {
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 680),
           child: ListView(
-            padding: const EdgeInsets.fromLTRB(16, 12, 16, 36),
+            padding: EdgeInsets.fromLTRB(16, 12, 16, embedded ? 112 : 36),
             children: [
+              if (embedded) ...[
+                Container(
+                  padding: const EdgeInsets.all(24),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF131316),
+                    borderRadius: BorderRadius.circular(28),
+                    border: Border.all(
+                      color: LoopColors.live.withValues(alpha: .35),
+                    ),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Icon(
+                        Icons.sensors,
+                        color: LoopColors.live,
+                        size: 28,
+                      ),
+                      const SizedBox(height: 14),
+                      Text(
+                        t('Tvoj prostor za live.'),
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 28,
+                          fontWeight: FontWeight.w700,
+                          letterSpacing: -.8,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        t('Pokreni prijenos ili uredi svoj shop.'),
+                        style: const TextStyle(
+                          color: Color(0xFFAEAEB6),
+                          fontSize: 14,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 16),
+              ],
               FilledButton.icon(
                 key: const ValueKey('seller-hub-live'),
+                style: FilledButton.styleFrom(
+                  backgroundColor: LoopColors.live,
+                  foregroundColor: Colors.white,
+                ),
                 onPressed: () => CreateLiveShowScreen.open(context),
-                icon: const Icon(Icons.videocam_outlined),
+                icon: const _LiveCameraPulse(),
                 label: Text(t('Pokreni live')),
               ),
               const SizedBox(height: 10),
@@ -648,6 +744,45 @@ class SellerHubScreen extends ConsumerWidget {
       ),
     );
   }
+}
+
+class _LiveCameraPulse extends ConsumerStatefulWidget {
+  const _LiveCameraPulse();
+  @override
+  ConsumerState<_LiveCameraPulse> createState() => _LiveCameraPulseState();
+}
+
+class _LiveCameraPulseState extends ConsumerState<_LiveCameraPulse>
+    with SingleTickerProviderStateMixin {
+  late final _pulse = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 1800),
+  );
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final animate =
+        ref.read(tickIntervalProvider) != null &&
+        !MediaQuery.disableAnimationsOf(context) &&
+        TickerMode.valuesOf(context).enabled;
+    if (animate && !_pulse.isAnimating) _pulse.repeat(reverse: true);
+    if (!animate) _pulse.stop();
+  }
+
+  @override
+  void dispose() {
+    _pulse.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => AnimatedBuilder(
+    animation: _pulse,
+    builder: (_, _) => Opacity(
+      opacity: .65 + _pulse.value * .35,
+      child: const Icon(Icons.videocam_outlined),
+    ),
+  );
 }
 
 /// "Prodavač": pregled na jednom mjestu — brze radnje, otprema, zdravlje

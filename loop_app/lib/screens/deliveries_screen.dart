@@ -20,6 +20,8 @@ import '../widgets/community_widgets.dart';
 import '../widgets/delivery_picker.dart';
 import '../widgets/dispute_widgets.dart';
 import '../widgets/item_image.dart';
+import '../widgets/wallet_ticket.dart';
+import '../widgets/vision_glass.dart';
 import '../widgets/empty_state.dart';
 import '../widgets/formatters.dart';
 import '../widgets/trade_actions.dart';
@@ -264,54 +266,6 @@ class DeliveryProgressBar extends StatelessWidget {
   );
 }
 
-class _StatusPill extends StatelessWidget {
-  const _StatusPill({super.key, required this.label, required this.color});
-  final String label;
-  final Color color;
-
-  @override
-  Widget build(BuildContext context) => Container(
-    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-    decoration: BoxDecoration(
-      color: LoopColors.surfaceHover,
-      borderRadius: BorderRadius.circular(6),
-    ),
-    child: Text(
-      label,
-      style: TextStyle(color: color, fontWeight: FontWeight.w900, fontSize: 11),
-    ),
-  );
-}
-
-class _InfoLine extends StatelessWidget {
-  const _InfoLine(this.label, this.value, {this.accent = false});
-  final String label;
-  final String value;
-  final bool accent;
-
-  @override
-  Widget build(BuildContext context) => Text.rich(
-    TextSpan(
-      children: [
-        TextSpan(
-          text: '$label: ',
-          style: TextStyle(color: LoopColors.textSecondary),
-        ),
-        TextSpan(
-          text: value,
-          style: TextStyle(
-            fontWeight: FontWeight.w800,
-            color: accent ? LoopColors.accent : null,
-          ),
-        ),
-      ],
-    ),
-    maxLines: 1,
-    overflow: TextOverflow.ellipsis,
-    style: const TextStyle(fontSize: 13),
-  );
-}
-
 /// Pomoć s kupnjom: prava kupca i prijava problema.
 Future<void> showPurchaseHelp(BuildContext context, WidgetRef ref, Delivery d) {
   final s = ref.read(appProvider);
@@ -472,253 +426,139 @@ class DeliveryCard extends ConsumerWidget {
     final d = delivery;
     final now = DateTime.now();
     final m = d.method;
-    final steps = d.steps;
-    final current = d.stepIndex(now);
-    final delivered = d.isDelivered(now);
-
-    return Card(
-      clipBehavior: Clip.antiAlias,
-      child: InkWell(
-        key: ValueKey('delivery-open-${d.id}'),
-        onTap: m == null
-            ? null
-            : () => DeliveryDetailScreen.open(context, d.id),
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  // Slika kupljenog predmeta (ako ga još imamo), inače ikona.
-                  if (ref.watch(
-                        appProvider.select((s) => s.deviceById(d.deviceId)),
-                      )
-                      case final device?)
-                    ClipRRect(
-                      borderRadius: BorderRadius.circular(12),
-                      child: ItemThumb(device: device, size: 52),
-                    )
-                  else
-                    Container(
-                      width: 52,
-                      height: 52,
-                      decoration: BoxDecoration(
-                        color: delivered ? LoopColors.mint : LoopColors.peach,
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Icon(
-                        m == null
-                            ? Icons.help_outline
-                            : delivered
-                            ? Icons.check_circle_outline
-                            : deliveryIcon(m),
-                      ),
-                    ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        _StatusPill(
-                          key: ValueKey('purchase-status-${d.id}'),
-                          label: purchaseStatus(d, now),
-                          color: d.confirmedAt != null
-                              ? LoopColors.success
-                              : m == null
-                              ? LoopColors.accent
-                              : LoopColors.textSecondary,
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          d.deviceName,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(fontWeight: FontWeight.w800),
-                        ),
-                        if (ref
-                                .read(appProvider)
-                                .itemPaid(d.deviceId, d.buyerId)
-                            case final paid?)
-                          _InfoLine(t('Cijena'), formatCredits(paid)),
-                        _InfoLine(t('Kupljeno'), formatDate(d.createdAt)),
-                        if (!delivered && d.eta() != null)
-                          _InfoLine(
-                            t('Dostava očekivana'),
-                            formatDate(d.eta()!),
-                          ),
-                        if (d.sellerId != null)
-                          _InfoLine(
-                            t('Od'),
-                            ref.read(appProvider).userLabel(d.sellerId),
-                            accent: true,
-                          ),
-                        if (m != null)
-                          Text(
-                            '${d.carrier ?? m.label}${d.destination != null ? ' · ${d.destination}' : ''}',
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
-                            style: TextStyle(
-                              color: LoopColors.textSecondary,
-                              fontSize: 12,
-                            ),
-                          ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-              if (m == null) ...[
-                const SizedBox(height: 12),
-                if (d.sellerId == ref.read(appProvider).currentUserId)
-                  FilledButton.icon(
-                    key: ValueKey('delivery-ship-${d.id}'),
-                    onPressed: () => shipBySeller(context, ref, delivery),
-                    icon: const Icon(Icons.local_shipping_outlined),
-                    label: Text(t('Pošalji paket')),
-                  )
-                else
-                  Container(
-                    key: ValueKey('delivery-waiting-${d.id}'),
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: LoopColors.surfaceHover,
-                      borderRadius: BorderRadius.circular(kRadius),
-                    ),
+    final delivered = m != null && d.isDelivered(now);
+    final state = ref.watch(appProvider);
+    final paid = state.itemPaid(d.deviceId, d.buyerId);
+    final stage = delivered || d.confirmedAt != null
+        ? 2
+        : m == null || (d.handedOverAt == null && d.stepIndex(now) <= 1)
+        ? 0
+        : 1;
+    return WalletTicket(
+      openKey: ValueKey('delivery-open-${d.id}'),
+      statusKey: ValueKey('purchase-status-${d.id}'),
+      title: d.deviceName,
+      status: purchaseStatus(d, now),
+      date: d.createdAt,
+      price: paid == null ? null : formatCredits(paid),
+      seller: d.sellerId == null ? null : state.userLabel(d.sellerId),
+      device: state.deviceById(d.deviceId),
+      onTap: m == null ? null : () => DeliveryDetailScreen.open(context, d.id),
+      footer: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          CinematicTracking(
+            stage: stage,
+            animate: ref.watch(tickIntervalProvider) != null,
+          ),
+          if (m == null) ...[
+            const SizedBox(height: 12),
+            if (d.sellerId == ref.read(appProvider).currentUserId)
+              FilledButton.icon(
+                key: ValueKey('delivery-ship-${d.id}'),
+                onPressed: () => shipBySeller(context, ref, delivery),
+                icon: const Icon(Icons.local_shipping_outlined),
+                label: Text(t('Pošalji paket')),
+              )
+            else
+              SizedBox(key: ValueKey('delivery-waiting-${d.id}')),
+          ] else ...[
+            const SizedBox(height: 14),
+            Wrap(
+              spacing: 12,
+              runSpacing: 4,
+              crossAxisAlignment: WrapCrossAlignment.center,
+              children: [
+                if (d.trackingNumber != null)
+                  InkWell(
+                    onTap: () {
+                      Clipboard.setData(ClipboardData(text: d.trackingNumber!));
+                      showLoopSnackBar(t('Broj pošiljke kopiran'));
+                    },
                     child: Row(
+                      mainAxisSize: MainAxisSize.min,
                       children: [
+                        Text(
+                          d.trackingNumber!,
+                          style: TextStyle(
+                            color: LoopColors.textSecondary,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                        const SizedBox(width: 4),
                         Icon(
-                          Icons.inventory_2_outlined,
+                          Icons.copy,
+                          size: 14,
                           color: LoopColors.textSecondary,
                         ),
-                        const SizedBox(width: 10),
-                        Expanded(
-                          child: Text(
-                            t(
-                              'Prodavač priprema paket. Broj za praćenje dobit ćeš čim pošalje.',
-                            ),
-                          ),
-                        ),
                       ],
                     ),
                   ),
-              ] else ...[
-                const SizedBox(height: 14),
-                // Traka napretka dostave (kao Whatnot).
-                DeliveryProgressBar(
-                  value: steps.length <= 1 ? 1 : current / (steps.length - 1),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  steps[current].label,
-                  style: const TextStyle(
-                    fontWeight: FontWeight.w900,
-                    fontSize: 16,
+                if (!delivered && d.eta() != null)
+                  Text(
+                    t('Stiže oko {0}', [formatDateTime(d.eta()!)]),
+                    style: TextStyle(color: LoopColors.textSecondary),
                   ),
-                ),
-                const SizedBox(height: 2),
-                Wrap(
-                  spacing: 12,
-                  runSpacing: 4,
-                  crossAxisAlignment: WrapCrossAlignment.center,
-                  children: [
-                    if (d.trackingNumber != null)
-                      InkWell(
-                        onTap: () {
-                          Clipboard.setData(
-                            ClipboardData(text: d.trackingNumber!),
-                          );
-                          showLoopSnackBar(t('Broj pošiljke kopiran'));
-                        },
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Text(
-                              d.trackingNumber!,
-                              style: TextStyle(
-                                color: LoopColors.textSecondary,
-                                fontWeight: FontWeight.w700,
-                              ),
-                            ),
-                            const SizedBox(width: 4),
-                            Icon(
-                              Icons.copy,
-                              size: 14,
-                              color: LoopColors.textSecondary,
-                            ),
-                          ],
-                        ),
-                      ),
-                    if (!delivered && d.eta() != null)
-                      Text(
-                        t('Stiže oko {0}', [formatDateTime(d.eta()!)]),
-                        style: TextStyle(color: LoopColors.textSecondary),
-                      ),
-                    if (d.confirmedAt != null)
-                      Text(
-                        d.autoConfirms
-                            ? t('Preuzeto iz paketomata')
-                            : t('Primitak potvrđen'),
-                        style: TextStyle(color: LoopColors.success),
-                      ),
-                  ],
-                ),
-                // Paket je u paketomatu: PIN za preuzimanje odmah na kartici.
-                if (d.autoConfirms &&
-                    d.confirmedAt == null &&
-                    d.status(now) == DeliveryStatus.inLocker &&
-                    d.buyerId == ref.read(appProvider).currentUserId) ...[
-                  const SizedBox(height: 12),
-                  PickupPinBox(delivery: d),
-                ],
-                if (delivered && d.confirmedAt == null && !d.autoConfirms) ...[
-                  const SizedBox(height: 12),
-                  OutlinedButton.icon(
-                    onPressed: () async {
-                      final ok = await runWithLoading(
-                        context,
-                        () =>
-                            ref.read(appProvider.notifier).confirmReceipt(d.id),
-                        successMessage: t('Hvala! Primitak potvrđen.'),
-                      );
-                      // Odmah ponudi ocjenu prodavatelja (ako je korisnik).
-                      if (ok && d.sellerId != null && context.mounted) {
-                        await showReviewDialog(
-                          context,
-                          ref,
-                          deliveryId: d.id,
-                          sellerLabel: ref
-                              .read(appProvider)
-                              .userLabel(d.sellerId),
-                        );
-                      }
-                    },
-                    icon: const Icon(Icons.task_alt),
-                    label: Text(t('Potvrdi primitak')),
+                if (d.confirmedAt != null)
+                  Text(
+                    d.autoConfirms
+                        ? t('Preuzeto iz paketomata')
+                        : t('Primitak potvrđen'),
+                    style: TextStyle(color: LoopColors.success),
                   ),
-                ],
-                if (d.canReview) ...[
-                  const SizedBox(height: 12),
-                  OutlinedButton.icon(
-                    key: ValueKey('review-${d.id}'),
-                    onPressed: () => showReviewDialog(
+              ],
+            ),
+            // Paket je u paketomatu: PIN za preuzimanje odmah na kartici.
+            if (d.autoConfirms &&
+                d.confirmedAt == null &&
+                d.status(now) == DeliveryStatus.inLocker &&
+                d.buyerId == ref.read(appProvider).currentUserId) ...[
+              const SizedBox(height: 12),
+              PickupPinBox(delivery: d),
+            ],
+            if (delivered && d.confirmedAt == null && !d.autoConfirms) ...[
+              const SizedBox(height: 12),
+              OutlinedButton.icon(
+                onPressed: () async {
+                  final ok = await runWithLoading(
+                    context,
+                    () => ref.read(appProvider.notifier).confirmReceipt(d.id),
+                    successMessage: t('Hvala! Primitak potvrđen.'),
+                  );
+                  // Odmah ponudi ocjenu prodavatelja (ako je korisnik).
+                  if (ok && d.sellerId != null && context.mounted) {
+                    await showReviewDialog(
                       context,
                       ref,
                       deliveryId: d.id,
                       sellerLabel: ref.read(appProvider).userLabel(d.sellerId),
-                    ),
-                    icon: const Icon(Icons.star_outline_rounded),
-                    label: Text(
-                      t('Ocijeni prodavatelja {0}', [
-                        ref.read(appProvider).userLabel(d.sellerId),
-                      ]),
-                    ),
-                  ),
-                ],
-              ],
+                    );
+                  }
+                },
+                icon: const Icon(Icons.task_alt),
+                label: Text(t('Potvrdi primitak')),
+              ),
             ],
-          ),
-        ),
+            if (d.canReview) ...[
+              const SizedBox(height: 12),
+              OutlinedButton.icon(
+                key: ValueKey('review-${d.id}'),
+                onPressed: () => showReviewDialog(
+                  context,
+                  ref,
+                  deliveryId: d.id,
+                  sellerLabel: ref.read(appProvider).userLabel(d.sellerId),
+                ),
+                icon: const Icon(Icons.star_outline_rounded),
+                label: Text(
+                  t('Ocijeni prodavatelja {0}', [
+                    ref.read(appProvider).userLabel(d.sellerId),
+                  ]),
+                ),
+              ),
+            ],
+          ],
+        ],
       ),
     );
   }
@@ -1733,6 +1573,55 @@ class _DeliveryNotesScreenState extends ConsumerState<DeliveryNotesScreen> {
   /// `null` = sve pošiljke.
   late ShipGroup? _group = widget.group;
   final Set<String> _selected = {};
+  final Map<String, GlobalKey> _rowKeys = {};
+  final Map<int, Offset> _touches = {};
+  Set<String> _selectable = {};
+  bool _gestureSelected = false;
+
+  void _touchDown(PointerDownEvent event) {
+    if (_touches.isEmpty) _gestureSelected = false;
+    _touches[event.pointer] = event.position;
+    if (_touches.length == 2) {
+      _gestureSelected = true;
+      setState(() {});
+      for (final point in _touches.values) {
+        _selectAt(point, point);
+      }
+    }
+  }
+
+  void _touchMove(PointerMoveEvent event) {
+    final previous = _touches[event.pointer] ?? event.position;
+    _touches[event.pointer] = event.position;
+    if (_touches.length >= 2) _selectAt(previous, event.position);
+  }
+
+  void _touchEnd(PointerEvent event) {
+    final wasSelecting = _touches.length >= 2;
+    _touches.remove(event.pointer);
+    if (wasSelecting) setState(() {});
+  }
+
+  void _selectAt(Offset previous, Offset point) {
+    var changed = false;
+    final top = previous.dy < point.dy ? previous.dy : point.dy;
+    final bottom = previous.dy > point.dy ? previous.dy : point.dy;
+    for (final id in _selectable) {
+      final render = _rowKeys[id]?.currentContext?.findRenderObject();
+      if (render is! RenderBox || !render.hasSize) continue;
+      final rect = render.localToGlobal(Offset.zero) & render.size;
+      if (point.dx >= rect.left &&
+          point.dx <= rect.right &&
+          bottom >= rect.top &&
+          top <= rect.bottom) {
+        if (_selected.add(id)) changed = true;
+      }
+    }
+    if (changed) {
+      HapticFeedback.selectionClick();
+      setState(() {});
+    }
+  }
 
   Future<void> _markHandedOver(List<Delivery> list) async {
     final n = list.length;
@@ -1768,7 +1657,9 @@ class _DeliveryNotesScreenState extends ConsumerState<DeliveryNotesScreen> {
       for (final d in all)
         if (ShipGroup.of(d, now) == ShipGroup.readyToShip) d,
     ];
-    _selected.removeWhere((id) => !ready.any((d) => d.id == id));
+    _selectable = ready.map((d) => d.id).toSet();
+    _rowKeys.removeWhere((id, _) => !all.any((d) => d.id == id));
+    _selected.removeWhere((id) => !_selectable.contains(id));
     final selected = [
       for (final d in ready)
         if (_selected.contains(d.id)) d,
@@ -1791,198 +1682,210 @@ class _DeliveryNotesScreenState extends ConsumerState<DeliveryNotesScreen> {
       bottomNavigationBar: selected.isEmpty
           ? null
           : SafeArea(
-              child: Container(
+              minimum: const EdgeInsets.fromLTRB(16, 8, 16, 12),
+              child: VisionGlass(
                 key: const ValueKey('ship-bulk'),
-                padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
-                decoration: BoxDecoration(
-                  color: LoopColors.surface,
-                  border: Border(
-                    top: BorderSide(color: LoopColors.surfaceHover),
-                  ),
-                ),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                heavy: true,
+                radius: 28,
+                padding: const EdgeInsets.all(12),
+                child: Row(
                   children: [
-                    Text(
-                      t('Skupne radnje · odabrano {0}', ['${selected.length}']),
-                      style: const TextStyle(fontWeight: FontWeight.w900),
-                    ),
-                    const SizedBox(height: 8),
-                    FilledButton.icon(
-                      key: const ValueKey('ship-bulk-notes'),
-                      onPressed: () => downloadDeliveryNotes(ref, selected),
-                      icon: const Icon(Icons.print_outlined),
-                      label: Text(
-                        t('Preuzmi otpremnice ({0})', ['${selected.length}']),
+                    Expanded(
+                      child: FilledButton.icon(
+                        key: const ValueKey('ship-bulk-notes'),
+                        onPressed: () => downloadDeliveryNotes(ref, selected),
+                        icon: const Icon(Icons.print_outlined),
+                        label: Text(
+                          t('Generiraj naljepnice za {0} paketa', [
+                            '${selected.length}',
+                          ]),
+                        ),
                       ),
                     ),
-                    const SizedBox(height: 8),
-                    OutlinedButton.icon(
+                    IconButton(
                       key: const ValueKey('ship-bulk-handed'),
+                      tooltip: t('Označi sve kao predano'),
                       onPressed: () => _markHandedOver(selected),
                       icon: const Icon(Icons.local_shipping_outlined),
-                      label: Text(t('Označi sve kao predano')),
                     ),
                   ],
                 ),
               ),
             ),
-      body: Align(
-        alignment: Alignment.topCenter,
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 680),
-          child: ListView(
-            key: const ValueKey('my-notes-list'),
-            padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
-            children: [
-              SingleChildScrollView(
-                scrollDirection: Axis.horizontal,
-                child: Row(
-                  children: [
-                    chip(
-                      'notes-filter-all',
-                      t('Sve'),
-                      _group == null,
-                      () => _group = null,
-                    ),
-                    for (final g in [
-                      ShipGroup.readyToShip,
-                      ShipGroup.awaitingBuyer,
-                      ShipGroup.shipped,
-                      ShipGroup.delivered,
-                    ])
+      body: Listener(
+        onPointerDown: _touchDown,
+        onPointerMove: _touchMove,
+        onPointerUp: _touchEnd,
+        onPointerCancel: _touchEnd,
+        child: Align(
+          alignment: Alignment.topCenter,
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 680),
+            child: ListView(
+              key: const ValueKey('my-notes-list'),
+              physics: _touches.length >= 2
+                  ? const NeverScrollableScrollPhysics()
+                  : null,
+              padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+              children: [
+                SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: Row(
+                    children: [
                       chip(
-                        'notes-filter-${g.name}',
-                        counts[g]! > 0 ? '${g.label} · ${counts[g]}' : g.label,
-                        _group == g,
-                        () => _group = g,
+                        'notes-filter-all',
+                        t('Sve'),
+                        _group == null,
+                        () => _group = null,
+                      ),
+                      for (final g in [
+                        ShipGroup.readyToShip,
+                        ShipGroup.awaitingBuyer,
+                        ShipGroup.shipped,
+                        ShipGroup.delivered,
+                      ])
+                        chip(
+                          'notes-filter-${g.name}',
+                          counts[g]! > 0
+                              ? '${g.label} · ${counts[g]}'
+                              : g.label,
+                          _group == g,
+                          () => _group = g,
+                        ),
+                    ],
+                  ),
+                ),
+                if (all.where((d) => d.dispute?.active ?? false).toList()
+                    case final disputes when disputes.isNotEmpty) ...[
+                  const SizedBox(height: 16),
+                  Text(
+                    t('Zahtjevi za povrat ({0})', ['${disputes.length}']),
+                    key: const ValueKey('ship-disputes'),
+                    style: const TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  for (final d in disputes)
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 8),
+                      child: DisputeCard(delivery: d, seller: true),
+                    ),
+                ],
+                const SizedBox(height: 18),
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            '${ready.length}',
+                            style: const TextStyle(
+                              fontSize: 52,
+                              fontWeight: FontWeight.w800,
+                              height: 1.05,
+                            ),
+                          ),
+                          Text(
+                            t('{0} pošiljaka za predaju', ['${ready.length}']),
+                            key: const ValueKey('ship-ready-count'),
+                            style: muted,
+                          ),
+                        ],
+                      ),
+                    ),
+                    if (ready.isNotEmpty &&
+                        (_group == null || _group == ShipGroup.readyToShip))
+                      TextButton(
+                        key: const ValueKey('ship-select-all'),
+                        onPressed: () => setState(() {
+                          if (selected.length == ready.length) {
+                            _selected.clear();
+                          } else {
+                            _selected.addAll(ready.map((d) => d.id));
+                          }
+                        }),
+                        child: Text(
+                          selected.length == ready.length
+                              ? t('Poništi odabir')
+                              : t('Odaberi sve'),
+                        ),
                       ),
                   ],
                 ),
-              ),
-              if (all.where((d) => d.dispute?.active ?? false).toList()
-                  case final disputes when disputes.isNotEmpty) ...[
-                const SizedBox(height: 16),
-                Text(
-                  t('Zahtjevi za povrat ({0})', ['${disputes.length}']),
-                  key: const ValueKey('ship-disputes'),
-                  style: const TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.w900,
-                  ),
-                ),
                 const SizedBox(height: 8),
-                for (final d in disputes)
+                if (shown.isEmpty)
                   Padding(
-                    padding: const EdgeInsets.only(bottom: 8),
-                    child: DisputeCard(delivery: d, seller: true),
-                  ),
-              ],
-              const SizedBox(height: 18),
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                  Expanded(
+                    padding: const EdgeInsets.symmetric(vertical: 36),
                     child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
+                        Icon(
+                          Icons.inventory_2_outlined,
+                          size: 44,
+                          color: LoopColors.textSecondary,
+                        ),
+                        const SizedBox(height: 8),
                         Text(
-                          '${ready.length}',
-                          style: const TextStyle(
-                            fontSize: 52,
-                            fontWeight: FontWeight.w800,
-                            height: 1.05,
-                          ),
+                          all.isEmpty
+                              ? t('Još nema otpremnica')
+                              : t('Sve je riješeno'),
+                          style: const TextStyle(fontWeight: FontWeight.w800),
                         ),
                         Text(
-                          t('{0} pošiljaka za predaju', ['${ready.length}']),
-                          key: const ValueKey('ship-ready-count'),
+                          t('Ovdje se pojavljuju paketi tvojih prodaja.'),
                           style: muted,
                         ),
                       ],
                     ),
-                  ),
-                  if (ready.isNotEmpty &&
-                      (_group == null || _group == ShipGroup.readyToShip))
-                    TextButton(
-                      key: const ValueKey('ship-select-all'),
-                      onPressed: () => setState(() {
-                        if (selected.length == ready.length) {
-                          _selected.clear();
-                        } else {
-                          _selected.addAll(ready.map((d) => d.id));
-                        }
-                      }),
-                      child: Text(
-                        selected.length == ready.length
-                            ? t('Poništi odabir')
-                            : t('Odaberi sve'),
+                  )
+                else
+                  for (final d in shown)
+                    KeyedSubtree(
+                      key: _rowKeys.putIfAbsent(d.id, GlobalKey.new),
+                      child: _ShipmentRow(
+                        d: d,
+                        onOpen: () {
+                          if (!_gestureSelected) {
+                            DeliveryNoteScreen.open(context, d.id);
+                          }
+                        },
+                        group: ShipGroup.of(d, now),
+                        device: s.deviceById(d.deviceId),
+                        onShip: () => shipBySeller(context, ref, d),
+                        buyer: s.userById(d.buyerId)?.handle ?? '',
+                        address: deliveryAddress(s, d),
+                        now: now,
+                        selected: _selected.contains(d.id),
+                        onSelect: ShipGroup.of(d, now) == ShipGroup.readyToShip
+                            ? (v) => setState(
+                                () => v
+                                    ? _selected.add(d.id)
+                                    : _selected.remove(d.id),
+                              )
+                            : null,
                       ),
                     ),
-                ],
-              ),
-              const SizedBox(height: 8),
-              if (shown.isEmpty)
-                Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 36),
-                  child: Column(
-                    children: [
-                      Icon(
-                        Icons.inventory_2_outlined,
-                        size: 44,
-                        color: LoopColors.textSecondary,
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        all.isEmpty
-                            ? t('Još nema otpremnica')
-                            : t('Sve je riješeno'),
-                        style: const TextStyle(fontWeight: FontWeight.w800),
-                      ),
-                      Text(
-                        t('Ovdje se pojavljuju paketi tvojih prodaja.'),
-                        style: muted,
-                      ),
-                    ],
+                const SizedBox(height: 12),
+                Theme(
+                  data: Theme.of(
+                    context,
+                  ).copyWith(dividerColor: Colors.transparent),
+                  child: ExpansionTile(
+                    key: const ValueKey('ship-more'),
+                    tilePadding: EdgeInsets.zero,
+                    childrenPadding: EdgeInsets.zero,
+                    title: Text(
+                      t('Više'),
+                      style: const TextStyle(fontWeight: FontWeight.w700),
+                    ),
+                    children: const [_LabelOptionsCard()],
                   ),
-                )
-              else
-                for (final d in shown)
-                  _ShipmentRow(
-                    d: d,
-                    group: ShipGroup.of(d, now),
-                    device: s.deviceById(d.deviceId),
-                    onShip: () => shipBySeller(context, ref, d),
-                    buyer: s.userById(d.buyerId)?.handle ?? '',
-                    address: deliveryAddress(s, d),
-                    now: now,
-                    selected: _selected.contains(d.id),
-                    onSelect: ShipGroup.of(d, now) == ShipGroup.readyToShip
-                        ? (v) => setState(
-                            () => v
-                                ? _selected.add(d.id)
-                                : _selected.remove(d.id),
-                          )
-                        : null,
-                  ),
-              const SizedBox(height: 12),
-              Theme(
-                data: Theme.of(
-                  context,
-                ).copyWith(dividerColor: Colors.transparent),
-                child: ExpansionTile(
-                  key: const ValueKey('ship-more'),
-                  tilePadding: EdgeInsets.zero,
-                  childrenPadding: EdgeInsets.zero,
-                  title: Text(
-                    t('Više'),
-                    style: const TextStyle(fontWeight: FontWeight.w700),
-                  ),
-                  children: const [_LabelOptionsCard()],
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),
@@ -1993,6 +1896,7 @@ class _DeliveryNotesScreenState extends ConsumerState<DeliveryNotesScreen> {
 class _ShipmentRow extends StatelessWidget {
   const _ShipmentRow({
     required this.d,
+    required this.onOpen,
     required this.group,
     required this.buyer,
     required this.now,
@@ -2004,6 +1908,7 @@ class _ShipmentRow extends StatelessWidget {
   });
 
   final Delivery d;
+  final VoidCallback onOpen;
   final Device? device;
 
   /// Prodavač bira dostavu i šalje (pošiljke "Za slanje").
@@ -2025,119 +1930,142 @@ class _ShipmentRow extends StatelessWidget {
     final (color, label) = switch (group) {
       ShipGroup.readyToShip when late => (LoopColors.error, t('Kasni')),
       ShipGroup.readyToShip => (LoopColors.accent, group.label),
-      ShipGroup.awaitingBuyer => (LoopColors.textSecondary, group.label),
-      ShipGroup.shipped => (LoopColors.info, group.label),
-      ShipGroup.delivered => (LoopColors.success, group.label),
+      ShipGroup.awaitingBuyer => (LoopColors.accent, group.label),
+      ShipGroup.shipped => (LoopColors.success, group.label),
+      ShipGroup.delivered => (LoopColors.gold, group.label),
     };
     return Padding(
       padding: const EdgeInsets.only(bottom: 8),
-      child: Material(
-        color: LoopColors.surface,
-        borderRadius: BorderRadius.circular(kRadius),
-        child: InkWell(
-          key: ValueKey('note-${d.id}'),
+      child: VisionGlass(
+        radius: 24,
+        child: Material(
+          color: Colors.transparent,
           borderRadius: BorderRadius.circular(kRadius),
-          onTap: () => DeliveryNoteScreen.open(context, d.id),
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(4, 10, 12, 10),
-            child: Row(
+          child: InkWell(
+            key: ValueKey('note-${d.id}'),
+            borderRadius: BorderRadius.circular(kRadius),
+            onTap: onOpen,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                if (onSelect != null)
-                  Checkbox(
-                    key: ValueKey('ship-select-${d.id}'),
-                    value: selected,
-                    onChanged: (v) => onSelect!(v ?? false),
-                  )
-                else
-                  const SizedBox(width: 12),
-                if (device != null)
-                  ItemThumb(device: device!, size: 52)
-                else
-                  Container(
-                    width: 52,
-                    height: 52,
-                    decoration: BoxDecoration(
-                      color: LoopColors.surfaceHover,
-                      borderRadius: BorderRadius.circular(14),
-                    ),
-                    child: const Icon(Icons.inventory_2_outlined),
+                Semantics(
+                  label: label,
+                  child: LinearProgressIndicator(
+                    minHeight: 3,
+                    value: group == ShipGroup.delivered
+                        ? 1
+                        : group == ShipGroup.shipped
+                        ? .65
+                        : .12,
+                    color: color,
+                    backgroundColor: color.withValues(alpha: .08),
                   ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+                ),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(4, 10, 12, 10),
+                  child: Row(
                     children: [
-                      Text(
-                        d.deviceName,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(fontWeight: FontWeight.w800),
-                      ),
-                      Text(
-                        [
-                          if (buyer.isNotEmpty) '@$buyer',
-                          if (d.method != null) d.serviceLabel,
-                        ].join(' · '),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                          color: LoopColors.textSecondary,
-                          fontSize: 12,
+                      if (onSelect != null)
+                        Checkbox(
+                          key: ValueKey('ship-select-${d.id}'),
+                          value: selected,
+                          onChanged: (v) => onSelect!(v ?? false),
+                        )
+                      else
+                        const SizedBox(width: 12),
+                      if (device != null)
+                        ItemThumb(device: device!, size: 52)
+                      else
+                        Container(
+                          width: 52,
+                          height: 52,
+                          decoration: BoxDecoration(
+                            color: LoopColors.surfaceHover,
+                            borderRadius: BorderRadius.circular(14),
+                          ),
+                          child: const Icon(Icons.inventory_2_outlined),
+                        ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              d.deviceName,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                fontWeight: FontWeight.w800,
+                              ),
+                            ),
+                            Text(
+                              [
+                                if (buyer.isNotEmpty) '@$buyer',
+                                if (d.method != null) d.serviceLabel,
+                              ].join(' · '),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                color: LoopColors.textSecondary,
+                                fontSize: 12,
+                              ),
+                            ),
+                            Text(
+                              address,
+                              key: ValueKey('ship-address-${d.id}'),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                color: LoopColors.textSecondary,
+                                fontSize: 12,
+                              ),
+                            ),
+                            if (group == ShipGroup.readyToShip && due != null)
+                              Text(
+                                t('Predaj do {0}', [formatDateTime(due)]),
+                                style: TextStyle(
+                                  color: late
+                                      ? LoopColors.error
+                                      : LoopColors.textSecondary,
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                          ],
                         ),
                       ),
-                      Text(
-                        address,
-                        key: ValueKey('ship-address-${d.id}'),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                          color: LoopColors.textSecondary,
-                          fontSize: 12,
-                        ),
-                      ),
-                      if (group == ShipGroup.readyToShip && due != null)
-                        Text(
-                          t('Predaj do {0}', [formatDateTime(due)]),
-                          style: TextStyle(
-                            color: late
-                                ? LoopColors.error
-                                : LoopColors.textSecondary,
-                            fontSize: 12,
-                            fontWeight: FontWeight.w700,
+                      const SizedBox(width: 8),
+                      if (group == ShipGroup.awaitingBuyer && onShip != null)
+                        FilledButton(
+                          key: ValueKey('ship-send-${d.id}'),
+                          style: FilledButton.styleFrom(
+                            visualDensity: VisualDensity.compact,
+                          ),
+                          onPressed: onShip,
+                          child: Text(t('Pošalji')),
+                        )
+                      else
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 3,
+                          ),
+                          decoration: BoxDecoration(
+                            color: color.withValues(alpha: 0.15),
+                            borderRadius: BorderRadius.circular(99),
+                          ),
+                          child: Text(
+                            label,
+                            style: TextStyle(
+                              color: color,
+                              fontWeight: FontWeight.w900,
+                              fontSize: 11,
+                            ),
                           ),
                         ),
                     ],
                   ),
                 ),
-                const SizedBox(width: 8),
-                if (group == ShipGroup.awaitingBuyer && onShip != null)
-                  FilledButton(
-                    key: ValueKey('ship-send-${d.id}'),
-                    style: FilledButton.styleFrom(
-                      visualDensity: VisualDensity.compact,
-                    ),
-                    onPressed: onShip,
-                    child: Text(t('Pošalji')),
-                  )
-                else
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 8,
-                      vertical: 3,
-                    ),
-                    decoration: BoxDecoration(
-                      color: color.withValues(alpha: 0.15),
-                      borderRadius: BorderRadius.circular(99),
-                    ),
-                    child: Text(
-                      label,
-                      style: TextStyle(
-                        color: color,
-                        fontWeight: FontWeight.w900,
-                        fontSize: 11,
-                      ),
-                    ),
-                  ),
               ],
             ),
           ),

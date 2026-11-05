@@ -88,7 +88,8 @@ Future<void> showPayoutDialog(BuildContext context, WidgetRef ref) async {
 
 /// Obrazac: ime i prezime, OIB, datum rođenja, adresa, IBAN.
 class SellerInfoScreen extends ConsumerStatefulWidget {
-  const SellerInfoScreen({super.key});
+  const SellerInfoScreen({super.key, this.embedded = false});
+  final bool embedded;
 
   static Future<bool> open(BuildContext context) async {
     final saved = await Navigator.of(
@@ -236,7 +237,7 @@ class _SellerInfoScreenState extends ConsumerState<SellerInfoScreen> {
                 'Podaci su spremljeni na uređaju. Poslat ćemo ih kad se veza vrati.',
               ),
       );
-      Navigator.pop(context, true);
+      if (!widget.embedded) Navigator.pop(context, true);
     } on TradeException catch (e) {
       if (mounted) {
         setState(() => _error = e.message);
@@ -259,10 +260,19 @@ class _SellerInfoScreenState extends ConsumerState<SellerInfoScreen> {
         style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w600),
       ),
     );
-    InputDecoration field(String label, {String? hint}) =>
-        InputDecoration(labelText: label, hintText: hint, counterText: '');
+    InputDecoration field(String label, {String? hint}) => InputDecoration(
+      labelText: label,
+      hintText: hint,
+      counterText: '',
+      filled: false,
+      border: const UnderlineInputBorder(),
+      contentPadding: const EdgeInsets.symmetric(vertical: 16),
+    );
     return Scaffold(
-      appBar: AppBar(title: Text(t('Podaci prodavatelja'))),
+      backgroundColor: widget.embedded ? Colors.transparent : null,
+      appBar: widget.embedded
+          ? null
+          : AppBar(title: Text(t('Podaci prodavatelja'))),
       bottomNavigationBar: AppBottomAction(
         child: FilledButton(
           key: const ValueKey('seller-save'),

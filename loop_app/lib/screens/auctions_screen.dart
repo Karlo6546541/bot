@@ -1,3 +1,6 @@
+import '../widgets/product_poster.dart';
+import '../widgets/vision_glass.dart';
+import 'add_device_screen.dart';
 import '../providers/my_activity_provider.dart';
 import '../widgets/my_online_activity.dart';
 import '../config/features.dart';
@@ -842,6 +845,17 @@ class MyAuctionsScreen extends StatelessWidget {
   Widget build(BuildContext context) => Scaffold(
     appBar: AppBar(title: Text(t('Prodaja'))),
     body: MyAuctionsView(initialTab: initialTab),
+    floatingActionButton: VisionGlass(
+      radius: 99,
+      child: FloatingActionButton(
+        key: const ValueKey('my-items-new'),
+        tooltip: t('Novi predmet'),
+        elevation: 0,
+        backgroundColor: Colors.transparent,
+        onPressed: () => AddDeviceScreen.open(context),
+        child: const Icon(Icons.add),
+      ),
+    ),
   );
 }
 
@@ -908,12 +922,18 @@ class _MyAuctionsViewState extends ConsumerState<MyAuctionsView> {
         sliver: SliverGrid(
           gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(
             maxCrossAxisExtent: 420,
-            mainAxisExtent: MediaQuery.sizeOf(context).width < 600 ? 136 : 156,
+            mainAxisExtent: list.every((a) => a.sellerId == me)
+                ? 380
+                : MediaQuery.sizeOf(context).width < 600
+                ? 136
+                : 156,
             mainAxisSpacing: 12,
             crossAxisSpacing: 12,
           ),
           delegate: SliverChildBuilderDelegate(
-            (context, i) => AuctionCard(auction: list[i], viewerId: me),
+            (context, i) => list[i].sellerId == me
+                ? _SellerAuctionPoster(auction: list[i])
+                : AuctionCard(auction: list[i], viewerId: me),
             childCount: list.length,
           ),
         ),
@@ -1781,6 +1801,59 @@ Future<void> showAuctionRules(
 
 /// Kartica aukcije: slika, naziv, trenutna cijena, broj ponuda,
 /// odbrojavanje i oznaka odnosa korisnika (vodiš / nadmašen si …).
+class _SellerAuctionPoster extends ConsumerWidget {
+  const _SellerAuctionPoster({required this.auction});
+  final Auction auction;
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final a = auction;
+    final d = ref.watch(appProvider).deviceById(a.deviceId);
+    final sold = !a.isActive && a.bids.isNotEmpty;
+    final label = a.isActive
+        ? t('Na aukciji')
+        : sold
+        ? t('Završeno')
+        : t('Bez ponuda');
+    return Stack(
+      children: [
+        Positioned.fill(
+          child: ProductPoster(
+            key: ValueKey('seller-auction-${a.id}'),
+            device: d,
+            title: d?.name ?? a.deviceName,
+            price: formatCredits(a.currentPrice),
+            status: a.isActive ? t('Na aukciji') : null,
+            onTap: () => AuctionDetailScreen.open(context, a.id),
+          ),
+        ),
+        Positioned(
+          left: 12,
+          top: 12,
+          child: IgnorePointer(
+            child: Tooltip(
+              message: label,
+              child: VisionGlass(
+                dark: true,
+                radius: 99,
+                padding: const EdgeInsets.all(10),
+                child: Icon(
+                  a.isActive
+                      ? Icons.gavel
+                      : sold
+                      ? Icons.emoji_events_outlined
+                      : Icons.gavel_outlined,
+                  color: sold ? const Color(0xFFFFD60A) : Colors.white70,
+                  size: 22,
+                ),
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
 class AuctionCard extends ConsumerWidget {
   const AuctionCard({super.key, required this.auction, required this.viewerId});
 

@@ -1,23 +1,49 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:loop_app/l10n/tr.dart';
 
 Future<void> mainTab(WidgetTester tester, String label) async {
-  final visible = find.text(label).hitTestable();
-  if (visible.evaluate().isNotEmpty) {
-    await tester.tap(visible.last);
-  } else if (label == 'Moje') {
-    await tester.tap(find.byKey(const ValueKey('home-accounts')));
-  } else if (label == 'Početna') {
-    final logo = find.byKey(const ValueKey('logo-home'));
-    if (logo.evaluate().isNotEmpty) await tester.tap(logo);
-  } else {
+  final expand = find.byKey(const ValueKey('dock-expand'));
+  if (expand.evaluate().isNotEmpty) {
+    await tester.tap(expand);
+    await tester.pumpAndSettle();
+  }
+  final destination = switch (label) {
+    'Moje' || 'Profil' => 'Trezor',
+    'Početna' || 'Kategorije' => 'Pozornica',
+    'Prodavač' => 'Studio',
+    _ => label,
+  };
+  Finder target() {
+    final item = find
+        .ancestor(
+          of: find.text(t(destination)),
+          matching: find.byType(NavigationDestination),
+        )
+        .hitTestable();
+    return item.evaluate().isNotEmpty
+        ? item
+        : find.text(t(destination)).hitTestable();
+  }
+
+  for (var i = 0; i < 6; i++) {
+    final handle = find.byKey(const ValueKey('dock-expand'));
+    if (handle.evaluate().isNotEmpty) {
+      await tester.tap(handle);
+      await tester.pumpAndSettle();
+    }
+    if (target().evaluate().isNotEmpty) break;
+    await tester.binding.handlePopRoute();
+    await tester.pumpAndSettle();
+  }
+  await tester.tap(target().first);
+  await tester.pumpAndSettle();
+  if (label == 'Profil') {
+    await tester.tap(find.byKey(const ValueKey('vault-account')));
+  } else if (label == 'Kategorije') {
     await tester.tap(find.byKey(const ValueKey('home-filters')));
     await tester.pumpAndSettle();
-    final item = find.byKey(
-      ValueKey(label == 'Profil' ? 'home-profile' : 'home-cat-categories'),
-    );
-    await tester.ensureVisible(item);
-    await tester.tap(item);
+    await tester.tap(find.byKey(const ValueKey('home-cat-categories')));
   }
   await tester.pumpAndSettle();
 }
