@@ -1,5 +1,6 @@
 import '../config/design_variant.dart';
 import '../widgets/jednostavno_ui.dart';
+import '../widgets/reference_sheet.dart';
 import '../providers/my_activity_provider.dart';
 import 'activity_view.dart';
 import 'messages_screen.dart';
@@ -60,7 +61,20 @@ class ProfileScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    if (ref.watch(profileSettingsProvider)) return const _ProfileSettingsView();
+    if (ref.watch(profileSettingsProvider)) {
+      if (!kSimpleDesign) return const _ProfileSettingsView();
+      return Stack(
+        children: [
+          const _JednostavnoAccountHome(),
+          const Positioned.fill(child: ColoredBox(color: Colors.black54)),
+          ReferenceSheet(
+            title: t('Postavke'),
+            scaffoldContent: true,
+            child: const _ProfileSettingsView(),
+          ),
+        ],
+      );
+    }
     return kSimpleDesign
         ? const _JednostavnoAccountHome()
         : const _AccountHome();
@@ -77,13 +91,10 @@ class _JednostavnoAccountHome extends ConsumerWidget {
     final online = user.isGuest
         ? null
         : ref.watch(myOnlineActivityProvider).asData?.value;
-    void activity(String section, String title) => Navigator.of(context).push(
-      MaterialPageRoute<void>(
-        builder: (_) => Scaffold(
-          appBar: AppBar(title: Text(title)),
-          body: ActivityView(initialSection: section),
-        ),
-      ),
+    void activity(String section, String title) => openReferenceSheet<void>(
+      context,
+      title: t('Moje'),
+      builder: (_) => ActivityView(initialSection: section),
     );
     Widget row(
       String key,
@@ -281,14 +292,20 @@ class _JednostavnoAccountHome extends ConsumerWidget {
 class MyProfileScreen extends StatelessWidget {
   const MyProfileScreen({super.key});
 
-  static Future<void> open(BuildContext context) => Navigator.of(context).push(
-    MaterialPageRoute<void>(
-      builder: (_) => Scaffold(
-        appBar: AppBar(title: Text(t('Moj profil'))),
-        body: const MyProfileScreen(),
-      ),
-    ),
-  );
+  static Future<void> open(BuildContext context) => kSimpleDesign
+      ? openReferenceSheet<void>(
+          context,
+          title: t('Moj profil'),
+          builder: (_) => const MyProfileScreen(),
+        )
+      : Navigator.of(context).push(
+          MaterialPageRoute<void>(
+            builder: (_) => Scaffold(
+              appBar: AppBar(title: Text(t('Moj profil'))),
+              body: const MyProfileScreen(),
+            ),
+          ),
+        );
 
   @override
   Widget build(BuildContext context) => const _MyPostsView();

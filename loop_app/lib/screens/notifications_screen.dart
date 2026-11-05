@@ -1,3 +1,5 @@
+import '../widgets/reference_sheet.dart';
+import '../config/design_variant.dart';
 import '../providers/my_activity_provider.dart';
 import '../widgets/my_online_activity.dart';
 import 'package:flutter/material.dart';
@@ -124,9 +126,16 @@ class _WonDelivery extends StatelessWidget {
 class NotificationsScreen extends ConsumerStatefulWidget {
   const NotificationsScreen({super.key});
 
-  static Future<void> open(BuildContext context) => Navigator.of(
-    context,
-  ).push(MaterialPageRoute<void>(builder: (_) => const NotificationsScreen()));
+  static Future<void> open(BuildContext context) => kSimpleDesign
+      ? openReferenceSheet<void>(
+          context,
+          title: t('Obavijesti'),
+          scaffoldContent: true,
+          builder: (_) => const NotificationsScreen(),
+        )
+      : Navigator.of(context).push(
+          MaterialPageRoute<void>(builder: (_) => const NotificationsScreen()),
+        );
 
   /// Dodir vodi na ono na što se obavijest odnosi.
   static Future<void> openTarget(
@@ -293,7 +302,9 @@ class _NotificationsScreenState extends ConsumerState<NotificationsScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(t('Obavijesti')),
+        toolbarHeight: kSimpleDesign ? 44 : null,
+        automaticallyImplyLeading: !kSimpleDesign,
+        title: kSimpleDesign ? null : Text(t('Obavijesti')),
         actions: [
           if (unread > 0)
             IconButton(

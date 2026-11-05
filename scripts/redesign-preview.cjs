@@ -53,7 +53,9 @@ const scenarios = [
   const browser = await chromium.launch({executablePath:process.env.CHROME_PATH || '/usr/bin/google-chrome',headless:true,args:['--no-sandbox'],...(process.env.PREVIEW_PROXY ? {proxy:{server:process.env.PREVIEW_PROXY}} : {})});
   try {
     for (const [route,width,height,theme,expected] of scenarios.filter(s => !process.env.PREVIEW_ROUTES || process.env.PREVIEW_ROUTES.split(',').includes(s[0]))) {
-      const context = await browser.newContext({viewport:{width,height},serviceWorkers:'block'});
+      const mobile = process.env.PREVIEW_MOBILE === 'true' && width < 840;
+      const simple = process.env.PREVIEW_SIMPLE === 'true';
+      const context = await browser.newContext({viewport:{width,height},serviceWorkers:'block', ...(mobile ? {isMobile:true,hasTouch:true,deviceScaleFactor:1,userAgent:'Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Mobile Safari/537.36'} : {})});
       const page = await context.newPage();
       // Managed browser proxies do not serve loopback URLs. Fulfil local build
       // assets directly from disk; external photos still use the configured proxy.
@@ -80,11 +82,18 @@ const scenarios = [
       await page.mouse.move(1,1);
       await page.waitForTimeout(3000);
       await page.screenshot({path:path.join(output,`${route}-${width}-${theme}.png`)});
+      if (simple && route === 'shop') {
+        await page.getByRole('button',{name:'O prodavatelju',exact:true}).waitFor({state:'visible'});
+        await page.getByRole('button',{name:'Podijeli trgovinu',exact:true}).waitFor({state:'visible'});
+      }
+      if (simple && route === 'notifications') {
+        await page.getByRole('button',{name:'Postavke obavijesti',exact:true}).waitFor({state:'visible'});
+      }
       if (route === 'profile') {
         await page.getByRole('button',{name:/Pogledaj profil/}).click();
         await page.getByRole('button',{name:'Sviđa mi se',exact:true}).waitFor();
         await page.getByRole('button',{name:'Postavke',exact:true}).click();
-        await page.getByRole('button',{name:'Natrag',exact:true}).waitFor();
+        await page.getByRole('button',{name:simple ? 'Zatvori' : 'Natrag',exact:true}).last().waitFor();
       }
       if (route === 'live' && width === 390) {
         const handle = page.getByRole('button',{name:/Povuci gore za shop/}).first();
@@ -107,13 +116,19 @@ const scenarios = [
         await navControl('Trezor').click();
         await page.getByRole('button',{name:/Kupnje/}).first().waitFor();
         await page.screenshot({path:path.join(output,'home-vault.png')});
+        if (simple) {
+          await page.getByRole('button',{name:/^Kupnje/}).first().click();
+          await page.getByRole('button',{name:'Zatvori',exact:true}).last().waitFor();
+          await page.screenshot({path:path.join(output,'home-purchases-sheet.png')});
+          await page.getByRole('button',{name:'Zatvori',exact:true}).last().click();
+        }
         await navControl('Pozornica').click();
-        await page.getByRole('button',{name:'Pretraži',exact:true}).click();
+        await page.getByRole('button',{name:simple ? 'Pretraži predmete i shopove' : 'Pretraži',exact:true}).click();
         await page.getByRole('textbox').first().fill('Satovi');
         await page.waitForTimeout(300);
         await page.screenshot({path:path.join(output,'home-inline-search.png')});
       }
-      if (route === 'activity' && width === 390 && theme === 'light') {
+      if (route === 'activity' && width === 390 && theme === 'light' && !simple) {
         const touch = await context.newCDPSession(page);
         await touch.send('Emulation.setTouchEmulationEnabled',{enabled:true});
         await touch.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[{x:180,y:550}]});
@@ -138,7 +153,8 @@ const scenarios = [
       }
       if (route === 'search') {
         await page.getByRole('textbox').first().fill('sat');
-        await page.getByRole('tab',{name:'Top',exact:true}).waitFor();
+        if (simple) await page.getByRole('button',{name:'Filteri',exact:true}).waitFor();
+        else await page.getByRole('tab',{name:'Top',exact:true}).waitFor();
         await page.screenshot({path:path.join(output,'spotlight-results.png')});
       }
       if (route === 'home' && width === 390 && theme === 'light') {

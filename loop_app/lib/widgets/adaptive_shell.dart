@@ -178,9 +178,9 @@ class _AdaptiveShellState extends State<AdaptiveShell> {
             ),
             if (widget.showNavigation)
               Positioned(
-                left: 20,
-                right: 20,
-                bottom: 10,
+                left: kSimpleDesign ? 28 : 20,
+                right: kSimpleDesign ? 28 : 20,
+                bottom: kSimpleDesign ? 22 : 10,
                 child: SafeArea(
                   top: false,
                   child: Center(
@@ -291,9 +291,9 @@ class LoopLogo extends StatelessWidget {
           Text(
             kAppName,
             style: TextStyle(
-              fontSize: size * 0.9,
-              fontWeight: FontWeight.w800,
-              letterSpacing: -size * 0.045,
+              fontSize: kSimpleDesign ? size : size * 0.9,
+              fontWeight: kSimpleDesign ? FontWeight.w700 : FontWeight.w800,
+              letterSpacing: kSimpleDesign ? -size * .03 : -size * .045,
               color: color ?? LoopColors.textPrimary,
             ),
           ),

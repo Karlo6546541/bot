@@ -1,3 +1,5 @@
+import '../config/design_variant.dart';
+import '../widgets/reference_sheet.dart';
 import '../services/app_location/app_location.dart';
 
 import 'package:flutter/material.dart';
@@ -40,20 +42,28 @@ class PublicProfileScreen extends ConsumerStatefulWidget {
 
   final String userId;
 
-  static Future<void> open(BuildContext context, String userId) =>
-      Navigator.of(context).push(
-        MaterialPageRoute<void>(
-          settings: AppPlace.of(
-            'shop',
-            ProviderScope.containerOf(
-                  context,
-                  listen: false,
-                ).read(appProvider).userById(userId)?.username ??
-                '',
-          ).settings,
-          builder: (_) => PublicProfileScreen(userId: userId),
-        ),
+  static Future<void> open(BuildContext context, String userId) {
+    final user = ProviderScope.containerOf(
+      context,
+      listen: false,
+    ).read(appProvider).userById(userId);
+    final settings = AppPlace.of('shop', user?.username ?? '').settings;
+    if (kSimpleDesign) {
+      return openReferenceSheet<void>(
+        context,
+        title: user?.shopTitle ?? 'Shop',
+        settings: settings,
+        scaffoldContent: true,
+        builder: (_) => PublicProfileScreen(userId: userId),
       );
+    }
+    return Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        settings: settings,
+        builder: (_) => PublicProfileScreen(userId: userId),
+      ),
+    );
+  }
 
   @override
   ConsumerState<PublicProfileScreen> createState() =>
@@ -158,7 +168,11 @@ class _PublicProfileScreenState extends ConsumerState<PublicProfileScreen> {
     final other = user;
     return Scaffold(
       appBar: AppBar(
-        title: Text(user.shopTitle, overflow: TextOverflow.ellipsis),
+        toolbarHeight: kSimpleDesign ? 44 : null,
+        automaticallyImplyLeading: !kSimpleDesign,
+        title: kSimpleDesign
+            ? null
+            : Text(user.shopTitle, overflow: TextOverflow.ellipsis),
         actions: [
           IconButton(
             tooltip: t('O prodavatelju'),

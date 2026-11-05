@@ -131,7 +131,12 @@ ThemeData buildLoopTheme({Color? accent}) {
   final rounded = RoundedRectangleBorder(
     borderRadius: BorderRadius.circular(kRadius),
   );
-  final base = dark ? ThemeData.dark() : ThemeData.light();
+  final baseTheme = dark ? ThemeData.dark() : ThemeData.light();
+  final base = kSimpleDesign
+      ? baseTheme.copyWith(
+          textTheme: baseTheme.textTheme.apply(fontFamily: kFontFamily),
+        )
+      : baseTheme;
 
   return ThemeData(
     useMaterial3: true,

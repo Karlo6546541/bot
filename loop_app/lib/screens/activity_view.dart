@@ -1,3 +1,4 @@
+import '../config/design_variant.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -166,18 +167,18 @@ class _ActivityViewState extends ConsumerState<ActivityView> {
       final on = _tab == t0;
       return InkWell(
         key: ValueKey('activity-tab-${t0.name}'),
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(kSimpleDesign ? 99 : 12),
         onTap: () => setState(() => _tab = t0),
         child: Container(
-          constraints: const BoxConstraints(minHeight: 40),
+          constraints: BoxConstraints(minHeight: kSimpleDesign ? 44 : 40),
           padding: const EdgeInsets.symmetric(horizontal: 14),
           alignment: Alignment.center,
           decoration: BoxDecoration(
             color: on ? LoopColors.textPrimary : Colors.transparent,
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(kSimpleDesign ? 99 : 12),
           ),
           child: Badge(
-            isLabelVisible: badge > 0,
+            isLabelVisible: !kSimpleDesign && badge > 0,
             label: Text('$badge'),
             backgroundColor: LoopColors.accent,
             textColor: LoopColors.onAccent,
@@ -185,9 +186,15 @@ class _ActivityViewState extends ConsumerState<ActivityView> {
             child: Text(
               label,
               style: TextStyle(
-                fontSize: 14,
-                fontWeight: on ? FontWeight.w600 : FontWeight.w400,
-                color: on ? LoopColors.background : LoopColors.textSecondary,
+                fontSize: kSimpleDesign ? 15 : 14,
+                fontWeight: kSimpleDesign || on
+                    ? FontWeight.w600
+                    : FontWeight.w400,
+                color: on
+                    ? LoopColors.background
+                    : kSimpleDesign
+                    ? LoopColors.textPrimary
+                    : LoopColors.textSecondary,
               ),
             ),
           ),
@@ -199,14 +206,15 @@ class _ActivityViewState extends ConsumerState<ActivityView> {
     Widget section(String label, List<Widget> children) => Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Padding(
-          padding: const EdgeInsets.fromLTRB(20, 22, 20, 12),
-          child: Text(
-            label,
-            key: ValueKey('activity-section-$label'),
-            style: const TextStyle(fontSize: 19, fontWeight: FontWeight.w700),
+        if (!kSimpleDesign)
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 22, 20, 12),
+            child: Text(
+              label,
+              key: ValueKey('activity-section-$label'),
+              style: const TextStyle(fontSize: 19, fontWeight: FontWeight.w700),
+            ),
           ),
-        ),
         ...children,
       ],
     );
@@ -275,7 +283,12 @@ class _ActivityViewState extends ConsumerState<ActivityView> {
                 ),
               for (final d in all.where((d) => deliveryGroup(d) == label))
                 Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 18),
+                  padding: EdgeInsets.fromLTRB(
+                    16,
+                    0,
+                    16,
+                    kSimpleDesign ? 2 : 18,
+                  ),
                   child: DeliveryCard(
                     key: ValueKey('bought-${d.id}'),
                     delivery: d,
@@ -363,12 +376,18 @@ class _ActivityViewState extends ConsumerState<ActivityView> {
         child: Column(
           children: [
             Padding(
-              padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+              padding: EdgeInsets.fromLTRB(
+                kSimpleDesign ? 24 : 16,
+                kSimpleDesign ? 4 : 8,
+                kSimpleDesign ? 24 : 16,
+                kSimpleDesign ? 14 : 8,
+              ),
               child: SingleChildScrollView(
                 scrollDirection: Axis.horizontal,
                 child: VisionGlass(
-                  quiet: true,
-                  radius: 18,
+                  quiet: !kSimpleDesign,
+                  blur: false,
+                  radius: kSimpleDesign ? 99 : 18,
                   padding: const EdgeInsets.all(4),
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
@@ -385,7 +404,12 @@ class _ActivityViewState extends ConsumerState<ActivityView> {
             Expanded(
               child: ListView(
                 key: ValueKey('activity-list-${_tab.name}'),
-                padding: const EdgeInsets.only(bottom: 96),
+                padding: EdgeInsets.fromLTRB(
+                  kSimpleDesign ? 8 : 0,
+                  0,
+                  kSimpleDesign ? 8 : 0,
+                  kSimpleDesign ? 28 : 96,
+                ),
                 children: body,
               ),
             ),

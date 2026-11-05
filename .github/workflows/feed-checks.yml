@@ -34,7 +34,7 @@ jobs:
       - name: Formatting patch
         run: cat /tmp/feed-format.patch
       - name: Format redesign files
-        run: dart format --output=none --set-exit-if-changed lib/providers/seller_account_provider.dart lib/widgets/quiet_ui.dart lib/widgets/seller_account_card.dart test/redesign_layout_test.dart tool/redesign_preview.dart lib/widgets/live_shop_widgets.dart lib/widgets/vision_glass.dart lib/widgets/vision_live_controls.dart test/vision_live_controls_test.dart test/helpers/vision_navigation.dart test/live_shop_navigation_test.dart lib/widgets/jednostavno_ui.dart lib/widgets/discovery_live_card.dart lib/widgets/user_avatar.dart test/simple_design_test.dart
+        run: dart format --output=none --set-exit-if-changed lib/providers/seller_account_provider.dart lib/widgets/quiet_ui.dart lib/widgets/seller_account_card.dart test/redesign_layout_test.dart tool/redesign_preview.dart lib/widgets/live_shop_widgets.dart lib/widgets/vision_glass.dart lib/widgets/vision_live_controls.dart test/vision_live_controls_test.dart test/helpers/vision_navigation.dart test/live_shop_navigation_test.dart lib/widgets/reference_sheet.dart lib/widgets/reference_order_row.dart lib/widgets/wallet_ticket.dart lib/widgets/jednostavno_ui.dart lib/widgets/discovery_live_card.dart lib/widgets/user_avatar.dart test/simple_design_test.dart
       - name: Analyze
         run: flutter analyze
       - name: Test
@@ -71,3 +71,35 @@ jobs:
             /tmp/feed-tests.log
             /tmp/feed-preview/screenshots
 
+  reference_preview:
+    name: Reference mobile layouts
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    defaults:
+      run:
+        working-directory: loop_app
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          flutter-version: '3.47.7'
+          cache: true
+      - run: flutter pub get --enforce-lockfile
+      - name: Build the actual reference variant
+        run: flutter build web --release --target=tool/redesign_preview.dart --base-href /bot/ --no-web-resources-cdn --dart-define=SIMPLE_DESIGN=true
+      - name: Compare mobile flows and capture reference screens
+        env:
+          PREVIEW_WEB_ROOT: ${{ github.workspace }}/loop_app/build/web
+          PREVIEW_BASE_URL: http://preview.test/bot/
+          PREVIEW_ARTIFACT_DIR: /tmp/reference-preview
+          PREVIEW_SIMPLE: 'true'
+          PREVIEW_MOBILE: 'true'
+        run: |
+          npm install --prefix /tmp/feed-browser playwright@1.55.0
+          node ../scripts/redesign-preview.cjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: reference-mobile-validation
+          path: /tmp/reference-preview

@@ -3453,4 +3453,7 @@ const kEn = <String, String>{
   'Trenutno nema livea s predmetima za Kupi odmah.':
       'No live shows with Buy now items right now.',
   'Trenutno nema livea s aukcijama.': 'No live shows with auctions right now.',
+  'Detalji narudžbe': 'Order details',
+  'Filteri showova': 'Show filters',
+  'Praćenje pošiljke': 'Shipment tracking',
 };

@@ -1,3 +1,6 @@
+import '../config/design_variant.dart';
+import 'reference_order_row.dart';
+import 'reference_sheet.dart';
 import 'package:flutter/material.dart';
 
 import '../l10n/tr.dart';
@@ -44,7 +47,7 @@ class WalletTicket extends StatelessWidget {
             child: Center(
               child: Icon(
                 Icons.inventory_2_outlined,
-                size: 56,
+                size: kSimpleDesign ? 26 : 56,
                 color: LoopColors.textSecondary,
               ),
             ),
@@ -52,6 +55,102 @@ class WalletTicket extends StatelessWidget {
     final shortDate =
         '${date.day.toString().padLeft(2, '0')}.${date.month.toString().padLeft(2, '0')}.'
         '${date.year == DateTime.now().year ? '' : date.year}';
+    if (kSimpleDesign) {
+      final art = photo == null
+          ? fallback
+          : LocalPhoto(path: photo, fallback: fallback, cacheWidth: 320);
+      Color stateColor() {
+        if (status == t('Čeka plaćanje')) return const Color(0xFFFFC176);
+        if (status == t('Povrati') || status == t('Otkazano')) {
+          return const Color(0xFFFF8F78);
+        }
+        if (status == t('Završeno') || status == t('Stiglo')) {
+          return LoopColors.textSecondary;
+        }
+        return const Color(0xFF86F6D3);
+      }
+
+      return Padding(
+        padding: const EdgeInsets.only(bottom: 8),
+        child: ReferenceOrderRow(
+          key: openKey,
+          title: title,
+          subtitle: status,
+          artwork: art,
+          amount: price,
+          date: shortDate,
+          statusKey: statusKey,
+          color: stateColor(),
+          onTap: () => openReferenceSheet<void>(
+            context,
+            title: t('Detalji narudžbe'),
+            builder: (_) => SingleChildScrollView(
+              padding: const EdgeInsets.fromLTRB(24, 4, 24, 28),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Row(
+                    children: [
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(20),
+                        child: SizedBox(width: 68, height: 68, child: art),
+                      ),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              title,
+                              style: const TextStyle(
+                                fontSize: 20,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              status,
+                              style: TextStyle(
+                                color: stateColor(),
+                                fontSize: 14,
+                              ),
+                            ),
+                            if (price != null)
+                              Text(
+                                price!,
+                                style: const TextStyle(
+                                  fontSize: 22,
+                                  fontWeight: FontWeight.w400,
+                                ),
+                              ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                  if (seller != null) ...[
+                    const SizedBox(height: 16),
+                    Text(
+                      seller!,
+                      style: TextStyle(color: LoopColors.textSecondary),
+                    ),
+                  ],
+                  if (footer != null) ...[const SizedBox(height: 24), footer!],
+                  if (onTap != null) ...[
+                    const SizedBox(height: 16),
+                    TextButton.icon(
+                      onPressed: onTap,
+                      icon: const Icon(Icons.arrow_forward, size: 18),
+                      label: Text(t('Pogledaj')),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+          ),
+        ),
+      );
+    }
     return VisionGlass(
       quiet: true,
       radius: 28,

@@ -388,24 +388,13 @@ class _LiveHomeScreenState extends ConsumerState<LiveHomeScreen> {
               ],
             ),
           );
-          slivers.add(
-            SliverToBoxAdapter(
-              child: sectionTitle(t('Uživo sada'), live: true),
-            ),
-          );
-          if (liveNow.isEmpty) {
+          if (liveNow.isNotEmpty) {
             slivers.add(
               SliverToBoxAdapter(
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 24),
-                  child: Text(
-                    t('Uživo se uskoro vraća.'),
-                    style: TextStyle(color: LoopColors.textSecondary),
-                  ),
-                ),
+                child: sectionTitle(t('Uživo sada'), live: true),
               ),
             );
-          } else {
+
             slivers.add(
               SliverToBoxAdapter(
                 child: SizedBox(
@@ -1039,57 +1028,110 @@ class _LiveHomeScreenState extends ConsumerState<LiveHomeScreen> {
                 ),
               ),
             ),
-            VisionGlass(radius: 99, child: const MessagesButton()),
+            SizedBox(
+              width: 44,
+              height: 44,
+              child: IconButtonTheme(
+                data: IconButtonThemeData(
+                  style: IconButton.styleFrom(
+                    padding: EdgeInsets.zero,
+                    fixedSize: const Size(44, 44),
+                    iconSize: 20,
+                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  ),
+                ),
+                child: VisionGlass(radius: 99, child: const MessagesButton()),
+              ),
+            ),
             const SizedBox(width: 8),
-            VisionGlass(radius: 99, child: const NotificationBell()),
+            SizedBox(
+              width: 44,
+              height: 44,
+              child: IconButtonTheme(
+                data: IconButtonThemeData(
+                  style: IconButton.styleFrom(
+                    padding: EdgeInsets.zero,
+                    fixedSize: const Size(44, 44),
+                    iconSize: 20,
+                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  ),
+                ),
+                child: VisionGlass(radius: 99, child: const NotificationBell()),
+              ),
+            ),
           ],
         ),
         const SizedBox(height: 14),
         Row(
           children: [
             Expanded(
-              child: KeyedSubtree(
-                key: const ValueKey('home-search'),
-                child: TextField(
-                  key: const ValueKey('home-inline-search'),
-                  controller: _inlineSearch,
-                  onChanged: (value) => setState(() => _query = value),
-                  onSubmitted: (value) =>
-                      SearchScreen.open(context, initialQuery: value),
-                  decoration: InputDecoration(
-                    hintText: t('Pretraži predmete i shopove'),
-                    prefixIcon: const Icon(Icons.search, size: 19),
-                    suffixIcon: IconButton(
-                      key: const ValueKey('home-search-submit'),
-                      tooltip: t('Pretraži'),
-                      onPressed: () =>
-                          SearchScreen.open(context, initialQuery: _query),
-                      icon: const Icon(Icons.arrow_forward, size: 18),
-                    ),
-                    isDense: true,
-                    filled: true,
-                    fillColor: LoopColors.textPrimary.withValues(alpha: .08),
-                    border: OutlineInputBorder(
+              child: SizedBox(
+                height: 48,
+                child: VisionGlass(
+                  radius: 99,
+                  blur: false,
+                  child: Semantics(
+                    button: true,
+                    label: t('Pretraži predmete i shopove'),
+                    excludeSemantics: true,
+                    onTap: () => SearchScreen.open(context),
+                    child: InkWell(
+                      key: const ValueKey('home-search'),
                       borderRadius: BorderRadius.circular(99),
-                      borderSide: BorderSide(color: LoopColors.glassBorder),
+                      onTap: () => SearchScreen.open(context),
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 18),
+                        child: Row(
+                          children: [
+                            Icon(
+                              Icons.search,
+                              size: 20,
+                              color: LoopColors.textSecondary,
+                            ),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: Text(
+                                t('Pretraži predmete i shopove'),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  height: 1.2,
+                                  color: LoopColors.textSecondary,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
                     ),
                   ),
                 ),
               ),
             ),
             const SizedBox(width: 8),
-            VisionGlass(
-              radius: 99,
-              child: IconButton(
-                key: const ValueKey('home-filters'),
-                tooltip: t('Filteri'),
-                onPressed: filters,
-                icon: const Icon(Icons.tune, size: 21),
+            SizedBox(
+              width: 48,
+              height: 48,
+              child: VisionGlass(
+                radius: 99,
+                blur: false,
+                child: IconButton(
+                  key: const ValueKey('home-filters'),
+                  tooltip: t('Filteri'),
+                  style: IconButton.styleFrom(
+                    padding: EdgeInsets.zero,
+                    fixedSize: const Size(48, 48),
+                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  ),
+                  onPressed: filters,
+                  icon: const Icon(Icons.tune, size: 20),
+                ),
               ),
             ),
           ],
         ),
-        const SizedBox(height: 16),
+        const SizedBox(height: 14),
         SizedBox(
           height: 44,
           child: ListView(
@@ -1106,23 +1148,34 @@ class _LiveHomeScreenState extends ConsumerState<LiveHomeScreen> {
               ])
                 Padding(
                   padding: const EdgeInsets.only(right: 8),
-                  child: ChoiceChip(
-                    key: ValueKey(
-                      'discovery-category-${category?.name ?? 'all'}',
-                    ),
-                    label: Text(category?.label ?? t('Sve')),
-                    selected: _cat == category,
-                    showCheckmark: false,
-                    side: BorderSide.none,
-                    backgroundColor: LoopColors.textPrimary.withValues(
-                      alpha: .07,
-                    ),
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 10,
-                    ),
-                    onSelected: (_) => setState(
-                      () => _cat = _cat == category ? null : category,
+                  child: Material(
+                    color: _cat == category
+                        ? LoopColors.textPrimary
+                        : LoopColors.textPrimary.withValues(alpha: .07),
+                    borderRadius: BorderRadius.circular(99),
+                    child: InkWell(
+                      key: ValueKey(
+                        'discovery-category-${category?.name ?? 'all'}',
+                      ),
+                      borderRadius: BorderRadius.circular(99),
+                      onTap: () => setState(
+                        () => _cat = _cat == category ? null : category,
+                      ),
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 18),
+                        child: Center(
+                          child: Text(
+                            category?.label ?? t('Sve'),
+                            style: TextStyle(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w500,
+                              color: _cat == category
+                                  ? LoopColors.background
+                                  : LoopColors.textPrimary,
+                            ),
+                          ),
+                        ),
+                      ),
                     ),
                   ),
                 ),
@@ -1136,7 +1189,9 @@ class _LiveHomeScreenState extends ConsumerState<LiveHomeScreen> {
       bottom: false,
       child: Padding(
         key: const ValueKey('home-cats'),
-        padding: EdgeInsets.fromLTRB(small ? 16 : 24, 20, small ? 16 : 24, 12),
+        padding: kSimpleDesign
+            ? const EdgeInsets.fromLTRB(24, 54, 24, 0)
+            : EdgeInsets.fromLTRB(small ? 16 : 24, 20, small ? 16 : 24, 12),
         child: Column(
           children: [
             if (kSimpleDesign)
@@ -1304,7 +1359,7 @@ class _LiveHomeScreenState extends ConsumerState<LiveHomeScreen> {
         ),
         child: Column(
           children: [
-            chips,
+            if (!kSimpleDesign) chips,
             if (!kSimpleDesign) browseControls,
             // Dolje kategorije: odabrana ostaje označena i filtrira prikaz.
             if (onLive && !kSimpleDesign)
@@ -1335,6 +1390,7 @@ class _LiveHomeScreenState extends ConsumerState<LiveHomeScreen> {
                   },
                   child: CustomScrollView(
                     slivers: [
+                      if (kSimpleDesign) SliverToBoxAdapter(child: chips),
                       if (kSimpleDesign &&
                           _filter is! _ForYou &&
                           _filter is! _BuyNow)

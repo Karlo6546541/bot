@@ -1,3 +1,6 @@
+import 'package:loop_app/config/design_variant.dart';
+import 'package:loop_app/widgets/reference_sheet.dart';
+import 'package:loop_app/screens/activity_view.dart';
 import 'package:loop_app/models/loop_transaction.dart';
 import 'package:loop_app/models/app_notification.dart';
 import 'package:loop_app/screens/account_health_screen.dart';
@@ -337,6 +340,7 @@ class _PreviewRoot extends StatelessWidget {
       'health' => const AccountHealthScreen(),
       'history' => const ActivityPage(),
       'search' => const SearchScreen(),
+      'activity' when kSimpleDesign => const ActivityView(),
       'sales' => const MyAuctionsScreen(),
       'wallet' => const _WalletPreview(),
       'form' => const SellerInfoScreen(),
@@ -359,7 +363,45 @@ class _PreviewRoot extends StatelessWidget {
       locale: const Locale('hr'),
       supportedLocales: const [Locale('hr'), Locale('en')],
       localizationsDelegates: GlobalMaterialLocalizations.delegates,
-      home: page,
+      home:
+          kSimpleDesign &&
+              <String, String>{
+                'activity': 'Moje',
+                'shop': 'Shop',
+                'inventory': 'Inventar',
+                'shipping': 'Otprema',
+                'health': 'Zdravlje računa',
+                'history': 'Povijest transakcija',
+                'search': 'Pretraži',
+                'sales': 'Prodaja',
+                'wallet': 'Novčanik',
+                'form': 'Podaci prodavatelja',
+                'messages': 'Poruke',
+                'notifications': 'Obavijesti',
+                'finance': 'Financije',
+              }.containsKey(route)
+          ? Scaffold(
+              body: ReferenceSheet(
+                title: <String, String>{
+                  'activity': 'Moje',
+                  'shop': 'Shop',
+                  'inventory': 'Inventar',
+                  'shipping': 'Otprema',
+                  'health': 'Zdravlje računa',
+                  'history': 'Povijest transakcija',
+                  'search': 'Pretraži',
+                  'sales': 'Prodaja',
+                  'wallet': 'Novčanik',
+                  'form': 'Podaci prodavatelja',
+                  'messages': 'Poruke',
+                  'notifications': 'Obavijesti',
+                  'finance': 'Financije',
+                }[route]!,
+                scaffoldContent: route != 'search' && route != 'activity',
+                child: page,
+              ),
+            )
+          : page,
     );
   }
 }

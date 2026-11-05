@@ -329,7 +329,7 @@ class _HomeShellState extends ConsumerState<HomeShell> {
     final phone = width < 600;
 
     final shell = AdaptiveShell(
-      showNavigation: true,
+      showNavigation: !kSimpleDesign || !ref.watch(profileSettingsProvider),
       immersiveNavigation: _index == 0 && feedSelected,
       // Isto na mobitelu i na računalu (Whatnot): Početna · Kategorije ·
       // Objavi · Moje (aktivnost) · Profil.

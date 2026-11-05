@@ -1,3 +1,4 @@
+import 'package:loop_app/config/design_variant.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -220,7 +221,7 @@ void main() {
       );
       expect(
         find.descendant(of: ticket, matching: find.byType(CinematicTracking)),
-        findsOneWidget,
+        kSimpleDesign ? findsNothing : findsOneWidget,
       );
       expect(tester.takeException(), isNull);
       await tester.pumpWidget(const SizedBox());
@@ -296,12 +297,18 @@ void main() {
       await tester.pumpAndSettle();
       expect(
         find.byKey(const ValueKey('activity-section-Čeka slanje')),
-        findsOneWidget,
+        kSimpleDesign ? findsNothing : findsOneWidget,
       );
       expect(
         find.byKey(const ValueKey('activity-section-Stiglo')),
         findsNothing,
       );
+      if (kSimpleDesign) {
+        await tester.tap(
+          find.byKey(const ValueKey('delivery-open-pending-legacy')),
+        );
+        await tester.pumpAndSettle();
+      }
       expect(
         tester.widget<CinematicTracking>(find.byType(CinematicTracking)).stage,
         0,
