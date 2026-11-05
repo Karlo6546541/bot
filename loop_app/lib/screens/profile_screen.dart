@@ -1,3 +1,9 @@
+import '../config/design_variant.dart';
+import '../widgets/jednostavno_ui.dart';
+import '../providers/my_activity_provider.dart';
+import 'activity_view.dart';
+import 'messages_screen.dart';
+import 'notifications_screen.dart';
 import '../config/features.dart';
 import 'account_health_screen.dart';
 
@@ -55,7 +61,219 @@ class ProfileScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     if (ref.watch(profileSettingsProvider)) return const _ProfileSettingsView();
-    return const _AccountHome();
+    return kSimpleDesign
+        ? const _JednostavnoAccountHome()
+        : const _AccountHome();
+  }
+}
+
+class _JednostavnoAccountHome extends ConsumerWidget {
+  const _JednostavnoAccountHome();
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final state = ref.watch(appProvider);
+    final user = state.currentUser;
+    if (user == null) return const SizedBox.shrink();
+    final online = user.isGuest
+        ? null
+        : ref.watch(myOnlineActivityProvider).asData?.value;
+    void activity(String section, String title) => Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => Scaffold(
+          appBar: AppBar(title: Text(title)),
+          body: ActivityView(initialSection: section),
+        ),
+      ),
+    );
+    Widget row(
+      String key,
+      String title,
+      VoidCallback onTap, {
+      String? subtitle,
+      int? count,
+    }) => JednostavnoRow(
+      key: ValueKey(key),
+      title: title,
+      subtitle: subtitle,
+      count: count,
+      onTap: onTap,
+    );
+    final purchased =
+        state.myDeliveries.length +
+        state.myDigitalPurchases.length +
+        (online?.orders.where((o) => o['buyer_id'] == user.id).length ?? 0);
+    final bids = state.auctions
+        .where((a) => a.bids.any((b) => b.userId == user.id))
+        .length;
+    return Align(
+      alignment: Alignment.topCenter,
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 640),
+        child: ListView(
+          key: const ValueKey('account-home'),
+          padding: const EdgeInsets.fromLTRB(24, 28, 24, 112),
+          children: [
+            JednostavnoTitle(t('Profil')),
+            const SizedBox(height: 22),
+            if (user.isGuest)
+              const _GuestCard()
+            else
+              Semantics(
+                button: true,
+                label: t('Pogledaj profil'),
+                child: InkWell(
+                  key: const ValueKey('account-view-profile'),
+                  onTap: () => MyProfileScreen.open(context),
+                  borderRadius: BorderRadius.circular(24),
+                  child: Row(
+                    children: [
+                      UserAvatar(user: user, size: 68),
+                      const SizedBox(width: 18),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              user.name.isEmpty ? user.username : user.name,
+                              style: const TextStyle(
+                                fontSize: 24,
+                                fontWeight: FontWeight.w600,
+                                letterSpacing: -.6,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              '${state.followersOf(user.id)} ${t('pratitelja')} · ${user.following.length} ${t('Pratim')}',
+                              style: TextStyle(
+                                fontSize: 13,
+                                color: LoopColors.textSecondary,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            const SizedBox(height: 24),
+            JednostavnoGroup(
+              children: [
+                row(
+                  'account-purchases',
+                  t('Kupnje'),
+                  () => activity('purchases', t('Kupnje')),
+                  count: purchased,
+                ),
+                row(
+                  'account-bids',
+                  t('Licitacije'),
+                  () => activity('bids', t('Licitacije')),
+                  count: bids,
+                ),
+                row(
+                  'account-offers',
+                  t('Ponude'),
+                  () => activity('offers', t('Ponude')),
+                  count: state.myBargains
+                      .where((o) => o.buyerId == user.id)
+                      .length,
+                ),
+                row(
+                  'account-saved',
+                  t('Spremljeno'),
+                  () => activity('saved', t('Spremljeno')),
+                  count: user.favorites.length,
+                ),
+                row(
+                  'account-messages',
+                  t('Poruke'),
+                  () => MessagesScreen.open(context),
+                  count: state.unreadMessages,
+                ),
+                row(
+                  'account-notifications',
+                  t('Obavijesti'),
+                  () => NotificationsScreen.open(context),
+                  count: state.unreadNotifications,
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            JednostavnoGroup(
+              children: [
+                row(
+                  'profile-checkout',
+                  t('Novčanik'),
+                  () => ensureCheckout(context, ref, force: true),
+                  subtitle: t('Plaćanje i dostava'),
+                ),
+                row(
+                  'profile-settings',
+                  t('Postavke'),
+                  () =>
+                      ref.read(profileSettingsProvider.notifier).setOpen(true),
+                ),
+                row(
+                  'open-legal',
+                  t('Pomoć i pravno'),
+                  () => LegalListScreen.open(context),
+                ),
+              ],
+            ),
+            if (!user.isGuest) ...[
+              const SizedBox(height: 16),
+              JednostavnoGroup(
+                children: [
+                  row(
+                    'account-open-shop',
+                    t('Moj shop'),
+                    () => PublicProfileScreen.open(context, user.id),
+                  ),
+                  row(
+                    'account-seller-hub',
+                    t('Prodaj'),
+                    () => ref.read(homeTabProvider.notifier).select(4),
+                  ),
+                  row(
+                    'open-activity',
+                    t('Povijest transakcija'),
+                    () => ActivityPage.open(context),
+                  ),
+                  row(
+                    'account-health',
+                    t('Zdravlje računa'),
+                    () => AccountHealthScreen.open(context),
+                    subtitle: AccountHealth.of(
+                      state,
+                      user.id,
+                      DateTime.now(),
+                    ).level.label,
+                  ),
+                  ExpansionTile(
+                    key: const ValueKey('account-seller-info'),
+                    title: Text(t('Podaci prodavatelja')),
+                    tilePadding: const EdgeInsets.symmetric(horizontal: 22),
+                    children: [
+                      SizedBox(
+                        height: MediaQuery.sizeOf(context).height * .8,
+                        child: const SellerInfoScreen(embedded: true),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+              const SizedBox(height: 18),
+              TextButton(
+                key: const ValueKey('account-sign-out'),
+                onPressed: ref.read(appProvider.notifier).logout,
+                child: Text(t('Odjavi se')),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
   }
 }
 

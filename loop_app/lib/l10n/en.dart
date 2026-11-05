@@ -3,7 +3,12 @@
 
 const kEn = <String, String>{
   'Obrada…': 'Processing…',
+  'Zarada · ovaj mjesec': 'Earnings · this month',
+  'Ponude kupaca': 'Buyer offers',
+  'Postavke prodavača': 'Seller settings',
   'Računi': 'Receipts',
+  'Pretraži predmete i shopove': 'Search items and shops',
+  'Shopovi': 'Shops',
   'Povuci za ponudu ({0})': 'Slide to bid ({0})',
   'Povuci gore za shop · {0} predmeta': 'Swipe up for shop · {0} items',
   'Povuci dolje za puni video': 'Swipe down for full video',

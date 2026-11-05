@@ -12,6 +12,8 @@ import '../providers/app_state.dart';
 import '../theme/app_theme.dart';
 import '../widgets/live_shop_widgets.dart';
 import '../widgets/vision_glass.dart';
+import '../widgets/jednostavno_ui.dart';
+import 'public_profile_screen.dart';
 import '../widgets/user_avatar.dart';
 import '../widgets/trade_actions.dart';
 import '../widgets/seller_account_card.dart';
@@ -445,24 +447,21 @@ class SellerHubScreen extends ConsumerWidget {
         _ => '',
       };
       if (kSimpleDesign) {
-        return ListTile(
+        final count = switch (id) {
+          'seller-hub-shipments' => shipping,
+          'seller-hub-inventory' => state.myDevices.length,
+          'seller-hub-offers' =>
+            state.bargainsToAnswer.where((o) => o.sellerId == user.id).length,
+          'seller-hub-shows' =>
+            state.liveShows.where((show) => show.hostId == user.id).length,
+          'seller-hub-messages' => state.unreadMessages,
+          _ => 0,
+        };
+        return JednostavnoRow(
           key: key,
-          contentPadding: const EdgeInsets.symmetric(
-            horizontal: 4,
-            vertical: 10,
-          ),
-          leading: id == 'seller-hub-messages' && state.conversations.isNotEmpty
-              ? UserAvatar(
-                  user: state.userById(state.conversations.first.otherId),
-                  size: 36,
-                )
-              : Icon(icon, color: LoopColors.textSecondary),
-          title: Text(
-            label,
-            style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w500),
-          ),
-          subtitle: detail.isEmpty ? null : Text(detail),
-          trailing: const Icon(Icons.chevron_right, size: 18),
+          title: label,
+          subtitle: detail,
+          count: count,
           onTap: onTap,
         );
       }
@@ -545,6 +544,175 @@ class SellerHubScreen extends ConsumerWidget {
       child: VisionSectionLabel(title),
     );
 
+    if (kSimpleDesign) {
+      final month = DateTime(nowT.year, nowT.month);
+      final earned = state
+          .salesOf(user.id)
+          .where((tx) => !tx.createdAt.isBefore(month))
+          .fold<double>(0, (sum, tx) => sum + tx.amount);
+      return Scaffold(
+        backgroundColor: Colors.transparent,
+        body: SafeArea(
+          bottom: false,
+          child: Align(
+            alignment: Alignment.topCenter,
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 680),
+              child: ListView(
+                padding: const EdgeInsets.fromLTRB(24, 28, 24, 112),
+                children: [
+                  JednostavnoTitle(t('Prodaj')),
+                  const SizedBox(height: 22),
+                  Wrap(
+                    spacing: 10,
+                    runSpacing: 10,
+                    children: [
+                      FilledButton.icon(
+                        key: const ValueKey('seller-hub-live'),
+                        onPressed: () => CreateLiveShowScreen.open(context),
+                        icon: const Icon(Icons.sensors, size: 19),
+                        label: Text(t('Pokreni live')),
+                      ),
+                      OutlinedButton.icon(
+                        key: const ValueKey('seller-hub-add'),
+                        onPressed: () => AddDeviceScreen.open(context),
+                        icon: const Icon(Icons.add, size: 20),
+                        label: Text(t('Predmet')),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  VisionGlass(
+                    radius: 32,
+                    blur: false,
+                    child: InkWell(
+                      key: const ValueKey('seller-hub-finance'),
+                      onTap: () => FinancialsScreen.open(context),
+                      borderRadius: BorderRadius.circular(32),
+                      child: Padding(
+                        padding: const EdgeInsets.all(22),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              t('Zarada · ovaj mjesec'),
+                              style: TextStyle(
+                                fontSize: 14,
+                                color: LoopColors.textSecondary,
+                              ),
+                            ),
+                            const SizedBox(height: 10),
+                            Text(
+                              formatCredits(earned),
+                              key: const ValueKey('studio-monthly-earnings'),
+                              style: const TextStyle(
+                                fontSize: 52,
+                                fontWeight: FontWeight.w200,
+                                letterSpacing: -2,
+                              ),
+                            ),
+                            Align(
+                              alignment: Alignment.centerRight,
+                              child: Text(
+                                '${t('Isplate')} ›',
+                                style: TextStyle(
+                                  color: LoopColors.textSecondary,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  JednostavnoGroup(
+                    children: [
+                      tile(
+                        const ValueKey('seller-hub-inventory'),
+                        Icons.inventory_2_outlined,
+                        t('Moji predmeti'),
+                        () => InventoryScreen.open(context),
+                      ),
+                      tile(
+                        const ValueKey('seller-hub-shipments'),
+                        Icons.local_shipping_outlined,
+                        t('Otprema'),
+                        () => DeliveryNotesScreen.open(context),
+                      ),
+                      tile(
+                        const ValueKey('seller-hub-offers'),
+                        Icons.price_change_outlined,
+                        t('Ponude kupaca'),
+                        () => BargainsScreen.open(context),
+                      ),
+                      tile(
+                        const ValueKey('seller-hub-shows'),
+                        Icons.live_tv_outlined,
+                        t('Moji showovi'),
+                        () => MyShowsScreen.open(context),
+                      ),
+                      JednostavnoRow(
+                        key: const ValueKey('seller-open-shop'),
+                        title: t('Moj shop'),
+                        onTap: () => PublicProfileScreen.open(context, user.id),
+                      ),
+                      tile(
+                        const ValueKey('seller-hub-auction'),
+                        Icons.gavel,
+                        t('Nova aukcija'),
+                        () => CreateAuctionScreen.open(context),
+                      ),
+                      tile(
+                        const ValueKey('seller-hub-sales'),
+                        Icons.sell_outlined,
+                        t('Aukcije i predmeti'),
+                        () => openSales(MyTab.selling),
+                      ),
+                      tile(
+                        const ValueKey('seller-hub-messages'),
+                        Icons.chat_bubble_outline,
+                        t('Poruke'),
+                        () => MessagesScreen.open(context),
+                      ),
+                      JednostavnoRow(
+                        key: const ValueKey('seller-shipping-settings'),
+                        title: t('Postavke prodavača'),
+                        onTap: () => SellerToolsScreen.open(context),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  const SellerAccountCard(),
+                  const SizedBox(height: 16),
+                  JednostavnoGroup(
+                    children: [
+                      JednostavnoRow(
+                        key: const ValueKey('seller-hub-health-details'),
+                        title: t('Zdravlje računa'),
+                        subtitle: health.level.label,
+                        onTap: () => AccountHealthScreen.open(context),
+                      ),
+                    ],
+                  ),
+                  for (final (show, live) in state.activeLives.where(
+                    (entry) => entry.$1.hostId == user.id,
+                  ))
+                    LiveShopRow(
+                      key: ValueKey('seller-room-${show.id}'),
+                      show: show,
+                      subtitle: live.isLive
+                          ? t('Uživo sada')
+                          : formatDateTime(show.startsAt),
+                      onTap: () => LiveRoomScreen.open(context, show.id),
+                    ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      );
+    }
     return Scaffold(
       backgroundColor: embedded ? Colors.transparent : null,
       appBar: AppBar(

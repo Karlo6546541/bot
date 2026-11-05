@@ -1,4 +1,3 @@
-import '../config/design_variant.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -26,7 +25,12 @@ import 'login_screen.dart';
 /// Ponude i Spremljeno. Prodavačke stvari (aukcije, liveovi, otpremnice)
 /// su u Seller Hubu; kupac samo dobiva obavijest i broj za praćenje.
 class ActivityView extends ConsumerStatefulWidget {
-  const ActivityView({super.key, this.onBrowse});
+  const ActivityView({
+    super.key,
+    this.onBrowse,
+    this.initialSection = 'purchases',
+  });
+  final String initialSection;
 
   /// Prijelaz na Početnu (gumb na praznom ekranu).
   final VoidCallback? onBrowse;
@@ -38,7 +42,17 @@ class ActivityView extends ConsumerStatefulWidget {
 enum _Tab { purchases, bids, offers, saved }
 
 class _ActivityViewState extends ConsumerState<ActivityView> {
-  _Tab _tab = _Tab.purchases;
+  late _Tab _tab;
+  @override
+  void initState() {
+    super.initState();
+    _tab =
+        _Tab.values
+            .where((value) => value.name == widget.initialSection)
+            .firstOrNull ??
+        _Tab.purchases;
+  }
+
   Widget _empty(String title, {String? message}) => Padding(
     padding: const EdgeInsets.only(top: 56),
     child: EmptyState(
@@ -274,9 +288,7 @@ class _ActivityViewState extends ConsumerState<ActivityView> {
           ]),
       ],
       _Tab.bids: [
-        if (bidding.isEmpty &&
-            ended.isEmpty &&
-            (!kSimpleDesign || offers.isEmpty))
+        if (bidding.isEmpty && ended.isEmpty)
           _empty(
             t('Još nisi licitirao'),
             message: t('Licitiraj na aukciji i ovdje pratiš ponude i pobjede.'),
@@ -289,7 +301,7 @@ class _ActivityViewState extends ConsumerState<ActivityView> {
           section(t('Završene'), [for (final a in ended) auction(a)]),
       ],
       _Tab.offers: [
-        if (offers.isEmpty && !kSimpleDesign)
+        if (offers.isEmpty)
           _empty(
             t('Još nema ponuda'),
             message: t('Na oglasu dodirni "Ponudi cijenu" i predloži svoju.'),
@@ -343,9 +355,7 @@ class _ActivityViewState extends ConsumerState<ActivityView> {
       ],
     };
 
-    final body = kSimpleDesign && (_tab == _Tab.bids || _tab == _Tab.offers)
-        ? [...panels[_Tab.bids]!, ...panels[_Tab.offers]!]
-        : panels[_tab]!;
+    final body = panels[_tab]!;
     return Align(
       alignment: Alignment.topCenter,
       child: ConstrainedBox(
@@ -364,13 +374,8 @@ class _ActivityViewState extends ConsumerState<ActivityView> {
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       tab(_Tab.purchases, t('Kupnje'), actions.length),
-                      if (!kSimpleDesign)
-                        tab(_Tab.bids, t('Licitacije'), outbid.length),
-                      tab(
-                        _Tab.offers,
-                        t('Ponude'),
-                        toAnswer.length + (kSimpleDesign ? outbid.length : 0),
-                      ),
+                      tab(_Tab.bids, t('Licitacije'), outbid.length),
+                      tab(_Tab.offers, t('Ponude'), toAnswer.length),
                       tab(_Tab.saved, t('Spremljeno'), 0),
                     ],
                   ),

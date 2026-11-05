@@ -37,14 +37,18 @@ class VisionGlass extends StatelessWidget {
           ? Colors.transparent
           : isDark
           ? (heavy
-                ? const Color(0xFF19191E).withValues(alpha: opacity ?? .65)
-                : const Color(0xFF28282D).withValues(alpha: opacity ?? .45))
+                ? const Color(
+                    0xFF19191E,
+                  ).withValues(alpha: opacity ?? (kSimpleDesign ? .52 : .65))
+                : const Color(
+                    0xFF28282D,
+                  ).withValues(alpha: opacity ?? (kSimpleDesign ? .65 : .45)))
           : Colors.white.withValues(alpha: .86),
       border: Border.all(
         color: flat
             ? Colors.transparent
             : isDark
-            ? Colors.white.withValues(alpha: .22)
+            ? Colors.white.withValues(alpha: kSimpleDesign ? .12 : .22)
             : Colors.black.withValues(alpha: .10),
       ),
     );

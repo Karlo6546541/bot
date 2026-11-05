@@ -1,3 +1,5 @@
+import '../config/design_variant.dart';
+import 'adaptive_shell.dart';
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -202,7 +204,9 @@ class VisionShopHandle extends StatefulWidget {
     required this.onOpen,
     required this.label,
     this.onNavigate,
+    this.shopHandleKey,
   });
+  final Key? shopHandleKey;
   final VoidCallback onOpen;
   final String label;
   final ValueChanged<int>? onNavigate;
@@ -237,9 +241,16 @@ class _VisionShopHandleState extends State<VisionShopHandle> {
                 child: Row(
                   children: [
                     for (final (index, label, icon) in [
-                      (0, t('Pozornica'), Icons.play_circle_outline),
-                      (1, t('Studio'), Icons.sensors),
-                      (2, t('Trezor'), Icons.wallet_outlined),
+                      if (kSimpleDesign) ...[
+                        (0, t('Početna'), Icons.home_outlined),
+                        (3, t('Uživo'), Icons.sensors),
+                        (1, t('Prodaj'), Icons.add_circle_outline),
+                        (2, t('Profil'), Icons.person_outline),
+                      ] else ...[
+                        (0, t('Pozornica'), Icons.play_circle_outline),
+                        (1, t('Studio'), Icons.sensors),
+                        (2, t('Trezor'), Icons.wallet_outlined),
+                      ],
                     ])
                       Expanded(
                         child: TextButton(
@@ -275,60 +286,146 @@ class _VisionShopHandleState extends State<VisionShopHandle> {
   }
 
   @override
-  Widget build(BuildContext context) => Semantics(
-    button: true,
-    label: widget.label,
-    child: GestureDetector(
-      behavior: HitTestBehavior.opaque,
-      onTap: widget.onOpen,
-      onVerticalDragStart: (_) => _distance = 0,
-      onVerticalDragUpdate: (d) => _distance -= d.delta.dy,
-      onVerticalDragEnd: (d) {
-        if (_distance > 36 || (d.primaryVelocity ?? 0) < -300) widget.onOpen();
-      },
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(12, 12, 12, 16),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Semantics(
-              button: widget.onNavigate != null,
-              label: widget.onNavigate == null ? null : t('Otvori navigaciju'),
-              child: GestureDetector(
-                onTap: widget.onNavigate == null ? widget.onOpen : _navigation,
-                behavior: HitTestBehavior.opaque,
-                child: SizedBox(
-                  width: 104,
-                  height: 24,
-                  child: Center(
-                    child: Container(
-                      width: 48,
-                      height: 4,
-                      decoration: BoxDecoration(
-                        color: Colors.white54,
-                        borderRadius: BorderRadius.circular(99),
+  Widget build(BuildContext context) =>
+      kSimpleDesign && widget.onNavigate != null
+      ? Semantics(
+          button: true,
+          explicitChildNodes: true,
+          label: widget.label,
+          child: GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onTap: widget.onOpen,
+            onVerticalDragStart: (_) => _distance = 0,
+            onVerticalDragUpdate: (details) => _distance -= details.delta.dy,
+            onVerticalDragEnd: (details) {
+              if (_distance > 36 || (details.primaryVelocity ?? 0) < -300) {
+                widget.onOpen();
+              }
+            },
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(24, 6, 24, 12),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  GestureDetector(
+                    key: widget.shopHandleKey ?? const ValueKey('live-queue'),
+                    onTap: widget.onOpen,
+                    child: Semantics(
+                      button: true,
+                      label: t('Otvori shop'),
+                      child: SizedBox(
+                        height: 18,
+                        width: 104,
+                        child: Center(
+                          child: Container(
+                            width: 36,
+                            height: 3,
+                            decoration: BoxDecoration(
+                              color: Colors.white54,
+                              borderRadius: BorderRadius.circular(99),
+                            ),
+                          ),
+                        ),
                       ),
                     ),
                   ),
-                ),
+                  VisionGlass(
+                    dark: true,
+                    heavy: true,
+                    radius: 99,
+                    child: JednostavnoDock(
+                      selectedIndex: 1,
+                      destinations: [
+                        ShellDestination(
+                          t('Početna'),
+                          Icons.home_outlined,
+                          Icons.home,
+                        ),
+                        ShellDestination(
+                          t('Uživo'),
+                          Icons.sensors_outlined,
+                          Icons.sensors,
+                        ),
+                        ShellDestination(
+                          t('Prodaj'),
+                          Icons.add_circle_outline,
+                          Icons.add_circle,
+                        ),
+                        ShellDestination(
+                          t('Profil'),
+                          Icons.person_outline,
+                          Icons.person,
+                        ),
+                      ],
+                      onSelect: (index) =>
+                          widget.onNavigate?.call([0, 3, 1, 2][index]),
+                    ),
+                  ),
+                ],
               ),
             ),
-            const SizedBox(height: 7),
-            Text(
-              widget.label,
-              textAlign: TextAlign.center,
-              maxLines: 2,
-              style: const TextStyle(
-                color: Color(0xFFE2E2E7),
-                fontSize: 11,
-                fontWeight: FontWeight.w500,
+          ),
+        )
+      : Semantics(
+          button: true,
+          label: widget.label,
+          child: GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onTap: widget.onOpen,
+            onVerticalDragStart: (_) => _distance = 0,
+            onVerticalDragUpdate: (d) => _distance -= d.delta.dy,
+            onVerticalDragEnd: (d) {
+              if (_distance > 36 || (d.primaryVelocity ?? 0) < -300) {
+                widget.onOpen();
+              }
+            },
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(12, 12, 12, 16),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Semantics(
+                    button: widget.onNavigate != null,
+                    label: widget.onNavigate == null
+                        ? null
+                        : t('Otvori navigaciju'),
+                    child: GestureDetector(
+                      onTap: widget.onNavigate == null
+                          ? widget.onOpen
+                          : _navigation,
+                      behavior: HitTestBehavior.opaque,
+                      child: SizedBox(
+                        width: 104,
+                        height: 24,
+                        child: Center(
+                          child: Container(
+                            width: 48,
+                            height: 4,
+                            decoration: BoxDecoration(
+                              color: Colors.white54,
+                              borderRadius: BorderRadius.circular(99),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 7),
+                  Text(
+                    widget.label,
+                    textAlign: TextAlign.center,
+                    maxLines: 2,
+                    style: const TextStyle(
+                      color: Color(0xFFE2E2E7),
+                      fontSize: 11,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ],
               ),
             ),
-          ],
-        ),
-      ),
-    ),
-  );
+          ),
+        );
 }
 
 class VisionLiveShopOverlay extends StatefulWidget {

@@ -205,7 +205,9 @@ ThemeData buildLoopTheme({Color? accent}) {
           fontSize: 17,
           letterSpacing: -0.1,
         ),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(kSimpleDesign ? 99 : 20),
+        ),
       ),
     ),
     outlinedButtonTheme: OutlinedButtonThemeData(
@@ -219,7 +221,9 @@ ThemeData buildLoopTheme({Color? accent}) {
           fontSize: 16,
         ),
         side: BorderSide(color: LoopColors.glassBorder),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(kSimpleDesign ? 99 : 20),
+        ),
       ),
     ),
     textButtonTheme: TextButtonThemeData(

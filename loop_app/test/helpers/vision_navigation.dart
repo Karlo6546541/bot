@@ -1,8 +1,40 @@
 import 'package:flutter/material.dart';
+import 'package:loop_app/config/design_variant.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:loop_app/l10n/tr.dart';
 
 Future<void> mainTab(WidgetTester tester, String label) async {
+  if (kSimpleDesign) {
+    final index = switch (label) {
+      'Prodavač' || 'Studio' || 'Prodaj' => 2,
+      'Moje' || 'Profil' || 'Trezor' => 3,
+      'Uživo' => 1,
+      _ => 0,
+    };
+    Finder target() => find.byKey(ValueKey('simple-nav-$index')).hitTestable();
+    for (var i = 0; i < 6; i++) {
+      final expand = find.byKey(const ValueKey('dock-expand')).hitTestable();
+      if (expand.evaluate().isNotEmpty) {
+        await tester.tap(expand);
+        await tester.pumpAndSettle();
+      }
+      if (target().evaluate().isNotEmpty) break;
+      await tester.binding.handlePopRoute();
+      await tester.pumpAndSettle();
+    }
+    await tester.tap(target().first);
+    await tester.pumpAndSettle();
+    if (label == 'Moje' || label == 'Trezor') {
+      await tester.tap(find.byKey(const ValueKey('account-purchases')));
+      await tester.pumpAndSettle();
+    } else if (label == 'Kategorije') {
+      await tester.tap(find.byKey(const ValueKey('home-filters')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('home-cat-categories')));
+      await tester.pumpAndSettle();
+    }
+    return;
+  }
   final expand = find.byKey(const ValueKey('dock-expand'));
   if (expand.evaluate().isNotEmpty) {
     await tester.tap(expand);
@@ -53,6 +85,11 @@ Future<void> mainTab(WidgetTester tester, String label) async {
 }
 
 Future<void> globalSearch(WidgetTester tester) async {
+  if (kSimpleDesign) {
+    await tester.tap(find.byKey(const ValueKey('home-search-submit')));
+    await tester.pumpAndSettle();
+    return;
+  }
   await tester.tap(find.byKey(const ValueKey('home-search')));
   await tester.pumpAndSettle();
   await tester.tap(find.byTooltip('Pretraži objave i račune').first);

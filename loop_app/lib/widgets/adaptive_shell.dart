@@ -37,7 +37,7 @@ class ShellDestination {
       return Icon(
         selected ? selectedIcon : icon,
         key: action ? const ValueKey('nav-create') : null,
-        color: action && selected ? LoopColors.live : null,
+        color: action && selected && !kSimpleDesign ? LoopColors.live : null,
         size: compact ? 25 : null,
       );
     }
@@ -124,32 +124,40 @@ class _AdaptiveShellState extends State<AdaptiveShell> {
     super.dispose();
   }
 
-  Widget _navigation(BuildContext context, {bool compact = false}) =>
-      NavigationBar(
-        key: ValueKey(compact ? 'feed-navigation' : 'main-navigation'),
-        // Mobitel: ikone s natpisima na tamnosivoj traci.
-        height: compact ? 68 : null,
-        labelBehavior: compact
-            ? NavigationDestinationLabelBehavior.alwaysShow
-            : null,
-        backgroundColor: Colors.transparent,
-        surfaceTintColor: compact ? Colors.transparent : null,
-        indicatorColor: compact ? Colors.transparent : null,
+  Widget _navigation(BuildContext context, {bool compact = false}) {
+    if (kSimpleDesign && compact) {
+      return JednostavnoDock(
+        destinations: widget.destinations,
         selectedIndex: widget.selectedIndex,
-        onDestinationSelected: widget.onSelect,
-        destinations: [
-          for (final d in widget.destinations)
-            NavigationDestination(
-              icon: d.iconWidget(context, compact: compact),
-              selectedIcon: d.iconWidget(
-                context,
-                selected: true,
-                compact: compact,
-              ),
-              label: d.label,
-            ),
-        ],
+        onSelect: widget.onSelect,
       );
+    }
+    return NavigationBar(
+      key: ValueKey(compact ? 'feed-navigation' : 'main-navigation'),
+      // Mobitel: ikone s natpisima na tamnosivoj traci.
+      height: compact ? 68 : null,
+      labelBehavior: compact
+          ? NavigationDestinationLabelBehavior.alwaysShow
+          : null,
+      backgroundColor: Colors.transparent,
+      surfaceTintColor: compact ? Colors.transparent : null,
+      indicatorColor: compact ? Colors.transparent : null,
+      selectedIndex: widget.selectedIndex,
+      onDestinationSelected: widget.onSelect,
+      destinations: [
+        for (final d in widget.destinations)
+          NavigationDestination(
+            icon: d.iconWidget(context, compact: compact),
+            selectedIcon: d.iconWidget(
+              context,
+              selected: true,
+              compact: compact,
+            ),
+            label: d.label,
+          ),
+      ],
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -184,8 +192,8 @@ class _AdaptiveShellState extends State<AdaptiveShell> {
                           : const Duration(milliseconds: 240),
                       curve: Curves.easeOutCubic,
                       child: SizedBox(
-                        width: _collapsed ? 104 : 320,
-                        height: _collapsed ? 44 : 68,
+                        width: _collapsed ? 104 : (kSimpleDesign ? 420 : 320),
+                        height: _collapsed ? 44 : (kSimpleDesign ? 64 : 68),
                         child: _collapsed
                             ? Material(
                                 color: Colors.transparent,
@@ -303,6 +311,96 @@ class LoopLogo extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
           child: logo,
         ),
+      ),
+    );
+  }
+}
+
+/// The same four controls stay available from browsing and from a live room.
+class JednostavnoDock extends StatelessWidget {
+  const JednostavnoDock({
+    super.key,
+    required this.destinations,
+    required this.selectedIndex,
+    required this.onSelect,
+  });
+  final List<ShellDestination> destinations;
+  final int selectedIndex;
+  final ValueChanged<int> onSelect;
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.all(6),
+      child: Row(
+        children: [
+          for (var i = 0; i < destinations.length; i++)
+            Expanded(
+              flex: i == selectedIndex ? 2 : 1,
+              child: Semantics(
+                button: true,
+                selected: i == selectedIndex,
+                label: destinations[i].label,
+                excludeSemantics: true,
+                child: Tooltip(
+                  message: destinations[i].label,
+                  child: Material(
+                    color: Colors.transparent,
+                    child: InkWell(
+                      key: ValueKey('simple-nav-$i'),
+                      borderRadius: BorderRadius.circular(99),
+                      onTap: () => onSelect(i),
+                      child: AnimatedContainer(
+                        duration: MediaQuery.disableAnimationsOf(context)
+                            ? Duration.zero
+                            : const Duration(milliseconds: 180),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 13,
+                        ),
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(99),
+                          color: i == selectedIndex
+                              ? Theme.of(
+                                  context,
+                                ).colorScheme.onSurface.withValues(alpha: .15)
+                              : Colors.transparent,
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(
+                              i == selectedIndex
+                                  ? destinations[i].selectedIcon
+                                  : destinations[i].icon,
+                              size: 21,
+                              color: Theme.of(context).colorScheme.onSurface
+                                  .withValues(
+                                    alpha: i == selectedIndex ? 1 : .64,
+                                  ),
+                            ),
+                            if (i == selectedIndex) ...[
+                              const SizedBox(width: 6),
+                              Flexible(
+                                child: Text(
+                                  destinations[i].label,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: const TextStyle(
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+        ],
       ),
     );
   }

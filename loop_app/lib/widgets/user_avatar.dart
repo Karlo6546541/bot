@@ -1,3 +1,4 @@
+import '../config/design_variant.dart';
 import 'package:flutter/material.dart';
 
 import '../l10n/tr.dart';
@@ -22,17 +23,29 @@ class UserAvatar extends StatelessWidget {
               : u.username.isNotEmpty
               ? u.username
               : '?');
+    const palette = [
+      Color(0xFFD9A865),
+      Color(0xFFFF9079),
+      Color(0xFF7AA8FF),
+      Color(0xFFB9A4FF),
+      Color(0xFF76E0B3),
+    ];
+    final hash = (u?.id ?? source).codeUnits.fold<int>(
+      0,
+      (value, unit) => (value * 31 + unit) & 0x7fffffff,
+    );
+    final tint = palette[hash % palette.length];
     final initials = Container(
       width: size,
       height: size,
       alignment: Alignment.center,
-      color: LoopColors.accent.withValues(alpha: 0.18),
+      color: kSimpleDesign ? tint : LoopColors.accent.withValues(alpha: 0.18),
       child: Text(
         source.characters.first.toUpperCase(),
         style: TextStyle(
           fontSize: size * 0.42,
-          fontWeight: FontWeight.w900,
-          color: LoopColors.accent,
+          fontWeight: kSimpleDesign ? FontWeight.w600 : FontWeight.w900,
+          color: kSimpleDesign ? const Color(0xFF161619) : LoopColors.accent,
         ),
       ),
     );

@@ -1,5 +1,6 @@
 import '../config/design_variant.dart';
 import '../widgets/category_style.dart';
+import '../widgets/discovery_live_card.dart';
 import '../widgets/adaptive_shell.dart' show LoopLogo;
 import '../config/backend_config.dart';
 import 'cloud_commerce_screen.dart';
@@ -201,7 +202,7 @@ class _LiveHomeScreenState extends ConsumerState<LiveHomeScreen> {
       for (final i in browseItems(s))
         if ((_cat == null || i.categories.contains(_cat)) &&
             (_query.trim().isEmpty ||
-                '${i.show?.title ?? ''} ${i.show?.hostLabel ?? ''} ${i.device?.name ?? ''}'
+                '${i.show?.title ?? ''} ${i.show?.hostLabel ?? ''} ${i.device?.name ?? ''} ${kSimpleDesign ? '${s.userById(i.device?.ownerId ?? i.show?.hostId)?.shopTitle ?? ''} ${s.userById(i.device?.ownerId ?? i.show?.hostId)?.username ?? ''}' : ''}'
                     .toLowerCase()
                     .contains(_query.trim().toLowerCase())))
           i,
@@ -280,7 +281,6 @@ class _LiveHomeScreenState extends ConsumerState<LiveHomeScreen> {
           i,
     ];
 
-    var stageHasHero = false;
     final slivers = <Widget>[];
     switch (_filter) {
       case _Following():
@@ -353,6 +353,195 @@ class _LiveHomeScreenState extends ConsumerState<LiveHomeScreen> {
           for (final i in ranked)
             if (i.live?.isScheduled ?? false) i,
         ];
+        if (kSimpleDesign) {
+          Widget sectionTitle(
+            String label, {
+            bool live = false,
+            VoidCallback? onAll,
+          }) => Padding(
+            padding: const EdgeInsets.fromLTRB(24, 20, 24, 12),
+            child: Row(
+              children: [
+                if (live) ...[
+                  Container(
+                    width: 8,
+                    height: 8,
+                    decoration: const BoxDecoration(
+                      color: LoopColors.live,
+                      shape: BoxShape.circle,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                ],
+                Expanded(
+                  child: Text(
+                    label,
+                    style: const TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.w600,
+                      letterSpacing: -.4,
+                    ),
+                  ),
+                ),
+                if (onAll != null)
+                  TextButton(onPressed: onAll, child: Text(t('Prikaži sve'))),
+              ],
+            ),
+          );
+          slivers.add(
+            SliverToBoxAdapter(
+              child: sectionTitle(t('Uživo sada'), live: true),
+            ),
+          );
+          if (liveNow.isEmpty) {
+            slivers.add(
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 24),
+                  child: Text(
+                    t('Uživo se uskoro vraća.'),
+                    style: TextStyle(color: LoopColors.textSecondary),
+                  ),
+                ),
+              ),
+            );
+          } else {
+            slivers.add(
+              SliverToBoxAdapter(
+                child: SizedBox(
+                  height:
+                      226 +
+                      60 *
+                          (MediaQuery.textScalerOf(context).scale(14) / 14 - 1)
+                              .clamp(0, 2),
+                  child: ListView.separated(
+                    key: const ValueKey('home-live-discovery'),
+                    scrollDirection: Axis.horizontal,
+                    padding: const EdgeInsets.symmetric(horizontal: 24),
+                    itemCount: liveNow.length,
+                    separatorBuilder: (_, _) => const SizedBox(width: 12),
+                    itemBuilder: (_, index) {
+                      final item = liveNow[index];
+                      return SizedBox(
+                        width: 158,
+                        child: DiscoveryLiveCard(
+                          key: ValueKey('home-featured-live-${item.show!.id}'),
+                          show: item.show!,
+                          device: item.device,
+                          price: item.live!.current?.price,
+                          viewers: item.live!.viewers,
+                          onTap: () =>
+                              LiveRoomScreen.open(context, item.show!.id),
+                        ),
+                      );
+                    },
+                  ),
+                ),
+              ),
+            );
+          }
+          final shops = <String>{
+            for (final item in liveNow) item.show!.hostId,
+            for (final item in buyNow)
+              if (item.device?.ownerId != null) item.device!.ownerId!,
+          };
+          if (shops.isNotEmpty) {
+            slivers.add(SliverToBoxAdapter(child: sectionTitle(t('Shopovi'))));
+            slivers.add(
+              SliverToBoxAdapter(
+                child: SizedBox(
+                  height: 86,
+                  child: ListView.separated(
+                    key: const ValueKey('home-shops'),
+                    scrollDirection: Axis.horizontal,
+                    padding: const EdgeInsets.symmetric(horizontal: 24),
+                    itemCount: shops.length,
+                    separatorBuilder: (_, _) => const SizedBox(width: 16),
+                    itemBuilder: (_, index) {
+                      final id = shops.elementAt(index);
+                      final user = s.userById(id);
+                      return SizedBox(
+                        width: 66,
+                        child: InkWell(
+                          key: ValueKey('home-shop-$id'),
+                          onTap: () => PublicProfileScreen.open(context, id),
+                          borderRadius: BorderRadius.circular(24),
+                          child: Column(
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.all(3),
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  border: Border.all(
+                                    color: LoopColors.textPrimary.withValues(
+                                      alpha: .2,
+                                    ),
+                                  ),
+                                ),
+                                child: UserAvatar(user: user, size: 48),
+                              ),
+                              const SizedBox(height: 5),
+                              Text(
+                                user?.shopTitle ?? user?.handle ?? t('Shop'),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  color: LoopColors.textSecondary,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                ),
+              ),
+            );
+          }
+          if (buyNow.isNotEmpty) {
+            slivers.add(
+              SliverToBoxAdapter(
+                child: sectionTitle(
+                  t('Predmeti'),
+                  onAll: () => _select(const _BuyNow()),
+                ),
+              ),
+            );
+            slivers.add(
+              grid('home-shop-discovery', buyNow.take(8).toList(), t('Shop')),
+            );
+          }
+          if (upcoming.isNotEmpty) {
+            slivers.add(
+              SliverToBoxAdapter(
+                child: sectionTitle(
+                  t('Uskoro uživo'),
+                  onAll: () => _select(const _Soon()),
+                ),
+              ),
+            );
+            slivers.add(
+              SliverPadding(
+                padding: const EdgeInsets.symmetric(horizontal: 24),
+                sliver: SliverList.list(
+                  children: [
+                    for (final item in upcoming)
+                      LiveShopRow(
+                        show: item.show!,
+                        device: item.device,
+                        subtitle: formatDateTime(item.show!.startsAt),
+                        onTap: () =>
+                            LiveRoomScreen.open(context, item.show!.id),
+                      ),
+                  ],
+                ),
+              ),
+            );
+          }
+          break;
+        }
         Widget section(Widget child, {Key? key}) => SliverPadding(
           key: key,
           padding: const EdgeInsets.symmetric(horizontal: 24),
@@ -387,7 +576,6 @@ class _LiveHomeScreenState extends ConsumerState<LiveHomeScreen> {
           ),
         );
         if (liveNow.isNotEmpty) {
-          stageHasHero = true;
           final featured = liveNow.first;
           if (!kSimpleDesign) {
             slivers.add(
@@ -444,7 +632,6 @@ class _LiveHomeScreenState extends ConsumerState<LiveHomeScreen> {
             );
           }
         } else if (kSimpleDesign && buyNow.isNotEmpty) {
-          stageHasHero = true;
           final product = buyNow.first.device!;
           slivers.add(
             section(
@@ -828,66 +1015,122 @@ class _LiveHomeScreenState extends ConsumerState<LiveHomeScreen> {
             onSelect: _select,
           ),
         ),
-        IconButton(
-          key: const ValueKey('home-filters'),
-          tooltip: t('Filteri'),
-          onPressed: filters,
-          icon: const Icon(Icons.tune, size: 20),
-        ),
+        if (!kSimpleDesign)
+          IconButton(
+            key: const ValueKey('home-filters'),
+            tooltip: t('Filteri'),
+            onPressed: filters,
+            icon: const Icon(Icons.tune, size: 20),
+          ),
         const SizedBox(width: 8),
       ],
     );
-    Widget glassHeader() {
-      final actions = <Widget>[
-        headerButton(t('Prodavač'), const ValueKey('stage-seller'), () {
-          if (!blockGuest(context)) {
-            ref.read(homeTabProvider.notifier).select(4);
-          }
-        }),
-        headerButton(
-          t('Računi'),
-          const ValueKey('stage-account'),
-          () => ref.read(homeTabProvider.notifier).select(2),
-        ),
-        headerButton(
-          t('Pretraži'),
-          const ValueKey('home-search'),
-          () => setState(() => _searchOpen = !_searchOpen),
-        ),
-      ];
-      final logo = LoopLogo(size: width < 600 ? 25 : 30);
-      if (MediaQuery.textScalerOf(context).scale(14) > 18) {
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+    Widget glassHeader() => Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
           children: [
-            logo,
-            const SizedBox(height: 10),
-            Wrap(children: actions),
-          ],
-        );
-      }
-      return Row(
-        children: [
-          Expanded(
-            flex: 3,
-            child: Align(
-              alignment: Alignment.centerLeft,
-              child: FittedBox(fit: BoxFit.scaleDown, child: logo),
-            ),
-          ),
-          Expanded(
-            flex: 7,
-            child: Align(
-              alignment: Alignment.centerRight,
-              child: FittedBox(
-                fit: BoxFit.scaleDown,
-                child: Row(mainAxisSize: MainAxisSize.min, children: actions),
+            Expanded(
+              child: Align(
+                alignment: Alignment.centerLeft,
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: LoopLogo(size: 34),
+                ),
               ),
             ),
+            VisionGlass(radius: 99, child: const MessagesButton()),
+            const SizedBox(width: 8),
+            VisionGlass(radius: 99, child: const NotificationBell()),
+          ],
+        ),
+        const SizedBox(height: 14),
+        Row(
+          children: [
+            Expanded(
+              child: KeyedSubtree(
+                key: const ValueKey('home-search'),
+                child: TextField(
+                  key: const ValueKey('home-inline-search'),
+                  controller: _inlineSearch,
+                  onChanged: (value) => setState(() => _query = value),
+                  onSubmitted: (value) =>
+                      SearchScreen.open(context, initialQuery: value),
+                  decoration: InputDecoration(
+                    hintText: t('Pretraži predmete i shopove'),
+                    prefixIcon: const Icon(Icons.search, size: 19),
+                    suffixIcon: IconButton(
+                      key: const ValueKey('home-search-submit'),
+                      tooltip: t('Pretraži'),
+                      onPressed: () =>
+                          SearchScreen.open(context, initialQuery: _query),
+                      icon: const Icon(Icons.arrow_forward, size: 18),
+                    ),
+                    isDense: true,
+                    filled: true,
+                    fillColor: LoopColors.textPrimary.withValues(alpha: .08),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(99),
+                      borderSide: BorderSide(color: LoopColors.glassBorder),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(width: 8),
+            VisionGlass(
+              radius: 99,
+              child: IconButton(
+                key: const ValueKey('home-filters'),
+                tooltip: t('Filteri'),
+                onPressed: filters,
+                icon: const Icon(Icons.tune, size: 21),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 16),
+        SizedBox(
+          height: 44,
+          child: ListView(
+            scrollDirection: Axis.horizontal,
+            children: [
+              for (final category in <DeviceCategory?>[
+                null,
+                DeviceCategory.watches,
+                DeviceCategory.sneakers,
+                DeviceCategory.camera,
+                DeviceCategory.vinyl,
+                DeviceCategory.vintage,
+                DeviceCategory.cards,
+              ])
+                Padding(
+                  padding: const EdgeInsets.only(right: 8),
+                  child: ChoiceChip(
+                    key: ValueKey(
+                      'discovery-category-${category?.name ?? 'all'}',
+                    ),
+                    label: Text(category?.label ?? t('Sve')),
+                    selected: _cat == category,
+                    showCheckmark: false,
+                    side: BorderSide.none,
+                    backgroundColor: LoopColors.textPrimary.withValues(
+                      alpha: .07,
+                    ),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 10,
+                    ),
+                    onSelected: (_) => setState(
+                      () => _cat = _cat == category ? null : category,
+                    ),
+                  ),
+                ),
+            ],
           ),
-        ],
-      );
-    }
+        ),
+      ],
+    );
 
     final chips = SafeArea(
       bottom: false,
@@ -997,8 +1240,7 @@ class _LiveHomeScreenState extends ConsumerState<LiveHomeScreen> {
                       ),
                     ),
             ),
-            if (kSimpleDesign && (_searchOpen || _filter is! _ForYou))
-              browseControls,
+            if (kSimpleDesign && _filter is! _ForYou) browseControls,
           ],
         ),
       ),
@@ -1058,11 +1300,11 @@ class _LiveHomeScreenState extends ConsumerState<LiveHomeScreen> {
     final content = Center(
       child: ConstrainedBox(
         constraints: BoxConstraints(
-          maxWidth: _filter is _ForYou ? (kSimpleDesign ? 780 : 480) : 1200,
+          maxWidth: _filter is _ForYou ? (kSimpleDesign ? 1080 : 480) : 1200,
         ),
         child: Column(
           children: [
-            if (!kSimpleDesign) chips,
+            chips,
             if (!kSimpleDesign) browseControls,
             // Dolje kategorije: odabrana ostaje označena i filtrira prikaz.
             if (onLive && !kSimpleDesign)
@@ -1093,16 +1335,6 @@ class _LiveHomeScreenState extends ConsumerState<LiveHomeScreen> {
                   },
                   child: CustomScrollView(
                     slivers: [
-                      if (kSimpleDesign && (!stageHasHero || _searchOpen))
-                        SliverToBoxAdapter(
-                          child: SizedBox(
-                            height: _searchOpen
-                                ? 290
-                                : _filter is _ForYou
-                                ? 90
-                                : 145,
-                          ),
-                        ),
                       if (kSimpleDesign &&
                           _filter is! _ForYou &&
                           _filter is! _BuyNow)
@@ -1157,28 +1389,7 @@ class _LiveHomeScreenState extends ConsumerState<LiveHomeScreen> {
         ),
       ),
     );
-    if (!kSimpleDesign) return content;
-    return Stack(
-      children: [
-        Positioned.fill(child: content),
-        Positioned(
-          top: 0,
-          left: 0,
-          right: 0,
-          child: Center(
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 1200),
-              child: VisionGlass(
-                radius: 0,
-                heavy: true,
-                opacity: .40,
-                child: chips,
-              ),
-            ),
-          ),
-        ),
-      ],
-    );
+    return content;
   }
 }
 
