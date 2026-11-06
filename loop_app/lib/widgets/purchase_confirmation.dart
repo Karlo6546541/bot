@@ -60,7 +60,18 @@ class PurchaseConfirmationSheet extends StatefulWidget {
     this.searchLockers,
     this.embedded = false,
     this.onResult,
+    this.itemCents,
+    this.shippingCents = 0,
+    this.orderTotal,
   });
+
+  /// Cijena proizvoda bez dostave (za raščlambu); kad je zadana, [totalCents]
+  /// je proizvod + procjena dostave, a poslužitelj se uspoređuje s proizvodom.
+  final int? itemCents;
+  final int shippingCents;
+
+  /// Stvarni ukupni iznos narudžbe na poslužitelju nakon odabira dostave.
+  final Future<int> Function(String orderId)? orderTotal;
   final bool embedded;
   final ValueChanged<bool>? onResult;
   final String title;
@@ -172,7 +183,7 @@ class _PurchaseConfirmationState extends State<PurchaseConfirmationSheet> {
         if (!mounted) return;
         _orderId = order['id'] as String;
         final serverTotal = (order['total_cents'] as num).toInt();
-        if (serverTotal != _totalCents) {
+        if (serverTotal != (widget.itemCents ?? _totalCents)) {
           setState(() {
             _totalCents = serverTotal;
             _error = 'Cijena je promijenjena. Potvrdi novi ukupan iznos.';
@@ -187,6 +198,20 @@ class _PurchaseConfirmationState extends State<PurchaseConfirmationSheet> {
           _orderId!,
           DeliveryDestination.courier(_address.text.trim()),
         );
+        final fetch = widget.orderTotal;
+        if (fetch != null) {
+          final real = await fetch(_orderId!);
+          if (!mounted) return;
+          if (real != _totalCents) {
+            // Poslužitelj je odredio drugačiji iznos: ništa se ne naplaćuje
+            // dok kupac ne potvrdi novi iznos.
+            setState(() {
+              _totalCents = real;
+              _error = 'Iznos je promijenjen. Provjeri i potvrdi novi iznos.';
+            });
+            return;
+          }
+        }
       }
       if (!mounted) return;
       // Retries always check the same order, including after a lost response.
@@ -220,6 +245,20 @@ class _PurchaseConfirmationState extends State<PurchaseConfirmationSheet> {
       }
     }
   }
+
+  Widget _line(String label, int cents, String key) => Padding(
+    padding: const EdgeInsets.only(bottom: 4),
+    child: Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Text(label),
+        Text(
+          cents == 0 ? 'Besplatno' : formatCredits(cents / 100),
+          key: ValueKey(key),
+        ),
+      ],
+    ),
+  );
 
   @override
   Widget build(BuildContext context) => PopScope(
@@ -333,6 +372,15 @@ class _PurchaseConfirmationState extends State<PurchaseConfirmationSheet> {
                 ),
               ),
             const SizedBox(height: 16),
+            if (widget.itemCents != null) ...[
+              _line('Proizvod (1 kom)', widget.itemCents!, 'purchase-item'),
+              _line(
+                'Dostava',
+                _totalCents - widget.itemCents!,
+                'purchase-shipping',
+              ),
+              const Divider(height: 20),
+            ],
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
@@ -376,7 +424,7 @@ class _PurchaseConfirmationState extends State<PurchaseConfirmationSheet> {
                 !_checkingPayment)
               VisionBidSlider(
                 key: const ValueKey('purchase-slide'),
-                label: 'Potvrdi i plati ${formatCredits(_totalCents / 100)}',
+                label: 'Plati ${formatCredits(_totalCents / 100)}',
                 confirmationKey: (_orderId, _totalCents),
                 onConfirm: _pay,
               )
@@ -398,7 +446,7 @@ class _PurchaseConfirmationState extends State<PurchaseConfirmationSheet> {
                       ? 'Dodaj karticu'
                       : _checkingPayment
                       ? 'Provjeri plaćanje'
-                      : 'Potvrdi i plati ${formatCredits(_totalCents / 100)}',
+                      : 'Plati ${formatCredits(_totalCents / 100)}',
                 ),
               ),
             const SizedBox(height: 8),

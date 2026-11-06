@@ -517,11 +517,24 @@ Future<bool> confirmAndBuy(
   if (BackendConfig.cloudCommerceEnabled && ref.read(syncProvider) != null) {
     final stripe = StripeBackend(Supabase.instance.client);
     final commerce = CommerceBackend(Supabase.instance.client);
+    final itemCents = (ref.read(appProvider).priceForMe(device) * 100).round();
+    final shipCents = device.isDigital ? 0 : 600;
+    final requestId = const Uuid().v4();
     final paid = await showPurchaseConfirmation(
       context,
       PurchaseConfirmationSheet(
         title: '${device.name} ${device.model}'.trim(),
-        totalCents: (ref.read(appProvider).priceForMe(device) * 100).round(),
+        itemCents: itemCents,
+        shippingCents: shipCents,
+        totalCents: itemCents + shipCents,
+        orderTotal: (id) async {
+          final row = await Supabase.instance.client
+              .from('commerce_orders')
+              .select('total_cents')
+              .eq('id', id)
+              .single();
+          return (row['total_cents'] as num).toInt();
+        },
         address: user.address ?? '',
         country: user.country,
         searchLockers: (address) => DeliveryLocationsBackend(
@@ -530,7 +543,7 @@ Future<bool> confirmAndBuy(
         digital: device.isDigital,
         loadCard: stripe.cardStatus,
         addCard: stripe.addCard,
-        reserve: () => commerce.reserveDevice(device.id, const Uuid().v4()),
+        reserve: () => commerce.reserveDevice(device.id, requestId),
         chooseDelivery: commerce.chooseDelivery,
         charge: (order, ctx) => stripe.chargeStatus(order, context: ctx),
       ),

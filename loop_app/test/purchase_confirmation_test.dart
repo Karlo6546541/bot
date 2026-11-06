@@ -361,6 +361,49 @@ void main() {
       findsOneWidget,
     );
     expect(find.text('Provjeri plaćanje'), findsNothing);
-    expect(find.textContaining('Potvrdi i plati'), findsOneWidget);
+    expect(find.textContaining('Plati'), findsOneWidget);
+  });
+
+  testWidgets('raščlamba iznosa; promijenjen iznos traži novu potvrdu', (
+    tester,
+  ) async {
+    var charges = 0, reserves = 0;
+    await open(
+      tester,
+      PurchaseConfirmationSheet(
+        title: 'Testni predmet',
+        itemCents: 6000,
+        shippingCents: 600,
+        totalCents: 6600,
+        address: 'Testna ulica 1, Zagreb',
+        loadCard: () async => (hasCard: true, last4: '4242'),
+        addCard: (_) async => false,
+        reserve: () async {
+          reserves++;
+          return {'id': 'order-one', 'total_cents': 6000};
+        },
+        chooseDelivery: (_, _) async {},
+        orderTotal: (_) async => 6900,
+        charge: (_, _) async {
+          charges++;
+          return SavedCardChargeStatus.paid;
+        },
+      ),
+    );
+    expect(find.byKey(const ValueKey('purchase-item')), findsOneWidget);
+    expect(find.byKey(const ValueKey('purchase-shipping')), findsOneWidget);
+    expect(find.textContaining('Plati'), findsOneWidget);
+    await tester.tap(find.byKey(const ValueKey('purchase-pay')));
+    await tester.pumpAndSettle();
+    expect(charges, 0);
+    expect(find.byKey(const ValueKey('purchase-error')), findsOneWidget);
+    expect(
+      tester.widget<Text>(find.byKey(const ValueKey('purchase-total'))).data,
+      contains('69'),
+    );
+    await tester.tap(find.byKey(const ValueKey('purchase-pay')));
+    await tester.pumpAndSettle();
+    expect(charges, 1);
+    expect(reserves, 1);
   });
 }
