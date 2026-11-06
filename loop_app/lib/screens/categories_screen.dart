@@ -147,6 +147,7 @@ class CategoriesScreen extends ConsumerStatefulWidget {
 
 class _CategoriesScreenState extends ConsumerState<CategoriesScreen> {
   final _query = TextEditingController();
+  ItemSection _section = ItemSection.values.first;
 
   @override
   void dispose() {
@@ -154,24 +155,151 @@ class _CategoriesScreenState extends ConsumerState<CategoriesScreen> {
     super.dispose();
   }
 
+  /// Taobao raspored: lijevo odjeljci, desno mreža podkategorija.
+  Widget _rail(Map<ItemSection, int> live) => SizedBox(
+    width: 96,
+    child: ListView(
+      key: const ValueKey('categories-rail'),
+      padding: const EdgeInsets.only(bottom: 96),
+      children: [
+        for (final sec in ItemSection.values)
+          InkWell(
+            key: ValueKey('cat-section-${sec.name}'),
+            onTap: () => setState(() => _section = sec),
+            child: Container(
+              padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 6),
+              decoration: BoxDecoration(
+                color: _section == sec
+                    ? LoopColors.surface
+                    : Colors.transparent,
+                border: Border(
+                  left: BorderSide(
+                    width: 3,
+                    color: _section == sec
+                        ? LoopColors.textPrimary
+                        : Colors.transparent,
+                  ),
+                ),
+              ),
+              child: Column(
+                children: [
+                  Stack(
+                    clipBehavior: Clip.none,
+                    children: [
+                      Icon(
+                        sec.icon,
+                        size: 22,
+                        color: _section == sec
+                            ? LoopColors.textPrimary
+                            : LoopColors.textSecondary,
+                      ),
+                      if ((live[sec] ?? 0) > 0)
+                        Positioned(
+                          right: -4,
+                          top: -2,
+                          child: Container(
+                            width: 8,
+                            height: 8,
+                            decoration: const BoxDecoration(
+                              color: kLiveRed,
+                              shape: BoxShape.circle,
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    sec.label,
+                    textAlign: TextAlign.center,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontSize: 12,
+                      height: 1.15,
+                      fontWeight: _section == sec
+                          ? FontWeight.w700
+                          : FontWeight.w500,
+                      color: _section == sec
+                          ? LoopColors.textPrimary
+                          : LoopColors.textSecondary,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+      ],
+    ),
+  );
+
+  Widget _tile(CategoryStat c) => InkWell(
+    key: ValueKey('category-${c.category.name}'),
+    borderRadius: BorderRadius.circular(16),
+    onTap: () => CategoryItemsScreen.open(context, c.category),
+    child: Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 2),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          CategoryArt(category: c.category, size: 44),
+          const SizedBox(height: 4),
+          Text(
+            c.category.label,
+            textAlign: TextAlign.center,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(
+              fontSize: 12.5,
+              height: 1.15,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          const SizedBox(height: 2),
+          if (c.viewers > 0)
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: 6,
+                  height: 6,
+                  decoration: const BoxDecoration(
+                    color: kLiveRed,
+                    shape: BoxShape.circle,
+                  ),
+                ),
+                const SizedBox(width: 4),
+                Text(
+                  '${c.viewers}',
+                  style: TextStyle(
+                    fontSize: 11,
+                    color: LoopColors.textSecondary,
+                  ),
+                ),
+              ],
+            )
+          else if (c.items > 0)
+            Text(
+              '${c.items}',
+              style: TextStyle(fontSize: 11, color: LoopColors.textSecondary),
+            )
+          else
+            const SizedBox(height: 13),
+        ],
+      ),
+    ),
+  );
+
   @override
   Widget build(BuildContext context) {
     final s = ref.watch(appProvider);
     final stats = categoryStats(s);
     final q = normalizeSearch(_query.text.trim());
-    final rows = <Widget>[];
-    Widget heading(String text) => Padding(
-      padding: const EdgeInsets.fromLTRB(4, 18, 4, 6),
-      child: Text(
-        text,
-        style: TextStyle(
-          color: LoopColors.textSecondary,
-          fontWeight: FontWeight.w700,
-          fontSize: 13,
-        ),
-      ),
-    );
-    void open(DeviceCategory c) => CategoryItemsScreen.open(context, c);
+    final live = <ItemSection, int>{
+      for (final c in stats)
+        if (c.viewers > 0) c.category.section: 1,
+    };
+    final Widget body;
     if (q.isNotEmpty) {
       final hits = [
         for (final c in stats)
@@ -179,59 +307,98 @@ class _CategoriesScreenState extends ConsumerState<CategoriesScreen> {
               normalizeSearch(c.category.section.label).contains(q))
             c,
       ];
-      if (hits.isEmpty) {
-        rows.add(
-          Padding(
-            padding: const EdgeInsets.all(24),
-            child: Text(
-              t('Nema takve kategorije.'),
-              textAlign: TextAlign.center,
-              style: TextStyle(color: LoopColors.textSecondary),
+      body = ListView(
+        key: const ValueKey('categories'),
+        padding: const EdgeInsets.fromLTRB(16, 4, 16, 96),
+        children: [
+          if (hits.isEmpty)
+            Padding(
+              padding: const EdgeInsets.all(24),
+              child: Text(
+                t('Nema takve kategorije.'),
+                textAlign: TextAlign.center,
+                style: TextStyle(color: LoopColors.textSecondary),
+              ),
+            ),
+          for (final c in hits)
+            CategoryRow(
+              stat: c,
+              onTap: () => CategoryItemsScreen.open(context, c.category),
+            ),
+        ],
+      );
+    } else {
+      final inSec = [
+        for (final c in stats)
+          if (c.category.section == _section) c,
+      ];
+      body = Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _rail(live),
+          Expanded(
+            child: ListView(
+              key: const ValueKey('categories'),
+              padding: const EdgeInsets.fromLTRB(12, 4, 12, 96),
+              children: [
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(4, 8, 4, 4),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          _section.label,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.w700,
+                            letterSpacing: -0.3,
+                          ),
+                        ),
+                      ),
+                      TextButton(
+                        key: ValueKey('category-all-${_section.name}'),
+                        onPressed: () =>
+                            CategoryItemsScreen.openSection(context, _section),
+                        child: Text(t('Sve')),
+                      ),
+                    ],
+                  ),
+                ),
+                GridView(
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  // Visina prati veličinu teksta (nema prelijevanja).
+                  gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: 3,
+                    mainAxisExtent:
+                        70 + 44 * MediaQuery.textScalerOf(context).scale(1),
+                  ),
+                  children: [for (final c in inSec) _tile(c)],
+                ),
+              ],
             ),
           ),
-        );
-      }
-      for (final c in hits) {
-        rows.add(CategoryRow(stat: c, onTap: () => open(c.category)));
-      }
-    } else {
-      final live = [
-        for (final c in stats)
-          if (c.viewers > 0) c,
-      ]..sort((a, b) => b.viewers.compareTo(a.viewers));
-      if (live.isNotEmpty) {
-        rows.add(heading(t('Uživo sada')));
-        for (final c in live) {
-          rows.add(CategoryRow(stat: c, onTap: () => open(c.category)));
-        }
-      }
-      for (final sec in ItemSection.values) {
-        final inSec = [
-          for (final c in stats)
-            if (c.category.section == sec) c,
-        ];
-        if (inSec.isEmpty) continue;
-        rows.add(heading(sec.label));
-        for (final c in inSec) {
-          rows.add(CategoryRow(stat: c, onTap: () => open(c.category)));
-        }
-      }
+        ],
+      );
     }
     return Align(
       alignment: Alignment.topCenter,
       child: ConstrainedBox(
         constraints: const BoxConstraints(maxWidth: 680),
-        child: ListView(
-          key: const ValueKey('categories'),
-          padding: const EdgeInsets.fromLTRB(16, 10, 16, 96),
+        child: Column(
           children: [
-            SlimSearchField(
-              key: const ValueKey('categories-search'),
-              controller: _query,
-              hint: t('Traži kategoriju'),
-              onChanged: (_) => setState(() {}),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 10, 16, 8),
+              child: SlimSearchField(
+                key: const ValueKey('categories-search'),
+                controller: _query,
+                hint: t('Traži kategoriju'),
+                onChanged: (_) => setState(() {}),
+              ),
             ),
-            ...rows,
+            Expanded(child: body),
           ],
         ),
       ),
@@ -296,8 +463,19 @@ class _ViewersDot extends StatelessWidget {
 /// Jedna kategorija: tražilica samo za tu kategoriju i mreža liveova,
 /// aukcija i Kupi odmah predmeta.
 class CategoryItemsScreen extends ConsumerStatefulWidget {
-  const CategoryItemsScreen({super.key, required this.category});
-  final DeviceCategory category;
+  const CategoryItemsScreen({super.key, this.category, this.section})
+    : assert(category != null || section != null);
+
+  /// Jedna podkategorija ILI cijeli odjeljak ("Prikaži sve").
+  final DeviceCategory? category;
+  final ItemSection? section;
+
+  static Future<void> openSection(BuildContext context, ItemSection s) =>
+      Navigator.of(context).push(
+        MaterialPageRoute<void>(
+          builder: (_) => CategoryItemsScreen(section: s),
+        ),
+      );
 
   static Future<void> open(BuildContext context, DeviceCategory c) =>
       Navigator.of(context).push(
@@ -323,11 +501,15 @@ class _CategoryItemsScreenState extends ConsumerState<CategoryItemsScreen> {
   @override
   Widget build(BuildContext context) {
     final category = widget.category;
+    final title = category?.label ?? widget.section!.label;
     final s = ref.watch(appProvider);
     final me = s.currentUserId ?? '';
     final all = [
       for (final i in browseItems(s))
-        if (i.categories.contains(category)) i,
+        if (category != null
+            ? i.categories.contains(category)
+            : i.categories.any((c) => c.section == widget.section))
+          i,
     ];
     final q = SmartQuery.parse(_query.text);
     final list = q.isEmpty
@@ -340,7 +522,7 @@ class _CategoryItemsScreenState extends ConsumerState<CategoryItemsScreen> {
                 i,
           ];
     return Scaffold(
-      appBar: AppBar(title: Text(category.label)),
+      appBar: AppBar(title: Text(title)),
       body: Column(
         children: [
           if (all.isNotEmpty)
@@ -349,14 +531,14 @@ class _CategoryItemsScreenState extends ConsumerState<CategoryItemsScreen> {
               child: SlimSearchField(
                 key: const ValueKey('category-search'),
                 controller: _query,
-                hint: t('Traži u kategoriji {0}', [category.label]),
+                hint: t('Traži u kategoriji {0}', [title]),
                 onChanged: (_) => setState(() {}),
               ),
             ),
           Expanded(
             child: list.isEmpty
                 ? EmptyState(
-                    icon: category.icon,
+                    icon: category?.icon ?? widget.section!.icon,
                     title: all.isEmpty
                         ? t('Ovdje još nema ničega')
                         : t('Ništa ne odgovara pretrazi'),
@@ -381,7 +563,7 @@ class _CategoryItemsScreenState extends ConsumerState<CategoryItemsScreen> {
                         context,
                         [for (final x in list) x.entry],
                         i,
-                        title: category.label,
+                        title: title,
                       ),
                     ),
                   ),

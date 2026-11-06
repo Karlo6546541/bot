@@ -948,6 +948,7 @@ void main() {
           title: 'Kontrole livea',
           items: [(item.id, 1)],
           lotSeconds: 60,
+          shop: true,
         )).id;
         await LiveService(storage).startLot(bob, showId);
       });
@@ -1017,6 +1018,7 @@ void main() {
           items: [(theirs.id, 1)],
           lotSeconds: 60,
           video: true,
+          shop: true,
         )).id;
         await LiveService(storage).startLot(bob, bobShow);
       });
@@ -1245,6 +1247,18 @@ void main() {
             matching: find.byType(Scrollable),
           )
           .first;
+      // Prodavač uključuje svoju trgovinu (Kupi odmah) u liveu.
+      await tester.scrollUntilVisible(
+        find.byKey(const ValueKey('live-shop-toggle')),
+        200,
+        scrollable: form,
+      );
+      await tester.ensureVisible(
+        find.byKey(const ValueKey('live-shop-toggle')),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('live-shop-toggle')));
+      await tester.pumpAndSettle();
       await tester.scrollUntilVisible(
         find.byKey(const ValueKey('live-more')),
         200,
@@ -1273,6 +1287,7 @@ void main() {
       await tester.pumpAndSettle();
 
       final show = storage.liveShows.firstWhere((s) => s.hostId == host);
+      expect(show.shop, isTrue);
       expect(show.title, 'Retro večer');
       expect(show.lotSeconds, 45);
       expect(

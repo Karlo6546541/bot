@@ -120,6 +120,7 @@ void main() {
         title: 'Foto shop uživo',
         items: [(item.id, 10)],
         lotSeconds: 60,
+        shop: true,
       );
       await live.startLot(SeedData.anaUserId, show.id);
       await tester.pumpWidget(app(LiveRoomScreen(showId: show.id)));

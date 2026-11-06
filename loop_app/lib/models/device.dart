@@ -10,6 +10,8 @@ enum ItemSection {
   fashion('Moda'),
   home('Dom i vintage'),
   crafts('Rukotvorine'),
+  food('Hrana i piće'),
+  auto('Auto, alati i vrt'),
   activities('Aktivnosti'),
   digital('Digitalno');
 
@@ -33,6 +35,10 @@ enum DeviceCategory {
   watch('Pametni satovi', 'Pametni sat', ItemSection.electronics),
   camera('Kamere', 'Kamera', ItemSection.electronics),
   other('Ostala elektronika', 'Elektronika', ItemSection.electronics),
+  tv('Televizori i monitori', 'TV', ItemSection.electronics),
+  pcParts('Računalne komponente', 'Komponenta', ItemSection.electronics),
+  smartHome('Pametni dom', 'Pametni uređaj', ItemSection.electronics),
+  drones('Dronovi i akcijske kamere', 'Dron', ItemSection.electronics),
 
   // Kolekcionarstvo
   cards('Sportske kartice', 'Kartica', ItemSection.collectibles),
@@ -42,6 +48,13 @@ enum DeviceCategory {
   stamps('Marke', 'Marke', ItemSection.collectibles),
   figures('Figure, Funko i igračke', 'Figura', ItemSection.collectibles),
   vinyl('Ploče i mediji', 'Ploča', ItemSection.collectibles),
+  militaria(
+    'Vojna i povijesna oprema',
+    'Povijesni predmet',
+    ItemSection.collectibles,
+  ),
+  memorabilia('Sportski memorabilij', 'Memorabilij', ItemSection.collectibles),
+  autographs('Autogrami', 'Autogram', ItemSection.collectibles),
 
   // Hobiji
   sport('Sportska oprema', 'Sport', ItemSection.hobbies),
@@ -50,6 +63,14 @@ enum DeviceCategory {
   boardGames('Društvene igre', 'Društvena igra', ItemSection.hobbies),
   models('Modeli i LEGO', 'Model', ItemSection.hobbies),
   videoGames('Videoigre', 'Videoigra', ItemSection.hobbies),
+  cycling('Biciklizam', 'Bicikl', ItemSection.hobbies),
+  fishing('Ribolov', 'Ribolovna oprema', ItemSection.hobbies),
+  camping(
+    'Kampiranje i planinarenje',
+    'Oprema za kampiranje',
+    ItemSection.hobbies,
+  ),
+  cosplay('Cosplay i anime', 'Cosplay', ItemSection.hobbies),
 
   // Moda
   clothes('Odjeća', 'Odjeća', ItemSection.fashion),
@@ -57,12 +78,21 @@ enum DeviceCategory {
   bags('Torbe', 'Torba', ItemSection.fashion),
   watches('Satovi', 'Sat', ItemSection.fashion),
   accessories('Modni dodaci', 'Modni dodatak', ItemSection.fashion),
+  womenswear('Ženska odjeća', 'Ženska odjeća', ItemSection.fashion),
+  menswear('Muška odjeća', 'Muška odjeća', ItemSection.fashion),
+  shoes('Cipele i čizme', 'Cipele', ItemSection.fashion),
+  sunglasses('Naočale', 'Naočale', ItemSection.fashion),
 
   // Dom i vintage
   homeDecor('Dom i dekor', 'Za dom', ItemSection.home),
   vintage('Vintage i antikviteti', 'Vintage', ItemSection.home),
   beauty('Ljepota i njega', 'Ljepota', ItemSection.home),
   kids('Dječje stvari', 'Za djecu', ItemSection.home),
+  furniture('Namještaj', 'Namještaj', ItemSection.home),
+  kitchen('Kuhinja i posuđe', 'Za kuhinju', ItemSection.home),
+  appliances('Kućanski aparati', 'Aparat', ItemSection.home),
+  garden('Vrt i biljke', 'Za vrt', ItemSection.home),
+  pets('Kućni ljubimci', 'Za ljubimce', ItemSection.home),
 
   // Rukotvorine
   jewelry('Nakit', 'Nakit', ItemSection.crafts),
@@ -70,6 +100,18 @@ enum DeviceCategory {
   textile('Pletivo i tekstil', 'Tekstil', ItemSection.crafts),
   woodwork('Drvo', 'Drvo', ItemSection.crafts),
   paintings('Slike i crteži', 'Slika', ItemSection.crafts),
+
+  // Hrana i piće (domaći proizvodi, pakirano)
+  coffeeTea('Kava i čaj', 'Kava ili čaj', ItemSection.food),
+  sweets('Slastice i grickalice', 'Slastice', ItemSection.food),
+  localFood('Domaći proizvodi', 'Domaći proizvod', ItemSection.food),
+  spices('Začini i ulja', 'Začini', ItemSection.food),
+
+  // Auto, alati i vrt
+  carParts('Auto dijelovi', 'Auto dio', ItemSection.auto),
+  carGear('Auto oprema', 'Auto oprema', ItemSection.auto),
+  motoGear('Moto oprema', 'Moto oprema', ItemSection.auto),
+  tools('Alati', 'Alat', ItemSection.auto),
 
   // Aktivnosti (vaučeri, termini, ulaznice)
   workshops('Radionice', 'Radionica', ItemSection.activities),
@@ -541,7 +583,7 @@ const _categoryHints = <(String, DeviceCategory)>[
   ),
   (r'monopoly|catan|društven|šah|puzzle', DeviceCategory.boardGames),
   (r'knjig|roman|enciklopedij', DeviceCategory.books),
-  (r'bicikl|lopt|reket|skije|rolere|teg|fitness', DeviceCategory.sport),
+  (r'lopt|reket|skije|rolere|teg|fitness', DeviceCategory.sport),
   (
     r'tenisic|sneaker|jordan|yeezy|air max|air force|new balance|adidas|nike|converse|vans',
     DeviceCategory.sneakers,
@@ -557,6 +599,58 @@ const _categoryHints = <(String, DeviceCategory)>[
   (r'parfem|šmink|krema|kozmetik', DeviceCategory.beauty),
   (r'dječj|kolica|beb|autosjedalic', DeviceCategory.kids),
   (r'vintage|antik|retro|gramofon|starin', DeviceCategory.vintage),
+  (r'televizor|\btv\b|monitor', DeviceCategory.tv),
+  (
+    r'grafičk|procesor|ram memorij|matičn\w* ploč|\bssd\b|\bnvidia\b|\brtx\b',
+    DeviceCategory.pcParts,
+  ),
+  (r'dron|dji|gopro hero|akcijska kamera', DeviceCategory.drones),
+  (
+    r'pametn\w* (žarulj|utičnic|termostat)|alexa|google home|smart home',
+    DeviceCategory.smartHome,
+  ),
+  (r'bicikl|mtb|e-?bike|cestovni bicikl|kotač', DeviceCategory.cycling),
+  (r'ribolov|štap za|mamac|kolotur|udic', DeviceCategory.fishing),
+  (r'šator|vreća za spavanje|ruksak za planin|kamp', DeviceCategory.camping),
+  (r'cosplay|anime|kostim', DeviceCategory.cosplay),
+  (r'autogram|potpisan', DeviceCategory.autographs),
+  (r'dres|memorabil|medalj', DeviceCategory.memorabilia),
+  (r'vojn|kaciga|medalja|bajunet|uniforma iz', DeviceCategory.militaria),
+  (r'ženska|haljin|suknj|bluza', DeviceCategory.womenswear),
+  (r'muško|odijel|kravat', DeviceCategory.menswear),
+  (r'cipel|čizm|salonk|štikl|mokasin', DeviceCategory.shoes),
+  (r'sunčane naočale|ray-?ban|oakley', DeviceCategory.sunglasses),
+  (r'kauč|fotelj|krevet|namještaj|komod|polica', DeviceCategory.furniture),
+  (r'lonac|tava|posuđ|pribor za jelo|kuhinj|nož za', DeviceCategory.kitchen),
+  (
+    r'usisavač|perilic|pegla|friteza|mikser|aparat za kavu|kuhalo',
+    DeviceCategory.appliances,
+  ),
+  (r'sadnic|vrtn|kosilic|cvijeć|biljk|lonac za cvijeć', DeviceCategory.garden),
+  (r'pas\b|mačk|ljubimac|ogrlica za psa|akvarij', DeviceCategory.pets),
+  (r'\bkava\b|čaj\b|espresso|zrna kave', DeviceCategory.coffeeTea),
+  (r'čokolad|bomboni|keks|grickalic|slastic', DeviceCategory.sweets),
+  (
+    r'med\b|domaći|džem|pekmez|sir\b|kulen|pršut|rakij',
+    DeviceCategory.localFood,
+  ),
+  (r'začin|maslinovo ulje|ulje|ocat|sol\b', DeviceCategory.spices),
+  (
+    r'auto dio|kočnic|amortizer|filter ulja|zimske gume|\bgume\b|felge',
+    DeviceCategory.carParts,
+  ),
+  (
+    r'auto sjedal|auto presvlak|dashcam|navigacija|nosač',
+    DeviceCategory.carGear,
+  ),
+  (
+    r'motor\b|kaciga za motor|moto jakna|rukavice za motor',
+    DeviceCategory.motoGear,
+  ),
+  (
+    r'bušilic|brusilic|alat|odvijač|aku |kutija s alatom|kompresor',
+    DeviceCategory.tools,
+  ),
   (r'lamp|vaz|stolic|stol\b|ormar|tepih|dekor', DeviceCategory.homeDecor),
   (r'akvarel|ulje na platnu|slika|crtež|grafika', DeviceCategory.paintings),
   (r'ulaznic|karta za|koncert', DeviceCategory.tickets),

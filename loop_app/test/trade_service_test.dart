@@ -43,13 +43,13 @@ void main() {
   });
 
   test(
-    'seed: demo korisnik ima 2 predmeta, 35 predmeta u Marketu (2 digitalna)',
+    'seed: demo korisnik ima 2 predmeta, 39 predmeta u Marketu (2 digitalna)',
     () {
       final state = AppState.fromStorage(storage);
       final demo = storage.userById(SeedData.demoUserId)!;
       expect(demo.credits, 1250);
       expect(state.devicesOf(demo.id), hasLength(2));
-      expect(state.devices.where((d) => d.isOnMarket), hasLength(35));
+      expect(state.devices.where((d) => d.isOnMarket), hasLength(39));
     },
   );
 
@@ -117,7 +117,7 @@ void main() {
 
     await storage.resetAll();
     expect(storage.users, hasLength(4));
-    expect(storage.devices, hasLength(41));
+    expect(storage.devices, hasLength(45));
   });
 
   test('favoriti: dodavanje i uklanjanje', () async {

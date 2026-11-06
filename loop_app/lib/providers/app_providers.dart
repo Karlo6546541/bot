@@ -1417,10 +1417,12 @@ class AppController extends Notifier<AppState> {
     bool relistUnsold = true,
     List<String?>? names,
     LiveSells sells = LiveSells.physical,
+    bool shop = false,
   }) async {
     // Testno: bez podataka prodavatelja (traže se tek za isplatu).
     final show = await _live.create(
       sells: sells,
+      shop: shop,
       hostId: _requireUserId(),
       title: title,
       items: items,
@@ -1551,6 +1553,11 @@ class AppController extends Notifier<AppState> {
 
   Future<void> liveSetVerifiedOnly(String showId, bool on) async {
     await _live.setVerifiedOnly(_requireUserId(), showId, on);
+    _refresh();
+  }
+
+  Future<void> liveSetShop(String showId, bool on) async {
+    await _live.setShop(_requireUserId(), showId, on);
     _refresh();
   }
 

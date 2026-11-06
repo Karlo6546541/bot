@@ -29,7 +29,12 @@ class LiveShow {
     this.verifiedOnly = false,
     this.summary,
     this.sells = LiveSells.physical,
+    this.shop = false,
   });
+
+  /// Prodavač je uključio svoju trgovinu u liveu: gledatelji uz licitacije
+  /// mogu kupiti njegove predmete odmah (Kupi odmah).
+  final bool shop;
 
   /// Što se prodaje u liveu: stvari (aukcije), digitalno (Kupi odmah bez
   /// aukcije) ili oboje.
@@ -124,6 +129,7 @@ class LiveShow {
     List<String>? modIds,
     bool? verifiedOnly,
     LiveSells? sells,
+    bool? shop,
     Map<String, num>? summary,
   }) => LiveShow(
     id: id,
@@ -144,6 +150,7 @@ class LiveShow {
     modIds: modIds ?? this.modIds,
     verifiedOnly: verifiedOnly ?? this.verifiedOnly,
     sells: sells ?? this.sells,
+    shop: shop ?? this.shop,
     summary: summary ?? this.summary,
   );
 
@@ -166,6 +173,7 @@ class LiveShow {
     if (modIds.isNotEmpty) 'modIds': modIds,
     if (verifiedOnly) 'verifiedOnly': true,
     if (sells != LiveSells.physical) 'sells': sells.name,
+    if (shop) 'shop': true,
     if (summary != null) 'summary': summary,
   };
 
@@ -200,6 +208,7 @@ class LiveShow {
       (v) => v.name == m['sells'],
       orElse: () => LiveSells.physical,
     ),
+    shop: m['shop'] == true,
     summary: m['summary'] is Map
         ? {
             for (final e in (m['summary'] as Map).entries)

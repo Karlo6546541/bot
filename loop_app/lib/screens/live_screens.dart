@@ -1106,6 +1106,7 @@ class _CreateLiveShowScreenState extends ConsumerState<CreateLiveShowScreen> {
           // Neprodano ostaje spremljeno u Moje (ne ide samo na Kupi odmah).
           relistUnsold: false,
           sells: _sells,
+          shop: _shop,
         );
         // Promocija odabrana u čarobnjaku (plaća se karticom).
         if (_promo > 0) {
@@ -1151,6 +1152,9 @@ class _CreateLiveShowScreenState extends ConsumerState<CreateLiveShowScreen> {
 
   /// Što se prodaje: stvari (aukcije), digitalno (Kupi odmah) ili oboje.
   final LiveSells _sells = LiveSells.physical;
+
+  /// Kupi odmah iz prodavačeve trgovine u liveu (zadano isključeno).
+  bool _shop = false;
 
   /// Promocija odmah pri kreiranju: iznos u € (0 = bez promocije).
   int _promo = 0;
@@ -1308,6 +1312,27 @@ class _CreateLiveShowScreenState extends ConsumerState<CreateLiveShowScreen> {
     ),
     ..._lotsSection(s),
     const SizedBox(height: 12),
+    // Kupi odmah u liveu: gledatelji kupuju iz tvoje trgovine bez licitacije.
+    Builder(
+      builder: (_) {
+        final n = s.listingsOf(s.currentUserId ?? '').length;
+        return SwitchListTile(
+          key: const ValueKey('live-shop-toggle'),
+          contentPadding: EdgeInsets.zero,
+          value: _shop,
+          onChanged: (v) => setState(() => _shop = v),
+          title: Text(
+            t('Prodaj i iz moje trgovine'),
+            style: const TextStyle(fontWeight: FontWeight.w700),
+          ),
+          subtitle: Text(
+            n == 0
+                ? t('Još nemaš oglasa u trgovini (Kupi odmah).')
+                : t('Gledatelji mogu odmah kupiti tvojih {0} oglasa.', ['$n']),
+          ),
+        );
+      },
+    ),
     Theme(
       data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
       child: ExpansionTile(
@@ -2594,6 +2619,30 @@ class _LiveRoomViewState extends ConsumerState<_LiveRoomBody> {
                     ),
                     tile(
                       ctx,
+                      key: 'live-shop-tile',
+                      icon: show.shop
+                          ? Icons.storefront
+                          : Icons.storefront_outlined,
+                      label: show.shop
+                          ? t('Isključi trgovinu')
+                          : t('Uključi trgovinu'),
+                      onTap: () async {
+                        try {
+                          await _app.liveSetShop(show.id, !show.shop);
+                          showLoopSnackBar(
+                            show.shop
+                                ? t('Trgovina je isključena u liveu.')
+                                : t(
+                                    'Gledatelji sada mogu kupiti tvoje predmete odmah.',
+                                  ),
+                          );
+                        } on TradeException catch (e) {
+                          showLoopSnackBar(e.message, error: true);
+                        }
+                      },
+                    ),
+                    tile(
+                      ctx,
                       key: 'live-viewers-tile',
                       icon: Icons.groups_outlined,
                       label: t('Gledatelji'),
@@ -3820,7 +3869,9 @@ class _LiveRoomViewState extends ConsumerState<_LiveRoomBody> {
                                       lot.status == LotStatus.running,
                                 )
                                 .length +
-                            liveShopProducts(s, show.hostId).length,
+                            (show.shop
+                                ? liveShopProducts(s, show.hostId).length
+                                : 0),
                         onBag: () => _showQueue(st, isHost),
                         liked: _liked,
                         onHeart: st.isOver || isHost ? null : _toggleLike,
@@ -3904,7 +3955,7 @@ class _LiveRoomViewState extends ConsumerState<_LiveRoomBody> {
                           ).popUntil((route) => route.isFirst);
                         },
                         label: t('Povuci gore za shop · {0} predmeta', [
-                          '${st.queue.length + liveShopProducts(s, show.hostId).length}',
+                          '${st.queue.length + (show.shop ? liveShopProducts(s, show.hostId).length : 0)}',
                         ]),
                         onOpen: () => _showQueue(st, isHost),
                       ),
@@ -6290,7 +6341,10 @@ class _LiveShopSheet extends ConsumerWidget {
       t('Još nema predmeta na aukciji.'),
       hint: true,
     );
-    final products = liveShopProducts(s, show.hostId);
+    // Kupi odmah vidi se samo kad je prodavač uključio trgovinu u liveu.
+    final products = show.shop
+        ? liveShopProducts(s, show.hostId)
+        : const <Device>[];
     final shopTab = ListView(
       padding: const EdgeInsets.fromLTRB(16, 10, 16, 24),
       children: [
@@ -6338,9 +6392,12 @@ class _LiveShopSheet extends ConsumerWidget {
     );
     return DefaultTabController(
       length:
-          2 + (giveawayLots.isNotEmpty ? 1 : 0) + (soldLots.isNotEmpty ? 1 : 0),
-      // Digitalni show: najprije Kupi odmah.
-      initialIndex: isHost ? 1 : 0,
+          (show.shop ? 1 : 0) +
+          1 +
+          (giveawayLots.isNotEmpty ? 1 : 0) +
+          (soldLots.isNotEmpty ? 1 : 0),
+      // Prodavač najprije vidi red licitacija, gledatelj trgovinu.
+      initialIndex: show.shop && isHost ? 1 : 0,
       child: SizedBox(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -6373,11 +6430,12 @@ class _LiveShopSheet extends ConsumerWidget {
                   fontWeight: FontWeight.w600,
                 ),
                 tabs: [
-                  Tab(
-                    height: 36,
-                    key: const ValueKey('live-tab-shop'),
-                    text: t('Kupi odmah ({0})', ['${products.length}']),
-                  ),
+                  if (show.shop)
+                    Tab(
+                      height: 36,
+                      key: const ValueKey('live-tab-shop'),
+                      text: t('Kupi odmah ({0})', ['${products.length}']),
+                    ),
                   Tab(
                     height: 36,
                     key: const ValueKey('live-tab-auction'),
@@ -6401,7 +6459,7 @@ class _LiveShopSheet extends ConsumerWidget {
             Expanded(
               child: TabBarView(
                 children: [
-                  shopTab,
+                  if (show.shop) shopTab,
                   auctionTab,
                   if (giveawayLots.isNotEmpty)
                     lotTab(giveawayLots, t('Nema giveawaya u ovom showu.')),

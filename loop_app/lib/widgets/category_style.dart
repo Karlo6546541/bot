@@ -9,7 +9,7 @@ import '../theme/app_theme.dart';
 /// imaju kontrast < 3:1, pa grafikoni uvijek imaju vidljive oznake/legendu.
 /// Boje se dodjeljuju UVIJEK istim redom — nikad se ne generiraju nove.
 /// Odjeljak dobiva boju po svom redu u [ItemSection], kategorija po svom
-/// redu unutar odjeljka (najviše 8 kategorija po odjeljku).
+/// redu unutar odjeljka (boje se ponavljaju nakon 8 kategorija u odjeljku).
 const _paletteLight = <Color>[
   Color(0xFF2A78D6), // plava
   Color(0xFFEB6834), // narančasta
@@ -36,7 +36,7 @@ List<Color> get kCategoricalPalette =>
     LoopColors.isDark ? _paletteDark : _paletteLight;
 
 extension SectionStyle on ItemSection {
-  Color get color => kCategoricalPalette[index];
+  Color get color => kCategoricalPalette[index % kCategoricalPalette.length];
 
   IconData get icon => switch (this) {
     ItemSection.electronics => Icons.devices,
@@ -45,6 +45,8 @@ extension SectionStyle on ItemSection {
     ItemSection.fashion => Icons.checkroom,
     ItemSection.home => Icons.chair_outlined,
     ItemSection.crafts => Icons.brush,
+    ItemSection.food => Icons.restaurant_outlined,
+    ItemSection.auto => Icons.directions_car_outlined,
     ItemSection.activities => Icons.local_activity,
     ItemSection.digital => Icons.cloud_download_outlined,
   };
@@ -97,6 +99,34 @@ extension CategoryStyle on DeviceCategory {
     DeviceCategory.ebooks => Icons.auto_stories_outlined,
     DeviceCategory.templates => Icons.dashboard_customize_outlined,
     DeviceCategory.sounds => Icons.graphic_eq,
+    DeviceCategory.tv => Icons.tv,
+    DeviceCategory.pcParts => Icons.memory,
+    DeviceCategory.smartHome => Icons.home_max_outlined,
+    DeviceCategory.drones => Icons.flight,
+    DeviceCategory.militaria => Icons.military_tech_outlined,
+    DeviceCategory.memorabilia => Icons.emoji_events_outlined,
+    DeviceCategory.autographs => Icons.draw_outlined,
+    DeviceCategory.cycling => Icons.pedal_bike,
+    DeviceCategory.fishing => Icons.set_meal_outlined,
+    DeviceCategory.camping => Icons.terrain,
+    DeviceCategory.cosplay => Icons.theater_comedy_outlined,
+    DeviceCategory.womenswear => Icons.woman,
+    DeviceCategory.menswear => Icons.man,
+    DeviceCategory.shoes => Icons.ice_skating,
+    DeviceCategory.sunglasses => Icons.wb_sunny_outlined,
+    DeviceCategory.furniture => Icons.weekend_outlined,
+    DeviceCategory.kitchen => Icons.soup_kitchen_outlined,
+    DeviceCategory.appliances => Icons.kitchen_outlined,
+    DeviceCategory.garden => Icons.yard_outlined,
+    DeviceCategory.pets => Icons.pets_outlined,
+    DeviceCategory.coffeeTea => Icons.coffee_outlined,
+    DeviceCategory.sweets => Icons.cookie_outlined,
+    DeviceCategory.localFood => Icons.set_meal,
+    DeviceCategory.spices => Icons.local_dining,
+    DeviceCategory.carParts => Icons.settings_outlined,
+    DeviceCategory.carGear => Icons.directions_car_outlined,
+    DeviceCategory.motoGear => Icons.two_wheeler,
+    DeviceCategory.tools => Icons.build_outlined,
   };
 
   Color get color =>
@@ -219,6 +249,34 @@ extension CategoryEmoji on DeviceCategory {
     DeviceCategory.ebooks => '📘',
     DeviceCategory.templates => '🖼️',
     DeviceCategory.sounds => '🎵',
+    DeviceCategory.tv => '📺',
+    DeviceCategory.pcParts => '🖥️',
+    DeviceCategory.smartHome => '💡',
+    DeviceCategory.drones => '🚁',
+    DeviceCategory.militaria => '🎖️',
+    DeviceCategory.memorabilia => '🏆',
+    DeviceCategory.autographs => '✍️',
+    DeviceCategory.cycling => '🚲',
+    DeviceCategory.fishing => '🎣',
+    DeviceCategory.camping => '⛺',
+    DeviceCategory.cosplay => '🎭',
+    DeviceCategory.womenswear => '👗',
+    DeviceCategory.menswear => '👔',
+    DeviceCategory.shoes => '👠',
+    DeviceCategory.sunglasses => '🕶️',
+    DeviceCategory.furniture => '🛋️',
+    DeviceCategory.kitchen => '🍳',
+    DeviceCategory.appliances => '🧺',
+    DeviceCategory.garden => '🌱',
+    DeviceCategory.pets => '🐾',
+    DeviceCategory.coffeeTea => '☕',
+    DeviceCategory.sweets => '🍫',
+    DeviceCategory.localFood => '🍯',
+    DeviceCategory.spices => '🫒',
+    DeviceCategory.carParts => '🚗',
+    DeviceCategory.carGear => '🧰',
+    DeviceCategory.motoGear => '🏍️',
+    DeviceCategory.tools => '🔧',
   };
 }
 

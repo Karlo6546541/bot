@@ -369,6 +369,18 @@ class SeedData {
         DeviceCategory.sneakers,
       ),
       d('Gramofon Lenco', 'Vintage, 1975.', vg, 140, DeviceCategory.vintage),
+      // Hrana i piće
+      d('Dalmatinski med', 'Domaći, 700 g', nw, 12, DeviceCategory.localFood),
+      d('Kava u zrnu', 'Arabica, 1 kg', nw, 18, DeviceCategory.coffeeTea),
+      // Auto, alati i vrt
+      d('Aku bušilica', 'Bosch 18 V, 2 baterije', vg, 85, DeviceCategory.tools),
+      d(
+        'Zimske gume',
+        '205/55 R16, set od 4',
+        gd,
+        160,
+        DeviceCategory.carParts,
+      ),
     ];
     // Opisi i datoteke za nekoliko demo predmeta.
     return [

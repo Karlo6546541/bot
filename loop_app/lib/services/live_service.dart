@@ -593,6 +593,7 @@ class LiveService {
     String? coverPath,
     String? category,
     LiveSells sells = LiveSells.physical,
+    bool shop = false,
     bool relistUnsold = true,
     List<String?>? names,
   }) async {
@@ -667,6 +668,7 @@ class LiveService {
       coverPath: coverPath,
       category: category,
       sells: sells,
+      shop: shop,
       relistUnsold: relistUnsold,
     );
     await _storage.putLiveShow(show);
@@ -727,6 +729,8 @@ class LiveService {
       relistUnsold: show.relistUnsold,
       modIds: show.modIds,
       verifiedOnly: show.verifiedOnly,
+      sells: show.sells,
+      shop: show.shop,
     );
     await _storage.putLiveShow(updated);
     return updated;
@@ -1597,6 +1601,15 @@ class LiveService {
       mods.add(userId);
     }
     await _storage.putLiveShow(show.copyWith(modIds: mods));
+  }
+
+  /// Domaćin uključuje/isključuje svoju trgovinu (Kupi odmah) u liveu.
+  Future<void> setShop(String hostId, String showId, bool on) async {
+    final show = _requireHost(hostId, showId);
+    if (show.endedAt != null) {
+      throw TradeException(t('Live je završio.'));
+    }
+    await _storage.putLiveShow(show.copyWith(shop: on));
   }
 
   /// Utišavanje ([modMute], [modUnmute]) i uklanjanje ([modBan]) gledatelja.
