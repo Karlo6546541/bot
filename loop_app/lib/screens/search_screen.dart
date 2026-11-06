@@ -26,6 +26,7 @@ import '../widgets/shop_widgets.dart';
 import '../widgets/user_avatar.dart';
 import 'public_profile_screen.dart';
 import 'swipe_feed_screen.dart';
+import '../widgets/pill_tabs.dart';
 
 /// Pretraga objava (oglasi i aukcije) i korisničkih računa (trgovina).
 class SearchScreen extends ConsumerStatefulWidget {
@@ -605,17 +606,9 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
           title: empty ? Text(t('Pretraži')) : input,
           bottom: empty
               ? null
-              : TabBar(
-                  // Bez rezanja naziva ("Objav", "Raču"): kartice se pomiču.
-                  isScrollable: true,
-                  tabAlignment: TabAlignment.start,
-                  indicatorColor: LoopColors.textPrimary,
-                  labelColor: LoopColors.textPrimary,
-                  unselectedLabelColor: LoopColors.textSecondary,
-                  labelStyle: const TextStyle(
-                    fontWeight: FontWeight.w800,
-                    fontSize: 15,
-                  ),
+              : PillTabBar(
+                  // Bez rezanja naziva ("Objav", "Raču"): kapsula se pomiče.
+                  scrollable: true,
                   tabs: [
                     Tab(key: const ValueKey('search-tab-top'), text: t('Top')),
                     Tab(text: t('Objave ({0})', ['${posts.length}'])),

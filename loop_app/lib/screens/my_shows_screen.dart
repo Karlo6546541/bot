@@ -18,6 +18,7 @@ import '../widgets/trade_actions.dart';
 import 'auctions_screen.dart' show BrowseCardMedia;
 import 'live_screens.dart';
 import 'seller_finance_screens.dart';
+import '../widgets/pill_tabs.dart';
 
 /// Moji showovi (Seller Hub): nadolazeći (otvori, kopiraj link, otkaži) i
 /// prošli (sažetak, dupliciraj show).
@@ -57,7 +58,7 @@ class MyShowsScreen extends ConsumerWidget {
       child: Scaffold(
         appBar: AppBar(
           title: Text(t('Moji showovi')),
-          bottom: TabBar(
+          bottom: PillTabBar(
             tabs: [
               Tab(
                 key: const ValueKey('shows-tab-upcoming'),

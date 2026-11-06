@@ -18,6 +18,7 @@ import '../widgets/formatters.dart';
 import '../widgets/loop_snackbar.dart';
 import 'seller_screens.dart' show SellerInfoScreen, showPayoutDialog;
 import 'seller_verification_screen.dart';
+import '../widgets/pill_tabs.dart';
 
 /// Prodaje, naknade i isplate prodavača (po zapisima transakcija).
 List<LoopTransaction> sellerLedger(AppState s, String me) => [
@@ -118,15 +119,7 @@ class FinancialsScreen extends ConsumerWidget {
       child: Scaffold(
         appBar: AppBar(
           title: Text(t('Financije')),
-          bottom: TabBar(
-            dividerColor: LoopColors.surfaceHover,
-            indicatorColor: LoopColors.textPrimary,
-            labelColor: LoopColors.textPrimary,
-            unselectedLabelColor: LoopColors.textSecondary,
-            labelStyle: const TextStyle(
-              fontWeight: FontWeight.w900,
-              fontSize: 15,
-            ),
+          bottom: PillTabBar(
             tabs: [
               tab('fin-tab-payouts', t('Isplate')),
               tab('fin-tab-ledger', t('Transakcije')),

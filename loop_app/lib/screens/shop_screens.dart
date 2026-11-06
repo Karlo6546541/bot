@@ -16,6 +16,7 @@ import '../widgets/trade_actions.dart';
 import '../widgets/user_avatar.dart';
 import 'device_detail_screen.dart';
 import 'public_profile_screen.dart';
+import '../widgets/pill_tabs.dart';
 
 /// Ponude cijena: Primljene (za moje oglase, prodavatelj) i Poslane (moje
 /// ponude kao kupac). Najprije one koje čekaju moj odgovor.
@@ -81,7 +82,7 @@ class BargainsScreen extends ConsumerWidget {
       child: Scaffold(
         appBar: AppBar(
           title: Text(t('Ponude')),
-          bottom: TabBar(
+          bottom: PillTabBar(
             tabs: [
               Tab(
                 key: const ValueKey('offers-tab-in'),
@@ -543,7 +544,7 @@ class FollowListScreen extends ConsumerWidget {
       child: Scaffold(
         appBar: AppBar(
           title: Text(user?.shopTitle ?? ''),
-          bottom: TabBar(
+          bottom: PillTabBar(
             tabs: [
               Tab(text: t('Pratitelji ({0})', ['${followers.length}'])),
               Tab(text: t('Prati ({0})', ['${following.length}'])),

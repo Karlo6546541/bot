@@ -45,6 +45,7 @@ import '../widgets/user_avatar.dart';
 import 'deliveries_screen.dart';
 import 'public_profile_screen.dart';
 import 'seller_screens.dart' show ensureSellerInfo;
+import '../widgets/pill_tabs.dart';
 
 /// Crvena boja live aukcija (oznaka UŽIVO, gumb za licitiranje).
 const kLiveRed = LoopColors.live;
@@ -249,10 +250,8 @@ class _ViewersSheet extends ConsumerWidget {
         height: embedded ? null : MediaQuery.sizeOf(context).height * 0.6,
         child: Column(
           children: [
-            TabBar(
-              indicatorColor: LoopColors.accent,
-              labelColor: Colors.white,
-              unselectedLabelColor: Colors.white54,
+            PillTabBar(
+              onDark: true,
               tabs: [
                 Tab(
                   key: const ValueKey('viewers-tab-watching'),
@@ -6402,59 +6401,35 @@ class _LiveShopSheet extends ConsumerWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            // Shop and auction queue stay inside the broadcast.
-            Container(
-              margin: const EdgeInsets.fromLTRB(20, 0, 20, 16),
-              padding: const EdgeInsets.all(4),
-              decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: .10),
-                borderRadius: BorderRadius.circular(14),
-                border: Border.all(color: Colors.white.withValues(alpha: .10)),
-              ),
-              child: TabBar(
-                isScrollable: giveawayLots.isNotEmpty || soldLots.isNotEmpty,
-                tabAlignment: giveawayLots.isNotEmpty || soldLots.isNotEmpty
-                    ? TabAlignment.start
-                    : TabAlignment.fill,
-                labelColor: _white,
-                unselectedLabelColor: _muted,
-                indicatorColor: kBidOrange,
-                indicator: BoxDecoration(
-                  color: Colors.white.withValues(alpha: .16),
-                  borderRadius: BorderRadius.circular(11),
-                ),
-                indicatorSize: TabBarIndicatorSize.tab,
-                dividerColor: Colors.transparent,
-                labelStyle: const TextStyle(
-                  fontFamily: kFontFamily,
-                  fontWeight: FontWeight.w600,
-                ),
-                tabs: [
-                  if (show.shop)
-                    Tab(
-                      height: 36,
-                      key: const ValueKey('live-tab-shop'),
-                      text: t('Kupi odmah ({0})', ['${products.length}']),
-                    ),
+            // Trgovina i red licitacija ostaju unutar prijenosa.
+            PillTabBar(
+              onDark: true,
+              scrollable: giveawayLots.isNotEmpty || soldLots.isNotEmpty,
+              tabs: [
+                if (show.shop)
                   Tab(
                     height: 36,
-                    key: const ValueKey('live-tab-auction'),
-                    text: t('Aukcija ({0})', ['${auctionLots.length}']),
+                    key: const ValueKey('live-tab-shop'),
+                    text: t('Kupi odmah ({0})', ['${products.length}']),
                   ),
-                  if (giveawayLots.isNotEmpty)
-                    Tab(
-                      height: 36,
-                      key: const ValueKey('live-tab-giveaway'),
-                      text: t('Giveaway ({0})', ['${giveawayLots.length}']),
-                    ),
-                  if (soldLots.isNotEmpty)
-                    Tab(
-                      height: 36,
-                      key: const ValueKey('live-tab-sold'),
-                      text: t('Prodano ({0})', ['${soldLots.length}']),
-                    ),
-                ],
-              ),
+                Tab(
+                  height: 36,
+                  key: const ValueKey('live-tab-auction'),
+                  text: t('Aukcija ({0})', ['${auctionLots.length}']),
+                ),
+                if (giveawayLots.isNotEmpty)
+                  Tab(
+                    height: 36,
+                    key: const ValueKey('live-tab-giveaway'),
+                    text: t('Giveaway ({0})', ['${giveawayLots.length}']),
+                  ),
+                if (soldLots.isNotEmpty)
+                  Tab(
+                    height: 36,
+                    key: const ValueKey('live-tab-sold'),
+                    text: t('Prodano ({0})', ['${soldLots.length}']),
+                  ),
+              ],
             ),
             Expanded(
               child: TabBarView(

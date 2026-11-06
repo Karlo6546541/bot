@@ -18,6 +18,7 @@ import 'add_device_screen.dart';
 import 'create_auction_screen.dart';
 import 'device_detail_screen.dart';
 import 'live_screens.dart';
+import '../widgets/pill_tabs.dart';
 
 /// Gdje je predmet u inventaru.
 enum InventoryState { active, draft }
@@ -275,7 +276,7 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> {
         appBar: AppBar(
           title: Text(t('Inventar')),
           bottom: PreferredSize(
-            preferredSize: const Size.fromHeight(112),
+            preferredSize: const Size.fromHeight(118),
             child: Column(
               children: [
                 Padding(
@@ -289,34 +290,27 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> {
                       isDense: true,
                       contentPadding: const EdgeInsets.symmetric(vertical: 10),
                       border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(999),
+                        borderRadius: BorderRadius.circular(16),
                       ),
                     ),
                   ),
                 ),
-                VisionGlass(
-                  radius: 99,
-                  child: TabBar(
-                    dividerColor: LoopColors.surfaceHover,
-                    indicatorColor: LoopColors.textPrimary,
-                    labelColor: LoopColors.textPrimary,
-                    unselectedLabelColor: LoopColors.textSecondary,
-                    labelStyle: const TextStyle(fontWeight: FontWeight.w900),
-                    tabs: [
-                      Tab(
-                        key: const ValueKey('inv-tab-active'),
-                        text: t('Aktivno ({0})', ['${active.length}']),
-                      ),
-                      Tab(
-                        key: const ValueKey('inv-tab-draft'),
-                        text: t('Spremljeno ({0})', ['${drafts.length}']),
-                      ),
-                      Tab(
-                        key: const ValueKey('inv-tab-sold'),
-                        text: t('Prodano ({0})', ['${sold.length}']),
-                      ),
-                    ],
-                  ),
+                PillTabBar(
+                  padding: EdgeInsets.zero,
+                  tabs: [
+                    Tab(
+                      key: const ValueKey('inv-tab-active'),
+                      text: t('Aktivno ({0})', ['${active.length}']),
+                    ),
+                    Tab(
+                      key: const ValueKey('inv-tab-draft'),
+                      text: t('Spremljeno ({0})', ['${drafts.length}']),
+                    ),
+                    Tab(
+                      key: const ValueKey('inv-tab-sold'),
+                      text: t('Prodano ({0})', ['${sold.length}']),
+                    ),
+                  ],
                 ),
               ],
             ),

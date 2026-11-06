@@ -90,6 +90,12 @@ class LoopColors {
 
 /// Kartice i polja: velike, mekano zaobljene (Apple stil).
 const double kRadius = 24;
+
+/// Jedinstveni radijusi (kapsula je rezervirana za promjenu kartica, vidi
+/// `widgets/pill_tabs.dart`): čipovi 12 · gumbi i polja 16 · kartice 24 ·
+/// listovi i prozori 28+.
+const double kRadiusChip = 12;
+const double kRadiusButton = 16;
 const String kFontFamily = 'Inter';
 
 /// Live je uvijek taman (kao TikTok/Whatnot), neovisno o temi aplikacije:
@@ -211,7 +217,7 @@ ThemeData buildLoopTheme({Color? accent}) {
           letterSpacing: -0.1,
         ),
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(kSimpleDesign ? 99 : 20),
+          borderRadius: BorderRadius.circular(kRadiusButton),
         ),
       ),
     ),
@@ -227,7 +233,7 @@ ThemeData buildLoopTheme({Color? accent}) {
         ),
         side: BorderSide(color: LoopColors.glassBorder),
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(kSimpleDesign ? 99 : 20),
+          borderRadius: BorderRadius.circular(kRadiusButton),
         ),
       ),
     ),
@@ -246,7 +252,10 @@ ThemeData buildLoopTheme({Color? accent}) {
       selectedColor: LoopColors.textPrimary,
       side: BorderSide(color: LoopColors.glassBorder),
       showCheckmark: false,
-      shape: const StadiumBorder(),
+      // Čipovi (filteri, oznake) nisu kapsule: kapsula je samo za tabove.
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(kRadiusChip),
+      ),
       labelStyle: TextStyle(
         fontFamily: kFontFamily,
         fontWeight: FontWeight.w600,
@@ -261,7 +270,9 @@ ThemeData buildLoopTheme({Color? accent}) {
     floatingActionButtonTheme: FloatingActionButtonThemeData(
       backgroundColor: primary,
       foregroundColor: onPrimary,
-      shape: const StadiumBorder(),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(kRadiusButton),
+      ),
     ),
     inputDecorationTheme: InputDecorationTheme(
       // Pomoćni tekst i greške se lome u više redova (ne režu se).
@@ -272,19 +283,19 @@ ThemeData buildLoopTheme({Color? accent}) {
       labelStyle: TextStyle(color: LoopColors.textSecondary),
       hintStyle: TextStyle(color: LoopColors.textSecondary),
       border: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(18),
+        borderRadius: BorderRadius.circular(kRadiusButton),
         borderSide: BorderSide(color: LoopColors.glassBorder, width: 1),
       ),
       enabledBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(18),
+        borderRadius: BorderRadius.circular(kRadiusButton),
         borderSide: BorderSide(color: LoopColors.glassBorder, width: 1),
       ),
       focusedBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(18),
+        borderRadius: BorderRadius.circular(kRadiusButton),
         borderSide: BorderSide(color: LoopColors.accent, width: 1.5),
       ),
       errorBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(18),
+        borderRadius: BorderRadius.circular(kRadiusButton),
         borderSide: BorderSide(color: LoopColors.error),
       ),
       contentPadding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
