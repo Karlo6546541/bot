@@ -4,6 +4,7 @@ import 'dart:convert';
 
 import 'package:flutter/material.dart' show ThemeMode, BuildContext;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../config/design_variant.dart';
 import 'package:supabase_flutter/supabase_flutter.dart' show Supabase;
 
 import '../models/app_user.dart';
@@ -163,8 +164,12 @@ final tickIntervalProvider = Provider<Duration?>(
 final homeTabProvider = NotifierProvider<HomeTab, int>(HomeTab.new);
 
 class HomeTab extends Notifier<int> {
+  /// Kartica Uživo (live preko cijelog ekrana) u dizajnu Subhasto.
+  static const stage = 5;
+
+  /// Dizajn Subhasto otvara aplikaciju ravno u live (Uživo).
   @override
-  int build() => 0;
+  int build() => kSimpleDesign ? stage : 0;
 
   void select(int index) => state = index;
 }

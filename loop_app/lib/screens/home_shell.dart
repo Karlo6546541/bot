@@ -18,6 +18,7 @@ import 'live_home_screen.dart';
 import 'live_screens.dart';
 import 'profile_screen.dart';
 import 'seller_hub.dart';
+import 'stage_tab.dart';
 import '../l10n/tr.dart';
 import '../widgets/language_button.dart';
 import '../services/deep_link.dart';
@@ -67,11 +68,12 @@ class _HomeShellState extends ConsumerState<HomeShell> {
     while (_history.isNotEmpty && _history.last == now) {
       _history.removeLast();
     }
+    final base = (kSimpleDesign ? HomeTab.stage : 0, 'for-you');
     final (tab, filter) = _history.isNotEmpty
         ? _history.removeLast()
-        : now == (0, 'for-you')
+        : now == base
         ? (-1, '')
-        : (0, 'for-you');
+        : base;
     if (tab < 0) {
       SystemNavigator.pop();
       return;
@@ -97,8 +99,9 @@ class _HomeShellState extends ConsumerState<HomeShell> {
 
   List<ShellDestination> get _destinations => kSimpleDesign
       ? [
-          ShellDestination(t('Početna'), Icons.home_outlined, Icons.home),
+          // Redoslijed iz dizajna: Uživo · Istraži · Prodaj · Profil.
           ShellDestination(t('Uživo'), Icons.sensors_outlined, Icons.sensors),
+          ShellDestination(t('Istraži'), Icons.explore_outlined, Icons.explore),
           ShellDestination(
             t('Prodaj'),
             Icons.add_circle_outline,
@@ -125,10 +128,10 @@ class _HomeShellState extends ConsumerState<HomeShell> {
   // Legacy deep links keep their meaning; three destinations collect those views.
   int _navIndex(int tab) => kSimpleDesign
       ? switch (tab) {
+          HomeTab.stage => 0,
           4 => 2,
           2 || 3 => 3,
-          0 when ref.read(homeFilterProvider) == 'live' => 1,
-          _ => 0,
+          _ => 1,
         }
       : switch (tab) {
           4 => 1,
@@ -139,19 +142,11 @@ class _HomeShellState extends ConsumerState<HomeShell> {
   void _onNav(int nav) {
     if (kSimpleDesign) {
       if (nav == 2 && blockGuest(context)) return;
-      if (nav == 0 || nav == 1) {
-        ref
-            .read(homeFilterProvider.notifier)
-            .select(nav == 1 ? 'live' : 'for-you');
+      if (nav == 0) {
+        _go(HomeTab.stage);
+      } else if (nav == 1) {
+        ref.read(homeFilterProvider.notifier).select('for-you');
         _go(0);
-        if (nav == 1) {
-          final live = ref
-              .read(appProvider)
-              .activeLives
-              .where((entry) => entry.$2.isLive)
-              .firstOrNull;
-          if (live != null) LiveRoomScreen.open(context, live.$1.id);
-        }
       } else {
         _go(nav == 2 ? 4 : 3);
       }
@@ -170,7 +165,8 @@ class _HomeShellState extends ConsumerState<HomeShell> {
     final tab = ref.read(homeTabProvider);
     final filter = ref.read(homeFilterProvider);
     AppLocation.setHome(switch (tab) {
-      0 when filter == 'for-you' => '',
+      HomeTab.stage => '',
+      0 when filter == 'for-you' => kSimpleDesign ? 'tab=istrazi' : '',
       0 => 'tab=$filter',
       1 => 'tab=kategorije',
       2 => 'tab=moje',
@@ -260,6 +256,9 @@ class _HomeShellState extends ConsumerState<HomeShell> {
         case 'studio':
         case 'prodavac':
           _go(4);
+        case 'istrazi':
+          ref.read(homeFilterProvider.notifier).select('for-you');
+          _go(0);
         default:
           _go(0);
           ref.read(homeFilterProvider.notifier).select(tab);
@@ -340,7 +339,12 @@ class _HomeShellState extends ConsumerState<HomeShell> {
         padding: const EdgeInsets.symmetric(vertical: 20),
         child: LoopLogo(size: 22, onTap: _goHome),
       ),
-      appBar: _index == 0 || _index == 4 || (kSimpleDesign && _index == 3)
+      stageMode: kSimpleDesign && _index == HomeTab.stage,
+      appBar:
+          _index == 0 ||
+              _index == 4 ||
+              _index == HomeTab.stage ||
+              (kSimpleDesign && _index == 3)
           ? null
           : AppBar(
               // Jednostavna traka: logo lijevo, desno samo pretraga, poruke,
@@ -418,6 +422,17 @@ class _HomeShellState extends ConsumerState<HomeShell> {
         enabled: _index == 4,
         child: const SellerHubScreen(embedded: true),
       ),
+      if (kSimpleDesign)
+        TickerMode(
+          enabled: _index == HomeTab.stage,
+          child: StageTab(
+            visible: _index == HomeTab.stage,
+            onExplore: () {
+              ref.read(homeFilterProvider.notifier).select('for-you');
+              _go(0);
+            },
+          ),
+        ),
     ],
   );
 }

@@ -148,6 +148,9 @@ void main() {
       addTearDown(tester.view.reset);
       await tester.pumpWidget(app());
       await tester.pumpAndSettle();
+      // Aplikacija se otvara u Uživo (traka je skupljena u ručku).
+      expect(find.byKey(const ValueKey('dock-expand')), findsOneWidget);
+      await mainTab(tester, 'Istraži');
       for (var i = 0; i < 4; i++) {
         expect(find.byKey(ValueKey('simple-nav-$i')), findsOneWidget);
       }
@@ -189,6 +192,7 @@ void main() {
   ) async {
     await tester.pumpWidget(app());
     await tester.pumpAndSettle();
+    await mainTab(tester, 'Istraži');
     final shops = find.byWidgetPredicate(
       (widget) =>
           widget is InkWell &&

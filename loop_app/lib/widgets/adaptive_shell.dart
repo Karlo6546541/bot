@@ -75,7 +75,12 @@ class AdaptiveShell extends StatefulWidget {
     this.railHeader,
     this.immersiveNavigation = false,
     this.showNavigation = true,
+    this.stageMode = false,
   });
+
+  /// Live preko cijelog ekrana: traka je skupljena u ručku i otvara se
+  /// dodirom na nekoliko sekundi (dizajn Subhasto).
+  final bool stageMode;
 
   final List<ShellDestination> destinations;
   final int selectedIndex;
@@ -93,14 +98,20 @@ class AdaptiveShell extends StatefulWidget {
 
 class _AdaptiveShellState extends State<AdaptiveShell> {
   Timer? _idle;
-  bool _collapsed = false;
+  late bool _collapsed = widget.stageMode;
 
   void _expand() {
     _idle?.cancel();
     if (_collapsed) setState(() => _collapsed = false);
+    if (widget.stageMode) {
+      _idle = Timer(const Duration(seconds: 4), () {
+        if (mounted && widget.stageMode) setState(() => _collapsed = true);
+      });
+    }
   }
 
   bool _scroll(ScrollNotification n) {
+    if (widget.stageMode) return false;
     if (n.metrics.axis != Axis.vertical) return false;
     if (n is ScrollStartNotification || n is ScrollUpdateNotification) {
       _idle?.cancel();
@@ -115,7 +126,12 @@ class _AdaptiveShellState extends State<AdaptiveShell> {
   @override
   void didUpdateWidget(covariant AdaptiveShell oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (oldWidget.selectedIndex != widget.selectedIndex) _expand();
+    if (oldWidget.stageMode != widget.stageMode) {
+      _idle?.cancel();
+      setState(() => _collapsed = widget.stageMode);
+    } else if (oldWidget.selectedIndex != widget.selectedIndex) {
+      _expand();
+    }
   }
 
   @override

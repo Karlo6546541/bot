@@ -8,8 +8,8 @@ Future<void> mainTab(WidgetTester tester, String label) async {
     final index = switch (label) {
       'Prodavač' || 'Studio' || 'Prodaj' => 2,
       'Moje' || 'Profil' || 'Trezor' => 3,
-      'Uživo' => 1,
-      _ => 0,
+      'Uživo' => 0,
+      _ => 1,
     };
     Finder target() => find.byKey(ValueKey('simple-nav-$index')).hitTestable();
     for (var i = 0; i < 6; i++) {

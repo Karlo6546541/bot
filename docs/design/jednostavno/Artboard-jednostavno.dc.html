@@ -3,8 +3,6 @@
 <head>
 <meta charset="utf-8">
 <title>Subhasto</title>
-<script src="./vendor/react.js"></script>
-<script src="./vendor/react-dom.js"></script>
 <script src="./support.js"></script>
 </head>
 <body>
@@ -40,6 +38,7 @@ button:focus-visible,input:focus-visible{outline:2px solid rgba(255,255,255,.85)
 @keyframes headPulse{0%,100%{transform:scale(1)}50%{transform:scale(1.4)}}
 @keyframes commentA{from{opacity:0;transform:translateY(16px) scale(.94)}to{opacity:1;transform:none}}
 @keyframes commentB{from{opacity:0;transform:translateY(16px) scale(.94)}to{opacity:1;transform:none}}
+@keyframes heartUp{0%{transform:translateY(0) scale(.5);opacity:0}15%{opacity:1;transform:translateY(-14px) scale(1.1)}100%{transform:translateY(-190px) scale(.9);opacity:0}}
 @keyframes popA{0%{transform:scale(1)}35%{transform:scale(1.07);filter:brightness(1.5)}100%{transform:scale(1)}}
 @keyframes popB{0%{transform:scale(1)}35%{transform:scale(1.07);filter:brightness(1.5)}100%{transform:scale(1)}}
 @keyframes ringIn{from{stroke-dashoffset:var(--c)}}
@@ -55,107 +54,138 @@ button:focus-visible,input:focus-visible{outline:2px solid rgba(255,255,255,.85)
 <div style="position:relative;width:390px;height:844px;overflow:hidden;background:#000;color:#fff;font-family:-apple-system,'SF Pro Display','Inter',system-ui,sans-serif">
 
 <sc-if value="{{isStage}}" hint-placeholder-val="{{true}}">
-<div class="screen" style="position:absolute;top:0;left:0;right:0;bottom:0;overflow:hidden">
+<div class="screen" style="position:absolute;top:0;left:0;right:0;bottom:0;overflow:hidden;overflow:clip">
   <div style="position:absolute;top:0;left:0;right:0;bottom:0;background:{{stageBg}}"></div>
-  <div class="drift" style="position:absolute;left:-90px;top:200px;width:320px;height:320px;border-radius:50%;background:{{orbA}};filter:blur(70px)"></div>
-  <div class="drift" style="position:absolute;right:-110px;top:80px;width:300px;height:300px;border-radius:50%;background:{{orbB}};filter:blur(80px);animation-delay:-7s"></div>
+  <div class="drift" style="position:absolute;left:-90px;top:160px;width:320px;height:320px;border-radius:50%;background:{{orbA}};filter:blur(70px)"></div>
+  <div class="drift" style="position:absolute;right:-110px;top:60px;width:300px;height:300px;border-radius:50%;background:{{orbB}};filter:blur(80px);animation-delay:-7s"></div>
   <div style="position:absolute;left:50%;top:-30px;width:600px;height:640px;margin-left:-300px;background:linear-gradient(180deg,rgba(255,255,255,.18),rgba(255,255,255,0) 78%);clip-path:polygon(42% 0,58% 0,100% 100%,0 100%);filter:blur(26px);opacity:.5"></div>
-  <div style="position:absolute;left:50%;top:408px;width:300px;height:44px;margin-left:-150px;border-radius:50%;background:radial-gradient(ellipse at center,rgba(255,255,255,.22),rgba(255,255,255,0) 70%);filter:blur(8px)"></div>
+  <div style="position:absolute;left:50%;top:430px;width:300px;height:44px;margin-left:-150px;border-radius:50%;background:radial-gradient(ellipse at center,rgba(255,255,255,.22),rgba(255,255,255,0) 70%);filter:blur(8px)"></div>
 
-  <div style="position:absolute;left:0;right:0;top:160px;height:280px;display:flex;align-items:center;justify-content:center">
+  <div style="position:absolute;left:0;right:0;top:110px;height:340px;display:flex;align-items:center;justify-content:center">
     <sc-if value="{{isWatch}}" hint-placeholder-val="{{true}}">
-    <div class="art"><div class="floaty" style="width:252px;height:252px"><dc-import name="Art" kind="watch" anim="{{true}}" hint-size="252px,252px"></dc-import></div></div>
+    <div class="art"><div class="floaty" style="width:290px;height:290px"><dc-import name="Art" kind="watch" anim="{{true}}" hint-size="290px,290px"></dc-import></div></div>
     </sc-if>
     <sc-if value="{{isShoe}}" hint-placeholder-val="{{false}}">
-    <div class="art"><div class="floaty" style="width:310px;height:194px"><dc-import name="Art" kind="shoe" hint-size="310px,194px"></dc-import></div></div>
+    <div class="art"><div class="floaty" style="width:340px;height:213px"><dc-import name="Art" kind="shoe" hint-size="340px,213px"></dc-import></div></div>
     </sc-if>
     <sc-if value="{{isCam}}" hint-placeholder-val="{{false}}">
-    <div class="art"><div class="floaty" style="width:284px;height:227px"><dc-import name="Art" kind="cam" hint-size="284px,227px"></dc-import></div></div>
+    <div class="art"><div class="floaty" style="width:310px;height:248px"><dc-import name="Art" kind="cam" hint-size="310px,248px"></dc-import></div></div>
+    </sc-if>
+    <sc-if value="{{isPad}}" hint-placeholder-val="{{false}}">
+    <div class="art"><div class="floaty" style="width:330px;height:220px"><dc-import name="Art" kind="pad" hint-size="330px,220px"></dc-import></div></div>
+    </sc-if>
+    <sc-if value="{{isPhones}}" hint-placeholder-val="{{false}}">
+    <div class="art"><div class="floaty" style="width:290px;height:268px"><dc-import name="Art" kind="phones" hint-size="290px,268px"></dc-import></div></div>
     </sc-if>
     <sc-if value="{{isVinyl}}" hint-placeholder-val="{{false}}">
-    <div class="art"><div class="floaty" style="width:250px;height:250px"><dc-import name="Art" kind="vinyl" anim="{{true}}" hint-size="250px,250px"></dc-import></div></div>
+    <div class="art"><div class="floaty" style="width:288px;height:288px"><dc-import name="Art" kind="vinyl" anim="{{true}}" hint-size="288px,288px"></dc-import></div></div>
     </sc-if>
   </div>
 
-  <div style="position:absolute;top:0;left:0;right:0;height:210px;background:linear-gradient(180deg,rgba(0,0,0,.72),rgba(0,0,0,0))"></div>
-  <div style="position:absolute;bottom:0;left:0;right:0;height:470px;background:linear-gradient(0deg,#000 8%,rgba(0,0,0,.72) 45%,rgba(0,0,0,0))"></div>
+  <div onPointerDown="{{swDown}}" onPointerUp="{{swUp}}" style="position:absolute;left:0;right:0;top:80px;height:400px;touch-action:pan-y"></div>
+  <div style="position:absolute;left:0;right:0;top:63px;display:flex;justify-content:center;align-items:center;gap:6px;pointer-events:none">
+    <sc-for list="{{dots}}" as="dt" hint-placeholder-count="4"><span style="display:block;width:{{dt.w}};height:6px;border-radius:9999px;background:{{dt.bg}};transition:all .4s cubic-bezier(.22,1,.36,1)"></span></sc-for>
+  </div>
+  <button aria-label="Prethodni show" onClick="{{swPrev}}" style="position:absolute;left:8px;top:250px;width:44px;height:44px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,.08);color:rgba(255,255,255,.7)"><svg viewBox="0 0 24 24" width="20" height="20" class="ic" aria-hidden="true"><path d="M15 5l-7 7 7 7"></path></svg></button>
+  <button aria-label="Sljedeći show" onClick="{{swNext}}" style="position:absolute;right:8px;top:250px;width:44px;height:44px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,.08);color:rgba(255,255,255,.7)"><svg viewBox="0 0 24 24" width="20" height="20" class="ic" aria-hidden="true"><path d="M9 5l7 7-7 7"></path></svg></button>
 
-  <div style="position:absolute;left:24px;right:24px;top:54px;display:flex;align-items:center;justify-content:space-between;gap:8px">
-    <button class="glass" aria-label="Otvori shop prodavača" onClick="{{openSeller}}" style="height:44px;padding:0 14px 0 5px;border-radius:9999px;display:flex;align-items:center;gap:9px;min-width:0">
-      <span style="flex:none;width:34px;height:34px;border-radius:50%;background:linear-gradient(145deg,#f4d9a8,#9a6b3a);display:flex;align-items:center;justify-content:center;color:#241606;font-size:15px;font-weight:700">{{sellerInit}}</span>
-      <span style="font-size:15px;font-weight:600;letter-spacing:-.01em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{sellerName}}</span>
-      <span style="flex:none;display:flex;align-items:center;gap:6px">
-        <span class="blink" style="width:7px;height:7px;border-radius:50%;background:#ff453a;box-shadow:0 0 10px #ff453a"></span>
-        <span style="font-size:12px;font-weight:700;letter-spacing:.08em">LIVE</span>
-      </span>
-    </button>
-    <div style="display:flex;gap:8px;flex:none">
-      <button class="glass" aria-label="Pretraži" onClick="{{openSearch}}" style="width:44px;height:44px;border-radius:50%;display:flex;align-items:center;justify-content:center">
-        <svg viewBox="0 0 24 24" width="20" height="20" class="ic" aria-hidden="true"><circle cx="11" cy="11" r="6.5"></circle><path d="M16 16l4.5 4.5"></path></svg>
-      </button>
-      <button class="glass" aria-label="Obavijesti" onClick="{{openNotifs}}" style="position:relative;width:44px;height:44px;border-radius:50%;display:flex;align-items:center;justify-content:center">
-        <svg viewBox="0 0 24 24" width="20" height="20" class="ic" aria-hidden="true"><path d="M6 17V11a6 6 0 0 1 12 0v6l1.5 2h-15z"></path><path d="M10 21h4"></path></svg>
-        <span style="position:absolute;top:-2px;right:-2px;min-width:18px;height:18px;padding:0 5px;border-radius:9999px;background:#ff453a;color:#fff;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center">{{unreadN}}</span>
-      </button>
+  <button aria-label="Svi live showovi" onClick="{{openLiveNow}}" style="position:absolute;left:16px;top:46px;width:40px;height:40px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,.12);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border:.5px solid rgba(255,255,255,.14)"><svg viewBox="0 0 24 24" width="19" height="19" class="ic" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h10"></path></svg></button>
+  <button aria-label="Pretraži" onClick="{{openSrch}}" style="position:absolute;right:16px;top:46px;width:40px;height:40px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,.12);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border:.5px solid rgba(255,255,255,.14)"><svg viewBox="0 0 24 24" width="19" height="19" class="ic" aria-hidden="true"><circle cx="11" cy="11" r="6.5"></circle><path d="M16 16l4.5 4.5"></path></svg></button>
+
+  <sc-if value="{{gvOn}}">
+    <div style="position:absolute;left:50%;top:94px;margin-left:-150px;width:300px;height:42px;border-radius:9999px;padding:0 5px 0 14px;display:flex;align-items:center;gap:8px;background:rgba(255,255,255,.12);backdrop-filter:blur(22px);-webkit-backdrop-filter:blur(22px);border:.5px solid rgba(255,255,255,.18);overflow:hidden;animation:popA .6s both">
+      <span style="position:absolute;left:0;bottom:0;height:2px;width:{{gvBar}};background:#ffd27a;transition:width 1s linear"></span>
+      <svg viewBox="0 0 24 24" width="18" height="18" class="ic" style="flex:none;color:#ffd27a" aria-hidden="true"><rect x="4" y="9" width="16" height="11" rx="2"></rect><path d="M12 9v11M4 13h16"></path><path d="M12 9c-1.5-3.5-5-3-5-.8 0 1.6 3 .8 5 .8zM12 9c1.5-3.5 5-3 5-.8 0 1.6-3 .8-5 .8z"></path></svg>
+      <span style="flex:1;min-width:0;font-size:13.5px;font-weight:600;white-space:nowrap">Giveaway · {{gvPrize}}</span>
+      <span style="flex:none;font-size:13px;color:#ffd27a;font-variant-numeric:tabular-nums;font-weight:600">{{gvTime}}</span>
+      <button aria-label="Uđi u giveaway" onClick="{{gvEnter}}" style="flex:none;height:32px;padding:0 14px;border-radius:9999px;background:{{gvBtnBg}};color:{{gvBtnFg}};font-size:13px;font-weight:700">{{gvBtn}}</button>
     </div>
+  </sc-if>
+  <sc-if value="{{gvResShow}}">
+    <div style="position:absolute;left:32px;right:32px;top:190px;padding:20px 22px;border-radius:30px;text-align:center;background:rgba(20,20,24,.62);backdrop-filter:blur(30px);-webkit-backdrop-filter:blur(30px);border:.5px solid rgba(255,255,255,.2);box-shadow:0 0 60px rgba(255,210,122,.28);animation:popA .7s both">
+      <span style="display:block;font-size:12px;font-weight:700;letter-spacing:.1em;color:#ffd27a">GIVEAWAY</span>
+      <span style="display:block;margin-top:4px;font-size:28px;font-weight:700;letter-spacing:-.025em">Osvojio si!</span>
+      <span style="display:block;margin-top:4px;font-size:14px;color:rgba(255,255,255,.72)">{{gvResSub}}</span>
+    </div>
+  </sc-if>
+  <div style="position:absolute;right:24px;bottom:296px;width:56px;height:210px;pointer-events:none;overflow:hidden">
+    <sc-for list="{{heartsList}}" as="hh" hint-placeholder-count="0"><svg viewBox="0 0 24 24" width="26" height="26" style="position:absolute;right:{{hh.x}};bottom:0;color:{{hh.col}};animation:heartUp 1.4s ease-out both" aria-hidden="true"><path d="M12 20s-7.5-4.6-7.5-10.2A4.3 4.3 0 0 1 12 7.4a4.3 4.3 0 0 1 7.5 2.4C19.5 15.4 12 20 12 20z" fill="currentColor"></path></svg></sc-for>
   </div>
 
-  <div class="noscroll" style="position:absolute;left:0;right:0;top:108px;display:flex;gap:8px;padding:0 24px;overflow-x:auto">
-    <button class="glass" aria-label="Istraži" onClick="{{openBrowse}}" style="flex:none;width:44px;height:44px;border-radius:50%;display:flex;align-items:center;justify-content:center">
-      <svg viewBox="0 0 24 24" width="20" height="20" class="ic" aria-hidden="true"><rect x="4" y="4" width="6.5" height="6.5" rx="2"></rect><rect x="13.5" y="4" width="6.5" height="6.5" rx="2"></rect><rect x="4" y="13.5" width="6.5" height="6.5" rx="2"></rect><rect x="13.5" y="13.5" width="6.5" height="6.5" rx="2"></rect></svg>
-    </button>
-    <sc-for list="{{chips}}" as="ch" hint-placeholder-count="4">
-      <button class="glass" aria-pressed="{{ch.on}}" onClick="{{ch.pick}}" style="flex:none;height:44px;padding:0 20px;border-radius:9999px;font-size:15px;font-weight:500;background:{{ch.bg}};color:{{ch.fg}};transition:background .5s cubic-bezier(.22,1,.36,1),color .5s">{{ch.label}}</button>
-    </sc-for>
-  </div>
+  <div style="position:absolute;bottom:0;left:0;right:0;height:400px;background:linear-gradient(0deg,#000 10%,rgba(0,0,0,.74) 50%,rgba(0,0,0,0))"></div>
 
-  <div style="position:absolute;right:24px;top:296px;z-index:5;display:flex;flex-direction:column;gap:10px">
-    <sc-for list="{{acts}}" as="a" hint-placeholder-count="4">
-      <button class="glass" aria-label="{{a.aria}}" onClick="{{a.fn}}" style="width:46px;height:46px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:{{a.bg}};color:{{a.fg}};animation:{{a.anim}}">
-        <sc-if value="{{a.isHeart}}" hint-placeholder-val="{{true}}"><svg viewBox="0 0 24 24" width="21" height="21" class="ic" aria-hidden="true"><path d="M12 20s-7.5-4.6-7.5-10.2A4.3 4.3 0 0 1 12 7.4a4.3 4.3 0 0 1 7.5 2.4C19.5 15.4 12 20 12 20z"></path></svg></sc-if>
-        <sc-if value="{{a.isChat}}" hint-placeholder-val="{{false}}"><svg viewBox="0 0 24 24" width="21" height="21" class="ic" aria-hidden="true"><path d="M4 5.5h16v11H9.5L5 20.5v-4H4z"></path></svg></sc-if>
-        <sc-if value="{{a.isBag}}" hint-placeholder-val="{{false}}"><svg viewBox="0 0 24 24" width="21" height="21" class="ic" aria-hidden="true"><path d="M5 8h14l-1 12H6z"></path><path d="M9 8V6.5a3 3 0 0 1 6 0V8"></path></svg></sc-if>
-        <sc-if value="{{a.isMore}}" hint-placeholder-val="{{false}}"><svg viewBox="0 0 24 24" width="21" height="21" aria-hidden="true"><circle cx="5.5" cy="12" r="1.8" fill="currentColor"></circle><circle cx="12" cy="12" r="1.8" fill="currentColor"></circle><circle cx="18.5" cy="12" r="1.8" fill="currentColor"></circle></svg></sc-if>
-      </button>
-    </sc-for>
-  </div>
-
-  <div class="fadeTop" style="position:absolute;left:24px;right:24px;bottom:284px;display:flex;flex-direction:column;gap:6px;padding-top:30px;pointer-events:none">
+  <div class="fadeTop" style="position:absolute;left:24px;right:24px;bottom:292px;height:84px;display:flex;flex-direction:column;justify-content:flex-end;gap:6px;overflow:hidden;pointer-events:none">
     <sc-for list="{{shownComments}}" as="c" hint-placeholder-count="3">
       <div style="display:flex;justify-content:{{c.justify}};animation:{{c.anim}}">
-        <span class="bubble" style="background:{{c.bg}};color:{{c.fg}};padding:8px 14px;border-radius:19px;font-size:14px;line-height:1.3;max-width:262px"><b style="font-weight:600;margin-right:6px;opacity:{{c.nameOp}}">{{c.u}}</b>{{c.m}}</span>
+        <span class="bubble" style="background:{{c.bg}};color:{{c.fg}};padding:7px 13px;border-radius:18px;font-size:14px;line-height:1.3;max-width:262px"><b style="font-weight:600;margin-right:6px;opacity:{{c.nameOp}}">{{c.u}}</b>{{c.m}}</span>
       </div>
     </sc-for>
   </div>
 
-  <div style="position:absolute;left:24px;right:24px;bottom:184px;display:flex;align-items:flex-end;justify-content:space-between">
-    <div>
-      <span style="display:flex;align-items:center;gap:10px;font-size:15px;font-weight:500;color:rgba(255,255,255,.72);letter-spacing:-.005em">{{lotName}}<span style="display:flex;align-items:center;gap:5px;font-size:13px;color:rgba(255,255,255,.62)"><svg viewBox="0 0 24 24" width="14" height="14" class="ic" aria-hidden="true"><circle cx="9" cy="8" r="3.4"></circle><path d="M2.8 20c.6-3.6 3-5.4 6.2-5.4s5.6 1.8 6.2 5.4"></path></svg>{{viewers}}</span></span>
-      <span style="display:flex;align-items:baseline;gap:6px;margin-top:2px;transform-origin:left center;animation:{{priceAnim}}">
-        <span style="font-size:68px;font-weight:200;letter-spacing:-.045em;line-height:1;font-variant-numeric:tabular-nums">{{priceStr}}</span>
-        <span style="font-size:28px;font-weight:300;color:rgba(255,255,255,.6)">€</span>
+  <div style="position:absolute;left:24px;right:24px;bottom:238px;height:48px;display:flex;align-items:center;gap:8px">
+    <button class="glass" aria-label="Otvori shop prodavača" onClick="{{openSeller}}" style="flex:1;min-width:0;height:44px;padding:0 12px 0 5px;border-radius:9999px;display:flex;align-items:center;gap:8px">
+      <span style="flex:none;width:34px;height:34px;border-radius:50%;background:linear-gradient(145deg,#f4d9a8,#9a6b3a);display:flex;align-items:center;justify-content:center;color:#241606;font-size:15px;font-weight:700">{{sellerInit}}</span>
+      <span style="flex:1;min-width:0;font-size:15px;font-weight:600;letter-spacing:-.01em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{sellerName}}</span>
+      <span class="blink" style="flex:none;width:8px;height:8px;border-radius:50%;background:#ff453a;box-shadow:0 0 10px #ff453a"></span>
+    </button>
+    <sc-for list="{{acts}}" as="a" hint-placeholder-count="4">
+      <button class="glass" aria-label="{{a.aria}}" onClick="{{a.fn}}" style="flex:none;width:44px;height:44px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:{{a.bg}};color:{{a.fg}};animation:{{a.anim}}">
+        <sc-if value="{{a.isHeart}}" hint-placeholder-val="{{true}}"><svg viewBox="0 0 24 24" width="20" height="20" class="ic" aria-hidden="true"><path d="M12 20s-7.5-4.6-7.5-10.2A4.3 4.3 0 0 1 12 7.4a4.3 4.3 0 0 1 7.5 2.4C19.5 15.4 12 20 12 20z"></path></svg></sc-if>
+        <sc-if value="{{a.isChat}}" hint-placeholder-val="{{false}}"><svg viewBox="0 0 24 24" width="20" height="20" class="ic" aria-hidden="true"><path d="M4 5.5h16v11H9.5L5 20.5v-4H4z"></path></svg></sc-if>
+        <sc-if value="{{a.isBag}}" hint-placeholder-val="{{false}}"><svg viewBox="0 0 24 24" width="20" height="20" class="ic" aria-hidden="true"><path d="M5 8h14l-1 12H6z"></path><path d="M9 8V6.5a3 3 0 0 1 6 0V8"></path></svg></sc-if>
+        <sc-if value="{{a.isMore}}" hint-placeholder-val="{{false}}"><svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><circle cx="5.5" cy="12" r="1.8" fill="currentColor"></circle><circle cx="12" cy="12" r="1.8" fill="currentColor"></circle><circle cx="18.5" cy="12" r="1.8" fill="currentColor"></circle></svg></sc-if>
+      </button>
+    </sc-for>
+  </div>
+
+  <div style="position:absolute;left:24px;right:24px;bottom:124px;height:106px;display:flex;align-items:flex-end;justify-content:space-between">
+    <div style="min-width:0">
+      <span style="display:flex;align-items:center;gap:8px;margin-bottom:2px"><span style="padding:2px 9px;border-radius:9999px;background:rgba(255,255,255,.16);font-size:11px;font-weight:700;letter-spacing:.08em">AUKCIJA</span><button aria-label="Povijest ponuda" onClick="{{openBids}}" style="font-size:13px;color:rgba(255,255,255,.62);text-decoration:underline;text-decoration-color:rgba(255,255,255,.3);text-underline-offset:3px;padding:8px 4px;margin:-8px -4px">{{aucCount}}</button><sc-if value="{{hasLead}}"><span style="padding:2px 10px;border-radius:9999px;background:{{leadBg}};color:{{leadFg}};font-size:12px;font-weight:700">{{leadText}}</span></sc-if></span>
+      <span style="display:flex;align-items:center;gap:10px;font-size:14px;font-weight:500;color:rgba(255,255,255,.72);letter-spacing:-.005em">{{lotName}}<span style="display:flex;align-items:center;gap:5px;font-size:13px;color:rgba(255,255,255,.62)"><svg viewBox="0 0 24 24" width="14" height="14" class="ic" aria-hidden="true"><circle cx="9" cy="8" r="3.4"></circle><path d="M2.8 20c.6-3.6 3-5.4 6.2-5.4s5.6 1.8 6.2 5.4"></path></svg>{{viewers}}</span></span>
+      <span style="display:flex;align-items:baseline;gap:6px;margin-top:0;transform-origin:left center;animation:{{priceAnim}}">
+        <span style="font-size:60px;font-weight:200;letter-spacing:-.045em;line-height:1.05;font-variant-numeric:tabular-nums">{{priceStr}}</span>
+        <span style="font-size:26px;font-weight:300;color:rgba(255,255,255,.6)">€</span>
       </span>
     </div>
-    <div role="img" aria-label="{{timerAria}}" style="position:relative;width:64px;height:64px;margin-bottom:6px">
-      <svg viewBox="0 0 64 64" width="64" height="64" aria-hidden="true">
+    <div role="img" aria-label="{{timerAria}}" style="position:relative;flex:none;width:56px;height:56px;margin-bottom:8px">
+      <svg viewBox="0 0 64 64" width="56" height="56" aria-hidden="true">
         <circle cx="32" cy="32" r="27" fill="none" style="stroke:rgba(255,255,255,.14);stroke-width:4"></circle>
         <circle cx="32" cy="32" r="27" fill="none" style="stroke:{{timerColor}};stroke-width:4;stroke-linecap:round;stroke-dasharray:169.6;stroke-dashoffset:{{timerOff}};transform:rotate(-90deg);transform-origin:32px 32px;transition:stroke-dashoffset 1s linear,stroke .5s;filter:drop-shadow(0 0 5px {{timerColor}})"></circle>
       </svg>
-      <span style="position:absolute;top:0;left:0;right:0;bottom:0;display:flex;align-items:center;justify-content:center;font-size:19px;font-weight:300;font-variant-numeric:tabular-nums">{{timerStr}}</span>
+      <span style="position:absolute;top:0;left:0;right:0;bottom:0;display:flex;align-items:center;justify-content:center;font-size:17px;font-weight:300;font-variant-numeric:tabular-nums">{{timerStr}}</span>
     </div>
   </div>
 
   <sc-if value="{{notComposing}}" hint-placeholder-val="{{true}}">
-    <div style="position:absolute;left:24px;right:24px;bottom:100px;height:68px">
+    <div style="position:absolute;left:24px;right:24px;bottom:52px;height:68px">
       <dc-import name="Slide" label="{{slideLabel}}" done-label="Ponuda poslana" on-done="{{doBid}}" hint-size="100%,68px"></dc-import>
     </div>
   </sc-if>
   <sc-if value="{{composing}}" hint-placeholder-val="{{false}}">
-    <div class="glass" style="position:absolute;left:24px;right:24px;bottom:100px;height:68px;border-radius:9999px;display:flex;align-items:center;gap:8px;padding:0 8px 0 8px;animation:screenIn .5s cubic-bezier(.22,1,.36,1) both">
+    <div class="glass" style="position:absolute;left:24px;right:24px;bottom:52px;height:68px;border-radius:9999px;display:flex;align-items:center;gap:8px;padding:0 8px;animation:screenIn .5s cubic-bezier(.22,1,.36,1) both">
       <input class="inp" aria-label="Poruka" placeholder="Napiši poruku…" value="{{draft}}" onChange="{{setDraft}}" style="flex:1;height:52px;background:rgba(255,255,255,0);border:0">
       <button aria-label="Pošalji poruku" onClick="{{sendDraft}}" style="flex:none;width:52px;height:52px;border-radius:50%;background:#fff;color:#000;display:flex;align-items:center;justify-content:center">
         <svg viewBox="0 0 24 24" width="22" height="22" class="ic" style="stroke-width:2.2" aria-hidden="true"><path d="M12 19V5"></path><path d="M6 11l6-6 6 6"></path></svg>
       </button>
+    </div>
+  </sc-if>
+  <sc-if value="{{endShow}}" hint-placeholder-val="{{false}}">
+    <div style="position:absolute;top:0;left:0;right:0;bottom:0;z-index:40;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.6);-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);animation:fadeIn .5s both">
+      <div class="glass" style="width:318px;border-radius:36px;padding:30px 24px 24px;text-align:center;animation:screenIn .6s cubic-bezier(.22,1,.36,1) both">
+        <sc-if value="{{endWon}}">
+          <span style="display:block;font-size:13px;font-weight:700;letter-spacing:.14em;color:#7ff0a4">POBIJEDIO SI</span>
+          <span style="display:block;margin-top:8px;font-size:22px;font-weight:600;letter-spacing:-.02em">{{endName}}</span>
+          <span style="display:block;margin-top:2px;font-size:60px;font-weight:200;letter-spacing:-.045em;line-height:1.1">{{endPrice}}</span>
+          <button onClick="{{endPay}}" style="display:block;width:100%;height:56px;margin-top:20px;border-radius:9999px;background:#fff;color:#000;font-size:17px;font-weight:600;text-align:center">Plati odmah</button>
+          <button onClick="{{endLater}}" style="display:block;width:100%;height:48px;margin-top:6px;font-size:15px;color:rgba(255,255,255,.7);text-align:center">Kasnije</button>
+        </sc-if>
+        <sc-if value="{{endLost}}">
+          <span style="display:block;font-size:13px;font-weight:700;letter-spacing:.14em;color:rgba(255,255,255,.6)">PRODANO</span>
+          <span style="display:block;margin-top:8px;font-size:22px;font-weight:600;letter-spacing:-.02em">{{endName}}</span>
+          <span style="display:block;margin-top:2px;font-size:60px;font-weight:200;letter-spacing:-.045em;line-height:1.1">{{endPrice}}</span>
+          <span style="display:block;margin-top:14px;font-size:14px;color:rgba(255,255,255,.6)">Sljedeći predmet kreće…</span>
+        </sc-if>
+      </div>
     </div>
   </sc-if>
 </div>
@@ -164,7 +194,7 @@ button:focus-visible,input:focus-visible{outline:2px solid rgba(255,255,255,.85)
 
 <sc-if value="{{isHome}}" hint-placeholder-val="{{true}}">
 <div class="screen" style="position:absolute;top:0;left:0;right:0;bottom:0;overflow:hidden;background:radial-gradient(90% 40% at 90% 0%,rgba(96,146,255,.26),rgba(0,0,0,0) 62%),radial-gradient(80% 40% at 0% 45%,rgba(255,176,96,.14),rgba(0,0,0,0) 62%),#000">
-  <div class="noscroll" style="position:absolute;top:0;left:0;right:0;bottom:0;overflow-y:auto;overflow-x:hidden;padding:54px 24px 150px">
+  <div style="position:absolute;top:0;left:0;right:0;z-index:10;padding:54px 24px 16px;background:linear-gradient(180deg,#000 88%,rgba(0,0,0,0))">
     <div style="display:flex;align-items:center;justify-content:space-between">
       <span style="display:block;font-size:34px;font-weight:700;letter-spacing:-.03em;line-height:44px">Subhasto</span>
       <div style="display:flex;gap:8px">
@@ -174,19 +204,22 @@ button:focus-visible,input:focus-visible{outline:2px solid rgba(255,255,255,.85)
     </div>
 
     <div style="display:flex;gap:8px;margin-top:14px">
-      <button class="glass" aria-label="Pretraži predmete i shopove" onClick="{{hSearch}}" style="flex:1;min-width:0;height:48px;border-radius:9999px;padding:0 18px;display:flex;align-items:center;gap:10px;font-size:16px;color:rgba(255,255,255,.62);text-align:left"><svg viewBox="0 0 24 24" width="20" height="20" class="ic" aria-hidden="true"><circle cx="11" cy="11" r="6.5"></circle><path d="M16 16l4.5 4.5"></path></svg>Pretraži predmete i shopove</button>
+      <button class="glass" aria-label="Pretraži predmete i shopove" onClick="{{hSearch}}" style="flex:1;min-width:0;height:48px;border-radius:9999px;padding:0 18px;display:flex;align-items:center;gap:10px;font-size:16px;color:rgba(255,255,255,.62);text-align:left"><svg viewBox="0 0 24 24" width="20" height="20" class="ic" aria-hidden="true"><circle cx="11" cy="11" r="6.5"></circle><path d="M16 16l4.5 4.5"></path></svg>Pretraži Subhasto</button>
       <button class="glass" aria-label="Filteri" onClick="{{hFilters}}" style="flex:none;width:48px;height:48px;border-radius:50%;display:flex;align-items:center;justify-content:center"><svg viewBox="0 0 24 24" width="20" height="20" class="ic" aria-hidden="true"><path d="M4 7h10M18 7h2M4 17h2M10 17h10"></path><circle cx="16" cy="7" r="2"></circle><circle cx="8" cy="17" r="2"></circle></svg></button>
     </div>
 
     <div style="margin-top:14px">
-          <div class="noscroll" style="display:flex;gap:8px;overflow-x:auto;margin:0 -24px;padding:0 24px">
-            <sc-for list="{{hCats}}" as="ch" hint-placeholder-count="5"><button onClick="{{ch.pick}}" style="flex:none;min-height:44px;padding:0 18px;border-radius:9999px;background:{{ch.bg}};color:{{ch.fg}};font-size:15px;font-weight:500;white-space:nowrap">{{ch.label}}</button></sc-for>
-          </div>
+      <div class="noscroll" style="display:flex;gap:8px;overflow-x:auto;margin:0 -24px;padding:0 24px">
+        <sc-for list="{{hQuick}}" as="ch" hint-placeholder-count="8"><button onClick="{{ch.pick}}" style="flex:none;min-height:42px;padding:0 17px;border-radius:9999px;background:{{ch.bg}};color:{{ch.fg}};font-size:15px;font-weight:600;white-space:nowrap;display:flex;align-items:center;gap:7px"><sc-if value="{{ch.dot}}"><span class="blink" style="display:block;width:7px;height:7px;border-radius:50%;background:{{ch.dotCol}};box-shadow:0 0 8px {{ch.dotCol}}"></span></sc-if>{{ch.label}}</button></sc-for>
+      </div>
     </div>
 
-    <span style="display:flex;align-items:center;gap:8px;margin:22px 2px 10px;font-size:20px;font-weight:700;letter-spacing:-.02em"><span class="blink" style="width:8px;height:8px;border-radius:50%;background:#ff453a;box-shadow:0 0 10px #ff453a"></span>Uživo sada</span>
+</div>
+  <div class="noscroll" style="position:absolute;top:0;left:0;right:0;bottom:0;overflow-y:auto;overflow-x:hidden;padding:238px 24px 150px">
+    <sc-if value="{{hShowRow}}">
+    <span style="display:flex;align-items:center;gap:8px;margin:22px 2px 10px;font-size:20px;font-weight:700;letter-spacing:-.02em"><span class="blink" style="width:8px;height:8px;border-radius:50%;background:#ff453a;box-shadow:0 0 10px #ff453a"></span>{{hLiveTitle}}</span>
     <div class="noscroll" style="display:flex;gap:12px;overflow-x:auto;margin:0 -24px;padding:0 24px">
-      <sc-for list="{{hLive}}" as="lv" hint-placeholder-count="4">
+      <sc-for list="{{hLiveCards}}" as="lv" hint-placeholder-count="4">
         <button aria-label="{{lv.aria}}" onClick="{{lv.open}}" style="flex:none;width:158px;text-align:left;display:block">
           <span style="position:relative;display:block;width:158px;height:196px;border-radius:28px;overflow:hidden;background:rgba(255,255,255,.07)">
             <span style="position:absolute;top:0;left:0;right:0;bottom:0;background:radial-gradient(circle at 50% 42%,{{lv.glow}},rgba(255,255,255,0) 70%)"></span>
@@ -198,15 +231,63 @@ button:focus-visible,input:focus-visible{outline:2px solid rgba(255,255,255,.85)
         </button>
       </sc-for>
     </div>
+    </sc-if>
+    <sc-if value="{{hShowList}}">
+    <span style="display:flex;align-items:center;gap:8px;margin:22px 2px 10px;font-size:20px;font-weight:700;letter-spacing:-.02em"><span class="blink" style="width:8px;height:8px;border-radius:50%;background:#ff453a;box-shadow:0 0 10px #ff453a"></span>{{hLiveTitle}}</span>
+    <div style="display:flex;flex-direction:column;gap:10px">
+      <sc-for list="{{hLiveCards}}" as="lv" hint-placeholder-count="3">
+        <button aria-label="{{lv.aria}}" onClick="{{lv.open}}" class="glass" style="display:flex;align-items:center;gap:14px;padding:12px 16px 12px 12px;border-radius:30px;text-align:left;width:100%">
+          <span style="position:relative;flex:none;display:block;width:76px;height:76px;border-radius:22px;overflow:hidden;background:{{lv.bgG}}"><span style="position:absolute;top:0;left:0;right:0;bottom:0;background:radial-gradient(circle at 50% 45%,{{lv.glow}},rgba(255,255,255,0) 72%)"></span><span style="position:absolute;top:8px;left:8px;width:60px;height:60px;display:block"><dc-import name="Art" kind="{{lv.kind}}" hue="{{lv.hue}}" hint-size="60px,60px"></dc-import></span></span>
+          <span style="flex:1;min-width:0;display:block"><span style="display:inline-flex;align-items:center;padding:2px 8px;border-radius:9999px;background:rgba(255,69,58,.85);font-size:10.5px;font-weight:700;letter-spacing:.06em">UŽIVO</span><span style="display:block;margin-top:5px;font-size:17px;font-weight:600;letter-spacing:-.01em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{lv.name}}</span><span style="display:block;font-size:13px;color:rgba(255,255,255,.62);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{lv.seller}} · {{lv.viewers}} gleda</span></span>
+          <span style="flex:none;font-size:21px;font-weight:300;letter-spacing:-.03em">{{lv.priceStr}}</span>
+        </button>
+      </sc-for>
+    </div>
+    </sc-if>
+    <sc-if value="{{hLiveEmpty}}"><span style="display:block;margin-top:24px;text-align:center;font-size:16px;color:rgba(255,255,255,.62)">Trenutno nema livea u ovoj kategoriji.</span></sc-if>
 
+    <sc-if value="{{hShowUp}}">
+    <span style="display:block;margin:22px 2px 10px;font-size:20px;font-weight:700;letter-spacing:-.02em">Uskoro</span>
+    <div style="display:flex;flex-direction:column;gap:8px">
+      <sc-for list="{{hUp}}" as="up" hint-placeholder-count="2">
+        <div class="glass" style="display:flex;align-items:center;gap:12px;padding:10px 10px 10px 12px;border-radius:26px">
+          <span style="flex:none;width:44px;height:44px;border-radius:50%;background:#7aa8ff;color:#10131c;display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:700">{{up.init}}</span>
+          <span style="flex:1;min-width:0;display:block"><span style="display:block;font-size:16px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{up.title}}</span><span style="display:block;font-size:13px;color:rgba(255,255,255,.62)">{{up.when}}</span></span>
+          <button onClick="{{up.fn}}" style="flex:none;height:44px;padding:0 16px;border-radius:9999px;background:{{up.bBg}};color:{{up.bFg}};font-size:14px;font-weight:600">{{up.bLabel}}</button>
+        </div>
+      </sc-for>
+    </div>
+    </sc-if>
+
+    <sc-if value="{{hShowShops}}">
     <span style="display:block;margin:22px 2px 10px;font-size:20px;font-weight:700;letter-spacing:-.02em">Shopovi</span>
     <div class="noscroll" style="display:flex;gap:14px;overflow-x:auto;margin:0 -24px;padding:0 24px">
       <sc-for list="{{hShops}}" as="hs" hint-placeholder-count="5">
         <button aria-label="{{hs.name}}" onClick="{{hs.open}}" style="flex:none;display:block;text-align:center"><span style="display:flex;align-items:center;justify-content:center;width:58px;height:58px;border-radius:50%;background:{{hs.col}};color:#241606;font-size:23px;font-weight:700;box-shadow:0 0 0 3px rgba(255,255,255,.15)">{{hs.init}}</span><span style="display:block;width:70px;margin-top:6px;font-size:12px;color:rgba(255,255,255,.72);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{hs.name}}</span></button>
       </sc-for>
     </div>
+    </sc-if>
 
-    <span style="display:block;margin:22px 2px 12px;font-size:20px;font-weight:700;letter-spacing:-.02em">Predmeti</span>
+    <sc-if value="{{hShowDigi}}">
+      <span style="display:flex;align-items:center;gap:8px;margin:22px 2px 10px;font-size:20px;font-weight:700;letter-spacing:-.02em"><svg viewBox="0 0 24 24" width="20" height="20" class="ic" style="color:#8fd0ff" aria-hidden="true"><path d="M13 3L5 13.5h6L10 21l8-10.5h-6z"></path></svg>Digitalno</span>
+      <div class="noscroll" style="display:flex;gap:10px;overflow-x:auto;margin:0 -24px;padding:0 24px">
+        <sc-for list="{{hDigi}}" as="dg" hint-placeholder-count="4">
+          <button aria-label="{{dg.aria}}" onClick="{{dg.open}}" style="flex:none;width:132px;text-align:left;display:block">
+            <span style="position:relative;display:block;width:132px;height:112px;border-radius:24px;overflow:hidden;background:{{dg.bgG}}">
+              <span style="position:absolute;top:0;left:0;right:0;bottom:0;background:radial-gradient(circle at 50% 45%,{{dg.glow}},rgba(255,255,255,0) 72%)"></span>
+              <span style="position:absolute;top:14px;left:31px;width:70px;height:70px;display:block"><dc-import name="Art" kind="{{dg.kind}}" hue="{{dg.hue}}" hint-size="70px,70px"></dc-import></span>
+              <span style="position:absolute;left:8px;top:8px;padding:2px 8px;border-radius:9999px;background:rgba(124,200,255,.25);color:#9ad8ff;font-size:10.5px;font-weight:700;letter-spacing:.05em">{{dg.tag}}</span>
+              <span style="position:absolute;left:10px;right:10px;bottom:8px;display:block;font-size:13px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{dg.name}}</span>
+            </span>
+            <span style="display:block;margin:4px 4px 0;font-size:17px;font-weight:300;letter-spacing:-.02em">{{dg.priceStr}} <span style="font-size:12px;color:#86f6d3;font-weight:600">odmah</span></span>
+          </button>
+        </sc-for>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{hShowTiles}}">
+    <span style="display:block;margin:22px 2px 12px;font-size:20px;font-weight:700;letter-spacing:-.02em">{{hTilesTitle}}</span>
+    <sc-if value="{{hDigiNote}}"><span style="display:block;margin:-6px 2px 14px;font-size:14px;color:rgba(255,255,255,.62)">Plati i preuzmi odmah. Bez dostave i čekanja.</span></sc-if>
           <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px">
             <sc-for list="{{hTiles}}" as="t" hint-placeholder-count="4">
               <div style="position:relative">
@@ -224,6 +305,7 @@ button:focus-visible,input:focus-visible{outline:2px solid rgba(255,255,255,.85)
             </sc-for>
           </div>
     <sc-if value="{{hNoTiles}}"><span style="display:block;margin-top:30px;text-align:center;font-size:16px;color:rgba(255,255,255,.62)">Nema predmeta u ovoj kategoriji.</span></sc-if>
+    </sc-if>
   </div>
   <div style="position:absolute;left:0;right:0;bottom:0;height:130px;background:linear-gradient(0deg,#000 14%,rgba(0,0,0,0));pointer-events:none"></div>
 </div>
@@ -231,8 +313,10 @@ button:focus-visible,input:focus-visible{outline:2px solid rgba(255,255,255,.85)
 
 <sc-if value="{{isSell}}" hint-placeholder-val="{{false}}">
 <div class="screen" style="position:absolute;top:0;left:0;right:0;bottom:0;overflow:hidden;background:radial-gradient(90% 42% at 10% 0%,rgba(150,110,255,.26),rgba(0,0,0,0) 62%),radial-gradient(80% 40% at 100% 60%,rgba(255,140,110,.14),rgba(0,0,0,0) 62%),#000">
-  <div class="noscroll" style="position:absolute;top:0;left:0;right:0;bottom:0;overflow-y:auto;overflow-x:hidden;padding:54px 24px 150px">
+  <div style="position:absolute;top:0;left:0;right:0;z-index:10;padding:54px 24px 16px;background:linear-gradient(180deg,#000 88%,rgba(0,0,0,0))">
     <span style="display:block;font-size:34px;font-weight:700;letter-spacing:-.03em;line-height:44px">Prodaj</span>
+</div>
+  <div class="noscroll" style="position:absolute;top:0;left:0;right:0;bottom:0;overflow-y:auto;overflow-x:hidden;padding:112px 24px 150px">
     <div style="display:flex;gap:10px;margin-top:16px">
       <button aria-label="{{sLiveLabel}}" onClick="{{sLiveFn}}" style="flex:1.3;height:64px;border-radius:9999px;background:#fff;color:#000;font-size:17px;font-weight:600;display:flex;align-items:center;justify-content:center;gap:10px;box-shadow:0 10px 30px rgba(255,255,255,.12)"><svg viewBox="0 0 24 24" width="22" height="22" class="ic" aria-hidden="true"><circle cx="12" cy="12" r="2.2"></circle><path d="M7.5 7.5a6.4 6.4 0 0 0 0 9"></path><path d="M16.5 7.5a6.4 6.4 0 0 1 0 9"></path></svg>{{sLiveLabel}}</button>
       <button class="glass" aria-label="Dodaj predmet" onClick="{{sAddFn}}" style="flex:1;height:64px;border-radius:9999px;font-size:17px;font-weight:600;display:flex;align-items:center;justify-content:center;gap:8px"><svg viewBox="0 0 24 24" width="20" height="20" class="ic" aria-hidden="true"><path d="M12 5v14M5 12h14"></path></svg>Predmet</button>
@@ -260,8 +344,10 @@ button:focus-visible,input:focus-visible{outline:2px solid rgba(255,255,255,.85)
 
 <sc-if value="{{isMe}}" hint-placeholder-val="{{false}}">
 <div class="screen" style="position:absolute;top:0;left:0;right:0;bottom:0;overflow:hidden;background:radial-gradient(90% 40% at 85% 0%,rgba(96,146,255,.28),rgba(0,0,0,0) 62%),radial-gradient(80% 40% at 0% 70%,rgba(255,176,96,.12),rgba(0,0,0,0) 62%),#000">
-  <div class="noscroll" style="position:absolute;top:0;left:0;right:0;bottom:0;overflow-y:auto;overflow-x:hidden;padding:54px 24px 150px">
+  <div style="position:absolute;top:0;left:0;right:0;z-index:10;padding:54px 24px 16px;background:linear-gradient(180deg,#000 88%,rgba(0,0,0,0))">
     <span style="display:block;font-size:34px;font-weight:700;letter-spacing:-.03em;line-height:44px">Profil</span>
+</div>
+  <div class="noscroll" style="position:absolute;top:0;left:0;right:0;bottom:0;overflow-y:auto;overflow-x:hidden;padding:112px 24px 150px">
     <div style="display:flex;align-items:center;gap:16px;margin-top:16px">
       <span style="flex:none;display:flex;align-items:center;justify-content:center;width:72px;height:72px;border-radius:50%;background:linear-gradient(145deg,#8fb7ff,#6a54d6);font-size:30px;font-weight:700">K</span>
       <span style="display:block"><span style="display:block;font-size:24px;font-weight:700;letter-spacing:-.02em">Karlo</span><span style="display:block;margin-top:2px;font-size:14px;color:rgba(255,255,255,.65)">128 pratitelja · 64 pratim</span></span>
@@ -291,7 +377,8 @@ button:focus-visible,input:focus-visible{outline:2px solid rgba(255,255,255,.85)
 
 
 <div style="position:absolute;left:0;right:0;bottom:22px;display:flex;justify-content:center;z-index:60;pointer-events:none">
-  <nav class="island" aria-label="Navigacija" style="pointer-events:auto;display:flex;gap:4px;padding:6px;border-radius:9999px">
+  <sc-if value="{{navCollapsed}}" hint-placeholder-val="{{true}}"><button aria-label="Otvori navigaciju" onClick="{{openNav}}" style="pointer-events:auto;width:220px;height:44px;display:flex;align-items:center;justify-content:center"><span style="display:block;width:136px;height:5px;border-radius:9999px;background:rgba(255,255,255,.55);box-shadow:0 0 12px rgba(255,255,255,.25)"></span></button></sc-if>
+  <sc-if value="{{navFull}}" hint-placeholder-val="{{false}}"><nav class="island" aria-label="Navigacija" style="pointer-events:auto;display:flex;gap:4px;padding:6px;border-radius:9999px;animation:toastIn .45s cubic-bezier(.22,1,.36,1) both">
     <sc-for list="{{navItems}}" as="n" hint-placeholder-count="3">
       <button aria-label="{{n.label}}" onClick="{{n.go}}" style="height:52px;display:flex;align-items:center;gap:8px;border-radius:9999px;padding:{{n.pad}};background:{{n.bg}};color:#fff;opacity:{{n.op}};transition:all .6s cubic-bezier(.22,1,.36,1)">
         <sc-if value="{{n.isStage}}" hint-placeholder-val="{{true}}"><svg viewBox="0 0 24 24" width="24" height="24" class="ic" aria-hidden="true"><circle cx="12" cy="12" r="2.2"></circle><path d="M7.5 7.5a6.4 6.4 0 0 0 0 9"></path><path d="M16.5 7.5a6.4 6.4 0 0 1 0 9"></path><path d="M4.8 4.8a10.2 10.2 0 0 0 0 14.4"></path><path d="M19.2 4.8a10.2 10.2 0 0 1 0 14.4"></path></svg></sc-if>
@@ -303,7 +390,7 @@ button:focus-visible,input:focus-visible{outline:2px solid rgba(255,255,255,.85)
         <span style="display:block;max-width:{{n.labelW}};opacity:{{n.labelOp}};overflow:hidden;white-space:nowrap;font-size:15px;font-weight:500;letter-spacing:-.005em;transition:all .6s cubic-bezier(.22,1,.36,1)">{{n.label}}</span>
       </button>
     </sc-for>
-  </nav>
+  </nav></sc-if>
 </div>
 
 <sc-if value="{{hasSheet}}" hint-placeholder-val="{{false}}">
@@ -432,7 +519,7 @@ button:focus-visible,input:focus-visible{outline:2px solid rgba(255,255,255,.85)
           <sc-if value="{{it_canOffer}}"><button onClick="{{it_offer}}" style="flex:1;height:52px;border-radius:9999px;background:rgba(255,255,255,.12);font-size:16px;font-weight:600;text-align:center">Ponudi cijenu</button></sc-if>
           <button onClick="{{it_msg}}" style="flex:1;height:52px;border-radius:9999px;background:rgba(255,255,255,.12);font-size:16px;font-weight:600;text-align:center">Pošalji poruku</button>
         </div>
-        <span style="display:block;margin-top:14px;font-size:13px;color:rgba(255,255,255,.55);line-height:1.5">Zaštita kupca: novac se zadržava dok ne potvrdiš primitak.</span>
+        <span style="display:block;margin-top:14px;font-size:13px;color:rgba(255,255,255,.55);line-height:1.5">{{it_protect}}</span>
       </sc-if>
 
       <sc-if value="{{sh_more}}" hint-placeholder-val="{{false}}">
@@ -529,15 +616,70 @@ button:focus-visible,input:focus-visible{outline:2px solid rgba(255,255,255,.85)
         </div>
       </sc-if>
 
-      <sc-if value="{{sh_search}}" hint-placeholder-val="{{false}}">
-        <input class="inp" aria-label="Pretraži predmete i shopove" placeholder="Pretraži predmete i shopove" value="{{q}}" onChange="{{setQ}}">
+            <sc-if value="{{sh_search}}" hint-placeholder-val="{{false}}">
+        <div style="position:relative">
+          <input class="inp" aria-label="Pretraži uživo, predmete i shopove" placeholder="Pretraži uživo, predmete, shopove" value="{{q}}" onChange="{{setQ}}" style="padding-right:52px">
+          <sc-if value="{{hasQ}}"><button aria-label="Očisti pretragu" onClick="{{clearQ}}" style="position:absolute;right:8px;top:8px;width:36px;height:36px;border-radius:50%;background:rgba(255,255,255,.16);display:flex;align-items:center;justify-content:center"><svg viewBox="0 0 24 24" width="16" height="16" class="ic" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"></path></svg></button></sc-if>
+        </div>
+        <div style="height:12px"></div>
+          <div class="noscroll" style="display:flex;gap:8px;overflow-x:auto;margin:0 -24px;padding:0 24px">
+            <sc-for list="{{chipsA}}" as="ch" hint-placeholder-count="5"><button onClick="{{ch.pick}}" style="flex:none;min-height:44px;padding:0 18px;border-radius:9999px;background:{{ch.bg}};color:{{ch.fg}};font-size:15px;font-weight:500;white-space:nowrap">{{ch.label}}</button></sc-for>
+          </div>
         <sc-if value="{{noQ}}">
-          <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:16px">
-            <sc-for list="{{sugg}}" as="sg" hint-placeholder-count="4"><button onClick="{{sg.pick}}" style="height:44px;padding:0 18px;border-radius:9999px;background:rgba(255,255,255,.1);font-size:15px">{{sg.label}}</button></sc-for>
+          <span style="display:flex;align-items:center;gap:8px;margin:22px 2px 10px;font-size:18px;font-weight:700;letter-spacing:-.02em"><span class="blink" style="width:8px;height:8px;border-radius:50%;background:#ff453a;box-shadow:0 0 10px #ff453a"></span>Uživo sada</span>
+          <div class="noscroll" style="display:flex;gap:10px;overflow-x:auto;margin:0 -24px;padding:0 24px">
+            <sc-for list="{{sLive}}" as="lv" hint-placeholder-count="4">
+              <button aria-label="{{lv.name}}" onClick="{{lv.open}}" style="flex:none;width:122px;text-align:left;display:block">
+                <span style="position:relative;display:block;width:122px;height:128px;border-radius:24px;overflow:hidden;background:rgba(255,255,255,.07)">
+                  <span style="position:absolute;top:0;left:0;right:0;bottom:0;background:radial-gradient(circle at 50% 42%,{{lv.glow}},rgba(255,255,255,0) 70%)"></span>
+                  <span style="position:absolute;top:16px;left:24px;width:74px;height:74px;display:block"><dc-import name="Art" kind="{{lv.kind}}" hue="{{lv.hue}}" hint-size="74px,74px"></dc-import></span>
+                  <span style="position:absolute;left:8px;top:8px;padding:2px 7px;border-radius:9999px;background:rgba(255,69,58,.85);font-size:10px;font-weight:700;letter-spacing:.06em">UŽIVO</span>
+                  <span style="position:absolute;left:10px;right:10px;bottom:8px;display:block;font-size:13px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{lv.name}}</span>
+                </span>
+                <span style="display:block;margin:4px 4px 0;font-size:17px;font-weight:300;letter-spacing:-.02em">{{lv.priceStr}}</span>
+              </button>
+            </sc-for>
+          </div>
+
+          <span style="display:block;margin:24px 2px 10px;font-size:18px;font-weight:700;letter-spacing:-.02em">Kategorije</span>
+          <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px">
+            <sc-for list="{{sCats}}" as="ct" hint-placeholder-count="6">
+              <button aria-label="{{ct.name}}" onClick="{{ct.pick}}" style="position:relative;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;height:112px;border-radius:24px;overflow:hidden;background:{{ct.bgG}};padding-top:10px">
+                <span style="position:absolute;top:0;left:0;right:0;bottom:0;background:radial-gradient(circle at 50% 36%,{{ct.glow}},rgba(255,255,255,0) 70%)"></span>
+                <span style="position:relative;display:block;width:50px;height:50px"><dc-import name="Art" kind="{{ct.kind}}" hint-size="50px,50px"></dc-import></span>
+                <span style="position:relative;display:block;margin-top:6px;font-size:15px;font-weight:600">{{ct.name}}</span>
+                <span style="position:relative;display:block;font-size:12px;font-weight:600;color:{{ct.liveCol}}">{{ct.liveTxt}}</span>
+              </button>
+            </sc-for>
+          </div>
+
+          <sc-if value="{{hasRecent}}">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin:24px 2px 10px"><span style="font-size:18px;font-weight:700;letter-spacing:-.02em">Nedavno</span><button onClick="{{clearRecent}}" style="height:32px;padding:0 8px;font-size:14px;color:rgba(255,255,255,.6)">Očisti</button></div>
+            <div style="display:flex;flex-wrap:wrap;gap:8px">
+              <sc-for list="{{sRecent}}" as="rc" hint-placeholder-count="2"><button onClick="{{rc.pick}}" style="height:42px;padding:0 16px;border-radius:9999px;background:rgba(255,255,255,.1);font-size:15px">{{rc.label}}</button></sc-for>
+            </div>
+          </sc-if>
+          <span style="display:block;margin:24px 2px 10px;font-size:18px;font-weight:700;letter-spacing:-.02em">Popularno</span>
+          <div style="display:flex;flex-wrap:wrap;gap:8px">
+            <sc-for list="{{sugg}}" as="sg" hint-placeholder-count="4"><button onClick="{{sg.pick}}" style="height:42px;padding:0 16px;border-radius:9999px;background:rgba(255,255,255,.1);font-size:15px">{{sg.label}}</button></sc-for>
+          </div>
+        </sc-if>
+        <sc-if value="{{noRes}}">
+          <span style="display:block;margin:34px 0 14px;text-align:center;font-size:16px;color:rgba(255,255,255,.62)">{{noResText}}</span>
+          <div style="display:flex;flex-wrap:wrap;gap:8px;justify-content:center">
+            <sc-for list="{{sugg}}" as="sg" hint-placeholder-count="4"><button onClick="{{sg.pick}}" style="height:42px;padding:0 16px;border-radius:9999px;background:rgba(255,255,255,.1);font-size:15px">{{sg.label}}</button></sc-for>
           </div>
         </sc-if>
         <div style="height:14px"></div>
       </sc-if>
+
+      <sc-if value="{{sh_liveNow}}" hint-placeholder-val="{{false}}">
+          <div class="noscroll" style="display:flex;gap:8px;overflow-x:auto;margin:0 -24px;padding:0 24px">
+            <sc-for list="{{chipsA}}" as="ch" hint-placeholder-count="5"><button onClick="{{ch.pick}}" style="flex:none;min-height:44px;padding:0 18px;border-radius:9999px;background:{{ch.bg}};color:{{ch.fg}};font-size:15px;font-weight:500;white-space:nowrap">{{ch.label}}</button></sc-for>
+          </div>
+        <div style="height:14px"></div>
+      </sc-if>
+
 
       <sc-if value="{{sh_filters}}" hint-placeholder-val="{{false}}">
         <span style="display:block;margin:0 4px 8px;font-size:13px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:rgba(255,255,255,.62)">Sortiraj</span>
@@ -740,6 +882,25 @@ button:focus-visible,input:focus-visible{outline:2px solid rgba(255,255,255,.85)
       </sc-if>
 
       <sc-if value="{{sh_create}}" hint-placeholder-val="{{false}}">
+        <sc-if value="{{cr_noPhoto}}">
+          <div style="padding:18px;border-radius:28px;background:rgba(255,255,255,.07);border:1.5px dashed rgba(255,255,255,.28);text-align:center">
+            <span style="display:block;font-size:16px;font-weight:600">Fotografija je obavezna</span>
+            <span style="display:block;margin-top:2px;font-size:13px;color:rgba(255,255,255,.6)">Kupci vide samo ono što pokažeš.</span>
+            <div style="display:flex;gap:8px;margin-top:14px">
+              <button onClick="{{cr_cam}}" style="flex:1;height:52px;border-radius:9999px;background:#fff;color:#000;font-size:15px;font-weight:600;display:flex;align-items:center;justify-content:center;gap:8px"><svg viewBox="0 0 24 24" width="20" height="20" class="ic" aria-hidden="true"><path d="M4 8h3l1.5-2h7L17 8h3v11H4z"></path><circle cx="12" cy="13" r="3.4"></circle></svg>Uslikaj</button>
+              <button onClick="{{cr_gal}}" style="flex:1;height:52px;border-radius:9999px;background:rgba(255,255,255,.14);font-size:15px;font-weight:600;display:flex;align-items:center;justify-content:center;gap:8px"><svg viewBox="0 0 24 24" width="20" height="20" class="ic" aria-hidden="true"><rect x="4" y="5" width="16" height="14" rx="3"></rect><circle cx="9" cy="10" r="1.6"></circle><path d="M4.5 17l4.5-4.5 3.5 3.5 2.5-2.5 4.5 4.5"></path></svg>Iz galerije</button>
+            </div>
+          </div>
+        </sc-if>
+        <sc-if value="{{cr_hasPhoto}}">
+          <div style="position:relative;height:150px;border-radius:28px;overflow:hidden;background:{{cr_bg}}">
+            <span style="position:absolute;top:0;left:0;right:0;bottom:0;background:radial-gradient(closest-side at 50% 50%,{{cr_glow}},rgba(255,255,255,0))"></span>
+            <span style="position:absolute;top:14px;left:50%;width:122px;margin-left:-61px;bottom:14px;display:block"><dc-import name="Art" kind="{{cr_kind}}" hint-size="100%,100%"></dc-import></span>
+            <span style="position:absolute;left:12px;top:12px;display:flex;align-items:center;gap:6px;padding:5px 12px;border-radius:9999px;background:rgba(0,0,0,.45);font-size:12px;font-weight:600;color:#86f6d3"><svg viewBox="0 0 24 24" width="14" height="14" class="ic" style="stroke-width:2.6" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"></path></svg>{{cr_src}}</span>
+            <button onClick="{{cr_remove}}" style="position:absolute;right:10px;top:8px;height:44px;padding:0 14px;font-size:13px;font-weight:600;color:rgba(255,255,255,.85)">Promijeni</button>
+          </div>
+        </sc-if>
+        <div style="height:12px"></div>
         <input class="inp" aria-label="Naziv predmeta" placeholder="Naziv predmeta" value="{{cr_name}}" onChange="{{cr_setName}}">
         <div style="height:10px"></div>
         <input class="inp" aria-label="Cijena u eurima" placeholder="Cijena u eurima" inputmode="numeric" value="{{cr_price}}" onChange="{{cr_setPrice}}">
@@ -747,6 +908,26 @@ button:focus-visible,input:focus-visible{outline:2px solid rgba(255,255,255,.85)
           <div class="noscroll" style="display:flex;gap:8px;overflow-x:auto;margin:0 -24px;padding:0 24px">
             <sc-for list="{{chipsA}}" as="ch" hint-placeholder-count="5"><button onClick="{{ch.pick}}" style="flex:none;min-height:44px;padding:0 18px;border-radius:9999px;background:{{ch.bg}};color:{{ch.fg}};font-size:15px;font-weight:500;white-space:nowrap">{{ch.label}}</button></sc-for>
           </div>
+        <sc-if value="{{cr_notDigi}}">
+        <span style="display:block;margin:20px 4px 8px;font-size:13px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:rgba(255,255,255,.62)">Stanje</span>
+          <div class="noscroll" style="display:flex;gap:8px;overflow-x:auto;margin:0 -24px;padding:0 24px">
+            <sc-for list="{{chipsB}}" as="ch" hint-placeholder-count="5"><button onClick="{{ch.pick}}" style="flex:none;min-height:44px;padding:0 18px;border-radius:9999px;background:{{ch.bg}};color:{{ch.fg}};font-size:15px;font-weight:500;white-space:nowrap">{{ch.label}}</button></sc-for>
+          </div>
+        </sc-if>
+        <sc-if value="{{cr_isDigi}}">
+        <span style="display:block;margin:20px 4px 8px;font-size:13px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:rgba(255,255,255,.62)">Isporuka</span>
+          <div class="noscroll" style="display:flex;gap:8px;overflow-x:auto;margin:0 -24px;padding:0 24px">
+            <sc-for list="{{chipsB}}" as="ch" hint-placeholder-count="5"><button onClick="{{ch.pick}}" style="flex:none;min-height:44px;padding:0 18px;border-radius:9999px;background:{{ch.bg}};color:{{ch.fg}};font-size:15px;font-weight:500;white-space:nowrap">{{ch.label}}</button></sc-for>
+          </div>
+        <sc-if value="{{cr_isKey}}"><div style="height:10px"></div><input class="inp" aria-label="Ključevi, jedan po retku" placeholder="Zalijepi ključeve, jedan po retku" value="{{cr_keys}}" onChange="{{cr_setKeys}}"></sc-if>
+        <sc-if value="{{cr_isFile}}">
+          <div style="height:10px"></div>
+          <sc-if value="{{cr_noFile}}"><button onClick="{{cr_pickFile}}" style="display:block;width:100%;height:52px;border-radius:9999px;background:rgba(255,255,255,.14);font-size:15px;font-weight:600;text-align:center">Učitaj datoteku</button></sc-if>
+          <sc-if value="{{cr_hasFile}}"><div style="display:flex;align-items:center;justify-content:space-between;height:52px;padding:0 8px 0 20px;border-radius:9999px;background:rgba(255,255,255,.08)"><span style="font-size:15px;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{cr_fileName}}</span><button onClick="{{cr_rmFile}}" style="height:44px;padding:0 14px;font-size:13px;font-weight:600;color:rgba(255,255,255,.7)">Ukloni</button></div></sc-if>
+        </sc-if>
+        <span style="display:block;margin:12px 4px 0;font-size:13px;line-height:1.4;color:rgba(255,255,255,.58)">Kupac dobiva ključ ili datoteku odmah nakon plaćanja. Bez dostave i otpremnice.</span>
+        </sc-if>
+        <div style="height:24px"></div>
       </sc-if>
 
       <sc-if value="{{sh_setup}}" hint-placeholder-val="{{false}}">
@@ -876,14 +1057,17 @@ button:focus-visible,input:focus-visible{outline:2px solid rgba(255,255,255,.85)
             <span style="position:relative;display:block;width:130px;height:130px"><dc-import name="Art" kind="{{qb_kind}}" hue="{{qb_hue}}" hint-size="130px,130px"></dc-import></span>
           </div>
           <span style="display:block;margin-top:6px;text-align:center;font-size:22px;font-weight:600;letter-spacing:-.02em">{{qb_name}}</span>
+          <sc-if value="{{qb_digi}}"><span style="display:block;text-align:center;font-size:13px;font-weight:600;color:#8fd0ff">{{qb_tag}}</span></sc-if>
+          <sc-if value="{{qb_hasCpn}}"><span style="display:block;text-align:center;font-size:13px;font-weight:600;color:#86f6d3">{{qb_cpn}}</span></sc-if>
           <span style="display:block;margin-top:0;text-align:center;font-size:64px;font-weight:200;letter-spacing:-.045em;line-height:1.15;font-variant-numeric:tabular-nums">{{qb_price}}</span>
-          <button onClick="{{qb_change}}" style="display:block;width:100%;min-height:44px;text-align:center;font-size:14px;color:rgba(255,255,255,.6)">{{qb_line}} <span style="color:rgba(255,255,255,.9);font-weight:600">· Promijeni</span></button>
+          <sc-if value="{{qb_ship}}"><button onClick="{{qb_change}}" style="display:block;width:100%;min-height:44px;text-align:center;font-size:14px;color:rgba(255,255,255,.6)">{{qb_line}} <span style="color:rgba(255,255,255,.9);font-weight:600">· Promijeni</span></button></sc-if>
+          <sc-if value="{{qb_digi}}"><span style="display:block;min-height:44px;line-height:44px;text-align:center;font-size:14px;color:rgba(255,255,255,.6)">{{qb_line}}</span></sc-if>
           <div style="height:68px;margin-top:8px"><dc-import name="Slide" label="Povuci za kupnju" done-label="Kupljeno" on-done="{{qb_go}}" hint-size="100%,68px"></dc-import></div>
         </sc-if>
         <sc-if value="{{qb_done}}">
           <div style="display:flex;flex-direction:column;align-items:center;padding-top:34px">
             <span style="display:flex;align-items:center;justify-content:center;width:112px;height:112px;border-radius:50%;background:rgba(134,246,211,.16);box-shadow:0 0 70px rgba(134,246,211,.5),inset 0 .5px 0 rgba(255,255,255,.4);color:#86f6d3;animation:popA .9s cubic-bezier(.2,.9,.3,1) both"><svg viewBox="0 0 24 24" width="54" height="54" class="ic" style="stroke-width:1.8" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"></path></svg></span>
-            <span style="margin-top:22px;font-size:34px;font-weight:700;letter-spacing:-.03em">Tvoje je.</span>
+            <span style="margin-top:22px;font-size:34px;font-weight:700;letter-spacing:-.03em">{{qb_doneTitle}}</span>
             <span style="margin-top:4px;font-size:16px;color:rgba(255,255,255,.7)">{{qb_name}} · {{qb_total}}</span>
           </div>
         </sc-if>
@@ -931,6 +1115,96 @@ button:focus-visible,input:focus-visible{outline:2px solid rgba(255,255,255,.85)
         </div>
       </sc-if>
 
+      <sc-if value="{{sh_order}}" hint-placeholder-val="{{false}}">
+        <div style="display:flex;align-items:center;gap:14px">
+          <span style="flex:none;width:72px;height:72px;border-radius:24px;background:{{od_bg}};padding:8px;display:block"><dc-import name="Art" kind="{{od_kind}}" hue="{{od_hue}}" hint-size="56px,56px"></dc-import></span>
+          <span style="flex:1;min-width:0;display:block"><span style="display:block;font-size:24px;font-weight:700;letter-spacing:-.025em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{od_name}}</span><span style="display:block;font-size:15px;font-weight:600;color:{{od_col}}">{{od_st}}</span><span style="display:block;font-size:13px;color:rgba(255,255,255,.6)">{{od_no}} · {{od_buyer}} · {{od_price}}</span></span>
+        </div>
+        <sc-if value="{{od_hasLine}}">
+          <div style="position:relative;height:36px;margin:22px 18px 0">
+            <span style="position:absolute;left:0;right:0;top:16px;height:4px;border-radius:9999px;background:rgba(255,255,255,.15)"><span style="position:absolute;left:0;top:0;bottom:0;width:{{od_pct}};border-radius:9999px;background:{{od_beam}};box-shadow:{{od_shadow}}"></span><span class="head" style="position:absolute;top:50%;left:{{od_pct}};width:12px;height:12px;margin:-6px 0 0 -6px;border-radius:50%;background:#fff;box-shadow:{{od_head}}"></span></span>
+            <sc-for list="{{od_nodes}}" as="nd" hint-placeholder-count="3"><span style="position:absolute;top:2px;left:{{nd.left}};width:32px;height:32px;margin-left:-16px;border-radius:50%;background:{{nd.bg}};border:{{nd.border}};box-shadow:{{nd.shadow}};display:flex;align-items:center;justify-content:center"><span style="width:8px;height:8px;border-radius:50%;background:{{nd.dot}}"></span></span></sc-for>
+          </div>
+          <div style="display:flex;justify-content:space-between;margin:4px 6px 0;font-size:12px;color:rgba(255,255,255,.55)"><sc-for list="{{od_nodes}}" as="nl" hint-placeholder-count="3"><span>{{nl.label}}</span></sc-for></div>
+        </sc-if>
+        <sc-if value="{{od_wait}}"><span style="display:block;margin-top:18px;padding:16px;border-radius:22px;background:rgba(255,180,84,.12);color:#ffb454;font-size:15px">Kupac još nije platio. Otpremnicu možeš generirati čim uplata stigne.</span></sc-if>
+        <sc-if value="{{od_noLabel}}"><span style="display:block;margin-top:18px;padding:16px;border-radius:22px;background:rgba(255,255,255,.07);font-size:15px;color:rgba(255,255,255,.75)">Uplata je stigla. Generiraj otpremnicu i zalijepi je na paket.</span></sc-if>
+        <sc-if value="{{od_hasLabel}}">
+          <div style="margin-top:18px;border-radius:22px;background:#f6f4ef;color:#111;padding:18px 18px 16px;box-shadow:0 18px 50px rgba(0,0,0,.5)">
+            <div style="display:flex;justify-content:space-between;align-items:baseline"><span style="font-size:12px;font-weight:700;letter-spacing:.14em;color:#77736a">OTPREMNICA</span><span style="font-size:15px;font-weight:700">{{od_no}}</span></div>
+            <div style="margin-top:12px;font-size:11px;font-weight:600;letter-spacing:.1em;color:#77736a">PRIMATELJ</div>
+            <div style="font-size:19px;font-weight:700;letter-spacing:-.01em">{{od_buyer}}</div>
+            <div style="font-size:14px;color:#3d3b36">{{od_dest}}</div>
+            <div style="height:0;margin:12px 0;border-top:1.5px dashed #c9c5ba"></div>
+            <div style="display:flex;gap:18px"><span style="display:block"><span style="display:block;font-size:11px;font-weight:600;letter-spacing:.1em;color:#77736a">PREDMET</span><span style="display:block;font-size:14px;font-weight:600">{{lb_item}}</span></span><span style="display:block"><span style="display:block;font-size:11px;font-weight:600;letter-spacing:.1em;color:#77736a">TEŽINA</span><span style="display:block;font-size:14px;font-weight:600">{{lb_weight}}</span></span><span style="display:block"><span style="display:block;font-size:11px;font-weight:600;letter-spacing:.1em;color:#77736a">USLUGA</span><span style="display:block;font-size:14px;font-weight:600">{{lb_svc}}</span></span></div>
+            <div style="display:flex;align-items:stretch;height:58px;margin-top:14px;overflow:hidden"><sc-for list="{{lb_bars}}" as="bq" hint-placeholder-count="30"><span style="flex:none;width:{{bq.w}};margin-right:{{bq.g}};background:#111"></span></sc-for></div>
+            <div style="margin-top:6px;text-align:center;font-size:12px;letter-spacing:.16em;color:#3d3b36;font-variant-numeric:tabular-nums">{{lb_trk}}</div>
+          </div>
+        </sc-if>
+        <div style="display:flex;flex-direction:column;gap:8px;margin-top:18px">
+          <sc-for list="{{od_actions}}" as="oa" hint-placeholder-count="3"><button onClick="{{oa.fn}}" style="height:52px;border-radius:9999px;background:{{oa.bg}};color:{{oa.fg}};font-size:16px;font-weight:600;text-align:center">{{oa.label}}</button></sc-for>
+        </div>
+      </sc-if>
+
+
+      <sc-if value="{{sh_digi}}" hint-placeholder-val="{{false}}">
+        <div style="position:relative;height:160px;border-radius:30px;overflow:hidden;background:{{dg_bg}}">
+          <span style="position:absolute;top:0;left:0;right:0;bottom:0;background:radial-gradient(circle at 50% 45%,{{dg_glow}},rgba(255,255,255,0) 70%)"></span>
+          <span style="position:absolute;top:14px;left:50%;width:132px;margin-left:-66px;bottom:14px;display:block"><dc-import name="Art" kind="{{dg_kind}}" hue="{{dg_hue}}" hint-size="100%,100%"></dc-import></span>
+          <span style="position:absolute;left:14px;top:14px;padding:4px 12px;border-radius:9999px;background:rgba(0,0,0,.45);font-size:12px;font-weight:700;color:#86f6d3">ISPORUČENO</span>
+        </div>
+        <span style="display:block;margin-top:14px;font-size:22px;font-weight:700;letter-spacing:-.02em">{{dg_name}}</span>
+        <span style="display:block;font-size:14px;color:rgba(255,255,255,.62)">{{dg_seller}} · {{dg_price}} · {{dg_no}}</span>
+
+        <sc-if value="{{dg_isKey}}">
+          <div class="glass" style="margin-top:16px;padding:16px 18px;border-radius:26px">
+            <span style="display:block;font-size:12px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:rgba(255,255,255,.58)">Aktivacijski ključ</span>
+            <span style="display:block;margin-top:8px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:21px;font-weight:600;letter-spacing:.04em">{{dg_key}}</span>
+            <button onClick="{{dg_keyFn}}" style="display:block;width:100%;height:50px;margin-top:14px;border-radius:9999px;background:#fff;color:#000;font-size:16px;font-weight:600;text-align:center">{{dg_keyLabel}}</button>
+          </div>
+        </sc-if>
+        <sc-if value="{{dg_isFile}}">
+          <div class="glass" style="margin-top:16px;padding:16px 18px;border-radius:26px">
+            <span style="display:block;font-size:12px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:rgba(255,255,255,.58)">Datoteka</span>
+            <span style="display:block;margin-top:6px;font-size:17px;font-weight:600">{{dg_fmt}}</span>
+            <span style="display:block;height:6px;margin-top:12px;border-radius:9999px;background:rgba(255,255,255,.12);overflow:hidden"><span style="display:block;height:100%;width:{{dg_bar}};opacity:{{dg_barOp}};border-radius:9999px;background:{{dg_barCol}};transition:width 1.5s cubic-bezier(.22,1,.36,1),opacity .3s"></span></span>
+            <button onClick="{{dg_dlFn}}" style="display:block;width:100%;height:50px;margin-top:14px;border-radius:9999px;background:{{dg_dlBg}};color:{{dg_dlFg}};font-size:16px;font-weight:600;text-align:center">{{dg_dlLabel}}</button>
+          </div>
+        </sc-if>
+        <span style="display:block;margin:14px 4px 0;font-size:14px;line-height:1.4;color:rgba(255,255,255,.62)">{{dg_plat}} · {{dg_note}}</span>
+        <div style="display:flex;flex-direction:column;gap:8px;margin-top:18px">
+          <sc-for list="{{dg_actions}}" as="ta" hint-placeholder-count="3"><button onClick="{{ta.fn}}" style="height:50px;border-radius:9999px;background:{{ta.bg}};color:{{ta.fg}};font-size:16px;font-weight:600;text-align:center">{{ta.label}}</button></sc-for>
+        </div>
+        <div style="height:18px"></div>
+      </sc-if>
+
+      <sc-if value="{{sh_bag}}" hint-placeholder-val="{{false}}">
+        <sc-if value="{{bg_noCpn}}"><div style="display:flex;align-items:center;gap:12px;padding:12px 12px 12px 18px;margin-bottom:12px;border-radius:24px;background:linear-gradient(100deg,rgba(255,210,122,.22),rgba(255,160,90,.10))"><span style="flex:1;min-width:0;display:block"><span style="display:block;font-size:17px;font-weight:700;letter-spacing:-.01em">Kupon −5 €</span><span style="display:block;font-size:13px;color:rgba(255,255,255,.66)">Samo u ovom showu · za prvu kupnju</span></span><button onClick="{{bg_claim}}" style="flex:none;height:42px;padding:0 20px;border-radius:9999px;background:#fff;color:#000;font-size:15px;font-weight:700">Uzmi</button></div></sc-if>
+        <sc-if value="{{bg_hasCpn}}"><div style="display:flex;align-items:center;gap:10px;padding:12px 18px;margin-bottom:12px;border-radius:24px;background:rgba(134,246,211,.12);font-size:14px;font-weight:600;color:#86f6d3"><svg viewBox="0 0 24 24" width="18" height="18" class="ic" style="stroke-width:2.4" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"></path></svg>{{bg_cpnTxt}}</div></sc-if>
+        <span style="display:block;margin:0 4px 12px;font-size:13px;color:rgba(255,255,255,.58)">Jedna dostava 2,90 € za sve iz ovog showa.</span>
+      </sc-if>
+
+      <sc-if value="{{sh_tip}}" hint-placeholder-val="{{false}}">
+        <div style="display:flex;flex-direction:column;align-items:center;padding:18px 0 22px">
+          <span style="display:flex;align-items:center;justify-content:center;width:88px;height:88px;border-radius:50%;background:rgba(255,210,122,.16);box-shadow:0 0 54px rgba(255,210,122,.36);color:#ffd27a"><svg viewBox="0 0 24 24" width="42" height="42" class="ic" style="stroke-width:1.7" aria-hidden="true"><rect x="4" y="9" width="16" height="11" rx="2"></rect><path d="M12 9v11M4 13h16"></path><path d="M12 9c-1.5-3.5-5-3-5-.8 0 1.6 3 .8 5 .8zM12 9c1.5-3.5 5-3 5-.8 0 1.6-3 .8-5 .8z"></path></svg></span>
+          <span style="margin-top:14px;font-size:15px;color:rgba(255,255,255,.66)">{{tp_note}}</span>
+        </div>
+          <div class="noscroll" style="display:flex;gap:8px;overflow-x:auto;margin:0 -24px;padding:0 24px">
+            <sc-for list="{{chipsA}}" as="ch" hint-placeholder-count="5"><button onClick="{{ch.pick}}" style="flex:none;min-height:44px;padding:0 18px;border-radius:9999px;background:{{ch.bg}};color:{{ch.fg}};font-size:15px;font-weight:500;white-space:nowrap">{{ch.label}}</button></sc-for>
+          </div>
+      </sc-if>
+
+      <sc-if value="{{sh_bidHist}}" hint-placeholder-val="{{false}}">
+        <div style="display:flex;flex-direction:column;gap:8px">
+          <sc-for list="{{togRows}}" as="tg" hint-placeholder-count="3">
+            <button role="switch" aria-label="{{tg.label}}" onClick="{{tg.fn}}" style="display:flex;align-items:center;gap:12px;min-height:60px;padding:8px 16px;border-radius:22px;background:rgba(255,255,255,.07);text-align:left">
+              <span style="flex:1;min-width:0;display:block"><span style="display:block;font-size:16px;font-weight:500">{{tg.label}}</span><span style="display:block;font-size:13px;color:rgba(255,255,255,.58)">{{tg.sub}}</span></span>
+              <span style="position:relative;flex:none;width:52px;height:32px;border-radius:9999px;background:{{tg.trackBg}};transition:background .3s"><span style="position:absolute;top:2px;left:{{tg.knobX}};width:28px;height:28px;border-radius:50%;background:#fff;box-shadow:0 2px 6px rgba(0,0,0,.4);transition:left .3s cubic-bezier(.22,1,.36,1)"></span></span>
+            </button>
+          </sc-for>
+        </div>
+        <div style="display:flex;align-items:center;justify-content:space-between;margin:10px 0 16px;padding:0 6px 0 18px;height:56px;border-radius:22px;background:rgba(255,255,255,.07)"><span style="font-size:15px;color:rgba(255,255,255,.7)">Maksimum</span><span style="display:flex;align-items:center;gap:4px"><button aria-label="Smanji maksimum" onClick="{{bh_stepDec}}" style="width:44px;height:44px;border-radius:50%;background:rgba(255,255,255,.12);font-size:20px">−</button><span style="min-width:84px;text-align:center;font-size:17px;font-weight:600;font-variant-numeric:tabular-nums">{{bh_max}}</span><button aria-label="Povećaj maksimum" onClick="{{bh_stepInc}}" style="width:44px;height:44px;border-radius:50%;background:rgba(255,255,255,.12);font-size:20px">+</button></span></div>
+      </sc-if>
       <sc-if value="{{hasRows}}" hint-placeholder-val="{{false}}">
         <div style="display:flex;flex-direction:column;gap:10px">
           <sc-for list="{{rows}}" as="r" hint-placeholder-count="4">
@@ -1103,11 +1377,48 @@ const LIST_IDS = ['seller', 'drawer', 'notifs', 'shows', 'ships', 'sellerOffers'
 
 Object.assign(SHEET_TITLES, { activity: 'Moje', track: '' });
 const STATUS_TXT = { pay: 'Čeka plaćanje', ship: 'Priprema se za slanje', transit: 'Na putu', arrived: 'Čeka te u paketomatu', done: 'Dostavljeno', refund: 'Povrat u tijeku' };
-const NAV2 = [{ id: 'home', label: 'Početna' }, { id: 'stage', label: 'Uživo' }, { id: 'sell', label: 'Prodaj' }, { id: 'me', label: 'Profil' }];
+const NAV2 = [{ id: 'stage', label: 'Uživo' }, { id: 'home', label: 'Istraži' }, { id: 'sell', label: 'Prodaj' }, { id: 'me', label: 'Profil' }];
+Object.assign(SHEET_TITLES, { orders: 'Narudžbe', order: '' });
+const SORD0 = [
+  { id: 'o1', kind: 'watch', hue: 200, name: 'Argent Diver', price: 860, buyer: 'Ivana K.', svc: 'Paketomat', dest: 'Zagreb, Ilica 12', st: 'ship', label: false, no: '#SH-2051', trk: 'HR 7731 4402 18' },
+  { id: 'o2', kind: 'shoe', hue: 0, name: 'Strata Runner', price: 340, buyer: 'Luka M.', svc: 'Kurir', dest: 'Zagreb, Savska 41', st: 'ship', label: true, no: '#SH-2049', trk: 'HR 7731 4402 27' },
+  { id: 'o3', kind: 'cam', hue: 40, name: 'Lumen S', price: 310, buyer: 'Petra N.', svc: 'Paketomat', dest: 'Split, Riva 3', st: 'wait', label: false, no: '#SH-2048', trk: '' },
+  { id: 'o4', kind: 'vinyl', hue: 0, name: 'Notturno Box', price: 88, buyer: 'Marta P.', svc: 'Kurir', dest: 'Rijeka, Korzo 9', st: 'sent', label: true, no: '#SH-2044', trk: 'HR 7731 4399 02' },
+  { id: 'o5', kind: 'pad', hue: 0, name: 'Okto Pad', price: 74, buyer: 'Dora V.', svc: 'Paketomat', dest: 'Osijek, Europska 5', st: 'transit', label: true, no: '#SH-2040', trk: 'HR 7731 4391 66' },
+  { id: 'o6', kind: 'watch', hue: 120, name: 'Argent Mini', price: 410, buyer: 'Ante B.', svc: 'Kurir', dest: 'Zadar, Poljana 2', st: 'done', label: true, no: '#SH-2031', trk: 'HR 7731 4380 51' }
+];
+const OST = { wait: { t: 'Čeka uplatu kupca', col: '#ffb454', p: -1 }, ship: { t: 'Za slanje', col: '#ffb454', p: 0 }, sent: { t: 'Poslano', col: '#79b4ff', p: 0.14 }, transit: { t: 'Na dostavi', col: '#79b4ff', p: 0.58 }, done: { t: 'Dostavljeno', col: '#86f6d3', p: 1 } };
+const INIT_PRICES = [1240, 340, 520, 96, 74, 180];
+LOTS.push({ item: 7, step: 2, seller: 'Retro Kutak', tint: 'rgba(70,214,176,.42)', a: 'rgba(90,230,190,.30)', b: 'rgba(120,200,255,.16)', viewers: '740' },
+  { item: 8, step: 5, seller: 'Audio Atelier', tint: 'rgba(255,196,104,.42)', a: 'rgba(255,210,120,.30)', b: 'rgba(255,140,90,.16)', viewers: '520' });
+itemOf(7).fm = 'auction';
+Object.assign(SHEET_TITLES, { liveNow: 'Uživo sada' });
+
+ITEMS.push(
+  { id: 12, kind: 'phones', hue: 30, name: 'Synth Pack Vol.2', cat: 'Audio', price: 24, fm: 'digital', cond: 'Digitalno', seller: 'Audio Atelier', rate: '4,9' },
+  { id: 13, kind: 'cam', hue: 190, name: 'Preset Studio', cat: 'Kamere', price: 19, fm: 'digital', cond: 'Digitalno', seller: 'Foto Lab', rate: '4,7' },
+  { id: 14, kind: 'vinyl', hue: 300, name: 'Notturno FLAC', cat: 'Vinil', price: 9, fm: 'digital', cond: 'Digitalno', seller: 'Vinilni Klub', rate: '5,0' },
+  { id: 15, kind: 'pad', hue: 200, name: 'Retro Pack 12', cat: 'Igre', price: 15, fm: 'digital', cond: 'Digitalno', seller: 'Retro Kutak', rate: '4,6' });
+const DIGI = {
+  11: { type: 'key', tag: 'Ključ', fmt: 'Aktivacijski ključ', plat: 'PC · Steam', note: 'Igre → Aktiviraj proizvod, pa zalijepi ključ.' },
+  12: { type: 'file', tag: 'WAV', fmt: 'WAV · 24-bit · 420 zvukova', plat: 'Svi DAW-ovi', size: '1,2 GB', note: 'Komercijalna licenca uključena. Bez DRM-a.' },
+  13: { type: 'file', tag: 'Preseti', fmt: '24 preseta (.xmp)', plat: 'Lightroom Classic i CC', size: '18 MB', note: 'Uvezi mapu u Lightroom → Razvijanje → Preseti.' },
+  14: { type: 'file', tag: 'FLAC', fmt: 'FLAC · 52 min', plat: 'Svi uređaji', size: '380 MB', note: 'Album u izvornoj kvaliteti. Bez DRM-a.' },
+  15: { type: 'key', tag: 'Ključ', fmt: 'Zbirka od 12 igara', plat: 'PC', note: 'Ključ vrijedi za jednu aktivaciju.' }
+};
+const mkKey = (id, n) => { const a = '7F2A91XCQ4MZ8TB6KD3W'; const o = []; for (let i = 0; i < 3; i++) { let t = ''; for (let j = 0; j < 4; j++) t += a[(id * 7 + n * 13 + i * 5 + j * 3) % a.length]; o.push(t); } return 'SH-' + o.join('-'); };
+PURCH0.push({ id: 'pd1', item: 12, price: 24, st: 'digital', eta: 'odmah', no: '#SH-2033', key: mkKey(12, 9) });
+STATUS_TXT.digital = 'Isporučeno · spremno odmah';
+ST.digital = { p: -1, col: MINT };
+Object.assign(SHEET_TITLES, { digi: 'Digitalni proizvod' });
+
+Object.assign(SHEET_TITLES, { bag: 'Predmeti showa', tip: 'Napojnica', bidHist: 'Ponude' });
+const moneyT = (x) => (Number.isInteger(x) ? fE(x) : x.toFixed(2).replace('.', ',') + ' €');
+const GV_PRIZE = 10;
 
 class Component extends DCLogic {
   state = {
-    tab: 'home', lot: 0, prices: [1240, 340, 520, 96], t: 47, tick: 0, bidN: 0, cN: 0, ci: 0, reactN: 0,
+    tab: 'stage', lot: 0, prices: [1240, 340, 520, 96, 74, 180], recent: ['Satovi', 'Vinil'], gv: { on: false, t: 0, entered: false }, gvRes: null, coupon: 0, tipAmt: 2, bagTab: 'all', hearts: [], lastPaid: '', sScope: 'Sve', hMode: 'all', lnCat: 'Sve', t: 47, tick: 0, bidN: 0, cN: 0, ci: 0, reactN: 0,
     comments: [{ u: 'Ana', m: 'Predivan komad!' }, { u: 'Marko', m: 'Je li original?' }, { u: 'Iva', m: 'Šaljete u Split?' }],
     composing: false, draft: '', sound: true, follows: ['Atelier Vrijeme', 'Retro Kutak'], auto: { on: false, max: 1400 },
     stack: [], toast: null, bAmt: 0,
@@ -1167,7 +1478,7 @@ class Component extends DCLogic {
       { id: 'po1', amt: 340, date: '2.11.', st: 'Na putu' }, { id: 'po2', amt: 900, date: '28.10.', st: 'Isplaćeno' }
     ],
     setup: { title: '', when: 'now', cat: 'Satovi', picks: ['i2', 'i4'] }, hq: [],
-    verify: [true, false, false], create: { name: '', price: '', cat: 'Satovi', fm: 'auction' }, csvN: 0, hostViewers: 124
+    verify: [true, false, false], create: { name: '', price: '', cat: 'Satovi', fm: 'auction', cond: '', photo: '' }, csvN: 0, hostViewers: 124
   };
 
   componentDidMount() { this._iv = setInterval(() => this.tickOnce(), 1000); }
@@ -1191,7 +1502,7 @@ class Component extends DCLogic {
   }
   cmt(list, c) { return list.concat([c]).slice(-4); }
 
-  tickOnce() {
+  baseTick() {
     const s = this.state;
     let t = s.t - 1;
     if (t <= 0) t = 60;
@@ -1492,25 +1803,142 @@ class Component extends DCLogic {
   renderVals() {
     return Object.assign({}, this.stageVals(), this.vaultVals(), this.studioVals(), this.navVals(), this.sheetVals());
   }
+  tickOnce() {
+    const s = this.state;
+    if (s.endInfo) return;
+    if (s.t <= 1) { this.endAuction(); return; }
+    this.baseTick();
+    this.extraTick();
+  }
+  _tk = 0; _hid = 0;
+  addHeart(mine) {
+    const id = ++this._hid, x = [0, 14, 30, 8, 22][id % 5];
+    this.setState((z) => ({ hearts: z.hearts.concat([{ id, x, mine: !!mine }]).slice(-7) }));
+    setTimeout(() => this.setState((z) => ({ hearts: z.hearts.filter((h) => h.id !== id) })), 1500);
+  }
+  extraTick() {
+    this._tk++;
+    if (this._tk % 3 === 0) this.addHeart(false);
+    const g = this.state.gv || { on: false };
+    if (!g.on) { if (this._tk % 40 === 18) this.setState({ gv: { on: true, t: 20, entered: false } }); return; }
+    if (g.t > 1) { this.setState({ gv: Object.assign({}, g, { t: g.t - 1 }) }); return; }
+    const won = !!g.entered;
+    this.setState((z) => ({ gv: { on: false, t: 0, entered: false }, coupon: won ? Math.max(z.coupon, GV_PRIZE) : z.coupon, comments: this.cmt(z.comments, { u: won ? 'Ti' : 'Dora', m: won ? 'kupon ' + fE(GV_PRIZE) + ' je tvoj' : 'osvojila kupon ' + fE(GV_PRIZE), mine: won }), cN: z.cN + 1, gvRes: won ? { n: Date.now() } : null }));
+    if (won) { clearTimeout(this._gt); this._gt = setTimeout(() => this.setState({ gvRes: null }), 4600); for (let i = 0; i < 4; i++) setTimeout(() => this.addHeart(true), i * 140); }
+  }
+  enterGv = () => { const g = this.state.gv; if (g && g.on && !g.entered) { this.setState({ gv: Object.assign({}, g, { entered: true }) }); this.toast('Ušao si u giveaway'); } };
+  heart = () => { this.setState((x) => ({ reactN: x.reactN + 1 })); this.addHeart(true); };
+  endAuction() {
+    const s = this.state, L = LOTS[s.lot], it = itemOf(L.item), price = s.prices[s.lot];
+    const mb = s.bids.find((b) => b.item === L.item), won = !!mb && mb.mine >= mb.top;
+    const info = { won, name: it.name, price };
+    const patch = { endInfo: info };
+    if (won) { const pid = 'p' + (s.purchases.length + 1); info.pid = pid; patch.purchases = [{ id: pid, item: L.item, price, st: 'pay', eta: '—', no: '#SH-' + (2050 + s.purchases.length) }].concat(s.purchases); patch.bids = s.bids.filter((b) => b.item !== L.item); }
+    this.setState(patch);
+    clearTimeout(this._et);
+    if (!won) this._et = setTimeout(() => this.nextLot(), 3200);
+  }
+  nextLot = () => {
+    clearTimeout(this._et);
+    this.setState((z) => { const prices = z.prices.slice(); prices[z.lot] = INIT_PRICES[z.lot]; return { endInfo: null, prices, lot: (z.lot + 1) % LOTS.length, t: 60, bidN: 0 }; });
+  };
+  shift(d) { this.setState((z) => ({ lot: (z.lot + d + LOTS.length) % LOTS.length, t: 47, bidN: 0 })); }
+
+  liveVals() {
+    const s = this.state, L = LOTS[s.lot], b = s.bids.find((x) => x.item === L.item), lead = !!b && b.mine >= b.top, outb = !!b && !lead, e = s.endInfo;
+    return {
+      aucCount: s.bidN > 0 ? s.bidN + (s.bidN === 1 ? ' ponuda' : ' ponuda') : 'Bez ponuda', hasLead: lead || outb, leadText: lead ? 'Vodiš' : 'Nadmašen',
+      leadBg: lead ? 'rgba(52,199,89,.24)' : 'rgba(255,180,84,.24)', leadFg: lead ? '#7ff0a4' : '#ffb454',
+      dots: LOTS.map((l, i) => ({ w: i === s.lot ? '20px' : '6px', bg: i === s.lot ? '#fff' : 'rgba(255,255,255,.35)' })),
+      isPad: LOTS[s.lot] && itemOf(L.item).kind === 'pad', isPhones: itemOf(L.item).kind === 'phones', openLiveNow: () => this.push('liveNow'), openSrch: () => this.push('search'),
+      openBids: () => this.push('bidHist'),
+      gvOn: !!(s.gv && s.gv.on), gvPrize: 'Kupon ' + fE(GV_PRIZE), gvTime: s.gv ? '0:' + String(s.gv.t).padStart(2, '0') : '', gvBar: s.gv && s.gv.on ? Math.round(s.gv.t / 20 * 100) + '%' : '0%',
+      gvBtn: s.gv && s.gv.entered ? 'U igri' : 'Uđi', gvBtnBg: s.gv && s.gv.entered ? 'rgba(255,255,255,.16)' : '#fff', gvBtnFg: s.gv && s.gv.entered ? '#fff' : '#000', gvEnter: this.enterGv,
+      gvResShow: !!s.gvRes, gvResSub: 'Kupon −' + fE(GV_PRIZE) + ' primjenjuje se na sljedeću kupnju.',
+      heartsList: s.hearts.map((h) => ({ x: h.x + 'px', col: h.mine ? '#ff6b86' : 'rgba(255,255,255,.7)' })),
+      acts: [
+        { aria: 'Reakcija', k: 'heart', fn: this.heart, on: s.reactN > 0 },
+        { aria: 'Napiši poruku', k: 'chat', fn: () => this.setState({ composing: !s.composing }), on: s.composing },
+        { aria: 'Predmeti showa', k: 'bag', fn: () => this.push('bag'), on: false },
+        { aria: 'Više', k: 'more', fn: () => this.push('more'), on: false }
+      ].map((a) => ({ aria: a.aria, fn: a.fn, isHeart: a.k === 'heart', isChat: a.k === 'chat', isBag: a.k === 'bag', isMore: a.k === 'more',
+        bg: a.on ? 'rgba(255,255,255,.9)' : 'rgba(255,255,255,.10)', fg: a.on ? '#000' : '#fff',
+        anim: a.k === 'heart' && s.reactN > 0 ? ((s.reactN % 2 ? 'popA' : 'popB') + ' .5s cubic-bezier(.2,.9,.3,1)') : 'none' })),
+      swPrev: () => this.shift(-1), swNext: () => this.shift(1),
+      swDown: (ev) => { this._sx = ev.clientX; }, swUp: (ev) => { const dx = ev.clientX - (this._sx == null ? ev.clientX : this._sx); this._sx = null; if (Math.abs(dx) > 50) this.shift(dx < 0 ? 1 : -1); },
+      endShow: !!e, endWon: !!e && e.won, endLost: !!e && !e.won, endName: e ? e.name : '', endPrice: e ? fE(e.price) : '',
+      endPay: () => { const x = this.state.endInfo; this.nextLot(); if (x && x.pid) this.openCheckout('order', x.pid, x.price); }, endLater: this.nextLot
+    };
+  }
+
   navVals() {
     const s = this.state;
     return {
       navItems: NAV2.map((n) => { const on = s.tab === n.id; return { label: n.label, go: () => this.go(n.id), isHome: n.id === 'home', isStage: n.id === 'stage', isSell: n.id === 'sell', isMe: n.id === 'me',
         pad: on ? '0 20px 0 16px' : '0 14px', bg: on ? 'rgba(255,255,255,.18)' : 'rgba(255,255,255,0)', op: on ? '1' : '0.68', labelW: on ? '78px' : '0px', labelOp: on ? '1' : '0' }; }),
       hasToast: !!s.toast, toastText: s.toast ? s.toast.t : '', toastKey: s.toast ? s.toast.n : 0, hasStack: s.stack.length > 0,
-      openBrowse: () => this.go('home')
+      openBrowse: () => this.go('home'),
+      navCollapsed: s.tab === 'stage' && !s.navOpen, navFull: !(s.tab === 'stage' && !s.navOpen),
+      openNav: () => { this.setState({ navOpen: true }); clearTimeout(this._nt); this._nt = setTimeout(() => this.setState({ navOpen: false }), 4000); }
     };
+  }
+
+  go(id) { clearTimeout(this._nt); this.setState({ tab: id, stack: [], navOpen: false }); }
+
+
+  liveCat(l) { return itemOf(l.item).cat; }
+  liveList(cat, ql) {
+    return LOTS.map((l, i) => ({ l, i, it: itemOf(l.item) })).filter((x) => (!cat || cat === 'Sve' || x.it.cat === cat) && (!ql || (x.it.name + ' ' + x.it.cat + ' ' + x.l.seller + ' ' + x.it.cond + ' uživo aukcija').toLowerCase().indexOf(ql) >= 0));
+  }
+  remember(q) { const t = (q || '').trim(); if (!t) return; this.setState((z) => ({ recent: [t].concat((z.recent || []).filter((x) => x !== t)).slice(0, 5) })); }
+  jumpLot(i) { clearTimeout(this._et); this.setState({ lot: i, t: 47, bidN: 0, endInfo: null, stack: [], tab: 'stage' }); }
+  liveRow(x, cur) {
+    const s = this.state;
+    return this.R({ hasArt: true, kind: x.it.kind, hue: x.it.hue, title: x.it.name, sub: 'Uživo · ' + x.l.seller + (cur ? ' · Gledaš' : ''), subCol: '#ff8f86', right: fE(s.prices[x.i]), rsub: cur ? 'sada' : 'aukcija',
+      tap: () => { this.remember(s.q); this.jumpLot(x.i); } });
+  }
+
+
+  quickPay = (id) => {
+    const s = this.state, it = itemOf(id), dg = it.fm === 'digital', pid = 'p' + (s.purchases.length + 1) + (dg ? 'd' : '');
+    const cpn = s.coupon || 0, tot = Math.max(0, it.price + (dg ? 0 : 2.9) - cpn);
+    const np = dg ? { id: pid, item: id, price: it.price, st: 'digital', eta: 'odmah', no: '#SH-' + (2050 + s.purchases.length), key: mkKey(id, s.purchases.length) }
+      : { id: pid, item: id, price: it.price, st: 'ship', eta: '9.11.', no: '#SH-' + (2050 + s.purchases.length), ship: 'Paketomat' };
+    this.setState({ purchases: [np].concat(s.purchases), qdone: true, coupon: 0, lastPaid: moneyT(tot) });
+    clearTimeout(this._qt);
+    this._qt = setTimeout(() => { if (dg) this.setState({ stack: [{ id: 'digi', pid }], qdone: false }); else { this.setState({ stack: [], qdone: false }); this.toast('Tvoje je. Pogledaj u kupnjama'); } }, 1700);
+  };
+  downloadDigi(pid) {
+    this.setState((z) => ({ dl: Object.assign({}, z.dl || {}, { [pid]: 'load' }) }));
+    clearTimeout(this._dt);
+    this._dt = setTimeout(() => this.setState((z) => ({ dl: Object.assign({}, z.dl || {}, { [pid]: 'done' }) })), 1500);
   }
 
   homeVals() {
     const s = this.state;
-    const tiles = this.filterItems().map((it) => this.tile(it));
+    const mode = s.hMode || 'all', cat = s.bCat;
+    let items = this.filterItems(); if (mode === 'auction') items = items.filter((it) => it.fm === 'auction'); if (mode === 'digital') items = items.filter((it) => it.fm === 'digital');
+    const tiles = items.map((it) => this.tile(it));
+    const liveF = this.liveList(cat), liveCards = liveF.map((x) => { const pal = PAL[x.it.kind];
+      return { name: x.it.name, seller: x.l.seller, kind: x.it.kind, hue: x.it.hue, glow: pal.glow, bgG: pal.bg, priceStr: fE(s.prices[x.i]), viewers: x.l.viewers, aria: 'Uživo: ' + x.it.name + ', ' + fE(s.prices[x.i]), open: () => this.jumpLot(x.i) }; });
+    const digiCards = ITEMS.filter((it) => it.fm === 'digital' && (cat === 'Sve' || it.cat === cat)).map((it) => ({ name: it.name, kind: it.kind, hue: it.hue, glow: PAL[it.kind].glow, bgG: PAL[it.kind].bg, priceStr: fE(it.price), tag: (DIGI[it.id] || {}).tag || 'Digitalno', aria: it.name + ', digitalno, ' + fE(it.price), open: () => { this.setState({ itemId: it.id }); this.push('item'); } }));
+    const quick = [{ label: 'Sve', on: cat === 'Sve' && mode === 'all', pick: () => this.setState({ bCat: 'Sve', hMode: 'all' }), dot: false, tint: '' },
+      { label: 'Uživo', on: mode === 'live', pick: () => this.setState({ hMode: mode === 'live' ? 'all' : 'live' }), dot: true, dotCol: '#ff453a', tint: 'rgba(255,69,58,.2)', tintFg: '#ff8f86' },
+      { label: 'Aukcije', on: mode === 'auction', pick: () => this.setState({ hMode: mode === 'auction' ? 'all' : 'auction' }), dot: false, tint: 'rgba(255,180,84,.18)', tintFg: '#ffc27a' },
+      { label: 'Digitalno', on: mode === 'digital', pick: () => this.setState({ hMode: mode === 'digital' ? 'all' : 'digital' }), dot: false, tint: 'rgba(124,200,255,.18)', tintFg: '#8fd0ff' }]
+      .concat(CATS.slice(1).map((c) => ({ label: c, on: cat === c, pick: () => this.setState({ bCat: cat === c ? 'Sve' : c }), dot: this.liveList(c).length > 0, dotCol: '#ff453a', tint: '' })))
+      .map((c) => ({ label: c.label, dot: c.dot, dotCol: c.dotCol || '#ff453a', pick: c.pick, bg: c.on ? 'rgba(255,255,255,.94)' : (c.tint || 'rgba(255,255,255,.10)'), fg: c.on ? '#000' : (c.tintFg || '#fff') }));
     return {
       isHome: s.tab === 'home',
-      hCats: CATS.map((c) => ({ label: c, bg: s.bCat === c ? 'rgba(255,255,255,.92)' : 'rgba(255,255,255,.10)', fg: s.bCat === c ? '#000' : '#fff', pick: () => this.setState({ bCat: c }) })),
-      hTiles: tiles, hNoTiles: tiles.length === 0,
-      hLive: LOTS.map((l, i) => { const it = itemOf(l.item), pal = PAL[it.kind];
+      hQuick: quick,
+      hTiles: tiles, hNoTiles: tiles.length === 0 && mode !== 'live',
+      hShowRow: mode !== 'live' && mode !== 'digital' && liveCards.length > 0, hShowList: mode === 'live' && liveCards.length > 0, hLiveEmpty: mode === 'live' && liveCards.length === 0,
+      hShowUp: mode === 'all' || mode === 'live', hDigiNote: mode === 'digital', hShowDigi: mode === 'all' && digiCards.length > 0, hDigi: digiCards, hShowShops: mode === 'all', hShowTiles: mode !== 'live', hTilesTitle: mode === 'auction' ? 'Aukcije' : (mode === 'digital' ? 'Digitalni proizvodi' : 'Predmeti'), hLiveTitle: 'Uživo sada · ' + liveCards.length,
+      hLiveCards: liveCards,
+      hLiveOld: LOTS.map((l, i) => { const it = itemOf(l.item), pal = PAL[it.kind];
         return { name: it.name, seller: l.seller, kind: it.kind, hue: it.hue, glow: pal.glow, priceStr: fE(this.state.prices[i]), viewers: l.viewers, aria: 'Uživo: ' + it.name + ', ' + fE(this.state.prices[i]), open: () => this.setState({ lot: i, tab: 'stage', stack: [] }) }; }),
+      hUp: s.shows.concat([{ id: 'shx', title: 'Vinil večer', when: 'Ned 8.11. u 18:30' }]).map((x) => { const on = s.remind.indexOf(x.id) >= 0;
+        return { title: x.title, when: x.when, init: x.title.charAt(0), bLabel: on ? 'Podsjećam' : 'Podsjeti me', bBg: on ? 'rgba(255,255,255,.14)' : '#fff', bFg: on ? '#fff' : '#000', fn: () => { this.toggleIn('remind', x.id); } }; }),
       hShops: SHOPS.map((x) => ({ init: x.id.charAt(0), name: x.id, col: x.col, open: () => this.openShop(x.id) })),
       hSearch: () => this.push('search'), hFilters: () => this.push('filters'), hBell: () => this.push('notifs'), hBellN: String(s.notifs.length), hHasBell: s.notifs.length > 0,
       hMsgs: () => this.push('messages'), hMsgN: String(s.convs.reduce((a, c) => a + c.unread, 0)), hHasMsg: s.convs.some((c) => c.unread > 0)
@@ -1519,7 +1947,7 @@ class Component extends DCLogic {
 
   sellVals() {
     const s = this.state, P = PERIODS[2];
-    const toShip = s.ships.filter((x) => x.ready && !x.done).length, offersWait = s.sOffers.filter((o) => o.st === 'wait').length;
+    const toShipN = (s.sorders || SORD0).filter((x) => x.st === 'ship').length, offersWait = s.sOffers.filter((o) => o.st === 'wait').length;
     const L = (label, sub, count, fn) => ({ label, sub, count, hasCount: !!count, fn });
     return {
       isSell: s.tab === 'sell',
@@ -1527,7 +1955,7 @@ class Component extends DCLogic {
       sEarn: fmt(P.v), sDelta: P.d, sFin: () => this.push('fin'),
       sList: [
         L('Moji predmeti', 'Aukcije, kupi odmah, spremljeno', String(s.inv.filter((x) => x.st !== 'sold').length), () => this.push('inv')),
-        L('Otprema', 'Paketi za predaju', toShip ? String(toShip) : '', () => this.push('ships')),
+        L('Narudžbe', 'Otpremnice i praćenje', toShipN ? String(toShipN) : '', () => { this.setState({ oTab: 'ship' }); this.push('orders'); }),
         L('Ponude kupaca', 'Čekaju tvoj odgovor', offersWait ? String(offersWait) : '', () => this.push('sellerOffers')),
         L('Showovi', 'Zakazani live prijenosi', String(s.shows.length), () => this.push('shows')),
         L('Moj shop', 'Kako te vide kupci', '', () => this.openShop('me')),
@@ -1557,18 +1985,130 @@ class Component extends DCLogic {
   }
 
   renderVals() {
-    return Object.assign({}, this.stageVals(), this.homeVals(), this.sellVals(), this.meVals(), this.navVals(), this.sheetVals());
+    return Object.assign({}, this.stageVals(), this.liveVals(), this.homeVals(), this.sellVals(), this.meVals(), this.navVals(), this.sheetVals());
   }
 
   sheetVals() {
     const out = this.baseSheetVals(), s = this.state, top = s.stack[s.stack.length - 1], id = top ? top.id : null;
     const setRows = (rows, empty) => { out.rows = rows; out.hasRows = rows.length > 0; out.emptyText = empty || ''; out.showEmpty = rows.length === 0 && !!empty; };
     out.a_saved = false; out.tr_nodes = [];
+
+    out.qb_hasCpn = false; out.qb_cpn = ''; out.bg_hasCpn = false; out.bg_noCpn = true; out.bg_claim = () => {}; out.bg_cpnTxt = '';
+    out.bh_stepDec = () => {}; out.bh_stepInc = () => {}; out.bh_max = ''; out.tp_note = '';
+    if (id === 'quick') {
+      const it = itemOf(top.item), dg = it.fm === 'digital', cpn = s.coupon || 0;
+      if (s.qdone && s.lastPaid) out.qb_total = s.lastPaid;
+      else if (cpn > 0) { out.qb_total = moneyT(Math.max(0, it.price + (dg ? 0 : 2.9) - cpn)); }
+      out.qb_hasCpn = cpn > 0 && !s.qdone; out.qb_cpn = 'Kupon −' + fE(cpn) + ' primijenjen';
+    }
+    if (id === 'more') {
+      out.moreRows = [{ label: 'Napojnica prodavaču', fn: () => this.push('tip') }, { label: 'Povijest ponuda', fn: () => this.push('bidHist') }].concat(out.moreRows);
+    }
+    if (id === 'bag') {
+      const L = LOTS[s.lot], tab = s.bagTab || 'all', cpn = s.coupon || 0, left = 300 - (s.tick % 300), mm = Math.floor(left / 60), ss = String(left % 60).padStart(2, '0');
+      out.hasSegs = true; out.segs = this.segsOf([['all', 'Sve'], ['auction', 'Aukcije'], ['buy', 'Kupi odmah'], ['digital', 'Digitalno']], tab, (v) => this.setState({ bagTab: v }));
+      out.bg_hasCpn = cpn > 0; out.bg_noCpn = cpn === 0; out.bg_claim = () => { this.setState({ coupon: 5 }); this.toast('Kupon −5 € je tvoj'); };
+      out.bg_cpnTxt = 'Kupon −' + fE(cpn) + ' aktivan · primjenjuje se pri kupnji';
+      const list = ITEMS.filter((it) => it.seller === L.seller && (tab === 'all' || it.fm === tab));
+      setRows(list.map((it) => { const li = LOTS.findIndex((l) => l.item === it.id), cur = li === s.lot, live = li >= 0;
+        if (it.fm === 'auction') return this.R({ hasArt: true, kind: it.kind, hue: it.hue, title: it.name, sub: cur ? 'Sada se licitira' : (live ? 'Uživo u drugom showu' : 'Aukcija · na redu'), subCol: cur ? MINT : 'rgba(255,255,255,.62)', right: fE(live ? s.prices[li] : it.price), rsub: 'aukcija',
+          hasBadge: cur, badge: 'SADA', bc: '#ff453a', tap: () => { if (live) this.jumpLot(li); } });
+        const flash = it.fm === 'buy' && it.was;
+        return this.R({ hasArt: true, kind: it.kind, hue: it.hue, title: it.name, sub: flash ? 'Flash −' + Math.round((1 - it.price / it.was) * 100) + ' % · još ' + mm + ':' + ss : (it.fm === 'digital' ? 'Digitalno · odmah' : it.cond), subCol: flash ? '#ffb454' : (it.fm === 'digital' ? '#8fd0ff' : 'rgba(255,255,255,.62)'),
+          right: fE(it.price), rsub: it.was ? fE(it.was) : '', hasB1: true, b1l: 'Kupi', b1p: true, b1f: () => this.buyItem(it.id), tap: () => { this.setState({ itemId: it.id }); this.push('item'); } }); }), 'Nema predmeta u ovoj skupini.');
+    }
+    if (id === 'bidHist') {
+      const L = LOTS[s.lot], price = s.prices[s.lot], b = s.bids.find((x) => x.item === L.item), lead = !!b && b.mine >= b.top, names = ['Luka', 'Mia', 'Ante', 'Dora', 'Ivan'], cols = ['#7aa8ff', '#ff9079', '#b9a4ff', '#6fe0b0', '#f2c46e'];
+      const base = INIT_PRICES[s.lot], rows = [];
+      for (let i = 0; i < 6; i++) { const pr = price - i * L.step; if (pr <= base) break; const me = i === 0 && lead, nm = me ? 'Ti' : names[(s.lot + i) % 5];
+        rows.push(this.R({ hasInit: true, init: nm.charAt(0), initCol: me ? '#86f6d3' : cols[(s.lot + i) % 5], title: nm, sub: i === 0 ? 'Najviša ponuda' : 'prije ' + (i * 14 + 6) + ' s', subCol: i === 0 ? MINT : 'rgba(255,255,255,.62)', right: fE(pr) })); }
+      rows.push(this.R({ hasInit: true, init: 'S', initCol: '#555', title: 'Početna cijena', sub: 'Start aukcije', right: fE(base) }));
+      setRows(rows);
+      out.togRows = [this.tog('Automatska ponuda', 'Licitiram umjesto tebe do maksimuma', s.auto.on, () => this.setState({ auto: { on: !s.auto.on, max: Math.max(s.auto.max, price + 100) } }))];
+      out.bh_max = fE(s.auto.max); out.bh_stepDec = () => this.setState({ auto: { on: s.auto.on, max: Math.max(price + L.step, s.auto.max - 50) } }); out.bh_stepInc = () => this.setState({ auto: { on: s.auto.on, max: s.auto.max + 50 } });
+    }
+    if (id === 'tip') {
+      const amt = s.tipAmt || 2, L = LOTS[s.lot];
+      out.chipsA = this.chipsOf(['1 €', '2 €', '5 €', '10 €'], amt + ' €', (v) => this.setState({ tipAmt: parseInt(v, 10) }));
+      out.tp_note = 'Napojnica ide prodavaču ' + L.seller + '.';
+      out.hasFoot = true; out.footLabel = 'Pošalji ' + amt + ' €'; out.footBg = '#fff'; out.footFg = '#000'; out.bodyBottom = '120px';
+      out.footFn = () => { this.setState((z) => ({ stack: [], comments: this.cmt(z.comments, { u: 'Ti', m: 'napojnica ' + amt + ' € poslana', mine: true }), cN: z.cN + 1 })); for (let i = 0; i < 5; i++) setTimeout(() => this.addHeart(true), i * 120); this.toast('Napojnica poslana'); };
+    }
+    out.it_protect = 'Zaštita kupca: novac se zadržava dok ne potvrdiš primitak.'; out.qb_digi = false; out.qb_ship = true; out.qb_doneTitle = 'Tvoje je.'; out.qb_tag = '';
+    out.cr_isDigi = false; out.cr_notDigi = true; out.cr_isKey = false; out.cr_isFile = false; out.cr_keys = ''; out.cr_setKeys = () => {}; out.cr_hasFile = false; out.cr_noFile = true; out.cr_fileName = ''; out.cr_pickFile = () => {}; out.cr_rmFile = () => {};
+    if (id === 'quick') {
+      const it = itemOf(top.item);
+      if (it.fm === 'digital') { const dg = DIGI[it.id] || {}; Object.assign(out, { qb_digi: true, qb_ship: false, qb_doneTitle: 'Isporučeno.', qb_tag: 'Digitalno · ' + (dg.tag || '') + ' · isporuka odmah', qb_line: 'Bez dostave · •••• 4242', qb_total: fE(it.price) }); }
+    }
+    if (id === 'item') {
+      const it = itemOf(s.itemId);
+      if (it.fm === 'digital') { const dg = DIGI[it.id] || {}; out.it_fmt = 'Digitalno · ' + (dg.tag || ''); out.it_cond = 'Isporuka odmah'; out.it_buyLabel = 'Kupi · ' + fE(it.price); out.footLabel = out.it_buyLabel; out.it_protect = 'Zaštita kupca: ako ključ ili datoteka ne rade, dobivaš povrat novca.'; }
+    }
+    if (id === 'digi') {
+      const pc = s.purchases.find((p) => p.id === top.pid) || s.purchases[0], it = itemOf(pc.item), pal = PAL[it.kind], dg = DIGI[pc.item] || DIGI[11], isKey = dg.type === 'key';
+      const dl = (s.dl || {})[pc.id], shown = !!(s.kr || {})[pc.id];
+      Object.assign(out, { dg_bg: pal.bg, dg_glow: pal.glow, dg_kind: it.kind, dg_hue: it.hue, dg_name: it.name, dg_seller: it.seller, dg_price: fE(pc.price), dg_no: pc.no, dg_fmt: dg.fmt, dg_plat: dg.plat, dg_note: dg.note, dg_size: dg.size || '',
+        dg_isKey: isKey, dg_isFile: !isKey, dg_key: shown ? pc.key : 'SH-••••-••••-••••', dg_keyLabel: shown ? 'Kopiraj ključ' : 'Prikaži ključ',
+        dg_keyFn: () => { if (!shown) this.setState((z) => ({ kr: Object.assign({}, z.kr || {}, { [pc.id]: true }) })); else this.toast('Ključ kopiran'); },
+        dg_dlLabel: dl === 'load' ? 'Preuzimanje…' : (dl === 'done' ? 'Preuzeto · preuzmi ponovno' : 'Preuzmi · ' + (dg.size || '')), dg_dlBg: dl === 'done' ? 'rgba(255,255,255,.14)' : '#fff', dg_dlFg: dl === 'done' ? '#fff' : '#000',
+        dg_bar: dl === 'load' ? '100%' : (dl === 'done' ? '100%' : '0%'), dg_barOp: dl ? '1' : '0', dg_barCol: dl === 'done' ? '#86f6d3' : '#8fd0ff',
+        dg_dlFn: () => { if (dl !== 'load') this.downloadDigi(pc.id); },
+        dg_actions: [
+          { label: 'Piši prodavaču', bg: 'rgba(255,255,255,.14)', fg: '#fff', fn: () => { this.setState({ conv: it.seller === 'Retro Kutak' ? 'c2' : (it.seller === 'Vinilni Klub' ? 'c3' : (it.seller === 'Tenisice Zagreb' ? 'c4' : 'c1')) }); this.push('thread'); } },
+          { label: 'Račun na e-poštu', bg: 'rgba(255,255,255,.14)', fg: '#fff', fn: () => this.toast('Račun je poslan na tvoju e-poštu') },
+          { label: 'Prijavi problem', bg: 'rgba(255,255,255,.14)', fg: '#fff', fn: () => this.push('problem', { ret: false }) }
+        ] });
+    }
+    if (id === 'create') {
+      const c = s.create, dgt = c.fm === 'digital', dt = c.dt || 'Licencni ključ', upd = (o) => this.setState({ create: Object.assign({}, c, o) });
+      out.segs = this.segsOf([['auction', 'Aukcija'], ['buy', 'Kupi odmah'], ['digital', 'Digitalno']], c.fm, (v) => upd({ fm: v })); out.hasSegs = true;
+      Object.assign(out, { cr_isDigi: dgt, cr_notDigi: !dgt, cr_isKey: dgt && dt === 'Licencni ključ', cr_isFile: dgt && dt !== 'Licencni ključ', cr_keys: c.dk || '', cr_setKeys: (e) => upd({ dk: e.target.value }),
+        cr_hasFile: !!c.df, cr_noFile: !c.df, cr_fileName: c.df || '', cr_pickFile: () => { upd({ df: 'Synth_Pack_v2.zip · 1,2 GB' }); this.toast('Datoteka učitana'); }, cr_rmFile: () => upd({ df: '' }) });
+      if (dgt) out.chipsB = this.chipsOf(['Licencni ključ', 'Datoteka'], dt, (v) => upd({ dt: v }));
+      const missing = !c.photo ? 'Dodaj naslovnu fotografiju' : (c.name.trim().length < 2 ? 'Upiši naziv' : (!(Number(c.price) > 0) ? 'Upiši cijenu' : (dgt ? (dt === 'Licencni ključ' ? ((c.dk || '').trim() ? '' : 'Dodaj ključeve') : (c.df ? '' : 'Učitaj datoteku')) : (!c.cond ? 'Odaberi stanje' : ''))));
+      const ok = missing === '';
+      const publish = () => { if (!ok) { this.toast(missing); return; }
+        this.setState((z) => ({ inv: [{ id: 'i' + (z.inv.length + 1), kind: KIND_BY_CAT[c.cat], hue: 0, name: c.name.trim(), price: Number(c.price), st: dgt ? 'buy' : c.fm, cond: dgt ? 'Digitalno' : c.cond }].concat(z.inv), create: { name: '', price: '', cat: 'Satovi', fm: 'auction', cond: '', photo: '' }, iSeg: dgt ? 'buy' : c.fm, stack: z.stack.filter((y) => y.id !== 'create') }));
+        this.toast(dgt ? 'Objavljeno. Kupci dobivaju isporuku odmah.' : 'Predmet je objavljen'); };
+      Object.assign(out, { cr_ok: ok, cr_fgBtn: ok ? '#000' : 'rgba(255,255,255,.5)', cr_publish: publish, hasFoot: true, footLabel: ok ? (dgt ? 'Objavi digitalno' : 'Objavi') : missing, footFn: publish, footBg: ok ? '#fff' : 'rgba(255,255,255,.14)', footFg: ok ? '#000' : 'rgba(255,255,255,.5)', bodyBottom: '120px' });
+    }
+
+    out.hasQ = false; out.noQ = false; out.noRes = false; out.noResText = ''; out.sLive = []; out.sCats = []; out.sRecent = []; out.hasRecent = false; out.sugg = []; out.clearQ = () => {}; out.clearRecent = () => {};
+    if (id === 'search') {
+      const q = s.q.trim(), ql = q.toLowerCase(), sc = s.sScope || 'Sve', rec = s.recent || [];
+      out.q = s.q; out.setQ = (e) => this.setState({ q: e.target.value }); out.hasQ = q !== ''; out.noQ = q === ''; out.clearQ = () => this.setState({ q: '' });
+      out.chipsA = this.chipsOf(['Sve', 'Uživo', 'Aukcije', 'Digitalno', 'Shopovi'], sc, (v) => this.setState({ sScope: v }));
+      const livePick = LOTS.map((l, i) => ({ l, i, it: itemOf(l.item) }));
+      out.sLive = livePick.map((x) => { const pal = PAL[x.it.kind]; return { name: x.it.name, kind: x.it.kind, hue: x.it.hue, glow: pal.glow, priceStr: fE(s.prices[x.i]), seller: x.l.seller, open: () => this.jumpLot(x.i) }; });
+      out.sCats = CATS.slice(1).map((c) => { const n = this.liveList(c).length, k = KIND_BY_CAT[c], pal = PAL[k];
+        return { name: c, kind: k, glow: pal.glow, bgG: pal.bg, hasLive: n > 0, liveTxt: n > 0 ? n + ' uživo' : 'Uskoro', liveCol: n > 0 ? '#ff8f86' : 'rgba(255,255,255,.5)', pick: () => this.setState({ q: c, sScope: 'Sve' }) }; });
+      out.sRecent = rec.map((x) => ({ label: x, pick: () => this.setState({ q: x }) })); out.hasRecent = rec.length > 0; out.clearRecent = () => this.setState({ recent: [] });
+      out.sugg = ['Aurum Chrono', 'Strata Runner', 'Digitalno', 'Vinil', 'Foto Lab', 'Halo One'].map((x) => ({ label: x, pick: () => this.setState({ q: x }) }));
+      let rows = [];
+      if (q) {
+        const m = (t) => t.toLowerCase().indexOf(ql) >= 0;
+        const liveR = (sc === 'Shopovi' || sc === 'Digitalno') ? [] : this.liveList('Sve', ql).map((x) => this.liveRow(x, x.i === s.lot));
+        const liveItems = LOTS.map((l) => l.item);
+        const shopR = (sc === 'Sve' || sc === 'Shopovi') ? SHOPS.filter((sh) => m(sh.id + ' ' + sh.cats.join(' ') + ' ' + sh.city)).map((sh) => { const lv = LOTS.some((l) => l.seller === sh.id);
+          return this.R({ hasInit: true, init: sh.id.charAt(0), initCol: sh.col, title: sh.id, sub: (lv ? 'Uživo · ' : 'Shop · ') + sh.city + ' · ★ ' + sh.rate, subCol: lv ? '#ff8f86' : 'rgba(255,255,255,.62)', hasChev: true, tap: () => { this.remember(q); this.openShop(sh.id); } }); }) : [];
+        const itemR = (sc !== 'Shopovi' && sc !== 'Uživo') ? ITEMS.filter((it) => liveItems.indexOf(it.id) < 0 && (sc === 'Sve' || (sc === 'Aukcije' && it.fm === 'auction') || (sc === 'Digitalno' && it.fm === 'digital')) && m(it.name + ' ' + it.cat + ' ' + it.seller + ' ' + it.cond + ' ' + (it.fm === 'auction' ? 'aukcija' : it.fm === 'digital' ? 'digitalno' : 'kupi odmah')))
+          .map((it) => this.R({ hasArt: true, kind: it.kind, hue: it.hue, title: it.name, sub: it.seller + ' · ' + it.cond, right: fE(it.price), rsub: it.fm === 'auction' ? 'aukcija' : (it.fm === 'digital' ? 'digitalno' : 'kupi odmah'), tap: () => { this.remember(q); this.setState({ itemId: it.id }); this.push('item'); } })) : [];
+        const sec = (t, a) => (a.length ? [this.R({ isHead: true, title: t + ' · ' + a.length })].concat(a) : []);
+        rows = sec('Uživo', liveR).concat(sec('Shopovi', shopR), sec('Predmeti', itemR));
+      }
+      setRows(rows); out.noRes = q !== '' && rows.length === 0; out.noResText = 'Nema rezultata za „' + q + '”';
+    }
+    if (id === 'liveNow') {
+      const c = s.lnCat || 'Sve', list = this.liveList(c);
+      out.chipsA = CATS.map((x) => ({ label: x, bg: c === x ? 'rgba(255,255,255,.92)' : 'rgba(255,255,255,.10)', fg: c === x ? '#000' : '#fff', pick: () => this.setState({ lnCat: x }) }));
+      setRows(list.map((x) => this.liveRow(x, x.i === s.lot)), 'Trenutno nema livea u ovoj kategoriji.');
+    }
+
     if (id === 'activity') {
       out.hasSegs = true; out.segs = this.segsOf([['buy', 'Kupnje'], ['bids', 'Licitacije'], ['offers', 'Ponude'], ['saved', 'Spremljeno']], s.vSeg, (v) => this.setState({ vSeg: v }));
       if (s.vSeg === 'buy') {
         setRows(s.purchases.map((p) => { const it = itemOf(p.item), meta = ST[p.st], col = meta.col || (p.st === 'done' ? 'rgba(255,255,255,.55)' : MINT);
-          return this.R({ hasArt: true, kind: it.kind, hue: it.hue, title: it.name, sub: STATUS_TXT[p.st], subCol: col, right: fE(p.price), rsub: p.st === 'pay' ? '' : (p.st === 'done' || p.st === 'refund' ? p.eta : 'do ' + p.eta), hasChev: true, tap: () => this.push('track', { pid: p.id }) }); }), 'Još nema kupnji.');
+          return this.R({ hasArt: true, kind: it.kind, hue: it.hue, title: it.name, sub: STATUS_TXT[p.st], subCol: col, right: fE(p.price), rsub: p.st === 'digital' ? 'odmah' : p.st === 'pay' ? '' : (p.st === 'done' || p.st === 'refund' ? p.eta : 'do ' + p.eta), hasChev: true, tap: () => this.push(p.st === 'digital' ? 'digi' : 'track', { pid: p.id }) }); }), 'Još nema kupnji.');
       } else if (s.vSeg === 'saved') {
         const v = this.vaultVals(); out.a_saved = true; out.tiles = v.savedTiles; out.noTiles = v.savedTiles.length === 0; setRows([]);
       } else {
@@ -1591,6 +2131,35 @@ class Component extends DCLogic {
         tr_hasLine: pm.p >= 0, tr_pct: (Math.max(0, pm.p) * 100) + '%', tr_beam: 'linear-gradient(90deg,rgba(255,255,255,0) 0%,' + col + ' 100%)', tr_shadow: '0 0 18px ' + col + ',0 0 5px ' + col, tr_head: '0 0 22px 6px ' + col,
         tr_nodes: NODES.map((nd, i) => { const lit = pm.p >= 0 && pm.p >= nd.thr - 0.001; return { left: nd.left, label: labels[i], bg: lit ? 'rgba(255,255,255,.22)' : 'rgba(255,255,255,.07)', border: lit ? '1px solid ' + col : '1px solid rgba(255,255,255,.12)', shadow: lit ? '0 0 18px ' + pal.glow : 'none', dot: lit ? '#fff' : 'rgba(255,255,255,.25)' }; }),
         tr_actions: acts.map((a) => ({ label: a[0], fn: a[2], bg: a[1] ? '#fff' : 'rgba(255,255,255,.14)', fg: a[1] ? '#000' : '#fff' })) });
+    }
+    if (id === 'orders') {
+      const ords = s.sorders || SORD0, tab = s.oTab || 'ship';
+      out.hasSegs = true; out.segs = this.segsOf([['ship', 'Za slanje'], ['sent', 'Poslano'], ['transit', 'U dostavi'], ['done', 'Gotovo']], tab, (v) => this.setState({ oTab: v }));
+      const list = ords.filter((o) => (tab === 'ship' ? (o.st === 'ship' || o.st === 'wait') : o.st === tab));
+      setRows(list.map((o) => this.R({ hasArt: true, kind: o.kind, hue: o.hue, title: o.name, sub: o.buyer + ' · ' + o.svc, right: fE(o.price), rsub: o.no, hasChev: true,
+        hasBadge: o.st === 'wait' || (o.st === 'ship' && o.label), badge: o.st === 'wait' ? 'Čeka' : 'Spremno', bc: o.st === 'wait' ? '#ffb454' : '#86f6d3', tap: () => this.push('order', { oid: o.id }) })), 'Nema narudžbi u ovoj skupini.');
+      const gen = ords.filter((o) => o.st === 'ship' && !o.label).length;
+      if (tab === 'ship' && gen > 0) { out.hasFoot = true; out.footLabel = 'Generiraj sve otpremnice (' + gen + ')'; out.footBg = '#fff'; out.footFg = '#000'; out.bodyBottom = '120px';
+        out.footFn = () => { this.setState((z) => ({ sorders: (z.sorders || SORD0).map((o) => (o.st === 'ship' ? Object.assign({}, o, { label: true }) : o)) })); this.toast(gen + ' otpremnice generirano'); }; }
+    }
+    if (id === 'order') {
+      const ords = s.sorders || SORD0, o = ords.find((x) => x.id === top.oid) || ords[0], pal = PAL[o.kind], m = OST[o.st];
+      const upd = (patch, msg) => () => { this.setState((z) => ({ sorders: (z.sorders || SORD0).map((x) => (x.id === o.id ? Object.assign({}, x, patch) : x)) })); if (msg) this.toast(msg); };
+      const acts = [];
+      if (o.st === 'ship' && !o.label) acts.push(['Generiraj otpremnicu', true, upd({ label: true }, 'Otpremnica generirana')]);
+      if (o.st === 'ship' && o.label) acts.push(['Označi kao poslano', true, upd({ st: 'sent' }, 'Označeno kao poslano')]);
+      if (o.st === 'sent') acts.push(['Kurir je preuzeo (demo)', true, upd({ st: 'transit' }, 'Paket je na dostavi')]);
+      if (o.st === 'transit') acts.push(['Kupac je primio (demo)', true, upd({ st: 'done' }, 'Dostavljeno. Isplata je na putu')]);
+      if (o.label) { acts.push(['Spremi PDF', false, () => this.toast('Otpremnica ' + o.no + ' spremljena')]); acts.push(['Podijeli', false, () => this.toast('Poveznica na otpremnicu kopirana')]); }
+      acts.push(['Poruka kupcu', false, () => { this.setState({ conv: 'c1' }); this.push('thread'); }]);
+      let x = o.no.split('').reduce((a, ch) => a + ch.charCodeAt(0), 7); const bars = [];
+      for (let i = 0; i < 44; i++) { x = (x * 9301 + 49297) % 233280; bars.push({ w: (1 + Math.floor(x / 233280 * 3)) + 'px', g: (1 + (x % 3)) + 'px' }); }
+      const labels = ['Poslano', 'Na dostavi', 'Dostavljeno'];
+      Object.assign(out, { od_kind: o.kind, od_hue: o.hue, od_bg: pal.bg, od_glow: pal.glow, od_name: o.name, od_price: fE(o.price), od_st: m.t, od_col: m.col, od_no: o.no, od_buyer: o.buyer, od_dest: (o.svc === 'Paketomat' ? 'Paketomat · ' : 'Adresa · ') + o.dest,
+        od_hasLine: o.st !== 'wait', od_pct: (Math.max(0, m.p) * 100) + '%', od_beam: 'linear-gradient(90deg,rgba(255,255,255,0) 0%,' + m.col + ' 100%)', od_shadow: '0 0 18px ' + m.col + ',0 0 5px ' + m.col, od_head: '0 0 22px 6px ' + m.col,
+        od_nodes: [0.14, 0.58, 1].map((thr, i) => { const lit = m.p >= thr - 0.001; return { left: ['0%', '50%', '100%'][i], label: labels[i], bg: lit ? 'rgba(255,255,255,.22)' : 'rgba(255,255,255,.07)', border: lit ? '1px solid ' + m.col : '1px solid rgba(255,255,255,.12)', shadow: lit ? '0 0 18px ' + pal.glow : 'none', dot: lit ? '#fff' : 'rgba(255,255,255,.25)' }; }),
+        od_hasLabel: !!o.label, od_noLabel: !o.label && o.st !== 'wait', od_wait: o.st === 'wait', lb_bars: bars, lb_svc: o.svc, lb_trk: o.trk, lb_item: o.name, lb_weight: o.kind === 'vinyl' ? '0,3 kg' : (o.kind === 'shoe' ? '1,1 kg' : '0,6 kg'),
+        od_actions: acts.map((a) => ({ label: a[0], fn: a[2], bg: a[1] ? '#fff' : 'rgba(255,255,255,.14)', fg: a[1] ? '#000' : '#fff' })) });
     }
     return out;
   }
@@ -1937,10 +2506,15 @@ class Component extends DCLogic {
       out.cr_name = c.name; out.cr_price = c.price; out.cr_setName = (e) => this.setState({ create: Object.assign({}, c, { name: e.target.value }) }); out.cr_setPrice = (e) => this.setState({ create: Object.assign({}, c, { price: e.target.value.replace(/[^0-9]/g, '') }) });
       out.chipsA = this.chipsOf(CATS.slice(1), c.cat, (v) => this.setState({ create: Object.assign({}, c, { cat: v }) }));
       out.segs = this.segsOf([['auction', 'Aukcija'], ['buy', 'Kupi odmah']], c.fm, (v) => this.setState({ create: Object.assign({}, c, { fm: v }) })); out.hasSegs = true;
-      const ok = c.name.trim().length > 1 && Number(c.price) > 0;
-      out.cr_ok = ok; out.cr_bg = ok ? '#fff' : 'rgba(255,255,255,.14)'; out.cr_fg = ok ? '#000' : 'rgba(255,255,255,.5)';
-      out.cr_publish = () => { if (!ok) return; this.setState((z) => ({ inv: [{ id: 'i' + (z.inv.length + 1), kind: KIND_BY_CAT[c.cat], hue: 0, name: c.name.trim(), price: Number(c.price), st: c.fm }].concat(z.inv), create: { name: '', price: '', cat: 'Satovi', fm: 'auction' }, iSeg: c.fm, stack: z.stack.filter((y) => y.id !== 'create') })); this.toast('Predmet je objavljen'); };
-      foot('Objavi', out.cr_publish, ok);
+      out.chipsB = this.chipsOf(['Novo', 'Vrlo dobro', 'Dobro', 'Za dijelove'], c.cond, (v) => this.setState({ create: Object.assign({}, c, { cond: v }) }));
+      const setPhoto = (v) => () => { this.setState({ create: Object.assign({}, c, { photo: v }) }); this.toast(v === 'camera' ? 'Fotografija snimljena' : 'Fotografija dodana iz galerije'); };
+      const pal = PAL[KIND_BY_CAT[c.cat]];
+      Object.assign(out, { cr_hasPhoto: !!c.photo, cr_noPhoto: !c.photo, cr_kind: KIND_BY_CAT[c.cat], cr_glow: pal.glow, cr_bg: pal.bg, cr_src: c.photo === 'camera' ? 'Snimljeno kamerom' : 'Iz galerije', cr_cam: setPhoto('camera'), cr_gal: setPhoto('gallery'), cr_remove: () => this.setState({ create: Object.assign({}, c, { photo: '' }) }) });
+      const missing = !c.photo ? 'Dodaj fotografiju' : (c.name.trim().length < 2 ? 'Upiši naziv' : (!(Number(c.price) > 0) ? 'Upiši cijenu' : (!c.cond ? 'Odaberi stanje' : '')));
+      const ok = missing === '';
+      out.cr_ok = ok; out.cr_fgBtn = ok ? '#000' : 'rgba(255,255,255,.5)';
+      out.cr_publish = () => { if (!ok) { this.toast(missing); return; } this.setState((z) => ({ inv: [{ id: 'i' + (z.inv.length + 1), kind: KIND_BY_CAT[c.cat], hue: 0, name: c.name.trim(), price: Number(c.price), st: c.fm, cond: c.cond }].concat(z.inv), create: { name: '', price: '', cat: 'Satovi', fm: 'auction', cond: '', photo: '' }, iSeg: c.fm, stack: z.stack.filter((y) => y.id !== 'create') })); this.toast('Predmet je objavljen'); };
+      foot(ok ? 'Objavi' : missing, out.cr_publish, ok);
     }
     if (id === 'ships') {
       const rows = s.ships.map((x) => { const on = s.shipSel.indexOf(x.id) >= 0;

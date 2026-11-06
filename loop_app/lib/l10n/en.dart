@@ -3273,6 +3273,9 @@ const kEn = <String, String>{
   'Ništa ne odgovara pretrazi': 'Nothing matches your search',
   'Probaj drugu riječ ili očisti pretragu.':
       'Try another word or clear the search.',
+  'Trenutno nitko nije uživo': 'Nobody is live right now',
+  'Pokreni svoj live ili pogledaj aukcije i predmete.':
+      'Start your own live or browse auctions and items.',
   'Zakaži show': 'Schedule a show',
   'Otprema': 'Shipping',
   'Nema paketa za predaju': 'No parcels to hand over',
