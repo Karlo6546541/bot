@@ -110,18 +110,9 @@ class _AdaptiveShellState extends State<AdaptiveShell> {
     }
   }
 
-  bool _scroll(ScrollNotification n) {
-    if (widget.stageMode) return false;
-    if (n.metrics.axis != Axis.vertical) return false;
-    if (n is ScrollStartNotification || n is ScrollUpdateNotification) {
-      _idle?.cancel();
-      if (!_collapsed) setState(() => _collapsed = true);
-    } else if (n is ScrollEndNotification) {
-      _idle?.cancel();
-      _idle = Timer(const Duration(milliseconds: 280), _expand);
-    }
-    return false;
-  }
+  /// Traka se više ne smanjuje pri skrolanju — uvijek je cijela (osim u
+  /// live sobi preko cijelog ekrana, gdje bi prekrila tipke za ponudu).
+  bool _scroll(ScrollNotification n) => false;
 
   @override
   void didUpdateWidget(covariant AdaptiveShell oldWidget) {
@@ -208,7 +199,7 @@ class _AdaptiveShellState extends State<AdaptiveShell> {
                           : const Duration(milliseconds: 240),
                       curve: Curves.easeOutCubic,
                       child: SizedBox(
-                        width: _collapsed ? 104 : (kSimpleDesign ? 420 : 320),
+                        width: _collapsed ? 104 : (kSimpleDesign ? 460 : 400),
                         height: _collapsed ? 44 : (kSimpleDesign ? 64 : 68),
                         child: _collapsed
                             ? Material(

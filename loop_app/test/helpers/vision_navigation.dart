@@ -6,8 +6,9 @@ import 'package:loop_app/l10n/tr.dart';
 Future<void> mainTab(WidgetTester tester, String label) async {
   if (kSimpleDesign) {
     final index = switch (label) {
-      'Prodavač' || 'Studio' || 'Prodaj' => 2,
-      'Moje' || 'Profil' || 'Trezor' => 3,
+      'Kategorije' => 2,
+      'Prodavač' || 'Studio' || 'Prodaj' => 3,
+      'Moje' || 'Profil' || 'Trezor' => 4,
       'Uživo' => 0,
       _ => 1,
     };
@@ -27,11 +28,6 @@ Future<void> mainTab(WidgetTester tester, String label) async {
     if (label == 'Moje' || label == 'Trezor') {
       await tester.tap(find.byKey(const ValueKey('account-purchases')));
       await tester.pumpAndSettle();
-    } else if (label == 'Kategorije') {
-      await tester.tap(find.byKey(const ValueKey('home-filters')));
-      await tester.pumpAndSettle();
-      await tester.tap(find.byKey(const ValueKey('home-cat-categories')));
-      await tester.pumpAndSettle();
     }
     return;
   }
@@ -42,7 +38,7 @@ Future<void> mainTab(WidgetTester tester, String label) async {
   }
   final destination = switch (label) {
     'Moje' || 'Profil' => 'Trezor',
-    'Početna' || 'Kategorije' => 'Pozornica',
+    'Početna' => 'Pozornica',
     'Prodavač' => 'Studio',
     _ => label,
   };
@@ -72,14 +68,6 @@ Future<void> mainTab(WidgetTester tester, String label) async {
   await tester.pumpAndSettle();
   if (label == 'Profil') {
     await tester.tap(find.byKey(const ValueKey('vault-account')));
-  } else if (label == 'Kategorije') {
-    if (find.byKey(const ValueKey('home-filters')).evaluate().isEmpty) {
-      await tester.tap(find.byKey(const ValueKey('home-search')));
-      await tester.pumpAndSettle();
-    }
-    await tester.tap(find.byKey(const ValueKey('home-filters')));
-    await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const ValueKey('home-cat-categories')));
   }
   await tester.pumpAndSettle();
 }

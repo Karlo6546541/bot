@@ -30,40 +30,37 @@ void main() {
     ),
   );
 
-  testWidgets(
-    'three floating destinations collapse during scrolling and return after idle',
-    (tester) async {
-      tester.view.physicalSize = const Size(390, 844);
-      tester.view.devicePixelRatio = 1;
-      addTearDown(tester.view.reset);
-      await tester.pumpWidget(shell());
-      expect(find.byType(NavigationDestination), findsNWidgets(3));
-      expect(
-        tester.getSize(find.byKey(const ValueKey('floating-dock'))).width,
-        320,
-      );
-      expect(
-        tester.widget<Scaffold>(find.byType(Scaffold)).bottomNavigationBar,
-        isNull,
-      );
-      final gesture = await tester.startGesture(const Offset(180, 400));
-      await gesture.moveBy(const Offset(0, -100));
-      await tester.pump();
-      await tester.pump(const Duration(milliseconds: 300));
-      expect(find.byKey(const ValueKey('dock-expand')), findsOneWidget);
-      expect(
-        tester.getSize(find.byKey(const ValueKey('floating-dock'))).width,
-        104,
-      );
-      await gesture.up();
-      await tester.pump();
-      await tester.pump(const Duration(milliseconds: 350));
-      await tester.pumpAndSettle();
-      expect(find.byType(NavigationDestination), findsNWidgets(3));
-      expect(tester.takeException(), isNull);
-      await tester.pumpWidget(const SizedBox());
-    },
-  );
+  testWidgets('floating destinations stay full while scrolling', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(390, 844);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    await tester.pumpWidget(shell());
+    expect(find.byType(NavigationDestination), findsNWidgets(3));
+    final width = tester
+        .getSize(find.byKey(const ValueKey('floating-dock')))
+        .width;
+    expect(
+      tester.widget<Scaffold>(find.byType(Scaffold)).bottomNavigationBar,
+      isNull,
+    );
+    // Traka se više ne smanjuje pri skrolanju.
+    final gesture = await tester.startGesture(const Offset(180, 400));
+    await gesture.moveBy(const Offset(0, -100));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+    expect(find.byKey(const ValueKey('dock-expand')), findsNothing);
+    expect(
+      tester.getSize(find.byKey(const ValueKey('floating-dock'))).width,
+      width,
+    );
+    await gesture.up();
+    await tester.pumpAndSettle();
+    expect(find.byType(NavigationDestination), findsNWidgets(3));
+    expect(tester.takeException(), isNull);
+    await tester.pumpWidget(const SizedBox());
+  });
 
   testWidgets('island stays usable at 320px with large text', (tester) async {
     tester.view.physicalSize = const Size(320, 740);

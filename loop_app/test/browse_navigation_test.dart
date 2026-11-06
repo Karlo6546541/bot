@@ -90,8 +90,8 @@ void main() {
     addTearDown(tester.view.reset);
     await tester.pumpWidget(app());
     await tester.pumpAndSettle();
-    // Mobitel: Početna · Kategorije · Seller Hub · Moje · Profil.
-    expect(find.byType(NavigationDestination), findsNWidgets(3));
+    // Mobitel: Pozornica · Kategorije · Studio · Trezor.
+    expect(find.byType(NavigationDestination), findsNWidgets(4));
     expect(
       find.byKey(const ValueKey('home-categories-shortcut')),
       findsNothing,
@@ -125,11 +125,11 @@ void main() {
       find.byKey(const ValueKey('activity-tab-purchases')),
       findsOneWidget,
     );
-    expect(find.byType(NavigationDestination), findsNWidgets(3));
+    expect(find.byType(NavigationDestination), findsNWidgets(4));
     await mainTab(tester, 'Profil');
     await tester.pumpAndSettle();
     expect(find.byKey(const ValueKey('vault-account')), findsOneWidget);
-    expect(find.byType(NavigationDestination), findsNWidgets(3));
+    expect(find.byType(NavigationDestination), findsNWidgets(4));
     await tester.pumpWidget(const SizedBox.shrink());
   });
 

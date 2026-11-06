@@ -99,9 +99,14 @@ class _HomeShellState extends ConsumerState<HomeShell> {
 
   List<ShellDestination> get _destinations => kSimpleDesign
       ? [
-          // Redoslijed iz dizajna: Uživo · Istraži · Prodaj · Profil.
+          // Uživo · Istraži · Kategorije · Prodaj · Profil.
           ShellDestination(t('Uživo'), Icons.sensors_outlined, Icons.sensors),
           ShellDestination(t('Istraži'), Icons.explore_outlined, Icons.explore),
+          ShellDestination(
+            t('Kategorije'),
+            Icons.grid_view_outlined,
+            Icons.grid_view_rounded,
+          ),
           ShellDestination(
             t('Prodaj'),
             Icons.add_circle_outline,
@@ -117,6 +122,11 @@ class _HomeShellState extends ConsumerState<HomeShell> {
             Icons.play_circle,
           ),
           ShellDestination(
+            t('Kategorije'),
+            Icons.grid_view_outlined,
+            Icons.grid_view_rounded,
+          ),
+          ShellDestination(
             t('Studio'),
             Icons.sensors_outlined,
             Icons.sensors,
@@ -129,33 +139,40 @@ class _HomeShellState extends ConsumerState<HomeShell> {
   int _navIndex(int tab) => kSimpleDesign
       ? switch (tab) {
           HomeTab.stage => 0,
-          4 => 2,
-          2 || 3 => 3,
+          1 => 2,
+          4 => 3,
+          2 || 3 => 4,
           _ => 1,
         }
       : switch (tab) {
-          4 => 1,
-          2 || 3 => 2,
+          1 => 1,
+          4 => 2,
+          2 || 3 => 3,
           _ => 0,
         };
 
   void _onNav(int nav) {
     if (kSimpleDesign) {
-      if (nav == 2 && blockGuest(context)) return;
+      if (nav == 3 && blockGuest(context)) return;
       if (nav == 0) {
         _go(HomeTab.stage);
       } else if (nav == 1) {
         ref.read(homeFilterProvider.notifier).select('for-you');
         _go(0);
       } else {
-        _go(nav == 2 ? 4 : 3);
+        _go(switch (nav) {
+          2 => 1,
+          3 => 4,
+          _ => 3,
+        });
       }
       return;
     }
-    if (nav == 1 && blockGuest(context)) return;
+    if (nav == 2 && blockGuest(context)) return;
     _go(switch (nav) {
-      1 => 4,
-      2 => 2,
+      1 => 1,
+      2 => 4,
+      3 => 2,
       _ => 0,
     });
   }
