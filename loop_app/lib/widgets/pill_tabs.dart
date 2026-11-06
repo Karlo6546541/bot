@@ -72,7 +72,7 @@ class PillTabBar extends StatelessWidget implements PreferredSizeWidget {
                 : const Duration(milliseconds: 180),
             curve: Curves.easeOut,
             alignment: Alignment.center,
-            padding: const EdgeInsets.symmetric(horizontal: 16),
+            padding: const EdgeInsets.symmetric(horizontal: 12),
             decoration: BoxDecoration(
               color: on ? selectedBg : Colors.transparent,
               borderRadius: BorderRadius.circular(99),
@@ -131,4 +131,95 @@ class PillTabBar extends StatelessWidget implements PreferredSizeWidget {
       },
     );
   }
+}
+
+/// Kapsula za prebacivanje prikaza bez [TabController]-a (npr. filteri
+/// početne): ista kapsula i odabrana pilula kao [PillTabBar].
+class PillSwitch extends StatelessWidget {
+  const PillSwitch({
+    super.key,
+    required this.items,
+    this.padding = const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+  });
+
+  final List<PillSwitchItem> items;
+  final EdgeInsetsGeometry padding;
+
+  @override
+  Widget build(BuildContext context) {
+    final dark = LoopColors.isDark;
+    final track = dark ? const Color(0x1AFFFFFF) : LoopColors.surfaceHover;
+    final selectedBg = dark ? Colors.white : const Color(0xFF1D1D1F);
+    final selectedFg = dark ? Colors.black : Colors.white;
+    return Padding(
+      padding: padding,
+      child: Container(
+        height: 48,
+        padding: const EdgeInsets.all(4),
+        decoration: BoxDecoration(
+          color: track,
+          borderRadius: BorderRadius.circular(99),
+        ),
+        child: SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          child: Row(
+            children: [
+              for (var i = 0; i < items.length; i++) ...[
+                if (i > 0) const SizedBox(width: 2),
+                Semantics(
+                  button: true,
+                  selected: items[i].selected,
+                  label: items[i].label,
+                  excludeSemantics: true,
+                  child: InkWell(
+                    key: items[i].key,
+                    borderRadius: BorderRadius.circular(99),
+                    onTap: items[i].onTap,
+                    child: AnimatedContainer(
+                      duration: MediaQuery.disableAnimationsOf(context)
+                          ? Duration.zero
+                          : const Duration(milliseconds: 180),
+                      alignment: Alignment.center,
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      decoration: BoxDecoration(
+                        color: items[i].selected
+                            ? selectedBg
+                            : Colors.transparent,
+                        borderRadius: BorderRadius.circular(99),
+                      ),
+                      child: Text(
+                        items[i].label,
+                        maxLines: 1,
+                        style: TextStyle(
+                          fontFamily: kFontFamily,
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                          color: items[i].selected
+                              ? selectedFg
+                              : LoopColors.textSecondary,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class PillSwitchItem {
+  const PillSwitchItem({
+    this.key,
+    required this.label,
+    required this.selected,
+    required this.onTap,
+  });
+  final Key? key;
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
 }

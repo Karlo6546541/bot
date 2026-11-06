@@ -1,4 +1,5 @@
 import '../config/design_variant.dart';
+import '../widgets/pill_tabs.dart';
 import '../widgets/category_style.dart';
 import '../widgets/discovery_live_card.dart';
 import '../widgets/adaptive_shell.dart' show LoopLogo;
@@ -132,6 +133,20 @@ class _LiveHomeScreenState extends ConsumerState<LiveHomeScreen> {
       list.insert(0, stats.firstWhere((c) => c.category == keep));
     }
     return list;
+  }
+
+  /// Kategorije koje stvarno postoje: imaju prijenos ili proizvod, od
+  /// najzastupljenijih (najviše osam).
+  static List<DeviceCategory> _existingCategories(AppState s) {
+    final counts = <DeviceCategory, int>{};
+    for (final i in browseItems(s)) {
+      for (final c in i.categories) {
+        counts[c] = (counts[c] ?? 0) + 1;
+      }
+    }
+    final list = counts.keys.toList()
+      ..sort((a, b) => counts[b]!.compareTo(counts[a]!));
+    return list.take(8).toList();
   }
 
   Timer? _timer;
@@ -608,6 +623,7 @@ class _LiveHomeScreenState extends ConsumerState<LiveHomeScreen> {
                               show: item.show!,
                               device: item.device,
                               viewers: item.live!.viewers,
+                              priceLabel: livePriceLabel(item.live!),
                               price: item.live!.current?.price,
                               onTap: () =>
                                   LiveRoomScreen.open(context, item.show!.id),
@@ -1000,6 +1016,7 @@ class _LiveHomeScreenState extends ConsumerState<LiveHomeScreen> {
           child: _TileRow(
             selected: _filter.id,
             category: _cat,
+            categories: _existingCategories(s),
             onCategory: (category) => setState(() => _cat = category),
             onSelect: _select,
           ),
@@ -1675,7 +1692,9 @@ class _EmptyLive extends StatelessWidget {
           ),
           const SizedBox(height: 6),
           Text(
-            t('Istraži ponude ili pokreni svoj prvi live.'),
+            kSimpleDesign
+                ? t('Pogledaj najavljene prijenose i dostupne proizvode.')
+                : t('Istraži ponude ili pokreni svoj prvi live.'),
             style: TextStyle(color: LoopColors.textSecondary),
           ),
           const SizedBox(height: 10),
@@ -1688,11 +1707,13 @@ class _EmptyLive extends StatelessWidget {
                   onShop == null ? t('Pregledaj kategorije') : t('Otvori shop'),
                 ),
               ),
-              TextButton(
-                key: const ValueKey('home-go-live'),
-                onPressed: onGoLive,
-                child: Text(t('Kreni uživo')),
-              ),
+              // Pokretanje livea je u dijelu Prodaj, ne na kupovnoj Početnoj.
+              if (!kSimpleDesign)
+                TextButton(
+                  key: const ValueKey('home-go-live'),
+                  onPressed: onGoLive,
+                  child: Text(t('Kreni uživo')),
+                ),
             ],
           ),
         ],
@@ -1813,8 +1834,12 @@ class _TileRow extends StatelessWidget {
     required this.onSelect,
     this.category,
     this.onCategory,
+    this.categories = const [],
   });
   final DeviceCategory? category;
+
+  /// Kategorije koje stvarno postoje u sustavu (filteri na Početnoj).
+  final List<DeviceCategory> categories;
   final ValueChanged<DeviceCategory?>? onCategory;
 
   final String selected;
@@ -1823,53 +1848,41 @@ class _TileRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (kSimpleDesign) {
-      final modes = [
-        ('for-you', t('Sve uživo'), const _ForYou()),
-        ('buy', t('Shop'), const _BuyNow()),
-      ];
-      return Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 20),
-        child: Row(
-          key: const ValueKey('home-tiles'),
-          children: [
-            for (final (id, label, filter) in modes)
-              Expanded(
-                child: InkWell(
-                  key: ValueKey('home-cat-$id'),
-                  onTap: () {
-                    onCategory?.call(null);
-                    onSelect(filter);
-                  },
-                  child: Container(
-                    alignment: Alignment.center,
-                    constraints: const BoxConstraints(minHeight: 52),
-                    decoration: BoxDecoration(
-                      border: Border(
-                        bottom: BorderSide(
-                          width: 2,
-                          color: selected == id
-                              ? LoopColors.textPrimary
-                              : Colors.transparent,
-                        ),
-                      ),
-                    ),
-                    child: Text(
-                      label,
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: selected == id
-                            ? FontWeight.w700
-                            : FontWeight.w400,
-                        color: selected == id
-                            ? LoopColors.textPrimary
-                            : LoopColors.textSecondary,
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-          ],
-        ),
+      // Jednostavni filtri: Za tebe, Pratim i kategorije koje stvarno
+      // postoje (imaju prijenos ili proizvod).
+      return PillSwitch(
+        key: const ValueKey('home-tiles'),
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
+        items: [
+          PillSwitchItem(
+            key: const ValueKey('home-cat-for-you'),
+            label: t('Za tebe'),
+            selected: selected != 'following' && category == null,
+            onTap: () {
+              onCategory?.call(null);
+              onSelect(const _ForYou());
+            },
+          ),
+          PillSwitchItem(
+            key: const ValueKey('home-cat-following'),
+            label: t('Pratim'),
+            selected: selected == 'following',
+            onTap: () {
+              onCategory?.call(null);
+              onSelect(const _Following());
+            },
+          ),
+          for (final c in categories)
+            PillSwitchItem(
+              key: ValueKey('home-cat-${c.name}'),
+              label: c.label,
+              selected: category == c && selected != 'following',
+              onTap: () {
+                if (selected == 'following') onSelect(const _ForYou());
+                onCategory?.call(category == c ? null : c);
+              },
+            ),
+        ],
       );
     }
     // Aktivni tab je svijetla kapsula; sporedni prikazi (Kupi odmah,

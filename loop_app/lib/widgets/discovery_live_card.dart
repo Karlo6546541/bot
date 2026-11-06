@@ -96,7 +96,9 @@ class DiscoveryLiveCard extends StatelessWidget {
                         ),
                         const SizedBox(height: 4),
                         Text(
-                          '${show.hostLabel} · $viewers',
+                          viewers > 0
+                              ? '${show.hostLabel} · $viewers'
+                              : show.hostLabel,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: const TextStyle(

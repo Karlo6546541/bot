@@ -602,7 +602,7 @@ class AuctionBrowseCard extends ConsumerWidget {
                         runSpacing: 4,
                         children: [
                           topLeft,
-                          if (live != null && live.isLive)
+                          if (live != null && live.isLive && live.viewers > 0)
                             pill(
                               Row(
                                 mainAxisSize: MainAxisSize.min,

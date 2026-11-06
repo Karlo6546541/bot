@@ -3338,6 +3338,22 @@ const kEn = <String, String>{
       'You have no shop listings yet (Buy now).',
   'Gledatelji mogu odmah kupiti tvojih {0} oglasa.':
       'Viewers can buy your {0} listings right away.',
+  'Demo': 'Demo',
+  'Još nema proizvoda': 'No products yet',
+  'Još nema recenzija': 'No reviews yet',
+  'Još nema shopova': 'No shops yet',
+  'Lajvovi': 'Lives',
+  'Najavljeni prijenosi pojavit će se ovdje.':
+      'Scheduled streams will appear here.',
+  'Novi proizvodi i aukcije pojavit će se ovdje.':
+      'New products and auctions will appear here.',
+  'Pogledaj najavljene prijenose i dostupne proizvode.':
+      'See scheduled streams and available products.',
+  'Shopovi prodavača bit će ovdje.': 'Seller shops will be here.',
+  'Traži proizvode, prodavače i prijenose':
+      'Search products, sellers and streams',
+  'Trenutno nema prijenosa': 'No streams right now',
+  '{0} – {1}': '{0} – {1}',
   'Zakaži show': 'Schedule a show',
   'Otprema': 'Shipping',
   'Nema paketa za predaju': 'No parcels to hand over',

@@ -141,17 +141,15 @@ void main() {
   });
 
   testWidgets(
-    'reference home keeps all four destinations and discovery routes accessible',
+    'reference home keeps all five destinations and discovery routes accessible',
     (tester) async {
       tester.view.physicalSize = const Size(390, 844);
       tester.view.devicePixelRatio = 1;
       addTearDown(tester.view.reset);
       await tester.pumpWidget(app());
       await tester.pumpAndSettle();
-      // Aplikacija se otvara u Uživo (traka je skupljena u ručku).
-      expect(find.byKey(const ValueKey('dock-expand')), findsOneWidget);
-      await mainTab(tester, 'Istraži');
-      for (var i = 0; i < 4; i++) {
+      // Aplikacija se otvara na Početnoj s pet odredišta.
+      for (var i = 0; i < 5; i++) {
         expect(find.byKey(ValueKey('simple-nav-$i')), findsOneWidget);
       }
       expect(find.byKey(const ValueKey('home-shop-discovery')), findsOneWidget);
@@ -192,7 +190,7 @@ void main() {
   ) async {
     await tester.pumpWidget(app());
     await tester.pumpAndSettle();
-    await mainTab(tester, 'Istraži');
+    await mainTab(tester, 'Početna');
     final shops = find.byWidgetPredicate(
       (widget) =>
           widget is InkWell &&
@@ -312,5 +310,62 @@ void main() {
     }
     expect(tester.takeException(), isNull);
     await tester.pumpWidget(const SizedBox());
+  });
+
+  testWidgets(
+    'Istraži: proizvodi, lajvovi, shopovi i kategorije na jednom mjestu',
+    (tester) async {
+      tester.view.physicalSize = const Size(390, 844);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
+      await tester.pumpWidget(app());
+      await tester.pumpAndSettle();
+      // Najviše pet jasnih odredišta s tekstualnim nazivima.
+      for (final label in [
+        'Početna',
+        'Istraži',
+        'Prodaj',
+        'Kupnje',
+        'Profil',
+      ]) {
+        expect(find.text(label), findsWidgets, reason: label);
+      }
+      expect(find.text('Pozornica'), findsNothing);
+      await mainTab(tester, 'Istraži');
+      expect(find.byKey(const ValueKey('explore')), findsOneWidget);
+      expect(find.byKey(const ValueKey('explore-search')), findsOneWidget);
+      expect(find.byKey(const ValueKey('explore-products')), findsOneWidget);
+      await tester.tap(find.byKey(const ValueKey('explore-tab-lives')));
+      await tester.pumpAndSettle();
+      await tester.ensureVisible(
+        find.byKey(const ValueKey('explore-tab-shops')),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('explore-tab-shops')));
+      await tester.pumpAndSettle();
+      expect(find.byKey(const ValueKey('explore-shops')), findsOneWidget);
+      // Ocjena uvijek s brojem recenzija ili jasno "nema recenzija".
+      expect(find.textContaining(RegExp(r'recenzija|\(\d+\)')), findsWidgets);
+      await tester.ensureVisible(
+        find.byKey(const ValueKey('explore-tab-categories')),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('explore-tab-categories')));
+      await tester.pumpAndSettle();
+      expect(find.byKey(const ValueKey('categories')), findsOneWidget);
+      expect(tester.takeException(), isNull);
+    },
+  );
+
+  testWidgets('sadržaj nikad nije ispod donje navigacije', (tester) async {
+    tester.view.physicalSize = const Size(360, 740);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    await tester.pumpWidget(app());
+    await tester.pumpAndSettle();
+    await mainTab(tester, 'Istraži');
+    final dock = tester.getRect(find.byKey(const ValueKey('floating-dock')));
+    final content = tester.getRect(find.byKey(const ValueKey('explore')));
+    expect(content.bottom, lessThanOrEqualTo(dock.top + 0.5));
   });
 }

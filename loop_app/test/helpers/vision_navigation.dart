@@ -6,27 +6,26 @@ import 'package:loop_app/l10n/tr.dart';
 Future<void> mainTab(WidgetTester tester, String label) async {
   if (kSimpleDesign) {
     final index = switch (label) {
-      'Kategorije' => 2,
-      'Prodavač' || 'Studio' || 'Prodaj' => 3,
-      'Moje' || 'Profil' || 'Trezor' => 4,
-      'Uživo' => 0,
-      _ => 1,
+      'Prodavač' || 'Studio' || 'Prodaj' => 2,
+      'Moje' || 'Trezor' || 'Kupnje' => 3,
+      'Profil' => 4,
+      'Istraži' || 'Kategorije' => 1,
+      _ => 0,
     };
     Finder target() => find.byKey(ValueKey('simple-nav-$index')).hitTestable();
     for (var i = 0; i < 6; i++) {
-      final expand = find.byKey(const ValueKey('dock-expand')).hitTestable();
-      if (expand.evaluate().isNotEmpty) {
-        await tester.tap(expand);
-        await tester.pumpAndSettle();
-      }
       if (target().evaluate().isNotEmpty) break;
       await tester.binding.handlePopRoute();
       await tester.pumpAndSettle();
     }
     await tester.tap(target().first);
     await tester.pumpAndSettle();
-    if (label == 'Moje' || label == 'Trezor') {
-      await tester.tap(find.byKey(const ValueKey('account-purchases')));
+    if (label == 'Kategorije') {
+      await tester.ensureVisible(
+        find.byKey(const ValueKey('explore-tab-categories')),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('explore-tab-categories')));
       await tester.pumpAndSettle();
     }
     return;

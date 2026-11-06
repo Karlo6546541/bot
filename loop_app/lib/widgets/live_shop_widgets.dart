@@ -10,6 +10,8 @@ import '../screens/auctions_screen.dart' show BrowseCardMedia;
 import '../theme/app_theme.dart';
 import 'formatters.dart';
 import 'item_image.dart';
+import '../services/demo_accounts.dart';
+import '../services/live_service.dart' show LiveState, LotStatus;
 import 'vision_glass.dart';
 
 /// Product rows keep browsing quiet; payment still happens in the item flow.
@@ -168,7 +170,10 @@ class LiveShopFeature extends StatelessWidget {
                             borderRadius: BorderRadius.circular(99),
                           ),
                           child: Text(
-                            '${t('UŽIVO')} · $viewers',
+                            // Broj gledatelja samo kad je stvaran (> 0).
+                            viewers > 0
+                                ? '${t('UŽIVO')} · $viewers'
+                                : t('UŽIVO'),
                             style: const TextStyle(
                               color: Colors.white,
                               fontSize: 11,
@@ -262,11 +267,15 @@ class LiveShopMini extends StatelessWidget {
     required this.viewers,
     required this.onTap,
     this.price,
+    this.priceLabel,
   });
   final LiveShow show;
   final Device? device;
   final int viewers;
   final double? price;
+
+  /// Gotov tekst cijene ("Sada: 12 €" ili "od 5 € do 40 €"); ima prednost.
+  final String? priceLabel;
   final VoidCallback onTap;
   @override
   Widget build(BuildContext context) => Semantics(
@@ -319,14 +328,36 @@ class LiveShopMini extends StatelessWidget {
                       borderRadius: BorderRadius.circular(99),
                     ),
                     child: Text(
-                      '● $viewers',
+                      // Broj gledatelja samo kad je stvaran (> 0).
+                      viewers > 0 ? '${t('UŽIVO')} · $viewers' : t('UŽIVO'),
                       style: const TextStyle(
                         color: Colors.white,
-                        fontSize: 10,
+                        fontSize: 11,
                         fontWeight: FontWeight.w700,
                       ),
                     ),
                   ),
+                  if (isDemoAccount(show.hostId)) ...[
+                    const SizedBox(height: 6),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 3,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.black54,
+                        borderRadius: BorderRadius.circular(99),
+                      ),
+                      child: Text(
+                        t('Demo'),
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 10,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ],
                   const Spacer(),
                   Text(
                     show.title,
@@ -341,9 +372,10 @@ class LiveShopMini extends StatelessWidget {
                   ),
                   const SizedBox(height: 5),
                   Text(
-                    kSimpleDesign && price != null
-                        ? t('Sada: {0}', [formatCredits(price!)])
-                        : show.hostLabel,
+                    priceLabel ??
+                        (kSimpleDesign && price != null
+                            ? t('Sada: {0}', [formatCredits(price!)])
+                            : show.hostLabel),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: const TextStyle(
@@ -553,4 +585,24 @@ class StageFeatureCard extends StatelessWidget {
       ),
     );
   }
+}
+
+/// Cijena za karticu livea: trenutačni predmet ili raspon početnih cijena
+/// predmeta koji tek dolaze. `null` kad podatka nema.
+String? livePriceLabel(LiveState live) {
+  final current = live.current;
+  if (current != null) {
+    return t('Sada: {0}', [formatCredits(current.price)]);
+  }
+  final prices = [
+    for (final l in live.lots)
+      if (l.status == LotStatus.upcoming && l.mode == LotMode.auction) l.price,
+  ]..sort();
+  if (prices.isEmpty) return null;
+  return prices.first == prices.last
+      ? t('od {0}', [formatCredits(prices.first)])
+      : t('{0} – {1}', [
+          formatCredits(prices.first),
+          formatCredits(prices.last),
+        ]);
 }

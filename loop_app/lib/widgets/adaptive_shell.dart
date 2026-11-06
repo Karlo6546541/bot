@@ -1,7 +1,5 @@
 import '../config/design_variant.dart';
 
-import 'dart:async';
-
 import 'package:flutter/material.dart';
 
 import 'brand.dart';
@@ -75,12 +73,7 @@ class AdaptiveShell extends StatefulWidget {
     this.railHeader,
     this.immersiveNavigation = false,
     this.showNavigation = true,
-    this.stageMode = false,
   });
-
-  /// Live preko cijelog ekrana: traka je skupljena u ručku i otvara se
-  /// dodirom na nekoliko sekundi (dizajn Subhasto).
-  final bool stageMode;
 
   final List<ShellDestination> destinations;
   final int selectedIndex;
@@ -97,40 +90,6 @@ class AdaptiveShell extends StatefulWidget {
 }
 
 class _AdaptiveShellState extends State<AdaptiveShell> {
-  Timer? _idle;
-  late bool _collapsed = widget.stageMode;
-
-  void _expand() {
-    _idle?.cancel();
-    if (_collapsed) setState(() => _collapsed = false);
-    if (widget.stageMode) {
-      _idle = Timer(const Duration(seconds: 4), () {
-        if (mounted && widget.stageMode) setState(() => _collapsed = true);
-      });
-    }
-  }
-
-  /// Traka se više ne smanjuje pri skrolanju — uvijek je cijela (osim u
-  /// live sobi preko cijelog ekrana, gdje bi prekrila tipke za ponudu).
-  bool _scroll(ScrollNotification n) => false;
-
-  @override
-  void didUpdateWidget(covariant AdaptiveShell oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (oldWidget.stageMode != widget.stageMode) {
-      _idle?.cancel();
-      setState(() => _collapsed = widget.stageMode);
-    } else if (oldWidget.selectedIndex != widget.selectedIndex) {
-      _expand();
-    }
-  }
-
-  @override
-  void dispose() {
-    _idle?.cancel();
-    super.dispose();
-  }
-
   Widget _navigation(BuildContext context, {bool compact = false}) {
     if (kSimpleDesign && compact) {
       return JednostavnoDock(
@@ -172,71 +131,30 @@ class _AdaptiveShellState extends State<AdaptiveShell> {
     final isDesktop = width >= kDesktopBreakpoint;
 
     if (!isDesktop) {
+      // Traka je dio rasporeda (ne lebdi preko sadržaja): sadržaj uvijek
+      // završava iznad nje, pa je ništa ne prekriva.
       return Scaffold(
         appBar: widget.appBar,
-        extendBody: true,
-        body: Stack(
+        body: Column(
           children: [
-            Positioned.fill(
-              child: NotificationListener<ScrollNotification>(
-                onNotification: _scroll,
-                child: SafeArea(top: false, child: widget.body),
-              ),
+            Expanded(
+              child: SafeArea(top: false, bottom: false, child: widget.body),
             ),
             if (widget.showNavigation)
-              Positioned(
-                left: kSimpleDesign ? 28 : 20,
-                right: kSimpleDesign ? 28 : 20,
-                bottom: kSimpleDesign ? 22 : 10,
-                child: SafeArea(
-                  top: false,
-                  child: Center(
-                    child: AnimatedSize(
-                      key: const ValueKey('floating-dock'),
-                      alignment: Alignment.bottomCenter,
-                      duration: MediaQuery.disableAnimationsOf(context)
-                          ? Duration.zero
-                          : const Duration(milliseconds: 240),
-                      curve: Curves.easeOutCubic,
-                      child: SizedBox(
-                        width: _collapsed ? 104 : (kSimpleDesign ? 460 : 400),
-                        height: _collapsed ? 44 : (kSimpleDesign ? 64 : 68),
-                        child: _collapsed
-                            ? Material(
-                                color: Colors.transparent,
-                                child: InkWell(
-                                  key: const ValueKey('dock-expand'),
-                                  onTap: _expand,
-                                  borderRadius: BorderRadius.circular(99),
-                                  child: Semantics(
-                                    button: true,
-                                    label: t('Otvori navigaciju'),
-                                    child: Center(
-                                      child: VisionGlass(
-                                        heavy: kSimpleDesign,
-                                        radius: 99,
-                                        child: SizedBox(
-                                          width: 104,
-                                          height: 10,
-                                          child: Center(
-                                            child: Container(
-                                              width: 48,
-                                              height: 3,
-                                              color: LoopColors.textSecondary,
-                                            ),
-                                          ),
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                              )
-                            : VisionGlass(
-                                heavy: kSimpleDesign,
-                                radius: 99,
-                                child: _navigation(context, compact: true),
-                              ),
-                      ),
+              SafeArea(
+                top: false,
+                minimum: const EdgeInsets.fromLTRB(12, 0, 12, 8),
+                child: Center(
+                  child: ConstrainedBox(
+                    key: const ValueKey('floating-dock'),
+                    constraints: BoxConstraints(
+                      maxWidth: kSimpleDesign ? 460 : 400,
+                      minHeight: 64,
+                    ),
+                    child: VisionGlass(
+                      heavy: kSimpleDesign,
+                      radius: 99,
+                      child: _navigation(context, compact: true),
                     ),
                   ),
                 ),
@@ -323,7 +241,8 @@ class LoopLogo extends StatelessWidget {
   }
 }
 
-/// The same four controls stay available from browsing and from a live room.
+/// Odredišta u donjoj traci: svaka ikona uvijek ima tekstualni naziv
+/// (ikona iznad natpisa), a odabrano je istaknuto kapsulom.
 class JednostavnoDock extends StatelessWidget {
   const JednostavnoDock({
     super.key,
@@ -336,71 +255,68 @@ class JednostavnoDock extends StatelessWidget {
   final ValueChanged<int> onSelect;
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     return Padding(
       padding: const EdgeInsets.all(6),
       child: Row(
         children: [
           for (var i = 0; i < destinations.length; i++)
             Expanded(
-              flex: i == selectedIndex ? 2 : 1,
               child: Semantics(
                 button: true,
                 selected: i == selectedIndex,
                 label: destinations[i].label,
                 excludeSemantics: true,
-                child: Tooltip(
-                  message: destinations[i].label,
-                  child: Material(
-                    color: Colors.transparent,
-                    child: InkWell(
-                      key: ValueKey('simple-nav-$i'),
-                      borderRadius: BorderRadius.circular(99),
-                      onTap: () => onSelect(i),
-                      child: AnimatedContainer(
-                        duration: MediaQuery.disableAnimationsOf(context)
-                            ? Duration.zero
-                            : const Duration(milliseconds: 180),
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 10,
-                          vertical: 13,
-                        ),
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(99),
-                          color: i == selectedIndex
-                              ? Theme.of(
-                                  context,
-                                ).colorScheme.onSurface.withValues(alpha: .15)
-                              : Colors.transparent,
-                        ),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(
-                              i == selectedIndex
-                                  ? destinations[i].selectedIcon
-                                  : destinations[i].icon,
-                              size: 21,
-                              color: Theme.of(context).colorScheme.onSurface
-                                  .withValues(
-                                    alpha: i == selectedIndex ? 1 : .64,
-                                  ),
+                child: Material(
+                  color: Colors.transparent,
+                  child: InkWell(
+                    key: ValueKey('simple-nav-$i'),
+                    borderRadius: BorderRadius.circular(99),
+                    onTap: () => onSelect(i),
+                    child: AnimatedContainer(
+                      duration: MediaQuery.disableAnimationsOf(context)
+                          ? Duration.zero
+                          : const Duration(milliseconds: 180),
+                      constraints: const BoxConstraints(minHeight: 52),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 2,
+                        vertical: 6,
+                      ),
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(99),
+                        color: i == selectedIndex
+                            ? scheme.onSurface.withValues(alpha: .15)
+                            : Colors.transparent,
+                      ),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            i == selectedIndex
+                                ? destinations[i].selectedIcon
+                                : destinations[i].icon,
+                            size: 22,
+                            color: scheme.onSurface.withValues(
+                              alpha: i == selectedIndex ? 1 : .72,
                             ),
-                            if (i == selectedIndex) ...[
-                              const SizedBox(width: 6),
-                              Flexible(
-                                child: Text(
-                                  destinations[i].label,
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: const TextStyle(
-                                    fontSize: 13,
-                                    fontWeight: FontWeight.w500,
-                                  ),
-                                ),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            destinations[i].label,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              fontSize: 11,
+                              fontWeight: i == selectedIndex
+                                  ? FontWeight.w700
+                                  : FontWeight.w500,
+                              color: scheme.onSurface.withValues(
+                                alpha: i == selectedIndex ? 1 : .72,
                               ),
-                            ],
-                          ],
-                        ),
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                   ),
