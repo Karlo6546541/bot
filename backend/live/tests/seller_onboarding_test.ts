@@ -32,7 +32,7 @@ Deno.test('public website always uses the trusted application origin',()=>{
  assert.equal(publicSellerUrl('https://app.example.test/bot/?cloud=orders','karlo'),'https://app.example.test/bot/?shop=karlo');
  assert.equal(publicSellerUrl('https://app.example.test/bot/?cloud=orders','https://evil.test'),'https://app.example.test/bot/');
 });
-function fixture({existing=true,active=false,mismatch=false,updateError=false,dbError=false}={}){
+function fixture({existing=true,active=false,mismatch=false,updateError=false,dbError=false,forbidUpdate=false,forbidIdentity=false}={}){
  let mapping: {stripe_account_id:string}|null=existing?{stripe_account_id:'acct_owned'}:null;
  const calls={creates:0,updates:0,reads:[] as string[],saved:[] as unknown[],creation:null as unknown};
  const admin={from:(table:string)=>({
@@ -46,8 +46,8 @@ function fixture({existing=true,active=false,mismatch=false,updateError=false,db
  const current=account({metadata:{user_id:mismatch?'someone-else':'seller-one'},configuration:{recipient:{capabilities:{stripe_balance:{stripe_transfers:{status:active?'active':'restricted'}}}}}});
  const stripe={v2:{core:{accounts:{
   create:async(params:unknown,options:{idempotencyKey:string})=>{calls.creates++;calls.creation=params;assert.equal(options.idempotencyKey,'seller-v2-seller-one');return current;},
-  retrieve:async(id:string)=>{assert.equal(id,'acct_owned');return current;},
-  update:async(id:string,patch:unknown)=>{assert.equal(id,'acct_owned');calls.updates++;if(updateError)throw new Stripe.errors.StripeInvalidRequestError({type:'invalid_request_error',code:'invalid_fields',message:'field not permitted'});return current;},
+  retrieve:async(id:string,params?:{include?:string[]})=>{assert.equal(id,'acct_owned');if(forbidIdentity&&params?.include?.includes('identity'))throw new Stripe.errors.StripePermissionError({type:'invalid_request_error',code:'forbidden',message:'not permitted'});return current;},
+  update:async(id:string,patch:unknown)=>{assert.equal(id,'acct_owned');calls.updates++;if(forbidUpdate)throw new Stripe.errors.StripePermissionError({type:'invalid_request_error',code:'forbidden',message:'not permitted'});if(updateError)throw new Stripe.errors.StripeInvalidRequestError({type:'invalid_request_error',code:'invalid_fields',message:'field not permitted'});return current;},
  }}}} as unknown as Stripe;
  return {stripe,admin,calls};
 }
@@ -77,3 +77,11 @@ Deno.test('a provider prefill rejection leaves the seller restricted for hosted 
  assert.equal(f.calls.creates,0);assert.equal(f.calls.updates,1);
 });
 
+Deno.test('Express accounts without identity access still reach hosted onboarding',async()=>{
+ const updates=fixture({forbidUpdate:true});
+ assert.deepEqual(await prepareSeller(updates.stripe,updates.admin,{id:'seller-one'},'https://app.example.test/bot/'),{accountId:'acct_owned',ready:false});
+ assert.equal(updates.calls.updates,1);
+ const reads=fixture({forbidIdentity:true});
+ assert.deepEqual(await prepareSeller(reads.stripe,reads.admin,{id:'seller-one'},'https://app.example.test/bot/'),{accountId:'acct_owned',ready:false});
+ assert.equal(reads.calls.updates,0);
+});

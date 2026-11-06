@@ -96,11 +96,22 @@ export async function prepareSeller(stripe: Stripe, admin: Admin, user: {id:stri
     const {error}=await admin.from('commerce_sellers').upsert({user_id:user.id,stripe_account_id:accountId},{onConflict:'user_id'});
     if(error)throw new Error('SELLER_PROFILE_UNAVAILABLE');
   }
-  let account=await stripe.v2.core.accounts.retrieve(accountId,{include:['configuration.recipient','identity','defaults']});
+  // Express račun: identitet (ime, adresa) smije čitati/mijenjati samo Stripe.
+  // Bez dopuštenja čitamo samo status isplate, a podatke unosi Stripe obrazac.
+  const isPermissionError=(error: unknown)=>error instanceof Stripe.errors.StripePermissionError;
+  let identityAccess=true;
+  let account: Stripe.V2.Core.Account;
+  try{
+    account=await stripe.v2.core.accounts.retrieve(accountId,{include:['configuration.recipient','identity','defaults']});
+  }catch(error){
+    if(!isPermissionError(error))throw error;
+    identityAccess=false;
+    account=await stripe.v2.core.accounts.retrieve(accountId,{include:['configuration.recipient']});
+  }
   if(account.metadata?.user_id&&account.metadata.user_id!==user.id)throw new Error('SELLER_ACCOUNT_MISMATCH');
   let ready=account.configuration?.recipient?.capabilities?.stripe_balance?.stripe_transfers?.status==='active';
   // Leave verified/active accounts untouched. The existing button can still open account management.
-  if(!ready){
+  if(!ready&&identityAccess){
     const patch=sellerPrefill(account,seller,{...profile,country},user.email);
     if(!account.defaults?.profile?.business_url)patch.defaults={profile:{business_url:publicSellerUrl(appUrl,profile.username)}};
     if(Object.keys(patch).length){
@@ -110,7 +121,7 @@ export async function prepareSeller(stripe: Stripe, admin: Admin, user: {id:stri
       }catch(error){
         // Hosted onboarding still collects details that Stripe won't allow the platform to prefill.
         // Do not log raw errors: they can contain identity/address values.
-        if(!(error instanceof Stripe.errors.StripeInvalidRequestError))throw error;
+        if(!(error instanceof Stripe.errors.StripeInvalidRequestError)&&!isPermissionError(error))throw error;
       }
     }
   }
