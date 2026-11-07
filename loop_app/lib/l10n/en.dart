@@ -3358,6 +3358,7 @@ const kEn = <String, String>{
   'Trenutno nema proizvoda': 'There are no products right now',
   'Prebaci prikaz na Sve da vidiš ostalo u kategoriji.': 'Switch the view to All to see the rest of this category.',
   'Pretraži proizvode, prijenose i prodavače': 'Search products, streams and sellers',
+  'Dostava se dodaje prije plaćanja — konačni iznos vidiš prije potvrde.': 'Delivery is added before payment — you see the final amount before confirming.',
   'Zakaži show': 'Schedule a show',
   'Otprema': 'Shipping',
   'Nema paketa za predaju': 'No parcels to hand over',

@@ -84,7 +84,11 @@ class DeviceDetailScreen extends ConsumerWidget {
       // Ključ: nakon dodavanja/brisanja slike galerija kreće iznova.
       key: ValueKey(device.imagePaths.join('|')),
       device: device,
-      height: wide ? 560 : 280,
+      // Visina fotografije prati raspoloživu visinu ekrana: kupovna traka i
+      // cijena ostaju dostupni, a ostatak se pomiče.
+      height: wide
+          ? (MediaQuery.sizeOf(context).height - 56 - 150).clamp(240.0, 640.0)
+          : (MediaQuery.sizeOf(context).height * .38).clamp(180.0, 380.0),
     );
 
     final Widget details = Align(
@@ -602,7 +606,7 @@ class DeviceDetailScreen extends ConsumerWidget {
                           children: [
                             Expanded(
                               child: Text(
-                                wide ? device.name : t('Ukupno'),
+                                wide ? device.name : t('Cijena'),
                                 maxLines: 2,
                                 overflow: TextOverflow.ellipsis,
                                 style: TextStyle(
@@ -624,6 +628,19 @@ class DeviceDetailScreen extends ConsumerWidget {
                             ),
                           ],
                         ),
+                        if (!device.isDigital)
+                          Padding(
+                            padding: const EdgeInsets.only(top: 2),
+                            child: Text(
+                              t(
+                                'Dostava se dodaje prije plaćanja — konačni iznos vidiš prije potvrde.',
+                              ),
+                              style: TextStyle(
+                                color: LoopColors.textSecondary,
+                                fontSize: 12,
+                              ),
+                            ),
+                          ),
                         const SizedBox(height: 10),
                         FilledButton.icon(
                           key: const ValueKey('buy-now'),
