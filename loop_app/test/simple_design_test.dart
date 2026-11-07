@@ -152,8 +152,7 @@ void main() {
       for (var i = 0; i < 5; i++) {
         expect(find.byKey(ValueKey('simple-nav-$i')), findsOneWidget);
       }
-      expect(find.byKey(const ValueKey('home-shop-discovery')), findsOneWidget);
-      expect(find.byKey(const ValueKey('home-shops')), findsOneWidget);
+      expect(find.byKey(const ValueKey('home-sellers')), findsOneWidget);
       expect(find.byKey(const ValueKey('home-search')), findsOneWidget);
       await mainTab(tester, 'Moje');
       expect(
@@ -193,13 +192,13 @@ void main() {
     await mainTab(tester, 'Početna');
     final shops = find.byWidgetPredicate(
       (widget) =>
-          widget is InkWell &&
+          widget.runtimeType.toString() == '_SellerCard' &&
           widget.key is ValueKey<String> &&
-          (widget.key as ValueKey<String>).value.startsWith('home-shop-'),
+          (widget.key as ValueKey<String>).value.startsWith('home-seller-'),
     );
     expect(shops, findsWidgets);
-    final key = tester.widget<InkWell>(shops.first).key! as ValueKey<String>;
-    final owner = storage.userById(key.value.substring('home-shop-'.length))!;
+    final key = tester.widget(shops.first).key! as ValueKey<String>;
+    final owner = storage.userById(key.value.substring('home-seller-'.length))!;
     await tester.tap(find.byKey(const ValueKey('home-search')));
     await tester.pumpAndSettle();
     await tester.enterText(
@@ -347,40 +346,28 @@ void main() {
     expect(content.bottom, lessThanOrEqualTo(dock.top + 0.5));
   });
 
-  testWidgets(
-    'Početna: pogledi Za tebe/Pratim/Uživo/Proizvodi bez praznog ekrana',
-    (tester) async {
-      tester.view.physicalSize = const Size(390, 844);
-      tester.view.devicePixelRatio = 1;
-      addTearDown(tester.view.reset);
-      await tester.pumpWidget(app());
-      await tester.pumpAndSettle();
-      for (final id in ['for-you', 'following', 'live', 'buy']) {
-        expect(
-          find.byKey(ValueKey('home-view-$id')),
-          findsOneWidget,
-          reason: id,
-        );
-      }
-      await tester.ensureVisible(find.byKey(const ValueKey('home-view-buy')));
-      await tester.pumpAndSettle();
-      await tester.tap(find.byKey(const ValueKey('home-view-buy')));
-      await tester.pumpAndSettle();
-      expect(
-        find.byKey(const ValueKey('home-buy')).evaluate().isNotEmpty ||
-            find.text('Još nema predmeta za Kupi odmah.').evaluate().isNotEmpty,
-        isTrue,
-      );
-      await tester.tap(find.byKey(const ValueKey('home-view-live')));
-      await tester.pumpAndSettle();
-      expect(find.byKey(const ValueKey('home-view-live')), findsOneWidget);
-      expect(tester.takeException(), isNull);
-    },
-  );
-
-  testWidgets('Kategorija: prebacivanje Sve/Proizvodi/Uživo/Aukcije', (
+  testWidgets('Početna je live-first: Za tebe/Pratim/Uskoro, bez proizvoda', (
     tester,
   ) async {
+    tester.view.physicalSize = const Size(390, 844);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    await tester.pumpWidget(app());
+    await tester.pumpAndSettle();
+    for (final id in ['for-you', 'following', 'soon']) {
+      expect(find.byKey(ValueKey('home-view-$id')), findsOneWidget, reason: id);
+    }
+    // Nema zasebnog taba Proizvodi ni mreže pojedinačnih oglasa.
+    expect(find.byKey(const ValueKey('home-view-buy')), findsNothing);
+    expect(find.byKey(const ValueKey('home-shop-discovery')), findsNothing);
+    expect(find.byKey(const ValueKey('home-sellers')), findsOneWidget);
+    await tester.tap(find.byKey(const ValueKey('home-view-soon')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('home-view-soon')), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('Kategorija: lajvovi, najavljeno i prodavači', (tester) async {
     tester.view.physicalSize = const Size(390, 844);
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.reset);
@@ -389,11 +376,7 @@ void main() {
     await mainTab(tester, 'Kategorije');
     await tester.tap(find.byKey(const ValueKey('category-all-electronics')));
     await tester.pumpAndSettle();
-    expect(find.byKey(const ValueKey('category-views')), findsOneWidget);
-    await tester.tap(find.byKey(const ValueKey('category-view-live')));
-    await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const ValueKey('category-view-products')));
-    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('category-views')), findsNothing);
     expect(find.byKey(const ValueKey('category-items')), findsOneWidget);
     expect(tester.takeException(), isNull);
   });

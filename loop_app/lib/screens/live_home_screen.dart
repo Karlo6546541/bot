@@ -13,6 +13,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../l10n/tr.dart';
+import '../models/review.dart' show Rating;
+import '../services/demo_accounts.dart';
+import '../widgets/shop_widgets.dart' show FollowButton;
 import '../widgets/user_avatar.dart';
 import '../models/app_user.dart';
 import '../models/device.dart';
@@ -72,7 +75,7 @@ sealed class _Filter {
     'soon' => const _Soon(),
     'timed' => const _Timed(),
     // Kupi odmah je isključen (stare poveznice vode na Za tebe).
-    'buy' when kBuyNowEnabled => const _BuyNow(),
+    'buy' when kBuyNowEnabled && !kSimpleDesign => const _BuyNow(),
     'digital' when kBuyNowEnabled => const _Digital(),
     'following' => const _Following(),
     _ => const _ForYou(),
@@ -444,77 +447,79 @@ class _LiveHomeScreenState extends ConsumerState<LiveHomeScreen> {
               ),
             );
           }
-          final shops = <String>{
-            for (final item in liveNow) item.show!.hostId,
-            for (final item in buyNow)
-              if (item.device?.ownerId != null) item.device!.ownerId!,
-          };
-          if (shops.isNotEmpty) {
-            slivers.add(SliverToBoxAdapter(child: sectionTitle(t('Shopovi'))));
-            slivers.add(
-              SliverToBoxAdapter(
-                child: SizedBox(
-                  height: 86,
-                  child: ListView.separated(
-                    key: const ValueKey('home-shops'),
-                    scrollDirection: Axis.horizontal,
-                    padding: const EdgeInsets.symmetric(horizontal: 24),
-                    itemCount: shops.length,
-                    separatorBuilder: (_, _) => const SizedBox(width: 16),
-                    itemBuilder: (_, index) {
-                      final id = shops.elementAt(index);
-                      final user = s.userById(id);
-                      return SizedBox(
-                        width: 66,
-                        child: InkWell(
-                          key: ValueKey('home-shop-$id'),
-                          onTap: () => PublicProfileScreen.open(context, id),
-                          borderRadius: BorderRadius.circular(24),
-                          child: Column(
-                            children: [
-                              Container(
-                                padding: const EdgeInsets.all(3),
-                                decoration: BoxDecoration(
-                                  shape: BoxShape.circle,
-                                  border: Border.all(
-                                    color: LoopColors.textPrimary.withValues(
-                                      alpha: .2,
-                                    ),
-                                  ),
-                                ),
-                                child: UserAvatar(user: user, size: 48),
-                              ),
-                              const SizedBox(height: 5),
-                              Text(
-                                user?.shopTitle ?? user?.handle ?? t('Shop'),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: TextStyle(
-                                  fontSize: 11,
-                                  color: LoopColors.textSecondary,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      );
-                    },
-                  ),
-                ),
-              ),
-            );
-          }
-          if (buyNow.isNotEmpty) {
+          // Prodavači: prvo oni koji su uživo, zatim s najavljenim prijenosom,
+          // pa ostali (novi, s manje pratitelja, ne uvijek isti računi).
+          final liveHosts = {for (final i in liveNow) i.show!.hostId};
+          final soonHosts = {for (final i in upcoming) i.show!.hostId}
+            ..removeAll(liveHosts);
+          final others =
+              <String>{
+                for (final u in s.users)
+                  if (u.id != me &&
+                      !u.isGuest &&
+                      !u.pendingDeletion &&
+                      !liveHosts.contains(u.id) &&
+                      !soonHosts.contains(u.id) &&
+                      s.listingsOf(u.id).isNotEmpty)
+                    u.id,
+              }.toList()..sort((a, b) {
+                final c = s.followersOf(a).compareTo(s.followersOf(b));
+                return c != 0 ? c : a.compareTo(b);
+              });
+          final sellers = [
+            ...liveHosts,
+            ...soonHosts,
+            ...others,
+          ].where((id) => id != me).take(liveNow.isEmpty ? 6 : 4).toList();
+          if (sellers.isNotEmpty) {
             slivers.add(
               SliverToBoxAdapter(
                 child: sectionTitle(
-                  t('Predmeti'),
-                  onAll: () => _select(const _BuyNow()),
+                  liveNow.isEmpty ? t('Preporučeni prodavači') : t('Prodavači'),
                 ),
               ),
             );
             slivers.add(
-              grid('home-shop-discovery', buyNow.take(8).toList(), t('Shop')),
+              SliverPadding(
+                key: const ValueKey('home-sellers'),
+                padding: const EdgeInsets.symmetric(horizontal: 24),
+                sliver: SliverList.separated(
+                  itemCount: sellers.length,
+                  separatorBuilder: (_, _) => const SizedBox(height: 10),
+                  itemBuilder: (_, index) {
+                    final id = sellers[index];
+                    final status = liveHosts.contains(id)
+                        ? 'live'
+                        : soonHosts.contains(id)
+                        ? 'soon'
+                        : 'shop';
+                    final nextShow = status == 'soon'
+                        ? upcoming.firstWhere((i) => i.show!.hostId == id).show!
+                        : null;
+                    return _SellerCard(
+                      key: ValueKey('home-seller-$id'),
+                      user: s.userById(id),
+                      userId: id,
+                      rating: s.ratingOf(id),
+                      status: status,
+                      listings: s.listingsOf(id).length,
+                      demo: isDemoAccount(id),
+                      onOpenShop: () => PublicProfileScreen.open(context, id),
+                      onEnterLive: status == 'live'
+                          ? () {
+                              final item = liveNow.firstWhere(
+                                (i) => i.show!.hostId == id,
+                              );
+                              LiveRoomScreen.open(context, item.show!.id);
+                            }
+                          : null,
+                      onRemind: nextShow == null
+                          ? null
+                          : () => remindMe(context, ref, nextShow.id),
+                    );
+                  },
+                ),
+              ),
             );
           }
           if (upcoming.isNotEmpty) {
@@ -1663,6 +1668,144 @@ class _CheckoutBanner extends ConsumerWidget {
   }
 }
 
+/// Preporučeni prodavač: status (Uživo / Uskoro / Shop) je izveden iz
+/// stvarnih prijenosa; Prati, Podsjeti me i Posjeti shop rade samo ondje gdje
+/// su podržani.
+class _SellerCard extends StatelessWidget {
+  const _SellerCard({
+    super.key,
+    required this.user,
+    required this.userId,
+    required this.rating,
+    required this.status,
+    required this.listings,
+    required this.demo,
+    required this.onOpenShop,
+    this.onEnterLive,
+    this.onRemind,
+  });
+  final AppUser? user;
+  final String userId;
+  final Rating rating;
+  final String status;
+  final int listings;
+  final bool demo;
+  final VoidCallback onOpenShop;
+  final VoidCallback? onEnterLive;
+  final VoidCallback? onRemind;
+
+  @override
+  Widget build(BuildContext context) {
+    final label = switch (status) {
+      'live' => t('Uživo'),
+      'soon' => t('Uskoro'),
+      _ => t('Shop'),
+    };
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: LoopColors.surface,
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              UserAvatar(user: user, size: 48),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      user?.shopTitle ?? user?.handle ?? t('Prodavač'),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    Text(
+                      [
+                        rating.count == 0
+                            ? t('Još nema recenzija')
+                            : '★ ${rating.average.toStringAsFixed(1)} (${rating.count})',
+                        if (demo) t('Demo'),
+                      ].join(' · '),
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: LoopColors.textSecondary,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 4,
+                ),
+                decoration: BoxDecoration(
+                  color: status == 'live'
+                      ? LoopColors.live
+                      : LoopColors.surfaceHover,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Text(
+                  label,
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
+                    color: status == 'live'
+                        ? Colors.white
+                        : LoopColors.textPrimary,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          Wrap(
+            spacing: 8,
+            runSpacing: 4,
+            children: [
+              if (onEnterLive != null)
+                FilledButton(
+                  key: ValueKey('seller-enter-live-$userId'),
+                  style: FilledButton.styleFrom(
+                    minimumSize: const Size(48, 44),
+                  ),
+                  onPressed: onEnterLive,
+                  child: Text(t('Uđi u live')),
+                ),
+              if (onRemind != null)
+                OutlinedButton(
+                  key: ValueKey('seller-remind-$userId'),
+                  style: OutlinedButton.styleFrom(
+                    minimumSize: const Size(48, 44),
+                  ),
+                  onPressed: onRemind,
+                  child: Text(t('Podsjeti me')),
+                ),
+              FollowButton(userId: userId),
+              OutlinedButton(
+                key: ValueKey('seller-shop-$userId'),
+                style: OutlinedButton.styleFrom(
+                  minimumSize: const Size(48, 44),
+                ),
+                onPressed: onOpenShop,
+                child: Text(t('Posjeti shop')),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class _EmptyLive extends StatelessWidget {
   const _EmptyLive({required this.onGoLive, this.onShop});
   final VoidCallback onGoLive;
@@ -1855,8 +1998,7 @@ class _TileRow extends StatelessWidget {
         onSelect(f);
       }
 
-      final live = selected == 'live';
-      final buy = selected == 'buy';
+      final soon = selected == 'soon';
       final following = selected == 'following';
       return PillSwitch(
         key: const ValueKey('home-tiles'),
@@ -1865,7 +2007,7 @@ class _TileRow extends StatelessWidget {
           PillSwitchItem(
             key: const ValueKey('home-view-for-you'),
             label: t('Za tebe'),
-            selected: !live && !buy && !following,
+            selected: !soon && !following,
             onTap: () => pick(const _ForYou()),
           ),
           PillSwitchItem(
@@ -1875,16 +2017,10 @@ class _TileRow extends StatelessWidget {
             onTap: () => pick(const _Following()),
           ),
           PillSwitchItem(
-            key: const ValueKey('home-view-live'),
-            label: t('Uživo'),
-            selected: live,
-            onTap: () => pick(const _LiveOnly()),
-          ),
-          PillSwitchItem(
-            key: const ValueKey('home-view-buy'),
-            label: t('Proizvodi'),
-            selected: buy,
-            onTap: () => pick(const _BuyNow()),
+            key: const ValueKey('home-view-soon'),
+            label: t('Uskoro'),
+            selected: soon,
+            onTap: () => pick(const _Soon()),
           ),
         ],
       );

@@ -284,22 +284,41 @@ class _PublicProfileScreenState extends ConsumerState<PublicProfileScreen> {
               ),
             ),
           ),
-          if (_tab != _ShopTab.auctions)
-            for (final (show, live)
-                in ref
-                    .watch(appProvider)
-                    .activeLives
-                    .where((e) => e.$1.hostId == widget.userId))
-              box(
-                LiveShopRow(
-                  key: ValueKey('profile-live-${show.id}'),
-                  show: show,
-                  subtitle: live.isLive
-                      ? t('Uživo sada')
-                      : formatDateTime(show.startsAt),
-                  onTap: () => LiveRoomScreen.open(context, show.id),
-                ),
-              ),
+          // Status prijenosa: uživo se ističe, najavljeno je označeno Uskoro.
+          for (final (show, live)
+              in ref
+                  .watch(appProvider)
+                  .activeLives
+                  .where((e) => e.$1.hostId == widget.userId))
+            box(
+              live.isLive
+                  ? Padding(
+                      padding: const EdgeInsets.only(top: 12),
+                      child: FilledButton.icon(
+                        key: ValueKey('profile-live-${show.id}'),
+                        style: FilledButton.styleFrom(
+                          backgroundColor: LoopColors.live,
+                          foregroundColor: Colors.white,
+                          minimumSize: const Size.fromHeight(52),
+                        ),
+                        onPressed: () => LiveRoomScreen.open(context, show.id),
+                        icon: const Icon(Icons.sensors),
+                        label: Text(
+                          t('Uživo: {0} · Uđi u live', [show.title]),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    )
+                  : LiveShopRow(
+                      key: ValueKey('profile-live-${show.id}'),
+                      show: show,
+                      subtitle: t('Uskoro · {0}', [
+                        formatDateTime(show.startsAt),
+                      ]),
+                      onTap: () => LiveRoomScreen.open(context, show.id),
+                    ),
+            ),
           // Odabir dijela trgovine.
           box(
             Padding(
@@ -365,6 +384,24 @@ class _PublicProfileScreenState extends ConsumerState<PublicProfileScreen> {
             ),
           ),
           if (_tab == _ShopTab.items) ...[
+            if (allListings.isNotEmpty && !isMe)
+              box(
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 8),
+                  child: TextButton.icon(
+                    key: const ValueKey('shop-terms'),
+                    style: TextButton.styleFrom(
+                      alignment: Alignment.centerLeft,
+                      minimumSize: const Size(48, 44),
+                    ),
+                    onPressed: () => BuyerProtectionBadge.explain(context),
+                    icon: const Icon(Icons.verified_user_outlined, size: 18),
+                    label: Text(
+                      t('Dostava i zaštita kupca — uvjeti prije kupnje'),
+                    ),
+                  ),
+                ),
+              ),
             if (allListings.isNotEmpty) ...[
               box(
                 Row(

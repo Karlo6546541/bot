@@ -13,6 +13,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../l10n/tr.dart';
+import 'live_screens.dart' show LiveRoomScreen;
+import '../services/market_filter.dart' show normalizeSearch;
 import '../models/app_user.dart';
 import '../providers/app_providers.dart';
 import '../providers/app_state.dart';
@@ -178,6 +180,103 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
     return list;
   }
 
+  /// Live-first rezultati: Uživo, Uskoro pa prodavači (s razlogom podudaranja).
+  /// Proizvodi samo pomažu relevantnosti — nema kataloga oglasa.
+  List<Widget> _liveFirstResults(
+    AppState state,
+    List<AppUser> accounts,
+    List<BrowseItem> items,
+    Widget Function(String) heading,
+  ) {
+    final q = normalizeSearch(_q);
+    final liveRows = <Widget>[];
+    final soonRows = <Widget>[];
+    final reasons = <String, String>{};
+    final hostsLive = <String>{};
+    final hostsSoon = <String>{};
+    void reason(String id, String text) => reasons.putIfAbsent(id, () => text);
+    for (final item in items) {
+      final show = item.show;
+      if (show == null) {
+        // Predmet u shopu ili aukcija: vodi do prodavača, ne do oglasa.
+        final owner = item.device?.ownerId ?? item.auction?.sellerId;
+        final name = item.device?.name ?? item.auction?.deviceName ?? '';
+        if (owner != null) reason(owner, t('Ima u shopu: {0}', [name]));
+        continue;
+      }
+      final live = item.live;
+      if (live == null) continue;
+      String? lotMatch;
+      for (final l in show.lots) {
+        if (normalizeSearch(l.deviceName).contains(q)) lotMatch = l.deviceName;
+      }
+      final why = normalizeSearch(show.title).contains(q)
+          ? t('Tema prijenosa: {0}', [show.title])
+          : lotMatch != null
+          ? t('U prijenosu: {0}', [lotMatch])
+          : t('Prodavač: {0}', [show.hostLabel]);
+      final isLive = live.isLive;
+      (isLive ? hostsLive : hostsSoon).add(show.hostId);
+      (isLive ? liveRows : soonRows).add(
+        Padding(
+          padding: const EdgeInsets.only(bottom: 8),
+          child: ReferenceOrderRow(
+            key: ValueKey('search-live-${show.id}'),
+            title: show.title,
+            subtitle: isLive
+                ? '${t('Uživo')} · $why'
+                : '${t('Uskoro')} · ${formatDateTime(show.startsAt)} · $why',
+            artwork: BrowseCardMedia(
+              device: item.device,
+              cover: show.coverPath,
+            ),
+            onTap: () {
+              ref.read(appProvider.notifier).addSearch(_q);
+              LiveRoomScreen.open(context, show.id);
+            },
+          ),
+        ),
+      );
+    }
+    final sellerIds = <String>{
+      ...hostsLive,
+      ...hostsSoon,
+      for (final u in accounts) u.id,
+      ...reasons.keys,
+    };
+    String status(String id) => hostsLive.contains(id)
+        ? t('Uživo')
+        : hostsSoon.contains(id)
+        ? t('Uskoro')
+        : t('Shop');
+    final sellers = [
+      for (final id in sellerIds)
+        if (state.userById(id) case final u? when !u.isGuest) u,
+    ];
+    return [
+      if (liveRows.isNotEmpty) ...[heading(t('Uživo')), ...liveRows],
+      if (soonRows.isNotEmpty) ...[heading(t('Uskoro')), ...soonRows],
+      if (sellers.isNotEmpty) ...[
+        heading(t('Prodavači')),
+        for (final user in sellers.take(10))
+          Padding(
+            padding: const EdgeInsets.only(bottom: 8),
+            child: ReferenceOrderRow(
+              key: ValueKey('reference-shop-${user.id}'),
+              title: user.shopTitle,
+              subtitle: [
+                status(user.id),
+                reasons[user.id] ?? t('Shop prodavača'),
+                if (user.city != null) user.city!,
+              ].join(' · '),
+              artwork: UserAvatar(user: user, size: 52),
+              onTap: () => PublicProfileScreen.open(context, user.id),
+            ),
+          ),
+      ],
+    ];
+  }
+
   Widget _referenceBody(AppState state) {
     final posts = _posts(state);
     final accounts = _q.trim().isEmpty ? <AppUser>[] : _accounts(state);
@@ -247,7 +346,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
               },
               style: const TextStyle(fontSize: 16, height: 1.2),
               decoration: InputDecoration(
-                hintText: t('Pretraži predmete i shopove'),
+                hintText: t('Pretraži prijenose i prodavače'),
                 filled: true,
                 fillColor: LoopColors.textPrimary.withValues(alpha: .07),
                 isDense: true,
@@ -363,64 +462,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                   ],
                 )
               else ...[
-                if (accounts.isNotEmpty) ...[
-                  heading(t('Shopovi')),
-                  for (final user in accounts.take(10))
-                    Padding(
-                      padding: const EdgeInsets.only(bottom: 8),
-                      child: ReferenceOrderRow(
-                        key: ValueKey('reference-shop-${user.id}'),
-                        title: user.shopTitle,
-                        subtitle: [
-                          t('Shop'),
-                          if (user.city != null) user.city!,
-                        ].join(' · '),
-                        artwork: UserAvatar(user: user, size: 52),
-                        onTap: () => PublicProfileScreen.open(context, user.id),
-                      ),
-                    ),
-                ],
-                if (items.isNotEmpty) ...[
-                  heading(t('Predmeti')),
-                  for (var i = 0; i < items.length; i++)
-                    Padding(
-                      padding: const EdgeInsets.only(bottom: 8),
-                      child: ReferenceOrderRow(
-                        title:
-                            items[i].show?.title ??
-                            items[i].auction?.deviceName ??
-                            items[i].device!.name,
-                        subtitle:
-                            items[i].show?.hostLabel ??
-                            state
-                                .userById(
-                                  items[i].device?.ownerId ??
-                                      items[i].auction?.sellerId,
-                                )
-                                ?.shopTitle ??
-                            '',
-                        amount: items[i].live?.current?.price != null
-                            ? formatCredits(items[i].live!.current!.price)
-                            : items[i].auction != null
-                            ? formatCredits(items[i].auction!.currentPrice)
-                            : items[i].device != null
-                            ? formatCredits(items[i].device!.shownPrice)
-                            : null,
-                        artwork: BrowseCardMedia(
-                          device: items[i].device,
-                          cover: items[i].show?.coverPath,
-                        ),
-                        onTap: () {
-                          ref.read(appProvider.notifier).addSearch(_q);
-                          SwipeFeedScreen.open(
-                            context,
-                            items.map((item) => item.entry).toList(),
-                            i,
-                          );
-                        },
-                      ),
-                    ),
-                ],
+                ..._liveFirstResults(state, accounts, items, heading),
                 if (accounts.isEmpty && items.isEmpty)
                   Padding(
                     padding: const EdgeInsets.symmetric(vertical: 24),

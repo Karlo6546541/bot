@@ -10,7 +10,12 @@ import '../theme/app_theme.dart';
 import '../widgets/category_style.dart';
 import '../widgets/empty_state.dart';
 import 'auctions_screen.dart';
-import 'live_screens.dart' show kLiveRed;
+import 'live_screens.dart' show kLiveRed, LiveRoomScreen;
+import 'public_profile_screen.dart' show PublicProfileScreen;
+import '../config/design_variant.dart';
+import '../widgets/live_shop_widgets.dart' show LiveShopRow;
+import '../utils/formatters.dart' show formatDateTime;
+import '../widgets/user_avatar.dart';
 import '../services/market_filter.dart' show normalizeSearch;
 import '../services/smart_search.dart';
 import 'swipe_feed_screen.dart';
@@ -502,6 +507,186 @@ class _CategoryItemsScreenState extends ConsumerState<CategoryItemsScreen> {
     super.dispose();
   }
 
+  /// Live-first: aktivni lajvovi, najavljeni prijenosi pa prodavači. Proizvodi
+  /// su dostupni kroz lajv ili profil prodavača, ne kao samostalni oglasi.
+  Widget _liveFirst(
+    BuildContext context,
+    AppState s,
+    List<BrowseItem> all,
+    String title,
+    DeviceCategory? category,
+  ) {
+    final q = _query.text.trim().toLowerCase();
+    bool match(BrowseItem i) =>
+        q.isEmpty || _textOf(i).toLowerCase().contains(q);
+    final live = [
+      for (final i in all)
+        if (i.show != null && (i.live?.isLive ?? false) && match(i)) i,
+    ];
+    final soon = [
+      for (final i in all)
+        if (i.show != null && (i.live?.isScheduled ?? false) && match(i)) i,
+    ];
+    final liveHosts = {for (final i in live) i.show!.hostId};
+    final soonHosts = {for (final i in soon) i.show!.hostId};
+    final owners = <String, String>{};
+    for (final i in all) {
+      final id = i.show?.hostId ?? i.device?.ownerId ?? i.auction?.sellerId;
+      if (id == null || !match(i)) continue;
+      owners.putIfAbsent(
+        id,
+        () => i.show != null
+            ? t('Prijenosi u kategoriji')
+            : t('Ima u shopu: {0}', [
+                i.device?.name ?? i.auction?.deviceName ?? '',
+              ]),
+      );
+    }
+    final sellers = [
+      for (final e in owners.entries)
+        if (s.userById(e.key) case final u? when !u.isGuest) (u, e.value),
+    ];
+    Widget heading(String text) => Padding(
+      padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
+      child: Text(
+        text,
+        style: const TextStyle(fontSize: 19, fontWeight: FontWeight.w600),
+      ),
+    );
+    final empty = live.isEmpty && soon.isEmpty && sellers.isEmpty;
+    return Scaffold(
+      appBar: AppBar(title: Text(title)),
+      body: Column(
+        children: [
+          if (all.isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
+              child: SlimSearchField(
+                key: const ValueKey('category-search'),
+                controller: _query,
+                hint: t('Traži u kategoriji {0}', [title]),
+                onChanged: (_) => setState(() {}),
+              ),
+            ),
+          Expanded(
+            child: empty
+                ? EmptyState(
+                    icon: category?.icon ?? widget.section!.icon,
+                    title: all.isEmpty
+                        ? t('Ovdje još nema ničega')
+                        : t('Ništa ne odgovara pretrazi'),
+                    message: all.isEmpty
+                        ? t(
+                            'Kad prodavač objavi prijenos ili predmet u ovoj kategoriji, bit će ovdje.',
+                          )
+                        : t('Probaj drugu riječ ili očisti pretragu.'),
+                  )
+                : ListView(
+                    key: const ValueKey('category-items'),
+                    padding: const EdgeInsets.fromLTRB(0, 0, 0, 32),
+                    children: [
+                      if (live.isEmpty && soon.isNotEmpty)
+                        Padding(
+                          padding: const EdgeInsets.fromLTRB(20, 8, 20, 0),
+                          child: Text(
+                            t(
+                              'Trenutno nema prijenosa uživo u ovoj kategoriji.',
+                            ),
+                            style: TextStyle(color: LoopColors.textSecondary),
+                          ),
+                        ),
+                      if (live.isNotEmpty) ...[
+                        heading(t('Uživo')),
+                        for (final i in live)
+                          Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 20),
+                            child: LiveShopRow(
+                              key: ValueKey('category-live-${i.show!.id}'),
+                              show: i.show!,
+                              device: i.device,
+                              subtitle: i.live!.viewers > 0
+                                  ? t('{0} gledatelja', ['${i.live!.viewers}'])
+                                  : null,
+                              onTap: () =>
+                                  LiveRoomScreen.open(context, i.show!.id),
+                            ),
+                          ),
+                      ],
+                      if (soon.isNotEmpty) ...[
+                        heading(t('Uskoro')),
+                        for (final i in soon)
+                          Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 20),
+                            child: LiveShopRow(
+                              key: ValueKey('category-live-${i.show!.id}'),
+                              show: i.show!,
+                              device: i.device,
+                              subtitle: formatDateTime(i.show!.startsAt),
+                              onTap: () =>
+                                  LiveRoomScreen.open(context, i.show!.id),
+                            ),
+                          ),
+                      ],
+                      if (sellers.isNotEmpty) ...[
+                        heading(t('Prodavači')),
+                        for (final (u, why) in sellers)
+                          InkWell(
+                            key: ValueKey('category-seller-${u.id}'),
+                            onTap: () =>
+                                PublicProfileScreen.open(context, u.id),
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 20,
+                                vertical: 8,
+                              ),
+                              child: Row(
+                                children: [
+                                  UserAvatar(user: u, size: 48),
+                                  const SizedBox(width: 12),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          u.shopTitle,
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                          style: const TextStyle(
+                                            fontWeight: FontWeight.w600,
+                                            fontSize: 15,
+                                          ),
+                                        ),
+                                        Text(
+                                          '${liveHosts.contains(u.id)
+                                              ? t('Uživo')
+                                              : soonHosts.contains(u.id)
+                                              ? t('Uskoro')
+                                              : t('Shop')} · $why',
+                                          maxLines: 2,
+                                          overflow: TextOverflow.ellipsis,
+                                          style: TextStyle(
+                                            color: LoopColors.textSecondary,
+                                            fontSize: 13,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  const Icon(Icons.chevron_right),
+                                ],
+                              ),
+                            ),
+                          ),
+                      ],
+                    ],
+                  ),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final category = widget.category;
@@ -515,6 +700,7 @@ class _CategoryItemsScreenState extends ConsumerState<CategoryItemsScreen> {
             : i.categories.any((c) => c.section == widget.section))
           i,
     ];
+    if (kSimpleDesign) return _liveFirst(context, s, all, title, category);
     final q = SmartQuery.parse(_query.text);
     bool inView(BrowseItem i) => switch (_view) {
       'products' => i.isBuyNow,
