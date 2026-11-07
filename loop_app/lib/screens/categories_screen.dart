@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../widgets/pill_tabs.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../l10n/tr.dart';
@@ -492,6 +493,9 @@ class CategoryItemsScreen extends ConsumerStatefulWidget {
 class _CategoryItemsScreenState extends ConsumerState<CategoryItemsScreen> {
   final _query = TextEditingController();
 
+  /// all | products | live | auctions — pogledi unutar iste kategorije.
+  String _view = 'all';
+
   @override
   void dispose() {
     _query.dispose();
@@ -512,10 +516,20 @@ class _CategoryItemsScreenState extends ConsumerState<CategoryItemsScreen> {
           i,
     ];
     final q = SmartQuery.parse(_query.text);
+    bool inView(BrowseItem i) => switch (_view) {
+      'products' => i.isBuyNow,
+      'live' => i.live != null,
+      'auctions' => i.auction != null,
+      _ => true,
+    };
+    final viewed = [
+      for (final i in all)
+        if (inView(i)) i,
+    ];
     final list = q.isEmpty
-        ? all
+        ? viewed
         : [
-            for (final i in all)
+            for (final i in viewed)
               if (q.matches(_textOf(i)) &&
                   (!q.hasPrice ||
                       (_priceOf(i) != null && q.priceOk(_priceOf(i)!))))
@@ -535,17 +549,43 @@ class _CategoryItemsScreenState extends ConsumerState<CategoryItemsScreen> {
                 onChanged: (_) => setState(() {}),
               ),
             ),
+          if (all.isNotEmpty)
+            PillSwitch(
+              key: const ValueKey('category-views'),
+              items: [
+                for (final (id, label) in [
+                  ('all', t('Sve')),
+                  ('products', t('Proizvodi')),
+                  ('live', t('Uživo')),
+                  ('auctions', t('Aukcije')),
+                ])
+                  PillSwitchItem(
+                    key: ValueKey('category-view-$id'),
+                    label: label,
+                    selected: _view == id,
+                    onTap: () => setState(() => _view = id),
+                  ),
+              ],
+            ),
           Expanded(
             child: list.isEmpty
                 ? EmptyState(
                     icon: category?.icon ?? widget.section!.icon,
                     title: all.isEmpty
                         ? t('Ovdje još nema ničega')
+                        : viewed.isEmpty
+                        ? switch (_view) {
+                            'live' => t('Trenutno nema prijenosa uživo'),
+                            'auctions' => t('Trenutno nema aukcija'),
+                            _ => t('Trenutno nema proizvoda'),
+                          }
                         : t('Ništa ne odgovara pretrazi'),
                     message: all.isEmpty
                         ? t(
                             'Kad netko objavi predmet u ovoj kategoriji, bit će ovdje.',
                           )
+                        : viewed.isEmpty
+                        ? t('Prebaci prikaz na Sve da vidiš ostalo u kategoriji.')
                         : t('Probaj drugu riječ ili očisti pretragu.'),
                   )
                 : GridView.builder(

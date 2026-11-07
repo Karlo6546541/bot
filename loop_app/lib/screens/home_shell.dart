@@ -18,7 +18,6 @@ import 'live_home_screen.dart';
 import 'live_screens.dart';
 import 'profile_screen.dart';
 import 'seller_hub.dart';
-import 'explore_screen.dart';
 import '../l10n/tr.dart';
 import '../widgets/language_button.dart';
 import '../services/deep_link.dart';
@@ -99,10 +98,14 @@ class _HomeShellState extends ConsumerState<HomeShell> {
 
   List<ShellDestination> get _destinations => kSimpleDesign
       ? [
-          // Najviše pet odredišta: Početna · Istraži · Prodaj · Kupnje ·
-          // Profil. Kategorije i shopovi su unutar Istraži.
+          // Najviše pet odredišta: Početna · Kategorije · Prodaj · Kupnje ·
+          // Profil. Početna je izlog liveova, proizvoda i shopova.
           ShellDestination(t('Početna'), Icons.home_outlined, Icons.home),
-          ShellDestination(t('Istraži'), Icons.explore_outlined, Icons.explore),
+          ShellDestination(
+            t('Kategorije'),
+            Icons.grid_view_outlined,
+            Icons.grid_view_rounded,
+          ),
           ShellDestination(
             t('Prodaj'),
             Icons.add_circle_outline,
@@ -424,7 +427,9 @@ class _HomeShellState extends ConsumerState<HomeShell> {
     index: _index,
     children: [
       LiveHomeScreen(visible: _index == 0),
-      kSimpleDesign ? const ExploreScreen() : const CategoriesScreen(),
+      kSimpleDesign
+          ? const SafeArea(child: CategoriesScreen())
+          : const CategoriesScreen(),
       TickerMode(
         enabled: _index == 2,
         child: ActivityView(onBrowse: () => _go(0)),

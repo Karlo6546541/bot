@@ -397,12 +397,14 @@ class LiveShopRow extends StatelessWidget {
   const LiveShopRow({
     super.key,
     required this.show,
-    required this.subtitle,
     required this.onTap,
+    this.subtitle,
     this.device,
   });
   final LiveShow show;
-  final String subtitle;
+
+  /// Bez pouzdanog podatka (npr. gledatelja) prikazuje se prodavač.
+  final String? subtitle;
   final Device? device;
   final VoidCallback onTap;
   @override
@@ -438,7 +440,7 @@ class LiveShopRow extends StatelessWidget {
                   ),
                   const SizedBox(height: 5),
                   Text(
-                    subtitle,
+                    subtitle ?? show.hostLabel,
                     style: TextStyle(
                       color: LoopColors.textSecondary,
                       fontSize: 13,

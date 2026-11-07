@@ -839,14 +839,46 @@ class _LiveHomeScreenState extends ConsumerState<LiveHomeScreen> {
                       key: ValueKey('browse-live-${live[i].show!.id}'),
                       show: live[i].show!,
                       device: live[i].device,
-                      subtitle: t('{0} gledatelja', [
-                        '${live[i].live!.viewers}',
-                      ]),
+                      subtitle: live[i].live!.viewers > 0
+                          ? t('{0} gledatelja', ['${live[i].live!.viewers}'])
+                          : null,
                       onTap: () => open(live, i, t('Uživo sada')),
                     ),
                   ),
                 ),
         );
+        if (kSimpleDesign && live.isEmpty) {
+          // Bez praznog ekrana: najavljeni prijenosi i dostupni proizvodi.
+          if (soon.isNotEmpty) {
+            slivers.add(
+              SliverPadding(
+                key: const ValueKey('home-live-soon'),
+                padding: const EdgeInsets.symmetric(horizontal: 24),
+                sliver: SliverList.list(
+                  children: [
+                    for (final item in soon)
+                      LiveShopRow(
+                        show: item.show!,
+                        device: item.device,
+                        subtitle: formatDateTime(item.show!.startsAt),
+                        onTap: () =>
+                            LiveRoomScreen.open(context, item.show!.id),
+                      ),
+                  ],
+                ),
+              ),
+            );
+          }
+          if (buyNow.isNotEmpty) {
+            slivers.add(
+              grid(
+                'home-live-empty-products',
+                buyNow.take(8).toList(),
+                t('Shop'),
+              ),
+            );
+          }
+        }
       case _Soon():
         slivers.add(const SliverToBoxAdapter(child: SizedBox(height: 12)));
         slivers.add(
@@ -1089,7 +1121,7 @@ class _LiveHomeScreenState extends ConsumerState<LiveHomeScreen> {
                   blur: false,
                   child: Semantics(
                     button: true,
-                    label: t('Pretraži predmete i shopove'),
+                    label: t('Pretraži proizvode, prijenose i prodavače'),
                     excludeSemantics: true,
                     onTap: () => SearchScreen.open(context),
                     child: InkWell(
@@ -1108,7 +1140,7 @@ class _LiveHomeScreenState extends ConsumerState<LiveHomeScreen> {
                             const SizedBox(width: 10),
                             Expanded(
                               child: Text(
-                                t('Pretraži predmete i shopove'),
+                                t('Pretraži proizvode, prijenose i prodavače'),
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
                                 style: TextStyle(
@@ -1312,7 +1344,7 @@ class _LiveHomeScreenState extends ConsumerState<LiveHomeScreen> {
                       ),
                     ),
             ),
-            if (kSimpleDesign && _filter is! _ForYou) browseControls,
+            if (kSimpleDesign) browseControls,
           ],
         ),
       ),
@@ -1408,39 +1440,7 @@ class _LiveHomeScreenState extends ConsumerState<LiveHomeScreen> {
                   child: CustomScrollView(
                     slivers: [
                       if (kSimpleDesign) SliverToBoxAdapter(child: chips),
-                      if (kSimpleDesign &&
-                          _filter is! _ForYou &&
-                          _filter is! _BuyNow)
-                        SliverToBoxAdapter(
-                          child: Padding(
-                            padding: const EdgeInsets.fromLTRB(20, 12, 16, 4),
-                            child: Row(
-                              children: [
-                                Expanded(
-                                  child: Text(
-                                    switch (_filter) {
-                                      _Following() => t('Pratim'),
-                                      _Soon() => t('Uskoro'),
-                                      _Timed() => t('Aukcije'),
-                                      _Digital() => t('Digitalno'),
-                                      _ => t('Uživo po kategoriji'),
-                                    },
-                                    style: const TextStyle(
-                                      fontSize: 20,
-                                      fontWeight: FontWeight.w600,
-                                    ),
-                                  ),
-                                ),
-                                TextButton(
-                                  key: const ValueKey('simple-context-clear'),
-                                  onPressed: () => _select(const _ForYou()),
-                                  child: Text(t('Sve uživo')),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                      if (onLive || onAuctions)
+                      if ((onLive || onAuctions) && !kSimpleDesign)
                         SliverToBoxAdapter(child: categoryFilter),
                       ...slivers,
                       if (!_hideCheckout &&
@@ -1848,40 +1848,44 @@ class _TileRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (kSimpleDesign) {
-      // Jednostavni filtri: Za tebe, Pratim i kategorije koje stvarno
-      // postoje (imaju prijenos ili proizvod).
+      // Pogledi unutar iste Početne (ne nova odredišta): Za tebe, Pratim,
+      // Uživo i Proizvodi. Kategorije su zasebno odredište u navigaciji.
+      void pick(_Filter f) {
+        onCategory?.call(null);
+        onSelect(f);
+      }
+
+      final live = selected == 'live';
+      final buy = selected == 'buy';
+      final following = selected == 'following';
       return PillSwitch(
         key: const ValueKey('home-tiles'),
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
+        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
         items: [
           PillSwitchItem(
-            key: const ValueKey('home-cat-for-you'),
+            key: const ValueKey('home-view-for-you'),
             label: t('Za tebe'),
-            selected: selected != 'following' && category == null,
-            onTap: () {
-              onCategory?.call(null);
-              onSelect(const _ForYou());
-            },
+            selected: !live && !buy && !following,
+            onTap: () => pick(const _ForYou()),
           ),
           PillSwitchItem(
-            key: const ValueKey('home-cat-following'),
+            key: const ValueKey('home-view-following'),
             label: t('Pratim'),
-            selected: selected == 'following',
-            onTap: () {
-              onCategory?.call(null);
-              onSelect(const _Following());
-            },
+            selected: following,
+            onTap: () => pick(const _Following()),
           ),
-          for (final c in categories)
-            PillSwitchItem(
-              key: ValueKey('home-cat-${c.name}'),
-              label: c.label,
-              selected: category == c && selected != 'following',
-              onTap: () {
-                if (selected == 'following') onSelect(const _ForYou());
-                onCategory?.call(category == c ? null : c);
-              },
-            ),
+          PillSwitchItem(
+            key: const ValueKey('home-view-live'),
+            label: t('Uživo'),
+            selected: live,
+            onTap: () => pick(const _LiveOnly()),
+          ),
+          PillSwitchItem(
+            key: const ValueKey('home-view-buy'),
+            label: t('Proizvodi'),
+            selected: buy,
+            onTap: () => pick(const _BuyNow()),
+          ),
         ],
       );
     }

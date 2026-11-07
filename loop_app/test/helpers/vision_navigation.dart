@@ -9,7 +9,7 @@ Future<void> mainTab(WidgetTester tester, String label) async {
       'Prodavač' || 'Studio' || 'Prodaj' => 2,
       'Moje' || 'Trezor' || 'Kupnje' => 3,
       'Profil' => 4,
-      'Istraži' || 'Kategorije' => 1,
+      'Kategorije' => 1,
       _ => 0,
     };
     Finder target() => find.byKey(ValueKey('simple-nav-$index')).hitTestable();
@@ -20,14 +20,6 @@ Future<void> mainTab(WidgetTester tester, String label) async {
     }
     await tester.tap(target().first);
     await tester.pumpAndSettle();
-    if (label == 'Kategorije') {
-      await tester.ensureVisible(
-        find.byKey(const ValueKey('explore-tab-categories')),
-      );
-      await tester.pumpAndSettle();
-      await tester.tap(find.byKey(const ValueKey('explore-tab-categories')));
-      await tester.pumpAndSettle();
-    }
     return;
   }
   final expand = find.byKey(const ValueKey('dock-expand'));

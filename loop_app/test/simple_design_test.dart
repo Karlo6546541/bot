@@ -312,50 +312,28 @@ void main() {
     await tester.pumpWidget(const SizedBox());
   });
 
-  testWidgets(
-    'Istraži: proizvodi, lajvovi, shopovi i kategorije na jednom mjestu',
-    (tester) async {
-      tester.view.physicalSize = const Size(390, 844);
-      tester.view.devicePixelRatio = 1;
-      addTearDown(tester.view.reset);
-      await tester.pumpWidget(app());
-      await tester.pumpAndSettle();
-      // Najviše pet jasnih odredišta s tekstualnim nazivima.
-      for (final label in [
-        'Početna',
-        'Istraži',
-        'Prodaj',
-        'Kupnje',
-        'Profil',
-      ]) {
-        expect(find.text(label), findsWidgets, reason: label);
-      }
-      expect(find.text('Pozornica'), findsNothing);
-      await mainTab(tester, 'Istraži');
-      expect(find.byKey(const ValueKey('explore')), findsOneWidget);
-      expect(find.byKey(const ValueKey('explore-search')), findsOneWidget);
-      expect(find.byKey(const ValueKey('explore-products')), findsOneWidget);
-      await tester.tap(find.byKey(const ValueKey('explore-tab-lives')));
-      await tester.pumpAndSettle();
-      await tester.ensureVisible(
-        find.byKey(const ValueKey('explore-tab-shops')),
-      );
-      await tester.pumpAndSettle();
-      await tester.tap(find.byKey(const ValueKey('explore-tab-shops')));
-      await tester.pumpAndSettle();
-      expect(find.byKey(const ValueKey('explore-shops')), findsOneWidget);
-      // Ocjena uvijek s brojem recenzija ili jasno "nema recenzija".
-      expect(find.textContaining(RegExp(r'recenzija|\(\d+\)')), findsWidgets);
-      await tester.ensureVisible(
-        find.byKey(const ValueKey('explore-tab-categories')),
-      );
-      await tester.pumpAndSettle();
-      await tester.tap(find.byKey(const ValueKey('explore-tab-categories')));
-      await tester.pumpAndSettle();
-      expect(find.byKey(const ValueKey('categories')), findsOneWidget);
-      expect(tester.takeException(), isNull);
-    },
-  );
+  testWidgets('pet odredišta; Kategorije su zaseban ekran', (tester) async {
+    tester.view.physicalSize = const Size(390, 844);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    await tester.pumpWidget(app());
+    await tester.pumpAndSettle();
+    for (final label in [
+      'Početna',
+      'Kategorije',
+      'Prodaj',
+      'Kupnje',
+      'Profil',
+    ]) {
+      expect(find.text(label), findsWidgets, reason: label);
+    }
+    expect(find.text('Istraži'), findsNothing);
+    expect(find.text('Pozornica'), findsNothing);
+    await mainTab(tester, 'Kategorije');
+    expect(find.byKey(const ValueKey('categories')), findsOneWidget);
+    expect(find.byKey(const ValueKey('categories-search')), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
 
   testWidgets('sadržaj nikad nije ispod donje navigacije', (tester) async {
     tester.view.physicalSize = const Size(360, 740);
@@ -363,9 +341,60 @@ void main() {
     addTearDown(tester.view.reset);
     await tester.pumpWidget(app());
     await tester.pumpAndSettle();
-    await mainTab(tester, 'Istraži');
+    await mainTab(tester, 'Kategorije');
     final dock = tester.getRect(find.byKey(const ValueKey('floating-dock')));
-    final content = tester.getRect(find.byKey(const ValueKey('explore')));
+    final content = tester.getRect(find.byKey(const ValueKey('categories')));
     expect(content.bottom, lessThanOrEqualTo(dock.top + 0.5));
+  });
+
+  testWidgets(
+    'Početna: pogledi Za tebe/Pratim/Uživo/Proizvodi bez praznog ekrana',
+    (tester) async {
+      tester.view.physicalSize = const Size(390, 844);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
+      await tester.pumpWidget(app());
+      await tester.pumpAndSettle();
+      for (final id in ['for-you', 'following', 'live', 'buy']) {
+        expect(
+          find.byKey(ValueKey('home-view-$id')),
+          findsOneWidget,
+          reason: id,
+        );
+      }
+      await tester.ensureVisible(find.byKey(const ValueKey('home-view-buy')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('home-view-buy')));
+      await tester.pumpAndSettle();
+      expect(
+        find.byKey(const ValueKey('home-buy')).evaluate().isNotEmpty ||
+            find.text('Još nema predmeta za Kupi odmah.').evaluate().isNotEmpty,
+        isTrue,
+      );
+      await tester.tap(find.byKey(const ValueKey('home-view-live')));
+      await tester.pumpAndSettle();
+      expect(find.byKey(const ValueKey('home-view-live')), findsOneWidget);
+      expect(tester.takeException(), isNull);
+    },
+  );
+
+  testWidgets('Kategorija: prebacivanje Sve/Proizvodi/Uživo/Aukcije', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(390, 844);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    await tester.pumpWidget(app());
+    await tester.pumpAndSettle();
+    await mainTab(tester, 'Kategorije');
+    await tester.tap(find.byKey(const ValueKey('category-all-electronics')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('category-views')), findsOneWidget);
+    await tester.tap(find.byKey(const ValueKey('category-view-live')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('category-view-products')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('category-items')), findsOneWidget);
+    expect(tester.takeException(), isNull);
   });
 }

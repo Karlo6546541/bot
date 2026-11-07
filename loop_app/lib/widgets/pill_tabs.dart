@@ -180,7 +180,7 @@ class PillSwitch extends StatelessWidget {
                           ? Duration.zero
                           : const Duration(milliseconds: 180),
                       alignment: Alignment.center,
-                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      padding: const EdgeInsets.symmetric(horizontal: 12),
                       decoration: BoxDecoration(
                         color: items[i].selected
                             ? selectedBg
