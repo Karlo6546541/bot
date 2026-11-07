@@ -905,6 +905,11 @@ class StorageService {
       ? _session.delete(_pendingAuthKey)
       : _session.put(_pendingAuthKey, data);
 
+  /// Kupac je jednom pročitao da je ponuda u aukciji obvezujuća.
+  bool get bidTermsAccepted => _session.get('bidTermsAccepted') == true;
+
+  Future<void> acceptBidTerms() => _session.put('bidTermsAccepted', true);
+
   bool get howItWorksDismissed => _session.get(_howItWorksKey) == true;
 
   Future<void> dismissHowItWorks() => _session.put(_howItWorksKey, true);

@@ -1557,6 +1557,11 @@ class AppController extends Notifier<AppState> {
     _refresh();
   }
 
+  Future<void> liveSetFeatured(String showId, String? deviceId) async {
+    await _live.setFeatured(_requireUserId(), showId, deviceId);
+    _refresh();
+  }
+
   Future<void> liveSetMod(String showId, String userId, bool on) async {
     await _live.setMod(_requireUserId(), showId, userId, on);
     _refresh();

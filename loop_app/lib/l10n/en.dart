@@ -3356,9 +3356,33 @@ const kEn = <String, String>{
   '{0} – {1}': '{0} – {1}',
   'Trenutno nema prijenosa uživo': 'There are no live streams right now',
   'Trenutno nema proizvoda': 'There are no products right now',
-  'Prebaci prikaz na Sve da vidiš ostalo u kategoriji.': 'Switch the view to All to see the rest of this category.',
-  'Pretraži proizvode, prijenose i prodavače': 'Search products, streams and sellers',
-  'Dostava se dodaje prije plaćanja — konačni iznos vidiš prije potvrde.': 'Delivery is added before payment — you see the final amount before confirming.',
+  'Prebaci prikaz na Sve da vidiš ostalo u kategoriji.':
+      'Switch the view to All to see the rest of this category.',
+  'Pretraži proizvode, prijenose i prodavače':
+      'Search products, streams and sellers',
+  'Dostava se dodaje prije plaćanja — konačni iznos vidiš prije potvrde.':
+      'Delivery is added before payment — you see the final amount before confirming.',
+  'Prikaži chat': 'Show chat',
+  'Sakrij chat': 'Hide chat',
+  'Dostava se dodaje prije plaćanja': 'Delivery is added before payment',
+  'Svi proizvodi ({0})': 'All products ({0})',
+  'Predstavljeno u prijenosu': 'Shown in the stream',
+  'Skini': 'Remove',
+  'Predstavi': 'Feature',
+  'Najprije uključi trgovinu u liveu.': 'Turn on the shop in the live first.',
+  'Ponuda je obvezujuća': 'Your bid is binding',
+  'Ako pobijediš, obvezuješ se kupiti predmet. Iznos ponude i dostave naplaćuje se s tvoje kartice nakon završetka licitacije. Tvoju ponudu ne možeš povući.':
+      'If you win, you commit to buying the item. The bid and delivery are charged to your card after the auction ends. You cannot withdraw your bid.',
+  'Razumijem, ponudi {0}': 'I understand, bid {0}',
+  'Šaljem ponudu…': 'Sending bid…',
+  'Ponudi {0}': 'Bid {0}',
+  'Trenutna cijena je {0}. Ponuda je obvezujuća: ako pobijediš, kupuješ predmet.':
+      'The current price is {0}. Your bid is binding: if you win, you buy the item.',
+  'Potvrdi ponudu {0}': 'Confirm bid {0}',
+  'Nadmašen si · {0} vodi': 'You were outbid · {0} is leading',
+  'Sljedeća ponuda {0} · ponuda u zadnjih {1} s produljuje vrijeme za {2} s':
+      'Next bid {0} · a bid in the last {1} s adds {2} s',
+  'Ponudi {0} dodirom': 'Bid {0} by tapping',
   'Zakaži show': 'Schedule a show',
   'Otprema': 'Shipping',
   'Nema paketa za predaju': 'No parcels to hand over',

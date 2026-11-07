@@ -8,6 +8,8 @@ import '../l10n/tr.dart';
 /// tu"), a ponude i chat su zasebni zapisi. Ponuda u zadnjih
 /// [LiveShow.bidBonus] produljuje licitaciju. Zato svaki uređaj iz
 /// istih podataka izračuna isto stanje, bez središnjeg poslužitelja.
+const Object _keepFeatured = Object();
+
 class LiveShow {
   const LiveShow({
     required this.id,
@@ -30,11 +32,16 @@ class LiveShow {
     this.summary,
     this.sells = LiveSells.physical,
     this.shop = false,
+    this.featuredId,
   });
 
   /// Prodavač je uključio svoju trgovinu u liveu: gledatelji uz licitacije
   /// mogu kupiti njegove predmete odmah (Kupi odmah).
   final bool shop;
+
+  /// Proizvod (Kupi odmah) koji domaćin trenutno predstavlja; gledatelji ga
+  /// vide u stalnoj kartici pri dnu prijenosa.
+  final String? featuredId;
 
   /// Što se prodaje u liveu: stvari (aukcije), digitalno (Kupi odmah bez
   /// aukcije) ili oboje.
@@ -130,6 +137,7 @@ class LiveShow {
     bool? verifiedOnly,
     LiveSells? sells,
     bool? shop,
+    Object? featuredId = _keepFeatured,
     Map<String, num>? summary,
   }) => LiveShow(
     id: id,
@@ -151,6 +159,9 @@ class LiveShow {
     verifiedOnly: verifiedOnly ?? this.verifiedOnly,
     sells: sells ?? this.sells,
     shop: shop ?? this.shop,
+    featuredId: featuredId == _keepFeatured
+        ? this.featuredId
+        : featuredId as String?,
     summary: summary ?? this.summary,
   );
 
@@ -174,6 +185,7 @@ class LiveShow {
     if (verifiedOnly) 'verifiedOnly': true,
     if (sells != LiveSells.physical) 'sells': sells.name,
     if (shop) 'shop': true,
+    if (featuredId != null) 'featuredId': featuredId,
     if (summary != null) 'summary': summary,
   };
 
@@ -209,6 +221,7 @@ class LiveShow {
       orElse: () => LiveSells.physical,
     ),
     shop: m['shop'] == true,
+    featuredId: m['featuredId'] as String?,
     summary: m['summary'] is Map
         ? {
             for (final e in (m['summary'] as Map).entries)

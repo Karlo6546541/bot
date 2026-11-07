@@ -1,6 +1,5 @@
 import '../config/design_variant.dart';
 import '../widgets/vision_live_controls.dart';
-import 'device_detail_screen.dart';
 import '../widgets/live_shop_widgets.dart' show liveShopProducts;
 import '../widgets/vision_glass.dart';
 import 'host_console.dart';
@@ -2282,6 +2281,9 @@ class _LiveRoomViewState extends ConsumerState<_LiveRoomBody> {
   /// Filter chata za voditelja: sve / pitanja / ponude.
   _ChatFilter _chatFilter = _ChatFilter.all;
 
+  /// Gledatelj može sakriti chat; video i kupovna kartica ostaju.
+  bool _chatHidden = false;
+
   void _toggleSound() {
     setState(() => _muted = !_muted);
     LiveSound.muted = _muted;
@@ -2916,8 +2918,42 @@ class _LiveRoomViewState extends ConsumerState<_LiveRoomBody> {
     if (due) _app.settleLive();
   }
 
+  /// Prije prve ponude: ponuda je obvezujuća, pobjednik plaća karticom.
+  Future<bool> _acceptBidTerms(double amount) async {
+    final storage = ref.read(storageProvider);
+    if (storage.bidTermsAccepted) return true;
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(t('Ponuda je obvezujuća')),
+        content: Text(
+          t(
+            'Ako pobijediš, obvezuješ se kupiti predmet. Iznos ponude i dostave naplaćuje se s tvoje kartice nakon završetka licitacije. Tvoju ponudu ne možeš povući.',
+          ),
+        ),
+        actions: [
+          TextButton(
+            key: const ValueKey('bid-terms-cancel'),
+            onPressed: () => Navigator.pop(ctx, false),
+            child: Text(t('Odustani')),
+          ),
+          FilledButton(
+            key: const ValueKey('bid-terms-ok'),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: Text(t('Razumijem, ponudi {0}', [formatCredits(amount)])),
+          ),
+        ],
+      ),
+    );
+    if (ok != true) return false;
+    await storage.acceptBidTerms();
+    return true;
+  }
+
   Future<void> _bid(double amount, {int? lot}) async {
     if (blockGuest(context) || _busy) return;
+    if (lot == null && !await _acceptBidTerms(amount)) return;
+    if (!mounted) return;
     if (!await ensureCard(context, ref) || !mounted) return;
     setState(() => _busy = true);
     try {
@@ -3779,7 +3815,41 @@ class _LiveRoomViewState extends ConsumerState<_LiveRoomBody> {
                             ),
                             // Chat zauzima najviše pola slobodnog prostora;
                             // kad je live gotov, ostaje samo sažetak.
-                            if (!st.isOver)
+                            if (!st.isOver && !isHost)
+                              Positioned(
+                                right: 8,
+                                bottom: 4,
+                                child: Semantics(
+                                  button: true,
+                                  label: _chatHidden
+                                      ? t('Prikaži chat')
+                                      : t('Sakrij chat'),
+                                  excludeSemantics: true,
+                                  child: InkWell(
+                                    key: const ValueKey('live-chat-toggle'),
+                                    borderRadius: BorderRadius.circular(22),
+                                    onTap: () => setState(
+                                      () => _chatHidden = !_chatHidden,
+                                    ),
+                                    child: Container(
+                                      width: 44,
+                                      height: 44,
+                                      decoration: const BoxDecoration(
+                                        color: Color(0x99000000),
+                                        shape: BoxShape.circle,
+                                      ),
+                                      child: Icon(
+                                        _chatHidden
+                                            ? Icons.chat_bubble_outline
+                                            : Icons.speaker_notes_off_outlined,
+                                        color: Colors.white,
+                                        size: 20,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            if (!st.isOver && (isHost || !_chatHidden))
                               Positioned(
                                 left: 12,
                                 right: 12,
@@ -3910,6 +3980,17 @@ class _LiveRoomViewState extends ConsumerState<_LiveRoomBody> {
                                     leaderUser: s.userById(done.leader?.userId),
                                     result: true,
                                   ),
+                                if (!isHost && cur == null && st.isLive)
+                                  if (_featured(s, show) case final featured?)
+                                    _FeaturedProductCard(
+                                      compact:
+                                          MediaQuery.sizeOf(context).height <
+                                          700,
+                                      device: featured,
+                                      price: s.priceForMe(featured),
+                                      onBuy: () =>
+                                          confirmAndBuy(context, ref, featured),
+                                    ),
                                 Padding(
                                   padding: const EdgeInsets.fromLTRB(
                                     12,
@@ -3926,6 +4007,49 @@ class _LiveRoomViewState extends ConsumerState<_LiveRoomBody> {
                                     me?.id,
                                   ),
                                 ),
+                                if (!isHost &&
+                                    !st.isOver &&
+                                    MediaQuery.sizeOf(context).height >= 700)
+                                  Builder(
+                                    builder: (_) {
+                                      final n =
+                                          st.lots
+                                              .where(
+                                                (l) =>
+                                                    l.status ==
+                                                        LotStatus.upcoming ||
+                                                    l.status ==
+                                                        LotStatus.running,
+                                              )
+                                              .length +
+                                          (show.shop
+                                              ? liveShopProducts(
+                                                  s,
+                                                  show.hostId,
+                                                ).length
+                                              : 0);
+                                      if (n == 0) {
+                                        return const SizedBox.shrink();
+                                      }
+                                      return TextButton.icon(
+                                        key: const ValueKey(
+                                          'live-all-products',
+                                        ),
+                                        style: TextButton.styleFrom(
+                                          foregroundColor: Colors.white,
+                                          minimumSize: const Size(48, 44),
+                                        ),
+                                        onPressed: () => _showQueue(st, isHost),
+                                        icon: const Icon(
+                                          Icons.grid_view_rounded,
+                                          size: 18,
+                                        ),
+                                        label: Text(
+                                          t('Svi proizvodi ({0})', ['$n']),
+                                        ),
+                                      );
+                                    },
+                                  ),
                               ],
                             ),
                           ),
@@ -3968,6 +4092,17 @@ class _LiveRoomViewState extends ConsumerState<_LiveRoomBody> {
         ),
       ),
     );
+  }
+
+  /// Proizvod koji domaćin predstavlja; bez izbora, prvi dostupni.
+  Device? _featured(AppState s, LiveShow show) {
+    if (!show.shop) return null;
+    final products = liveShopProducts(s, show.hostId);
+    if (products.isEmpty) return null;
+    for (final d in products) {
+      if (d.id == show.featuredId) return d;
+    }
+    return products.first;
   }
 
   Widget _actions(
@@ -4096,6 +4231,9 @@ class _LiveRoomViewState extends ConsumerState<_LiveRoomBody> {
     }
     if (cur == null) {
       if (!st.isLive) return const SizedBox.shrink();
+      if (_featured(ref.read(appProvider), show) != null) {
+        return const SizedBox.shrink();
+      }
       return FilledButton(
         key: const ValueKey('live-awaiting'),
         style: FilledButton.styleFrom(
@@ -4197,13 +4335,63 @@ class _LiveRoomViewState extends ConsumerState<_LiveRoomBody> {
     ),
   );
 
-  Widget _bidRow(LotState cur) => VisionBidSlider(
-    key: const ValueKey('live-bid'),
-    confirmationKey: (cur.index, cur.minNext),
-    label: t('Povuci za ponudu ({0})', [formatCredits(cur.minNext)]),
-    semanticLabel: t('Licitiraj {0}', [formatCredits(cur.minNext)]),
-    onConfirm: _busy ? null : () => _bid(cur.minNext),
+  Widget _bidRow(LotState cur) => Row(
+    children: [
+      Expanded(
+        child: VisionBidSlider(
+          key: const ValueKey('live-bid'),
+          confirmationKey: (cur.index, cur.minNext),
+          label: _busy
+              ? t('Šaljem ponudu…')
+              : t('Ponudi {0}', [formatCredits(cur.minNext)]),
+          semanticLabel: t('Ponudi {0}', [formatCredits(cur.minNext)]),
+          onConfirm: _busy ? null : () => _bid(cur.minNext),
+        ),
+      ),
+      const SizedBox(width: 8),
+      // Alternativa gesti: dodir + izričita potvrda (uz tipkovnicu).
+      IconButton.filledTonal(
+        key: const ValueKey('live-bid-tap'),
+        tooltip: t('Ponudi {0} dodirom', [formatCredits(cur.minNext)]),
+        style: IconButton.styleFrom(
+          backgroundColor: Colors.white24,
+          foregroundColor: Colors.white,
+          minimumSize: const Size(52, 52),
+        ),
+        onPressed: _busy ? null : () => _bidByTap(cur),
+        icon: const Icon(Icons.touch_app_outlined),
+      ),
+    ],
   );
+
+  Future<void> _bidByTap(LotState cur) async {
+    if (blockGuest(context)) return;
+    final amount = cur.minNext;
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(t('Ponudi {0}', [formatCredits(amount)])),
+        content: Text(
+          t(
+            'Trenutna cijena je {0}. Ponuda je obvezujuća: ako pobijediš, kupuješ predmet.',
+            [formatCredits(cur.price)],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: Text(t('Odustani')),
+          ),
+          FilledButton(
+            key: const ValueKey('live-bid-tap-confirm'),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: Text(t('Potvrdi ponudu {0}', [formatCredits(amount)])),
+          ),
+        ],
+      ),
+    );
+    if (ok == true && mounted) await _bid(amount);
+  }
 
   /// Vlastiti iznos ponude: cijena na ekranu odmah skoči na taj iznos.
   Future<void> _customBid(LotState cur) async {
@@ -5131,6 +5319,86 @@ class _QuickAddSheetState extends ConsumerState<_QuickAddSheet> {
 }
 
 /// Polu-prozirna ploča na sredini pozornice.
+/// Stalna kartica proizvoda pri dnu prijenosa: fotografija, naziv, stanje,
+/// cijena, dostava i jedna glavna radnja.
+class _FeaturedProductCard extends StatelessWidget {
+  const _FeaturedProductCard({
+    required this.device,
+    required this.price,
+    required this.onBuy,
+    this.compact = false,
+  });
+  final bool compact;
+  final Device device;
+  final double price;
+  final VoidCallback onBuy;
+
+  @override
+  Widget build(BuildContext context) => Padding(
+    key: const ValueKey('live-featured'),
+    padding: EdgeInsets.fromLTRB(14, compact ? 8 : 14, 14, 0),
+    child: Row(
+      children: [
+        ClipRRect(
+          borderRadius: BorderRadius.circular(12),
+          child: ItemThumb(device: device, size: compact ? 48 : 64),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                device.name,
+                maxLines: compact ? 1 : 2,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w600,
+                  fontSize: 15,
+                ),
+              ),
+              Text(
+                [
+                  if (device.model.isNotEmpty) device.model,
+                  device.condition.label,
+                ].join(' · '),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(color: Color(0xFFD0D0D6), fontSize: 13),
+              ),
+              Text(
+                formatCredits(price),
+                key: const ValueKey('live-featured-price'),
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w700,
+                  fontSize: 20,
+                ),
+              ),
+              if (!device.isDigital && !compact)
+                Text(
+                  t('Dostava se dodaje prije plaćanja'),
+                  style: const TextStyle(
+                    color: Color(0xFFD0D0D6),
+                    fontSize: 12,
+                  ),
+                ),
+            ],
+          ),
+        ),
+        const SizedBox(width: 10),
+        FilledButton(
+          key: const ValueKey('live-featured-buy'),
+          style: FilledButton.styleFrom(minimumSize: const Size(110, 48)),
+          onPressed: onBuy,
+          child: Text(t('Kupi odmah')),
+        ),
+      ],
+    ),
+  );
+}
+
 class _Panel extends StatelessWidget {
   const _Panel({super.key, required this.children});
   final List<Widget> children;
@@ -5235,6 +5503,8 @@ class _LotCard extends StatelessWidget {
               ? t('Ti vodiš · tvoj maks {0}', [
                   formatCredits(myMax ?? lot.price),
                 ])
+              : myMax != null
+              ? t('Nadmašen si · {0} vodi', [leader.userLabel])
               : t('{0} vodi', [leader.userLabel]),
       };
     }
@@ -5337,10 +5607,29 @@ class _LotCard extends StatelessWidget {
             ),
             Text(
               '$status$highlight',
-              maxLines: 1,
+              maxLines: 2,
               overflow: TextOverflow.ellipsis,
-              style: const TextStyle(color: Colors.white60, fontSize: 11),
+              style: const TextStyle(color: Color(0xFFD0D0D6), fontSize: 13),
             ),
+            if (!result && !isHost && lot.mode == LotMode.auction)
+              Padding(
+                key: const ValueKey('live-rules'),
+                padding: const EdgeInsets.only(top: 2),
+                child: Text(
+                  t(
+                    'Sljedeća ponuda {0} · ponuda u zadnjih {1} s produljuje vrijeme za {2} s',
+                    [
+                      formatCredits(lot.minNext),
+                      '${LiveShow.hotWindow.inSeconds}',
+                      '${LiveShow.bidBonus.inSeconds}',
+                    ],
+                  ),
+                  style: const TextStyle(
+                    color: Color(0xFFD0D0D6),
+                    fontSize: 12,
+                  ),
+                ),
+              ),
             if (d?.isDigital ?? false)
               Padding(
                 key: const ValueKey('lot-digital-badge'),
@@ -5399,6 +5688,25 @@ class _LotCard extends StatelessWidget {
                         fontSize: 12,
                       ),
                     ),
+                    if (!result && !isHost && lot.mode == LotMode.auction)
+                      Padding(
+                        key: const ValueKey('live-rules'),
+                        padding: const EdgeInsets.only(top: 2),
+                        child: Text(
+                          t(
+                            'Sljedeća ponuda {0} · ponuda u zadnjih {1} s produljuje vrijeme za {2} s',
+                            [
+                              formatCredits(lot.minNext),
+                              '${LiveShow.hotWindow.inSeconds}',
+                              '${LiveShow.bidBonus.inSeconds}',
+                            ],
+                          ),
+                          style: const TextStyle(
+                            color: Color(0xFFD0D0D6),
+                            fontSize: 12,
+                          ),
+                        ),
+                      ),
                     if (d?.isDigital ?? false)
                       Padding(
                         key: const ValueKey('lot-digital-badge'),
@@ -6362,23 +6670,44 @@ class _LiveShopSheet extends ConsumerWidget {
             title: device.name,
             price: formatCredits(s.priceForMe(device)),
             priceColor: const Color(0xFFFFD60A),
-            action: FilledButton(
-              key: ValueKey('live-shop-buy-${device.id}'),
-              style: FilledButton.styleFrom(
-                backgroundColor: const Color(0xFF0A84FF),
-                foregroundColor: Colors.white,
-                minimumSize: const Size(70, 40),
-                textStyle: const TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w600,
-                ),
-                shape: const StadiumBorder(),
-              ),
-              onPressed: () => isHost
-                  ? DeviceDetailScreen.open(context, device)
-                  : confirmAndBuy(context, ref, device),
-              child: Text(isHost ? t('Detalji') : t('Kupi odmah')),
-            ),
+            note: show.featuredId == device.id
+                ? t('Predstavljeno u prijenosu')
+                : null,
+            action: isHost
+                ? OutlinedButton(
+                    key: ValueKey('live-feature-${device.id}'),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: Colors.white,
+                      side: const BorderSide(color: Colors.white54),
+                      minimumSize: const Size(70, 40),
+                    ),
+                    onPressed: () => ref
+                        .read(appProvider.notifier)
+                        .liveSetFeatured(
+                          show.id,
+                          show.featuredId == device.id ? null : device.id,
+                        ),
+                    child: Text(
+                      show.featuredId == device.id
+                          ? t('Skini')
+                          : t('Predstavi'),
+                    ),
+                  )
+                : FilledButton(
+                    key: ValueKey('live-shop-buy-${device.id}'),
+                    style: FilledButton.styleFrom(
+                      backgroundColor: const Color(0xFF0A84FF),
+                      foregroundColor: Colors.white,
+                      minimumSize: const Size(70, 40),
+                      textStyle: const TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                      ),
+                      shape: const StadiumBorder(),
+                    ),
+                    onPressed: () => confirmAndBuy(context, ref, device),
+                    child: Text(t('Kupi odmah')),
+                  ),
           ),
         TextButton.icon(
           key: const ValueKey('live-open-seller-shop'),

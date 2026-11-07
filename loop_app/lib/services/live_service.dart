@@ -1612,6 +1612,23 @@ class LiveService {
     await _storage.putLiveShow(show.copyWith(shop: on));
   }
 
+  /// Domaćin predstavlja proizvod iz trgovine ([deviceId]) ili ga uklanja
+  /// ([deviceId] = null). Radi samo dok je trgovina uključena.
+  Future<void> setFeatured(
+    String hostId,
+    String showId,
+    String? deviceId,
+  ) async {
+    final show = _requireHost(hostId, showId);
+    if (show.endedAt != null) {
+      throw TradeException(t('Live je završio.'));
+    }
+    if (deviceId != null && !show.shop) {
+      throw TradeException(t('Najprije uključi trgovinu u liveu.'));
+    }
+    await _storage.putLiveShow(show.copyWith(featuredId: deviceId));
+  }
+
   /// Utišavanje ([modMute], [modUnmute]) i uklanjanje ([modBan]) gledatelja.
   /// Smiju domaćin i moderatori; domaćina i moderatore može dirati samo
   /// domaćin.
