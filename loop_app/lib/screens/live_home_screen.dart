@@ -13,6 +13,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../l10n/tr.dart';
+import '../widgets/brand.dart' show kAppName;
 import '../models/review.dart' show Rating;
 import '../services/demo_accounts.dart';
 import '../widgets/shop_widgets.dart' show FollowButton;
@@ -414,35 +415,36 @@ class _LiveHomeScreenState extends ConsumerState<LiveHomeScreen> {
             );
 
             slivers.add(
-              SliverToBoxAdapter(
-                child: SizedBox(
-                  height:
-                      226 +
-                      60 *
-                          (MediaQuery.textScalerOf(context).scale(14) / 14 - 1)
-                              .clamp(0, 2),
-                  child: ListView.separated(
-                    key: const ValueKey('home-live-discovery'),
-                    scrollDirection: Axis.horizontal,
-                    padding: const EdgeInsets.symmetric(horizontal: 24),
-                    itemCount: liveNow.length,
-                    separatorBuilder: (_, _) => const SizedBox(width: 12),
-                    itemBuilder: (_, index) {
-                      final item = liveNow[index];
-                      return SizedBox(
-                        width: 158,
-                        child: DiscoveryLiveCard(
+              SliverPadding(
+                key: const ValueKey('home-live-discovery'),
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                sliver: SliverLayoutBuilder(
+                  builder: (context, c) {
+                    final w = (c.crossAxisExtent - 12) / 2;
+                    final scale =
+                        MediaQuery.textScalerOf(context).scale(14) / 14;
+                    return SliverGrid(
+                      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                        crossAxisCount: 2,
+                        mainAxisSpacing: 16,
+                        crossAxisSpacing: 12,
+                        mainAxisExtent: w * 4 / 3 + 62 * scale.clamp(1, 2),
+                      ),
+                      delegate: SliverChildBuilderDelegate((_, index) {
+                        final item = liveNow[index];
+                        return LiveGridCard(
                           key: ValueKey('home-featured-live-${item.show!.id}'),
                           show: item.show!,
+                          host: s.userById(item.show!.hostId),
                           device: item.device,
-                          price: item.live!.current?.price,
+                          priceLabel: livePriceLabel(item.live!),
                           viewers: item.live!.viewers,
                           onTap: () =>
                               LiveRoomScreen.open(context, item.show!.id),
-                        ),
-                      );
-                    },
-                  ),
+                        );
+                      }, childCount: liveNow.length),
+                    );
+                  },
                 ),
               ),
             );
@@ -1068,183 +1070,180 @@ class _LiveHomeScreenState extends ConsumerState<LiveHomeScreen> {
         const SizedBox(width: 8),
       ],
     );
-    Widget glassHeader() => Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            Expanded(
-              child: Align(
-                alignment: Alignment.centerLeft,
-                child: FittedBox(
-                  fit: BoxFit.scaleDown,
-                  child: LoopLogo(size: 34),
+    // Zaglavlje: logo, tekstualni tabovi Za tebe / Pratim, pretraga, poruke i
+    // obavijesti; ispod tekstualni tabovi Sve / Uskoro / kategorije.
+    Widget glassHeader() {
+      Widget textTab({
+        required Key key,
+        required String label,
+        required bool on,
+        required VoidCallback onTap,
+        double size = 18,
+      }) => Semantics(
+        button: true,
+        selected: on,
+        label: label,
+        excludeSemantics: true,
+        child: InkWell(
+          key: key,
+          onTap: onTap,
+          child: Container(
+            constraints: const BoxConstraints(minHeight: 44, minWidth: 44),
+            padding: const EdgeInsets.symmetric(horizontal: 10),
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              border: Border(
+                bottom: BorderSide(
+                  width: 2.5,
+                  color: on ? LoopColors.textPrimary : Colors.transparent,
                 ),
               ),
             ),
-            SizedBox(
-              width: 44,
-              height: 44,
-              child: IconButtonTheme(
-                data: IconButtonThemeData(
-                  style: IconButton.styleFrom(
-                    padding: EdgeInsets.zero,
-                    fixedSize: const Size(44, 44),
-                    iconSize: 20,
-                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                  ),
-                ),
-                child: VisionGlass(radius: 99, child: const MessagesButton()),
+            child: Text(
+              label,
+              maxLines: 1,
+              style: TextStyle(
+                fontSize: size,
+                fontWeight: on ? FontWeight.w700 : FontWeight.w500,
+                color: on ? LoopColors.textPrimary : LoopColors.textSecondary,
               ),
             ),
-            const SizedBox(width: 8),
-            SizedBox(
-              width: 44,
-              height: 44,
-              child: IconButtonTheme(
-                data: IconButtonThemeData(
-                  style: IconButton.styleFrom(
-                    padding: EdgeInsets.zero,
-                    fixedSize: const Size(44, 44),
-                    iconSize: 20,
-                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                  ),
-                ),
-                child: VisionGlass(radius: 99, child: const NotificationBell()),
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 14),
-        Row(
-          children: [
-            Expanded(
-              child: SizedBox(
-                height: 48,
-                child: VisionGlass(
-                  radius: 99,
-                  blur: false,
-                  child: Semantics(
-                    button: true,
-                    label: t('Pretraži proizvode, prijenose i prodavače'),
-                    excludeSemantics: true,
-                    onTap: () => SearchScreen.open(context),
-                    child: InkWell(
-                      key: const ValueKey('home-search'),
-                      borderRadius: BorderRadius.circular(99),
-                      onTap: () => SearchScreen.open(context),
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 18),
-                        child: Row(
-                          children: [
-                            Icon(
-                              Icons.search,
-                              size: 20,
-                              color: LoopColors.textSecondary,
-                            ),
-                            const SizedBox(width: 10),
-                            Expanded(
-                              child: Text(
-                                t('Pretraži proizvode, prijenose i prodavače'),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: TextStyle(
-                                  fontSize: 16,
-                                  height: 1.2,
-                                  color: LoopColors.textSecondary,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-            ),
-            const SizedBox(width: 8),
-            SizedBox(
-              width: 48,
-              height: 48,
-              child: VisionGlass(
-                radius: 99,
-                blur: false,
-                child: IconButton(
-                  key: const ValueKey('home-filters'),
-                  tooltip: t('Filteri'),
-                  style: IconButton.styleFrom(
-                    padding: EdgeInsets.zero,
-                    fixedSize: const Size(48, 48),
-                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                  ),
-                  onPressed: filters,
-                  icon: const Icon(Icons.tune, size: 20),
-                ),
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 14),
-        SizedBox(
-          height: 44,
-          child: ListView(
-            scrollDirection: Axis.horizontal,
-            children: [
-              for (final category in <DeviceCategory?>[
-                null,
-                DeviceCategory.watches,
-                DeviceCategory.sneakers,
-                DeviceCategory.camera,
-                DeviceCategory.vinyl,
-                DeviceCategory.vintage,
-                DeviceCategory.cards,
-              ])
-                Padding(
-                  padding: const EdgeInsets.only(right: 8),
-                  child: Material(
-                    color: _cat == category
-                        ? LoopColors.textPrimary
-                        : LoopColors.textPrimary.withValues(alpha: .07),
-                    borderRadius: BorderRadius.circular(99),
-                    child: InkWell(
-                      key: ValueKey(
-                        'discovery-category-${category?.name ?? 'all'}',
-                      ),
-                      borderRadius: BorderRadius.circular(99),
-                      onTap: () => setState(
-                        () => _cat = _cat == category ? null : category,
-                      ),
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 18),
-                        child: Center(
-                          child: Text(
-                            category?.label ?? t('Sve'),
-                            style: TextStyle(
-                              fontSize: 15,
-                              fontWeight: FontWeight.w500,
-                              color: _cat == category
-                                  ? LoopColors.background
-                                  : LoopColors.textPrimary,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-            ],
           ),
         ),
-      ],
-    );
+      );
+      final soon = _filter is _Soon;
+      final following = _filter is _Following;
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Semantics(
+                label: kAppName,
+                child: InkWell(
+                  onTap: () {
+                    _select(const _ForYou());
+                    setState(() => _cat = null);
+                  },
+                  child: Container(
+                    width: 44,
+                    height: 44,
+                    alignment: Alignment.center,
+                    child: Text(
+                      kAppName.substring(0, 1),
+                      style: const TextStyle(
+                        fontSize: 34,
+                        fontWeight: FontWeight.w800,
+                        height: 1,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+              Expanded(
+                child: Center(
+                  child: FittedBox(
+                    fit: BoxFit.scaleDown,
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        textTab(
+                          key: const ValueKey('home-view-for-you'),
+                          label: t('Za tebe'),
+                          on: !following,
+                          onTap: () {
+                            if (_filter is! _ForYou) _select(const _ForYou());
+                          },
+                        ),
+                        textTab(
+                          key: const ValueKey('home-view-following'),
+                          label: t('Pratim'),
+                          on: following,
+                          onTap: () => _select(const _Following()),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+              IconButton(
+                key: const ValueKey('home-search'),
+                tooltip: t('Pretraži prijenose i prodavače'),
+                style: IconButton.styleFrom(
+                  padding: EdgeInsets.zero,
+                  fixedSize: const Size(44, 44),
+                  minimumSize: const Size(44, 44),
+                ),
+                onPressed: () => SearchScreen.open(context),
+                icon: const Icon(Icons.search, size: 26),
+              ),
+              IconButtonTheme(
+                data: IconButtonThemeData(
+                  style: IconButton.styleFrom(
+                    padding: EdgeInsets.zero,
+                    fixedSize: const Size(44, 44),
+                    minimumSize: const Size(44, 44),
+                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  ),
+                ),
+                child: const Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [MessagesButton(), NotificationBell()],
+                ),
+              ),
+            ],
+          ),
+          Divider(
+            height: 1,
+            color: LoopColors.textPrimary.withValues(alpha: .08),
+          ),
+          SizedBox(
+            height: 48,
+            child: ListView(
+              key: const ValueKey('home-categories'),
+              scrollDirection: Axis.horizontal,
+              children: [
+                textTab(
+                  key: const ValueKey('home-cat-all'),
+                  label: t('Sve'),
+                  on: _cat == null && !soon,
+                  size: 16,
+                  onTap: () {
+                    setState(() => _cat = null);
+                    if (soon) _select(const _ForYou());
+                  },
+                ),
+                textTab(
+                  key: const ValueKey('home-view-soon'),
+                  label: t('Uskoro'),
+                  on: soon,
+                  size: 16,
+                  onTap: () => _select(const _Soon()),
+                ),
+                for (final c in _existingCategories(s))
+                  textTab(
+                    key: ValueKey('home-category-${c.name}'),
+                    label: c.label,
+                    on: _cat == c && !soon,
+                    size: 16,
+                    onTap: () {
+                      if (soon) _select(const _ForYou());
+                      setState(() => _cat = _cat == c ? null : c);
+                    },
+                  ),
+              ],
+            ),
+          ),
+        ],
+      );
+    }
 
     final chips = SafeArea(
       bottom: false,
       child: Padding(
         key: const ValueKey('home-cats'),
         padding: kSimpleDesign
-            ? const EdgeInsets.fromLTRB(24, 54, 24, 0)
+            ? const EdgeInsets.fromLTRB(16, 8, 8, 0)
             : EdgeInsets.fromLTRB(small ? 16 : 24, 20, small ? 16 : 24, 12),
         child: Column(
           children: [
@@ -1349,7 +1348,6 @@ class _LiveHomeScreenState extends ConsumerState<LiveHomeScreen> {
                       ),
                     ),
             ),
-            if (kSimpleDesign) browseControls,
           ],
         ),
       ),

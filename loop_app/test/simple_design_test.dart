@@ -160,20 +160,12 @@ void main() {
         findsOneWidget,
       );
       await mainTab(tester, 'Početna');
-      expect(find.text('Tenisice'), findsOneWidget);
+      expect(find.byKey(const ValueKey('home-categories')), findsOneWidget);
       expect(find.byKey(const ValueKey('messages-button')), findsOneWidget);
-      await tester.tap(find.byKey(const ValueKey('home-filters')));
-      await tester.pumpAndSettle();
-      for (final id in [
-        'following',
-        'soon',
-        'categories',
-        'timed',
-        'digital',
-      ]) {
-        expect(find.byKey(ValueKey('home-cat-$id')), findsOneWidget);
-      }
-      await tester.tap(find.byKey(const ValueKey('home-cat-following')));
+      // Zaglavlje: tekstualni tabovi, pretraga, poruke i obavijesti.
+      expect(find.byKey(const ValueKey('home-view-for-you')), findsOneWidget);
+      expect(find.byKey(const ValueKey('home-view-following')), findsOneWidget);
+      await tester.tap(find.byKey(const ValueKey('home-view-following')));
       await tester.pumpAndSettle();
       expect(
         find.byKey(const ValueKey('home-following-empty')),
@@ -354,6 +346,7 @@ void main() {
     addTearDown(tester.view.reset);
     await tester.pumpWidget(app());
     await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('home-cat-all')), findsOneWidget);
     for (final id in ['for-you', 'following', 'soon']) {
       expect(find.byKey(ValueKey('home-view-$id')), findsOneWidget, reason: id);
     }

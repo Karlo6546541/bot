@@ -3398,6 +3398,7 @@ const kEn = <String, String>{
   'Prijenosi u kategoriji': 'Streams in this category',
   'Trenutno nema prijenosa uživo u ovoj kategoriji.': 'There are no live streams in this category right now.',
   'Kad prodavač objavi prijenos ili predmet u ovoj kategoriji, bit će ovdje.': 'When a seller posts a stream or item in this category, it will appear here.',
+  'USKORO': 'SOON',
   'Zakaži show': 'Schedule a show',
   'Otprema': 'Shipping',
   'Nema paketa za predaju': 'No parcels to hand over',
