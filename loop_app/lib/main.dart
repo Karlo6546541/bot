@@ -1,0 +1,150 @@
+import 'dart:async';
+
+import 'package:flutter/material.dart';
+import 'package:hive/hive.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+import 'app.dart';
+import 'providers/app_providers.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+
+import 'config/backend_config.dart';
+import 'services/auth_backend.dart';
+import 'services/deep_link.dart';
+import 'services/remote_store.dart';
+import 'services/storage_service.dart';
+import 'services/sync_service.dart';
+import 'theme/app_theme.dart';
+import 'widgets/splash.dart';
+import 'l10n/tr.dart';
+
+void main() {
+  WidgetsFlutterBinding.ensureInitialized();
+  // Dijeljena poveznica (?item= / ?shop=) otvara se nakon prijave.
+  PendingLink.readFromUrl();
+  runApp(const _Bootstrap());
+}
+
+/// Prikazuje splash s indikatorom dok se Hive ne inicijalizira,
+/// zatim pokreće aplikaciju s inicijaliziranom pohranom.
+class _Bootstrap extends StatefulWidget {
+  const _Bootstrap();
+
+  @override
+  State<_Bootstrap> createState() => _BootstrapState();
+}
+
+class _BootstrapState extends State<_Bootstrap> {
+  late Future<(StorageService, SyncService?)> _init = _initStorage();
+
+  /// Lokalna kopija je oštećena: obriši je i učitaj ponovno (podaci i
+  /// prijava su u online bazi).
+  Future<void> _reset() async {
+    try {
+      await Hive.close();
+      await Hive.deleteFromDisk();
+    } catch (_) {}
+    if (mounted) setState(() => _init = _initStorage());
+  }
+
+  Future<(StorageService, SyncService?)> _initStorage() async {
+    final storage = StorageService();
+    await storage.init(seed: !BackendConfig.isOnline);
+    // Online baza (Supabase) ako su predane postavke; inače lokalno.
+    SyncService? sync;
+    if (BackendConfig.isOnline) {
+      await Supabase.initialize(
+        url: BackendConfig.supabaseUrl,
+        publishableKey: BackendConfig.supabaseKey,
+      );
+      sync = SyncService(
+        storage,
+        SupabaseRemoteStore(Supabase.instance.client),
+      );
+      // Spajanje ide u pozadini: aplikacija se odmah otvori s lokalnim
+      // podacima, a online podaci stignu čim veza proradi.
+      unawaited(sync.start());
+      // Lokalna sesija bez važeće online prijave (npr. istekla) → odjava.
+      final user = storage.currentUserId == null
+          ? null
+          : storage.userById(storage.currentUserId!);
+      if (user != null &&
+          !user.isGuest &&
+          Supabase.instance.client.auth.currentSession == null) {
+        await storage.saveSession();
+      }
+    }
+    return (storage, sync);
+  }
+
+  /// Uvodna animacija se odigra do kraja (kratko), čak i kad su podaci
+  /// spremni ranije — zatim se aplikacija pretopi preko nje.
+  bool _splashDone = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return FutureBuilder<(StorageService, SyncService?)>(
+      future: _init,
+      builder: (context, snapshot) {
+        final Widget child;
+        if (snapshot.hasError) {
+          child = MaterialApp(
+            debugShowCheckedModeBanner: false,
+            theme: buildLoopTheme(),
+            home: Scaffold(
+              body: Center(
+                child: Padding(
+                  padding: const EdgeInsets.all(24),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        t('Greška pri učitavanju podataka:\n{0}', [
+                          snapshot.error,
+                        ]),
+                        textAlign: TextAlign.center,
+                      ),
+                      const SizedBox(height: 16),
+                      FilledButton(
+                        key: const ValueKey('storage-reset'),
+                        onPressed: _reset,
+                        child: Text(
+                          t('Očisti lokalne podatke i pokušaj ponovno'),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          );
+        } else if (snapshot.hasData && _splashDone) {
+          child = ProviderScope(
+            key: const ValueKey('app'),
+            overrides: [
+              storageProvider.overrideWithValue(snapshot.data!.$1),
+              syncProvider.overrideWithValue(snapshot.data!.$2),
+              if (snapshot.data!.$2 != null)
+                authBackendProvider.overrideWithValue(
+                  SupabaseAuthBackend(Supabase.instance.client),
+                ),
+              // Novi korisnik odmah ulazi u aplikaciju (kao gost).
+              autoGuestProvider.overrideWithValue(true),
+            ],
+            child: const LoopApp(),
+          );
+        } else {
+          child = Directionality(
+            key: const ValueKey('splash'),
+            textDirection: TextDirection.ltr,
+            child: LoopSplash(onDone: () => setState(() => _splashDone = true)),
+          );
+        }
+        return AnimatedSwitcher(
+          duration: const Duration(milliseconds: 350),
+          child: child,
+        );
+      },
+    );
+  }
+}

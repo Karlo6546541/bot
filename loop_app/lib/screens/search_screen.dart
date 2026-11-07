@@ -1,0 +1,1130 @@
+import '../config/design_variant.dart';
+import '../widgets/reference_sheet.dart';
+import '../widgets/reference_order_row.dart';
+import 'dart:ui';
+import '../widgets/vision_glass.dart';
+import 'show_filters.dart';
+import 'auctions_screen.dart';
+import 'categories_screen.dart';
+import '../widgets/category_style.dart';
+import '../models/device.dart';
+import '../config/features.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+import '../l10n/tr.dart';
+import '../models/app_user.dart';
+import '../providers/app_providers.dart';
+import '../providers/app_state.dart';
+import '../services/smart_search.dart';
+import '../services/sync_service.dart';
+import '../theme/app_theme.dart';
+import '../widgets/empty_state.dart';
+import '../widgets/formatters.dart';
+import '../widgets/feed.dart';
+import '../widgets/shop_widgets.dart';
+import '../widgets/user_avatar.dart';
+import 'public_profile_screen.dart';
+import 'swipe_feed_screen.dart';
+import '../widgets/pill_tabs.dart';
+
+/// Pretraga objava (oglasi i aukcije) i korisničkih računa (trgovina).
+class SearchScreen extends ConsumerStatefulWidget {
+  const SearchScreen({
+    super.key,
+    this.accounts = false,
+    this.initialQuery = '',
+  });
+  final String initialQuery;
+
+  /// Otvori odmah karticu "Računi".
+  final bool accounts;
+
+  static Future<void> open(
+    BuildContext context, {
+    bool accounts = false,
+    String initialQuery = '',
+  }) => kSimpleDesign
+      ? openReferenceSheet<void>(
+          context,
+          title: t('Pretraži'),
+          builder: (_) =>
+              SearchScreen(accounts: accounts, initialQuery: initialQuery),
+        )
+      : Navigator.of(context).push(
+          PageRouteBuilder<void>(
+            opaque: false,
+            barrierDismissible: false,
+            pageBuilder: (_, _, _) => BackdropFilter(
+              filter: ImageFilter.blur(sigmaX: 24, sigmaY: 24),
+              child: SearchScreen(
+                accounts: accounts,
+                initialQuery: initialQuery,
+              ),
+            ),
+          ),
+        );
+
+  @override
+  ConsumerState<SearchScreen> createState() => _SearchScreenState();
+}
+
+class _SearchScreenState extends ConsumerState<SearchScreen> {
+  final _c = TextEditingController();
+  final _focus = FocusNode();
+  String _q = '';
+  @override
+  void initState() {
+    super.initState();
+    _q = widget.initialQuery;
+    _c.text = _q;
+  }
+
+  /// Čip vrste (Aukcije / Kupi odmah / Uživo); `null` = sve.
+  SearchKind? _kind;
+
+  /// Odabrani filteri na kartici Showovi.
+  ShowFilters _filters = const ShowFilters();
+
+  @override
+  void dispose() {
+    _c.dispose();
+    _focus.dispose();
+    super.dispose();
+  }
+
+  void _set(String q) => setState(() {
+    _c.text = q;
+    _q = q;
+  });
+
+  SmartQuery get _sq => SmartQuery.parse(_q);
+
+  /// Vrsta koja vrijedi: čip ima prednost pred riječju u upitu.
+  SearchKind? get _effectiveKind => _kind ?? _sq.kind;
+
+  List<String> get _terms => _sq.terms;
+
+  List<FeedEntry> _posts(AppState s) {
+    final sq = _sq;
+    final kind = _effectiveKind;
+    if (sq.terms.isEmpty && kind == null && !sq.hasPrice) return const [];
+    final now = DateTime.now();
+    bool text(String t) => sq.terms.isEmpty || sq.matches(t);
+    return [
+      // Showovi nemaju cijenu: uz filter cijene ih nema.
+      if (!sq.hasPrice && (kind == null || kind == SearchKind.live))
+        for (final (show, _) in s.activeLives)
+          if (text(
+            '${show.title} ${show.hostLabel} '
+            '${show.lots.map((l) => l.deviceName).join(' ')}',
+          ))
+            FeedEntry.live(show.id),
+      if (kind == null || kind == SearchKind.auction)
+        for (final a in s.activeAuctions)
+          if (a.sellerId != s.currentUserId &&
+              !s.isBlocked(a.sellerId) &&
+              sq.priceOk(a.currentPrice) &&
+              text('${a.deviceName} ${a.sellerLabel}'))
+            FeedEntry.auction(a.id),
+      // Kupi odmah: tuđi predmeti na prodaji (naziv, model, kategorija,
+      // opis i prodavač).
+      if (kBuyNowEnabled && (kind == null || kind == SearchKind.buyNow))
+        for (final d in s.marketDevices)
+          if (d.isListed &&
+              !s.isBlocked(d.ownerId!) &&
+              sq.priceOk(d.priceAt(now)) &&
+              text(
+                '${d.name} ${d.model} ${d.category.label} '
+                '${d.category.singular} ${d.description} '
+                '${s.userById(d.ownerId)?.handle ?? ''}',
+              ))
+            FeedEntry.item(d.id),
+    ];
+  }
+
+  /// "Misliš li na…": ispravak upita kad nema rezultata.
+  String? _didYouMean(AppState s) {
+    final terms = _sq.terms;
+    if (terms.isEmpty) return null;
+    final vocab = <String>[
+      for (final c in DeviceCategory.values) ...[c.label, c.singular],
+      for (final d in s.marketDevices)
+        if (d.isListed) '${d.name} ${d.model}',
+      for (final a in s.activeAuctions) a.deviceName,
+      for (final (show, _) in s.activeLives) show.title,
+    ];
+    return suggestQuery(terms, vocab);
+  }
+
+  List<AppUser> _accounts(AppState s) {
+    final terms = _terms;
+    final sq = _sq;
+    final list =
+        s.users
+            .where(
+              (u) =>
+                  !u.isGuest &&
+                  !u.pendingDeletion &&
+                  u.username.isNotEmpty &&
+                  !s.isBlocked(u.id) &&
+                  (terms.isEmpty ||
+                      sq.matches(
+                        '${u.username} ${u.name} ${u.shopName} ${u.city ?? ''} ${u.bio}',
+                      )),
+            )
+            .toList()
+          ..sort((a, b) => s.followersOf(b.id).compareTo(s.followersOf(a.id)));
+    return list;
+  }
+
+  Widget _referenceBody(AppState state) {
+    final posts = _posts(state);
+    final accounts = _q.trim().isEmpty ? <AppUser>[] : _accounts(state);
+    final entries = {
+      for (final entry in posts)
+        entry.liveId ?? entry.auctionId ?? entry.deviceId,
+    };
+    final candidates = browseItems(state);
+    final filteredShows = _filters
+        .apply(candidates, state)
+        .map((item) => item.show!.id)
+        .toSet();
+    final items = candidates
+        .where(
+          (item) => item.show == null || filteredShows.contains(item.show!.id),
+        )
+        .where(
+          (item) => entries.contains(
+            item.show?.id ?? item.auction?.id ?? item.device?.id,
+          ),
+        )
+        .toList();
+    final suggestions = <String>{
+      ...state.searchHistory.take(2),
+      DeviceCategory.watches.label,
+      DeviceCategory.vinyl.label,
+      ...state.users
+          .where(
+            (user) =>
+                !user.isGuest &&
+                user.shopName.trim().isNotEmpty &&
+                !state.isBlocked(user.id),
+          )
+          .take(2)
+          .map((user) => user.shopTitle),
+      DeviceCategory.camera.label,
+      DeviceCategory.audio.label,
+    }.take(6);
+    Widget heading(String text) => Padding(
+      padding: const EdgeInsets.only(top: 16, bottom: 10),
+      child: Text(
+        text,
+        style: const TextStyle(
+          fontSize: 19,
+          fontWeight: FontWeight.w600,
+          letterSpacing: -.3,
+        ),
+      ),
+    );
+    return Column(
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(24, 4, 24, 16),
+          child: SizedBox(
+            height: 52,
+            child: TextField(
+              key: const ValueKey('reference-search-input'),
+              controller: _c,
+              focusNode: _focus,
+              autofocus: true,
+              onChanged: (value) => setState(() => _q = value),
+              textInputAction: TextInputAction.search,
+              onSubmitted: (value) {
+                if (value.trim().isNotEmpty) {
+                  ref.read(appProvider.notifier).addSearch(value);
+                }
+              },
+              style: const TextStyle(fontSize: 16, height: 1.2),
+              decoration: InputDecoration(
+                hintText: t('Pretraži predmete i shopove'),
+                filled: true,
+                fillColor: LoopColors.textPrimary.withValues(alpha: .07),
+                isDense: true,
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 20,
+                  vertical: 14,
+                ),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(99),
+                  borderSide: BorderSide(color: LoopColors.glassBorder),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(99),
+                  borderSide: BorderSide(color: LoopColors.glassBorder),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(99),
+                  borderSide: BorderSide(
+                    color: LoopColors.textPrimary.withValues(alpha: .30),
+                  ),
+                ),
+                suffixIcon: _q.isEmpty
+                    ? null
+                    : IconButton(
+                        tooltip: t('Filteri'),
+                        icon: const Icon(Icons.tune, size: 19),
+                        onPressed: () => openReferenceSheet<void>(
+                          context,
+                          title: t('Filteri'),
+                          builder: (ctx) => Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 24),
+                            child: Wrap(
+                              spacing: 8,
+                              runSpacing: 8,
+                              children: [
+                                for (final entry in <(SearchKind?, String)>[
+                                  (null, t('Sve')),
+                                  (SearchKind.auction, t('Aukcije')),
+                                  (SearchKind.buyNow, t('Kupi odmah')),
+                                  (SearchKind.live, t('Uživo')),
+                                ])
+                                  ActionChip(
+                                    key: ValueKey(
+                                      'search-kind-${entry.$1?.name ?? 'all'}',
+                                    ),
+                                    label: Text(entry.$2),
+                                    onPressed: () {
+                                      setState(() => _kind = entry.$1);
+                                      Navigator.pop(ctx);
+                                    },
+                                  ),
+                                ActionChip(
+                                  key: const ValueKey('shows-filter'),
+                                  label: Text(t('Filteri showova')),
+                                  onPressed: () async {
+                                    final result = await showShowFilterSheet(
+                                      ctx,
+                                      initial: _filters,
+                                      items: candidates
+                                          .where((item) => item.show != null)
+                                          .toList(),
+                                      state: state,
+                                    );
+                                    if (result != null &&
+                                        mounted &&
+                                        ctx.mounted) {
+                                      setState(() => _filters = result);
+                                      Navigator.pop(ctx);
+                                    }
+                                  },
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+              ),
+            ),
+          ),
+        ),
+        Expanded(
+          child: ListView(
+            key: const ValueKey('reference-search-results'),
+            padding: const EdgeInsets.fromLTRB(24, 0, 24, 28),
+            children: [
+              if (_q.trim().isEmpty)
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: [
+                    for (final term in suggestions)
+                      Material(
+                        color: LoopColors.textPrimary.withValues(alpha: .08),
+                        borderRadius: BorderRadius.circular(99),
+                        child: InkWell(
+                          borderRadius: BorderRadius.circular(99),
+                          onTap: () => _set(term),
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 18,
+                              vertical: 14,
+                            ),
+                            child: Text(
+                              term,
+                              style: const TextStyle(
+                                fontSize: 15,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                  ],
+                )
+              else ...[
+                if (accounts.isNotEmpty) ...[
+                  heading(t('Shopovi')),
+                  for (final user in accounts.take(10))
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 8),
+                      child: ReferenceOrderRow(
+                        key: ValueKey('reference-shop-${user.id}'),
+                        title: user.shopTitle,
+                        subtitle: [
+                          t('Shop'),
+                          if (user.city != null) user.city!,
+                        ].join(' · '),
+                        artwork: UserAvatar(user: user, size: 52),
+                        onTap: () => PublicProfileScreen.open(context, user.id),
+                      ),
+                    ),
+                ],
+                if (items.isNotEmpty) ...[
+                  heading(t('Predmeti')),
+                  for (var i = 0; i < items.length; i++)
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 8),
+                      child: ReferenceOrderRow(
+                        title:
+                            items[i].show?.title ??
+                            items[i].auction?.deviceName ??
+                            items[i].device!.name,
+                        subtitle:
+                            items[i].show?.hostLabel ??
+                            state
+                                .userById(
+                                  items[i].device?.ownerId ??
+                                      items[i].auction?.sellerId,
+                                )
+                                ?.shopTitle ??
+                            '',
+                        amount: items[i].live?.current?.price != null
+                            ? formatCredits(items[i].live!.current!.price)
+                            : items[i].auction != null
+                            ? formatCredits(items[i].auction!.currentPrice)
+                            : items[i].device != null
+                            ? formatCredits(items[i].device!.shownPrice)
+                            : null,
+                        artwork: BrowseCardMedia(
+                          device: items[i].device,
+                          cover: items[i].show?.coverPath,
+                        ),
+                        onTap: () {
+                          ref.read(appProvider.notifier).addSearch(_q);
+                          SwipeFeedScreen.open(
+                            context,
+                            items.map((item) => item.entry).toList(),
+                            i,
+                          );
+                        },
+                      ),
+                    ),
+                ],
+                if (accounts.isEmpty && items.isEmpty)
+                  Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 24),
+                    child: Text(
+                      t('Nema rezultata'),
+                      style: TextStyle(color: LoopColors.textSecondary),
+                    ),
+                  ),
+              ],
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final s = ref.watch(appProvider);
+    if (kSimpleDesign) return _referenceBody(s);
+    final posts = _posts(s);
+    final accounts = _accounts(s);
+    final shows = [
+      for (final e in posts)
+        if (e.isLive) e,
+    ];
+    final sq = _sq;
+    final categories = [
+      for (final c in DeviceCategory.values)
+        if (sq.terms.isNotEmpty && sq.matches('${c.label} ${c.singular}')) c,
+    ];
+    final empty = sq.isEmpty && _kind == null;
+    final mean = (!empty && posts.isEmpty && categories.isEmpty)
+        ? _didYouMean(s)
+        : null;
+    Widget noResults(String title, IconData icon) => _EmptyOrLoading(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          EmptyState(icon: icon, title: title),
+          if (mean != null)
+            TextButton(
+              key: const ValueKey('search-did-you-mean'),
+              onPressed: () => _set(mean),
+              child: Text(t('Misliš li na "{0}"?', [mean])),
+            ),
+        ],
+      ),
+    );
+    Widget postGrid(List<FeedEntry> list, Key key) => LayoutBuilder(
+      builder: (context, c) {
+        final cols = c.maxWidth >= 900
+            ? 5
+            : c.maxWidth >= 600
+            ? 4
+            : 3;
+        return GridView.builder(
+          key: key,
+          padding: const EdgeInsets.all(8),
+          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: cols,
+            mainAxisSpacing: 4,
+            crossAxisSpacing: 4,
+            childAspectRatio: 3 / 4,
+          ),
+          itemCount: list.length,
+          itemBuilder: (context, i) => PostTile(
+            entry: list[i],
+            state: s,
+            onTap: () {
+              ref.read(appProvider.notifier).addSearch(_q);
+              SwipeFeedScreen.open(context, list, i);
+            },
+          ),
+        );
+      },
+    );
+    // Kartice za odjeljak "Top" (kao Whatnot): iste kartice kao na početnoj.
+    final liveIds = {for (final e in shows) e.liveId};
+    final postIds = {
+      for (final e in posts)
+        if (!e.isLive) e.auctionId ?? e.deviceId,
+    };
+    final browse = browseItems(s);
+    final topLives = [
+      for (final i in browse)
+        if (i.show != null && liveIds.contains(i.show!.id)) i,
+    ];
+    final topPosts = [
+      for (final i in browse)
+        if (i.show == null && postIds.contains(i.auction?.id ?? i.device?.id))
+          i,
+    ];
+    final stats = {for (final c in categoryStats(s)) c.category: c};
+    Widget section(String title, VoidCallback onAll) => SliverToBoxAdapter(
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(16, 18, 4, 10),
+        child: Row(
+          children: [
+            Expanded(
+              child: Text(
+                title,
+                style: const TextStyle(
+                  fontSize: 22,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+            ),
+            Builder(
+              builder: (ctx) => TextButton(
+                onPressed: () {
+                  onAll();
+                },
+                child: Text('${t('Prikaži sve')} ›'),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+    Widget cards(String key, List<BrowseItem> list) => SliverPadding(
+      key: ValueKey(key),
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      sliver: SliverGrid(
+        gridDelegate: BrowseGridDelegate(
+          textScale: MediaQuery.textScalerOf(context).scale(14) / 14,
+        ),
+        delegate: SliverChildBuilderDelegate(
+          (ctx, i) => AuctionBrowseCard(
+            item: list[i],
+            viewerId: s.currentUserId ?? '',
+            onTap: () {
+              ref.read(appProvider.notifier).addSearch(_q);
+              SwipeFeedScreen.open(ctx, [for (final x in list) x.entry], i);
+            },
+          ),
+          childCount: list.length,
+        ),
+      ),
+    );
+    final input = TextField(
+      key: const ValueKey('global-search'),
+      controller: _c,
+      focusNode: _focus,
+      autofocus: true,
+      textInputAction: TextInputAction.search,
+      onChanged: (v) => setState(() => _q = v),
+      onSubmitted: (v) => ref.read(appProvider.notifier).addSearch(v),
+      decoration: InputDecoration(
+        isDense: true,
+        filled: true,
+        fillColor: LoopColors.surfaceHover,
+        border: const OutlineInputBorder(
+          borderRadius: BorderRadius.all(Radius.circular(99)),
+          borderSide: BorderSide.none,
+        ),
+        enabledBorder: const OutlineInputBorder(
+          borderRadius: BorderRadius.all(Radius.circular(99)),
+          borderSide: BorderSide.none,
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: const BorderRadius.all(Radius.circular(99)),
+          borderSide: BorderSide(color: LoopColors.textSecondary),
+        ),
+        hintText: t('Traži liveove, aukcije, predmete i račune…'),
+        prefixIcon: const Icon(Icons.search),
+        suffixIcon: _q.isEmpty
+            ? null
+            : IconButton(
+                tooltip: t('Očisti'),
+                icon: const Icon(Icons.close),
+                onPressed: () => _set(''),
+              ),
+      ),
+    );
+    return DefaultTabController(
+      length: 5,
+      initialIndex: widget.accounts ? 3 : 0,
+      child: Scaffold(
+        backgroundColor: LoopColors.background.withValues(alpha: .86),
+        appBar: AppBar(
+          titleSpacing: 0,
+          title: empty ? Text(t('Pretraži')) : input,
+          bottom: empty
+              ? null
+              : PillTabBar(
+                  // Bez rezanja naziva ("Objav", "Raču"): kapsula se pomiče.
+                  scrollable: true,
+                  tabs: [
+                    Tab(key: const ValueKey('search-tab-top'), text: t('Top')),
+                    Tab(text: t('Objave ({0})', ['${posts.length}'])),
+                    Tab(text: t('Showovi ({0})', ['${shows.length}'])),
+                    Tab(text: t('Računi ({0})', ['${accounts.length}'])),
+                    Tab(text: t('Kategorije ({0})', ['${categories.length}'])),
+                  ],
+                ),
+        ),
+        body: empty
+            ? Align(
+                alignment: const Alignment(0, .1),
+                child: Padding(
+                  padding: const EdgeInsets.all(24),
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 600),
+                    child: VisionGlass(
+                      radius: 99,
+                      padding: const EdgeInsets.all(8),
+                      child: input,
+                    ),
+                  ),
+                ),
+              )
+            : Column(
+                children: [
+                  SizedBox(
+                    height: 48,
+                    child: ListView(
+                      key: const ValueKey('search-kinds'),
+                      scrollDirection: Axis.horizontal,
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 6,
+                      ),
+                      children: [
+                        for (final (k, label) in <(SearchKind?, String)>[
+                          (null, t('Sve')),
+                          (SearchKind.auction, t('Aukcije')),
+                          (SearchKind.buyNow, t('Kupi odmah')),
+                          (SearchKind.live, t('Uživo')),
+                        ])
+                          Padding(
+                            padding: const EdgeInsets.only(right: 8),
+                            child: ChoiceChip(
+                              key: ValueKey('search-kind-${k?.name ?? 'all'}'),
+                              label: Text(label),
+                              selected: _effectiveKind == k,
+                              showCheckmark: false,
+                              onSelected: (_) => setState(() => _kind = k),
+                            ),
+                          ),
+                        if (sq.hasPrice)
+                          Padding(
+                            padding: const EdgeInsets.only(right: 8),
+                            child: Chip(
+                              key: const ValueKey('search-price-chip'),
+                              avatar: const Icon(Icons.euro, size: 16),
+                              label: Text(
+                                [
+                                  if (sq.minPrice != null)
+                                    t('od {0}', [formatCredits(sq.minPrice!)]),
+                                  if (sq.maxPrice != null)
+                                    t('do {0}', [formatCredits(sq.maxPrice!)]),
+                                ].join(' '),
+                              ),
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
+                  Expanded(
+                    child: TabBarView(
+                      children: [
+                        // Top: kategorije, live showovi i objave (kao Whatnot).
+                        empty
+                            ? _History(onPick: _set)
+                            : topLives.isEmpty &&
+                                  topPosts.isEmpty &&
+                                  categories.isEmpty &&
+                                  accounts.isEmpty
+                            ? noResults(
+                                t('Nema rezultata za "{0}"', [_q.trim()]),
+                                Icons.search_off,
+                              )
+                            : Builder(
+                                builder: (ctx) {
+                                  final tabs = DefaultTabController.of(ctx);
+                                  return CustomScrollView(
+                                    key: const ValueKey('search-top'),
+                                    slivers: [
+                                      if (categories.isNotEmpty) ...[
+                                        section(
+                                          t('Kategorije'),
+                                          () => tabs.animateTo(4),
+                                        ),
+                                        SliverPadding(
+                                          padding: const EdgeInsets.symmetric(
+                                            horizontal: 12,
+                                          ),
+                                          sliver: SliverList.list(
+                                            children: [
+                                              for (final c in categories.take(
+                                                3,
+                                              ))
+                                                CategoryRow(
+                                                  stat:
+                                                      stats[c] ??
+                                                      CategoryStat(c),
+                                                  onTap: () =>
+                                                      CategoryItemsScreen.open(
+                                                        context,
+                                                        c,
+                                                      ),
+                                                ),
+                                            ],
+                                          ),
+                                        ),
+                                      ],
+                                      if (topLives.isNotEmpty) ...[
+                                        section(
+                                          t('Live showovi'),
+                                          () => tabs.animateTo(2),
+                                        ),
+                                        cards(
+                                          'search-top-lives',
+                                          topLives.take(4).toList(),
+                                        ),
+                                      ],
+                                      if (accounts.isNotEmpty) ...[
+                                        section(
+                                          t('Korisnici'),
+                                          () => tabs.animateTo(3),
+                                        ),
+                                        SliverToBoxAdapter(
+                                          child: SizedBox(
+                                            height: 210,
+                                            child: ListView.separated(
+                                              key: const ValueKey(
+                                                'search-top-users',
+                                              ),
+                                              scrollDirection: Axis.horizontal,
+                                              padding:
+                                                  const EdgeInsets.symmetric(
+                                                    horizontal: 16,
+                                                  ),
+                                              itemCount: accounts
+                                                  .take(10)
+                                                  .length,
+                                              separatorBuilder: (_, _) =>
+                                                  const SizedBox(width: 10),
+                                              itemBuilder: (_, i) {
+                                                final u = accounts[i];
+                                                return InkWell(
+                                                  borderRadius:
+                                                      BorderRadius.circular(18),
+                                                  onTap: () =>
+                                                      PublicProfileScreen.open(
+                                                        context,
+                                                        u.id,
+                                                      ),
+                                                  child: Container(
+                                                    width: 150,
+                                                    padding:
+                                                        const EdgeInsets.all(
+                                                          12,
+                                                        ),
+                                                    decoration: BoxDecoration(
+                                                      borderRadius:
+                                                          BorderRadius.circular(
+                                                            18,
+                                                          ),
+                                                      border: Border.all(
+                                                        color: LoopColors
+                                                            .textSecondary
+                                                            .withValues(
+                                                              alpha: 0.5,
+                                                            ),
+                                                      ),
+                                                    ),
+                                                    child: Column(
+                                                      children: [
+                                                        UserAvatar(
+                                                          user: u,
+                                                          size: 64,
+                                                        ),
+                                                        const SizedBox(
+                                                          height: 8,
+                                                        ),
+                                                        Text(
+                                                          u.username.isNotEmpty
+                                                              ? u.username
+                                                              : u.handle,
+                                                          maxLines: 1,
+                                                          overflow: TextOverflow
+                                                              .ellipsis,
+                                                          style:
+                                                              const TextStyle(
+                                                                fontWeight:
+                                                                    FontWeight
+                                                                        .w900,
+                                                              ),
+                                                        ),
+                                                        Text(
+                                                          t('{0} pratitelja', [
+                                                            '${s.followersOf(u.id)}',
+                                                          ]),
+                                                          style: TextStyle(
+                                                            color: LoopColors
+                                                                .textSecondary,
+                                                            fontSize: 12,
+                                                          ),
+                                                        ),
+                                                        const Spacer(),
+                                                        if (u.id !=
+                                                            s.currentUserId)
+                                                          FollowButton(
+                                                            userId: u.id,
+                                                            compact: true,
+                                                          ),
+                                                      ],
+                                                    ),
+                                                  ),
+                                                );
+                                              },
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                      if (topPosts.isNotEmpty) ...[
+                                        section(
+                                          t('Objave'),
+                                          () => tabs.animateTo(1),
+                                        ),
+                                        cards(
+                                          'search-top-posts',
+                                          topPosts.take(6).toList(),
+                                        ),
+                                      ],
+                                      const SliverToBoxAdapter(
+                                        child: SizedBox(height: 32),
+                                      ),
+                                    ],
+                                  );
+                                },
+                              ),
+                        // Objave
+                        empty
+                            ? _History(onPick: _set)
+                            : posts.isEmpty
+                            ? noResults(
+                                t('Nema objava za "{0}"', [_q.trim()]),
+                                Icons.search_off,
+                              )
+                            : postGrid(posts, const ValueKey('search-posts')),
+                        // Showovi (liveovi)
+                        empty
+                            ? _History(onPick: _set)
+                            : shows.isEmpty
+                            ? EmptyState(
+                                icon: Icons.videocam_off_outlined,
+                                title: t('Nema showova za "{0}"', [_q.trim()]),
+                              )
+                            : Builder(
+                                builder: (ctx) {
+                                  final list = _filters.apply(topLives, s);
+                                  return CustomScrollView(
+                                    key: const ValueKey('search-shows'),
+                                    slivers: [
+                                      SliverToBoxAdapter(
+                                        child: Padding(
+                                          padding: const EdgeInsets.fromLTRB(
+                                            16,
+                                            12,
+                                            16,
+                                            12,
+                                          ),
+                                          child: Row(
+                                            children: [
+                                              ActionChip(
+                                                key: const ValueKey(
+                                                  'shows-filter',
+                                                ),
+                                                avatar: const Icon(
+                                                  Icons.tune,
+                                                  size: 18,
+                                                ),
+                                                label: Text(
+                                                  _filters.activeCount == 0
+                                                      ? t('Filter')
+                                                      : '${t('Filter')} (${_filters.activeCount})',
+                                                ),
+                                                onPressed: () async {
+                                                  final r =
+                                                      await showShowFilterSheet(
+                                                        ctx,
+                                                        initial: _filters,
+                                                        items: topLives,
+                                                        state: s,
+                                                      );
+                                                  if (r != null) {
+                                                    setState(
+                                                      () => _filters = r,
+                                                    );
+                                                  }
+                                                },
+                                              ),
+                                              if (!_filters.isDefault) ...[
+                                                const SizedBox(width: 8),
+                                                TextButton(
+                                                  key: const ValueKey(
+                                                    'shows-filter-clear',
+                                                  ),
+                                                  onPressed: () => setState(
+                                                    () => _filters =
+                                                        const ShowFilters(),
+                                                  ),
+                                                  child: Text(t('Očisti')),
+                                                ),
+                                              ],
+                                            ],
+                                          ),
+                                        ),
+                                      ),
+                                      cards('search-shows-grid', list),
+                                      const SliverToBoxAdapter(
+                                        child: SizedBox(height: 32),
+                                      ),
+                                    ],
+                                  );
+                                },
+                              ),
+                        // Računi
+                        accounts.isEmpty
+                            ? _EmptyOrLoading(
+                                child: EmptyState(
+                                  icon: Icons.person_search_outlined,
+                                  title: t('Nema računa za "{0}"', [_q.trim()]),
+                                ),
+                              )
+                            : ListView.separated(
+                                key: const ValueKey('search-accounts'),
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 8,
+                                ),
+                                itemCount: accounts.length,
+                                separatorBuilder: (_, _) =>
+                                    const Divider(height: 1),
+                                itemBuilder: (context, i) {
+                                  final u = accounts[i];
+                                  final listings = s.listingsOf(u.id).length;
+                                  return ListTile(
+                                    key: ValueKey('account-${u.id}'),
+                                    leading: UserAvatar(user: u, size: 44),
+                                    title: Text(
+                                      u.shopTitle,
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: const TextStyle(
+                                        fontWeight: FontWeight.w800,
+                                      ),
+                                    ),
+                                    subtitle: Text(
+                                      [
+                                        if (u.shopName.isNotEmpty) u.handle,
+                                        t('{0} pratitelja', [
+                                          '${s.followersOf(u.id)}',
+                                        ]),
+                                        t('{0} oglasa', ['$listings']),
+                                        if ((u.city ?? '').isNotEmpty) u.city!,
+                                      ].join(' · '),
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                    trailing: u.id == s.currentUserId
+                                        ? null
+                                        : FollowButton(
+                                            userId: u.id,
+                                            compact: true,
+                                          ),
+                                    onTap: () {
+                                      if (_q.trim().isNotEmpty) {
+                                        ref
+                                            .read(appProvider.notifier)
+                                            .addSearch(_q);
+                                      }
+                                      PublicProfileScreen.open(context, u.id);
+                                    },
+                                  );
+                                },
+                              ),
+                        // Kategorije
+                        categories.isEmpty
+                            ? EmptyState(
+                                icon: Icons.grid_view_outlined,
+                                title: t('Nema kategorija za "{0}"', [
+                                  _q.trim(),
+                                ]),
+                              )
+                            : ListView(
+                                key: const ValueKey('search-categories'),
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 8,
+                                ),
+                                children: [
+                                  for (final c in categories)
+                                    ListTile(
+                                      key: ValueKey(
+                                        'search-category-${c.name}',
+                                      ),
+                                      leading: CategoryArt(
+                                        category: c,
+                                        size: 44,
+                                      ),
+                                      title: Text(
+                                        c.label,
+                                        style: const TextStyle(
+                                          fontWeight: FontWeight.w800,
+                                        ),
+                                      ),
+                                      trailing: const Icon(Icons.chevron_right),
+                                      onTap: () =>
+                                          CategoryItemsScreen.open(context, c),
+                                    ),
+                                ],
+                              ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+      ),
+    );
+  }
+}
+
+/// Dok se online podaci još učitavaju, "0 rezultata" bi lagalo —
+/// prikaži "Učitavam…".
+class _EmptyOrLoading extends ConsumerWidget {
+  const _EmptyOrLoading({required this.child});
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final sync = ref.watch(syncProvider);
+    if (sync == null) return child;
+    return ValueListenableBuilder<SyncStatus>(
+      valueListenable: sync.statusListenable,
+      builder: (context, status, _) =>
+          status == SyncStatus.connecting || status == SyncStatus.offline
+          ? Center(
+              key: const ValueKey('search-loading'),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const CircularProgressIndicator(),
+                  const SizedBox(height: 12),
+                  Text(t('Učitavam…')),
+                ],
+              ),
+            )
+          : child,
+    );
+  }
+}
+
+/// Nedavne pretrage (dok je polje prazno).
+class _History extends ConsumerWidget {
+  const _History({required this.onPick});
+  final ValueChanged<String> onPick;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final history = ref.watch(appProvider.select((s) => s.searchHistory));
+    if (history.isEmpty) {
+      return EmptyState(
+        icon: Icons.search,
+        title: t('Pretraži objave i račune'),
+        message: t(
+          'Upiši naziv predmeta, kategoriju, trgovinu ili @korisnika.',
+        ),
+      );
+    }
+    final c = ref.read(appProvider.notifier);
+    return ListView(
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 4, 8, 4),
+          child: Row(
+            children: [
+              Expanded(
+                child: Text(
+                  t('Nedavno traženo'),
+                  style: const TextStyle(fontWeight: FontWeight.w800),
+                ),
+              ),
+              TextButton(
+                onPressed: c.clearSearchHistory,
+                child: Text(t('Očisti povijest')),
+              ),
+            ],
+          ),
+        ),
+        for (final q in history)
+          ListTile(
+            leading: Icon(Icons.history, color: LoopColors.textSecondary),
+            title: Text(q),
+            trailing: IconButton(
+              tooltip: t('Ukloni'),
+              icon: const Icon(Icons.close),
+              onPressed: () => c.removeSearch(q),
+            ),
+            onTap: () => onPick(q),
+          ),
+      ],
+    );
+  }
+}

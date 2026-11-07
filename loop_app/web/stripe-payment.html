@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="hr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="referrer" content="no-referrer"><title>Subhasto · kartica</title>
+<script src="https://js.stripe.com/v3/"></script>
+<style>body{margin:0;padding:16px;background:#17120f;color:#f5ede6;font:16px system-ui}button{width:100%;padding:14px;margin-top:18px;border:0;border-radius:14px;background:#ff9248;color:#17120f;font-size:16px;font-weight:700}button:disabled{opacity:.5}#error{color:#ffb4a9;min-height:24px}label{display:flex;gap:10px;margin-top:18px;font-size:14px;line-height:1.4}input{width:20px;height:20px;flex-shrink:0}</style></head>
+<body><p id="intro">Testni način · koristi testnu karticu.</p><form id="form"><div id="payment"></div>
+<label id="consent"><input type="checkbox" id="agree">Dopuštam spremanje kartice i automatsku naplatu iznosa kupnji, osvojenih aukcija i promocija koje naručim na Subhastu. Banka može zatražiti dodatnu potvrdu.</label>
+<p id="error" role="alert"></p><button id="submit" disabled>Spremi karticu</button></form>
+<script>
+let stripe,elements,settings,busy=false;
+const send=(type)=>parent.postMessage(JSON.stringify({type}),location.origin);
+const button=document.getElementById('submit');
+window.addEventListener('message',async event=>{
+ if(event.origin!==location.origin||event.source!==parent||settings)return;
+ let data;try{data=JSON.parse(event.data)}catch{return}
+ if(!/^pk_test_/.test(data.publishableKey)||typeof data.clientSecret!=='string')return;
+ settings=data;stripe=Stripe(data.publishableKey);
+ if(data.action==='authenticate'){
+  document.getElementById('consent').hidden=true;button.textContent='Potvrdi plaćanje';
+  try{const result=data.confirmationRequired
+   ? await stripe.confirmPayment({clientSecret:data.clientSecret,confirmParams:{payment_method:data.paymentMethod,return_url:data.returnUrl},redirect:'if_required'})
+   : await stripe.handleNextAction({clientSecret:data.clientSecret});
+   if(result.error)document.getElementById('error').textContent=result.error.message;
+   else send('subhasto-payment-complete');
+  }catch{document.getElementById('error').textContent='Potvrda nije uspjela. Pokušaj ponovno.'}
+  return;
+ }
+ elements=stripe.elements({clientSecret:data.clientSecret,appearance:{theme:'night',variables:{colorPrimary:'#ff9248',colorBackground:'#241d18'}}});
+ elements.create('payment').mount('#payment');button.disabled=false;
+});
+document.getElementById('form').addEventListener('submit',async event=>{
+ event.preventDefault();if(busy||!settings)return;
+ if(settings.action==='authenticate'){send('subhasto-payment-retry');return}
+ if(!document.getElementById('agree').checked){document.getElementById('error').textContent='Potvrdi suglasnost za spremanje kartice.';return}
+ busy=true;button.disabled=true;document.getElementById('error').textContent='';
+ try{const result=await stripe.confirmSetup({elements,redirect:'if_required',confirmParams:{return_url:settings.returnUrl}});
+  if(result.error)document.getElementById('error').textContent=result.error.message;
+  else if(result.setupIntent?.status==='succeeded')send('subhasto-payment-complete');
+  else document.getElementById('error').textContent='Spremanje je u obradi. Osvježi stanje kartice.';
+ }catch{document.getElementById('error').textContent='Spremanje nije uspjelo. Pokušaj ponovno.'}
+ busy=false;button.disabled=false;
+});
+send('subhasto-payment-ready');
+</script></body></html>

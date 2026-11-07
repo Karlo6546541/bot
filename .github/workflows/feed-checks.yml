@@ -1,0 +1,105 @@
+name: Subhasto UX and feed checks
+on:
+  push:
+    branches: ['improve/subhasto-*']
+  pull_request:
+    branches: [claude/beautiful-newton-sftcyd]
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: feed-checks-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: loop_app
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          flutter-version: '3.47.7'
+          cache: true
+      - run: flutter pub get --enforce-lockfile
+      - name: Format purchase confirmation
+        run: dart format lib/screens/seller_screens.dart lib/services/stripe_backend.dart test/stripe_seller_onboarding_test.dart test/seller_onboarding_flow_test.dart lib/widgets/delivery_choice.dart lib/widgets/locker_picker.dart lib/services/delivery_locations.dart test/locker_picker_test.dart lib/widgets/purchase_confirmation.dart lib/widgets/trade_actions.dart test/purchase_confirmation_test.dart lib/services/stripe_backend.dart test/stripe_backend_test.dart
+      - name: Format changed Dart files
+        run: |
+          dart format lib/services/my_activity_backend.dart lib/providers/my_activity_provider.dart lib/widgets/my_online_activity.dart test/my_activity_backend_test.dart test/my_online_activity_test.dart test/stripe_backend_test.dart test/live_prepared_backend_test.dart test/cloud_return_link_test.dart lib/services/deep_link.dart test/cloud_commerce_test.dart lib/screens/cloud_commerce_screen.dart lib/services/live_backend.dart lib/services/commerce_backend.dart lib/services/stripe_backend.dart lib/widgets/live_media/live_media.dart lib/widgets/live_media/live_media_stub.dart lib/widgets/live_media/live_media_web.dart lib/config/backend_config.dart lib/screens/profile_screen.dart lib/screens/public_profile_screen.dart test/account_profile_test.dart lib/services/delivery_service.dart lib/providers/app_providers.dart test/delivery_service_test.dart test/photo_viewer_test.dart lib/widgets/shop_widgets.dart lib/screens/live_screens.dart lib/screens/auctions_screen.dart lib/widgets/browse_category_picker.dart lib/widgets/item_image.dart lib/screens/categories_screen.dart test/browse_navigation_test.dart tool/feed_design_preview.dart lib/widgets/adaptive_shell.dart lib/app.dart lib/screens/for_you_feed.dart lib/screens/for_you_ranker.dart lib/screens/home_shell.dart lib/screens/live_home_screen.dart lib/screens/swipe_feed_screen.dart lib/services/feed_preferences.dart lib/services/feed_watch_time.dart lib/services/storage_service.dart lib/l10n/en.dart test/feed_controls_test.dart test/app_flow_test.dart test/shop_flow_test.dart test/live_test.dart
+          git diff --no-color > /tmp/feed-format.patch
+      - name: Formatting patch
+        run: cat /tmp/feed-format.patch
+      - name: Format redesign files
+        run: dart format --output=none --set-exit-if-changed lib/providers/seller_account_provider.dart lib/widgets/quiet_ui.dart lib/widgets/seller_account_card.dart test/redesign_layout_test.dart tool/redesign_preview.dart lib/widgets/live_shop_widgets.dart lib/widgets/vision_glass.dart lib/widgets/vision_live_controls.dart test/vision_live_controls_test.dart test/helpers/vision_navigation.dart test/live_shop_navigation_test.dart lib/widgets/reference_sheet.dart lib/widgets/reference_order_row.dart lib/widgets/wallet_ticket.dart lib/widgets/jednostavno_ui.dart lib/widgets/discovery_live_card.dart lib/widgets/user_avatar.dart test/simple_design_test.dart
+      - name: Analyze
+        run: flutter analyze
+      - name: Test
+        run: |
+          set +e
+          flutter test --reporter expanded > /tmp/feed-tests.log 2>&1
+          result=$?
+          awk '/TimeoutException/{print} /EXCEPTION CAUGHT/{remaining=85} remaining>0{print;remaining--}' /tmp/feed-tests.log
+          tail -n 20 /tmp/feed-tests.log
+          exit "$result"
+      - name: Test simplified design flows
+        run: flutter test --dart-define=SIMPLE_DESIGN=true test/simple_design_test.dart test/purchase_confirmation_test.dart test/studio_experience_test.dart test/live_shop_navigation_test.dart test/account_profile_test.dart test/seller_onboarding_flow_test.dart test/cloud_commerce_test.dart
+      - name: Build web
+        run: flutter build web --release --base-href /bot/ --no-web-resources-cdn
+      - name: Build enabled online commerce
+        run: flutter build web --release --base-href /bot/ --no-web-resources-cdn --dart-define=CLOUD_COMMERCE_ENABLED=true
+      - name: Build isolated product preview
+        run: flutter build web --release --target=tool/redesign_preview.dart --base-href /bot/ --no-web-resources-cdn
+      - name: Browser previews
+        run: |
+          npm install --prefix /tmp/feed-browser playwright@1.55.0
+          mkdir -p /tmp/feed-preview
+          ln -s "$PWD/build/web" /tmp/feed-preview/bot
+          python3 -m http.server 8765 --directory /tmp/feed-preview > /tmp/feed-server.log 2>&1 &
+          server_pid=$!
+          trap 'kill "$server_pid"' EXIT
+          node ../scripts/redesign-preview.cjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: feed-validation
+          path: |
+            /tmp/feed-format.patch
+            /tmp/feed-tests.log
+            /tmp/feed-preview/screenshots
+
+  reference_preview:
+    name: Reference mobile layouts
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    defaults:
+      run:
+        working-directory: loop_app
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          flutter-version: '3.47.7'
+          cache: true
+      - run: flutter pub get --enforce-lockfile
+      - name: Build the actual reference variant
+        run: flutter build web --release --target=tool/redesign_preview.dart --base-href /bot/ --no-web-resources-cdn --dart-define=SIMPLE_DESIGN=true
+      - name: Compare mobile flows and capture reference screens
+        env:
+          PREVIEW_WEB_ROOT: ${{ github.workspace }}/loop_app/build/web
+          PREVIEW_BASE_URL: http://preview.test/bot/
+          PREVIEW_ARTIFACT_DIR: /tmp/reference-preview
+          PREVIEW_SIMPLE: 'true'
+          PREVIEW_MOBILE: 'true'
+        run: |
+          npm install --prefix /tmp/feed-browser playwright@1.55.0
+          node ../scripts/redesign-preview.cjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: reference-mobile-validation
+          path: /tmp/reference-preview
