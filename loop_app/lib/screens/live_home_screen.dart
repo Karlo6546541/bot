@@ -515,7 +515,11 @@ class _LiveHomeScreenState extends ConsumerState<LiveHomeScreen> {
             slivers.add(
               SliverToBoxAdapter(
                 child: SizedBox(
-                  height: 108,
+                  height:
+                      72 +
+                      36 *
+                          (MediaQuery.textScalerOf(context).scale(14) / 14)
+                              .clamp(1.0, 2.0),
                   child: ListView.separated(
                     key: const ValueKey('home-sellers'),
                     scrollDirection: Axis.horizontal,
