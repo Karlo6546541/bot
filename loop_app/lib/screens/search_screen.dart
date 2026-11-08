@@ -1,5 +1,4 @@
 import '../config/design_variant.dart';
-import '../widgets/reference_sheet.dart';
 import '../widgets/reference_order_row.dart';
 import 'dart:ui';
 import '../widgets/vision_glass.dart';
@@ -47,11 +46,11 @@ class SearchScreen extends ConsumerStatefulWidget {
     bool accounts = false,
     String initialQuery = '',
   }) => kSimpleDesign
-      ? openReferenceSheet<void>(
-          context,
-          title: t('Pretraži'),
-          builder: (_) =>
-              SearchScreen(accounts: accounts, initialQuery: initialQuery),
+      ? Navigator.of(context).push(
+          MaterialPageRoute<void>(
+            builder: (_) =>
+                SearchScreen(accounts: accounts, initialQuery: initialQuery),
+          ),
         )
       : Navigator.of(context).push(
           PageRouteBuilder<void>(
@@ -253,11 +252,10 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
       for (final id in sellerIds)
         if (state.userById(id) case final u? when !u.isGuest) u,
     ];
-    return [
-      if (liveRows.isNotEmpty) ...[heading(t('Uživo')), ...liveRows],
-      if (soonRows.isNotEmpty) ...[heading(t('Uskoro')), ...soonRows],
-      if (sellers.isNotEmpty) ...[
-        heading(t('Prodavači')),
+    final top = _igTab == 'top';
+    final out = <Widget>[
+      if (sellers.isNotEmpty && (top || _igTab == 'accounts')) ...[
+        if (top) heading(t('Prodavači')),
         for (final user in sellers.take(10))
           Padding(
             padding: const EdgeInsets.only(bottom: 8),
@@ -274,9 +272,34 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
             ),
           ),
       ],
+      if (liveRows.isNotEmpty && (top || _igTab == 'live')) ...[
+        if (top) heading(t('Uživo')),
+        ...liveRows,
+      ],
+      if (soonRows.isNotEmpty && (top || _igTab == 'soon')) ...[
+        if (top) heading(t('Uskoro')),
+        ...soonRows,
+      ],
     ];
+    return out.isEmpty
+        ? [
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 32),
+              child: Text(
+                t('Nema rezultata'),
+                textAlign: TextAlign.center,
+                style: TextStyle(color: LoopColors.textSecondary),
+              ),
+            ),
+          ]
+        : out;
   }
 
+  /// Kartica rezultata: 'top' | 'accounts' | 'live' | 'soon'.
+  String _igTab = 'top';
+
+  /// Pretraga u Instagram stilu: puni zaslon, polje s povratkom, nedavna
+  /// pretraživanja i tekstualni tabovi rezultata.
   Widget _referenceBody(AppState state) {
     final posts = _posts(state);
     final accounts = _q.trim().isEmpty ? <AppUser>[] : _accounts(state);
@@ -284,198 +307,211 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
       for (final entry in posts)
         entry.liveId ?? entry.auctionId ?? entry.deviceId,
     };
-    final candidates = browseItems(state);
-    final filteredShows = _filters
-        .apply(candidates, state)
-        .map((item) => item.show!.id)
-        .toSet();
-    final items = candidates
-        .where(
-          (item) => item.show == null || filteredShows.contains(item.show!.id),
-        )
+    final items = browseItems(state)
         .where(
           (item) => entries.contains(
             item.show?.id ?? item.auction?.id ?? item.device?.id,
           ),
         )
         .toList();
-    final suggestions = <String>{
-      ...state.searchHistory.take(2),
-      DeviceCategory.watches.label,
-      DeviceCategory.vinyl.label,
-      ...state.users
-          .where(
-            (user) =>
-                !user.isGuest &&
-                user.shopName.trim().isNotEmpty &&
-                !state.isBlocked(user.id),
-          )
-          .take(2)
-          .map((user) => user.shopTitle),
-      DeviceCategory.camera.label,
-      DeviceCategory.audio.label,
-    }.take(6);
-    Widget heading(String text) => Padding(
-      padding: const EdgeInsets.only(top: 16, bottom: 10),
-      child: Text(
-        text,
-        style: const TextStyle(
-          fontSize: 19,
-          fontWeight: FontWeight.w600,
-          letterSpacing: -.3,
+    final hasQuery = _q.trim().isNotEmpty;
+    Widget tab(String id, String label) => Expanded(
+      child: Semantics(
+        button: true,
+        selected: _igTab == id,
+        label: label,
+        excludeSemantics: true,
+        child: InkWell(
+          key: ValueKey('search-tab-$id'),
+          onTap: () => setState(() => _igTab = id),
+          child: Container(
+            height: 44,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              border: Border(
+                bottom: BorderSide(
+                  width: 2,
+                  color: _igTab == id
+                      ? LoopColors.textPrimary
+                      : LoopColors.textPrimary.withValues(alpha: .08),
+                ),
+              ),
+            ),
+            child: Text(
+              label,
+              style: TextStyle(
+                fontSize: 15,
+                fontWeight: _igTab == id ? FontWeight.w700 : FontWeight.w500,
+                color: _igTab == id
+                    ? LoopColors.textPrimary
+                    : LoopColors.textSecondary,
+              ),
+            ),
+          ),
         ),
       ),
     );
-    return Column(
-      children: [
-        Padding(
-          padding: const EdgeInsets.fromLTRB(24, 4, 24, 16),
-          child: SizedBox(
-            height: 52,
-            child: TextField(
-              key: const ValueKey('reference-search-input'),
-              controller: _c,
-              focusNode: _focus,
-              autofocus: true,
-              onChanged: (value) => setState(() => _q = value),
-              textInputAction: TextInputAction.search,
-              onSubmitted: (value) {
-                if (value.trim().isNotEmpty) {
-                  ref.read(appProvider.notifier).addSearch(value);
-                }
-              },
-              style: const TextStyle(fontSize: 16, height: 1.2),
-              decoration: InputDecoration(
-                hintText: t('Pretraži prijenose i prodavače'),
-                filled: true,
-                fillColor: LoopColors.textPrimary.withValues(alpha: .07),
-                isDense: true,
-                contentPadding: const EdgeInsets.symmetric(
-                  horizontal: 20,
-                  vertical: 14,
-                ),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(99),
-                  borderSide: BorderSide(color: LoopColors.glassBorder),
-                ),
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(99),
-                  borderSide: BorderSide(color: LoopColors.glassBorder),
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(99),
-                  borderSide: BorderSide(
-                    color: LoopColors.textPrimary.withValues(alpha: .30),
+    Widget heading(String text) => Padding(
+      padding: const EdgeInsets.only(top: 16, bottom: 8),
+      child: Text(
+        text,
+        style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w700),
+      ),
+    );
+    final history = state.searchHistory.take(8).toList();
+    final suggested = [
+      for (final u in state.users)
+        if (!u.isGuest &&
+            u.shopName.trim().isNotEmpty &&
+            !state.isBlocked(u.id) &&
+            u.id != state.currentUserId)
+          u,
+    ].take(5).toList();
+    return Scaffold(
+      backgroundColor: LoopColors.background,
+      body: SafeArea(
+        child: Column(
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(4, 8, 16, 8),
+              child: Row(
+                children: [
+                  IconButton(
+                    key: const ValueKey('search-back'),
+                    tooltip: t('Natrag'),
+                    onPressed: () => Navigator.maybePop(context),
+                    icon: const Icon(Icons.arrow_back),
                   ),
-                ),
-                suffixIcon: _q.isEmpty
-                    ? null
-                    : IconButton(
-                        tooltip: t('Filteri'),
-                        icon: const Icon(Icons.tune, size: 19),
-                        onPressed: () => openReferenceSheet<void>(
-                          context,
-                          title: t('Filteri'),
-                          builder: (ctx) => Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 24),
-                            child: Wrap(
-                              spacing: 8,
-                              runSpacing: 8,
+                  Expanded(
+                    child: SizedBox(
+                      height: 44,
+                      child: TextField(
+                        key: const ValueKey('reference-search-input'),
+                        controller: _c,
+                        focusNode: _focus,
+                        autofocus: true,
+                        onChanged: (value) => setState(() => _q = value),
+                        textInputAction: TextInputAction.search,
+                        onSubmitted: (value) {
+                          if (value.trim().isNotEmpty) {
+                            ref.read(appProvider.notifier).addSearch(value);
+                          }
+                        },
+                        style: const TextStyle(fontSize: 16, height: 1.2),
+                        decoration: InputDecoration(
+                          hintText: t('Traži'),
+                          filled: true,
+                          fillColor: LoopColors.textPrimary.withValues(
+                            alpha: .07,
+                          ),
+                          isDense: true,
+                          prefixIcon: const Icon(Icons.search, size: 20),
+                          contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 10,
+                          ),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide.none,
+                          ),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide.none,
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide.none,
+                          ),
+                          suffixIcon: _q.isEmpty
+                              ? null
+                              : IconButton(
+                                  tooltip: t('Očisti'),
+                                  icon: const Icon(Icons.cancel, size: 18),
+                                  onPressed: () => _set(''),
+                                ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            if (hasQuery)
+              Row(
+                children: [
+                  tab('top', t('Top')),
+                  tab('accounts', t('Računi')),
+                  tab('live', t('Uživo')),
+                  tab('soon', t('Uskoro')),
+                ],
+              ),
+            Expanded(
+              child: ListView(
+                key: const ValueKey('reference-search-results'),
+                padding: const EdgeInsets.fromLTRB(16, 0, 16, 28),
+                children: [
+                  if (!hasQuery) ...[
+                    if (history.isNotEmpty) ...[
+                      Row(
+                        children: [
+                          Expanded(child: heading(t('Nedavno'))),
+                          TextButton(
+                            key: const ValueKey('search-clear-history'),
+                            onPressed: () => ref
+                                .read(appProvider.notifier)
+                                .clearSearchHistory(),
+                            child: Text(t('Očisti sve')),
+                          ),
+                        ],
+                      ),
+                      for (final term in history)
+                        InkWell(
+                          key: ValueKey('search-history-$term'),
+                          onTap: () => _set(term),
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 4),
+                            child: Row(
                               children: [
-                                for (final entry in <(SearchKind?, String)>[
-                                  (null, t('Sve')),
-                                  (SearchKind.auction, t('Aukcije')),
-                                  (SearchKind.buyNow, t('Kupi odmah')),
-                                  (SearchKind.live, t('Uživo')),
-                                ])
-                                  ActionChip(
-                                    key: ValueKey(
-                                      'search-kind-${entry.$1?.name ?? 'all'}',
-                                    ),
-                                    label: Text(entry.$2),
-                                    onPressed: () {
-                                      setState(() => _kind = entry.$1);
-                                      Navigator.pop(ctx);
-                                    },
-                                  ),
-                                ActionChip(
-                                  key: const ValueKey('shows-filter'),
-                                  label: Text(t('Filteri showova')),
-                                  onPressed: () async {
-                                    final result = await showShowFilterSheet(
-                                      ctx,
-                                      initial: _filters,
-                                      items: candidates
-                                          .where((item) => item.show != null)
-                                          .toList(),
-                                      state: state,
-                                    );
-                                    if (result != null &&
-                                        mounted &&
-                                        ctx.mounted) {
-                                      setState(() => _filters = result);
-                                      Navigator.pop(ctx);
-                                    }
-                                  },
+                                const SizedBox(
+                                  width: 48,
+                                  height: 48,
+                                  child: Icon(Icons.history),
+                                ),
+                                const SizedBox(width: 8),
+                                Expanded(child: Text(term)),
+                                IconButton(
+                                  tooltip: t('Ukloni'),
+                                  onPressed: () => ref
+                                      .read(appProvider.notifier)
+                                      .removeSearch(term),
+                                  icon: const Icon(Icons.close, size: 20),
                                 ),
                               ],
                             ),
                           ),
                         ),
-                      ),
+                    ],
+                    if (suggested.isNotEmpty) ...[
+                      heading(t('Predloženi prodavači')),
+                      for (final user in suggested)
+                        ReferenceOrderRow(
+                          key: ValueKey('reference-shop-${user.id}'),
+                          title: user.shopTitle,
+                          subtitle: user.handle,
+                          artwork: UserAvatar(user: user, size: 52),
+                          onTap: () =>
+                              PublicProfileScreen.open(context, user.id),
+                        ),
+                    ],
+                  ] else ...[
+                    ..._liveFirstResults(state, accounts, items, heading),
+                  ],
+                ],
               ),
             ),
-          ),
+          ],
         ),
-        Expanded(
-          child: ListView(
-            key: const ValueKey('reference-search-results'),
-            padding: const EdgeInsets.fromLTRB(24, 0, 24, 28),
-            children: [
-              if (_q.trim().isEmpty)
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  children: [
-                    for (final term in suggestions)
-                      Material(
-                        color: LoopColors.textPrimary.withValues(alpha: .08),
-                        borderRadius: BorderRadius.circular(99),
-                        child: InkWell(
-                          borderRadius: BorderRadius.circular(99),
-                          onTap: () => _set(term),
-                          child: Padding(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 18,
-                              vertical: 14,
-                            ),
-                            child: Text(
-                              term,
-                              style: const TextStyle(
-                                fontSize: 15,
-                                fontWeight: FontWeight.w500,
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-                  ],
-                )
-              else ...[
-                ..._liveFirstResults(state, accounts, items, heading),
-                if (accounts.isEmpty && items.isEmpty)
-                  Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 24),
-                    child: Text(
-                      t('Nema rezultata'),
-                      style: TextStyle(color: LoopColors.textSecondary),
-                    ),
-                  ),
-              ],
-            ],
-          ),
-        ),
-      ],
+      ),
     );
   }
 

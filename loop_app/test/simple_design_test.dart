@@ -373,4 +373,32 @@ void main() {
     expect(find.byKey(const ValueKey('category-items')), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
+
+  testWidgets('Pretraga u Instagram stilu: nedavno, tabovi, povratak', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(390, 844);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    await tester.pumpWidget(app());
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('home-search')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('search-back')), findsOneWidget);
+    expect(find.byKey(const ValueKey('search-tab-top')), findsNothing);
+    await tester.enterText(
+      find.byKey(const ValueKey('reference-search-input')),
+      'a',
+    );
+    await tester.pumpAndSettle();
+    for (final id in ['top', 'accounts', 'live', 'soon']) {
+      expect(find.byKey(ValueKey('search-tab-$id')), findsOneWidget);
+    }
+    await tester.tap(find.byKey(const ValueKey('search-tab-accounts')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('search-back')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('home-search')), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
 }
