@@ -1414,11 +1414,13 @@ class AppController extends Notifier<AppState> {
     List<String?>? names,
     LiveSells sells = LiveSells.physical,
     bool shop = false,
+    bool buyNowOnly = false,
   }) async {
     // Testno: bez podataka prodavatelja (traže se tek za isplatu).
     final show = await _live.create(
       sells: sells,
       shop: shop,
+      buyNowOnly: buyNowOnly,
       hostId: _requireUserId(),
       title: title,
       items: items,
@@ -1554,6 +1556,11 @@ class AppController extends Notifier<AppState> {
 
   Future<void> liveSetShop(String showId, bool on) async {
     await _live.setShop(_requireUserId(), showId, on);
+    _refresh();
+  }
+
+  Future<void> liveSetBuyNowOnly(String showId, bool on) async {
+    await _live.setBuyNowOnly(_requireUserId(), showId, on);
     _refresh();
   }
 

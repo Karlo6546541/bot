@@ -1073,9 +1073,9 @@ class _CreateLiveShowScreenState extends ConsumerState<CreateLiveShowScreen> {
         // Predmeti ovog livea: tek sad se spremaju (redom). Items on
         // screen = jedan predmet s više komada; svaki broj je jedna
         // licitacija (#150, #151…).
-        final all = [...items];
-        final names = <String?>[for (final _ in items) null];
-        for (final l in _drafts) {
+        final all = [if (!_buyNowOnly) ...items];
+        final names = <String?>[for (final _ in all) null];
+        for (final l in _buyNowOnly ? const <_DraftLot>[] : _drafts) {
           final d = await app.addDevice(
             name: l.name,
             model: '',
@@ -1104,7 +1104,8 @@ class _CreateLiveShowScreenState extends ConsumerState<CreateLiveShowScreen> {
           // Neprodano ostaje spremljeno u Moje (ne ide samo na Kupi odmah).
           relistUnsold: false,
           sells: _sells,
-          shop: _shop,
+          shop: _shop || _buyNowOnly,
+          buyNowOnly: _buyNowOnly,
         );
         // Promocija odabrana u čarobnjaku (plaća se karticom).
         if (_promo > 0) {
@@ -1153,6 +1154,9 @@ class _CreateLiveShowScreenState extends ConsumerState<CreateLiveShowScreen> {
 
   /// Kupi odmah iz prodavačeve trgovine u liveu (zadano isključeno).
   bool _shop = false;
+
+  /// Način prodaje: aukcije (zadano) ili samo Kupi odmah iz trgovine.
+  bool _buyNowOnly = false;
 
   /// Promocija odmah pri kreiranju: iznos u € (0 = bez promocije).
   int _promo = 0;
@@ -1305,22 +1309,47 @@ class _CreateLiveShowScreenState extends ConsumerState<CreateLiveShowScreen> {
   /// 2. Predmeti + sve dodatno sklonjeno pod "Više postavki".
   List<Widget> _itemsStep(AppState s) => [
     _heading(
-      t('Dodaj predmete'),
-      t('Licitiraju se redom. Možeš ih dodati i tijekom showa.'),
+      t('Što prodaješ u liveu'),
+      _buyNowOnly
+          ? t('Gledatelji kupuju odmah proizvode iz tvoje trgovine.')
+          : t('Licitiraju se redom. Možeš ih dodati i tijekom showa.'),
     ),
-    ..._lotsSection(s),
+    // Način prodaje: aukcije ili samo Kupi odmah.
+    SegmentedButton<bool>(
+      key: const ValueKey('live-mode'),
+      showSelectedIcon: false,
+      segments: [
+        ButtonSegment(
+          value: false,
+          label: Text(t('Aukcije')),
+          icon: const Icon(Icons.gavel, size: 18),
+        ),
+        ButtonSegment(
+          value: true,
+          label: Text(t('Samo Kupi odmah')),
+          icon: const Icon(Icons.shopping_bag_outlined, size: 18),
+        ),
+      ],
+      selected: {_buyNowOnly},
+      onSelectionChanged: (v) => setState(() {
+        _buyNowOnly = v.first;
+        if (_buyNowOnly) _shop = true;
+      }),
+    ),
     const SizedBox(height: 12),
-    // Kupi odmah u liveu: gledatelji kupuju iz tvoje trgovine bez licitacije.
+    if (!_buyNowOnly) ..._lotsSection(s),
+    const SizedBox(height: 12),
+    // Predmeti iz trgovine u liveu (ista zaliha kao u trgovini).
     Builder(
       builder: (_) {
         final n = s.listingsOf(s.currentUserId ?? '').length;
         return SwitchListTile(
           key: const ValueKey('live-shop-toggle'),
           contentPadding: EdgeInsets.zero,
-          value: _shop,
-          onChanged: (v) => setState(() => _shop = v),
+          value: _shop || _buyNowOnly,
+          onChanged: _buyNowOnly ? null : (v) => setState(() => _shop = v),
           title: Text(
-            t('Prodaj i iz moje trgovine'),
+            t('Dodaj predmete iz moje trgovine'),
             style: const TextStyle(fontWeight: FontWeight.w700),
           ),
           subtitle: Text(
@@ -2617,6 +2646,31 @@ class _LiveRoomViewState extends ConsumerState<_LiveRoomBody> {
                       icon: Icons.add,
                       label: t('Dodaj predmet'),
                       onTap: () => _quickAdd(show),
+                    ),
+                    tile(
+                      ctx,
+                      key: 'live-mode-tile',
+                      icon: show.buyNowOnly
+                          ? Icons.gavel
+                          : Icons.shopping_bag_outlined,
+                      label: show.buyNowOnly
+                          ? t('Uključi aukcije')
+                          : t('Samo Kupi odmah'),
+                      onTap: () async {
+                        try {
+                          await _app.liveSetBuyNowOnly(
+                            show.id,
+                            !show.buyNowOnly,
+                          );
+                          showLoopSnackBar(
+                            show.buyNowOnly
+                                ? t('Aukcije su ponovno uključene.')
+                                : t('Live sada prodaje samo Kupi odmah.'),
+                          );
+                        } on TradeException catch (e) {
+                          showLoopSnackBar(e.message, error: true);
+                        }
+                      },
                     ),
                     tile(
                       ctx,
@@ -4130,6 +4184,32 @@ class _LiveRoomViewState extends ConsumerState<_LiveRoomBody> {
             onPressed: () => _end(true),
             child: Text(t('Otkaži')),
           ),
+        );
+      }
+      if (show.buyNowOnly) {
+        // Samo Kupi odmah: domaćin bira proizvod koji predstavlja.
+        return Row(
+          children: [
+            Expanded(
+              child: FilledButton.icon(
+                key: const ValueKey('live-pick-product'),
+                style: FilledButton.styleFrom(
+                  backgroundColor: kLiveRed,
+                  foregroundColor: Colors.white,
+                  minimumSize: const Size(0, 52),
+                ),
+                onPressed: () => _showQueue(st, true),
+                icon: const Icon(Icons.storefront_outlined),
+                label: Text(t('Odaberi proizvod')),
+              ),
+            ),
+            IconButton(
+              key: const ValueKey('live-host-menu'),
+              tooltip: t('Više'),
+              onPressed: () => _showHostOptions(show),
+              icon: const Icon(Icons.more_vert, color: Colors.white),
+            ),
+          ],
         );
       }
       final next = st.next;

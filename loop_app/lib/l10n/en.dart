@@ -3424,8 +3424,21 @@ const kEn = <String, String>{
   'Prodavači koje pratiš trenutno nemaju prijenosa.':
       'Sellers you follow have no streams right now.',
   'Profil prodavača: {0}': 'Seller profile: {0}',
-  'Dovrši povezivanje isplata na stranici koja se otvorila, pa se vrati.': 'Finish connecting payouts on the page that opened, then come back.',
-  'Povezivanje isplata trenutačno nije dostupno.': 'Connecting payouts is not available right now.',
+  'Dovrši povezivanje isplata na stranici koja se otvorila, pa se vrati.':
+      'Finish connecting payouts on the page that opened, then come back.',
+  'Povezivanje isplata trenutačno nije dostupno.':
+      'Connecting payouts is not available right now.',
+  'Što prodaješ u liveu': 'What you sell in the live',
+  'Gledatelji kupuju odmah proizvode iz tvoje trgovine.':
+      'Viewers buy products from your shop right away.',
+  'Samo Kupi odmah': 'Buy now only',
+  'Dodaj predmete iz moje trgovine': 'Add items from my shop',
+  'Uključi aukcije': 'Turn on auctions',
+  'Aukcije su ponovno uključene.': 'Auctions are back on.',
+  'Live sada prodaje samo Kupi odmah.': 'This live now sells Buy now only.',
+  'Odaberi proizvod': 'Choose a product',
+  'Ovaj live prodaje samo Kupi odmah, bez aukcija.':
+      'This live sells Buy now only, without auctions.',
   'Zakaži show': 'Schedule a show',
   'Otprema': 'Shipping',
   'Nema paketa za predaju': 'No parcels to hand over',

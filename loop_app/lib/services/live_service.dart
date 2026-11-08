@@ -594,6 +594,7 @@ class LiveService {
     String? category,
     LiveSells sells = LiveSells.physical,
     bool shop = false,
+    bool buyNowOnly = false,
     bool relistUnsold = true,
     List<String?>? names,
   }) async {
@@ -668,7 +669,8 @@ class LiveService {
       coverPath: coverPath,
       category: category,
       sells: sells,
-      shop: shop,
+      shop: shop || buyNowOnly,
+      buyNowOnly: buyNowOnly,
       relistUnsold: relistUnsold,
     );
     await _storage.putLiveShow(show);
@@ -849,6 +851,11 @@ class LiveService {
   }) async {
     final at = now ?? DateTime.now();
     final show = _requireHost(hostId, showId);
+    if (show.buyNowOnly) {
+      throw TradeException(
+        t('Ovaj live prodaje samo Kupi odmah, bez aukcija.'),
+      );
+    }
     if (seconds != null &&
         (mode != LotMode.giveaway ||
             !LiveLot.giveawaySeconds.contains(seconds))) {
@@ -970,6 +977,11 @@ class LiveService {
     final at = now ?? DateTime.now();
     final show = _requireHost(hostId, showId);
     _requireSeller(hostId);
+    if (show.buyNowOnly) {
+      throw TradeException(
+        t('Ovaj live prodaje samo Kupi odmah, bez aukcija.'),
+      );
+    }
     final state = stateOf(show, now: at);
     if (show.endedAt != null || state.isOver) {
       throw TradeException(t('Live je završio.'));
@@ -1610,6 +1622,20 @@ class LiveService {
       throw TradeException(t('Live je završio.'));
     }
     await _storage.putLiveShow(show.copyWith(shop: on));
+  }
+
+  /// Način prodaje u liveu: aukcije ili samo Kupi odmah (iz trgovine).
+  Future<void> setBuyNowOnly(String hostId, String showId, bool on) async {
+    final show = _requireHost(hostId, showId);
+    if (show.endedAt != null) {
+      throw TradeException(t('Live je završio.'));
+    }
+    if (on && stateOf(show).current != null) {
+      throw TradeException(t('Pričekaj da završi licitacija u tijeku.'));
+    }
+    await _storage.putLiveShow(
+      show.copyWith(buyNowOnly: on, shop: on ? true : show.shop),
+    );
   }
 
   /// Domaćin predstavlja proizvod iz trgovine ([deviceId]) ili ga uklanja

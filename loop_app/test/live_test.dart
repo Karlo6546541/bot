@@ -1222,7 +1222,11 @@ void main() {
       );
       await tester.tap(find.byKey(const ValueKey('quick-lot-confirm')));
       await tester.pumpAndSettle();
-      await tester.ensureVisible(find.byKey(const ValueKey('live-on-screen')));
+      await tester.scrollUntilVisible(
+        find.byKey(const ValueKey('live-on-screen')),
+        200,
+        scrollable: find.byType(Scrollable).first,
+      );
       await tester.pumpAndSettle();
       await tester.tap(find.byKey(const ValueKey('live-on-screen')));
       await tester.pumpAndSettle();

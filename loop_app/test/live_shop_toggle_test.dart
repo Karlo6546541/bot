@@ -57,4 +57,26 @@ void main() {
       expect(storage.liveShowById(show.id)!.shop, isTrue);
     },
   );
+
+  test(
+    'samo Kupi odmah: bez aukcija, trgovina uključena, način se mijenja',
+    () async {
+      final live = LiveService(storage);
+      final show = await live.create(
+        hostId: SeedData.anaUserId,
+        title: 'Samo kupi odmah',
+        buyNowOnly: true,
+      );
+      expect(show.buyNowOnly, isTrue);
+      expect(show.shop, isTrue);
+      expect(LiveShow.fromMap(show.toMap()).buyNowOnly, isTrue);
+      expect(
+        () => live.startLot(SeedData.anaUserId, show.id),
+        throwsA(isA<TradeException>()),
+      );
+      await live.setBuyNowOnly(SeedData.anaUserId, show.id, false);
+      expect(storage.liveShowById(show.id)!.buyNowOnly, isFalse);
+      expect(storage.liveShowById(show.id)!.shop, isTrue);
+    },
+  );
 }

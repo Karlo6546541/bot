@@ -32,12 +32,17 @@ class LiveShow {
     this.summary,
     this.sells = LiveSells.physical,
     this.shop = false,
+    this.buyNowOnly = false,
     this.featuredId,
   });
 
   /// Prodavač je uključio svoju trgovinu u liveu: gledatelji uz licitacije
   /// mogu kupiti njegove predmete odmah (Kupi odmah).
   final bool shop;
+
+  /// Samo Kupi odmah: bez aukcija; prodaju se predmeti iz trgovine
+  /// (zahtijeva [shop]).
+  final bool buyNowOnly;
 
   /// Proizvod (Kupi odmah) koji domaćin trenutno predstavlja; gledatelji ga
   /// vide u stalnoj kartici pri dnu prijenosa.
@@ -137,6 +142,7 @@ class LiveShow {
     bool? verifiedOnly,
     LiveSells? sells,
     bool? shop,
+    bool? buyNowOnly,
     Object? featuredId = _keepFeatured,
     Map<String, num>? summary,
   }) => LiveShow(
@@ -159,6 +165,7 @@ class LiveShow {
     verifiedOnly: verifiedOnly ?? this.verifiedOnly,
     sells: sells ?? this.sells,
     shop: shop ?? this.shop,
+    buyNowOnly: buyNowOnly ?? this.buyNowOnly,
     featuredId: featuredId == _keepFeatured
         ? this.featuredId
         : featuredId as String?,
@@ -185,6 +192,7 @@ class LiveShow {
     if (verifiedOnly) 'verifiedOnly': true,
     if (sells != LiveSells.physical) 'sells': sells.name,
     if (shop) 'shop': true,
+    if (buyNowOnly) 'buyNowOnly': true,
     if (featuredId != null) 'featuredId': featuredId,
     if (summary != null) 'summary': summary,
   };
@@ -221,6 +229,7 @@ class LiveShow {
       orElse: () => LiveSells.physical,
     ),
     shop: m['shop'] == true,
+    buyNowOnly: m['buyNowOnly'] == true,
     featuredId: m['featuredId'] as String?,
     summary: m['summary'] is Map
         ? {
