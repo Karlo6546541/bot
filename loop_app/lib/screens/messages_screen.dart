@@ -28,7 +28,7 @@ class MessagesScreen extends ConsumerWidget {
   const MessagesScreen({super.key});
 
   static Future<void> open(BuildContext context) => kSimpleDesign
-      ? openReferenceSheet<void>(
+      ? openScreen<void>(
           context,
           title: t('Poruke'),
           scaffoldContent: true,

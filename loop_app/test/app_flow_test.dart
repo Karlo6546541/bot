@@ -89,9 +89,8 @@ Future<void> openActivity(WidgetTester tester) async {
 Future<void> openAuction(WidgetTester tester, String name) async {
   await tester.tap(find.text(name));
   await tester.pumpAndSettle();
+  // Dodir na objavu otvara normalan ekran detalja (ne panel).
   await tester.tap(find.byKey(const ValueKey('post-media')));
-  await tester.pumpAndSettle();
-  await tester.tap(find.text('Otvori cijeli oglas'));
   await tester.pumpAndSettle();
 }
 

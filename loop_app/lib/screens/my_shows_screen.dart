@@ -26,7 +26,7 @@ class MyShowsScreen extends ConsumerWidget {
   const MyShowsScreen({super.key});
 
   static Future<void> open(BuildContext context) => kSimpleDesign
-      ? openReferenceSheet<void>(
+      ? openScreen<void>(
           context,
           title: t('Moji showovi'),
           scaffoldContent: true,

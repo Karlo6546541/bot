@@ -19,7 +19,7 @@ class AccountHealthScreen extends ConsumerWidget {
   const AccountHealthScreen({super.key});
 
   static Future<void> open(BuildContext context) => kSimpleDesign
-      ? openReferenceSheet<void>(
+      ? openScreen<void>(
           context,
           title: t('Zdravlje računa'),
           scaffoldContent: true,

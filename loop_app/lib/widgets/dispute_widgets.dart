@@ -6,16 +6,15 @@ import '../models/delivery.dart';
 import '../providers/app_providers.dart';
 import '../services/trade_service.dart';
 import '../theme/app_theme.dart';
+import 'reference_sheet.dart';
 import 'formatters.dart';
 import 'trade_actions.dart';
 
 /// Kupac: "Zatraži povrat" — razlog i kratak opis.
 Future<void> showDisputeForm(BuildContext context, WidgetRef ref, Delivery d) =>
-    showModalBottomSheet<void>(
-      context: context,
-      showDragHandle: true,
-      isScrollControlled: true,
-      constraints: const BoxConstraints(maxWidth: 560),
+    openScreen<void>(
+      context,
+      title: t('Zatraži povrat'),
       builder: (_) => _DisputeForm(delivery: d),
     );
 

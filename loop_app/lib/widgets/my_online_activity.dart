@@ -54,7 +54,7 @@ class MyOnlineActivityPanel extends ConsumerWidget {
       embedded: kSimpleDesign,
     );
     if (kSimpleDesign) {
-      await openReferenceSheet<void>(
+      await openScreen<void>(
         context,
         title: t('Detalji narudžbe'),
         scaffoldContent: true,

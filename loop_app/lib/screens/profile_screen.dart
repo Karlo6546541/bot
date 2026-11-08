@@ -91,7 +91,7 @@ class _JednostavnoAccountHome extends ConsumerWidget {
     final online = user.isGuest
         ? null
         : ref.watch(myOnlineActivityProvider).asData?.value;
-    void activity(String section, String title) => openReferenceSheet<void>(
+    void activity(String section, String title) => openScreen<void>(
       context,
       title: t('Moje'),
       builder: (_) => ActivityView(initialSection: section),
@@ -293,7 +293,7 @@ class MyProfileScreen extends StatelessWidget {
   const MyProfileScreen({super.key});
 
   static Future<void> open(BuildContext context) => kSimpleDesign
-      ? openReferenceSheet<void>(
+      ? openScreen<void>(
           context,
           title: t('Moj profil'),
           builder: (_) => const MyProfileScreen(),

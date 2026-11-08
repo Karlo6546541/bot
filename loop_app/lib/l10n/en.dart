@@ -3388,7 +3388,8 @@ const kEn = <String, String>{
   'Posjeti shop': 'Visit shop',
   'Uživo: {0} · Uđi u live': 'Live: {0} · Join the live',
   'Uskoro · {0}': 'Soon · {0}',
-  'Dostava i zaštita kupca — uvjeti prije kupnje': 'Delivery and buyer protection — terms before you buy',
+  'Dostava i zaštita kupca — uvjeti prije kupnje':
+      'Delivery and buyer protection — terms before you buy',
   'Ima u shopu: {0}': 'In the shop: {0}',
   'Tema prijenosa: {0}': 'Stream topic: {0}',
   'U prijenosu: {0}': 'In the stream: {0}',
@@ -3396,8 +3397,10 @@ const kEn = <String, String>{
   'Shop prodavača': 'Seller\'s shop',
   'Pretraži prijenose i prodavače': 'Search streams and sellers',
   'Prijenosi u kategoriji': 'Streams in this category',
-  'Trenutno nema prijenosa uživo u ovoj kategoriji.': 'There are no live streams in this category right now.',
-  'Kad prodavač objavi prijenos ili predmet u ovoj kategoriji, bit će ovdje.': 'When a seller posts a stream or item in this category, it will appear here.',
+  'Trenutno nema prijenosa uživo u ovoj kategoriji.':
+      'There are no live streams in this category right now.',
+  'Kad prodavač objavi prijenos ili predmet u ovoj kategoriji, bit će ovdje.':
+      'When a seller posts a stream or item in this category, it will appear here.',
   'USKORO': 'SOON',
   'Traži': 'Search',
   'Nedavno': 'Recent',

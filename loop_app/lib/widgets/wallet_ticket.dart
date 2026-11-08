@@ -81,7 +81,7 @@ class WalletTicket extends StatelessWidget {
           date: shortDate,
           statusKey: statusKey,
           color: stateColor(),
-          onTap: () => openReferenceSheet<void>(
+          onTap: () => openScreen<void>(
             context,
             title: t('Detalji narudžbe'),
             builder: (_) => SingleChildScrollView(

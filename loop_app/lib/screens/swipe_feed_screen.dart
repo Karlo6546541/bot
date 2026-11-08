@@ -601,7 +601,12 @@ class _PostPageState extends ConsumerState<_PostPage> {
     final isMine = owner != null && owner.id == me?.id;
     void openDetails() {
       widget.onDetails?.call();
-      _showPostDetails(context, ref, d, auction);
+      // Potpuni detalji su normalan ekran (povratak vodi natrag u feed).
+      if (auction != null) {
+        AuctionDetailScreen.open(context, auction.id);
+      } else {
+        DeviceDetailScreen.open(context, d);
+      }
     }
 
     // Kao Whatnot: fotografija preko cijelog ekrana, a desna traka i
@@ -1391,117 +1396,3 @@ class _RailButton extends StatelessWidget {
     );
   }
 }
-
-/// Cijeli opis i detalji objave u donjem listu (feed ostaje iza njega).
-Future<void> _showPostDetails(
-  BuildContext context,
-  WidgetRef ref,
-  Device d,
-  Auction? a,
-) => showModalBottomSheet<void>(
-  context: context,
-  isScrollControlled: true,
-  showDragHandle: true,
-  constraints: const BoxConstraints(maxWidth: 520),
-  builder: (ctx) => DraggableScrollableSheet(
-    expand: false,
-    initialChildSize: 0.6,
-    minChildSize: 0.35,
-    maxChildSize: 0.92,
-    builder: (ctx, scroll) => Consumer(
-      builder: (ctx, ref, _) {
-        final state = ref.watch(appProvider);
-        final owner = state.userById(a?.sellerId ?? d.ownerId);
-        final rating = owner == null ? null : state.ratingOf(owner.id);
-        Widget row(IconData icon, String label, String value) => Padding(
-          padding: const EdgeInsets.symmetric(vertical: 6),
-          child: Row(
-            children: [
-              Icon(icon, size: 20),
-              const SizedBox(width: 10),
-              Expanded(child: Text(label)),
-              Flexible(
-                child: Text(
-                  value,
-                  textAlign: TextAlign.end,
-                  style: const TextStyle(fontWeight: FontWeight.w700),
-                ),
-              ),
-            ],
-          ),
-        );
-        return ListView(
-          key: const ValueKey('post-details'),
-          controller: scroll,
-          padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
-          children: [
-            Text(
-              d.name,
-              style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w900),
-            ),
-            if (d.model.isNotEmpty)
-              Text(d.model, style: const TextStyle(fontSize: 15)),
-            const SizedBox(height: 12),
-            Text(
-              d.description.isEmpty
-                  ? t('Prodavatelj nije dodao opis.')
-                  : d.description,
-              style: const TextStyle(fontSize: 15, height: 1.45),
-            ),
-            const Divider(height: 28),
-            row(
-              Icons.sell_outlined,
-              a != null ? t('Trenutna ponuda') : t('Cijena'),
-              formatCredits(a?.currentPrice ?? buyTotal(state.priceForMe(d))),
-            ),
-            if (a != null)
-              row(
-                Icons.timer_outlined,
-                t('Završava'),
-                formatDateTime(a.endsAt),
-              ),
-            row(Icons.category_outlined, t('Kategorija'), d.category.singular),
-            if (!d.isDigital)
-              row(Icons.verified_outlined, t('Stanje'), d.condition.label),
-            if (d.isDigital && d.file != null)
-              row(
-                Icons.insert_drive_file_outlined,
-                t('Datoteka'),
-                '${d.file!.extension.toUpperCase()} · ${d.file!.sizeLabel}',
-              ),
-            if (d.hasStock)
-              row(
-                Icons.inventory_2_outlined,
-                t('Na zalihi'),
-                t('{0} kom', ['${d.quantity}']),
-              ),
-            if (owner != null)
-              row(
-                Icons.storefront_outlined,
-                t('Trgovina'),
-                rating != null && rating.count > 0
-                    ? '${owner.shopTitle} · ★ ${rating.average.toStringAsFixed(1)}'
-                    : owner.shopTitle,
-              ),
-            row(
-              Icons.schedule,
-              t('Objavljeno'),
-              formatDate(d.listedAt ?? d.createdAt),
-            ),
-            const SizedBox(height: 16),
-            OutlinedButton.icon(
-              onPressed: () {
-                Navigator.pop(ctx);
-                a != null
-                    ? AuctionDetailScreen.open(context, a.id)
-                    : DeviceDetailScreen.open(context, d);
-              },
-              icon: const Icon(Icons.open_in_full),
-              label: Text(t('Otvori cijeli oglas')),
-            ),
-          ],
-        );
-      },
-    ),
-  ),
-);

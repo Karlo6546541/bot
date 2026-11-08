@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:loop_app/screens/device_detail_screen.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hive/hive.dart';
@@ -340,7 +341,8 @@ void main() {
     expect(find.text('2/2'), findsOneWidget);
     await tester.tap(find.byKey(const ValueKey('post-description')));
     await tester.pumpAndSettle();
-    expect(find.byKey(const ValueKey('post-details')), findsOneWidget);
+    // Detalji su normalan ekran s povratkom.
+    expect(find.byType(DeviceDetailScreen), findsOneWidget);
     expect(tester.takeException(), isNull);
     await tester.pumpWidget(const SizedBox.shrink());
   });

@@ -127,7 +127,7 @@ class NotificationsScreen extends ConsumerStatefulWidget {
   const NotificationsScreen({super.key});
 
   static Future<void> open(BuildContext context) => kSimpleDesign
-      ? openReferenceSheet<void>(
+      ? openScreen<void>(
           context,
           title: t('Obavijesti'),
           scaffoldContent: true,
@@ -691,15 +691,11 @@ Future<void> showAppealDialog(
 }
 
 /// Postavke: koje obavijesti želiš primati (posebno za aukcije).
-Future<void> showNotificationSettings(BuildContext context) =>
-    showModalBottomSheet<void>(
-      context: context,
-      showDragHandle: true,
-      isScrollControlled: true,
-      backgroundColor: LoopColors.background,
-      constraints: const BoxConstraints(maxWidth: 560),
-      builder: (_) => const _SettingsSheet(),
-    );
+Future<void> showNotificationSettings(BuildContext context) => openScreen<void>(
+  context,
+  title: t('Postavke obavijesti'),
+  builder: (_) => const _SettingsSheet(),
+);
 
 class _SettingsSheet extends ConsumerWidget {
   const _SettingsSheet();

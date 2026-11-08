@@ -379,18 +379,12 @@ class SellerHubScreen extends ConsumerWidget {
   const SellerHubScreen({super.key, this.embedded = false});
   final bool embedded;
 
-  static Future<void> open(BuildContext context) => showModalBottomSheet<void>(
-    context: context,
-    isScrollControlled: true,
-    backgroundColor: Colors.transparent,
-    showDragHandle: false,
-    constraints: const BoxConstraints(maxWidth: 480),
-    builder: (ctx) => SizedBox(
-      height: MediaQuery.sizeOf(ctx).height * .80,
-      child: const VisionGlass(
-        heavy: true,
-        radius: 32,
-        child: SellerHubScreen(embedded: true),
+  /// Seller Hub je normalan ekran s naslovom i povratkom.
+  static Future<void> open(BuildContext context) => Navigator.of(context).push(
+    MaterialPageRoute<void>(
+      builder: (_) => Scaffold(
+        appBar: AppBar(title: Text(t('Prodaj'))),
+        body: const SellerHubScreen(embedded: true),
       ),
     ),
   );

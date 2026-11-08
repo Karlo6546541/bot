@@ -95,7 +95,7 @@ class SellerInfoScreen extends ConsumerStatefulWidget {
 
   static Future<bool> open(BuildContext context) async {
     final saved = kSimpleDesign
-        ? await openReferenceSheet<bool>(
+        ? await openScreen<bool>(
             context,
             title: t('Podaci prodavatelja'),
             scaffoldContent: true,

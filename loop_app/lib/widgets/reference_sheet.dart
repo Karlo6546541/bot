@@ -5,35 +5,26 @@ import 'package:flutter/material.dart';
 import '../l10n/tr.dart';
 import '../theme/app_theme.dart';
 
-/// The supplied artboard uses one bottom sheet for secondary destinations.
-Future<T?> openReferenceSheet<T>(
+/// Otvara odredište kao normalan ekran (ne kao skočni panel): naslov,
+/// povratak, pomicanje i sistemski Back rade kao na svakom drugom ekranu.
+/// [scaffoldContent]: sadržaj već ima vlastiti Scaffold/AppBar pa se gura
+/// izravno; inače ga omotavamo u Scaffold s naslovom i povratkom.
+/// Kratke radnje i dalje koriste donje panele (showModalBottomSheet).
+Future<T?> openScreen<T>(
   BuildContext context, {
   required String title,
   required WidgetBuilder builder,
   bool scaffoldContent = false,
   RouteSettings? settings,
 }) => Navigator.of(context).push<T>(
-  PageRouteBuilder<T>(
+  MaterialPageRoute<T>(
     settings: settings,
-    opaque: false,
-    barrierColor: Colors.black54,
-    barrierDismissible: false,
-    transitionDuration: MediaQuery.disableAnimationsOf(context)
-        ? Duration.zero
-        : const Duration(milliseconds: 280),
-    reverseTransitionDuration: const Duration(milliseconds: 180),
-    pageBuilder: (ctx, _, _) => ReferenceSheet(
-      title: title,
-      scaffoldContent: scaffoldContent,
-      child: builder(ctx),
-    ),
-    transitionsBuilder: (_, animation, _, child) => SlideTransition(
-      position: Tween(
-        begin: const Offset(0, .12),
-        end: Offset.zero,
-      ).animate(CurvedAnimation(parent: animation, curve: Curves.easeOutCubic)),
-      child: FadeTransition(opacity: animation, child: child),
-    ),
+    builder: scaffoldContent
+        ? builder
+        : (ctx) => Scaffold(
+            appBar: AppBar(title: Text(title)),
+            body: SafeArea(top: false, child: builder(ctx)),
+          ),
   ),
 );
 

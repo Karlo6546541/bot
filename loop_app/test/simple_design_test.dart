@@ -58,7 +58,7 @@ void main() {
         home: Builder(
           builder: (context) => Scaffold(
             body: TextButton(
-              onPressed: () => openReferenceSheet<void>(
+              onPressed: () => openScreen<void>(
                 context,
                 title: 'Moje',
                 builder: (_) => ListView(
@@ -102,7 +102,7 @@ void main() {
     );
     await tester.tap(find.text('Pogledaj'));
     expect(openedOriginalDetails, isTrue);
-    await tester.tap(find.byKey(const ValueKey('reference-sheet-close')).last);
+    await tester.pageBack();
     await tester.pumpAndSettle();
     expect(find.byType(CinematicTracking), findsNothing);
     expect(find.text('Kupnja 5'), findsOneWidget);
@@ -396,6 +396,56 @@ void main() {
     }
     await tester.tap(find.byKey(const ValueKey('search-tab-accounts')));
     await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('search-back')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('home-search')), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('prodavač je normalan ekran; povratak čuva upit pretrage', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(390, 844);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    await tester.pumpWidget(app());
+    await tester.pumpAndSettle();
+    final shops = find.byWidgetPredicate(
+      (w) =>
+          w.runtimeType.toString() == '_SellerCard' &&
+          w.key is ValueKey<String> &&
+          (w.key as ValueKey<String>).value.startsWith('home-seller-'),
+    );
+    final key = tester.widget(shops.first).key! as ValueKey<String>;
+    final owner = storage.userById(key.value.substring('home-seller-'.length))!;
+    await tester.tap(find.byKey(const ValueKey('home-search')));
+    await tester.pumpAndSettle();
+    await tester.enterText(
+      find.byKey(const ValueKey('reference-search-input')),
+      owner.username,
+    );
+    await tester.pumpAndSettle();
+    final result = find.byKey(ValueKey('reference-shop-${owner.id}'));
+    await tester.ensureVisible(result);
+    await tester.tap(result);
+    await tester.pumpAndSettle();
+    // Normalan ekran: AppBar s nazivom i povratkom, bez panela.
+    expect(find.byType(PublicProfileScreen), findsOneWidget);
+    expect(find.byType(AppBar), findsWidgets);
+    expect(find.byKey(const ValueKey('reference-sheet-close')), findsNothing);
+    expect(find.text(owner.shopTitle), findsWidgets);
+    // Sistemski Back (Android) vraća na pretragu.
+    await tester.binding.handlePopRoute();
+    await tester.pumpAndSettle();
+    expect(
+      tester
+          .widget<TextField>(
+            find.byKey(const ValueKey('reference-search-input')),
+          )
+          .controller!
+          .text,
+      owner.username,
+    );
     await tester.tap(find.byKey(const ValueKey('search-back')));
     await tester.pumpAndSettle();
     expect(find.byKey(const ValueKey('home-search')), findsOneWidget);

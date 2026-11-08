@@ -572,7 +572,7 @@ class DeliveryDetailScreen extends ConsumerWidget {
   final String deliveryId;
 
   static Future<void> open(BuildContext context, String id) => kSimpleDesign
-      ? openReferenceSheet<void>(
+      ? openScreen<void>(
           context,
           title: t('Praćenje pošiljke'),
           scaffoldContent: true,
@@ -1567,7 +1567,7 @@ class DeliveryNotesScreen extends ConsumerStatefulWidget {
 
   static Future<void> open(BuildContext context, {ShipGroup? group}) =>
       kSimpleDesign
-      ? openReferenceSheet<void>(
+      ? openScreen<void>(
           context,
           title: t('Otprema'),
           scaffoldContent: true,

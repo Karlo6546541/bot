@@ -49,7 +49,7 @@ class PublicProfileScreen extends ConsumerStatefulWidget {
     ).read(appProvider).userById(userId);
     final settings = AppPlace.of('shop', user?.username ?? '').settings;
     if (kSimpleDesign) {
-      return openReferenceSheet<void>(
+      return openScreen<void>(
         context,
         title: user?.shopTitle ?? 'Shop',
         settings: settings,
@@ -168,11 +168,7 @@ class _PublicProfileScreenState extends ConsumerState<PublicProfileScreen> {
     final other = user;
     return Scaffold(
       appBar: AppBar(
-        toolbarHeight: kSimpleDesign ? 44 : null,
-        automaticallyImplyLeading: !kSimpleDesign,
-        title: kSimpleDesign
-            ? null
-            : Text(user.shopTitle, overflow: TextOverflow.ellipsis),
+        title: Text(user.shopTitle, overflow: TextOverflow.ellipsis),
         actions: [
           IconButton(
             tooltip: t('O prodavatelju'),
@@ -252,6 +248,7 @@ class _PublicProfileScreenState extends ConsumerState<PublicProfileScreen> {
                     rating: state.ratingOf(user.id),
                     editable: isMe,
                     shopfront: true,
+                    compact: kSimpleDesign,
                   ),
                   const SizedBox(height: 10),
                   _ShopStats(
@@ -268,6 +265,12 @@ class _PublicProfileScreenState extends ConsumerState<PublicProfileScreen> {
                     Row(
                       children: [
                         Expanded(
+                          flex: 3,
+                          child: FollowButton(userId: other.id),
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          flex: 2,
                           child: OutlinedButton.icon(
                             key: const ValueKey('profile-message'),
                             onPressed: () => ChatScreen.open(context, other.id),
@@ -275,8 +278,6 @@ class _PublicProfileScreenState extends ConsumerState<PublicProfileScreen> {
                             label: Text(t('Poruka')),
                           ),
                         ),
-                        const SizedBox(width: 10),
-                        Expanded(child: FollowButton(userId: other.id)),
                       ],
                     ),
                   ],

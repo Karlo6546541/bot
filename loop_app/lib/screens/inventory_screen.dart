@@ -155,7 +155,7 @@ class InventoryScreen extends ConsumerStatefulWidget {
   const InventoryScreen({super.key});
 
   static Future<void> open(BuildContext context) => kSimpleDesign
-      ? openReferenceSheet<void>(
+      ? openScreen<void>(
           context,
           title: t('Inventar'),
           scaffoldContent: true,
