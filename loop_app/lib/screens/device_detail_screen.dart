@@ -1,4 +1,6 @@
 import '../config/features.dart';
+import '../models/app_user.dart';
+import '../providers/app_state.dart';
 import '../services/app_location/app_location.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -80,6 +82,17 @@ class DeviceDetailScreen extends ConsumerWidget {
         device.isForSale &&
         !(device.isDigital && state.hasPurchased(device.id));
 
+    // Najniža poznata cijena dostave (paketomat); točan iznos se određuje
+    // prije potvrde plaćanja.
+    const deliveryFrom = 3.0;
+    final shortFacts = [
+      if (!device.isDigital && !isMine) device.condition.label,
+      if (device.model.isNotEmpty) device.model,
+      if (!device.isDigital && device.quantity > 1)
+        t('na zalihi: {0} kom', ['${device.quantity}']),
+      if (device.hasDiscount) discountLabel(device),
+    ].join(' · ');
+
     final gallery = ItemGallery(
       // Ključ: nakon dodavanja/brisanja slike galerija kreće iznova.
       key: ValueKey(device.imagePaths.join('|')),
@@ -106,53 +119,49 @@ class DeviceDetailScreen extends ConsumerWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   if (!wide) gallery,
-                  const SizedBox(height: 18),
+                  const SizedBox(height: 14),
                   Text(
                     device.name,
+                    key: const ValueKey('item-title'),
                     style: const TextStyle(
-                      fontSize: 30,
+                      fontSize: 22,
                       fontWeight: FontWeight.w700,
-                      letterSpacing: -0.6,
-                      height: 1.15,
+                      letterSpacing: -0.3,
+                      height: 1.2,
                     ),
                   ),
-                  const SizedBox(height: 4),
-                  Text(
-                    // Kupcu: model i stanje u jednom retku.
-                    isMine || device.isDigital
-                        ? device.model
-                        : [
-                            if (device.model.isNotEmpty) device.model,
-                            device.condition.label,
-                          ].join(' · '),
-                    style: TextStyle(
-                      color: LoopColors.textSecondary,
-                      fontSize: 16,
-                    ),
-                  ),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 8),
                   PriceTag(
                     device: device,
                     price: isMine ? device.askPrice : buyTotal(price),
                     basePrice: isMine ? null : device.shownBasePrice,
-                    fontSize: 26,
+                    fontSize: 24,
                   ),
                   if (!isMine) ...[
-                    const SizedBox(height: 8),
-                    const BuyerProtectionBadge(),
+                    const SizedBox(height: 4),
+                    Text(
+                      key: const ValueKey('delivery-estimate'),
+                      device.isDigital
+                          ? t('Digitalno — preuzimanje odmah, bez dostave')
+                          : t(
+                              'Dostava od {0} — točan iznos ovisi o načinu dostave i prikazuje se prije potvrde plaćanja.',
+                              [formatCredits(deliveryFrom)],
+                            ),
+                      style: TextStyle(
+                        color: LoopColors.textSecondary,
+                        fontSize: 13,
+                      ),
+                    ),
                   ],
-                  if (device.isListed) ...[
+                  // Kratak red: stanje, model, zaliha, popust.
+                  if (shortFacts.isNotEmpty) ...[
                     const SizedBox(height: 6),
                     Text(
-                      [
-                        t('Kupi odmah'),
-                        if (!device.isDigital && device.quantity > 1)
-                          t('na zalihi: {0} kom', ['${device.quantity}']),
-                        if (device.hasDiscount) discountLabel(device),
-                      ].join(' · '),
+                      shortFacts,
+                      key: const ValueKey('item-facts'),
                       style: TextStyle(
-                        color: LoopColors.buyNow,
-                        fontWeight: FontWeight.w800,
+                        color: LoopColors.textSecondary,
+                        fontSize: 14,
                       ),
                     ),
                   ],
@@ -172,7 +181,7 @@ class DeviceDetailScreen extends ConsumerWidget {
                       ),
                     ),
                   ],
-                  const SizedBox(height: 20),
+                  const SizedBox(height: 12),
                 ],
               ),
             ),
@@ -189,127 +198,134 @@ class DeviceDetailScreen extends ConsumerWidget {
                 buyers: state.buyersCount(device.id),
               ),
             ],
-            if (device.description.isNotEmpty) ...[
-              const SizedBox(height: 16),
+            if (device.description.isNotEmpty &&
+                device.description.trim() != device.name.trim()) ...[
+              const Divider(height: 1),
               DescriptionCard(text: device.description),
             ],
-            const SizedBox(height: 16),
-            Card(
-              child: Column(
-                children: [
-                  if (isMine)
-                    _Spec(
-                      Icons.category_outlined,
-                      t('Kategorija'),
-                      cat.singular,
-                      cat.color,
-                    ),
-                  if (!device.isDigital && isMine)
-                    _Spec(
-                      Icons.verified_outlined,
-                      t('Stanje'),
-                      device.condition.label,
-                      device.condition.color,
-                    ),
-                  if (isMine || owner == null)
-                    _Spec(
-                      Icons.person_outline,
-                      device.isListed || owner == null
-                          ? t('Prodavatelj')
-                          : t('Vlasnik'),
-                      isMine ? t('Ti') : state.userLabel(device.ownerId),
-                      null,
-                    )
-                  else
-                    ListTile(
-                      leading: UserAvatar(user: owner, size: 32),
-                      title: Text(
-                        device.isListed ? t('Prodavatelj') : t('Vlasnik'),
+            if (!isMine) ...[
+              const Divider(height: 1),
+              _BuyerInfo(device: device, owner: owner, state: state),
+            ] else
+              Card(
+                child: Column(
+                  children: [
+                    if (isMine)
+                      _Spec(
+                        Icons.category_outlined,
+                        t('Kategorija'),
+                        cat.singular,
+                        cat.color,
                       ),
-                      subtitle: Align(
-                        alignment: Alignment.centerLeft,
-                        child: RatingBadge(
-                          rating: state.ratingOf(owner.id),
-                          compact: true,
-                        ),
+                    if (!device.isDigital && isMine)
+                      _Spec(
+                        Icons.verified_outlined,
+                        t('Stanje'),
+                        device.condition.label,
+                        device.condition.color,
                       ),
-                      trailing: UserHandle(
-                        user: owner,
-                        onTap: () =>
-                            PublicProfileScreen.open(context, owner.id),
-                      ),
-                      onTap: () => PublicProfileScreen.open(context, owner.id),
-                    ),
-                  if (owner != null && !isMine)
-                    Padding(
-                      padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
-                      child: Row(
-                        children: [
-                          Expanded(
-                            child: Text(
-                              t('{0} pratitelja · {1} prodaja', [
-                                '${state.followersOf(owner.id)}',
-                                '${state.salesCountOf(owner.id)}',
-                              ]),
-                              style: TextStyle(
-                                color: LoopColors.textSecondary,
-                                fontSize: 13,
-                              ),
-                            ),
-                          ),
-                          FollowButton(userId: owner.id, compact: true),
-                        ],
-                      ),
-                    ),
-                  // Privatna osoba ili trgovac — o tome ovise prava kupca
-                  // (DSA: trgovac je jasno označen, s podacima za kontakt).
-                  if (owner != null && device.isListed && !isMine)
-                    if (owner.traderInfo case final info?)
-                      ListTile(
-                        key: const ValueKey('seller-type'),
-                        leading: Icon(
-                          Icons.storefront_outlined,
-                          color: LoopColors.textSecondary,
-                        ),
-                        title: Text(t('Trgovac: {0}', [info.name])),
-                        subtitle: Text(
-                          [
-                            buyerRightsText(owner),
-                            [
-                              info.address,
-                              'OIB ${info.oib}',
-                              if (info.vatId.isNotEmpty) 'PDV ${info.vatId}',
-                              info.email,
-                              info.phone,
-                            ].join(' · '),
-                          ].join('\n'),
-                        ),
-                        isThreeLine: true,
+                    if (isMine || owner == null)
+                      _Spec(
+                        Icons.person_outline,
+                        device.isListed || owner == null
+                            ? t('Prodavatelj')
+                            : t('Vlasnik'),
+                        isMine ? t('Ti') : state.userLabel(device.ownerId),
+                        null,
                       )
                     else
                       ListTile(
-                        key: const ValueKey('seller-type'),
-                        leading: Icon(
-                          Icons.person_outline,
-                          color: LoopColors.textSecondary,
+                        leading: UserAvatar(user: owner, size: 32),
+                        title: Text(
+                          device.isListed ? t('Prodavatelj') : t('Vlasnik'),
                         ),
-                        title: Text(t('Privatni prodavatelj (fizička osoba)')),
-                        subtitle: Text(
-                          t(
-                            'Kupnja od fizičke osobe: zakonsko pravo na povrat od 14 dana ne vrijedi.',
+                        subtitle: Align(
+                          alignment: Alignment.centerLeft,
+                          child: RatingBadge(
+                            rating: state.ratingOf(owner.id),
+                            compact: true,
                           ),
                         ),
+                        trailing: UserHandle(
+                          user: owner,
+                          onTap: () =>
+                              PublicProfileScreen.open(context, owner.id),
+                        ),
+                        onTap: () =>
+                            PublicProfileScreen.open(context, owner.id),
                       ),
-                  if (isMine)
-                    _Spec(
-                      Icons.schedule,
-                      t('Dodano'),
-                      formatDateTime(device.createdAt),
-                      null,
-                    ),
-                ],
+                    if (owner != null && !isMine)
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+                        child: Row(
+                          children: [
+                            Expanded(
+                              child: Text(
+                                t('{0} pratitelja · {1} prodaja', [
+                                  '${state.followersOf(owner.id)}',
+                                  '${state.salesCountOf(owner.id)}',
+                                ]),
+                                style: TextStyle(
+                                  color: LoopColors.textSecondary,
+                                  fontSize: 13,
+                                ),
+                              ),
+                            ),
+                            FollowButton(userId: owner.id, compact: true),
+                          ],
+                        ),
+                      ),
+                    // Privatna osoba ili trgovac — o tome ovise prava kupca
+                    // (DSA: trgovac je jasno označen, s podacima za kontakt).
+                    if (owner != null && device.isListed && !isMine)
+                      if (owner.traderInfo case final info?)
+                        ListTile(
+                          key: const ValueKey('seller-type'),
+                          leading: Icon(
+                            Icons.storefront_outlined,
+                            color: LoopColors.textSecondary,
+                          ),
+                          title: Text(t('Trgovac: {0}', [info.name])),
+                          subtitle: Text(
+                            [
+                              buyerRightsText(owner),
+                              [
+                                info.address,
+                                'OIB ${info.oib}',
+                                if (info.vatId.isNotEmpty) 'PDV ${info.vatId}',
+                                info.email,
+                                info.phone,
+                              ].join(' · '),
+                            ].join('\n'),
+                          ),
+                          isThreeLine: true,
+                        )
+                      else
+                        ListTile(
+                          key: const ValueKey('seller-type'),
+                          leading: Icon(
+                            Icons.person_outline,
+                            color: LoopColors.textSecondary,
+                          ),
+                          title: Text(
+                            t('Privatni prodavatelj (fizička osoba)'),
+                          ),
+                          subtitle: Text(
+                            t(
+                              'Kupnja od fizičke osobe: zakonsko pravo na povrat od 14 dana ne vrijedi.',
+                            ),
+                          ),
+                        ),
+                    if (isMine)
+                      _Spec(
+                        Icons.schedule,
+                        t('Dodano'),
+                        formatDateTime(device.createdAt),
+                        null,
+                      ),
+                  ],
+                ),
               ),
-            ),
             if (isMine) ...[
               const SizedBox(height: 16),
               Card(
@@ -558,26 +574,12 @@ class DeviceDetailScreen extends ConsumerWidget {
                 label: Text(t('Licitiraj')),
               ),
             ] else if (kBuyNowEnabled && device.isForSale) ...[
-              if (device.isListed && owner != null) ...[
-                const SizedBox(height: 10),
-                BuyerBargainCard(device: device),
-                const SizedBox(height: 10),
-                OutlinedButton.icon(
-                  key: const ValueKey('message-seller'),
-                  onPressed: () =>
-                      ChatScreen.open(context, owner.id, deviceId: device.id),
-                  icon: const Icon(Icons.chat_bubble_outline),
-                  label: Text(t('Pošalji poruku')),
+              // Pregovaranje je sporedna radnja (nije aukcijska ponuda).
+              if (device.isListed && owner != null)
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: BuyerBargainCard(device: device),
                 ),
-              ],
-            ] else if (owner != null) ...[
-              OutlinedButton.icon(
-                key: const ValueKey('message-seller'),
-                onPressed: () =>
-                    ChatScreen.open(context, owner.id, deviceId: device.id),
-                icon: const Icon(Icons.chat_bubble_outline),
-                label: Text(t('Pošalji poruku')),
-              ),
             ],
           ],
         ),
@@ -589,85 +591,44 @@ class DeviceDetailScreen extends ConsumerWidget {
           ? null
           : SafeArea(
               child: Container(
-                padding: const EdgeInsets.fromLTRB(20, 12, 20, 12),
+                padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
                 decoration: BoxDecoration(
                   color: LoopColors.surface,
-                  boxShadow: LoopColors.softShadow,
+                  border: Border(
+                    top: BorderSide(
+                      color: LoopColors.textPrimary.withValues(alpha: .08),
+                    ),
+                  ),
                 ),
                 child: Center(
                   heightFactor: 1,
                   child: ConstrainedBox(
                     constraints: const BoxConstraints(maxWidth: 900),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        Row(
-                          children: [
-                            Expanded(
-                              child: Text(
-                                wide ? device.name : t('Cijena'),
-                                maxLines: 2,
-                                overflow: TextOverflow.ellipsis,
-                                style: TextStyle(
-                                  color: LoopColors.textSecondary,
-                                  fontSize: 14,
-                                ),
-                              ),
-                            ),
-                            const SizedBox(width: 16),
-                            Flexible(
-                              child: Text(
-                                formatCredits(buyTotal(price)),
-                                style: const TextStyle(
-                                  fontWeight: FontWeight.w600,
-                                  fontSize: 24,
-                                  letterSpacing: -.5,
-                                ),
-                              ),
-                            ),
-                          ],
+                    // Niska traka: samo glavna radnja. Cijena i dostava su
+                    // u sadržaju, ne ponavljaju se ovdje.
+                    child: SizedBox(
+                      width: double.infinity,
+                      child: FilledButton.icon(
+                        key: const ValueKey('buy-now'),
+                        style: FilledButton.styleFrom(
+                          minimumSize: const Size(0, 48),
                         ),
-                        if (!device.isDigital)
-                          Padding(
-                            padding: const EdgeInsets.only(top: 2),
-                            child: Text(
-                              t(
-                                'Dostava se dodaje prije plaćanja — konačni iznos vidiš prije potvrde.',
-                              ),
-                              style: TextStyle(
-                                color: LoopColors.textSecondary,
-                                fontSize: 12,
-                              ),
-                            ),
-                          ),
-                        const SizedBox(height: 10),
-                        FilledButton.icon(
-                          key: const ValueKey('buy-now'),
-                          style: FilledButton.styleFrom(
-                            minimumSize: Size(wide ? 180 : 0, 56),
-                          ),
-                          onPressed: () async {
-                            final ok = await confirmAndBuy(
-                              context,
-                              ref,
-                              device,
-                            );
-                            if (ok && !device.isDigital && context.mounted) {
-                              Navigator.pop(context);
-                            }
-                          },
-                          icon: const Icon(Icons.shopping_bag_outlined),
-                          label: Text(t('Kupi odmah')),
-                        ),
-                      ],
+                        onPressed: () async {
+                          final ok = await confirmAndBuy(context, ref, device);
+                          if (ok && !device.isDigital && context.mounted) {
+                            Navigator.pop(context);
+                          }
+                        },
+                        icon: const Icon(Icons.shopping_bag_outlined),
+                        label: Text(t('Kupi odmah')),
+                      ),
                     ),
                   ),
                 ),
               ),
             ),
       appBar: AppBar(
-        title: Text(device.name, overflow: TextOverflow.ellipsis),
+        // Naziv je odmah ispod fotografije — bez ponavljanja u traci.
         actions: [
           if (device.isForSale)
             ShareButton(
@@ -1171,6 +1132,182 @@ class _AddTile extends StatelessWidget {
           ],
         ),
       ),
+    );
+  }
+}
+
+/// Podaci za kupca bez kartica: kratki redovi, dostava i zaštita u jednom
+/// retku, prodavač u jednom kompaktnom bloku.
+class _BuyerInfo extends StatelessWidget {
+  const _BuyerInfo({
+    required this.device,
+    required this.owner,
+    required this.state,
+  });
+  final Device device;
+  final AppUser? owner;
+  final AppState state;
+
+  @override
+  Widget build(BuildContext context) {
+    final secondary = TextStyle(color: LoopColors.textSecondary, fontSize: 13);
+    Widget row(String label, String value) => Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      child: Row(
+        children: [
+          Expanded(child: Text(label, style: secondary)),
+          Flexible(
+            child: Text(
+              value,
+              textAlign: TextAlign.end,
+              style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+            ),
+          ),
+        ],
+      ),
+    );
+    final rows = <(String, String)>[
+      if (!device.isDigital) (t('Stanje'), device.condition.label),
+      if (device.model.isNotEmpty) (t('Model'), device.model),
+      (t('Kategorija'), device.category.singular),
+    ];
+    final o = owner;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        const SizedBox(height: 4),
+        for (final (i, r) in rows.indexed) ...[
+          if (i > 0) const Divider(height: 1),
+          row(r.$1, r.$2),
+        ],
+        const Divider(height: 1),
+        InkWell(
+          key: const ValueKey('buyer-protection-row'),
+          onTap: () => BuyerProtectionBadge.explain(context),
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(minHeight: 48),
+            child: Row(
+              children: [
+                Icon(
+                  Icons.verified_user_outlined,
+                  size: 18,
+                  color: LoopColors.textSecondary,
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    t('Dostava i zaštita kupca'),
+                    style: const TextStyle(fontSize: 14),
+                  ),
+                ),
+                const Icon(Icons.chevron_right, size: 20),
+              ],
+            ),
+          ),
+        ),
+        const Divider(height: 1),
+        if (o == null)
+          row(t('Prodavatelj'), state.userLabel(device.ownerId))
+        else ...[
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              Expanded(
+                child: InkWell(
+                  key: const ValueKey('seller-block'),
+                  onTap: () => PublicProfileScreen.open(context, o.id),
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(minHeight: 48),
+                    child: Row(
+                      children: [
+                        UserAvatar(user: o, size: 36),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                o.shopTitle,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                              RatingBadge(
+                                rating: state.ratingOf(o.id),
+                                compact: true,
+                              ),
+                            ],
+                          ),
+                        ),
+                        const Icon(Icons.chevron_right, size: 20),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              OutlinedButton(
+                key: const ValueKey('message-seller'),
+                style: OutlinedButton.styleFrom(
+                  minimumSize: const Size(48, 44),
+                  visualDensity: VisualDensity.compact,
+                ),
+                onPressed: () =>
+                    ChatScreen.open(context, o.id, deviceId: device.id),
+                child: Text(t('Poruka')),
+              ),
+            ],
+          ),
+          // Vrsta prodavatelja određuje prava kupca (DSA): sažeto, s
+          // podacima trgovca kad postoje.
+          if (device.isListed)
+            Padding(
+              padding: const EdgeInsets.only(top: 6, bottom: 8),
+              child: Column(
+                key: const ValueKey('seller-type'),
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  if (o.traderInfo case final info?) ...[
+                    Text(
+                      t('Trgovac: {0}', [info.name]),
+                      style: const TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    Text(buyerRightsText(o), style: secondary),
+                    Text(
+                      [
+                        info.address,
+                        'OIB ${info.oib}',
+                        if (info.vatId.isNotEmpty) 'PDV ${info.vatId}',
+                        info.email,
+                        info.phone,
+                      ].join(' · '),
+                      style: secondary,
+                    ),
+                  ] else ...[
+                    Text(
+                      t('Privatni prodavatelj (fizička osoba)'),
+                      style: const TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    Text(
+                      t(
+                        'Kupnja od fizičke osobe: zakonsko pravo na povrat od 14 dana ne vrijedi.',
+                      ),
+                      style: secondary,
+                    ),
+                  ],
+                ],
+              ),
+            ),
+        ],
+      ],
     );
   }
 }

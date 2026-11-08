@@ -72,9 +72,21 @@ void main() {
       expect(view.contains(rect.topLeft), isTrue, reason: '$rect');
       expect(view.contains(rect.bottomRight), isTrue, reason: '$rect');
       expect(rect.height, greaterThanOrEqualTo(44));
+      // Niska traka: samo gumb (bez ponovljene cijene), naziv samo jednom.
+      expect(rect.height, lessThanOrEqualTo(56));
+      expect(find.byKey(const ValueKey('item-title')), findsOneWidget);
+      expect(find.byKey(const ValueKey('delivery-estimate')), findsOneWidget);
+      expect(find.text(seed.name), findsOneWidget);
       // Opis se pomiče, kupovna traka ostaje na mjestu.
       await tester.drag(find.byType(ListView).first, const Offset(0, -400));
       await tester.pump();
+      expect(tester.getRect(buy), rect);
+      await tester.scrollUntilVisible(
+        find.byKey(const ValueKey('seller-block')),
+        300,
+        scrollable: find.byType(Scrollable).first,
+      );
+      expect(find.byKey(const ValueKey('seller-block')), findsOneWidget);
       expect(tester.getRect(buy), rect);
       expect(tester.takeException(), isNull);
     });

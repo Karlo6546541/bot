@@ -3415,6 +3415,10 @@ const kEn = <String, String>{
   'Dodaj prvi predmet u svoj shop.': 'Add your first item to your shop.',
   'Shop još nema proizvoda.': 'This shop has no products yet.',
   'Podijeli profil': 'Share profile',
+  'Dostava od {0} — točan iznos ovisi o načinu dostave i prikazuje se prije potvrde plaćanja.':
+      'Delivery from {0} — the exact amount depends on the delivery method and is shown before you confirm payment.',
+  'Digitalno — preuzimanje odmah, bez dostave':
+      'Digital — instant download, no delivery',
   'Zakaži show': 'Schedule a show',
   'Otprema': 'Shipping',
   'Nema paketa za predaju': 'No parcels to hand over',

@@ -150,10 +150,15 @@ class _ItemGalleryState extends State<ItemGallery> {
                 onTap: () => PhotoViewer.open(context, photos, initial: i),
                 child: MouseRegion(
                   cursor: SystemMouseCursors.zoomIn,
-                  child: LocalPhoto(
-                    path: photos[i],
-                    fallback: illustration,
-                    cacheWidth: 1200,
+                  // Bez rezanja: cijela fotografija, neutralna podloga.
+                  child: ColoredBox(
+                    color: LoopColors.surfaceHover,
+                    child: LocalPhoto(
+                      path: photos[i],
+                      fit: BoxFit.contain,
+                      fallback: illustration,
+                      cacheWidth: 1200,
+                    ),
                   ),
                 ),
               ),
