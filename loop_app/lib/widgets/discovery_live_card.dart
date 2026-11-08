@@ -140,8 +140,16 @@ class LiveGridCard extends StatelessWidget {
     this.device,
     this.priceLabel,
     this.soon = false,
+    this.badge,
+    this.onHost,
   });
   final LiveShow show;
+
+  /// Tekst oznake na naslovnici (npr. datum najavljenog prijenosa).
+  final String? badge;
+
+  /// Dodir na avatar ili ime prodavača (ne otvara show).
+  final VoidCallback? onHost;
   final AppUser? host;
   final Device? device;
   final int viewers;
@@ -181,7 +189,7 @@ class LiveGridCard extends StatelessWidget {
                         borderRadius: BorderRadius.circular(8),
                       ),
                       child: Text(
-                        soon ? t('USKORO') : '● ${t('UŽIVO')}',
+                        badge ?? (soon ? t('USKORO') : '● ${t('UŽIVO')}'),
                         style: const TextStyle(
                           color: Colors.white,
                           fontSize: 12,
@@ -258,22 +266,35 @@ class LiveGridCard extends StatelessWidget {
             style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w700),
           ),
           const SizedBox(height: 4),
-          Row(
-            children: [
-              UserAvatar(user: host, size: 24),
-              const SizedBox(width: 6),
-              Expanded(
-                child: Text(
-                  host?.handle ?? show.hostLabel,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    fontSize: 14,
-                    color: LoopColors.textSecondary,
-                  ),
+          Semantics(
+            button: onHost != null,
+            label: t('Profil prodavača: {0}', [host?.handle ?? show.hostLabel]),
+            excludeSemantics: true,
+            child: InkWell(
+              key: ValueKey('card-host-${show.id}'),
+              onTap: onHost,
+              borderRadius: BorderRadius.circular(8),
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(minHeight: 32),
+                child: Row(
+                  children: [
+                    UserAvatar(user: host, size: 24),
+                    const SizedBox(width: 6),
+                    Expanded(
+                      child: Text(
+                        host?.handle ?? show.hostLabel,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: LoopColors.textSecondary,
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ),
-            ],
+            ),
           ),
         ],
       ),

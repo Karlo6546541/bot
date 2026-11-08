@@ -3419,6 +3419,11 @@ const kEn = <String, String>{
       'Delivery from {0} — the exact amount depends on the delivery method and is shown before you confirm payment.',
   'Digitalno — preuzimanje odmah, bez dostave':
       'Digital — instant download, no delivery',
+  'Trenutno nema prijenosa uživo.': 'There are no live streams right now.',
+  '{0} proizvoda': '{0} products',
+  'Prodavači koje pratiš trenutno nemaju prijenosa.':
+      'Sellers you follow have no streams right now.',
+  'Profil prodavača: {0}': 'Seller profile: {0}',
   'Zakaži show': 'Schedule a show',
   'Otprema': 'Shipping',
   'Nema paketa za predaju': 'No parcels to hand over',

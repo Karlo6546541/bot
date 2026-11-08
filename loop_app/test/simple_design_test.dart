@@ -13,6 +13,8 @@ import 'package:loop_app/models/price_offer.dart';
 import 'package:loop_app/providers/app_providers.dart';
 import 'package:loop_app/screens/activity_view.dart';
 import 'package:loop_app/screens/public_profile_screen.dart';
+import 'package:loop_app/screens/live_screens.dart';
+import 'package:loop_app/services/live_service.dart';
 import 'package:loop_app/services/seed_data.dart';
 import 'package:loop_app/services/storage_service.dart';
 import 'package:loop_app/services/trade_service.dart';
@@ -184,7 +186,7 @@ void main() {
     await mainTab(tester, 'Početna');
     final shops = find.byWidgetPredicate(
       (widget) =>
-          widget.runtimeType.toString() == '_SellerCard' &&
+          widget.runtimeType.toString() == '_SellerChip' &&
           widget.key is ValueKey<String> &&
           (widget.key as ValueKey<String>).value.startsWith('home-seller-'),
     );
@@ -417,7 +419,7 @@ void main() {
     await tester.pumpAndSettle();
     final shops = find.byWidgetPredicate(
       (w) =>
-          w.runtimeType.toString() == '_SellerCard' &&
+          w.runtimeType.toString() == '_SellerChip' &&
           w.key is ValueKey<String> &&
           (w.key as ValueKey<String>).value.startsWith('home-seller-'),
     );
@@ -456,4 +458,61 @@ void main() {
     expect(find.byKey(const ValueKey('home-search')), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
+
+  for (final size in [
+    const Size(360, 740),
+    const Size(430, 932),
+    const Size(1280, 800),
+  ]) {
+    testWidgets('Početna: kartice showova, avatar vodi na profil na $size', (
+      tester,
+    ) async {
+      tester.view.physicalSize = size;
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
+      final live = LiveService(storage);
+      final show = await live.create(
+        hostId: SeedData.anaUserId,
+        title: 'Ana uživo',
+      );
+      final soon = await live.create(
+        hostId: SeedData.markoUserId,
+        title: 'Marko uskoro',
+        startsAt: DateTime.now().add(const Duration(days: 2)),
+      );
+      await tester.pumpWidget(app());
+      await tester.pumpAndSettle();
+      // Tabovi i kategorije su zasebni redovi.
+      expect(find.byKey(const ValueKey('home-tabs')), findsOneWidget);
+      expect(find.byKey(const ValueKey('home-categories')), findsOneWidget);
+      final card = find.byKey(ValueKey('home-featured-live-${show.id}'));
+      expect(card, findsOneWidget);
+      expect(
+        find.byKey(ValueKey('home-featured-live-${soon.id}')),
+        findsOneWidget,
+      );
+      // Nema velikih gumba Prati / Posjeti shop na karticama.
+      expect(find.byKey(const ValueKey('follow')), findsNothing);
+      expect(tester.takeException(), isNull, reason: 'home');
+      // Dodir avatara/imena otvara profil, ne show.
+      await tester.tap(find.byKey(ValueKey('card-host-${show.id}')));
+      await tester.pumpAndSettle();
+      expect(find.byType(PublicProfileScreen), findsOneWidget);
+      expect(find.byType(LiveRoomScreen), findsNothing);
+      expect(tester.takeException(), isNull, reason: 'profile');
+      await tester.binding.handlePopRoute();
+      await tester.pumpAndSettle();
+      // Dodir kartice otvara upravo taj live.
+      await tester.tap(card);
+      await tester.pumpAndSettle();
+      expect(
+        tester.widget<LiveRoomScreen>(find.byType(LiveRoomScreen)).showId,
+        show.id,
+      );
+      await tester.binding.handlePopRoute();
+      await tester.pumpAndSettle();
+      expect(find.byKey(const ValueKey('home-tabs')), findsOneWidget);
+      expect(tester.takeException(), isNull);
+    });
+  }
 }

@@ -13,9 +13,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../l10n/tr.dart';
-import '../models/review.dart' show Rating;
-import '../services/demo_accounts.dart';
-import '../widgets/shop_widgets.dart' show FollowButton;
 import '../widgets/user_avatar.dart';
 import '../models/app_user.dart';
 import '../models/device.dart';
@@ -299,6 +296,49 @@ class _LiveHomeScreenState extends ConsumerState<LiveHomeScreen> {
           i,
     ];
 
+    // Kompaktne vizualne kartice showova (2 stupca na mobitelu).
+    Widget showsGrid(String key, List<BrowseItem> list, {bool soon = false}) =>
+        SliverPadding(
+          key: ValueKey(key),
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          sliver: SliverLayoutBuilder(
+            builder: (context, c) {
+              final cols = c.crossAxisExtent >= 900
+                  ? 5
+                  : c.crossAxisExtent >= 600
+                  ? 3
+                  : 2;
+              final w = (c.crossAxisExtent - (cols - 1) * 12) / cols;
+              final scale = MediaQuery.textScalerOf(context).scale(14) / 14;
+              return SliverGrid(
+                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: cols,
+                  mainAxisSpacing: 16,
+                  crossAxisSpacing: 12,
+                  mainAxisExtent: w * 4 / 3 + 66 * scale.clamp(1, 2),
+                ),
+                delegate: SliverChildBuilderDelegate((_, index) {
+                  final item = list[index];
+                  final show = item.show!;
+                  return LiveGridCard(
+                    key: ValueKey('home-featured-live-${show.id}'),
+                    show: show,
+                    host: s.userById(show.hostId),
+                    device: item.device,
+                    soon: soon,
+                    badge: soon ? formatDateTime(show.startsAt) : null,
+                    priceLabel: soon ? null : livePriceLabel(item.live!),
+                    viewers: soon ? 0 : item.live!.viewers,
+                    onTap: () => LiveRoomScreen.open(context, show.id),
+                    onHost: () =>
+                        PublicProfileScreen.open(context, show.hostId),
+                  );
+                }, childCount: list.length),
+              );
+            },
+          ),
+        );
+
     final slivers = <Widget>[];
     switch (_filter) {
       case _Following():
@@ -334,18 +374,26 @@ class _LiveHomeScreenState extends ConsumerState<LiveHomeScreen> {
             ),
           );
           slivers.add(const SliverToBoxAdapter(child: SizedBox(height: 12)));
+          final theirShows = [
+            for (final i in theirs)
+              if (i.show != null && i.live != null) i,
+          ];
           slivers.add(
-            theirs.isEmpty
+            theirShows.isEmpty
                 ? SliverToBoxAdapter(
                     child: Padding(
                       padding: const EdgeInsets.all(16),
                       child: Text(
-                        t('Računi koje pratiš trenutno nemaju oglasa.'),
+                        t('Prodavači koje pratiš trenutno nemaju prijenosa.'),
                         style: TextStyle(color: LoopColors.textSecondary),
                       ),
                     ),
                   )
-                : grid('home-following', theirs, t('Pratim')),
+                : showsGrid(
+                    'home-following',
+                    theirShows,
+                    soon: !theirShows.any((i) => i.live!.isLive),
+                  ),
           );
         }
       case _ForYou():
@@ -412,113 +460,17 @@ class _LiveHomeScreenState extends ConsumerState<LiveHomeScreen> {
                 child: sectionTitle(t('Uživo sada'), live: true),
               ),
             );
-
-            slivers.add(
-              SliverPadding(
-                key: const ValueKey('home-live-discovery'),
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                sliver: SliverLayoutBuilder(
-                  builder: (context, c) {
-                    final w = (c.crossAxisExtent - 12) / 2;
-                    final scale =
-                        MediaQuery.textScalerOf(context).scale(14) / 14;
-                    return SliverGrid(
-                      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                        crossAxisCount: 2,
-                        mainAxisSpacing: 16,
-                        crossAxisSpacing: 12,
-                        mainAxisExtent: w * 4 / 3 + 62 * scale.clamp(1, 2),
-                      ),
-                      delegate: SliverChildBuilderDelegate((_, index) {
-                        final item = liveNow[index];
-                        return LiveGridCard(
-                          key: ValueKey('home-featured-live-${item.show!.id}'),
-                          show: item.show!,
-                          host: s.userById(item.show!.hostId),
-                          device: item.device,
-                          priceLabel: livePriceLabel(item.live!),
-                          viewers: item.live!.viewers,
-                          onTap: () =>
-                              LiveRoomScreen.open(context, item.show!.id),
-                        );
-                      }, childCount: liveNow.length),
-                    );
-                  },
-                ),
-              ),
-            );
-          }
-          // Prodavači: prvo oni koji su uživo, zatim s najavljenim prijenosom,
-          // pa ostali (novi, s manje pratitelja, ne uvijek isti računi).
-          final liveHosts = {for (final i in liveNow) i.show!.hostId};
-          final soonHosts = {for (final i in upcoming) i.show!.hostId}
-            ..removeAll(liveHosts);
-          final others =
-              <String>{
-                for (final u in s.users)
-                  if (u.id != me &&
-                      !u.isGuest &&
-                      !u.pendingDeletion &&
-                      !liveHosts.contains(u.id) &&
-                      !soonHosts.contains(u.id) &&
-                      s.listingsOf(u.id).isNotEmpty)
-                    u.id,
-              }.toList()..sort((a, b) {
-                final c = s.followersOf(a).compareTo(s.followersOf(b));
-                return c != 0 ? c : a.compareTo(b);
-              });
-          final sellers = [
-            ...liveHosts,
-            ...soonHosts,
-            ...others,
-          ].where((id) => id != me).take(liveNow.isEmpty ? 6 : 4).toList();
-          if (sellers.isNotEmpty) {
+            slivers.add(showsGrid('home-live-discovery', liveNow));
+          } else {
             slivers.add(
               SliverToBoxAdapter(
-                child: sectionTitle(
-                  liveNow.isEmpty ? t('Preporučeni prodavači') : t('Prodavači'),
-                ),
-              ),
-            );
-            slivers.add(
-              SliverPadding(
-                key: const ValueKey('home-sellers'),
-                padding: const EdgeInsets.symmetric(horizontal: 24),
-                sliver: SliverList.separated(
-                  itemCount: sellers.length,
-                  separatorBuilder: (_, _) => const SizedBox(height: 10),
-                  itemBuilder: (_, index) {
-                    final id = sellers[index];
-                    final status = liveHosts.contains(id)
-                        ? 'live'
-                        : soonHosts.contains(id)
-                        ? 'soon'
-                        : 'shop';
-                    final nextShow = status == 'soon'
-                        ? upcoming.firstWhere((i) => i.show!.hostId == id).show!
-                        : null;
-                    return _SellerCard(
-                      key: ValueKey('home-seller-$id'),
-                      user: s.userById(id),
-                      userId: id,
-                      rating: s.ratingOf(id),
-                      status: status,
-                      listings: s.listingsOf(id).length,
-                      demo: isDemoAccount(id),
-                      onOpenShop: () => PublicProfileScreen.open(context, id),
-                      onEnterLive: status == 'live'
-                          ? () {
-                              final item = liveNow.firstWhere(
-                                (i) => i.show!.hostId == id,
-                              );
-                              LiveRoomScreen.open(context, item.show!.id);
-                            }
-                          : null,
-                      onRemind: nextShow == null
-                          ? null
-                          : () => remindMe(context, ref, nextShow.id),
-                    );
-                  },
+                child: Padding(
+                  key: const ValueKey('home-no-live'),
+                  padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
+                  child: Text(
+                    t('Trenutno nema prijenosa uživo.'),
+                    style: TextStyle(color: LoopColors.textSecondary),
+                  ),
                 ),
               ),
             );
@@ -527,25 +479,61 @@ class _LiveHomeScreenState extends ConsumerState<LiveHomeScreen> {
             slivers.add(
               SliverToBoxAdapter(
                 child: sectionTitle(
-                  t('Uskoro uživo'),
+                  t('Nadolazeći showovi'),
                   onAll: () => _select(const _Soon()),
                 ),
               ),
             );
+            slivers.add(showsGrid('home-upcoming', upcoming, soon: true));
+          }
+          // Prodavači bez aktivnog ili najavljenog showa: zaseban kompaktan
+          // red; dodir otvara profil (show ne postoji).
+          final withShow = {
+            for (final i in liveNow) i.show!.hostId,
+            for (final i in upcoming) i.show!.hostId,
+          };
+          final others =
+              <String>{
+                for (final u in s.users)
+                  if (u.id != me &&
+                      !u.isGuest &&
+                      !u.pendingDeletion &&
+                      !withShow.contains(u.id) &&
+                      s.listingsOf(u.id).isNotEmpty)
+                    u.id,
+              }.toList()..sort((a, b) {
+                final c = s.followersOf(a).compareTo(s.followersOf(b));
+                return c != 0 ? c : a.compareTo(b);
+              });
+          final sellers = others.take(10).toList();
+          if (sellers.isNotEmpty) {
             slivers.add(
-              SliverPadding(
-                padding: const EdgeInsets.symmetric(horizontal: 24),
-                sliver: SliverList.list(
-                  children: [
-                    for (final item in upcoming)
-                      LiveShopRow(
-                        show: item.show!,
-                        device: item.device,
-                        subtitle: formatDateTime(item.show!.startsAt),
-                        onTap: () =>
-                            LiveRoomScreen.open(context, item.show!.id),
-                      ),
-                  ],
+              SliverToBoxAdapter(
+                child: sectionTitle(t('Preporučeni prodavači')),
+              ),
+            );
+            slivers.add(
+              SliverToBoxAdapter(
+                child: SizedBox(
+                  height: 108,
+                  child: ListView.separated(
+                    key: const ValueKey('home-sellers'),
+                    scrollDirection: Axis.horizontal,
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    itemCount: sellers.length,
+                    separatorBuilder: (_, _) => const SizedBox(width: 12),
+                    itemBuilder: (_, index) {
+                      final id = sellers[index];
+                      final user = s.userById(id);
+                      final count = s.listingsOf(id).length;
+                      return _SellerChip(
+                        key: ValueKey('home-seller-$id'),
+                        user: user,
+                        subtitle: t('{0} proizvoda', ['$count']),
+                        onTap: () => PublicProfileScreen.open(context, id),
+                      );
+                    },
+                  ),
                 ),
               ),
             );
@@ -898,20 +886,7 @@ class _LiveHomeScreenState extends ConsumerState<LiveHomeScreen> {
                     ),
                   ),
                 )
-              : SliverPadding(
-                  key: const ValueKey('home-soon'),
-                  padding: const EdgeInsets.symmetric(horizontal: 20),
-                  sliver: SliverList.builder(
-                    itemCount: soon.length,
-                    itemBuilder: (_, i) => LiveShopRow(
-                      key: ValueKey('browse-live-${soon[i].show!.id}'),
-                      show: soon[i].show!,
-                      device: soon[i].device,
-                      subtitle: formatDateTime(soon[i].show!.startsAt),
-                      onTap: () => open(soon, i, t('Uskoro')),
-                    ),
-                  ),
-                ),
+              : showsGrid('home-soon', soon, soon: true),
         );
     }
 
@@ -1098,13 +1073,55 @@ class _LiveHomeScreenState extends ConsumerState<LiveHomeScreen> {
                 ),
               ),
             ),
-            child: Text(
-              label,
-              maxLines: 1,
-              style: TextStyle(
-                fontSize: size,
-                fontWeight: on ? FontWeight.w700 : FontWeight.w500,
-                color: on ? LoopColors.textPrimary : LoopColors.textSecondary,
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
+              child: Text(
+                label,
+                maxLines: 1,
+                style: TextStyle(
+                  fontSize: size,
+                  fontWeight: on ? FontWeight.w700 : FontWeight.w500,
+                  color: on ? LoopColors.textPrimary : LoopColors.textSecondary,
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+      Widget filterChip({
+        required Key key,
+        required String label,
+        required bool on,
+        required VoidCallback onTap,
+      }) => Padding(
+        padding: const EdgeInsets.only(right: 8),
+        child: Semantics(
+          button: true,
+          selected: on,
+          label: label,
+          excludeSemantics: true,
+          child: InkWell(
+            key: key,
+            onTap: onTap,
+            borderRadius: BorderRadius.circular(12),
+            child: Container(
+              constraints: const BoxConstraints(minHeight: 36, minWidth: 44),
+              padding: const EdgeInsets.symmetric(horizontal: 14),
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                color: on
+                    ? LoopColors.textPrimary
+                    : LoopColors.textPrimary.withValues(alpha: .07),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Text(
+                label,
+                maxLines: 1,
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  color: on ? LoopColors.background : LoopColors.textPrimary,
+                ),
               ),
             ),
           ),
@@ -1177,45 +1194,64 @@ class _LiveHomeScreenState extends ConsumerState<LiveHomeScreen> {
             ],
           ),
           const SizedBox(height: 4),
-          // Jedan red tekstualnih tabova: Za tebe, Pratim, Uskoro, kategorije.
-          SizedBox(
-            height: 48,
-            child: ListView(
-              key: const ValueKey('home-categories'),
-              scrollDirection: Axis.horizontal,
-              children: [
-                textTab(
+          // Glavni tabovi: jedan red (Za tebe, Pratim, Uskoro).
+          Row(
+            key: const ValueKey('home-tabs'),
+            children: [
+              Expanded(
+                child: textTab(
                   key: const ValueKey('home-view-for-you'),
                   label: t('Za tebe'),
-                  on: !following && !soon && _cat == null,
+                  on: !following && !soon,
                   onTap: () {
-                    setState(() => _cat = null);
                     if (_filter is! _ForYou) _select(const _ForYou());
                   },
                 ),
-                textTab(
+              ),
+              Expanded(
+                child: textTab(
                   key: const ValueKey('home-view-following'),
                   label: t('Pratim'),
                   on: following,
                   onTap: () => _select(const _Following()),
                 ),
-                textTab(
+              ),
+              Expanded(
+                child: textTab(
                   key: const ValueKey('home-view-soon'),
                   label: t('Uskoro'),
                   on: soon,
                   onTap: () => _select(const _Soon()),
                 ),
+              ),
+            ],
+          ),
+          Divider(
+            height: 1,
+            color: LoopColors.textPrimary.withValues(alpha: .08),
+          ),
+          // Zaseban red filtara: kategorije (ne miješaju se s tabovima).
+          SizedBox(
+            height: 48,
+            child: ListView(
+              key: const ValueKey('home-categories'),
+              scrollDirection: Axis.horizontal,
+              padding: const EdgeInsets.symmetric(vertical: 6),
+              children: [
+                filterChip(
+                  key: const ValueKey('home-cat-all'),
+                  label: t('Sve'),
+                  on: _cat == null,
+                  onTap: () => setState(() => _cat = null),
+                ),
                 for (final c in _existingCategories(s))
-                  textTab(
+                  filterChip(
                     key: ValueKey('home-category-${c.name}'),
                     label: c.label,
-                    on: _cat == c && !soon && !following,
-                    onTap: () {
-                      if (_filter is! _ForYou) _select(const _ForYou());
-                      setState(() => _cat = _cat == c ? null : c);
-                    },
+                    on: _cat == c,
+                    onTap: () => setState(() => _cat = _cat == c ? null : c),
                   ),
-                textTab(
+                filterChip(
                   key: const ValueKey('home-all-categories'),
                   label: '${t('Kategorije')} ›',
                   on: false,
@@ -1223,10 +1259,6 @@ class _LiveHomeScreenState extends ConsumerState<LiveHomeScreen> {
                 ),
               ],
             ),
-          ),
-          Divider(
-            height: 1,
-            color: LoopColors.textPrimary.withValues(alpha: .08),
           ),
         ],
       );
@@ -1660,142 +1692,52 @@ class _CheckoutBanner extends ConsumerWidget {
   }
 }
 
-/// Preporučeni prodavač: status (Uživo / Uskoro / Shop) je izveden iz
-/// stvarnih prijenosa; Prati, Podsjeti me i Posjeti shop rade samo ondje gdje
-/// su podržani.
-class _SellerCard extends StatelessWidget {
-  const _SellerCard({
+/// Kompaktna kartica prodavača bez showa: avatar, naziv i broj proizvoda;
+/// dodir otvara profil (show ne postoji).
+class _SellerChip extends StatelessWidget {
+  const _SellerChip({
     super.key,
     required this.user,
-    required this.userId,
-    required this.rating,
-    required this.status,
-    required this.listings,
-    required this.demo,
-    required this.onOpenShop,
-    this.onEnterLive,
-    this.onRemind,
+    required this.subtitle,
+    required this.onTap,
   });
   final AppUser? user;
-  final String userId;
-  final Rating rating;
-  final String status;
-  final int listings;
-  final bool demo;
-  final VoidCallback onOpenShop;
-  final VoidCallback? onEnterLive;
-  final VoidCallback? onRemind;
+  final String subtitle;
+  final VoidCallback onTap;
 
   @override
-  Widget build(BuildContext context) {
-    final label = switch (status) {
-      'live' => t('Uživo'),
-      'soon' => t('Uskoro'),
-      _ => t('Shop'),
-    };
-    return Container(
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: LoopColors.surface,
-        borderRadius: BorderRadius.circular(20),
+  Widget build(BuildContext context) => Semantics(
+    button: true,
+    label: '${user?.shopTitle ?? t('Prodavač')}, $subtitle',
+    excludeSemantics: true,
+    child: InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(12),
+      child: SizedBox(
+        width: 96,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const SizedBox(height: 4),
+            UserAvatar(user: user, size: 56),
+            const SizedBox(height: 6),
+            Text(
+              user?.shopTitle ?? t('Prodavač'),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+            ),
+            Text(
+              subtitle,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(fontSize: 11, color: LoopColors.textSecondary),
+            ),
+          ],
+        ),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              UserAvatar(user: user, size: 48),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      user?.shopTitle ?? user?.handle ?? t('Prodavač'),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                    Text(
-                      [
-                        rating.count == 0
-                            ? t('Još nema recenzija')
-                            : '★ ${rating.average.toStringAsFixed(1)} (${rating.count})',
-                        if (demo) t('Demo'),
-                      ].join(' · '),
-                      style: TextStyle(
-                        fontSize: 13,
-                        color: LoopColors.textSecondary,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 10,
-                  vertical: 4,
-                ),
-                decoration: BoxDecoration(
-                  color: status == 'live'
-                      ? LoopColors.live
-                      : LoopColors.surfaceHover,
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Text(
-                  label,
-                  style: TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w700,
-                    color: status == 'live'
-                        ? Colors.white
-                        : LoopColors.textPrimary,
-                  ),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 10),
-          Wrap(
-            spacing: 8,
-            runSpacing: 4,
-            children: [
-              if (onEnterLive != null)
-                FilledButton(
-                  key: ValueKey('seller-enter-live-$userId'),
-                  style: FilledButton.styleFrom(
-                    minimumSize: const Size(48, 44),
-                  ),
-                  onPressed: onEnterLive,
-                  child: Text(t('Uđi u live')),
-                ),
-              if (onRemind != null)
-                OutlinedButton(
-                  key: ValueKey('seller-remind-$userId'),
-                  style: OutlinedButton.styleFrom(
-                    minimumSize: const Size(48, 44),
-                  ),
-                  onPressed: onRemind,
-                  child: Text(t('Podsjeti me')),
-                ),
-              FollowButton(userId: userId),
-              OutlinedButton(
-                key: ValueKey('seller-shop-$userId'),
-                style: OutlinedButton.styleFrom(
-                  minimumSize: const Size(48, 44),
-                ),
-                onPressed: onOpenShop,
-                child: Text(t('Posjeti shop')),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
+    ),
+  );
 }
 
 class _EmptyLive extends StatelessWidget {

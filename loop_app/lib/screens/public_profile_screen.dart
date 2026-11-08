@@ -491,15 +491,22 @@ class _PublicProfileScreenState extends ConsumerState<PublicProfileScreen> {
                         ),
                       ),
                       const SizedBox(width: 8),
-                      FilledButton(
-                        key: const ValueKey('profile-watch-live'),
-                        style: FilledButton.styleFrom(
-                          backgroundColor: LoopColors.live,
-                          foregroundColor: Colors.white,
+                      ConstrainedBox(
+                        constraints: const BoxConstraints(maxWidth: 130),
+                        child: FilledButton(
+                          key: const ValueKey('profile-watch-live'),
+                          style: FilledButton.styleFrom(
+                            backgroundColor: LoopColors.live,
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(horizontal: 12),
+                          ),
+                          onPressed: () =>
+                              LiveRoomScreen.open(context, liveNow.$1.id),
+                          child: FittedBox(
+                            fit: BoxFit.scaleDown,
+                            child: Text(t('Gledaj uživo')),
+                          ),
                         ),
-                        onPressed: () =>
-                            LiveRoomScreen.open(context, liveNow.$1.id),
-                        child: Text(t('Gledaj uživo')),
                       ),
                     ],
                   ),
