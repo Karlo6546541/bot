@@ -87,7 +87,7 @@ enum _ShopSort {
 }
 
 /// Dio trgovine koji se prikazuje.
-enum _ShopTab { items, auctions, reviews }
+enum _ShopTab { items, lives, auctions, reviews }
 
 class _PublicProfileScreenState extends ConsumerState<PublicProfileScreen> {
   String _query = '';
@@ -133,10 +133,10 @@ class _PublicProfileScreenState extends ConsumerState<PublicProfileScreen> {
   }
 
   bool _bioOpen = false;
-  bool _searchOpen = false;
 
-  /// Kompaktan profil: zaglavlje bez kartice, jedan red statistike, jasne
-  /// radnje, kartica prijenosa i mreža proizvoda u dva stupca.
+  /// Profil prodavača: banner preko širine s Natrag/Dijeli/⋮, avatar koji
+  /// preklapa rub, tri pokazatelja povjerenja, jedna glavna radnja i tabovi
+  /// Shop / Lajvovi / Ocjene. Cijeli ekran ima jedno pomicanje.
   Widget _simpleProfile(
     AppState state,
     AppUser user,
@@ -150,26 +150,60 @@ class _PublicProfileScreenState extends ConsumerState<PublicProfileScreen> {
     final signedIn = state.currentUser != null && !state.currentUser!.isGuest;
     final demo = isDemoAccount(user.id);
     final rating = state.ratingOf(user.id);
-    final lives = state.activeLives.where((e) => e.$1.hostId == user.id);
+    final lives = state.activeLives
+        .where((e) => e.$1.hostId == user.id)
+        .toList();
     final liveNow = lives.where((e) => e.$2.isLive).firstOrNull;
-    final upcoming = lives.where((e) => e.$2.isScheduled).firstOrNull;
-    final hasShop = allListings.isNotEmpty || isMe;
-    final tabs = <_ShopTab>[
-      if (hasShop) _ShopTab.items,
-      _ShopTab.reviews,
-      if (auctions.isNotEmpty) _ShopTab.auctions,
-    ];
-    final tab = tabs.contains(_tab) ? _tab : tabs.first;
     final listings = _shopItems(allListings);
     final secondary = TextStyle(color: LoopColors.textSecondary, fontSize: 13);
     final showHandle =
         user.username.isNotEmpty &&
         user.shopTitle.toLowerCase() != '@${user.username}'.toLowerCase();
-    final meta = [
-      if (user.seller != null)
-        user.isTrader ? t('Trgovac') : t('Privatni prodavač'),
-      if ((user.city ?? '').isNotEmpty) user.city!,
-    ].join(' · ');
+    final categories = AppState.countByCategory(allListings);
+    final following = state.followingListOf(user.id).length;
+    final cover = user.coverPath;
+    final scheme = Theme.of(context);
+    final tabs = <_ShopTab>[_ShopTab.items, _ShopTab.lives, _ShopTab.reviews];
+    final tab = tabs.contains(_tab) ? _tab : _ShopTab.items;
+    final top = MediaQuery.paddingOf(context).top;
+    const bannerHeight = 150.0;
+
+    Widget overlayButton({required Widget child}) => Padding(
+      padding: const EdgeInsets.all(4),
+      child: DecoratedBox(
+        decoration: const BoxDecoration(
+          color: Color(0x99000000),
+          shape: BoxShape.circle,
+        ),
+        child: IconTheme(
+          data: const IconThemeData(color: Colors.white),
+          child: child,
+        ),
+      ),
+    );
+    Future<void> about() => showModalBottomSheet<void>(
+      context: context,
+      showDragHandle: true,
+      isScrollControlled: true,
+      builder: (_) => SafeArea(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(20),
+          child: SellerTrustCard(user: user),
+        ),
+      ),
+    );
+    Widget box(Widget child) => SliverToBoxAdapter(
+      child: Align(
+        alignment: Alignment.topCenter,
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 720),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: child,
+          ),
+        ),
+      ),
+    );
     Widget tabButton(_ShopTab id, String label) => Expanded(
       child: Semantics(
         button: true,
@@ -194,6 +228,8 @@ class _PublicProfileScreenState extends ConsumerState<PublicProfileScreen> {
             ),
             child: Text(
               label,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
               style: TextStyle(
                 fontSize: 15,
                 fontWeight: tab == id ? FontWeight.w700 : FontWeight.w500,
@@ -206,114 +242,182 @@ class _PublicProfileScreenState extends ConsumerState<PublicProfileScreen> {
         ),
       ),
     );
-    Widget box(Widget child) => SliverToBoxAdapter(
-      child: Align(
-        alignment: Alignment.topCenter,
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 720),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: child,
+    // Pokazatelji povjerenja: samo stvarni podaci. Prosječno vrijeme slanja
+    // se ne prikazuje dok ga backend ne računa pouzdano.
+    Widget indicator(String value, String label, {Key? key}) => Expanded(
+      child: Column(
+        key: key,
+        children: [
+          Text(
+            value,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w700),
           ),
-        ),
-      ),
-    );
-    final bioLong =
-        user.bio.length > 90 || '\n'.allMatches(user.bio).isNotEmpty;
-    final ratingText = rating.count == 0
-        ? t('Nema recenzija')
-        : '★ ${rating.average.toStringAsFixed(1)} (${rating.count})';
-    final stats = [
-      ratingText,
-      if (!demo) t('{0} prodaja', ['${state.salesCountOf(user.id)}']),
-      t('{0} pratitelja', ['${state.followersOf(user.id)}']),
-    ].join('  ·  ');
-    final categories = AppState.countByCategory(allListings);
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(
-          user.shopTitle,
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-        ),
-        actions: [
-          PopupMenuButton<String>(
-            key: const ValueKey('profile-menu'),
-            tooltip: t('Više'),
-            onSelected: (v) async {
-              switch (v) {
-                case 'about':
-                  await showModalBottomSheet<void>(
-                    context: context,
-                    showDragHandle: true,
-                    isScrollControlled: true,
-                    builder: (_) => SafeArea(
-                      child: SingleChildScrollView(
-                        padding: const EdgeInsets.all(20),
-                        child: SellerTrustCard(user: user),
-                      ),
-                    ),
-                  );
-                case 'share':
-                  await shareLink(
-                    context,
-                    publicLink(shop: user.username),
-                    text: t('Trgovina {0} na Subhastu', [user.shopTitle]),
-                  );
-                case 'report':
-                  await showReportSheet(
-                    context,
-                    ref,
-                    targetType: 'user',
-                    targetId: user.id,
-                    targetLabel: user.handle,
-                  );
-                case 'block':
-                  final now = await ref
-                      .read(appProvider.notifier)
-                      .toggleBlock(user.id);
-                  showLoopSnackBar(
-                    now
-                        ? t('{0} je blokiran — ne vidiš njegove oglase.', [
-                            user.handle,
-                          ])
-                        : t('{0} je odblokiran.', [user.handle]),
-                  );
-              }
-            },
-            itemBuilder: (_) => [
-              PopupMenuItem(value: 'about', child: Text(t('O prodavatelju'))),
-              if (user.username.isNotEmpty)
-                PopupMenuItem(
-                  value: 'share',
-                  child: Text(t('Podijeli profil')),
-                ),
-              if (!isMe && signedIn) ...[
-                PopupMenuItem(
-                  value: 'report',
-                  child: Text(t('Prijavi korisnika')),
-                ),
-                PopupMenuItem(
-                  value: 'block',
-                  child: Text(blocked ? t('Odblokiraj') : t('Blokiraj')),
-                ),
-              ],
-            ],
+          const SizedBox(height: 2),
+          Text(
+            label,
+            maxLines: 2,
+            textAlign: TextAlign.center,
+            style: secondary,
           ),
         ],
       ),
+    );
+    final bioLong = user.bio.length > 90 || user.bio.contains('\n');
+    return Scaffold(
       body: CustomScrollView(
         key: const ValueKey('profile-scroll'),
         slivers: [
+          SliverAppBar(
+            pinned: true,
+            expandedHeight: bannerHeight,
+            automaticallyImplyLeading: false,
+            backgroundColor: scheme.scaffoldBackgroundColor,
+            surfaceTintColor: Colors.transparent,
+            leading: overlayButton(
+              child: IconButton(
+                key: const ValueKey('profile-back'),
+                tooltip: t('Natrag'),
+                onPressed: () => Navigator.maybePop(context),
+                icon: const Icon(Icons.arrow_back),
+              ),
+            ),
+            actions: [
+              if (user.username.isNotEmpty)
+                overlayButton(
+                  child: IconButton(
+                    key: const ValueKey('profile-share'),
+                    tooltip: t('Podijeli profil'),
+                    onPressed: () => shareLink(
+                      context,
+                      publicLink(shop: user.username),
+                      text: t('Trgovina {0} na Subhastu', [user.shopTitle]),
+                    ),
+                    icon: const Icon(Icons.ios_share),
+                  ),
+                ),
+              overlayButton(
+                child: PopupMenuButton<String>(
+                  key: const ValueKey('profile-menu'),
+                  tooltip: t('Više'),
+                  iconColor: Colors.white,
+                  onSelected: (v) async {
+                    switch (v) {
+                      case 'about':
+                        await about();
+                      case 'report':
+                        await showReportSheet(
+                          context,
+                          ref,
+                          targetType: 'user',
+                          targetId: user.id,
+                          targetLabel: user.handle,
+                        );
+                      case 'block':
+                        final now = await ref
+                            .read(appProvider.notifier)
+                            .toggleBlock(user.id);
+                        showLoopSnackBar(
+                          now
+                              ? t(
+                                  '{0} je blokiran — ne vidiš njegove oglase.',
+                                  [user.handle],
+                                )
+                              : t('{0} je odblokiran.', [user.handle]),
+                        );
+                    }
+                  },
+                  itemBuilder: (_) => [
+                    PopupMenuItem(
+                      value: 'about',
+                      child: Text(t('O prodavatelju')),
+                    ),
+                    if (!isMe && signedIn) ...[
+                      PopupMenuItem(
+                        value: 'report',
+                        child: Text(t('Prijavi korisnika')),
+                      ),
+                      PopupMenuItem(
+                        value: 'block',
+                        child: Text(blocked ? t('Odblokiraj') : t('Blokiraj')),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+            ],
+            flexibleSpace: LayoutBuilder(
+              builder: (context, c) {
+                final collapsed = c.maxHeight <= kToolbarHeight + top + 4;
+                return Stack(
+                  fit: StackFit.expand,
+                  children: [
+                    if (cover != null)
+                      LocalPhoto(
+                        key: const ValueKey('profile-banner'),
+                        path: cover,
+                        cacheWidth: 1200,
+                        fallback: const _DefaultBanner(),
+                      )
+                    else
+                      const _DefaultBanner(key: ValueKey('profile-banner')),
+                    // Čitljiva podloga za gumbe preko bannera.
+                    const DecoratedBox(
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          begin: Alignment.topCenter,
+                          end: Alignment.bottomCenter,
+                          colors: [Color(0x99000000), Color(0x00000000)],
+                          stops: [0, .6],
+                        ),
+                      ),
+                    ),
+                    if (collapsed)
+                      ColoredBox(color: scheme.scaffoldBackgroundColor),
+                    if (collapsed)
+                      Positioned(
+                        left: 64,
+                        right: 120,
+                        bottom: 0,
+                        height: kToolbarHeight,
+                        child: Align(
+                          alignment: Alignment.centerLeft,
+                          child: Text(
+                            user.shopTitle,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ),
+                      ),
+                  ],
+                );
+              },
+            ),
+          ),
           box(
-            Padding(
-              padding: const EdgeInsets.only(top: 4),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-                  UserAvatar(user: user, size: 64),
-                  const SizedBox(width: 14),
-                  Expanded(
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Transform.translate(
+                  offset: const Offset(0, -30),
+                  child: Container(
+                    padding: const EdgeInsets.all(3),
+                    decoration: BoxDecoration(
+                      color: scheme.scaffoldBackgroundColor,
+                      shape: BoxShape.circle,
+                    ),
+                    child: UserAvatar(user: user, size: 72),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Padding(
+                    padding: const EdgeInsets.only(top: 6),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
@@ -334,109 +438,173 @@ class _PublicProfileScreenState extends ConsumerState<PublicProfileScreen> {
                             overflow: TextOverflow.ellipsis,
                             style: secondary,
                           ),
-                        if (meta.isNotEmpty)
-                          Text(
-                            meta,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: secondary,
+                        if (liveNow != null)
+                          Padding(
+                            padding: const EdgeInsets.only(top: 4),
+                            child: InkWell(
+                              key: const ValueKey('profile-live-badge'),
+                              onTap: () =>
+                                  LiveRoomScreen.open(context, liveNow.$1.id),
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 8,
+                                  vertical: 4,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: LoopColors.live,
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: Text(
+                                  '● ${t('UŽIVO')}',
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w800,
+                                  ),
+                                ),
+                              ),
+                            ),
                           ),
                       ],
                     ),
                   ),
+                ),
+              ],
+            ),
+          ),
+          box(
+            Padding(
+              padding: const EdgeInsets.only(top: 2, bottom: 8),
+              child: Row(
+                key: const ValueKey('profile-stats'),
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  indicator(
+                    rating.count == 0
+                        ? t('Nema recenzija')
+                        : '${rating.average.toStringAsFixed(1)} ★',
+                    rating.count == 0
+                        ? t('Ocjena')
+                        : t('{0} recenzija', ['${rating.count}']),
+                    key: const ValueKey('trust-rating'),
+                  ),
+                  if (!demo)
+                    indicator(
+                      '${state.salesCountOf(user.id)}',
+                      t('Prodano'),
+                      key: const ValueKey('trust-sales'),
+                    ),
                 ],
               ),
             ),
           ),
+          box(
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    [
+                      t('{0} pratitelja', ['${state.followersOf(user.id)}']),
+                      t('{0} prati', ['$following']),
+                      if (demo) t('Demo račun'),
+                    ].join('  ·  '),
+                    key: const ValueKey('profile-followers'),
+                    style: secondary,
+                  ),
+                ),
+                TextButton(
+                  key: const ValueKey('profile-about'),
+                  style: TextButton.styleFrom(minimumSize: const Size(48, 44)),
+                  onPressed: about,
+                  child: Text(t('Informacije')),
+                ),
+              ],
+            ),
+          ),
           if (user.bio.isNotEmpty)
             box(
-              Padding(
-                padding: const EdgeInsets.only(top: 10),
-                child: InkWell(
-                  key: const ValueKey('profile-bio'),
-                  onTap: bioLong
-                      ? () => setState(() => _bioOpen = !_bioOpen)
-                      : null,
-                  child: Text.rich(
-                    TextSpan(
-                      children: [
-                        TextSpan(text: user.bio),
-                        if (bioLong)
-                          TextSpan(
-                            text: _bioOpen
-                                ? '  ${t('Manje')}'
-                                : '  ${t('Više')}',
-                            style: const TextStyle(fontWeight: FontWeight.w700),
-                          ),
-                      ],
-                    ),
-                    maxLines: _bioOpen ? null : 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(fontSize: 14, height: 1.35),
+              InkWell(
+                key: const ValueKey('profile-bio'),
+                onTap: bioLong
+                    ? () => setState(() => _bioOpen = !_bioOpen)
+                    : null,
+                child: Text.rich(
+                  TextSpan(
+                    children: [
+                      TextSpan(text: user.bio),
+                      if (bioLong)
+                        TextSpan(
+                          text: _bioOpen
+                              ? '  ${t('Prikaži manje')}'
+                              : '  ${t('Prikaži više')}',
+                          style: const TextStyle(fontWeight: FontWeight.w700),
+                        ),
+                    ],
                   ),
+                  maxLines: _bioOpen ? null : 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(fontSize: 14, height: 1.35),
                 ),
               ),
             ),
           box(
             Padding(
-              padding: const EdgeInsets.only(top: 10),
-              child: Wrap(
-                crossAxisAlignment: WrapCrossAlignment.center,
-                spacing: 8,
-                children: [
-                  Text(
-                    stats,
-                    key: const ValueKey('profile-stats'),
-                    style: const TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                  if (demo) Text(t('Demo račun'), style: secondary),
-                ],
-              ),
-            ),
-          ),
-          box(
-            Padding(
               padding: const EdgeInsets.only(top: 12),
               child: isMe
-                  ? Row(
+                  ? Column(
                       children: [
-                        Expanded(
-                          flex: 3,
+                        SizedBox(
+                          width: double.infinity,
                           child: FilledButton(
                             key: const ValueKey('profile-edit'),
                             onPressed: () => EditProfileScreen.open(context),
                             child: Text(t('Uredi profil')),
                           ),
                         ),
-                        const SizedBox(width: 10),
-                        Expanded(
-                          flex: 2,
+                        const SizedBox(height: 8),
+                        SizedBox(
+                          width: double.infinity,
                           child: OutlinedButton(
                             key: const ValueKey('profile-sell'),
                             onPressed: () => SellerHubScreen.open(context),
-                            child: Text(t('Prodaj')),
+                            child: Text(t('Upravljaj shopom')),
                           ),
                         ),
                       ],
                     )
                   : blocked
                   ? const SizedBox.shrink()
-                  : Row(
-                      children: [
-                        Expanded(flex: 3, child: FollowButton(userId: user.id)),
-                        const SizedBox(width: 10),
-                        Expanded(
-                          flex: 2,
-                          child: OutlinedButton(
-                            key: const ValueKey('profile-message'),
-                            onPressed: () => ChatScreen.open(context, user.id),
-                            child: Text(t('Poruka')),
-                          ),
-                        ),
-                      ],
+                  : LayoutBuilder(
+                      builder: (context, c) {
+                        final message = OutlinedButton(
+                          key: const ValueKey('profile-message'),
+                          onPressed: () => ChatScreen.open(context, user.id),
+                          child: Text(t('Poruka')),
+                        );
+                        final follow = FollowButton(userId: user.id);
+                        // Uz Prati kad ima mjesta, inače ispod njega.
+                        return c.maxWidth >= 380
+                            ? Row(
+                                children: [
+                                  Expanded(flex: 3, child: follow),
+                                  const SizedBox(width: 8),
+                                  Expanded(flex: 2, child: message),
+                                ],
+                              )
+                            : Column(
+                                children: [
+                                  SizedBox(
+                                    width: double.infinity,
+                                    child: follow,
+                                  ),
+                                  const SizedBox(height: 8),
+                                  SizedBox(
+                                    width: double.infinity,
+                                    child: message,
+                                  ),
+                                ],
+                              );
+                      },
                     ),
             ),
           ),
@@ -468,26 +636,11 @@ class _PublicProfileScreenState extends ConsumerState<PublicProfileScreen> {
                       ),
                       const SizedBox(width: 10),
                       Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              '● ${t('UŽIVO')}',
-                              style: TextStyle(
-                                color: LoopColors.live,
-                                fontSize: 12,
-                                fontWeight: FontWeight.w800,
-                              ),
-                            ),
-                            Text(
-                              liveNow.$1.title,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                          ],
+                        child: Text(
+                          liveNow.$1.title,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(fontWeight: FontWeight.w600),
                         ),
                       ),
                       const SizedBox(width: 8),
@@ -503,49 +656,6 @@ class _PublicProfileScreenState extends ConsumerState<PublicProfileScreen> {
                       ),
                     ],
                   ),
-                ),
-              ),
-            )
-          else if (upcoming != null)
-            box(
-              Padding(
-                padding: const EdgeInsets.only(top: 12),
-                child: Row(
-                  key: ValueKey('profile-live-${upcoming.$1.id}'),
-                  children: [
-                    Expanded(
-                      child: InkWell(
-                        onTap: () =>
-                            LiveRoomScreen.open(context, upcoming.$1.id),
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(vertical: 6),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                '${t('Uskoro')} · ${formatDateTime(upcoming.$1.startsAt)}',
-                                style: secondary,
-                              ),
-                              Text(
-                                upcoming.$1.title,
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: const TextStyle(
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ),
-                    if (!isMe)
-                      OutlinedButton(
-                        key: const ValueKey('profile-remind'),
-                        onPressed: () => remindMe(context, ref, upcoming.$1.id),
-                        child: Text(t('Podsjeti me')),
-                      ),
-                  ],
                 ),
               ),
             ),
@@ -576,19 +686,17 @@ class _PublicProfileScreenState extends ConsumerState<PublicProfileScreen> {
             Row(
               key: const ValueKey('shop-tabs'),
               children: [
-                for (final id in tabs)
-                  tabButton(id, switch (id) {
-                    _ShopTab.items => t('Shop ({0})', [
-                      '${allListings.length}',
-                    ]),
-                    _ShopTab.reviews =>
-                      reviews.isEmpty
-                          ? t('Ocjene')
-                          : t('Ocjene ({0})', ['${reviews.length}']),
-                    _ShopTab.auctions => t('Aukcije ({0})', [
-                      '${auctions.length}',
-                    ]),
-                  }),
+                tabButton(
+                  _ShopTab.items,
+                  t('Shop ({0})', ['${allListings.length}']),
+                ),
+                tabButton(_ShopTab.lives, t('Lajvovi')),
+                tabButton(
+                  _ShopTab.reviews,
+                  reviews.isEmpty
+                      ? t('Ocjene')
+                      : t('Ocjene ({0})', ['${reviews.length}']),
+                ),
               ],
             ),
           ),
@@ -596,43 +704,43 @@ class _PublicProfileScreenState extends ConsumerState<PublicProfileScreen> {
             if (allListings.isNotEmpty)
               box(
                 Padding(
-                  padding: const EdgeInsets.only(top: 6),
+                  padding: const EdgeInsets.only(top: 8),
                   child: Row(
                     children: [
-                      if (_searchOpen)
-                        Expanded(
+                      Expanded(
+                        child: SizedBox(
+                          height: 44,
                           child: TextField(
                             key: const ValueKey('shop-search'),
                             controller: _search,
-                            autofocus: true,
                             onChanged: (v) => setState(() => _query = v),
+                            textInputAction: TextInputAction.search,
                             decoration: InputDecoration(
                               isDense: true,
                               hintText: t('Pretraži shop'),
                               prefixIcon: const Icon(Icons.search, size: 20),
+                              suffixIcon: _query.isEmpty
+                                  ? null
+                                  : IconButton(
+                                      tooltip: t('Očisti'),
+                                      icon: const Icon(Icons.close, size: 18),
+                                      onPressed: () => setState(() {
+                                        _query = '';
+                                        _search.clear();
+                                      }),
+                                    ),
                             ),
                           ),
-                        )
-                      else
-                        const Spacer(),
-                      IconButton(
-                        key: const ValueKey('shop-search-toggle'),
-                        tooltip: t('Pretraži shop'),
-                        onPressed: () => setState(() {
-                          _searchOpen = !_searchOpen;
-                          if (!_searchOpen) {
-                            _query = '';
-                            _search.clear();
-                          }
-                        }),
-                        icon: Icon(_searchOpen ? Icons.close : Icons.search),
+                        ),
                       ),
+                      const SizedBox(width: 4),
                       IconButton(
                         key: const ValueKey('shop-filters'),
-                        tooltip: t('Filteri'),
+                        tooltip: t('Filtriraj i poredaj'),
                         onPressed: () => _shopFilters(categories),
                         icon: Badge(
-                          isLabelVisible: _category != null,
+                          isLabelVisible:
+                              _category != null || _sort != _ShopSort.newest,
                           smallSize: 8,
                           child: const Icon(Icons.tune),
                         ),
@@ -679,7 +787,7 @@ class _PublicProfileScreenState extends ConsumerState<PublicProfileScreen> {
                         crossAxisCount: cols,
                         mainAxisSpacing: 16,
                         crossAxisSpacing: 12,
-                        mainAxisExtent: cell * 5 / 4 + 58 * scale.clamp(1, 2),
+                        mainAxisExtent: cell * 5 / 4 + 76 * scale.clamp(1, 2),
                       ),
                       delegate: SliverChildBuilderDelegate((context, i) {
                         final d = listings[i];
@@ -694,17 +802,55 @@ class _PublicProfileScreenState extends ConsumerState<PublicProfileScreen> {
                   );
                 },
               ),
-          ],
-          if (tab == _ShopTab.auctions)
-            for (final a in auctions)
-              box(
-                Padding(
-                  padding: const EdgeInsets.only(top: 10),
-                  child: IntrinsicHeight(
-                    child: AuctionCard(auction: a, viewerId: viewer),
+            // Samostalne aukcije prodavača su dio Shopa (bez praznog taba).
+            if (auctions.isNotEmpty)
+              for (final a in auctions)
+                box(
+                  Padding(
+                    padding: const EdgeInsets.only(top: 10),
+                    child: IntrinsicHeight(
+                      child: AuctionCard(auction: a, viewerId: viewer),
+                    ),
                   ),
                 ),
-              ),
+          ],
+          if (tab == _ShopTab.lives) ...[
+            if (lives.isEmpty)
+              box(
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 24),
+                  child: Text(
+                    t('Trenutno nema aktivnih ni najavljenih prijenosa.'),
+                    textAlign: TextAlign.center,
+                    style: TextStyle(color: LoopColors.textSecondary),
+                  ),
+                ),
+              )
+            else
+              for (final (show, live) in lives)
+                box(
+                  Row(
+                    key: ValueKey('profile-live-row-${show.id}'),
+                    children: [
+                      Expanded(
+                        child: LiveShopRow(
+                          show: show,
+                          subtitle: live.isLive
+                              ? t('Uživo sada')
+                              : '${t('Uskoro')} · ${formatDateTime(show.startsAt)}',
+                          onTap: () => LiveRoomScreen.open(context, show.id),
+                        ),
+                      ),
+                      if (!live.isLive && !isMe)
+                        OutlinedButton(
+                          key: ValueKey('profile-remind-${show.id}'),
+                          onPressed: () => remindMe(context, ref, show.id),
+                          child: Text(t('Podsjeti me')),
+                        ),
+                    ],
+                  ),
+                ),
+          ],
           if (tab == _ShopTab.reviews) ...[
             box(
               _ShopRatingCard(
@@ -1906,6 +2052,16 @@ class _ShopGridCard extends StatelessWidget {
             overflow: TextOverflow.ellipsis,
             style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
           ),
+          Text(
+            device.isDigital
+                ? t('Digitalno')
+                : device.hasStock
+                ? '${device.condition.label} · ${t('Zaliha: {0}', ['${device.quantity}'])}'
+                : device.condition.label,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(fontSize: 12, color: LoopColors.textSecondary),
+          ),
           Row(
             children: [
               Text(
@@ -1928,6 +2084,24 @@ class _ShopGridCard extends StatelessWidget {
               ],
             ],
           ),
+        ],
+      ),
+    ),
+  );
+}
+
+/// Diskretna zadana podloga bannera (bez izmišljene fotografije).
+class _DefaultBanner extends StatelessWidget {
+  const _DefaultBanner({super.key});
+  @override
+  Widget build(BuildContext context) => DecoratedBox(
+    decoration: BoxDecoration(
+      gradient: LinearGradient(
+        begin: Alignment.topLeft,
+        end: Alignment.bottomRight,
+        colors: [
+          LoopColors.surfaceHover,
+          LoopColors.textPrimary.withValues(alpha: .12),
         ],
       ),
     ),

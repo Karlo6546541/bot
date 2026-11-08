@@ -81,7 +81,8 @@ void main() {
         (w) => w.runtimeType.toString() == '_ShopGridCard',
       );
       final first = tester.getRect(cards.first);
-      expect(first.top, lessThan(size.height * .8));
+      // Ponuda počinje na prvom ekranu (ne tek nakon dugog pomicanja).
+      expect(first.top, lessThan(size.height));
       expect(tester.takeException(), isNull);
     });
   }
@@ -125,7 +126,8 @@ void main() {
     await tester.pumpWidget(app(empty.id));
     await tester.pumpAndSettle();
     expect(find.byKey(const ValueKey('shop-grid')), findsNothing);
-    expect(find.byKey(const ValueKey('shop-tab-items')), findsNothing);
+    expect(find.text('Shop još nema proizvoda.'), findsOneWidget);
+    expect(find.byKey(const ValueKey('shop-tab-lives')), findsOneWidget);
     expect(find.byKey(const ValueKey('shop-tab-reviews')), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
@@ -190,5 +192,32 @@ void main() {
     expect(find.byKey(const ValueKey('profile-watch-live')), findsOneWidget);
     expect(find.byKey(const ValueKey('shop-grid')), findsOneWidget);
     expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('banner, tri pokazatelja i tabovi Shop/Lajvovi/Ocjene', (
+    tester,
+  ) async {
+    if (!kSimpleDesign) return;
+    tester.view.physicalSize = const Size(390, 844);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    await tester.pumpWidget(app(SeedData.anaUserId));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('profile-banner')), findsOneWidget);
+    expect(find.byKey(const ValueKey('profile-back')), findsOneWidget);
+    expect(find.byKey(const ValueKey('profile-share')), findsOneWidget);
+    expect(find.byKey(const ValueKey('profile-menu')), findsOneWidget);
+    expect(find.byKey(const ValueKey('trust-rating')), findsOneWidget);
+    // Ocjena 0 se nikad ne prikazuje.
+    expect(find.text('0.0 ★'), findsNothing);
+    for (final id in ['items', 'lives', 'reviews']) {
+      expect(find.byKey(ValueKey('shop-tab-$id')), findsOneWidget);
+    }
+    expect(find.byKey(const ValueKey('shop-tab-auctions')), findsNothing);
+    await tester.tap(find.byKey(const ValueKey('shop-tab-lives')));
+    await tester.pumpAndSettle();
+    expect(tester.takeException(), isNull);
+    await tester.tap(find.byKey(const ValueKey('profile-back')));
+    await tester.pumpAndSettle();
   });
 }

@@ -213,7 +213,7 @@ void main() {
     await tester.tap(find.byKey(const ValueKey('profile-menu')));
     await tester.pumpAndSettle();
     expect(find.text('O prodavatelju'), findsOneWidget);
-    expect(find.text('Podijeli profil'), findsOneWidget);
+    expect(find.byKey(const ValueKey('profile-share')), findsOneWidget);
     await tester.tapAt(Offset.zero);
     await tester.pumpAndSettle();
     expect(tester.takeException(), isNull);
