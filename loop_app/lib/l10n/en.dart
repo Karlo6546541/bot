@@ -3424,6 +3424,8 @@ const kEn = <String, String>{
   'Prodavači koje pratiš trenutno nemaju prijenosa.':
       'Sellers you follow have no streams right now.',
   'Profil prodavača: {0}': 'Seller profile: {0}',
+  'Dovrši povezivanje isplata na stranici koja se otvorila, pa se vrati.': 'Finish connecting payouts on the page that opened, then come back.',
+  'Povezivanje isplata trenutačno nije dostupno.': 'Connecting payouts is not available right now.',
   'Zakaži show': 'Schedule a show',
   'Otprema': 'Shipping',
   'Nema paketa za predaju': 'No parcels to hand over',

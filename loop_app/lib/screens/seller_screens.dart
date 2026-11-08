@@ -25,22 +25,16 @@ Future<bool> ensureSellerInfo(BuildContext context) async {
   final user = container.read(appProvider).currentUser;
   if (user == null || user.isGuest) return false;
   if (user.seller != null) {
-    try {
-      return await container.read(sellerOnboardingProvider)(
-        user.seller!,
-        user.country,
-      );
-    } catch (_) {
-      if (context.mounted) {
-        showLoopSnackBar(
-          t(
-            'Podaci su spremljeni. Povezivanje isplata trenutačno nije dostupno.',
-          ),
-          error: true,
-        );
-      }
-      return false;
-    }
+    // Objava predmeta i pokretanje livea ne čekaju povezivanje isplata i ne
+    // napuštaju aplikaciju: račun za isplate se priprema u pozadini, a
+    // povezivanje (Stripe stranica) kreće tek kad prodavač sam to odabere
+    // ili zatraži isplatu ([ensurePayoutsReady]).
+    unawaited(
+      container
+          .read(sellerPreparationProvider)(user.seller!, user.country)
+          .then<void>((_) {}, onError: (Object _) {}),
+    );
+    return true;
   }
   final go = await confirmDialog(
     context,
@@ -56,9 +50,39 @@ Future<bool> ensureSellerInfo(BuildContext context) async {
   return ensureSellerInfo(context);
 }
 
+/// Povezivanje isplata (Stripe): potrebno tek za isplatu zarade. Stranica
+/// pružatelja plaćanja otvara se u novoj kartici preglednika, aplikacija
+/// ostaje otvorena.
+Future<bool> ensurePayoutsReady(BuildContext context) async {
+  if (!await ensureSellerInfo(context) || !context.mounted) return false;
+  final container = ProviderScope.containerOf(context, listen: false);
+  final user = container.read(appProvider).currentUser;
+  if (user?.seller == null) return false;
+  try {
+    final ready = await container.read(sellerOnboardingProvider)(
+      user!.seller!,
+      user.country,
+    );
+    if (!ready) {
+      showLoopSnackBar(
+        t(
+          'Dovrši povezivanje isplata na stranici koja se otvorila, pa se vrati.',
+        ),
+      );
+    }
+    return ready;
+  } catch (_) {
+    showLoopSnackBar(
+      t('Povezivanje isplata trenutačno nije dostupno.'),
+      error: true,
+    );
+    return false;
+  }
+}
+
 /// Isplata zarade na IBAN (uz potvrdu).
 Future<void> showPayoutDialog(BuildContext context, WidgetRef ref) async {
-  if (!await ensureSellerInfo(context) || !context.mounted) return;
+  if (!await ensurePayoutsReady(context) || !context.mounted) return;
   final user = ref.read(appProvider).currentUser!;
   final held = ref.read(appProvider).heldEarnings(user.id);
   final amount = user.credits - held;

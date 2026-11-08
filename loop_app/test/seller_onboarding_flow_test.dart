@@ -164,9 +164,9 @@ void main() {
     await tester.pumpWidget(const SizedBox.shrink());
   });
   testWidgets(
-    'an existing incomplete seller is onboarded automatically and cannot publish yet',
+    'existing seller publishes and goes live without Stripe; payouts ask for it',
     (tester) async {
-      bool? ready;
+      bool? ready, payouts;
       var calls = 0;
       await tester.pumpWidget(
         ProviderScope(
@@ -181,11 +181,21 @@ void main() {
           child: MaterialApp(
             home: Scaffold(
               body: Builder(
-                builder: (ctx) => TextButton(
-                  onPressed: () async {
-                    ready = await ensureSellerInfo(ctx);
-                  },
-                  child: const Text('Sell'),
+                builder: (ctx) => Column(
+                  children: [
+                    TextButton(
+                      onPressed: () async {
+                        ready = await ensureSellerInfo(ctx);
+                      },
+                      child: const Text('Sell'),
+                    ),
+                    TextButton(
+                      onPressed: () async {
+                        payouts = await ensurePayoutsReady(ctx);
+                      },
+                      child: const Text('Payout'),
+                    ),
+                  ],
                 ),
               ),
             ),
@@ -194,8 +204,13 @@ void main() {
       );
       await tester.tap(find.text('Sell'));
       await tester.pumpAndSettle();
+      // Objava i live ne otvaraju Stripe.
+      expect(calls, 0);
+      expect(ready, isTrue);
+      await tester.tap(find.text('Payout'));
+      await tester.pumpAndSettle();
       expect(calls, 1);
-      expect(ready, false);
+      expect(payouts, isFalse);
       expect(find.byType(SellerInfoScreen), findsNothing);
       expect(tester.takeException(), isNull);
       await tester.pumpWidget(const SizedBox.shrink());
@@ -229,7 +244,7 @@ void main() {
                     ),
                     TextButton(
                       onPressed: () async {
-                        ready = await ensureSellerInfo(ctx);
+                        ready = await ensurePayoutsReady(ctx);
                       },
                       child: const Text('Sell'),
                     ),

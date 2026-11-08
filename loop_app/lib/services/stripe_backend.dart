@@ -65,8 +65,22 @@ class StripeBackend {
         url.host != 'connect.stripe.com') {
       throw StateError('PAYMENTS_UNAVAILABLE');
     }
-    if (!await (sellerLauncher?.call(url) ??
-        launchUrl(url, webOnlyWindowName: '_self'))) {
+    // Stripe stranica se otvara u pregledniku (nova kartica), aplikacija
+    // ostaje gdje je bila. Ako preglednik blokira novu karticu, otvara se
+    // u istoj (povratak vodi natrag u aplikaciju).
+    final launcher = sellerLauncher;
+    if (launcher != null) {
+      if (!await launcher(url)) throw StateError('PAYMENT_PAGE_UNAVAILABLE');
+      return;
+    }
+    if (await launchUrl(
+      url,
+      mode: LaunchMode.externalApplication,
+      webOnlyWindowName: '_blank',
+    )) {
+      return;
+    }
+    if (!await launchUrl(url, webOnlyWindowName: '_self')) {
       throw StateError('PAYMENT_PAGE_UNAVAILABLE');
     }
   }
