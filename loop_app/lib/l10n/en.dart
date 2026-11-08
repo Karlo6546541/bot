@@ -3439,6 +3439,8 @@ const kEn = <String, String>{
   'Odaberi proizvod': 'Choose a product',
   'Ovaj live prodaje samo Kupi odmah, bez aukcija.':
       'This live sells Buy now only, without auctions.',
+  'Poništi filter': 'Reset filter',
+  'Trenutno nema aktivnih ni najavljenih prijenosa.': 'There are no live or upcoming streams right now.',
   'Zakaži show': 'Schedule a show',
   'Otprema': 'Shipping',
   'Nema paketa za predaju': 'No parcels to hand over',

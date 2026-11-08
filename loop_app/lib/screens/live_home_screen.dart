@@ -339,6 +339,14 @@ class _LiveHomeScreenState extends ConsumerState<LiveHomeScreen> {
           ),
         );
 
+    // Prazno stanje uz aktivan filtar kategorije nudi njegovo poništavanje.
+    Widget resetFilter() => _cat == null
+        ? const SizedBox.shrink()
+        : TextButton(
+            key: const ValueKey('home-reset-filter'),
+            onPressed: () => setState(() => _cat = null),
+            child: Text(t('Poništi filter')),
+          );
     final slivers = <Widget>[];
     switch (_filter) {
       case _Following():
@@ -383,9 +391,17 @@ class _LiveHomeScreenState extends ConsumerState<LiveHomeScreen> {
                 ? SliverToBoxAdapter(
                     child: Padding(
                       padding: const EdgeInsets.all(16),
-                      child: Text(
-                        t('Prodavači koje pratiš trenutno nemaju prijenosa.'),
-                        style: TextStyle(color: LoopColors.textSecondary),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            t(
+                              'Prodavači koje pratiš trenutno nemaju prijenosa.',
+                            ),
+                            style: TextStyle(color: LoopColors.textSecondary),
+                          ),
+                          resetFilter(),
+                        ],
                       ),
                     ),
                   )
@@ -467,9 +483,19 @@ class _LiveHomeScreenState extends ConsumerState<LiveHomeScreen> {
                 child: Padding(
                   key: const ValueKey('home-no-live'),
                   padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
-                  child: Text(
-                    t('Trenutno nema prijenosa uživo.'),
-                    style: TextStyle(color: LoopColors.textSecondary),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        _cat == null
+                            ? t('Trenutno nema prijenosa uživo.')
+                            : t(
+                                'Trenutno nema prijenosa uživo u ovoj kategoriji.',
+                              ),
+                        style: TextStyle(color: LoopColors.textSecondary),
+                      ),
+                      resetFilter(),
+                    ],
                   ),
                 ),
               ),
@@ -884,9 +910,15 @@ class _LiveHomeScreenState extends ConsumerState<LiveHomeScreen> {
               ? SliverToBoxAdapter(
                   child: Padding(
                     padding: const EdgeInsets.all(16),
-                    child: Text(
-                      t('Nema zakazanih liveova.'),
-                      style: TextStyle(color: LoopColors.textSecondary),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          t('Nema zakazanih liveova.'),
+                          style: TextStyle(color: LoopColors.textSecondary),
+                        ),
+                        resetFilter(),
+                      ],
                     ),
                   ),
                 )

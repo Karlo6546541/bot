@@ -30,6 +30,14 @@ import 'swipe_feed_screen.dart';
 import '../widgets/pill_tabs.dart';
 
 /// Pretraga objava (oglasi i aukcije) i korisničkih računa (trgovina).
+/// Stanje pretrage preživljava ponovnu izgradnju rute (npr. povratak u
+/// pregledniku): upit i kartica rezultata. Čisti se kad korisnik izričito
+/// zatvori pretragu ili otvori novu.
+class _SearchSession {
+  static String query = '';
+  static String tab = 'top';
+}
+
 class SearchScreen extends ConsumerStatefulWidget {
   const SearchScreen({
     super.key,
@@ -42,6 +50,16 @@ class SearchScreen extends ConsumerStatefulWidget {
   final bool accounts;
 
   static Future<void> open(
+    BuildContext context, {
+    bool accounts = false,
+    String initialQuery = '',
+  }) {
+    _SearchSession.query = initialQuery;
+    _SearchSession.tab = 'top';
+    return _open(context, accounts: accounts, initialQuery: initialQuery);
+  }
+
+  static Future<void> _open(
     BuildContext context, {
     bool accounts = false,
     String initialQuery = '',
@@ -77,8 +95,11 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
   @override
   void initState() {
     super.initState();
-    _q = widget.initialQuery;
+    _q = widget.initialQuery.isNotEmpty
+        ? widget.initialQuery
+        : _SearchSession.query;
     _c.text = _q;
+    _igTab = _SearchSession.tab;
   }
 
   /// Čip vrste (Aukcije / Kupi odmah / Uživo); `null` = sve.
@@ -95,6 +116,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
   }
 
   void _set(String q) => setState(() {
+    _SearchSession.query = q;
     _c.text = q;
     _q = q;
   });
@@ -323,7 +345,10 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
         excludeSemantics: true,
         child: InkWell(
           key: ValueKey('search-tab-$id'),
-          onTap: () => setState(() => _igTab = id),
+          onTap: () => setState(() {
+            _igTab = id;
+            _SearchSession.tab = id;
+          }),
           child: Container(
             height: 44,
             alignment: Alignment.center,
@@ -379,7 +404,11 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                   IconButton(
                     key: const ValueKey('search-back'),
                     tooltip: t('Natrag'),
-                    onPressed: () => Navigator.maybePop(context),
+                    onPressed: () {
+                      _SearchSession.query = '';
+                      _SearchSession.tab = 'top';
+                      Navigator.maybePop(context);
+                    },
                     icon: const Icon(Icons.arrow_back),
                   ),
                   Expanded(
@@ -390,7 +419,10 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                         controller: _c,
                         focusNode: _focus,
                         autofocus: true,
-                        onChanged: (value) => setState(() => _q = value),
+                        onChanged: (value) => setState(() {
+                          _q = value;
+                          _SearchSession.query = value;
+                        }),
                         textInputAction: TextInputAction.search,
                         onSubmitted: (value) {
                           if (value.trim().isNotEmpty) {

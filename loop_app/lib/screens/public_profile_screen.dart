@@ -87,7 +87,7 @@ enum _ShopSort {
 }
 
 /// Dio trgovine koji se prikazuje.
-enum _ShopTab { items, auctions, reviews }
+enum _ShopTab { items, lives, auctions, reviews }
 
 class _PublicProfileScreenState extends ConsumerState<PublicProfileScreen> {
   String _query = '';
@@ -156,6 +156,7 @@ class _PublicProfileScreenState extends ConsumerState<PublicProfileScreen> {
     final hasShop = allListings.isNotEmpty || isMe;
     final tabs = <_ShopTab>[
       if (hasShop) _ShopTab.items,
+      _ShopTab.lives,
       _ShopTab.reviews,
       if (auctions.isNotEmpty) _ShopTab.auctions,
     ];
@@ -588,6 +589,7 @@ class _PublicProfileScreenState extends ConsumerState<PublicProfileScreen> {
                     _ShopTab.items => t('Shop ({0})', [
                       '${allListings.length}',
                     ]),
+                    _ShopTab.lives => t('Lajvovi'),
                     _ShopTab.reviews =>
                       reviews.isEmpty
                           ? t('Ocjene')
@@ -701,6 +703,42 @@ class _PublicProfileScreenState extends ConsumerState<PublicProfileScreen> {
                   );
                 },
               ),
+          ],
+          if (tab == _ShopTab.lives) ...[
+            if (lives.isEmpty)
+              box(
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 24),
+                  child: Text(
+                    t('Trenutno nema aktivnih ni najavljenih prijenosa.'),
+                    textAlign: TextAlign.center,
+                    style: TextStyle(color: LoopColors.textSecondary),
+                  ),
+                ),
+              )
+            else
+              for (final (show, live) in lives)
+                box(
+                  Row(
+                    key: ValueKey('profile-live-row-${show.id}'),
+                    children: [
+                      Expanded(
+                        child: LiveShopRow(
+                          show: show,
+                          subtitle: live.isLive
+                              ? t('Uživo sada')
+                              : '${t('Uskoro')} · ${formatDateTime(show.startsAt)}',
+                          onTap: () => LiveRoomScreen.open(context, show.id),
+                        ),
+                      ),
+                      if (!live.isLive && !isMe)
+                        OutlinedButton(
+                          onPressed: () => remindMe(context, ref, show.id),
+                          child: Text(t('Podsjeti me')),
+                        ),
+                    ],
+                  ),
+                ),
           ],
           if (tab == _ShopTab.auctions)
             for (final a in auctions)

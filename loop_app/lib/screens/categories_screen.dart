@@ -215,20 +215,24 @@ class _CategoriesScreenState extends ConsumerState<CategoriesScreen> {
                     ],
                   ),
                   const SizedBox(height: 6),
-                  Text(
-                    sec.label,
-                    textAlign: TextAlign.center,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      fontSize: 12,
-                      height: 1.15,
-                      fontWeight: _section == sec
-                          ? FontWeight.w700
-                          : FontWeight.w500,
-                      color: _section == sec
-                          ? LoopColors.textPrimary
-                          : LoopColors.textSecondary,
+                  // Naziv se ne lomi usred riječi: smanji se da stane u jedan red.
+                  FittedBox(
+                    fit: BoxFit.scaleDown,
+                    child: Text(
+                      sec.label,
+                      textAlign: TextAlign.center,
+                      maxLines: 1,
+                      softWrap: false,
+                      style: TextStyle(
+                        fontSize: 12,
+                        height: 1.15,
+                        fontWeight: _section == sec
+                            ? FontWeight.w700
+                            : FontWeight.w500,
+                        color: _section == sec
+                            ? LoopColors.textPrimary
+                            : LoopColors.textSecondary,
+                      ),
                     ),
                   ),
                 ],
