@@ -1,4 +1,8 @@
 import '../config/design_variant.dart';
+import '../models/auction.dart';
+import 'account_screens.dart' show EditProfileScreen;
+import 'seller_hub.dart';
+import '../services/demo_accounts.dart';
 import '../widgets/reference_sheet.dart';
 import '../services/app_location/app_location.dart';
 
@@ -128,6 +132,694 @@ class _PublicProfileScreenState extends ConsumerState<PublicProfileScreen> {
     return list;
   }
 
+  bool _bioOpen = false;
+  bool _searchOpen = false;
+
+  /// Kompaktan profil: zaglavlje bez kartice, jedan red statistike, jasne
+  /// radnje, kartica prijenosa i mreža proizvoda u dva stupca.
+  Widget _simpleProfile(
+    AppState state,
+    AppUser user,
+    List<Device> allListings,
+    List<Auction> auctions,
+    List<Review> reviews,
+  ) {
+    final viewer = state.currentUserId ?? '';
+    final isMe = viewer == user.id;
+    final blocked = state.isBlocked(user.id);
+    final signedIn = state.currentUser != null && !state.currentUser!.isGuest;
+    final demo = isDemoAccount(user.id);
+    final rating = state.ratingOf(user.id);
+    final lives = state.activeLives.where((e) => e.$1.hostId == user.id);
+    final liveNow = lives.where((e) => e.$2.isLive).firstOrNull;
+    final upcoming = lives.where((e) => e.$2.isScheduled).firstOrNull;
+    final hasShop = allListings.isNotEmpty || isMe;
+    final tabs = <_ShopTab>[
+      if (hasShop) _ShopTab.items,
+      _ShopTab.reviews,
+      if (auctions.isNotEmpty) _ShopTab.auctions,
+    ];
+    final tab = tabs.contains(_tab) ? _tab : tabs.first;
+    final listings = _shopItems(allListings);
+    final secondary = TextStyle(color: LoopColors.textSecondary, fontSize: 13);
+    final showHandle =
+        user.username.isNotEmpty &&
+        user.shopTitle.toLowerCase() != '@${user.username}'.toLowerCase();
+    final meta = [
+      if (user.seller != null)
+        user.isTrader ? t('Trgovac') : t('Privatni prodavač'),
+      if ((user.city ?? '').isNotEmpty) user.city!,
+    ].join(' · ');
+    Widget tabButton(_ShopTab id, String label) => Expanded(
+      child: Semantics(
+        button: true,
+        selected: tab == id,
+        label: label,
+        excludeSemantics: true,
+        child: InkWell(
+          key: ValueKey('shop-tab-${id.name}'),
+          onTap: () => setState(() => _tab = id),
+          child: Container(
+            height: 44,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              border: Border(
+                bottom: BorderSide(
+                  width: 2,
+                  color: tab == id
+                      ? LoopColors.textPrimary
+                      : LoopColors.textPrimary.withValues(alpha: .08),
+                ),
+              ),
+            ),
+            child: Text(
+              label,
+              style: TextStyle(
+                fontSize: 15,
+                fontWeight: tab == id ? FontWeight.w700 : FontWeight.w500,
+                color: tab == id
+                    ? LoopColors.textPrimary
+                    : LoopColors.textSecondary,
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+    Widget box(Widget child) => SliverToBoxAdapter(
+      child: Align(
+        alignment: Alignment.topCenter,
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 720),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: child,
+          ),
+        ),
+      ),
+    );
+    final bioLong =
+        user.bio.length > 90 || '\n'.allMatches(user.bio).isNotEmpty;
+    final ratingText = rating.count == 0
+        ? t('Nema recenzija')
+        : '★ ${rating.average.toStringAsFixed(1)} (${rating.count})';
+    final stats = [
+      ratingText,
+      if (!demo) t('{0} prodaja', ['${state.salesCountOf(user.id)}']),
+      t('{0} pratitelja', ['${state.followersOf(user.id)}']),
+    ].join('  ·  ');
+    final categories = AppState.countByCategory(allListings);
+    return Scaffold(
+      appBar: AppBar(
+        title: Text(
+          user.shopTitle,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+        ),
+        actions: [
+          PopupMenuButton<String>(
+            key: const ValueKey('profile-menu'),
+            tooltip: t('Više'),
+            onSelected: (v) async {
+              switch (v) {
+                case 'about':
+                  await showModalBottomSheet<void>(
+                    context: context,
+                    showDragHandle: true,
+                    isScrollControlled: true,
+                    builder: (_) => SafeArea(
+                      child: SingleChildScrollView(
+                        padding: const EdgeInsets.all(20),
+                        child: SellerTrustCard(user: user),
+                      ),
+                    ),
+                  );
+                case 'share':
+                  await shareLink(
+                    context,
+                    publicLink(shop: user.username),
+                    text: t('Trgovina {0} na Subhastu', [user.shopTitle]),
+                  );
+                case 'report':
+                  await showReportSheet(
+                    context,
+                    ref,
+                    targetType: 'user',
+                    targetId: user.id,
+                    targetLabel: user.handle,
+                  );
+                case 'block':
+                  final now = await ref
+                      .read(appProvider.notifier)
+                      .toggleBlock(user.id);
+                  showLoopSnackBar(
+                    now
+                        ? t('{0} je blokiran — ne vidiš njegove oglase.', [
+                            user.handle,
+                          ])
+                        : t('{0} je odblokiran.', [user.handle]),
+                  );
+              }
+            },
+            itemBuilder: (_) => [
+              PopupMenuItem(value: 'about', child: Text(t('O prodavatelju'))),
+              if (user.username.isNotEmpty)
+                PopupMenuItem(
+                  value: 'share',
+                  child: Text(t('Podijeli profil')),
+                ),
+              if (!isMe && signedIn) ...[
+                PopupMenuItem(
+                  value: 'report',
+                  child: Text(t('Prijavi korisnika')),
+                ),
+                PopupMenuItem(
+                  value: 'block',
+                  child: Text(blocked ? t('Odblokiraj') : t('Blokiraj')),
+                ),
+              ],
+            ],
+          ),
+        ],
+      ),
+      body: CustomScrollView(
+        key: const ValueKey('profile-scroll'),
+        slivers: [
+          box(
+            Padding(
+              padding: const EdgeInsets.only(top: 4),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  UserAvatar(user: user, size: 64),
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          user.shopTitle,
+                          key: const ValueKey('profile-name'),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                        if (showHandle)
+                          Text(
+                            user.handle,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: secondary,
+                          ),
+                        if (meta.isNotEmpty)
+                          Text(
+                            meta,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: secondary,
+                          ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          if (user.bio.isNotEmpty)
+            box(
+              Padding(
+                padding: const EdgeInsets.only(top: 10),
+                child: InkWell(
+                  key: const ValueKey('profile-bio'),
+                  onTap: bioLong
+                      ? () => setState(() => _bioOpen = !_bioOpen)
+                      : null,
+                  child: Text.rich(
+                    TextSpan(
+                      children: [
+                        TextSpan(text: user.bio),
+                        if (bioLong)
+                          TextSpan(
+                            text: _bioOpen
+                                ? '  ${t('Manje')}'
+                                : '  ${t('Više')}',
+                            style: const TextStyle(fontWeight: FontWeight.w700),
+                          ),
+                      ],
+                    ),
+                    maxLines: _bioOpen ? null : 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(fontSize: 14, height: 1.35),
+                  ),
+                ),
+              ),
+            ),
+          box(
+            Padding(
+              padding: const EdgeInsets.only(top: 10),
+              child: Wrap(
+                crossAxisAlignment: WrapCrossAlignment.center,
+                spacing: 8,
+                children: [
+                  Text(
+                    stats,
+                    key: const ValueKey('profile-stats'),
+                    style: const TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  if (demo) Text(t('Demo račun'), style: secondary),
+                ],
+              ),
+            ),
+          ),
+          box(
+            Padding(
+              padding: const EdgeInsets.only(top: 12),
+              child: isMe
+                  ? Row(
+                      children: [
+                        Expanded(
+                          flex: 3,
+                          child: FilledButton(
+                            key: const ValueKey('profile-edit'),
+                            onPressed: () => EditProfileScreen.open(context),
+                            child: Text(t('Uredi profil')),
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          flex: 2,
+                          child: OutlinedButton(
+                            key: const ValueKey('profile-sell'),
+                            onPressed: () => SellerHubScreen.open(context),
+                            child: Text(t('Prodaj')),
+                          ),
+                        ),
+                      ],
+                    )
+                  : blocked
+                  ? const SizedBox.shrink()
+                  : Row(
+                      children: [
+                        Expanded(flex: 3, child: FollowButton(userId: user.id)),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          flex: 2,
+                          child: OutlinedButton(
+                            key: const ValueKey('profile-message'),
+                            onPressed: () => ChatScreen.open(context, user.id),
+                            child: Text(t('Poruka')),
+                          ),
+                        ),
+                      ],
+                    ),
+            ),
+          ),
+          if (liveNow != null)
+            box(
+              Padding(
+                padding: const EdgeInsets.only(top: 12),
+                child: Container(
+                  key: ValueKey('profile-live-${liveNow.$1.id}'),
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: LoopColors.textPrimary.withValues(alpha: .05),
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: Row(
+                    children: [
+                      SizedBox(
+                        width: 56,
+                        height: 56,
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(12),
+                          child: BrowseCardMedia(
+                            device: state.deviceById(
+                              liveNow.$2.lots.firstOrNull?.lot.deviceId ?? '',
+                            ),
+                            cover: liveNow.$1.coverPath,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              '● ${t('UŽIVO')}',
+                              style: TextStyle(
+                                color: LoopColors.live,
+                                fontSize: 12,
+                                fontWeight: FontWeight.w800,
+                              ),
+                            ),
+                            Text(
+                              liveNow.$1.title,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      FilledButton(
+                        key: const ValueKey('profile-watch-live'),
+                        style: FilledButton.styleFrom(
+                          backgroundColor: LoopColors.live,
+                          foregroundColor: Colors.white,
+                        ),
+                        onPressed: () =>
+                            LiveRoomScreen.open(context, liveNow.$1.id),
+                        child: Text(t('Gledaj uživo')),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            )
+          else if (upcoming != null)
+            box(
+              Padding(
+                padding: const EdgeInsets.only(top: 12),
+                child: Row(
+                  key: ValueKey('profile-live-${upcoming.$1.id}'),
+                  children: [
+                    Expanded(
+                      child: InkWell(
+                        onTap: () =>
+                            LiveRoomScreen.open(context, upcoming.$1.id),
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 6),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                '${t('Uskoro')} · ${formatDateTime(upcoming.$1.startsAt)}',
+                                style: secondary,
+                              ),
+                              Text(
+                                upcoming.$1.title,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                    if (!isMe)
+                      OutlinedButton(
+                        key: const ValueKey('profile-remind'),
+                        onPressed: () => remindMe(context, ref, upcoming.$1.id),
+                        child: Text(t('Podsjeti me')),
+                      ),
+                  ],
+                ),
+              ),
+            ),
+          if (!isMe && allListings.isNotEmpty)
+            box(
+              InkWell(
+                key: const ValueKey('shop-terms'),
+                onTap: () => BuyerProtectionBadge.explain(context),
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(minHeight: 44),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.verified_user_outlined, size: 18),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          t('Dostava i zaštita kupca'),
+                          style: const TextStyle(fontSize: 14),
+                        ),
+                      ),
+                      const Icon(Icons.chevron_right, size: 20),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          box(
+            Row(
+              key: const ValueKey('shop-tabs'),
+              children: [
+                for (final id in tabs)
+                  tabButton(id, switch (id) {
+                    _ShopTab.items => t('Shop ({0})', [
+                      '${allListings.length}',
+                    ]),
+                    _ShopTab.reviews =>
+                      reviews.isEmpty
+                          ? t('Ocjene')
+                          : t('Ocjene ({0})', ['${reviews.length}']),
+                    _ShopTab.auctions => t('Aukcije ({0})', [
+                      '${auctions.length}',
+                    ]),
+                  }),
+              ],
+            ),
+          ),
+          if (tab == _ShopTab.items) ...[
+            if (allListings.isNotEmpty)
+              box(
+                Padding(
+                  padding: const EdgeInsets.only(top: 6),
+                  child: Row(
+                    children: [
+                      if (_searchOpen)
+                        Expanded(
+                          child: TextField(
+                            key: const ValueKey('shop-search'),
+                            controller: _search,
+                            autofocus: true,
+                            onChanged: (v) => setState(() => _query = v),
+                            decoration: InputDecoration(
+                              isDense: true,
+                              hintText: t('Pretraži shop'),
+                              prefixIcon: const Icon(Icons.search, size: 20),
+                            ),
+                          ),
+                        )
+                      else
+                        const Spacer(),
+                      IconButton(
+                        key: const ValueKey('shop-search-toggle'),
+                        tooltip: t('Pretraži shop'),
+                        onPressed: () => setState(() {
+                          _searchOpen = !_searchOpen;
+                          if (!_searchOpen) {
+                            _query = '';
+                            _search.clear();
+                          }
+                        }),
+                        icon: Icon(_searchOpen ? Icons.close : Icons.search),
+                      ),
+                      IconButton(
+                        key: const ValueKey('shop-filters'),
+                        tooltip: t('Filteri'),
+                        onPressed: () => _shopFilters(categories),
+                        icon: Badge(
+                          isLabelVisible: _category != null,
+                          smallSize: 8,
+                          child: const Icon(Icons.tune),
+                        ),
+                      ),
+                      if (isMe)
+                        IconButton(
+                          key: const ValueKey('shop-add'),
+                          tooltip: t('Dodaj predmet u trgovinu'),
+                          onPressed: () => AddDeviceScreen.open(context),
+                          icon: const Icon(Icons.add),
+                        ),
+                    ],
+                  ),
+                ),
+              ),
+            if (listings.isEmpty)
+              box(
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 24),
+                  child: Text(
+                    allListings.isEmpty
+                        ? (isMe
+                              ? t('Dodaj prvi predmet u svoj shop.')
+                              : t('Shop još nema proizvoda.'))
+                        : t('Nema predmeta za odabrani filtar.'),
+                    textAlign: TextAlign.center,
+                    style: TextStyle(color: LoopColors.textSecondary),
+                  ),
+                ),
+              )
+            else
+              SliverLayoutBuilder(
+                builder: (context, c) {
+                  final width = c.crossAxisExtent.clamp(0.0, 720.0);
+                  final cols = width >= 560 ? 3 : 2;
+                  final pad = (c.crossAxisExtent - width) / 2 + 16;
+                  final cell = (width - 32 - (cols - 1) * 12) / cols;
+                  final scale = MediaQuery.textScalerOf(context).scale(14) / 14;
+                  return SliverPadding(
+                    padding: EdgeInsets.fromLTRB(pad, 8, pad, 0),
+                    sliver: SliverGrid(
+                      key: const ValueKey('shop-grid'),
+                      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                        crossAxisCount: cols,
+                        mainAxisSpacing: 16,
+                        crossAxisSpacing: 12,
+                        mainAxisExtent: cell * 5 / 4 + 58 * scale.clamp(1, 2),
+                      ),
+                      delegate: SliverChildBuilderDelegate((context, i) {
+                        final d = listings[i];
+                        return _ShopGridCard(
+                          key: ValueKey('shop-item-${d.id}'),
+                          device: d,
+                          price: state.priceForMe(d),
+                          onTap: () => DeviceDetailScreen.open(context, d),
+                        );
+                      }, childCount: listings.length),
+                    ),
+                  );
+                },
+              ),
+          ],
+          if (tab == _ShopTab.auctions)
+            for (final a in auctions)
+              box(
+                Padding(
+                  padding: const EdgeInsets.only(top: 10),
+                  child: IntrinsicHeight(
+                    child: AuctionCard(auction: a, viewerId: viewer),
+                  ),
+                ),
+              ),
+          if (tab == _ShopTab.reviews) ...[
+            box(
+              _ShopRatingCard(
+                sellerId: user.id,
+                sellerLabel: user.shopTitle,
+                canRate: !isMe && signedIn,
+              ),
+            ),
+            if (reviews.isEmpty)
+              box(
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  child: Text(
+                    t('Nema recenzija'),
+                    textAlign: TextAlign.center,
+                    style: TextStyle(color: LoopColors.textSecondary),
+                  ),
+                ),
+              )
+            else
+              box(
+                Column(
+                  children: [
+                    for (final (i, r) in reviews.take(30).indexed) ...[
+                      if (i > 0) const Divider(height: 1),
+                      ReviewTile(review: r),
+                    ],
+                  ],
+                ),
+              ),
+          ],
+          const SliverToBoxAdapter(child: SizedBox(height: 32)),
+        ],
+      ),
+    );
+  }
+
+  /// Jedan gumb za filtre shopa: sortiranje i (samo kad ima smisla)
+  /// kategorije.
+  Future<void> _shopFilters(Map<DeviceCategory, int> categories) =>
+      showModalBottomSheet<void>(
+        context: context,
+        showDragHandle: true,
+        isScrollControlled: true,
+        builder: (ctx) => StatefulBuilder(
+          builder: (ctx, setSheet) => SafeArea(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    t('Sortiraj'),
+                    style: const TextStyle(fontWeight: FontWeight.w700),
+                  ),
+                  Wrap(
+                    spacing: 8,
+                    children: [
+                      for (final v in _ShopSort.values)
+                        ChoiceChip(
+                          label: Text(v.label),
+                          selected: _sort == v,
+                          onSelected: (_) {
+                            setState(() => _sort = v);
+                            setSheet(() {});
+                          },
+                        ),
+                    ],
+                  ),
+                  if (categories.length >= 2) ...[
+                    const SizedBox(height: 16),
+                    Text(
+                      t('Kategorija'),
+                      style: const TextStyle(fontWeight: FontWeight.w700),
+                    ),
+                    Wrap(
+                      spacing: 8,
+                      children: [
+                        ChoiceChip(
+                          label: Text(t('Sve')),
+                          selected: _category == null,
+                          onSelected: (_) {
+                            setState(() => _category = null);
+                            setSheet(() {});
+                          },
+                        ),
+                        for (final e in categories.entries)
+                          ChoiceChip(
+                            key: ValueKey('shop-cat-${e.key.name}'),
+                            label: Text('${e.key.label} (${e.value})'),
+                            selected: _category == e.key,
+                            onSelected: (_) {
+                              setState(
+                                () => _category = _category == e.key
+                                    ? null
+                                    : e.key,
+                              );
+                              setSheet(() {});
+                            },
+                          ),
+                      ],
+                    ),
+                  ],
+                  const SizedBox(height: 12),
+                  FilledButton(
+                    onPressed: () => Navigator.pop(ctx),
+                    child: Text(t('Gotovo')),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      );
+
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(appProvider);
@@ -166,6 +858,9 @@ class _PublicProfileScreenState extends ConsumerState<PublicProfileScreen> {
     final reviews = state.reviewsOf(user.id);
     final blocked = state.isBlocked(user.id);
     final other = user;
+    if (kSimpleDesign) {
+      return _simpleProfile(state, user, allListings, auctions, reviews);
+    }
     return Scaffold(
       appBar: AppBar(
         title: Text(user.shopTitle, overflow: TextOverflow.ellipsis),
@@ -1173,4 +1868,68 @@ class _ShopRatingCard extends ConsumerWidget {
       ),
     );
   }
+}
+
+/// Kartica proizvoda u mreži shopa: fotografija, kratak naziv i cijena.
+class _ShopGridCard extends StatelessWidget {
+  const _ShopGridCard({
+    super.key,
+    required this.device,
+    required this.price,
+    required this.onTap,
+  });
+  final Device device;
+  final double price;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) => Semantics(
+    button: true,
+    label: '${device.name}, ${formatCredits(price)}',
+    excludeSemantics: true,
+    child: InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(12),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Expanded(
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(12),
+              child: SizedBox.expand(child: BrowseCardMedia(device: device)),
+            ),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            device.name,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+          ),
+          Row(
+            children: [
+              Text(
+                formatCredits(price),
+                style: const TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              if (device.hasDiscount) ...[
+                const SizedBox(width: 6),
+                Text(
+                  '−${device.discountPercent}%',
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
+                    color: LoopColors.error,
+                  ),
+                ),
+              ],
+            ],
+          ),
+        ],
+      ),
+    ),
+  );
 }

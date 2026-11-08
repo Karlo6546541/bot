@@ -209,8 +209,13 @@ void main() {
           .userId,
       owner.id,
     );
-    expect(find.byTooltip('O prodavatelju').hitTestable(), findsOneWidget);
-    expect(find.byTooltip('Podijeli trgovinu').hitTestable(), findsOneWidget);
+    // Kompaktna traka: dodatne radnje (o prodavatelju, dijeljenje) su u izborniku.
+    await tester.tap(find.byKey(const ValueKey('profile-menu')));
+    await tester.pumpAndSettle();
+    expect(find.text('O prodavatelju'), findsOneWidget);
+    expect(find.text('Podijeli profil'), findsOneWidget);
+    await tester.tapAt(Offset.zero);
+    await tester.pumpAndSettle();
     expect(tester.takeException(), isNull);
     await tester.pumpWidget(const SizedBox());
   });
