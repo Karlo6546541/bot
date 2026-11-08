@@ -13,7 +13,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../l10n/tr.dart';
-import '../widgets/brand.dart' show kAppName;
 import '../models/review.dart' show Rating;
 import '../services/demo_accounts.dart';
 import '../widgets/shop_widgets.dart' show FollowButton;
@@ -1116,67 +1115,51 @@ class _LiveHomeScreenState extends ConsumerState<LiveHomeScreen> {
       return Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // Skica: pretraga (pilula) + poruke i obavijesti u istom retku.
           Row(
             children: [
-              Semantics(
-                label: kAppName,
-                child: InkWell(
-                  onTap: () {
-                    _select(const _ForYou());
-                    setState(() => _cat = null);
-                  },
-                  child: Container(
-                    width: 44,
-                    height: 44,
-                    alignment: Alignment.center,
-                    child: Text(
-                      kAppName.substring(0, 1),
-                      style: const TextStyle(
-                        fontSize: 34,
-                        fontWeight: FontWeight.w800,
-                        height: 1,
+              Expanded(
+                child: Semantics(
+                  button: true,
+                  label: t('Pretraži prijenose i prodavače'),
+                  excludeSemantics: true,
+                  child: InkWell(
+                    key: const ValueKey('home-search'),
+                    borderRadius: BorderRadius.circular(99),
+                    onTap: () => SearchScreen.open(context),
+                    child: Container(
+                      height: 48,
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      decoration: BoxDecoration(
+                        color: LoopColors.textPrimary.withValues(alpha: .07),
+                        borderRadius: BorderRadius.circular(99),
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(
+                            Icons.search,
+                            size: 22,
+                            color: LoopColors.textSecondary,
+                          ),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: Text(
+                              t('Pretraži prijenose i prodavače'),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                fontSize: 16,
+                                color: LoopColors.textSecondary,
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                   ),
                 ),
               ),
-              Expanded(
-                child: Center(
-                  child: FittedBox(
-                    fit: BoxFit.scaleDown,
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        textTab(
-                          key: const ValueKey('home-view-for-you'),
-                          label: t('Za tebe'),
-                          on: !following,
-                          onTap: () {
-                            if (_filter is! _ForYou) _select(const _ForYou());
-                          },
-                        ),
-                        textTab(
-                          key: const ValueKey('home-view-following'),
-                          label: t('Pratim'),
-                          on: following,
-                          onTap: () => _select(const _Following()),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-              IconButton(
-                key: const ValueKey('home-search'),
-                tooltip: t('Pretraži prijenose i prodavače'),
-                style: IconButton.styleFrom(
-                  padding: EdgeInsets.zero,
-                  fixedSize: const Size(44, 44),
-                  minimumSize: const Size(44, 44),
-                ),
-                onPressed: () => SearchScreen.open(context),
-                icon: const Icon(Icons.search, size: 26),
-              ),
+              const SizedBox(width: 4),
               IconButtonTheme(
                 data: IconButtonThemeData(
                   style: IconButton.styleFrom(
@@ -1193,10 +1176,8 @@ class _LiveHomeScreenState extends ConsumerState<LiveHomeScreen> {
               ),
             ],
           ),
-          Divider(
-            height: 1,
-            color: LoopColors.textPrimary.withValues(alpha: .08),
-          ),
+          const SizedBox(height: 4),
+          // Jedan red tekstualnih tabova: Za tebe, Pratim, Uskoro, kategorije.
           SizedBox(
             height: 48,
             child: ListView(
@@ -1204,35 +1185,48 @@ class _LiveHomeScreenState extends ConsumerState<LiveHomeScreen> {
               scrollDirection: Axis.horizontal,
               children: [
                 textTab(
-                  key: const ValueKey('home-cat-all'),
-                  label: t('Sve'),
-                  on: _cat == null && !soon,
-                  size: 16,
+                  key: const ValueKey('home-view-for-you'),
+                  label: t('Za tebe'),
+                  on: !following && !soon && _cat == null,
                   onTap: () {
                     setState(() => _cat = null);
-                    if (soon) _select(const _ForYou());
+                    if (_filter is! _ForYou) _select(const _ForYou());
                   },
+                ),
+                textTab(
+                  key: const ValueKey('home-view-following'),
+                  label: t('Pratim'),
+                  on: following,
+                  onTap: () => _select(const _Following()),
                 ),
                 textTab(
                   key: const ValueKey('home-view-soon'),
                   label: t('Uskoro'),
                   on: soon,
-                  size: 16,
                   onTap: () => _select(const _Soon()),
                 ),
                 for (final c in _existingCategories(s))
                   textTab(
                     key: ValueKey('home-category-${c.name}'),
                     label: c.label,
-                    on: _cat == c && !soon,
-                    size: 16,
+                    on: _cat == c && !soon && !following,
                     onTap: () {
-                      if (soon) _select(const _ForYou());
+                      if (_filter is! _ForYou) _select(const _ForYou());
                       setState(() => _cat = _cat == c ? null : c);
                     },
                   ),
+                textTab(
+                  key: const ValueKey('home-all-categories'),
+                  label: '${t('Kategorije')} ›',
+                  on: false,
+                  onTap: () => ref.read(homeTabProvider.notifier).select(1),
+                ),
               ],
             ),
+          ),
+          Divider(
+            height: 1,
+            color: LoopColors.textPrimary.withValues(alpha: .08),
           ),
         ],
       );

@@ -346,7 +346,7 @@ void main() {
     addTearDown(tester.view.reset);
     await tester.pumpWidget(app());
     await tester.pumpAndSettle();
-    expect(find.byKey(const ValueKey('home-cat-all')), findsOneWidget);
+    expect(find.byKey(const ValueKey('home-categories')), findsOneWidget);
     for (final id in ['for-you', 'following', 'soon']) {
       expect(find.byKey(ValueKey('home-view-$id')), findsOneWidget, reason: id);
     }
