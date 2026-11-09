@@ -1415,8 +1415,6 @@ class AppController extends Notifier<AppState> {
     LiveSells sells = LiveSells.physical,
     bool shop = false,
     bool buyNowOnly = false,
-    List<int?>? secondsEach,
-    List<bool>? suddenEach,
   }) async {
     // Testno: bez podataka prodavatelja (traže se tek za isplatu).
     final show = await _live.create(
@@ -1433,8 +1431,6 @@ class AppController extends Notifier<AppState> {
       category: category?.name,
       relistUnsold: relistUnsold,
       names: names,
-      secondsEach: secondsEach,
-      suddenEach: suddenEach,
     );
     _refresh();
     return show;
