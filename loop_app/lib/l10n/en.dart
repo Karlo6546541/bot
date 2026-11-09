@@ -3440,7 +3440,18 @@ const kEn = <String, String>{
   'Ovaj live prodaje samo Kupi odmah, bez aukcija.':
       'This live sells Buy now only, without auctions.',
   'Poništi filter': 'Reset filter',
-  'Trenutno nema aktivnih ni najavljenih prijenosa.': 'There are no live or upcoming streams right now.',
+  'Trenutno nema aktivnih ni najavljenih prijenosa.':
+      'There are no live or upcoming streams right now.',
+  'Kreni odmah ili zakaži do 7 dana unaprijed.':
+      'Go live now or schedule up to 7 days ahead.',
+  'Primarna kategorija': 'Primary category',
+  'Točna kategorija pomaže da te kupci lakše pronađu.':
+      'An accurate category helps buyers find you.',
+  'Predložene kategorije': 'Suggested categories',
+  'Sakrij sve kategorije': 'Hide all categories',
+  'Opcije showa': 'Show options',
+  'Video, trajanje licitacije i promocija.':
+      'Video, auction duration and promotion.',
   'Zakaži show': 'Schedule a show',
   'Otprema': 'Shipping',
   'Nema paketa za predaju': 'No parcels to hand over',

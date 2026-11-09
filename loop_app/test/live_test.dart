@@ -1189,31 +1189,39 @@ void main() {
       await tester.pumpAndSettle();
       await tester.tap(find.byKey(const ValueKey('seller-hub-live')));
       await tester.pumpAndSettle();
-      expect(find.text('Novi live'), findsOneWidget);
+      expect(find.text('Pokreni live'), findsWidgets);
       await tester.enterText(
         find.byKey(const ValueKey('live-title')),
         'Retro večer',
       );
-      // Čarobnjak: ime/kategorija/kada → predmeti i Kreni uživo.
-      Future<void> next() async {
-        await tester.tap(find.byKey(const ValueKey('wizard-next')));
-        await tester.pumpAndSettle();
-      }
-
-      expect(find.text('1 od 2'), findsOneWidget);
+      // Jedna stranica: ime, datum, kategorija, predmeti i Pokreni live.
       final cat = ItemSection.values
           .firstWhere((s) => s != ItemSection.digital)
           .categories
           .first;
-      await tester.ensureVisible(find.byKey(ValueKey('live-cat-${cat.name}')));
+      await tester.scrollUntilVisible(
+        find.byKey(const ValueKey('live-cat-all-toggle')),
+        200,
+        scrollable: find.byType(Scrollable).first,
+      );
+      await tester.tap(find.byKey(const ValueKey('live-cat-all-toggle')));
+      await tester.pumpAndSettle();
+      await tester.scrollUntilVisible(
+        find.byKey(ValueKey('live-cat-${cat.name}')),
+        200,
+        scrollable: find.byType(Scrollable).first,
+      );
       await tester.tap(find.byKey(ValueKey('live-cat-${cat.name}')));
       await tester.pumpAndSettle();
       FocusManager.instance.primaryFocus?.unfocus();
       await tester.pumpAndSettle();
-      await next();
-      expect(find.text('2 od 2'), findsOneWidget);
       // Predmeti samo za ovaj live: brzo dodaj (sa slikom) i "items on
       // screen" (#150, #151 — bez slike).
+      await tester.scrollUntilVisible(
+        find.byKey(const ValueKey('live-quick-item')),
+        200,
+        scrollable: find.byType(Scrollable).first,
+      );
       await tester.tap(find.byKey(const ValueKey('live-quick-item')));
       await tester.pumpAndSettle();
       await tester.enterText(
