@@ -1195,21 +1195,27 @@ void main() {
         'Retro večer',
       );
       // Jedna stranica: ime, datum, kategorija, predmeti i Pokreni live.
-      final cat = ItemSection.values
-          .firstWhere((s) => s != ItemSection.digital)
-          .categories
+      final formScroll = find
+          .descendant(
+            of: find.byKey(const ValueKey('live-form')),
+            matching: find.byType(Scrollable),
+          )
           .first;
+      final cat = ItemSection.values
+          .lastWhere((s) => s != ItemSection.digital)
+          .categories
+          .last;
       await tester.scrollUntilVisible(
         find.byKey(const ValueKey('live-cat-all-toggle')),
         200,
-        scrollable: find.byType(Scrollable).first,
+        scrollable: formScroll,
       );
       await tester.tap(find.byKey(const ValueKey('live-cat-all-toggle')));
       await tester.pumpAndSettle();
       await tester.scrollUntilVisible(
         find.byKey(ValueKey('live-cat-${cat.name}')),
         200,
-        scrollable: find.byType(Scrollable).first,
+        scrollable: formScroll,
       );
       await tester.tap(find.byKey(ValueKey('live-cat-${cat.name}')));
       await tester.pumpAndSettle();
@@ -1218,22 +1224,9 @@ void main() {
       // Predmeti samo za ovaj live: brzo dodaj (sa slikom) i "items on
       // screen" (#150, #151 — bez slike).
       await tester.scrollUntilVisible(
-        find.byKey(const ValueKey('live-quick-item')),
-        200,
-        scrollable: find.byType(Scrollable).first,
-      );
-      await tester.tap(find.byKey(const ValueKey('live-quick-item')));
-      await tester.pumpAndSettle();
-      await tester.enterText(
-        find.byKey(const ValueKey('quick-lot-name')),
-        'Game Boy Color',
-      );
-      await tester.tap(find.byKey(const ValueKey('quick-lot-confirm')));
-      await tester.pumpAndSettle();
-      await tester.scrollUntilVisible(
         find.byKey(const ValueKey('live-on-screen')),
         200,
-        scrollable: find.byType(Scrollable).first,
+        scrollable: formScroll,
       );
       await tester.pumpAndSettle();
       await tester.tap(find.byKey(const ValueKey('live-on-screen')));
@@ -1302,10 +1295,7 @@ void main() {
       expect(show.shop, isTrue);
       expect(show.title, 'Retro večer');
       expect(show.lotSeconds, 45);
-      expect(
-        [for (final l in show.lots) l.deviceName],
-        ['Game Boy Color', 'Predmet #150'],
-      );
+      expect([for (final l in show.lots) l.deviceName], ['Predmet #150']);
       // Sljedeći broj se dodaje sam, bez ograničenja (isti predmet).
       expect(LiveService.nextOnScreen(show)!.name, 'Predmet #151');
       expect(show.lots.last.startPrice, 5);
@@ -1364,7 +1354,7 @@ void main() {
       await tester.pumpAndSettle();
       await tester.tap(mine.first);
       await tester.pumpAndSettle();
-      expect(storage.liveShowById(show.id)!.lots, hasLength(3));
+      expect(storage.liveShowById(show.id)!.lots, hasLength(2));
       // ⚡ Brzo dodaj: samo naziv i cijena, predmet ide u Moje predmete.
       await tester.tap(find.byKey(const ValueKey('live-quick-add')));
       await tester.pumpAndSettle();
@@ -1376,7 +1366,7 @@ void main() {
       await tester.tap(find.byKey(const ValueKey('quick-add-confirm')));
       await tester.pumpAndSettle();
       final lots = storage.liveShowById(show.id)!.lots;
-      expect(lots, hasLength(4));
+      expect(lots, hasLength(3));
       expect(lots.last.deviceName, 'Pokemon Charizard');
       expect(lots.last.startPrice, 7);
       expect(
