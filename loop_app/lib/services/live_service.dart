@@ -501,6 +501,7 @@ class LiveService {
       final s = start;
       if (s != null &&
           close != null &&
+          !lot.suddenDeath &&
           !b.at.isBefore(s) &&
           !b.at.isAfter(close)) {
         close = close.add(LiveShow.bidBonus);
@@ -597,6 +598,8 @@ class LiveService {
     bool buyNowOnly = false,
     bool relistUnsold = true,
     List<String?>? names,
+    List<int?>? secondsEach,
+    List<bool>? suddenEach,
   }) async {
     final at = now ?? DateTime.now();
     final host = _storage.userById(hostId);
@@ -624,6 +627,13 @@ class LiveService {
     if (!LiveShow.lotDurations.contains(lotSeconds)) {
       throw TradeException(t('Odaberi trajanje licitacije.'));
     }
+    if (secondsEach != null) {
+      for (final custom in secondsEach) {
+        if (custom != null && !LiveShow.lotDurations.contains(custom)) {
+          throw TradeException(t('Odaberi trajanje licitacije.'));
+        }
+      }
+    }
     final start = startsAt ?? at;
     if (start.isBefore(at.subtract(const Duration(minutes: 1))) ||
         start.isAfter(at.add(LiveShow.maxScheduleAhead))) {
@@ -644,14 +654,19 @@ class LiveService {
       if (used >= (_storage.deviceById(id)?.quantity ?? 1)) continue;
       final lot = await _prepareLot(hostId, id, price, at);
       final name = names != null && i < names.length ? names[i] : null;
+      final custom = secondsEach != null && i < secondsEach.length
+          ? secondsEach[i]
+          : null;
+      final sudden =
+          suddenEach != null && i < suddenEach.length && suddenEach[i];
       lots.add(
-        name == null
-            ? lot
-            : LiveLot(
-                deviceId: lot.deviceId,
-                deviceName: name,
-                startPrice: lot.startPrice,
-              ),
+        LiveLot(
+          deviceId: lot.deviceId,
+          deviceName: name ?? lot.deviceName,
+          startPrice: lot.startPrice,
+          seconds: custom,
+          suddenDeath: sudden,
+        ),
       );
     }
     final later = start.isAfter(at.add(const Duration(minutes: 1)));

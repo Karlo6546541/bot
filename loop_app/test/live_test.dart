@@ -440,6 +440,41 @@ void main() {
       }
     });
 
+    test('iznenadna smrt ne produžuje sat, trajanje je po predmetu', () async {
+      await expectLater(
+        live.create(
+          hostId: host,
+          title: 'Krivo trajanje',
+          items: [(items.first.id, 1)],
+          secondsEach: [7],
+          startsAt: t0,
+          now: t0,
+        ),
+        throwsA(isA<TradeException>()),
+      );
+      final show = await live.create(
+        hostId: host,
+        title: 'Brza runda',
+        items: [(items.first.id, 1), (items[1].id, 1)],
+        lotSeconds: 30,
+        secondsEach: [10, null],
+        suddenEach: [true, false],
+        startsAt: t0,
+        now: t0,
+      );
+      expect(show.lots.first.seconds, 10);
+      expect(show.lots.first.suddenDeath, isTrue);
+      expect(show.lots[1].seconds, isNull);
+      expect(show.lots[1].suddenDeath, isFalse);
+      final again = LiveShow.fromMap(show.toMap());
+      expect(again.lots.first.suddenDeath, isTrue);
+      expect(again.lots.first.seconds, 10);
+      await live.startLot(host, show.id, index: 0, now: t0);
+      await live.bid(bob, show.id, 1, now: at(8));
+      final running = live.stateOf(storage.liveShowById(show.id)!, now: at(9));
+      expect(running.current!.end, at(10));
+    });
+
     test('predlicitacija na predmet koji tek dolazi', () async {
       final id = await start();
       // Predmet 2 (Walkman) još čeka — Ana predlicitira do 15 €.
@@ -1212,8 +1247,9 @@ void main() {
       await tester.pumpAndSettle();
       await next();
       expect(find.text('2 od 2'), findsOneWidget);
+      expect(find.text('Predmeti u liveu'), findsOneWidget);
       // Predmeti samo za ovaj live: brzo dodaj (sa slikom) i "items on
-      // screen" (#150, #151 — bez slike).
+      // screen" (#150, #151 — bez slike, u Više postavki).
       await tester.tap(find.byKey(const ValueKey('live-quick-item')));
       await tester.pumpAndSettle();
       await tester.enterText(
@@ -1222,10 +1258,37 @@ void main() {
       );
       await tester.tap(find.byKey(const ValueKey('quick-lot-confirm')));
       await tester.pumpAndSettle();
+      expect(find.text('Aukcija · start 1 €'), findsOneWidget);
+      FocusManager.instance.primaryFocus?.unfocus();
+      await tester.pumpAndSettle();
+      final form = find
+          .descendant(
+            of: find.byType(Scaffold).last,
+            matching: find.byType(Scrollable),
+          )
+          .first;
+      await tester.scrollUntilVisible(
+        find.byKey(const ValueKey('live-more')),
+        200,
+        scrollable: form,
+      );
+      await tester.ensureVisible(find.byKey(const ValueKey('live-more')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('live-more')));
+      await tester.pumpAndSettle();
+      await tester.scrollUntilVisible(
+        find.byKey(const ValueKey('live-secs-60')),
+        200,
+        scrollable: form,
+      );
+      await tester.ensureVisible(find.byKey(const ValueKey('live-secs-60')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('live-secs-60')));
+      await tester.pumpAndSettle();
       await tester.scrollUntilVisible(
         find.byKey(const ValueKey('live-on-screen')),
         200,
-        scrollable: find.byType(Scrollable).first,
+        scrollable: form,
       );
       await tester.pumpAndSettle();
       await tester.tap(find.byKey(const ValueKey('live-on-screen')));
@@ -1241,45 +1304,7 @@ void main() {
       await tester.tap(find.byKey(const ValueKey('on-screen-confirm')));
       await tester.pumpAndSettle();
       expect(find.text('Predmet #150'), findsOneWidget);
-      // Zatvori tipkovnicu (fokusirano polje inače vraća pomak na sebe).
       FocusManager.instance.primaryFocus?.unfocus();
-      await tester.pumpAndSettle();
-      // Popis na ekranu "Novi live" (ispod je još swipe feed).
-      final form = find
-          .descendant(
-            of: find.byType(Scaffold).last,
-            matching: find.byType(Scrollable),
-          )
-          .first;
-      // Prodavač uključuje svoju trgovinu (Kupi odmah) u liveu.
-      await tester.scrollUntilVisible(
-        find.byKey(const ValueKey('live-shop-toggle')),
-        200,
-        scrollable: form,
-      );
-      await tester.ensureVisible(
-        find.byKey(const ValueKey('live-shop-toggle')),
-      );
-      await tester.pumpAndSettle();
-      await tester.tap(find.byKey(const ValueKey('live-shop-toggle')));
-      await tester.pumpAndSettle();
-      await tester.scrollUntilVisible(
-        find.byKey(const ValueKey('live-more')),
-        200,
-        scrollable: form,
-      );
-      await tester.ensureVisible(find.byKey(const ValueKey('live-more')));
-      await tester.pumpAndSettle();
-      await tester.tap(find.byKey(const ValueKey('live-more')));
-      await tester.pumpAndSettle();
-      await tester.scrollUntilVisible(
-        find.byKey(const ValueKey('live-secs-45')),
-        200,
-        scrollable: form,
-      );
-      await tester.ensureVisible(find.byKey(const ValueKey('live-secs-45')));
-      await tester.pumpAndSettle();
-      await tester.tap(find.byKey(const ValueKey('live-secs-45')));
       await tester.pumpAndSettle();
       await tester.scrollUntilVisible(
         find.byKey(const ValueKey('live-go')),
@@ -1291,9 +1316,10 @@ void main() {
       await tester.pumpAndSettle();
 
       final show = storage.liveShows.firstWhere((s) => s.hostId == host);
-      expect(show.shop, isTrue);
+      expect(show.shop, isFalse);
+      expect(show.buyNowOnly, isFalse);
       expect(show.title, 'Retro večer');
-      expect(show.lotSeconds, 45);
+      expect(show.lotSeconds, 60);
       expect(
         [for (final l in show.lots) l.deviceName],
         ['Game Boy Color', 'Predmet #150'],
