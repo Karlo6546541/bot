@@ -3452,6 +3452,12 @@ const kEn = <String, String>{
   'Opcije showa': 'Show options',
   'Video, trajanje licitacije i promocija.':
       'Video, auction duration and promotion.',
+  'Odbaciti promjene?': 'Discard changes?',
+  'Ako sada izađeš, promjene će biti izgubljene.':
+      'If you leave now, your changes will be lost.',
+  'Promijeni kategoriju': 'Change category',
+  'Više detalja': 'More details',
+  'Model, godina, veličina, termin…': 'Model, year, size, date…',
   'Zakaži show': 'Schedule a show',
   'Otprema': 'Shipping',
   'Nema paketa za predaju': 'No parcels to hand over',

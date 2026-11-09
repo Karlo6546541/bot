@@ -140,7 +140,7 @@ void main() {
     );
     await tester.pumpAndSettle();
     await tester.enterText(find.byKey(const ValueKey('add-name')), 'iPhone 13');
-    await tester.enterText(find.byType(TextFormField).at(1), '300');
+    await tester.enterText(find.byKey(const ValueKey('add-price')), '300');
     await tester.pumpAndSettle();
     // Dostava je u "Više detalja"; profil dostave iz padajućeg izbornika.
     await tester.ensureVisible(find.byKey(const ValueKey('add-more')));

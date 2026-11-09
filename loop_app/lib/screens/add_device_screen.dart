@@ -501,236 +501,317 @@ class _AddDeviceScreenState extends ConsumerState<AddDeviceScreen> {
     );
   }
 
+  /// Ima li unesenih podataka koji bi se izgubili izlaskom.
+  bool get _dirty =>
+      !_saved &&
+      (_name.text.trim().isNotEmpty ||
+          _price.text.trim().isNotEmpty ||
+          _description.text.trim().isNotEmpty ||
+          _photos.isNotEmpty);
+
+  Future<void> _close() async {
+    if (!_dirty) {
+      Navigator.of(context).maybePop();
+      return;
+    }
+    final discard = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(t('Odbaciti promjene?')),
+        content: Text(t('Ako sada izađeš, promjene će biti izgubljene.')),
+        actions: [
+          TextButton(
+            key: const ValueKey('add-keep'),
+            onPressed: () => Navigator.pop(ctx, false),
+            child: Text(t('Odustani')),
+          ),
+          FilledButton(
+            key: const ValueKey('add-discard'),
+            style: FilledButton.styleFrom(backgroundColor: LoopColors.error),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: Text(t('Odbaci')),
+          ),
+        ],
+      ),
+    );
+    if (discard == true && mounted) Navigator.of(context).pop();
+  }
+
+  Widget _head(String title, [String? subtitle]) => Padding(
+    padding: const EdgeInsets.only(bottom: 10),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          title,
+          style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w700),
+        ),
+        if (subtitle != null)
+          Padding(
+            padding: const EdgeInsets.only(top: 4),
+            child: Text(
+              subtitle,
+              style: TextStyle(color: LoopColors.textSecondary, fontSize: 14),
+            ),
+          ),
+      ],
+    ),
+  );
+
   @override
   Widget build(BuildContext context) {
     // Svaka promjena (odabir stanja, veličine, kategorije…) ide u skicu.
     _saveDraft();
     const gap = SizedBox(height: 14);
-    return Scaffold(
-      appBar: AppBar(title: Text(t('Dodaj predmet'))),
-      body: SafeArea(
-        child: Center(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.all(16),
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 560),
-              child: Form(
-                key: _formKey,
-                autovalidateMode: AutovalidateMode.onUserInteraction,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    if (_store.supported) ...[
-                      _PhotoPicker(
-                        photos: _photos,
-                        canUseCamera: ref.read(imageStoreProvider).canUseCamera,
-                        onPick: _pickPhotos,
-                        onRemove: (path) {
-                          setState(() => _photos.remove(path));
-                          ref.read(imageStoreProvider).delete([path]);
-                        },
+    const divider = Padding(
+      padding: EdgeInsets.symmetric(vertical: 22),
+      child: Divider(height: 1),
+    );
+    final canDraft = _effMode != SellMode.keep && !_digitalMarket;
+    return PopScope(
+      canPop: !_dirty,
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop) _close();
+      },
+      child: Scaffold(
+        appBar: AppBar(
+          automaticallyImplyLeading: false,
+          leading: IconButton(
+            key: const ValueKey('add-close'),
+            tooltip: t('Zatvori'),
+            onPressed: _close,
+            icon: const Icon(Icons.close),
+          ),
+          title: Text(
+            t('Dodaj proizvod'),
+            style: const TextStyle(fontWeight: FontWeight.w700),
+          ),
+        ),
+        body: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 560),
+            child: Form(
+              key: _formKey,
+              autovalidateMode: AutovalidateMode.onUserInteraction,
+              child: ListView(
+                key: const ValueKey('add-form'),
+                padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+                children: [
+                  // Kategorija se bira dodirom na polje.
+                  FormField<DeviceCategory>(
+                    key: ValueKey('cat-${_category?.name}'),
+                    initialValue: _category,
+                    validator: (v) =>
+                        v == null ? t('Odaberi kategoriju') : null,
+                    builder: (field) => InkWell(
+                      key: ValueKey(
+                        !_pickCategory && _category != null
+                            ? 'add-category'
+                            : 'add-category-pick',
                       ),
-                      gap,
-                    ],
-                    TextFormField(
-                      key: const ValueKey('add-name'),
-                      controller: _name,
-                      maxLength: Device.maxName,
-                      onChanged: (v) => setState(() => _suggest(v)),
-                      textCapitalization: TextCapitalization.words,
-                      decoration: InputDecoration(
-                        labelText: t('Naziv'),
-                        hintText: t('npr. iPhone 15 Pro, LEGO set, radionica…'),
+                      borderRadius: BorderRadius.circular(16),
+                      onTap: () => _chooseCategory(field),
+                      child: InputDecorator(
+                        decoration: InputDecoration(
+                          labelText: '${t('Kategorija')} *',
+                          errorText: field.errorText,
+                          suffixIcon: const Icon(Icons.keyboard_arrow_down),
+                        ),
+                        child: Text(
+                          _category?.singular ?? t('Odaberi kategoriju'),
+                          style: TextStyle(
+                            color: _category == null
+                                ? LoopColors.textSecondary
+                                : null,
+                          ),
+                        ),
                       ),
-                      validator: _required,
                     ),
-                    gap,
-                    TextFormField(
-                      controller: _price,
-                      onChanged: (_) => setState(() {}),
-                      keyboardType: const TextInputType.numberWithOptions(
-                        decimal: true,
+                  ),
+                  if (_category != null && !_categoryManual)
+                    Align(
+                      alignment: Alignment.centerLeft,
+                      child: TextButton(
+                        key: const ValueKey('add-category-change'),
+                        onPressed: () => setState(() => _pickCategory = true),
+                        child: Text(t('Promijeni kategoriju')),
                       ),
-                      inputFormatters: [
-                        FilteringTextInputFormatter.allow(RegExp(r'[0-9.,]')),
-                        LengthLimitingTextInputFormatter(9),
-                      ],
-                      decoration: InputDecoration(
-                        labelText: t('Cijena'),
-                        suffixText: t('€'),
-                      ),
-                      validator: (v) {
-                        final p = _parsePrice(v);
-                        if (p == null) return t('Unesi ispravnu cijenu');
-                        if (p <= 0) return t('Cijena mora biti veća od 0');
-                        return null;
+                    ),
+                  gap,
+                  if (_store.supported) ...[
+                    _PhotoPicker(
+                      photos: _photos,
+                      canUseCamera: ref.read(imageStoreProvider).canUseCamera,
+                      onPick: _pickPhotos,
+                      onRemove: (path) {
+                        setState(() => _photos.remove(path));
+                        ref.read(imageStoreProvider).delete([path]);
                       },
                     ),
                     gap,
-                    // Kategorija se bira dodirom na pločicu.
-                    FormField<DeviceCategory>(
-                      key: ValueKey('cat-${_category?.name}'),
-                      initialValue: _category,
-                      validator: (v) =>
-                          v == null ? t('Odaberi kategoriju') : null,
-                      builder: (field) => !_pickCategory && _category != null
-                          ? ListTile(
-                              key: const ValueKey('add-category'),
-                              contentPadding: EdgeInsets.zero,
-                              leading: CategoryAvatar(
-                                category: _category!,
-                                size: 40,
+                  ],
+                  if (!_digital) ...[
+                    _head(t('Stanje')),
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: [
+                        for (final c in DeviceCondition.values)
+                          ChoiceChip(
+                            key: ValueKey('condition-${c.name}'),
+                            showCheckmark: false,
+                            avatar: Container(
+                              width: 10,
+                              height: 10,
+                              decoration: BoxDecoration(
+                                color: c.color,
+                                shape: BoxShape.circle,
                               ),
-                              title: Text(
-                                _category!.singular,
-                                style: const TextStyle(
-                                  fontWeight: FontWeight.w700,
-                                ),
-                              ),
-                              subtitle: Text(
-                                _categoryManual
-                                    ? t('Kategorija')
-                                    : t('Kategorija · predloženo iz naziva'),
-                              ),
-                              trailing: TextButton(
-                                key: const ValueKey('add-category-change'),
-                                onPressed: () => _chooseCategory(field),
-                                child: Text(t('Promijeni')),
-                              ),
-                            )
-                          : ListTile(
-                              key: const ValueKey('add-category-pick'),
-                              contentPadding: EdgeInsets.zero,
-                              leading: Icon(
-                                Icons.category_outlined,
-                                color: LoopColors.textSecondary,
-                              ),
-                              title: Text(t('Odaberi kategoriju')),
-                              subtitle: field.hasError
-                                  ? Text(
-                                      field.errorText!,
-                                      style: TextStyle(
-                                        color: LoopColors.error,
-                                        fontSize: 12,
-                                      ),
-                                    )
-                                  : null,
-                              trailing: const Icon(Icons.chevron_right),
-                              onTap: () => _chooseCategory(field),
                             ),
+                            label: Text(c.label),
+                            selected: _condition == c,
+                            onSelected: (_) => setState(() => _condition = c),
+                          ),
+                      ],
                     ),
-                    const SizedBox(height: 8),
-                    // Sve ostalo je neobavezno — skriveno dok se ne zatraži.
-                    Theme(
-                      data: Theme.of(
-                        context,
-                      ).copyWith(dividerColor: Colors.transparent),
-                      child: ExpansionTile(
-                        key: const ValueKey('add-more'),
-                        tilePadding: EdgeInsets.zero,
-                        childrenPadding: EdgeInsets.zero,
-                        title: Text(
-                          t('Više detalja (neobavezno)'),
-                          style: const TextStyle(fontWeight: FontWeight.w700),
-                        ),
-                        subtitle: Text(
-                          t('Dostava, model, opis, stanje, količina'),
-                          style: TextStyle(
-                            color: LoopColors.textSecondary,
-                            fontSize: 12,
-                          ),
-                        ),
-                        children: [
-                          // Dostava ima razumnu zadanu vrijednost (malo
-                          // paket) pa se ne traži od prodavača odmah.
-                          if (!_digital) ...[_shippingSection(), gap],
-                          TextFormField(
-                            controller: _model,
-                            onChanged: (_) => setState(() {}),
-                            decoration: InputDecoration(
-                              labelText: t('Model / detalji (neobavezno)'),
-                              hintText: t(
-                                'npr. 256GB Titanium, godina, veličina, termin…',
-                              ),
-                            ),
-                          ),
-                          gap,
-                          // Opis: neobavezan, do 500 znakova (brojač ispod polja).
-                          TextFormField(
-                            controller: _description,
-                            minLines: 3,
-                            maxLines: 6,
-                            maxLength: Device.maxDescription,
-                            textCapitalization: TextCapitalization.sentences,
-                            decoration: InputDecoration(
-                              labelText: t('Opis (neobavezno)'),
-                              hintText: t(
-                                'Stanje, oštećenja, što dolazi u paketu, razlog prodaje…',
-                              ),
-                              alignLabelWithHint: true,
-                            ),
-                          ),
-                          if (!_digital) ...[
-                            gap,
-                            DropdownButtonFormField<DeviceCondition>(
-                              initialValue: _condition,
-                              decoration: InputDecoration(
-                                labelText: t('Stanje'),
-                              ),
-                              items: [
-                                for (final c in DeviceCondition.values)
-                                  DropdownMenuItem(
-                                    value: c,
-                                    child: Row(
-                                      children: [
-                                        Container(
-                                          width: 10,
-                                          height: 10,
-                                          decoration: BoxDecoration(
-                                            color: c.color,
-                                            shape: BoxShape.circle,
-                                          ),
-                                        ),
-                                        const SizedBox(width: 10),
-                                        Text(c.label),
-                                      ],
-                                    ),
-                                  ),
-                              ],
-                              onChanged: (c) => setState(() => _condition = c),
-                              validator: (v) =>
-                                  v == null ? t('Odaberi stanje') : null,
-                            ),
-                            gap,
-                            _QuantityStepper(
-                              controller: _quantity,
-                              onChanged: () => setState(() {}),
-                            ),
-                          ],
-                        ],
-                      ),
+                    gap,
+                  ],
+                  TextFormField(
+                    key: const ValueKey('add-name'),
+                    controller: _name,
+                    maxLength: Device.maxName,
+                    onChanged: (v) => setState(() => _suggest(v)),
+                    textCapitalization: TextCapitalization.words,
+                    decoration: InputDecoration(
+                      labelText: '${t('Naslov')} *',
+                      hintText: t('npr. iPhone 15 Pro, LEGO set, radionica…'),
                     ),
-                    if (_digital) ...[
-                      gap,
-                      FormField<PickedFile>(
-                        key: const ValueKey('digital-file'),
-                        initialValue: _file,
-                        validator: (v) => v == null
-                            ? t('Dodaj datoteku koju kupac preuzima.')
-                            : null,
-                        builder: (field) => _FilePickerCard(
-                          file: _file,
-                          error: field.errorText,
-                          onPick: () => _pickFile(field),
-                          maxMb:
-                              ref.read(fileStoreProvider).maxBytes ~/
-                              (1024 * 1024),
-                        ),
+                    validator: _required,
+                  ),
+                  gap,
+                  TextFormField(
+                    key: const ValueKey('add-description'),
+                    controller: _description,
+                    minLines: 3,
+                    maxLines: 6,
+                    maxLength: Device.maxDescription,
+                    textCapitalization: TextCapitalization.sentences,
+                    decoration: InputDecoration(
+                      labelText: t('Opis'),
+                      hintText: t(
+                        'Stanje, oštećenja, što dolazi u paketu, razlog prodaje…',
                       ),
+                      alignLabelWithHint: true,
+                    ),
+                  ),
+                  if (!_digital) ...[
+                    gap,
+                    _QuantityStepper(
+                      controller: _quantity,
+                      onChanged: () => setState(() {}),
+                    ),
+                  ],
+                  gap,
+                  TextFormField(
+                    key: const ValueKey('add-price'),
+                    controller: _price,
+                    onChanged: (_) => setState(() {}),
+                    keyboardType: const TextInputType.numberWithOptions(
+                      decimal: true,
+                    ),
+                    inputFormatters: [
+                      FilteringTextInputFormatter.allow(RegExp(r'[0-9.,]')),
+                      LengthLimitingTextInputFormatter(9),
                     ],
-                    const SizedBox(height: 12),
-                    if (_digitalMarket)
+                    decoration: InputDecoration(
+                      labelText: '${t('Cijena')} *',
+                      suffixText: t('€'),
+                    ),
+                    validator: (v) {
+                      final p = _parsePrice(v);
+                      if (p == null) return t('Unesi ispravnu cijenu');
+                      if (p <= 0) return t('Cijena mora biti veća od 0');
+                      return null;
+                    },
+                  ),
+                  const SizedBox(height: 6),
+                  // Dodatno (neobavezno).
+                  Theme(
+                    data: Theme.of(
+                      context,
+                    ).copyWith(dividerColor: Colors.transparent),
+                    child: ExpansionTile(
+                      key: const ValueKey('add-more'),
+                      tilePadding: EdgeInsets.zero,
+                      childrenPadding: EdgeInsets.zero,
+                      title: Text(
+                        t('Više detalja'),
+                        style: const TextStyle(fontWeight: FontWeight.w700),
+                      ),
+                      subtitle: Text(
+                        t('Model, godina, veličina, termin…'),
+                        style: TextStyle(
+                          color: LoopColors.textSecondary,
+                          fontSize: 13,
+                        ),
+                      ),
+                      children: [
+                        TextFormField(
+                          key: const ValueKey('add-model'),
+                          controller: _model,
+                          onChanged: (_) => setState(() {}),
+                          decoration: InputDecoration(
+                            labelText: t('Model / detalji'),
+                            hintText: t(
+                              'npr. 256GB Titanium, godina, veličina, termin…',
+                            ),
+                          ),
+                        ),
+                        gap,
+                      ],
+                    ),
+                  ),
+                  if (!_digital) ...[
+                    divider,
+                    _head(t('Dostava')),
+                    _shippingSection(),
+                  ],
+                  if (_digital) ...[
+                    gap,
+                    FormField<PickedFile>(
+                      key: const ValueKey('digital-file'),
+                      initialValue: _file,
+                      validator: (v) => v == null
+                          ? t('Dodaj datoteku koju kupac preuzima.')
+                          : null,
+                      builder: (field) => _FilePickerCard(
+                        file: _file,
+                        error: field.errorText,
+                        onPick: () => _pickFile(field),
+                        maxMb:
+                            ref.read(fileStoreProvider).maxBytes ~/
+                            (1024 * 1024),
+                      ),
+                    ),
+                  ],
+                  divider,
+                  if (_digitalMarket)
+                    Container(
+                      padding: const EdgeInsets.all(14),
+                      decoration: BoxDecoration(
+                        color: LoopColors.mint,
+                        borderRadius: BorderRadius.circular(kRadius),
+                      ),
+                      child: Text(
+                        t(
+                          'Digitalni proizvod odmah ide u Kupi odmah i možeš ga prodati više puta. Dobivaš cijenu umanjenu za 5 % provizije, a kupac odmah preuzima datoteku.',
+                        ),
+                      ),
+                    )
+                  else ...[
+                    if (_digital) ...[
                       Container(
+                        key: const ValueKey('digital-live-note'),
                         padding: const EdgeInsets.all(14),
                         decoration: BoxDecoration(
                           color: LoopColors.mint,
@@ -738,86 +819,94 @@ class _AddDeviceScreenState extends ConsumerState<AddDeviceScreen> {
                         ),
                         child: Text(
                           t(
-                            'Digitalni proizvod odmah ide u Kupi odmah i možeš ga prodati više puta. Dobivaš cijenu umanjenu za 5 % provizije, a kupac odmah preuzima datoteku.',
+                            'Digitalni proizvod prodaješ u liveu: pobjednik licitacije odmah dobiva datoteku za preuzimanje, bez dostave. Predmet ostaje tebi pa ga možeš prodati i u sljedećem liveu.',
                           ),
                         ),
-                      )
-                    else ...[
-                      if (_digital) ...[
-                        Container(
-                          key: const ValueKey('digital-live-note'),
-                          padding: const EdgeInsets.all(14),
-                          decoration: BoxDecoration(
-                            color: LoopColors.mint,
-                            borderRadius: BorderRadius.circular(kRadius),
-                          ),
-                          child: Text(
-                            t(
-                              'Digitalni proizvod prodaješ u liveu: pobjednik licitacije odmah dobiva datoteku za preuzimanje, bez dostave. Predmet ostaje tebi pa ga možeš prodati i u sljedećem liveu.',
+                      ),
+                      const SizedBox(height: 12),
+                    ],
+                    _head(t('Kako prodaješ?')),
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: [
+                        for (final m in SellMode.values)
+                          if ((kBuyNowEnabled || m != SellMode.buyNow) &&
+                              !(_digital && m == SellMode.auction))
+                            ChoiceChip(
+                              key: ValueKey('sell-${m.name}'),
+                              label: Text(m.label),
+                              selected: _effMode == m,
+                              onSelected: (_) => setState(() => _mode = m),
                             ),
-                          ),
-                        ),
-                        const SizedBox(height: 12),
                       ],
-                      Text(
-                        t('Kako prodaješ?'),
-                        style: const TextStyle(
-                          fontWeight: FontWeight.w900,
-                          fontSize: 16,
-                        ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      _effMode.hint,
+                      key: const ValueKey('sell-hint'),
+                      style: TextStyle(
+                        color: LoopColors.textSecondary,
+                        fontSize: 13,
                       ),
-                      const SizedBox(height: 8),
-                      Wrap(
-                        spacing: 8,
-                        runSpacing: 8,
-                        children: [
-                          for (final m in SellMode.values)
-                            if ((kBuyNowEnabled || m != SellMode.buyNow) &&
-                                !(_digital && m == SellMode.auction))
-                              ChoiceChip(
-                                key: ValueKey('sell-${m.name}'),
-                                label: Text(m.label),
-                                selected: _effMode == m,
-                                onSelected: (_) => setState(() => _mode = m),
-                              ),
-                        ],
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        _effMode.hint,
-                        key: const ValueKey('sell-hint'),
-                        style: TextStyle(
-                          color: LoopColors.textSecondary,
-                          fontSize: 13,
-                        ),
-                      ),
-                    ],
-                    const SizedBox(height: 16),
-                    if (_effMode != SellMode.keep && !_digitalMarket) ...[
-                      TextButton(
-                        key: const ValueKey('add-save-draft'),
-                        onPressed: _saveAsDraft,
-                        child: Text(t('Spremi skicu')),
-                      ),
-                      const SizedBox(height: 4),
-                    ],
-                    FilledButton.icon(
-                      key: const ValueKey('add-submit'),
-                      onPressed: _submit,
-                      icon: Icon(
-                        _digitalMarket || _listOnMarket
-                            ? Icons.sell_outlined
-                            : Icons.arrow_forward,
-                      ),
-                      label: Text(switch (_effMode) {
-                        _ when _digitalMarket => t('Objavi za Kupi odmah'),
-                        SellMode.buyNow => t('Objavi za Kupi odmah'),
-                        SellMode.auction => t('Dalje: aukcija'),
-                        SellMode.live => t('Dalje: live'),
-                        SellMode.keep => t('Spremi u Moje predmete'),
-                      }),
                     ),
                   ],
+                ],
+              ),
+            ),
+          ),
+        ),
+        // Stalna donja traka: Spremi skicu / glavna radnja.
+        bottomNavigationBar: Container(
+          decoration: BoxDecoration(
+            color: LoopColors.background,
+            border: Border(
+              top: BorderSide(
+                color: LoopColors.textPrimary.withValues(alpha: .1),
+              ),
+            ),
+          ),
+          child: SafeArea(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(16, 10, 16, 10),
+              child: Center(
+                heightFactor: 1,
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 560),
+                  child: Row(
+                    children: [
+                      if (canDraft) ...[
+                        Expanded(
+                          child: FilledButton.tonal(
+                            key: const ValueKey('add-save-draft'),
+                            style: FilledButton.styleFrom(
+                              minimumSize: const Size(0, 52),
+                            ),
+                            onPressed: _saveAsDraft,
+                            child: Text(t('Spremi skicu')),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                      ],
+                      Expanded(
+                        flex: canDraft ? 1 : 2,
+                        child: FilledButton(
+                          key: const ValueKey('add-submit'),
+                          style: FilledButton.styleFrom(
+                            minimumSize: const Size(0, 52),
+                          ),
+                          onPressed: _submit,
+                          child: Text(switch (_effMode) {
+                            _ when _digitalMarket => t('Objavi za Kupi odmah'),
+                            SellMode.buyNow => t('Objavi'),
+                            SellMode.auction => t('Dalje'),
+                            SellMode.live => t('Dalje'),
+                            SellMode.keep => t('Spremi'),
+                          }),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ),
