@@ -269,6 +269,7 @@ class LiveLot {
     this.floorPrice = 1,
     this.seconds,
     this.followersOnly = false,
+    this.suddenDeath = false,
   });
 
   /// Trajanje samo za ovaj predmet (nagradna igra: do 5 minuta); inače
@@ -277,6 +278,10 @@ class LiveLot {
 
   /// Nagradna igra: sudjeluju samo pratitelji domaćina.
   final bool followersOnly;
+
+  /// Aukcija završava točno na nuli: ponuda u zadnjim sekundama ne dodaje
+  /// [LiveShow.bidBonus]. Zadano je isključeno (sat se produžuje).
+  final bool suddenDeath;
 
   /// Trajanja nagradne igre (kao Whatnot: najviše 5 minuta).
   static const giveawaySeconds = [60, 120, 180, 300];
@@ -317,6 +322,7 @@ class LiveLot {
     floorPrice: floorPrice,
     seconds: seconds,
     followersOnly: followersOnly,
+    suddenDeath: suddenDeath,
   );
 
   Map<String, dynamic> toMap() => {
@@ -328,6 +334,7 @@ class LiveLot {
     if (mode == LotMode.dutch) 'floorPrice': floorPrice,
     if (seconds != null) 'seconds': seconds,
     if (followersOnly) 'followersOnly': true,
+    if (suddenDeath) 'suddenDeath': true,
   };
 
   factory LiveLot.fromMap(Map<dynamic, dynamic> m) => LiveLot(
@@ -344,6 +351,7 @@ class LiveLot {
     floorPrice: (m['floorPrice'] as num?)?.toDouble() ?? 1,
     seconds: (m['seconds'] as num?)?.toInt(),
     followersOnly: m['followersOnly'] == true,
+    suddenDeath: m['suddenDeath'] == true,
   );
 }
 
