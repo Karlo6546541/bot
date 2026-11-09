@@ -44,25 +44,46 @@ Future<BrowseCategoryChoice?> pickBrowseCategory(
           Expanded(
             child: ListView(
               children: [
-                for (final c in DeviceCategory.values)
-                  if (c.section != ItemSection.digital)
-                    ListTile(
-                      key: ValueKey('$keyPrefix-${c.name}'),
-                      leading: Icon(c.icon, color: c.color, size: 22),
-                      title: Text(c.label),
-                      selected: c == selected,
-                      trailing: Row(
-                        mainAxisSize: MainAxisSize.min,
+                for (final sec in ItemSection.values)
+                  if (sec != ItemSection.digital) ...[
+                    // Kategorije su razvrstane po odjeljcima.
+                    Padding(
+                      key: ValueKey('$keyPrefix-section-${sec.name}'),
+                      padding: const EdgeInsets.fromLTRB(20, 14, 20, 4),
+                      child: Row(
                         children: [
-                          Text('${counts[c] ?? 0}'),
-                          if (c == selected) ...[
-                            const SizedBox(width: 8),
-                            const Icon(Icons.check, size: 18),
-                          ],
+                          Icon(sec.icon, size: 18),
+                          const SizedBox(width: 8),
+                          Text(
+                            sec.label,
+                            style: const TextStyle(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
                         ],
                       ),
-                      onTap: () => Navigator.pop(ctx, BrowseCategoryChoice(c)),
                     ),
+                    for (final c in sec.categories)
+                      ListTile(
+                        key: ValueKey('$keyPrefix-${c.name}'),
+                        leading: Icon(c.icon, color: c.color, size: 22),
+                        title: Text(c.label),
+                        selected: c == selected,
+                        trailing: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text('${counts[c] ?? 0}'),
+                            if (c == selected) ...[
+                              const SizedBox(width: 8),
+                              const Icon(Icons.check, size: 18),
+                            ],
+                          ],
+                        ),
+                        onTap: () =>
+                            Navigator.pop(ctx, BrowseCategoryChoice(c)),
+                      ),
+                  ],
               ],
             ),
           ),

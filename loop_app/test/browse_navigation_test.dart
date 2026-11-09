@@ -157,9 +157,20 @@ void main() {
     expect(find.byKey(ValueKey('browse-live-${ids[1]}')), findsOneWidget);
     await tester.tap(find.byKey(const ValueKey('live-category-filter')));
     await tester.pumpAndSettle();
+    await tester.scrollUntilVisible(
+      find.byKey(const ValueKey('live-category-console')),
+      200,
+      scrollable: find
+          .descendant(
+            of: find.byType(BottomSheet),
+            matching: find.byType(Scrollable),
+          )
+          .first,
+    );
     await tester.ensureVisible(
       find.byKey(const ValueKey('live-category-console')),
     );
+    await tester.pumpAndSettle();
     await tester.tap(find.byKey(const ValueKey('live-category-console')));
     await tester.pumpAndSettle();
     expect(find.byKey(ValueKey('browse-live-${ids[0]}')), findsOneWidget);

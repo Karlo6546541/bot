@@ -3458,11 +3458,16 @@ const kEn = <String, String>{
   'Promijeni kategoriju': 'Change category',
   'Više detalja': 'More details',
   'Model, godina, veličina, termin…': 'Model, year, size, date…',
-  'Show kreće čim pritisneš Pokreni live.': 'The show starts as soon as you press Start live.',
-  'Odaberi datum i vrijeme (do 7 dana unaprijed).': 'Pick a date and time (up to 7 days ahead).',
-  'Predmete s brojem (Items on screen) licitiraš uživo.': 'You auction numbered items (Items on screen) live.',
-  'Prodaješ proizvode iz svoje trgovine po fiksnoj cijeni.': 'You sell products from your shop at a fixed price.',
-  'Dodaj brojeve na ekranu (#150, #151…).': 'Add numbers shown on screen (#150, #151…).',
+  'Show kreće čim pritisneš Pokreni live.':
+      'The show starts as soon as you press Start live.',
+  'Odaberi datum i vrijeme (do 7 dana unaprijed).':
+      'Pick a date and time (up to 7 days ahead).',
+  'Predmete s brojem (Items on screen) licitiraš uživo.':
+      'You auction numbered items (Items on screen) live.',
+  'Prodaješ proizvode iz svoje trgovine po fiksnoj cijeni.':
+      'You sell products from your shop at a fixed price.',
+  'Dodaj brojeve na ekranu (#150, #151…).':
+      'Add numbers shown on screen (#150, #151…).',
   'Zakaži show': 'Schedule a show',
   'Otprema': 'Shipping',
   'Nema paketa za predaju': 'No parcels to hand over',

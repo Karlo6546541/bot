@@ -1347,16 +1347,36 @@ class _CreateLiveShowScreenState extends ConsumerState<CreateLiveShowScreen> {
         ),
       ),
       if (_allCats)
-        Wrap(
-          spacing: 8,
-          runSpacing: 8,
-          children: [
-            for (final sec in ItemSection.values)
-              if (sec != ItemSection.digital)
+        // Razvrstano po odjeljcima (Elektronika, Moda, Dom…).
+        for (final sec in ItemSection.values)
+          if (sec != ItemSection.digital &&
+              sec.categories.any((c) => !suggested.contains(c))) ...[
+            Padding(
+              key: ValueKey('live-cat-section-${sec.name}'),
+              padding: const EdgeInsets.only(top: 14, bottom: 8),
+              child: Row(
+                children: [
+                  Icon(sec.icon, size: 18),
+                  const SizedBox(width: 8),
+                  Text(
+                    sec.label,
+                    style: const TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
                 for (final c in sec.categories)
                   if (!suggested.contains(c)) chip(c),
+              ],
+            ),
           ],
-        ),
     ];
   }
 
