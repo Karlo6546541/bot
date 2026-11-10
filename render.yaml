@@ -1,0 +1,28 @@
+# Render Blueprint for Kadar (web/). New -> Blueprint -> pick this repository.
+# Free plan: the service sleeps after ~15 min of inactivity (first request is slow).
+services:
+  - type: web
+    name: kadar
+    runtime: node
+    plan: free
+    region: frankfurt
+    rootDir: web
+    branch: ccr-a8bc5c72-a32juw
+    buildCommand: npm ci && npm run build
+    startCommand: npm start
+    healthCheckPath: /manifest.webmanifest
+    envVars:
+      - key: NODE_VERSION
+        value: "22"
+      - key: PAYMENT_PROVIDER
+        value: mock
+      - key: NEXT_PUBLIC_SUPABASE_URL
+        value: https://tbtugimvsypiorrpsnsh.supabase.co
+      - key: NEXT_PUBLIC_SUPABASE_ANON_KEY
+        value: sb_publishable_W-NAKtaTGgLXnS99Z5hWBQ_Wo8pfKAR
+      # Secret: paste from Supabase -> Project Settings -> API Keys (never commit it).
+      - key: SUPABASE_SERVICE_ROLE_KEY
+        sync: false
+      # Your Render URL, e.g. https://kadar.onrender.com (NEXT_PUBLIC_* is baked in at build time).
+      - key: NEXT_PUBLIC_SITE_URL
+        sync: false
