@@ -3,6 +3,7 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hive/hive.dart';
+import 'package:loop_app/config/design_variant.dart';
 import 'package:loop_app/models/device.dart';
 import 'package:loop_app/providers/app_providers.dart';
 import 'package:loop_app/screens/live_screens.dart';
@@ -150,4 +151,40 @@ void main() {
       await tester.pumpWidget(const SizedBox.shrink());
     },
   );
+
+  testWidgets('nova soba: traka radnji, srce, Proizvodi i Kupi odmah', (
+    tester,
+  ) async {
+    if (!kSimpleDesign) return;
+    tester.view.physicalSize = const Size(390, 844);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    final show = await LiveService(
+      storage,
+    ).create(hostId: SeedData.anaUserId, title: 'Shop live', shop: true);
+    await tester.pumpWidget(app(LiveRoomScreen(showId: show.id)));
+    await tester.pumpAndSettle();
+    for (final key in [
+      'live-follow',
+      'live-viewers-open',
+      'live-close',
+      'live-rail',
+      'live-room-tools',
+      'live-rail-share',
+      'live-queue',
+      'live-heart',
+      'live-featured',
+      'live-all-products',
+      'live-featured-buy',
+    ]) {
+      expect(find.byKey(ValueKey(key)), findsOneWidget, reason: key);
+    }
+    // Stari donji "povuci gore" hvat više nije u sobi.
+    expect(find.byKey(const ValueKey('live-controls')), findsNothing);
+    await tester.tap(find.byKey(const ValueKey('live-queue')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('live-tab-shop')), findsOneWidget);
+    expect(tester.takeException(), isNull);
+    await tester.pumpWidget(const SizedBox.shrink());
+  });
 }

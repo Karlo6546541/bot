@@ -3468,6 +3468,9 @@ const kEn = <String, String>{
       'You sell products from your shop at a fixed price.',
   'Dodaj brojeve na ekranu (#150, #151…).':
       'Add numbers shown on screen (#150, #151…).',
+  'Boost': 'Boost',
+  'Dijeli': 'Share',
+  'još {0}': '{0} left',
   'Zakaži show': 'Schedule a show',
   'Otprema': 'Shipping',
   'Nema paketa za predaju': 'No parcels to hand over',

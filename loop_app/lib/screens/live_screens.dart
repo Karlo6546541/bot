@@ -3652,7 +3652,27 @@ class _LiveRoomViewState extends ConsumerState<_LiveRoomBody> {
                             ),
                             // Chat zauzima najviše pola slobodnog prostora;
                             // kad je live gotov, ostaje samo sažetak.
-                            if (!st.isOver && !isHost)
+                            if (!st.isOver && !isHost && kSimpleDesign)
+                              Positioned(
+                                right: 6,
+                                top: 0,
+                                bottom: 4,
+                                child: composing
+                                    ? const SizedBox.shrink()
+                                    : LayoutBuilder(
+                                        builder: (_, c) => Align(
+                                          alignment: Alignment.bottomRight,
+                                          child: _viewerRail(
+                                            s,
+                                            show,
+                                            st,
+                                            canAct,
+                                            c.maxHeight,
+                                          ),
+                                        ),
+                                      ),
+                              ),
+                            if (!st.isOver && !isHost && !kSimpleDesign)
                               Positioned(
                                 right: 8,
                                 bottom: 4,
@@ -3785,11 +3805,10 @@ class _LiveRoomViewState extends ConsumerState<_LiveRoomBody> {
                       ),
                       if (!composing)
                         Padding(
-                          padding: const EdgeInsets.fromLTRB(20, 0, 20, 0),
-                          child: VisionGlass(
-                            dark: true,
-                            radius: 28,
-                            padding: const EdgeInsets.fromLTRB(0, 0, 0, 18),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: kSimpleDesign ? 0 : 20,
+                          ),
+                          child: _BottomPanel(
                             child: Column(
                               mainAxisSize: MainAxisSize.min,
                               children: [
@@ -3835,7 +3854,8 @@ class _LiveRoomViewState extends ConsumerState<_LiveRoomBody> {
                                     12,
                                     0,
                                   ),
-                                  child: _actions(
+                                  child: _actionRow(
+                                    s,
                                     show,
                                     st,
                                     cur,
@@ -3846,6 +3866,7 @@ class _LiveRoomViewState extends ConsumerState<_LiveRoomBody> {
                                 ),
                                 if (!isHost &&
                                     !st.isOver &&
+                                    !kSimpleDesign &&
                                     MediaQuery.sizeOf(context).height >= 700)
                                   Builder(
                                     builder: (_) {
@@ -3891,34 +3912,35 @@ class _LiveRoomViewState extends ConsumerState<_LiveRoomBody> {
                             ),
                           ),
                         ),
-                      VisionShopHandle(
-                        key: ValueKey(
-                          kSimpleDesign ? 'live-controls' : 'live-queue',
+                      if (!kSimpleDesign)
+                        VisionShopHandle(
+                          key: ValueKey(
+                            kSimpleDesign ? 'live-controls' : 'live-queue',
+                          ),
+                          onNavigate: (index) {
+                            if (kSimpleDesign && index == 3) return;
+                            if (kSimpleDesign && index == 0) {
+                              ref
+                                  .read(homeFilterProvider.notifier)
+                                  .select('for-you');
+                            }
+                            if (index == 1 && blockGuest(context)) return;
+                            ref.read(homeTabProvider.notifier).select(
+                              switch (index) {
+                                1 => 4,
+                                2 => kSimpleDesign ? 3 : 2,
+                                _ => 0,
+                              },
+                            );
+                            Navigator.of(
+                              context,
+                            ).popUntil((route) => route.isFirst);
+                          },
+                          label: t('Povuci gore za shop · {0} predmeta', [
+                            '${st.queue.length + (show.shop ? liveShopProducts(s, show.hostId).length : 0)}',
+                          ]),
+                          onOpen: () => _showQueue(st, isHost),
                         ),
-                        onNavigate: (index) {
-                          if (kSimpleDesign && index == 3) return;
-                          if (kSimpleDesign && index == 0) {
-                            ref
-                                .read(homeFilterProvider.notifier)
-                                .select('for-you');
-                          }
-                          if (index == 1 && blockGuest(context)) return;
-                          ref.read(homeTabProvider.notifier).select(
-                            switch (index) {
-                              1 => 4,
-                              2 => kSimpleDesign ? 3 : 2,
-                              _ => 0,
-                            },
-                          );
-                          Navigator.of(
-                            context,
-                          ).popUntil((route) => route.isFirst);
-                        },
-                        label: t('Povuci gore za shop · {0} predmeta', [
-                          '${st.queue.length + (show.shop ? liveShopProducts(s, show.hostId).length : 0)}',
-                        ]),
-                        onOpen: () => _showQueue(st, isHost),
-                      ),
                       const SizedBox(height: 8),
                     ],
                   ),
@@ -3931,6 +3953,132 @@ class _LiveRoomViewState extends ConsumerState<_LiveRoomBody> {
     );
   }
 
+  /// Desna traka gledatelja (kao na Whatnotu): Više, Boost, Dijeli, chat i
+  /// Shop s malom slikom proizvoda. Samo podržane radnje.
+  Widget _viewerRail(
+    AppState s,
+    LiveShow show,
+    LiveState st,
+    bool canAct,
+    double maxHeight,
+  ) {
+    const shadow = [Shadow(color: Colors.black87, blurRadius: 6)];
+    // Na niskim ekranima ostaju najvažnije radnje (Više i Shop).
+    final scale = MediaQuery.textScalerOf(context).scale(12) / 12;
+    final slots = (maxHeight / (46 + 18 * scale)).floor();
+    Widget item({
+      required Key key,
+      required String label,
+      required VoidCallback onTap,
+      IconData? icon,
+      Widget? child,
+    }) => Semantics(
+      button: true,
+      label: label,
+      excludeSemantics: true,
+      child: InkWell(
+        key: key,
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(12),
+        child: SizedBox(
+          width: 60,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 5),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                child ??
+                    Icon(icon, color: Colors.white, size: 28, shadows: shadow),
+                const SizedBox(height: 2),
+                Text(
+                  label,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    shadows: shadow,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+    final featured = _featured(s, show);
+    final count =
+        st.lots
+            .where(
+              (l) =>
+                  l.status == LotStatus.upcoming ||
+                  l.status == LotStatus.running,
+            )
+            .length +
+        (show.shop ? liveShopProducts(s, show.hostId).length : 0);
+    return Column(
+      key: const ValueKey('live-rail'),
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        item(
+          key: const ValueKey('live-room-tools'),
+          label: t('Više'),
+          icon: Icons.more_horiz,
+          onTap: () => _showRoomTools(show, st, canAct),
+        ),
+        if (slots >= 4)
+          item(
+            key: const ValueKey('live-rail-boost'),
+            label: t('Boost'),
+            icon: Icons.rocket_launch_outlined,
+            onTap: () => showPromoteSheet(context, ref, show),
+          ),
+        if (slots >= 3)
+          item(
+            key: const ValueKey('live-rail-share'),
+            label: t('Dijeli'),
+            icon: Icons.ios_share,
+            onTap: () {
+              _app.liveShared(show.id);
+              shareLink(
+                context,
+                publicLink(live: show.id),
+                text: t('Gledaj "{0}" uživo na Subhastu', [show.title]),
+              );
+            },
+          ),
+        if (slots >= 5)
+          item(
+            key: const ValueKey('live-chat-toggle'),
+            label: _chatHidden ? t('Prikaži chat') : t('Sakrij chat'),
+            icon: _chatHidden
+                ? Icons.chat_bubble_outline
+                : Icons.speaker_notes_off_outlined,
+            onTap: () => setState(() => _chatHidden = !_chatHidden),
+          ),
+        if (count > 0 && slots >= 2)
+          item(
+            key: const ValueKey('live-queue'),
+            label: t('Shop'),
+            onTap: () => _showQueue(st, false),
+            child: Container(
+              width: 48,
+              height: 48,
+              clipBehavior: Clip.antiAlias,
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: featured != null
+                  ? ItemThumb(device: featured, size: 48)
+                  : const Icon(Icons.storefront, color: Colors.black87),
+            ),
+          ),
+      ],
+    );
+  }
+
   /// Proizvod koji domaćin predstavlja; bez izbora, prvi dostupni.
   Device? _featured(AppState s, LiveShow show) {
     if (!show.shop) return null;
@@ -3940,6 +4088,48 @@ class _LiveRoomViewState extends ConsumerState<_LiveRoomBody> {
       if (d.id == show.featuredId) return d;
     }
     return products.first;
+  }
+
+  /// Donji red: sivi gumb za sve proizvode i glavna radnja (kupi/ponudi).
+  Widget _actionRow(
+    AppState s,
+    LiveShow show,
+    LiveState st,
+    LotState? cur,
+    bool isHost,
+    bool canAct,
+    String? me,
+  ) {
+    final main = _actions(show, st, cur, isHost, canAct, me);
+    if (!kSimpleDesign || isHost || st.isOver) return main;
+    final count =
+        st.lots
+            .where(
+              (l) =>
+                  l.status == LotStatus.upcoming ||
+                  l.status == LotStatus.running,
+            )
+            .length +
+        (show.shop ? liveShopProducts(s, show.hostId).length : 0);
+    if (count == 0) return main;
+    return Row(
+      children: [
+        FilledButton(
+          key: const ValueKey('live-all-products'),
+          style: FilledButton.styleFrom(
+            backgroundColor: const Color(0x66FFFFFF),
+            foregroundColor: Colors.white,
+            minimumSize: const Size(96, 52),
+            padding: const EdgeInsets.symmetric(horizontal: 14),
+            shape: const StadiumBorder(),
+          ),
+          onPressed: () => _showQueue(st, false),
+          child: Text(t('Proizvodi')),
+        ),
+        const SizedBox(width: 10),
+        Expanded(child: main),
+      ],
+    );
   }
 
   Widget _actions(
@@ -4094,8 +4284,32 @@ class _LiveRoomViewState extends ConsumerState<_LiveRoomBody> {
     }
     if (cur == null) {
       if (!st.isLive) return const SizedBox.shrink();
-      if (_featured(ref.read(appProvider), show) != null) {
-        return const SizedBox.shrink();
+      if (_featured(ref.read(appProvider), show) case final featured?) {
+        // Glavna radnja za proizvod po fiksnoj cijeni.
+        return FilledButton(
+          key: const ValueKey('live-featured-buy'),
+          style: FilledButton.styleFrom(
+            minimumSize: const Size.fromHeight(52),
+            shape: const StadiumBorder(),
+            textStyle: const TextStyle(
+              fontFamily: kFontFamily,
+              fontWeight: FontWeight.w800,
+              fontSize: 17,
+            ),
+          ),
+          onPressed: () => confirmAndBuy(context, ref, featured),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Flexible(
+                child: Text(t('Kupi odmah'), overflow: TextOverflow.ellipsis),
+              ),
+              const SizedBox(width: 6),
+              const Icon(Icons.keyboard_double_arrow_right, size: 22),
+            ],
+          ),
+        );
       }
       return FilledButton(
         key: const ValueKey('live-awaiting'),
@@ -4550,6 +4764,149 @@ class _TopBar extends ConsumerWidget {
     final s = ref.watch(appProvider);
     final me = s.currentUserId;
     final following = s.isFollowing(show.hostId);
+    if (kSimpleDesign) {
+      final rating = s.ratingOf(show.hostId);
+      // Gore: avatar, ime i ocjena, Prati; desno gledatelji i zatvaranje.
+      return Padding(
+        key: const ValueKey('live-compact-header'),
+        padding: const EdgeInsets.fromLTRB(12, 10, 8, 6),
+        child: Row(
+          children: [
+            Expanded(
+              child: InkWell(
+                onTap: () => PublicProfileScreen.open(context, show.hostId),
+                child: Row(
+                  children: [
+                    UserAvatar(user: host, size: 44),
+                    const SizedBox(width: 10),
+                    Flexible(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Tooltip(
+                            message: show.title,
+                            child: Text(
+                              hostName,
+                              key: const ValueKey('live-host-meta'),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 16,
+                                fontWeight: FontWeight.w700,
+                                shadows: [
+                                  Shadow(color: Colors.black54, blurRadius: 6),
+                                ],
+                              ),
+                            ),
+                          ),
+                          if (rating.count > 0)
+                            Text(
+                              '★ ${rating.average.toStringAsFixed(1)} (${rating.count})',
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 13,
+                                fontWeight: FontWeight.w600,
+                                shadows: [
+                                  Shadow(color: Colors.black54, blurRadius: 6),
+                                ],
+                              ),
+                            ),
+                        ],
+                      ),
+                    ),
+                    if (me != show.hostId) ...[
+                      const SizedBox(width: 10),
+                      FilledButton(
+                        key: const ValueKey('live-follow'),
+                        style: FilledButton.styleFrom(
+                          minimumSize: const Size(64, 40),
+                          padding: const EdgeInsets.symmetric(horizontal: 16),
+                          shape: const StadiumBorder(),
+                          disabledBackgroundColor: Colors.white24,
+                          disabledForegroundColor: Colors.white,
+                        ),
+                        onPressed: following
+                            ? null
+                            : () async {
+                                if (blockGuest(context)) return;
+                                await ref
+                                    .read(appProvider.notifier)
+                                    .toggleFollow(show.hostId);
+                                await ref
+                                    .read(appProvider.notifier)
+                                    .liveFollowedFromShow(show.id);
+                              },
+                        child: Text(t(following ? 'Pratim' : 'Prati')),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(width: 8),
+            if (state.isLive)
+              InkWell(
+                key: const ValueKey('live-viewers-open'),
+                borderRadius: BorderRadius.circular(99),
+                onTap: () => showModalBottomSheet<void>(
+                  context: context,
+                  showDragHandle: true,
+                  backgroundColor: kLiveSheet,
+                  builder: (_) => _ViewersSheet(showId: show.id),
+                ),
+                child: Container(
+                  height: 40,
+                  padding: const EdgeInsets.symmetric(horizontal: 10),
+                  decoration: BoxDecoration(
+                    color: const Color(0x99000000),
+                    borderRadius: BorderRadius.circular(99),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Container(
+                        width: 22,
+                        height: 22,
+                        decoration: const BoxDecoration(
+                          color: kLiveRed,
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(
+                          Icons.bar_chart_rounded,
+                          size: 14,
+                          color: Colors.white,
+                        ),
+                      ),
+                      const SizedBox(width: 6),
+                      Text(
+                        '${state.viewers}',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 14,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            IconButton(
+              key: const ValueKey('live-close'),
+              tooltip: t('Zatvori'),
+              onPressed: () => Navigator.maybePop(context),
+              icon: const Icon(
+                Icons.keyboard_arrow_down,
+                color: Colors.white,
+                size: 30,
+                shadows: [Shadow(color: Colors.black54, blurRadius: 6)],
+              ),
+            ),
+          ],
+        ),
+      );
+    }
     return Padding(
       key: const ValueKey('live-compact-header'),
       padding: const EdgeInsets.fromLTRB(20, 20, 20, 8),
@@ -5182,8 +5539,24 @@ class _QuickAddSheetState extends ConsumerState<_QuickAddSheet> {
 }
 
 /// Polu-prozirna ploča na sredini pozornice.
-/// Stalna kartica proizvoda pri dnu prijenosa: fotografija, naziv, stanje,
-/// cijena, dostava i jedna glavna radnja.
+/// Donji panel sobe: u novom izgledu bez okvira (tekst leži na tamnom
+/// prijelazu videa), inače staklena kartica.
+class _BottomPanel extends StatelessWidget {
+  const _BottomPanel({required this.child});
+  final Widget child;
+  @override
+  Widget build(BuildContext context) => kSimpleDesign
+      ? Padding(padding: const EdgeInsets.only(bottom: 10), child: child)
+      : VisionGlass(
+          dark: true,
+          radius: 28,
+          padding: const EdgeInsets.fromLTRB(0, 0, 0, 18),
+          child: child,
+        );
+}
+
+/// Stalna kartica proizvoda pri dnu prijenosa: fotografija, naziv, kratak
+/// opis, cijena, zaliha i dostava. Glavna radnja je u redu ispod.
 class _FeaturedProductCard extends StatelessWidget {
   const _FeaturedProductCard({
     required this.device,
@@ -5197,69 +5570,123 @@ class _FeaturedProductCard extends StatelessWidget {
   final VoidCallback onBuy;
 
   @override
-  Widget build(BuildContext context) => Padding(
-    key: const ValueKey('live-featured'),
-    padding: EdgeInsets.fromLTRB(14, compact ? 8 : 14, 14, 0),
-    child: Row(
-      children: [
-        ClipRRect(
-          borderRadius: BorderRadius.circular(12),
-          child: ItemThumb(device: device, size: compact ? 48 : 64),
-        ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                device.name,
-                maxLines: compact ? 1 : 2,
-                overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.w600,
-                  fontSize: 15,
+  Widget build(BuildContext context) {
+    const shadow = [Shadow(color: Colors.black87, blurRadius: 6)];
+    final sub = device.description.trim().isNotEmpty
+        ? device.description.trim()
+        : [
+            if (device.model.isNotEmpty) device.model,
+            if (!device.isDigital) device.condition.label,
+          ].join(' · ');
+    return Padding(
+      key: const ValueKey('live-featured'),
+      padding: EdgeInsets.fromLTRB(14, compact ? 6 : 10, 14, 0),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          ClipRRect(
+            borderRadius: BorderRadius.circular(12),
+            child: ItemThumb(device: device, size: compact ? 48 : 68),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  device.name,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w700,
+                    fontSize: 17,
+                    shadows: shadow,
+                  ),
                 ),
-              ),
-              Text(
-                [
-                  if (device.model.isNotEmpty) device.model,
-                  device.condition.label,
-                ].join(' · '),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: const TextStyle(color: Color(0xFFD0D0D6), fontSize: 13),
-              ),
+                if (sub.isNotEmpty)
+                  Text(
+                    sub,
+                    maxLines: compact ? 1 : 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 14,
+                      height: 1.25,
+                      shadows: shadow,
+                    ),
+                  ),
+                if (!device.isDigital && !compact)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 6),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 5,
+                      ),
+                      decoration: BoxDecoration(
+                        color: const Color(0x66000000),
+                        borderRadius: BorderRadius.circular(99),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(
+                            Icons.local_shipping_outlined,
+                            size: 15,
+                            color: Colors.white,
+                          ),
+                          const SizedBox(width: 6),
+                          Flexible(
+                            child: Text(
+                              t('Dostava se dodaje prije plaćanja'),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 12,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 10),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
               Text(
                 formatCredits(price),
                 key: const ValueKey('live-featured-price'),
                 style: const TextStyle(
                   color: Colors.white,
-                  fontWeight: FontWeight.w700,
-                  fontSize: 20,
+                  fontWeight: FontWeight.w800,
+                  fontSize: 18,
+                  shadows: shadow,
                 ),
               ),
-              if (!device.isDigital && !compact)
+              // Stvarna zaliha (samo kad ima više komada).
+              if (!device.isDigital && device.quantity > 1)
                 Text(
-                  t('Dostava se dodaje prije plaćanja'),
+                  t('još {0}', ['${device.quantity}']),
+                  key: const ValueKey('live-featured-stock'),
                   style: const TextStyle(
-                    color: Color(0xFFD0D0D6),
-                    fontSize: 12,
+                    color: Colors.white,
+                    fontWeight: FontWeight.w700,
+                    fontSize: 14,
+                    shadows: shadow,
                   ),
                 ),
             ],
           ),
-        ),
-        const SizedBox(width: 10),
-        FilledButton(
-          key: const ValueKey('live-featured-buy'),
-          style: FilledButton.styleFrom(minimumSize: const Size(110, 48)),
-          onPressed: onBuy,
-          child: Text(t('Kupi odmah')),
-        ),
-      ],
-    ),
-  );
+        ],
+      ),
+    );
+  }
 }
 
 class _Panel extends StatelessWidget {
@@ -6203,7 +6630,12 @@ class _DouyinBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Padding(
-    padding: const EdgeInsets.fromLTRB(20, 0, 20, 14),
+    padding: EdgeInsets.fromLTRB(
+      kSimpleDesign ? 12 : 20,
+      0,
+      kSimpleDesign ? 12 : 20,
+      kSimpleDesign ? 10 : 14,
+    ),
     child: Row(
       children: [
         Expanded(
@@ -6223,7 +6655,9 @@ class _DouyinBar extends StatelessWidget {
                   decoration: InputDecoration(
                     isDense: true,
                     counterText: '',
-                    hintText: t('Pitaj prodavača uživo…'),
+                    hintText: kSimpleDesign
+                        ? t('Reci nešto…')
+                        : t('Pitaj prodavača uživo…'),
                     hintStyle: const TextStyle(color: Colors.white70),
                     filled: true,
                     fillColor: const Color(0x9928282D),
@@ -6263,24 +6697,54 @@ class _DouyinBar extends StatelessWidget {
                       borderRadius: BorderRadius.circular(99),
                       borderSide: const BorderSide(color: Colors.white38),
                     ),
-                    suffixIcon: IconButton(
-                      key: ValueKey(
-                        composing ? 'live-send' : 'live-room-tools',
-                      ),
-                      tooltip: composing ? t('Pošalji') : t('Više'),
-                      onPressed: composing
-                          ? () => onSend(controller.text)
-                          : onMore,
-                      icon: Icon(
-                        composing ? Icons.send : Icons.more_horiz,
-                        color: Colors.white70,
-                        size: 20,
-                      ),
-                    ),
+                    suffixIcon: kSimpleDesign && !composing
+                        ? null
+                        : IconButton(
+                            key: ValueKey(
+                              composing ? 'live-send' : 'live-room-tools',
+                            ),
+                            tooltip: composing ? t('Pošalji') : t('Više'),
+                            onPressed: composing
+                                ? () => onSend(controller.text)
+                                : onMore,
+                            icon: Icon(
+                              composing ? Icons.send : Icons.more_horiz,
+                              color: Colors.white70,
+                              size: 20,
+                            ),
+                          ),
                   ),
                 )
               : const SizedBox.shrink(),
         ),
+        // Srce uz polje (kao na Whatnotu).
+        if (kSimpleDesign && showChat && !composing && onHeart != null) ...[
+          const SizedBox(width: 8),
+          Semantics(
+            button: true,
+            label: t('Srce'),
+            excludeSemantics: true,
+            child: InkWell(
+              key: const ValueKey('live-heart'),
+              borderRadius: BorderRadius.circular(99),
+              onTap: onHeart,
+              child: Container(
+                width: 52,
+                height: 44,
+                decoration: BoxDecoration(
+                  color: const Color(0x9928282D),
+                  borderRadius: BorderRadius.circular(99),
+                  border: Border.all(color: Colors.white30),
+                ),
+                child: Icon(
+                  liked ? Icons.favorite : Icons.favorite_border,
+                  color: liked ? kLiveRed : Colors.white,
+                  size: 22,
+                ),
+              ),
+            ),
+          ),
+        ],
       ],
     ),
   );
