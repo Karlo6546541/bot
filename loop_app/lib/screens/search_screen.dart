@@ -216,7 +216,28 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
     final hostsLive = <String>{};
     final hostsSoon = <String>{};
     void reason(String id, String text) => reasons.putIfAbsent(id, () => text);
+    // Proizvod pronađen u shopu ili aukciji: prvo se prikazuju showovi
+    // tog prodavača (uživo / uskoro), tek onda prodavač.
+    final productOwners = <String, String>{};
     for (final item in items) {
+      if (item.show != null) continue;
+      final owner = item.device?.ownerId ?? item.auction?.sellerId;
+      final name = item.device?.name ?? item.auction?.deviceName ?? '';
+      if (owner != null) productOwners.putIfAbsent(owner, () => name);
+    }
+    final shown = {
+      for (final i in items)
+        if (i.show != null) i.show!.id,
+    };
+    final byProduct = <BrowseItem>[
+      if (productOwners.isNotEmpty)
+        for (final b in browseItems(state))
+          if (b.show != null &&
+              !shown.contains(b.show!.id) &&
+              productOwners.containsKey(b.show!.hostId))
+            b,
+    ];
+    for (final item in [...items, ...byProduct]) {
       final show = item.show;
       if (show == null) {
         // Predmet u shopu ili aukcija: vodi do prodavača, ne do oglasa.
@@ -235,6 +256,8 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
           ? t('Tema prijenosa: {0}', [show.title])
           : lotMatch != null
           ? t('U prijenosu: {0}', [lotMatch])
+          : productOwners[show.hostId] != null
+          ? t('Prodaje proizvod: {0}', [productOwners[show.hostId]!])
           : t('Prodavač: {0}', [show.hostLabel]);
       final isLive = live.isLive;
       (isLive ? hostsLive : hostsSoon).add(show.hostId);
@@ -276,6 +299,14 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
     ];
     final top = _igTab == 'top';
     final out = <Widget>[
+      if (liveRows.isNotEmpty && (top || _igTab == 'live')) ...[
+        if (top) heading(t('Uživo')),
+        ...liveRows,
+      ],
+      if (soonRows.isNotEmpty && (top || _igTab == 'soon')) ...[
+        if (top) heading(t('Uskoro')),
+        ...soonRows,
+      ],
       if (sellers.isNotEmpty && (top || _igTab == 'accounts')) ...[
         if (top) heading(t('Prodavači')),
         for (final user in sellers.take(10))
@@ -293,14 +324,6 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
               onTap: () => PublicProfileScreen.open(context, user.id),
             ),
           ),
-      ],
-      if (liveRows.isNotEmpty && (top || _igTab == 'live')) ...[
-        if (top) heading(t('Uživo')),
-        ...liveRows,
-      ],
-      if (soonRows.isNotEmpty && (top || _igTab == 'soon')) ...[
-        if (top) heading(t('Uskoro')),
-        ...soonRows,
       ],
     ];
     return out.isEmpty

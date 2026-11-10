@@ -3391,6 +3391,7 @@ const kEn = <String, String>{
   'Dostava i zaštita kupca — uvjeti prije kupnje':
       'Delivery and buyer protection — terms before you buy',
   'Ima u shopu: {0}': 'In the shop: {0}',
+  'Prodaje proizvod: {0}': 'Sells: {0}',
   'Tema prijenosa: {0}': 'Stream topic: {0}',
   'U prijenosu: {0}': 'In the stream: {0}',
   'Prodavač: {0}': 'Seller: {0}',

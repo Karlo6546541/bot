@@ -9,6 +9,7 @@ import 'package:hive/hive.dart';
 import 'package:loop_app/app.dart';
 import 'package:loop_app/config/design_variant.dart';
 import 'package:loop_app/models/auction.dart';
+import 'package:loop_app/models/device.dart';
 import 'package:loop_app/models/price_offer.dart';
 import 'package:loop_app/providers/app_providers.dart';
 import 'package:loop_app/screens/activity_view.dart';
@@ -177,6 +178,42 @@ void main() {
       await tester.pumpWidget(const SizedBox());
     },
   );
+
+  testWidgets('pretraga proizvoda prvo prikazuje showove prodavača', (
+    tester,
+  ) async {
+    final device = await TradeService(storage).addDevice(
+      userId: SeedData.anaUserId,
+      name: 'Zvjezdarnica Zeta',
+      model: 'Z',
+      condition: DeviceCondition.good,
+      price: 40,
+      category: DeviceCategory.camera,
+    );
+    final show = await LiveService(
+      storage,
+    ).create(hostId: SeedData.anaUserId, title: 'Nedjeljni izlog', shop: true);
+    await tester.pumpWidget(app());
+    await tester.pumpAndSettle();
+    await mainTab(tester, 'Početna');
+    await tester.tap(find.byKey(const ValueKey('home-search')));
+    await tester.pumpAndSettle();
+    await tester.enterText(
+      find.byKey(const ValueKey('reference-search-input')),
+      device.name,
+    );
+    await tester.pumpAndSettle();
+    final shows = find.byKey(ValueKey('search-live-${show.id}'));
+    final sellers = find.byKey(ValueKey('reference-shop-${device.ownerId}'));
+    expect(shows, findsOneWidget);
+    if (sellers.evaluate().isNotEmpty) {
+      expect(
+        tester.getTopLeft(shows.first).dy,
+        lessThan(tester.getTopLeft(sellers.first).dy),
+      );
+    }
+    await tester.pumpWidget(const SizedBox());
+  });
 
   testWidgets('home searches a real shop and opens that seller profile', (
     tester,
