@@ -2,7 +2,15 @@
 import { useI18n } from "@/lib/i18n/client";
 import type { MessageKey } from "@/lib/i18n";
 
-export function FormMessage({ error, ok }: { error?: MessageKey; ok?: MessageKey }) {
+export function FormMessage({
+  error,
+  ok,
+  params,
+}: {
+  error?: MessageKey;
+  ok?: MessageKey;
+  params?: Record<string, string | number>;
+}) {
   const { t } = useI18n();
   if (!error && !ok) return <div aria-live="polite" />;
   return (
@@ -11,7 +19,7 @@ export function FormMessage({ error, ok }: { error?: MessageKey; ok?: MessageKey
       aria-live="polite"
       className={`rounded-lg px-3 py-2 text-sm ${error ? "bg-red-100 text-red-900 dark:bg-red-950 dark:text-red-100" : "bg-emerald-100 text-emerald-900 dark:bg-emerald-950 dark:text-emerald-100"}`}
     >
-      {t(error ?? ok!)}
+      {t(error ?? ok!, params)}
     </p>
   );
 }

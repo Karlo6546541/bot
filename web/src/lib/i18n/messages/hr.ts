@@ -307,7 +307,11 @@ export const hr = {
     pool: "Pretplatnički fond",
     poolText: "Raspodijeli udio kreatora iz pretplata za odabrani mjesec prema čitanjima.",
     distribute: "Raspodijeli fond",
-    poolDone: "Fond raspodijeljen: {n} zapisa.",
+    poolDone: {
+      one: "Fond raspodijeljen: {count} zapis.",
+      few: "Fond raspodijeljen: {count} zapisa.",
+      other: "Fond raspodijeljen: {count} zapisa.",
+    },
     poolAlready: "Fond za taj mjesec je već raspodijeljen.",
     testTools: "Testni alati",
     testToolsOnlyMock: "Dostupno samo kad je PAYMENT_PROVIDER=mock.",

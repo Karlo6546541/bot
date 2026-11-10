@@ -169,3 +169,39 @@ describe("apply_chapter_unlock", () => {
     expect(earnings).toHaveLength(1);
   });
 });
+
+describe("creator & admin RPCs", () => {
+  it("only the owner can replace a chapter's pages, and only with its own storage paths", async () => {
+    const ch = await chapterBySeries(S1, 2); // Ana's series
+    const other = await signedIn("marko@kadar.test");
+    const r1 = await other.rpc("replace_chapter_pages", {
+      p_chapter: ch.id,
+      p_pages: [{ storage_path: `${ch.series_id}/${ch.id}/x.webp`, width: 1, height: 1 }],
+    });
+    expect(r1.error).not.toBeNull();
+    const ana = await signedIn("ana@kadar.test");
+    const r2 = await ana.rpc("replace_chapter_pages", {
+      p_chapter: ch.id,
+      p_pages: [{ storage_path: `someone-else/${ch.id}/x.webp`, width: 1, height: 1 }],
+    });
+    expect(r2.error).not.toBeNull();
+    const { data } = await service().from("chapter_pages").select("id").eq("chapter_id", ch.id);
+    expect(data?.length).toBe(4); // unchanged
+  });
+
+  it("earnings_summary returns only the caller's earnings", async () => {
+    const marko = await signedIn("marko@kadar.test");
+    const { data: markoId } = await service().rpc("admin_find_user_by_email", { p_email: "marko@kadar.test" });
+    const { data } = await marko.rpc("earnings_summary", {});
+    expect((data ?? []).every((r) => r.creator_id === markoId)).toBe(true);
+    const reader = await createTempUser("nosy");
+    const { data: none } = await reader.client.rpc("earnings_summary", {});
+    expect(none).toEqual([]);
+  });
+
+  it("admin lookup functions are not callable by clients", async () => {
+    const u = await createTempUser("snoop");
+    expect((await u.client.rpc("admin_find_user_by_email", { p_email: "admin@kadar.test" })).error).not.toBeNull();
+    expect((await u.client.rpc("sum_payments", { p_period: "2026-11-01", p_kind: "subscription" })).error).not.toBeNull();
+  });
+});

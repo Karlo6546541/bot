@@ -449,7 +449,15 @@ isOneToOne: false
             [_ in never]: never
           }
           Functions: {
-            "apply_chapter_unlock":
+            "admin_find_user_by_email":
+{ Args: { "p_email": string }; Returns: string
+                           },
+"admin_user_emails":
+{ Args: { "p_ids": (string)[] }; Returns: {
+              "email": string,"id": string
+            }[]
+                           },
+"apply_chapter_unlock":
 { Args: { "p_chapter": string,"p_creator": string,"p_creator_cents": number,"p_gross_cents": number,"p_period": string,"p_platform_cents": number,"p_price": number,"p_series": string,"p_share_pct": number,"p_user": string }; Returns: Json
                            },
 "apply_coin_credit":

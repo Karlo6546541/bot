@@ -2,7 +2,9 @@
 import { useActionState } from "react";
 import { useI18n } from "@/lib/i18n/client";
 import { FormMessage } from "@/components/forms/FormMessage";
-import type { ActionState } from "@/app/creator/actions";
+import type { MessageKey } from "@/lib/i18n";
+
+type FormState = { error?: MessageKey; ok?: MessageKey; okParams?: Record<string, string | number> } | undefined;
 
 /** Generic form wrapper for (state, formData) server actions with status messages. */
 export function ActionForm({
@@ -11,7 +13,7 @@ export function ActionForm({
   children,
   className = "space-y-4",
 }: {
-  action: (prev: ActionState, fd: FormData) => Promise<ActionState>;
+  action: (prev: FormState, fd: FormData) => Promise<FormState>;
   submitLabel: string;
   children: React.ReactNode;
   className?: string;
@@ -21,7 +23,7 @@ export function ActionForm({
   return (
     <form action={formAction} className={className}>
       {children}
-      <FormMessage error={state?.error} ok={state?.ok} />
+      <FormMessage error={state?.error} ok={state?.ok} params={state?.okParams} />
       <button className="btn-primary" disabled={pending}>{pending ? t("common.loading") : submitLabel}</button>
     </form>
   );
