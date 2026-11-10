@@ -47,6 +47,8 @@ class CreateAuctionScreen extends ConsumerStatefulWidget {
 class _CreateAuctionScreenState extends ConsumerState<CreateAuctionScreen> {
   String? _deviceId;
   final _start = TextEditingController();
+  final _floor = TextEditingController();
+  AuctionKind _kind = AuctionKind.classic;
   Duration _duration = AuctionService.durations[2].$2;
   String? _error;
 
@@ -67,6 +69,7 @@ class _CreateAuctionScreenState extends ConsumerState<CreateAuctionScreen> {
   void dispose() {
     _search.dispose();
     _start.dispose();
+    _floor.dispose();
     super.dispose();
   }
 
@@ -95,6 +98,11 @@ class _CreateAuctionScreenState extends ConsumerState<CreateAuctionScreen> {
       setState(() => _error = t('Unesi početnu cijenu veću od 0'));
       return;
     }
+    final floor = double.tryParse(_floor.text.trim().replaceAll(',', '.'));
+    if (_kind == AuctionKind.dutch && (floor == null || floor <= 0)) {
+      setState(() => _error = t('Unesi najnižu cijenu veću od 0'));
+      return;
+    }
     Auction? created;
     final ok = await runWithLoading(
       context,
@@ -104,6 +112,8 @@ class _CreateAuctionScreenState extends ConsumerState<CreateAuctionScreen> {
             deviceId: _deviceId!,
             startPrice: price,
             duration: _duration,
+            kind: _kind,
+            floorPrice: _kind == AuctionKind.dutch ? floor : null,
           ),
       successMessage: t('Aukcija je objavljena'),
     );
@@ -262,7 +272,47 @@ class _CreateAuctionScreenState extends ConsumerState<CreateAuctionScreen> {
                     if (selected != null) ...[
                       const SizedBox(height: 20),
                       Text(
-                        t('2. Početna cijena'),
+                        t('2. Vrsta aukcije'),
+                        style: const TextStyle(fontWeight: FontWeight.w700),
+                      ),
+                      const SizedBox(height: 8),
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
+                        children: [
+                          for (final k in AuctionKind.values)
+                            ChoiceChip(
+                              key: ValueKey('auction-kind-${k.name}'),
+                              label: Text(k.label),
+                              selected: _kind == k,
+                              onSelected: (_) => setState(() {
+                                _kind = k;
+                                _error = null;
+                              }),
+                            ),
+                        ],
+                      ),
+                      const SizedBox(height: 6),
+                      Text(
+                        switch (_kind) {
+                          AuctionKind.classic => t(
+                            'Ponude se vide, najviša pobjeđuje.',
+                          ),
+                          AuctionKind.dutch => t(
+                            'Cijena pada od početne do najniže; tko prvi pristane — kupuje.',
+                          ),
+                          AuctionKind.sealed => t(
+                            'Svatko pošalje jednu skrivenu ponudu; na kraju pobjeđuje najviša i plaća svoj iznos.',
+                          ),
+                        },
+                        style: TextStyle(
+                          color: LoopColors.textSecondary,
+                          fontSize: 13,
+                        ),
+                      ),
+                      const SizedBox(height: 20),
+                      Text(
+                        t('3. Početna cijena'),
                         style: TextStyle(fontWeight: FontWeight.w700),
                       ),
                       const SizedBox(height: 8),
@@ -276,7 +326,9 @@ class _CreateAuctionScreenState extends ConsumerState<CreateAuctionScreen> {
                           LengthLimitingTextInputFormatter(9),
                         ],
                         decoration: InputDecoration(
-                          labelText: t('Početna cijena'),
+                          labelText: _kind == AuctionKind.dutch
+                              ? t('Početna (najviša) cijena')
+                              : t('Početna cijena'),
                           suffixText: t('€'),
                           helperText: t('Vrijednost predmeta: {0}', [
                             formatCredits(selected.price),
@@ -285,9 +337,33 @@ class _CreateAuctionScreenState extends ConsumerState<CreateAuctionScreen> {
                         ),
                         onChanged: (_) => setState(() => _error = null),
                       ),
+                      if (_kind == AuctionKind.dutch) ...[
+                        const SizedBox(height: 12),
+                        TextField(
+                          key: const ValueKey('auction-floor'),
+                          controller: _floor,
+                          keyboardType: const TextInputType.numberWithOptions(
+                            decimal: true,
+                          ),
+                          inputFormatters: [
+                            FilteringTextInputFormatter.allow(
+                              RegExp(r'[0-9.,]'),
+                            ),
+                            LengthLimitingTextInputFormatter(9),
+                          ],
+                          decoration: InputDecoration(
+                            labelText: t('Najniža cijena'),
+                            suffixText: t('€'),
+                            helperText: t(
+                              'Ispod ove cijene ne prodaješ — cijena ne pada niže.',
+                            ),
+                          ),
+                          onChanged: (_) => setState(() => _error = null),
+                        ),
+                      ],
                       const SizedBox(height: 20),
                       Text(
-                        t('3. Trajanje'),
+                        t('4. Trajanje'),
                         style: TextStyle(fontWeight: FontWeight.w700),
                       ),
                       const SizedBox(height: 8),

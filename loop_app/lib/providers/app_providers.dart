@@ -1355,6 +1355,8 @@ class AppController extends Notifier<AppState> {
     required double startPrice,
     required Duration duration,
     double? buyNowPrice,
+    AuctionKind kind = AuctionKind.classic,
+    double? floorPrice,
   }) async {
     final a = await _auctions.create(
       userId: _requireUserId(),
@@ -1362,6 +1364,8 @@ class AppController extends Notifier<AppState> {
       startPrice: startPrice,
       duration: duration,
       buyNowPrice: buyNowPrice,
+      kind: kind,
+      floorPrice: floorPrice,
     );
     _refresh();
     return a;
@@ -1383,6 +1387,16 @@ class AppController extends Notifier<AppState> {
     );
     _refresh();
     return a.highestBid?.userId == me;
+  }
+
+  /// Holandska aukcija: kupnja po trenutnoj (potvrđenoj) cijeni.
+  Future<void> takeDutchAuction(String auctionId, {double? price}) async {
+    await _auctions.takeDutch(
+      userId: _requireUserId(),
+      auctionId: auctionId,
+      expectedPrice: price,
+    );
+    _refresh();
   }
 
   /// "Kupi odmah" na aukciji.

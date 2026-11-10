@@ -15,6 +15,29 @@ enum AuctionStatus {
       .firstWhere((s) => s.name == name, orElse: () => AuctionStatus.cancelled);
 }
 
+/// Vrsta aukcije.
+enum AuctionKind {
+  /// Klasična: ponude se vide, najviša pobjeđuje.
+  classic('Klasična'),
+
+  /// Holandska (padajuća cijena): cijena pada od početne do najniže, a tko
+  /// prvi pristane na trenutnu cijenu — kupuje.
+  dutch('Holandska'),
+
+  /// Zatvorena: svatko pošalje jednu skrivenu ponudu; na kraju pobjeđuje
+  /// najviša i plaća svoj iznos. Ponude se ne vide do kraja.
+  sealed('Zatvorena');
+
+  const AuctionKind(this._label);
+  final String _label;
+  String get label => t(_label);
+
+  static AuctionKind fromName(String? name) => AuctionKind.values.firstWhere(
+    (k) => k.name == name,
+    orElse: () => AuctionKind.classic,
+  );
+}
+
 /// Jedna ponuda. Ponude su obvezujuće — nikad se ne brišu ni mijenjaju.
 class Bid {
   const Bid({
@@ -69,6 +92,8 @@ class Auction {
     this.autoMax = const {},
     this.watchers = const [],
     this.endingNotified = false,
+    this.kind = AuctionKind.classic,
+    this.floorPrice = 0,
   });
 
   final String id;
@@ -103,6 +128,33 @@ class Auction {
   /// Obavijest "završava uskoro" je poslana.
   final bool endingNotified;
 
+  /// Vrsta aukcije (klasična, holandska ili zatvorena).
+  final AuctionKind kind;
+
+  /// Holandska: najniža cijena na kraju vremena ([startPrice] je najviša).
+  final double floorPrice;
+
+  bool get isDutch => kind == AuctionKind.dutch;
+  bool get isSealed => kind == AuctionKind.sealed;
+
+  /// Zatvorena aukcija dok traje: ponude i vodeći se ne smiju vidjeti.
+  bool get bidsHidden => isSealed && isActive;
+
+  /// Holandska: cijena u trenutku [at] (linearno pada od početne do najniže
+  /// cijene do kraja aukcije), zaokruženo na centе.
+  double priceAt(DateTime at) {
+    if (!isDutch) return currentPrice;
+    final total = endsAt.difference(createdAt).inMilliseconds;
+    if (total <= 0) return floorPrice;
+    final done = at.difference(createdAt).inMilliseconds.clamp(0, total);
+    final price = startPrice - (startPrice - floorPrice) * (done / total);
+    return (price * 100).round() / 100;
+  }
+
+  /// Osnovica za proviziju: kod holandske najniža cijena (ispod nje
+  /// prodavatelj ne prodaje), inače početna cijena.
+  double get commissionBase => isDutch ? floorPrice : startPrice;
+
   /// Do kad vrijedi "Kupi odmah" (dok cijena nije dosegnula tu cijenu).
   bool get canBuyNow =>
       isActive && buyNowPrice != null && currentPrice < buyNowPrice!;
@@ -123,8 +175,14 @@ class Auction {
     return highestBid?.userId == viewerId ? t('Osvojeno') : t('Završeno');
   }
 
-  /// Trenutna cijena: najviša ponuda ili početna cijena.
-  double get currentPrice => highestBid?.amount ?? startPrice;
+  /// Trenutna cijena: najviša ponuda ili početna cijena. Holandska: cijena
+  /// koja pada s vremenom; zatvorena (dok traje): početna cijena (ponude
+  /// su skrivene).
+  double get currentPrice {
+    if (isDutch && isActive) return priceAt(DateTime.now());
+    if (bidsHidden) return startPrice;
+    return highestBid?.amount ?? startPrice;
+  }
 
   bool isExpired(DateTime now) => !now.isBefore(endsAt);
 
@@ -136,7 +194,7 @@ class Auction {
 
   /// Najmanja dopuštena sljedeća ponuda.
   double get minNextBid =>
-      highestBid == null ? startPrice : currentPrice + minIncrement;
+      isSealed || highestBid == null ? startPrice : currentPrice + minIncrement;
 
   Auction copyWith({
     AuctionStatus? status,
@@ -161,6 +219,8 @@ class Auction {
     autoMax: autoMax ?? this.autoMax,
     watchers: watchers ?? this.watchers,
     endingNotified: endingNotified ?? this.endingNotified,
+    kind: kind,
+    floorPrice: floorPrice,
   );
 
   Map<String, dynamic> toMap() => {
@@ -179,6 +239,8 @@ class Auction {
     'autoMax': autoMax,
     'watchers': watchers,
     'endingNotified': endingNotified,
+    if (kind != AuctionKind.classic) 'kind': kind.name,
+    if (floorPrice > 0) 'floorPrice': floorPrice,
   };
 
   factory Auction.fromMap(Map<dynamic, dynamic> map) => Auction(
@@ -202,5 +264,7 @@ class Auction {
     },
     watchers: (map['watchers'] as List?)?.cast<String>() ?? const [],
     endingNotified: map['endingNotified'] as bool? ?? false,
+    kind: AuctionKind.fromName(map['kind'] as String?),
+    floorPrice: (map['floorPrice'] as num?)?.toDouble() ?? 0,
   );
 }

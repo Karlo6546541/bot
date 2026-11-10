@@ -1,3 +1,4 @@
+import '../screens/auction_detail_screen.dart';
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
@@ -23,6 +24,13 @@ Future<void> showBidSheet(
   String auctionId,
 ) async {
   if (blockGuest(context)) return;
+  // Holandska i zatvorena aukcija imaju vlastito sučelje na ekranu detalja.
+  final kind = ref.read(appProvider).auctionById(auctionId)?.kind;
+  if (kind != null && kind != AuctionKind.classic) {
+    await AuctionDetailScreen.open(context, auctionId);
+    return;
+  }
+  if (!context.mounted) return;
   await showModalBottomSheet<void>(
     context: context,
     isScrollControlled: true,

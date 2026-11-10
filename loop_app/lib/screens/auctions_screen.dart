@@ -66,6 +66,7 @@ enum AuctionRole {
   leading('Vodiš', Icons.emoji_events),
   outbid('Nadmašen si', Icons.trending_down),
   won('Osvojeno', Icons.emoji_events),
+  sealedBid('Ponuda poslana', Icons.lock_outline),
   none('', Icons.circle);
 
   const AuctionRole(this._label, this.icon);
@@ -77,7 +78,7 @@ enum AuctionRole {
   Color get color => switch (this) {
     leading || won => LoopColors.success,
     outbid => LoopColors.error,
-    seller || none => LoopColors.textSecondary,
+    seller || none || sealedBid => LoopColors.textSecondary,
   };
 
   static AuctionRole of(Auction a, String? me) {
@@ -86,6 +87,10 @@ enum AuctionRole {
     final top = a.highestBid?.userId == me;
     if (a.status == AuctionStatus.sold && top) return won;
     if (!a.isActive) return none;
+    // Zatvorena aukcija: nitko ne vidi tko vodi — samo da je ponuda poslana.
+    if (a.isSealed) {
+      return a.bids.any((b) => b.userId == me) ? sealedBid : none;
+    }
     if (top) return leading;
     if (a.bids.any((b) => b.userId == me)) return outbid;
     return none;
@@ -1926,6 +1931,28 @@ class AuctionCard extends ConsumerWidget {
                       ],
                     ),
                   ),
+                  if (a.kind != AuctionKind.classic)
+                    Padding(
+                      padding: const EdgeInsets.only(right: 6),
+                      child: Container(
+                        key: ValueKey('auction-kind-${a.id}'),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 4,
+                        ),
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(kRadiusChip),
+                          border: Border.all(color: LoopColors.glassBorder),
+                        ),
+                        child: Text(
+                          a.kind.label,
+                          style: const TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                    ),
                   if (role != AuctionRole.none) RoleBadge(role: role),
                 ],
               ),
@@ -1938,7 +1965,11 @@ class AuctionCard extends ConsumerWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          a.bids.isEmpty
+                          a.isDutch && a.isActive
+                              ? t('Trenutna cijena (pada)')
+                              : a.bidsHidden
+                              ? t('Zatvorena · najmanje')
+                              : a.bids.isEmpty
                               ? t('Početna cijena')
                               : t('Najviša ponuda'),
                           style: TextStyle(
@@ -1964,7 +1995,9 @@ class AuctionCard extends ConsumerWidget {
                     crossAxisAlignment: CrossAxisAlignment.end,
                     children: [
                       Text(
-                        a.bids.length == 1
+                        a.isDutch
+                            ? t('Pada do {0}', [formatCredits(a.floorPrice)])
+                            : a.bids.length == 1
                             ? t('1 ponuda')
                             : t('{0} ponuda', [a.bids.length]),
                         style: TextStyle(

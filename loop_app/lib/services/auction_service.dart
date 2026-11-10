@@ -1,5 +1,6 @@
 import 'package:uuid/uuid.dart';
 
+import '../models/app_user.dart';
 import '../models/auction.dart';
 import '../models/loop_transaction.dart';
 import '../utils/formatters.dart';
@@ -57,6 +58,8 @@ class AuctionService {
     required double startPrice,
     required Duration duration,
     double? buyNowPrice,
+    AuctionKind kind = AuctionKind.classic,
+    double? floorPrice,
     DateTime? now,
   }) async {
     final at = now ?? DateTime.now();
@@ -90,6 +93,18 @@ class AuctionService {
     if (duration <= Duration.zero) {
       throw TradeException(t('Odaberi trajanje aukcije.'));
     }
+    if (kind == AuctionKind.dutch) {
+      if (floorPrice == null || floorPrice <= 0 || floorPrice >= startPrice) {
+        throw TradeException(
+          t('Najniža cijena mora biti veća od 0 i manja od početne.'),
+        );
+      }
+    }
+    if (kind != AuctionKind.classic && buyNowPrice != null) {
+      throw TradeException(
+        t('Kupi odmah nije moguć na holandskoj ni zatvorenoj aukciji.'),
+      );
+    }
     if (buyNowPrice != null && buyNowPrice <= startPrice) {
       throw TradeException(
         t('Cijena "Kupi odmah" mora biti veća od početne cijene.'),
@@ -115,6 +130,8 @@ class AuctionService {
       endsAt: at.add(duration),
       listingFee: fee,
       buyNowPrice: buyNowPrice == null ? null : roundCredits(buyNowPrice),
+      kind: kind,
+      floorPrice: kind == AuctionKind.dutch ? roundCredits(floorPrice!) : 0,
     );
     await _storage.putAuction(auction);
     // Pratitelji trgovine saznaju za novu aukciju.
@@ -190,6 +207,12 @@ class AuctionService {
     if (_storage.userById(a.sellerId)?.blockedIds.contains(userId) ?? false) {
       throw TradeException(t('Ne možeš licitirati na ovu aukciju.'));
     }
+    if (a.isDutch) {
+      throw TradeException(
+        t('Na holandskoj aukciji se ne licitira — kupi po trenutnoj cijeni.'),
+      );
+    }
+    if (a.isSealed) return _sealedBid(a, user, amount, at);
     final leader = a.highestBid;
     if (leader?.userId == userId) {
       // Vodeći smije samo povisiti automatsku ponudu.
@@ -306,6 +329,88 @@ class AuctionService {
       now: at,
     );
     return updated;
+  }
+
+  /// Zatvorena aukcija: jedna skrivena ponuda po korisniku (smije je samo
+  /// povisiti do kraja). Ne produljuje aukciju i nikome ne otkriva iznos.
+  Future<Auction> _sealedBid(
+    Auction a,
+    AppUser user,
+    double amount,
+    DateTime at,
+  ) async {
+    final bid = roundCredits(amount);
+    if (bid < a.startPrice) {
+      throw TradeException(
+        t('Najmanja ponuda je {0}.', [formatCredits(a.startPrice)]),
+      );
+    }
+    final mine = [
+      for (final b in a.bids)
+        if (b.userId == user.id) b,
+    ];
+    if (mine.isNotEmpty && bid <= mine.last.amount) {
+      throw TradeException(
+        t('Svoju zatvorenu ponudu možeš samo povisiti (sada {0}).', [
+          formatCredits(mine.last.amount),
+        ]),
+      );
+    }
+    final bids =
+        [
+          for (final b in a.bids)
+            if (b.userId != user.id) b,
+          Bid(userId: user.id, userLabel: user.handle, amount: bid, time: at),
+        ]..sort((x, y) {
+          final byAmount = x.amount.compareTo(y.amount);
+          // Jednaki iznosi: ranija ponuda je viša (pobjeđuje).
+          return byAmount != 0 ? byAmount : y.time.compareTo(x.time);
+        });
+    final updated = a.copyWith(bids: bids);
+    await _storage.putAuction(updated);
+    return updated;
+  }
+
+  /// Holandska aukcija: kupac pristaje na trenutnu cijenu i odmah kupuje.
+  Future<AuctionResult> takeDutch({
+    required String userId,
+    required String auctionId,
+    double? expectedPrice,
+    DateTime? now,
+  }) async {
+    final at = now ?? DateTime.now();
+    await _storage.refreshAuction(auctionId);
+    final a = _requireAuction(auctionId);
+    final user = _storage.userById(userId);
+    if (user == null) throw TradeException(t('Korisnik ne postoji.'));
+    if (!a.isDutch) {
+      throw TradeException(t('Ovo nije holandska aukcija.'));
+    }
+    if (!a.isActive || a.isExpired(at)) {
+      throw TradeException(t('Aukcija je završila.'));
+    }
+    if (a.sellerId == userId) {
+      throw TradeException(t('Ne možeš kupiti svoj predmet.'));
+    }
+    if (_storage.userById(a.sellerId)?.blockedIds.contains(userId) ?? false) {
+      throw TradeException(t('Ne možeš licitirati na ovu aukciju.'));
+    }
+    if (a.bids.isNotEmpty) {
+      throw TradeException(t('Netko je već kupio ovaj predmet.'));
+    }
+    final price = a.priceAt(at);
+    // Kupac je potvrdio cijenu koju je vidio; ako je u međuvremenu pala,
+    // plaća nižu (nikad višu od potvrđene).
+    if (expectedPrice != null && price > expectedPrice + 0.001) {
+      throw TradeException(t('Cijena se promijenila. Pokušaj ponovno.'));
+    }
+    final updated = a.copyWith(
+      bids: [
+        Bid(userId: userId, userLabel: user.handle, amount: price, time: at),
+      ],
+    );
+    await _storage.putAuction(updated);
+    return _settle(updated, at);
   }
 
   /// "Kupi odmah": kupac plaća [Auction.buyNowPrice] i odmah osvaja
@@ -479,8 +584,8 @@ class AuctionService {
 
     // Pobjednik plaća svoju ponudu; prodavatelju se odbija 10 % samo od
     // razlike iznad početne cijene.
-    final fee = auctionCommission(top.amount, a.startPrice);
-    final payout = auctionPayout(top.amount, a.startPrice);
+    final fee = auctionCommission(top.amount, a.commissionBase);
+    final payout = auctionPayout(top.amount, a.commissionBase);
     // Pobjednik plaća karticom (pružatelj plaćanja), prodavatelj dobiva
     // zaradu za isplatu.
     final done = a.copyWith(status: AuctionStatus.sold);
