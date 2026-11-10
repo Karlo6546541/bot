@@ -15,7 +15,7 @@ export async function generateMetadata(): Promise<Metadata> {
     description: t("common.tagline"),
     applicationName: t("common.appName"),
     appleWebApp: { capable: true, title: t("common.appName"), statusBarStyle: "black-translucent" },
-    icons: { icon: "/icons/icon-192.png", apple: "/icons/apple-touch-icon.png" },
+    icons: { apple: "/icons/apple-touch-icon.png" },
   };
 }
 

@@ -487,6 +487,14 @@ isOneToOne: false
                            },
 "series_is_public":
 { Args: { "p_series": string }; Returns: boolean
+                           },
+"subscription_reads_by_series":
+{ Args: { "p_period": string }; Returns: {
+              "creator_id": string,"reads": number,"series_id": string
+            }[]
+                           },
+"sum_payments":
+{ Args: { "p_kind": Database["public"]['Enums']["plan_kind"],"p_period": string }; Returns: number
                            }
           }
           Enums: {
