@@ -3965,7 +3965,7 @@ class _LiveRoomViewState extends ConsumerState<_LiveRoomBody> {
     const shadow = [Shadow(color: Colors.black87, blurRadius: 6)];
     // Na niskim ekranima ostaju najvažnije radnje (Više i Shop).
     final scale = MediaQuery.textScalerOf(context).scale(12) / 12;
-    final slots = (maxHeight / (46 + 18 * scale)).floor();
+    final slots = (maxHeight / (58 + 16 * scale)).floor();
     Widget item({
       required Key key,
       required String label,
@@ -3988,16 +3988,25 @@ class _LiveRoomViewState extends ConsumerState<_LiveRoomBody> {
               mainAxisSize: MainAxisSize.min,
               children: [
                 child ??
-                    Icon(icon, color: Colors.white, size: 28, shadows: shadow),
-                const SizedBox(height: 2),
+                    Container(
+                      width: 44,
+                      height: 44,
+                      decoration: BoxDecoration(
+                        color: const Color(0x59101014),
+                        shape: BoxShape.circle,
+                        border: Border.all(color: Colors.white24),
+                      ),
+                      child: Icon(icon, color: Colors.white, size: 20),
+                    ),
+                const SizedBox(height: 3),
                 Text(
                   label,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: const TextStyle(
                     color: Colors.white,
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w500,
                     shadows: shadow,
                   ),
                 ),
@@ -4067,12 +4076,13 @@ class _LiveRoomViewState extends ConsumerState<_LiveRoomBody> {
               height: 48,
               clipBehavior: Clip.antiAlias,
               decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(10),
+                color: const Color(0x59101014),
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(color: Colors.white38),
               ),
               child: featured != null
                   ? ItemThumb(device: featured, size: 48)
-                  : const Icon(Icons.storefront, color: Colors.black87),
+                  : const Icon(Icons.storefront_outlined, color: Colors.white),
             ),
           ),
       ],
@@ -4117,11 +4127,18 @@ class _LiveRoomViewState extends ConsumerState<_LiveRoomBody> {
         FilledButton(
           key: const ValueKey('live-all-products'),
           style: FilledButton.styleFrom(
-            backgroundColor: const Color(0x66FFFFFF),
+            backgroundColor: const Color(0x1FFFFFFF),
             foregroundColor: Colors.white,
             minimumSize: const Size(96, 52),
-            padding: const EdgeInsets.symmetric(horizontal: 14),
-            shape: const StadiumBorder(),
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            shape: const StadiumBorder(
+              side: BorderSide(color: Color(0x33FFFFFF)),
+            ),
+            textStyle: const TextStyle(
+              fontFamily: kFontFamily,
+              fontWeight: FontWeight.w500,
+              fontSize: 15,
+            ),
           ),
           onPressed: () => _showQueue(st, false),
           child: Text(t('Proizvodi')),
@@ -4289,12 +4306,15 @@ class _LiveRoomViewState extends ConsumerState<_LiveRoomBody> {
         return FilledButton(
           key: const ValueKey('live-featured-buy'),
           style: FilledButton.styleFrom(
+            backgroundColor: Colors.white,
+            foregroundColor: Colors.black,
             minimumSize: const Size.fromHeight(52),
             shape: const StadiumBorder(),
             textStyle: const TextStyle(
               fontFamily: kFontFamily,
-              fontWeight: FontWeight.w800,
-              fontSize: 17,
+              fontWeight: FontWeight.w600,
+              fontSize: 16,
+              letterSpacing: -.2,
             ),
           ),
           onPressed: () => confirmAndBuy(context, ref, featured),
@@ -4306,7 +4326,7 @@ class _LiveRoomViewState extends ConsumerState<_LiveRoomBody> {
                 child: Text(t('Kupi odmah'), overflow: TextOverflow.ellipsis),
               ),
               const SizedBox(width: 6),
-              const Icon(Icons.keyboard_double_arrow_right, size: 22),
+              const Icon(Icons.arrow_forward, size: 18),
             ],
           ),
         );
@@ -4766,87 +4786,108 @@ class _TopBar extends ConsumerWidget {
     final following = s.isFollowing(show.hostId);
     if (kSimpleDesign) {
       final rating = s.ratingOf(show.hostId);
-      // Gore: avatar, ime i ocjena, Prati; desno gledatelji i zatvaranje.
+      // Subhasto stil: staklene kapsule. Lijevo prodavač (avatar, ime,
+      // ocjena) s gumbom Prati; desno gledatelji i zatvaranje.
       return Padding(
         key: const ValueKey('live-compact-header'),
-        padding: const EdgeInsets.fromLTRB(12, 10, 8, 6),
+        padding: const EdgeInsets.fromLTRB(12, 10, 12, 6),
         child: Row(
           children: [
             Expanded(
-              child: InkWell(
-                onTap: () => PublicProfileScreen.open(context, show.hostId),
-                child: Row(
-                  children: [
-                    UserAvatar(user: host, size: 44),
-                    const SizedBox(width: 10),
-                    Flexible(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Tooltip(
-                            message: show.title,
-                            child: Text(
-                              hostName,
-                              key: const ValueKey('live-host-meta'),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 16,
-                                fontWeight: FontWeight.w700,
-                                shadows: [
-                                  Shadow(color: Colors.black54, blurRadius: 6),
-                                ],
+              child: Align(
+                alignment: Alignment.centerLeft,
+                child: VisionGlass(
+                  dark: true,
+                  radius: 99,
+                  padding: const EdgeInsets.fromLTRB(4, 4, 4, 4),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Flexible(
+                        child: InkWell(
+                          borderRadius: BorderRadius.circular(99),
+                          onTap: () =>
+                              PublicProfileScreen.open(context, show.hostId),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              UserAvatar(user: host, size: 36),
+                              const SizedBox(width: 8),
+                              Flexible(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Tooltip(
+                                      message: show.title,
+                                      child: Text(
+                                        hostName,
+                                        key: const ValueKey('live-host-meta'),
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: const TextStyle(
+                                          color: Colors.white,
+                                          fontSize: 14,
+                                          fontWeight: FontWeight.w600,
+                                          letterSpacing: -.2,
+                                        ),
+                                      ),
+                                    ),
+                                    if (rating.count > 0)
+                                      Text(
+                                        '★ ${rating.average.toStringAsFixed(1)} · ${rating.count}',
+                                        style: const TextStyle(
+                                          color: Color(0xFFD0D0D6),
+                                          fontSize: 12,
+                                        ),
+                                      ),
+                                  ],
+                                ),
                               ),
-                            ),
+                            ],
                           ),
-                          if (rating.count > 0)
-                            Text(
-                              '★ ${rating.average.toStringAsFixed(1)} (${rating.count})',
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 13,
-                                fontWeight: FontWeight.w600,
-                                shadows: [
-                                  Shadow(color: Colors.black54, blurRadius: 6),
-                                ],
-                              ),
-                            ),
-                        ],
-                      ),
-                    ),
-                    if (me != show.hostId) ...[
-                      const SizedBox(width: 10),
-                      FilledButton(
-                        key: const ValueKey('live-follow'),
-                        style: FilledButton.styleFrom(
-                          minimumSize: const Size(64, 40),
-                          padding: const EdgeInsets.symmetric(horizontal: 16),
-                          shape: const StadiumBorder(),
-                          disabledBackgroundColor: Colors.white24,
-                          disabledForegroundColor: Colors.white,
                         ),
-                        onPressed: following
-                            ? null
-                            : () async {
-                                if (blockGuest(context)) return;
-                                await ref
-                                    .read(appProvider.notifier)
-                                    .toggleFollow(show.hostId);
-                                await ref
-                                    .read(appProvider.notifier)
-                                    .liveFollowedFromShow(show.id);
-                              },
-                        child: Text(t(following ? 'Pratim' : 'Prati')),
                       ),
+                      const SizedBox(width: 8),
+                      if (me != show.hostId)
+                        FilledButton(
+                          key: const ValueKey('live-follow'),
+                          style: FilledButton.styleFrom(
+                            backgroundColor: Colors.white,
+                            foregroundColor: Colors.black,
+                            minimumSize: const Size(56, 36),
+                            padding: const EdgeInsets.symmetric(horizontal: 14),
+                            shape: const StadiumBorder(),
+                            textStyle: const TextStyle(
+                              fontFamily: kFontFamily,
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600,
+                            ),
+                            disabledBackgroundColor: Colors.white12,
+                            disabledForegroundColor: Colors.white70,
+                          ),
+                          onPressed: following
+                              ? null
+                              : () async {
+                                  if (blockGuest(context)) return;
+                                  await ref
+                                      .read(appProvider.notifier)
+                                      .toggleFollow(show.hostId);
+                                  await ref
+                                      .read(appProvider.notifier)
+                                      .liveFollowedFromShow(show.id);
+                                },
+                          child: Text(t(following ? 'Pratim' : 'Prati')),
+                        )
+                      else
+                        const SizedBox(width: 6, height: 36),
                     ],
-                  ],
+                  ),
                 ),
               ),
             ),
-            const SizedBox(width: 8),
-            if (state.isLive)
+            if (state.isLive) ...[
+              const SizedBox(width: 8),
               InkWell(
                 key: const ValueKey('live-viewers-open'),
                 borderRadius: BorderRadius.circular(99),
@@ -4856,51 +4897,56 @@ class _TopBar extends ConsumerWidget {
                   backgroundColor: kLiveSheet,
                   builder: (_) => _ViewersSheet(showId: show.id),
                 ),
-                child: Container(
-                  height: 40,
-                  padding: const EdgeInsets.symmetric(horizontal: 10),
-                  decoration: BoxDecoration(
-                    color: const Color(0x99000000),
-                    borderRadius: BorderRadius.circular(99),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Container(
-                        width: 22,
-                        height: 22,
-                        decoration: const BoxDecoration(
-                          color: kLiveRed,
-                          shape: BoxShape.circle,
+                child: VisionGlass(
+                  dark: true,
+                  radius: 99,
+                  padding: const EdgeInsets.symmetric(horizontal: 12),
+                  child: SizedBox(
+                    height: 44,
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Container(
+                          width: 8,
+                          height: 8,
+                          decoration: const BoxDecoration(
+                            color: kLiveRed,
+                            shape: BoxShape.circle,
+                          ),
                         ),
-                        child: const Icon(
-                          Icons.bar_chart_rounded,
-                          size: 14,
-                          color: Colors.white,
+                        const SizedBox(width: 7),
+                        Text(
+                          '${state.viewers}',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                          ),
                         ),
-                      ),
-                      const SizedBox(width: 6),
-                      Text(
-                        '${state.viewers}',
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 14,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                 ),
               ),
-            IconButton(
-              key: const ValueKey('live-close'),
-              tooltip: t('Zatvori'),
-              onPressed: () => Navigator.maybePop(context),
-              icon: const Icon(
-                Icons.keyboard_arrow_down,
-                color: Colors.white,
-                size: 30,
-                shadows: [Shadow(color: Colors.black54, blurRadius: 6)],
+            ],
+            const SizedBox(width: 8),
+            VisionGlass(
+              dark: true,
+              radius: 99,
+              child: IconButton(
+                key: const ValueKey('live-close'),
+                tooltip: t('Zatvori'),
+                constraints: const BoxConstraints.tightFor(
+                  width: 44,
+                  height: 44,
+                ),
+                padding: EdgeInsets.zero,
+                onPressed: () => Navigator.maybePop(context),
+                icon: const Icon(
+                  Icons.keyboard_arrow_down,
+                  color: Colors.white,
+                  size: 24,
+                ),
               ),
             ),
           ],
@@ -5546,7 +5592,16 @@ class _BottomPanel extends StatelessWidget {
   final Widget child;
   @override
   Widget build(BuildContext context) => kSimpleDesign
-      ? Padding(padding: const EdgeInsets.only(bottom: 10), child: child)
+      // Subhasto stil: jedna staklena ploča s proizvodom i radnjama.
+      ? Padding(
+          padding: const EdgeInsets.fromLTRB(12, 0, 12, 10),
+          child: VisionGlass(
+            dark: true,
+            radius: 28,
+            padding: const EdgeInsets.only(bottom: 12),
+            child: child,
+          ),
+        )
       : VisionGlass(
           dark: true,
           radius: 28,
@@ -5555,8 +5610,9 @@ class _BottomPanel extends StatelessWidget {
         );
 }
 
-/// Stalna kartica proizvoda pri dnu prijenosa: fotografija, naziv, kratak
-/// opis, cijena, zaliha i dostava. Glavna radnja je u redu ispod.
+/// Stalna kartica proizvoda pri dnu prijenosa u Subhasto stilu: mala
+/// fotografija, naziv i opis, a cijena tankim velikim brojkama kao kod
+/// licitacije. Glavna radnja je u redu ispod.
 class _FeaturedProductCard extends StatelessWidget {
   const _FeaturedProductCard({
     required this.device,
@@ -5571,118 +5627,89 @@ class _FeaturedProductCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    const shadow = [Shadow(color: Colors.black87, blurRadius: 6)];
+    const quiet = Color(0xFFD0D0D6);
     final sub = device.description.trim().isNotEmpty
         ? device.description.trim()
         : [
             if (device.model.isNotEmpty) device.model,
             if (!device.isDigital) device.condition.label,
           ].join(' · ');
+    final meta = [
+      if (!device.isDigital && device.quantity > 1)
+        t('još {0}', ['${device.quantity}']),
+      if (!device.isDigital) t('Dostava se dodaje prije plaćanja'),
+    ].join(' · ');
     return Padding(
       key: const ValueKey('live-featured'),
-      padding: EdgeInsets.fromLTRB(14, compact ? 6 : 10, 14, 0),
-      child: Row(
+      padding: EdgeInsets.fromLTRB(16, compact ? 10 : 14, 16, 0),
+      child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
         children: [
-          ClipRRect(
-            borderRadius: BorderRadius.circular(12),
-            child: ItemThumb(device: device, size: compact ? 48 : 68),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  device.name,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.w700,
-                    fontSize: 17,
-                    shadows: shadow,
-                  ),
-                ),
-                if (sub.isNotEmpty)
-                  Text(
-                    sub,
-                    maxLines: compact ? 1 : 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 14,
-                      height: 1.25,
-                      shadows: shadow,
-                    ),
-                  ),
-                if (!device.isDigital && !compact)
-                  Padding(
-                    padding: const EdgeInsets.only(top: 6),
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 10,
-                        vertical: 5,
-                      ),
-                      decoration: BoxDecoration(
-                        color: const Color(0x66000000),
-                        borderRadius: BorderRadius.circular(99),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          const Icon(
-                            Icons.local_shipping_outlined,
-                            size: 15,
-                            color: Colors.white,
-                          ),
-                          const SizedBox(width: 6),
-                          Flexible(
-                            child: Text(
-                              t('Dostava se dodaje prije plaćanja'),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 12,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-              ],
-            ),
-          ),
-          const SizedBox(width: 10),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.end,
+          Row(
             children: [
-              Text(
-                formatCredits(price),
-                key: const ValueKey('live-featured-price'),
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.w800,
-                  fontSize: 18,
-                  shadows: shadow,
+              ClipRRect(
+                borderRadius: BorderRadius.circular(14),
+                child: ItemThumb(device: device, size: compact ? 44 : 56),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      device.name,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w600,
+                        fontSize: 16,
+                        letterSpacing: -.2,
+                      ),
+                    ),
+                    if (sub.isNotEmpty)
+                      Text(
+                        sub,
+                        maxLines: compact ? 1 : 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          color: quiet,
+                          fontSize: 13,
+                          height: 1.3,
+                        ),
+                      ),
+                  ],
                 ),
               ),
-              // Stvarna zaliha (samo kad ima više komada).
-              if (!device.isDigital && device.quantity > 1)
-                Text(
-                  t('još {0}', ['${device.quantity}']),
-                  key: const ValueKey('live-featured-stock'),
-                  style: const TextStyle(
+              const SizedBox(width: 12),
+              FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Text(
+                  formatCredits(price),
+                  key: const ValueKey('live-featured-price'),
+                  style: TextStyle(
                     color: Colors.white,
-                    fontWeight: FontWeight.w700,
-                    fontSize: 14,
-                    shadows: shadow,
+                    fontWeight: FontWeight.w200,
+                    fontSize: compact ? 26 : 34,
+                    letterSpacing: -1.2,
+                    height: 1,
                   ),
                 ),
+              ),
             ],
           ),
+          if (meta.isNotEmpty && !compact)
+            Padding(
+              padding: const EdgeInsets.only(top: 8),
+              child: Text(
+                meta,
+                key: const ValueKey('live-featured-stock'),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(color: quiet, fontSize: 12),
+              ),
+            ),
         ],
       ),
     );
@@ -6729,12 +6756,12 @@ class _DouyinBar extends StatelessWidget {
               borderRadius: BorderRadius.circular(99),
               onTap: onHeart,
               child: Container(
-                width: 52,
+                width: 44,
                 height: 44,
                 decoration: BoxDecoration(
-                  color: const Color(0x9928282D),
+                  color: const Color(0x59101014),
                   borderRadius: BorderRadius.circular(99),
-                  border: Border.all(color: Colors.white30),
+                  border: Border.all(color: Colors.white24),
                 ),
                 child: Icon(
                   liked ? Icons.favorite : Icons.favorite_border,
