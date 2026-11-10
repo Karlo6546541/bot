@@ -3654,4 +3654,9 @@ const kEn = <String, String>{
   'Detalji narudžbe': 'Order details',
   'Filteri showova': 'Show filters',
   'Praćenje pošiljke': 'Shipment tracking',
+  'Bez videa': 'No video',
+  'Pitaj prodavača…': 'Ask the seller…',
+  'Predmeti {0}': 'Items {0}',
+  'Kupi odmah {0}': 'Buy now {0}',
+  'KUPI ODMAH': 'BUY NOW',
 };

@@ -42,6 +42,7 @@ import '../widgets/shop_widgets.dart';
 import '../widgets/user_avatar.dart';
 import 'deliveries_screen.dart';
 import 'public_profile_screen.dart';
+import 'viewer_live_chrome.dart';
 import 'seller_screens.dart' show ensureSellerInfo;
 import '../widgets/pill_tabs.dart';
 
@@ -2198,6 +2199,7 @@ class _LiveRoomViewState extends ConsumerState<_LiveRoomBody> {
     pushSnackBarLift();
     _muted = ref.read(storageProvider).liveMuted;
     LiveSound.muted = _muted;
+    _chat.addListener(_chatFocusChanged);
     if (widget.active) _start();
   }
 
@@ -2713,8 +2715,12 @@ class _LiveRoomViewState extends ConsumerState<_LiveRoomBody> {
     _timer?.cancel();
     _broadcaster?.stop();
     _watcher?.stop();
-    _chatFocus.dispose();
-    _chat.dispose();
+    _chatFocus
+      ..removeListener(_chatFocusChanged)
+      ..dispose();
+    _chat
+      ..removeListener(_chatFocusChanged)
+      ..dispose();
     super.dispose();
   }
 
@@ -3050,22 +3056,6 @@ class _LiveRoomViewState extends ConsumerState<_LiveRoomBody> {
                       onTap: () {
                         Navigator.pop(ctx);
                         _customBid(st.current!);
-                      },
-                    ),
-                  if (ref.read(appProvider).currentUserId != show.hostId)
-                    ListTile(
-                      key: const ValueKey('live-shop-boost'),
-                      leading: const Icon(
-                        Icons.rocket_launch_outlined,
-                        color: Colors.white,
-                      ),
-                      title: Text(
-                        t('Boostaj show'),
-                        style: const TextStyle(color: Colors.white),
-                      ),
-                      onTap: () {
-                        Navigator.pop(ctx);
-                        showPromoteSheet(context, ref, show);
                       },
                     ),
                   if (ref.read(appProvider).currentUserId != show.hostId)
@@ -3448,31 +3438,36 @@ class _LiveRoomViewState extends ConsumerState<_LiveRoomBody> {
             LiveVideoStage(
               broadcaster: _broadcaster,
               watcher: _watcher,
-              fallback: switch ((cur, show.coverPath)) {
-                // Dok se ništa ne licitira: naslovna slika livea.
-                (null, final cover?) => LocalPhoto(
-                  key: const ValueKey('live-cover-stage'),
-                  path: cover,
-                  fallback: StoryBackdrop(
-                    gradient: _stageGradient(stageDevice),
-                    device: stageDevice,
-                  ),
-                ),
-                _
-                    when stageDevice != null &&
-                        stageDevice.imagePaths.isNotEmpty =>
-                  LocalPhoto(
-                    path: stageDevice.imagePaths.first,
-                    fallback: StoryBackdrop(
-                      gradient: _stageGradient(stageDevice),
+              fallback: isHost
+                  ? switch ((cur, show.coverPath)) {
+                      // Dok se ništa ne licitira: naslovna slika livea.
+                      (null, final cover?) => LocalPhoto(
+                        key: const ValueKey('live-cover-stage'),
+                        path: cover,
+                        fallback: StoryBackdrop(
+                          gradient: _stageGradient(stageDevice),
+                          device: stageDevice,
+                        ),
+                      ),
+                      _
+                          when stageDevice != null &&
+                              stageDevice.imagePaths.isNotEmpty =>
+                        LocalPhoto(
+                          path: stageDevice.imagePaths.first,
+                          fallback: StoryBackdrop(
+                            gradient: _stageGradient(stageDevice),
+                            device: stageDevice,
+                          ),
+                        ),
+                      _ => StoryBackdrop(
+                        gradient: _stageGradient(stageDevice),
+                        device: stageDevice,
+                      ),
+                    }
+                  : viewerStageBackdrop(
                       device: stageDevice,
+                      coverPath: show.coverPath,
                     ),
-                  ),
-                _ => StoryBackdrop(
-                  gradient: _stageGradient(stageDevice),
-                  device: stageDevice,
-                ),
-              },
             ),
             const DecoratedBox(
               decoration: BoxDecoration(
@@ -3492,15 +3487,43 @@ class _LiveRoomViewState extends ConsumerState<_LiveRoomBody> {
             SafeArea(
               child: Center(
                 child: ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 520),
+                  constraints: BoxConstraints(maxWidth: isHost ? 520 : 430),
                   child: Column(
                     children: [
-                      _TopBar(
-                        show: show,
-                        state: st,
-                        host: host,
-                        hostName: host?.handle ?? show.hostLabel,
-                      ),
+                      if (isHost)
+                        _TopBar(
+                          show: show,
+                          state: st,
+                          host: host,
+                          hostName: host?.handle ?? show.hostLabel,
+                        )
+                      else
+                        ViewerTopBar(
+                          show: show,
+                          state: st,
+                          host: host,
+                          hostName: host?.handle ?? show.hostLabel,
+                          following: s.isFollowing(show.hostId),
+                          showFollow: me?.id != show.hostId,
+                          onHost: () =>
+                              PublicProfileScreen.open(context, show.hostId),
+                          onFollow: () async {
+                            if (blockGuest(context)) return;
+                            await ref
+                                .read(appProvider.notifier)
+                                .toggleFollow(show.hostId);
+                            await ref
+                                .read(appProvider.notifier)
+                                .liveFollowedFromShow(show.id);
+                          },
+                          onViewers: () => showModalBottomSheet<void>(
+                            context: context,
+                            showDragHandle: true,
+                            backgroundColor: kLiveSheet,
+                            builder: (_) => _ViewersSheet(showId: show.id),
+                          ),
+                          onClose: () => Navigator.maybePop(context),
+                        ),
 
                       Expanded(
                         child: Stack(
@@ -3519,10 +3542,16 @@ class _LiveRoomViewState extends ConsumerState<_LiveRoomBody> {
                                 padding: EdgeInsets.fromLTRB(
                                   16,
                                   16,
-                                  st.isOver ? 16 : 72,
+                                  isHost && !st.isOver ? 72 : 16,
                                   16,
                                 ),
-                                child: composing
+                                child:
+                                    composing ||
+                                        (!isHost &&
+                                            st.isLive &&
+                                            (cur != null ||
+                                                done != null ||
+                                                _featured(s, show) != null))
                                     ? const SizedBox.shrink()
                                     : center,
                               ),
@@ -3585,13 +3614,24 @@ class _LiveRoomViewState extends ConsumerState<_LiveRoomBody> {
                                   onRetry: _startVideo,
                                 ),
                               )
-                            else
+                            else if (isHost)
                               Positioned(
                                 left: 12,
                                 top: 4,
                                 child: _VideoStatus(
                                   show: show,
                                   broadcaster: _broadcaster,
+                                  watcher: _watcher,
+                                  online:
+                                      ref.watch(liveSignalingProvider) != null,
+                                ),
+                              )
+                            else
+                              Positioned(
+                                left: 0,
+                                top: 0,
+                                child: ViewerVideoCaption(
+                                  show: show,
                                   watcher: _watcher,
                                   online:
                                       ref.watch(liveSignalingProvider) != null,
@@ -3610,7 +3650,7 @@ class _LiveRoomViewState extends ConsumerState<_LiveRoomBody> {
                               right: 0,
                               bottom: 0,
                               width: 130,
-                              height: 380,
+                              height: isHost ? 380 : 160,
                               child: IgnorePointer(
                                 child: _FloatingReactions(
                                   // Svoja srca crtam odmah (lokalno).
@@ -3650,63 +3690,9 @@ class _LiveRoomViewState extends ConsumerState<_LiveRoomBody> {
                                 ),
                               ),
                             ),
-                            // Chat zauzima najviše pola slobodnog prostora;
-                            // kad je live gotov, ostaje samo sažetak.
-                            if (!st.isOver && !isHost && kSimpleDesign)
-                              Positioned(
-                                right: 6,
-                                top: 0,
-                                bottom: 4,
-                                child: composing
-                                    ? const SizedBox.shrink()
-                                    : LayoutBuilder(
-                                        builder: (_, c) => Align(
-                                          alignment: Alignment.bottomRight,
-                                          child: _viewerRail(
-                                            s,
-                                            show,
-                                            st,
-                                            canAct,
-                                            c.maxHeight,
-                                          ),
-                                        ),
-                                      ),
-                              ),
-                            if (!st.isOver && !isHost && !kSimpleDesign)
-                              Positioned(
-                                right: 8,
-                                bottom: 4,
-                                child: Semantics(
-                                  button: true,
-                                  label: _chatHidden
-                                      ? t('Prikaži chat')
-                                      : t('Sakrij chat'),
-                                  excludeSemantics: true,
-                                  child: InkWell(
-                                    key: const ValueKey('live-chat-toggle'),
-                                    borderRadius: BorderRadius.circular(22),
-                                    onTap: () => setState(
-                                      () => _chatHidden = !_chatHidden,
-                                    ),
-                                    child: Container(
-                                      width: 44,
-                                      height: 44,
-                                      decoration: const BoxDecoration(
-                                        color: Color(0x99000000),
-                                        shape: BoxShape.circle,
-                                      ),
-                                      child: Icon(
-                                        _chatHidden
-                                            ? Icons.chat_bubble_outline
-                                            : Icons.speaker_notes_off_outlined,
-                                        color: Colors.white,
-                                        size: 20,
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            if (!st.isOver && (isHost || !_chatHidden))
+                            // Voditelj čita chat iznad svojih kontrola. Gledateljev
+                            // chat je u donjoj trećini, da ga kartice ne pregaze.
+                            if (!st.isOver && isHost)
                               Positioned(
                                 left: 12,
                                 right: 12,
@@ -3716,33 +3702,23 @@ class _LiveRoomViewState extends ConsumerState<_LiveRoomBody> {
                                   builder: (_, c) => Align(
                                     alignment: Alignment.bottomLeft,
                                     child: ConstrainedBox(
-                                      // Voditelj čita chat dok vodi live: veći
-                                      // i širi prozor, veći tekst.
-                                      constraints: BoxConstraints(
-                                        maxWidth: isHost ? 300 : 220,
+                                      constraints: const BoxConstraints(
+                                        maxWidth: 300,
                                       ),
-                                      child: Column(
-                                        mainAxisSize: MainAxisSize.min,
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.start,
-                                        children: [
-                                          _ChatFeed(
-                                            show: show,
-                                            muted: st.muted,
-                                            banned: st.banned,
-                                            moderator: show.canModerate(me?.id),
-                                            feed: st.feed,
-                                            me: me?.id,
-                                            hostId: show.hostId,
-                                            filter: _chatFilter,
-                                            large: isHost,
-                                            maxHeight: math.min(
-                                              isHost ? 280 : 150,
-                                              c.maxHeight *
-                                                  (isHost ? 0.7 : 0.55),
-                                            ),
-                                          ),
-                                        ],
+                                      child: _ChatFeed(
+                                        show: show,
+                                        muted: st.muted,
+                                        banned: st.banned,
+                                        moderator: show.canModerate(me?.id),
+                                        feed: st.feed,
+                                        me: me?.id,
+                                        hostId: show.hostId,
+                                        filter: _chatFilter,
+                                        large: true,
+                                        maxHeight: math.min(
+                                          280,
+                                          math.max(120, c.maxHeight * 0.45),
+                                        ),
                                       ),
                                     ),
                                   ),
@@ -3780,166 +3756,187 @@ class _LiveRoomViewState extends ConsumerState<_LiveRoomBody> {
                         ),
                       if (!composing && !st.isOver)
                         _FlashBar(hostId: show.hostId, now: now),
-                      _DouyinBar(
-                        controller: _chat,
-                        focusNode: _chatFocus,
-                        onSend: _send,
-                        showChat: !st.isOver,
-                        guest: !canAct,
-                        onLogin: () => blockGuest(context),
-                        bagCount:
-                            st.lots
-                                .where(
-                                  (lot) =>
-                                      lot.status == LotStatus.upcoming ||
-                                      lot.status == LotStatus.running,
-                                )
-                                .length +
-                            (show.shop
-                                ? liveShopProducts(s, show.hostId).length
-                                : 0),
-                        onBag: () => _showQueue(st, isHost),
-                        liked: _liked,
-                        onHeart: st.isOver || isHost ? null : _toggleLike,
-                        onMore: () => _showRoomTools(show, st, canAct),
-                      ),
-                      if (!composing)
-                        Padding(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: kSimpleDesign ? 0 : 20,
-                          ),
-                          child: _BottomPanel(
-                            child: Column(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                if (cur != null)
-                                  _LotCard(
-                                    lot: cur,
-                                    device: s.deviceById(cur.lot.deviceId),
-                                    total: show.lots.length,
-                                    lotSeconds:
-                                        cur.lot.seconds ?? show.lotSeconds,
-                                    now: now,
-                                    me: me?.id,
-                                    leaderUser: s.userById(cur.leader?.userId),
-                                    isHost: isHost,
+                      if (isHost) ...[
+                        _DouyinBar(
+                          controller: _chat,
+                          focusNode: _chatFocus,
+                          onSend: _send,
+                          showChat: !st.isOver,
+                          guest: !canAct,
+                          onLogin: () => blockGuest(context),
+                          bagCount:
+                              st.lots
+                                  .where(
+                                    (lot) =>
+                                        lot.status == LotStatus.upcoming ||
+                                        lot.status == LotStatus.running,
                                   )
-                                else if (done != null && !st.isOver)
-                                  _LotCard(
-                                    lot: done,
-                                    device: s.deviceById(done.lot.deviceId),
-                                    total: show.lots.length,
-                                    lotSeconds:
-                                        done.lot.seconds ?? show.lotSeconds,
-                                    now: now,
-                                    me: me?.id,
-                                    leaderUser: s.userById(done.leader?.userId),
-                                    result: true,
-                                  ),
-                                if (!isHost && cur == null && st.isLive)
-                                  if (_featured(s, show) case final featured?)
-                                    _FeaturedProductCard(
-                                      compact:
-                                          MediaQuery.sizeOf(context).height <
-                                          700,
-                                      device: featured,
-                                      price: s.priceForMe(featured),
-                                      onBuy: () =>
-                                          confirmAndBuy(context, ref, featured),
+                                  .length +
+                              (show.shop
+                                  ? liveShopProducts(s, show.hostId).length
+                                  : 0),
+                          onBag: () => _showQueue(st, isHost),
+                          liked: _liked,
+                          onHeart: st.isOver || isHost ? null : _toggleLike,
+                          onMore: () => _showRoomTools(show, st, canAct),
+                        ),
+                        if (!composing)
+                          Padding(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: kSimpleDesign ? 0 : 20,
+                            ),
+                            child: _BottomPanel(
+                              child: Column(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  if (cur != null)
+                                    _LotCard(
+                                      lot: cur,
+                                      device: s.deviceById(cur.lot.deviceId),
+                                      total: show.lots.length,
+                                      lotSeconds:
+                                          cur.lot.seconds ?? show.lotSeconds,
+                                      now: now,
+                                      me: me?.id,
+                                      leaderUser: s.userById(
+                                        cur.leader?.userId,
+                                      ),
+                                      isHost: isHost,
+                                    )
+                                  else if (done != null && !st.isOver)
+                                    _LotCard(
+                                      lot: done,
+                                      device: s.deviceById(done.lot.deviceId),
+                                      total: show.lots.length,
+                                      lotSeconds:
+                                          done.lot.seconds ?? show.lotSeconds,
+                                      now: now,
+                                      me: me?.id,
+                                      leaderUser: s.userById(
+                                        done.leader?.userId,
+                                      ),
+                                      result: true,
                                     ),
-                                Padding(
-                                  padding: const EdgeInsets.fromLTRB(
-                                    12,
-                                    10,
-                                    12,
-                                    0,
+                                  if (!isHost && cur == null && st.isLive)
+                                    if (_featured(s, show) case final featured?)
+                                      _FeaturedProductCard(
+                                        compact:
+                                            MediaQuery.sizeOf(context).height <
+                                            700,
+                                        device: featured,
+                                        price: s.priceForMe(featured),
+                                        onBuy: () => confirmAndBuy(
+                                          context,
+                                          ref,
+                                          featured,
+                                        ),
+                                      ),
+                                  Padding(
+                                    padding: const EdgeInsets.fromLTRB(
+                                      12,
+                                      10,
+                                      12,
+                                      0,
+                                    ),
+                                    child: _actionRow(
+                                      s,
+                                      show,
+                                      st,
+                                      cur,
+                                      isHost,
+                                      canAct,
+                                      me?.id,
+                                    ),
                                   ),
-                                  child: _actionRow(
-                                    s,
-                                    show,
-                                    st,
-                                    cur,
-                                    isHost,
-                                    canAct,
-                                    me?.id,
-                                  ),
-                                ),
-                                if (!isHost &&
-                                    !st.isOver &&
-                                    !kSimpleDesign &&
-                                    MediaQuery.sizeOf(context).height >= 700)
-                                  Builder(
-                                    builder: (_) {
-                                      final n =
-                                          st.lots
-                                              .where(
-                                                (l) =>
-                                                    l.status ==
-                                                        LotStatus.upcoming ||
-                                                    l.status ==
-                                                        LotStatus.running,
-                                              )
-                                              .length +
-                                          (show.shop
-                                              ? liveShopProducts(
-                                                  s,
-                                                  show.hostId,
-                                                ).length
-                                              : 0);
-                                      if (n == 0) {
-                                        return const SizedBox.shrink();
-                                      }
-                                      return TextButton.icon(
-                                        key: const ValueKey(
-                                          'live-all-products',
-                                        ),
-                                        style: TextButton.styleFrom(
-                                          foregroundColor: Colors.white,
-                                          minimumSize: const Size(48, 44),
-                                        ),
-                                        onPressed: () => _showQueue(st, isHost),
-                                        icon: const Icon(
-                                          Icons.grid_view_rounded,
-                                          size: 18,
-                                        ),
-                                        label: Text(
-                                          t('Svi proizvodi ({0})', ['$n']),
-                                        ),
-                                      );
-                                    },
-                                  ),
-                              ],
+                                  if (!isHost &&
+                                      !st.isOver &&
+                                      !kSimpleDesign &&
+                                      MediaQuery.sizeOf(context).height >= 700)
+                                    Builder(
+                                      builder: (_) {
+                                        final n =
+                                            st.lots
+                                                .where(
+                                                  (l) =>
+                                                      l.status ==
+                                                          LotStatus.upcoming ||
+                                                      l.status ==
+                                                          LotStatus.running,
+                                                )
+                                                .length +
+                                            (show.shop
+                                                ? liveShopProducts(
+                                                    s,
+                                                    show.hostId,
+                                                  ).length
+                                                : 0);
+                                        if (n == 0) {
+                                          return const SizedBox.shrink();
+                                        }
+                                        return TextButton.icon(
+                                          key: const ValueKey(
+                                            'live-all-products',
+                                          ),
+                                          style: TextButton.styleFrom(
+                                            foregroundColor: Colors.white,
+                                            minimumSize: const Size(48, 44),
+                                          ),
+                                          onPressed: () =>
+                                              _showQueue(st, isHost),
+                                          icon: const Icon(
+                                            Icons.grid_view_rounded,
+                                            size: 18,
+                                          ),
+                                          label: Text(
+                                            t('Svi proizvodi ({0})', ['$n']),
+                                          ),
+                                        );
+                                      },
+                                    ),
+                                ],
+                              ),
                             ),
                           ),
-                        ),
-                      if (!kSimpleDesign)
-                        VisionShopHandle(
-                          key: ValueKey(
-                            kSimpleDesign ? 'live-controls' : 'live-queue',
+                        if (!kSimpleDesign)
+                          VisionShopHandle(
+                            key: ValueKey(
+                              kSimpleDesign ? 'live-controls' : 'live-queue',
+                            ),
+                            onNavigate: (index) {
+                              if (kSimpleDesign && index == 3) return;
+                              if (kSimpleDesign && index == 0) {
+                                ref
+                                    .read(homeFilterProvider.notifier)
+                                    .select('for-you');
+                              }
+                              if (index == 1 && blockGuest(context)) return;
+                              ref.read(homeTabProvider.notifier).select(
+                                switch (index) {
+                                  1 => 4,
+                                  2 => kSimpleDesign ? 3 : 2,
+                                  _ => 0,
+                                },
+                              );
+                              Navigator.of(
+                                context,
+                              ).popUntil((route) => route.isFirst);
+                            },
+                            label: t('Povuci gore za shop · {0} predmeta', [
+                              '${st.queue.length + (show.shop ? liveShopProducts(s, show.hostId).length : 0)}',
+                            ]),
+                            onOpen: () => _showQueue(st, isHost),
                           ),
-                          onNavigate: (index) {
-                            if (kSimpleDesign && index == 3) return;
-                            if (kSimpleDesign && index == 0) {
-                              ref
-                                  .read(homeFilterProvider.notifier)
-                                  .select('for-you');
-                            }
-                            if (index == 1 && blockGuest(context)) return;
-                            ref.read(homeTabProvider.notifier).select(
-                              switch (index) {
-                                1 => 4,
-                                2 => kSimpleDesign ? 3 : 2,
-                                _ => 0,
-                              },
-                            );
-                            Navigator.of(
-                              context,
-                            ).popUntil((route) => route.isFirst);
-                          },
-                          label: t('Povuci gore za shop · {0} predmeta', [
-                            '${st.queue.length + (show.shop ? liveShopProducts(s, show.hostId).length : 0)}',
-                          ]),
-                          onOpen: () => _showQueue(st, isHost),
+                      ] else
+                        _viewerChrome(
+                          s,
+                          show,
+                          st,
+                          cur,
+                          done,
+                          me,
+                          canAct,
+                          now,
+                          composing,
                         ),
                       const SizedBox(height: 8),
                     ],
@@ -3953,139 +3950,89 @@ class _LiveRoomViewState extends ConsumerState<_LiveRoomBody> {
     );
   }
 
-  /// Desna traka gledatelja (kao na Whatnotu): Više, Boost, Dijeli, chat i
-  /// Shop s malom slikom proizvoda. Samo podržane radnje.
-  Widget _viewerRail(
+  /// Donja trećina gledatelja. Domaćin zadržava svoj pult.
+  Widget _viewerChrome(
     AppState s,
     LiveShow show,
     LiveState st,
+    LotState? cur,
+    LotState? done,
+    AppUser? me,
     bool canAct,
-    double maxHeight,
+    DateTime now,
+    bool composing,
   ) {
-    const shadow = [Shadow(color: Colors.black87, blurRadius: 6)];
-    // Na niskim ekranima ostaju najvažnije radnje (Više i Shop).
-    final scale = MediaQuery.textScalerOf(context).scale(12) / 12;
-    final slots = (maxHeight / (58 + 16 * scale)).floor();
-    Widget item({
-      required Key key,
-      required String label,
-      required VoidCallback onTap,
-      IconData? icon,
-      Widget? child,
-    }) => Semantics(
-      button: true,
-      label: label,
-      excludeSemantics: true,
-      child: InkWell(
-        key: key,
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(12),
-        child: SizedBox(
-          width: 60,
-          child: Padding(
-            padding: const EdgeInsets.symmetric(vertical: 5),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                child ??
-                    Container(
-                      width: 44,
-                      height: 44,
-                      decoration: BoxDecoration(
-                        color: const Color(0x59101014),
-                        shape: BoxShape.circle,
-                        border: Border.all(color: Colors.white24),
-                      ),
-                      child: Icon(icon, color: Colors.white, size: 20),
-                    ),
-                const SizedBox(height: 3),
-                Text(
-                  label,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 11,
-                    fontWeight: FontWeight.w500,
-                    shadows: shadow,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-    final featured = _featured(s, show);
-    final count =
+    final featured = cur == null && st.isLive ? _featured(s, show) : null;
+    final showResult =
+        cur == null && featured == null && done != null && !st.isOver;
+    final cardLot = cur ?? (showResult ? done : null);
+    final catalog =
         st.lots
             .where(
-              (l) =>
-                  l.status == LotStatus.upcoming ||
-                  l.status == LotStatus.running,
+              (lot) =>
+                  lot.status == LotStatus.upcoming ||
+                  lot.status == LotStatus.running,
             )
             .length +
         (show.shop ? liveShopProducts(s, show.hostId).length : 0);
-    return Column(
-      key: const ValueKey('live-rail'),
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        item(
-          key: const ValueKey('live-room-tools'),
-          label: t('Više'),
-          icon: Icons.more_horiz,
-          onTap: () => _showRoomTools(show, st, canAct),
-        ),
-        if (slots >= 4)
-          item(
-            key: const ValueKey('live-rail-boost'),
-            label: t('Boost'),
-            icon: Icons.rocket_launch_outlined,
-            onTap: () => showPromoteSheet(context, ref, show),
-          ),
-        if (slots >= 3)
-          item(
-            key: const ValueKey('live-rail-share'),
-            label: t('Dijeli'),
-            icon: Icons.ios_share,
-            onTap: () {
-              _app.liveShared(show.id);
-              shareLink(
-                context,
-                publicLink(live: show.id),
-                text: t('Gledaj "{0}" uživo na Subhastu', [show.title]),
-              );
-            },
-          ),
-        if (slots >= 5)
-          item(
-            key: const ValueKey('live-chat-toggle'),
-            label: _chatHidden ? t('Prikaži chat') : t('Sakrij chat'),
-            icon: _chatHidden
-                ? Icons.chat_bubble_outline
-                : Icons.speaker_notes_off_outlined,
-            onTap: () => setState(() => _chatHidden = !_chatHidden),
-          ),
-        if (count > 0 && slots >= 2)
-          item(
-            key: const ValueKey('live-queue'),
-            label: t('Shop'),
-            onTap: () => _showQueue(st, false),
-            child: Container(
-              width: 48,
-              height: 48,
-              clipBehavior: Clip.antiAlias,
-              decoration: BoxDecoration(
-                color: const Color(0x59101014),
-                borderRadius: BorderRadius.circular(14),
-                border: Border.all(color: Colors.white38),
-              ),
-              child: featured != null
-                  ? ItemThumb(device: featured, size: 48)
-                  : const Icon(Icons.storefront_outlined, color: Colors.white),
-            ),
-          ),
-      ],
+    return ViewerBottomChrome(
+      show: show,
+      state: st,
+      now: now,
+      me: me?.id,
+      device: cardLot == null ? null : s.deviceById(cardLot.lot.deviceId),
+      lot: cardLot,
+      result: showResult,
+      featured: featured,
+      featuredPrice: featured == null ? null : s.priceForMe(featured),
+      leaderName: s.userById(cardLot?.leader?.userId)?.handle,
+      composing: composing,
+      chatHidden: _chatHidden,
+      liked: _liked,
+      busy: _busy,
+      canAct: canAct,
+      guest: !canAct,
+      entered: cardLot != null && s.hasEnteredGiveaway(show.id, cardLot.index),
+      catalogCount: catalog,
+      chat: _ChatFeed(
+        show: show,
+        muted: st.muted,
+        banned: st.banned,
+        moderator: show.canModerate(me?.id),
+        feed: st.feed,
+        me: me?.id,
+        hostId: show.hostId,
+        filter: _chatFilter,
+        maxHeight: 74,
+      ),
+      chatController: _chat,
+      chatFocus: _chatFocus,
+      onSend: _send,
+      onLogin: () => blockGuest(context),
+      onHeart: _toggleLike,
+      onShare: () {
+        _app.liveShared(show.id);
+        shareLink(
+          context,
+          publicLink(live: show.id),
+          text: t('Gledaj "{0}" uživo na Subhastu', [show.title]),
+        );
+      },
+      onToggleChat: () => setState(() => _chatHidden = !_chatHidden),
+      onTools: () => _showRoomTools(show, st, canAct),
+      onCatalog: () => _showQueue(st, false),
+      onBid: () {
+        if (cardLot != null) _bidByTap(cardLot);
+      },
+      onTake: () {
+        _take();
+      },
+      onEnter: () {
+        _enter();
+      },
+      onBuy: () {
+        if (featured != null) confirmAndBuy(context, ref, featured);
+      },
     );
   }
 
@@ -6201,42 +6148,35 @@ class _ChatFeed extends ConsumerWidget {
           e,
     ];
     final s = ref.watch(appProvider);
-    // Cijeli chat se može listati (najnovije dolje); gore blijedi.
+    // Najnovije poruke ostaju pune. Starije samo blijede — bez ShaderMaska,
+    // koji na webu zna ostaviti cijeli chat prozirnim pa se poruka ne vidi
+    // ni gledatelju ni domaćinu.
     return ConstrainedBox(
       constraints: BoxConstraints(maxHeight: maxHeight),
-      child: ShaderMask(
-        shaderCallback: (r) => const LinearGradient(
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-          colors: [Colors.transparent, Colors.white],
-          stops: [0, 0.25],
-        ).createShader(r),
-        blendMode: BlendMode.dstIn,
-        child: ListView.builder(
-          key: const ValueKey('live-feed'),
-          reverse: true,
-          shrinkWrap: true,
-          padding: const EdgeInsets.only(top: 40),
-          itemCount: lines.length,
-          itemBuilder: (_, i) {
-            final e = lines[lines.length - 1 - i];
-            return Padding(
+      child: ListView.builder(
+        key: const ValueKey('live-feed'),
+        reverse: true,
+        shrinkWrap: true,
+        padding: EdgeInsets.zero,
+        itemCount: lines.length,
+        itemBuilder: (_, i) {
+          final e = lines[lines.length - 1 - i];
+          final opacity = large || i < 2 ? 1.0 : (i == 2 ? 0.55 : 0.28);
+          return Opacity(
+            opacity: opacity,
+            child: Padding(
               padding: const EdgeInsets.only(bottom: 3),
-              child: Container(
-                padding: const EdgeInsets.fromLTRB(3, 2, 8, 3),
-
-                child: _FeedLine(
-                  event: e,
-                  user: s.userById(e.userId),
-                  mine: e.userId == me,
-                  host: e.userId == hostId,
-                  mod: show.isMod(e.userId),
-                  large: large,
-                ),
+              child: _FeedLine(
+                event: e,
+                user: s.userById(e.userId),
+                mine: e.userId == me,
+                host: e.userId == hostId,
+                mod: show.isMod(e.userId),
+                large: large,
               ),
-            );
-          },
-        ),
+            ),
+          );
+        },
       ),
     );
   }
@@ -6656,125 +6596,128 @@ class _DouyinBar extends StatelessWidget {
   final VoidCallback onMore;
 
   @override
-  Widget build(BuildContext context) => Padding(
-    padding: EdgeInsets.fromLTRB(
-      kSimpleDesign ? 12 : 20,
-      0,
-      kSimpleDesign ? 12 : 20,
-      kSimpleDesign ? 10 : 14,
-    ),
-    child: Row(
-      children: [
-        Expanded(
-          child: showChat
-              ? TextField(
-                  key: const ValueKey('live-chat'),
-                  readOnly: guest,
-                  canRequestFocus: !guest,
-                  onTap: guest ? onLogin : null,
-                  controller: controller,
-                  focusNode: focusNode,
-                  scrollPadding: const EdgeInsets.all(12),
-                  maxLength: LiveEvent.maxText,
-                  style: const TextStyle(color: Colors.white),
-                  textInputAction: TextInputAction.send,
-                  onSubmitted: onSend,
-                  decoration: InputDecoration(
-                    isDense: true,
-                    counterText: '',
-                    hintText: kSimpleDesign
-                        ? t('Reci nešto…')
-                        : t('Pitaj prodavača uživo…'),
-                    hintStyle: const TextStyle(color: Colors.white70),
-                    filled: true,
-                    fillColor: const Color(0x9928282D),
-                    // Pisanje: "Aa" lijevo, kao na Whatnotu.
-                    prefixIcon: composing
-                        ? Padding(
-                            padding: const EdgeInsets.all(6),
-                            child: CircleAvatar(
-                              radius: 16,
-                              backgroundColor: Colors.white.withValues(
-                                alpha: 0.18,
-                              ),
-                              child: const Text(
-                                'Aa',
-                                style: TextStyle(
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.w800,
-                                  fontSize: 13,
+  Widget build(BuildContext context) {
+    final sending = controller.text.trim().isNotEmpty || composing;
+    return Padding(
+      padding: EdgeInsets.fromLTRB(
+        kSimpleDesign ? 12 : 20,
+        0,
+        kSimpleDesign ? 12 : 20,
+        kSimpleDesign ? 10 : 14,
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: showChat
+                ? TextField(
+                    key: const ValueKey('live-chat'),
+                    readOnly: guest,
+                    canRequestFocus: !guest,
+                    onTap: guest ? onLogin : null,
+                    controller: controller,
+                    focusNode: focusNode,
+                    scrollPadding: const EdgeInsets.all(12),
+                    maxLength: LiveEvent.maxText,
+                    style: const TextStyle(color: Colors.white),
+                    textInputAction: TextInputAction.send,
+                    onSubmitted: onSend,
+                    decoration: InputDecoration(
+                      isDense: true,
+                      counterText: '',
+                      hintText: kSimpleDesign
+                          ? t('Reci nešto…')
+                          : t('Pitaj prodavača uživo…'),
+                      hintStyle: const TextStyle(color: Colors.white70),
+                      filled: true,
+                      fillColor: const Color(0x9928282D),
+                      // Pisanje: "Aa" lijevo, kao na Whatnotu.
+                      prefixIcon: composing
+                          ? Padding(
+                              padding: const EdgeInsets.all(6),
+                              child: CircleAvatar(
+                                radius: 16,
+                                backgroundColor: Colors.white.withValues(
+                                  alpha: 0.18,
+                                ),
+                                child: const Text(
+                                  'Aa',
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.w800,
+                                    fontSize: 13,
+                                  ),
                                 ),
                               ),
+                            )
+                          : null,
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 10,
+                      ),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(99),
+                        borderSide: BorderSide.none,
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(99),
+                        borderSide: BorderSide.none,
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(99),
+                        borderSide: const BorderSide(color: Colors.white38),
+                      ),
+                      suffixIcon: !sending && kSimpleDesign
+                          ? null
+                          : IconButton(
+                              key: ValueKey(
+                                sending ? 'live-send' : 'live-room-tools',
+                              ),
+                              tooltip: sending ? t('Pošalji') : t('Više'),
+                              onPressed: sending
+                                  ? () => onSend(controller.text)
+                                  : onMore,
+                              icon: Icon(
+                                sending ? Icons.send : Icons.more_horiz,
+                                color: Colors.white70,
+                                size: 20,
+                              ),
                             ),
-                          )
-                        : null,
-                    contentPadding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 10,
                     ),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(99),
-                      borderSide: BorderSide.none,
-                    ),
-                    enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(99),
-                      borderSide: BorderSide.none,
-                    ),
-                    focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(99),
-                      borderSide: const BorderSide(color: Colors.white38),
-                    ),
-                    suffixIcon: kSimpleDesign && !composing
-                        ? null
-                        : IconButton(
-                            key: ValueKey(
-                              composing ? 'live-send' : 'live-room-tools',
-                            ),
-                            tooltip: composing ? t('Pošalji') : t('Više'),
-                            onPressed: composing
-                                ? () => onSend(controller.text)
-                                : onMore,
-                            icon: Icon(
-                              composing ? Icons.send : Icons.more_horiz,
-                              color: Colors.white70,
-                              size: 20,
-                            ),
-                          ),
+                  )
+                : const SizedBox.shrink(),
+          ),
+          // Srce uz polje (kao na Whatnotu).
+          if (kSimpleDesign && showChat && !composing && onHeart != null) ...[
+            const SizedBox(width: 8),
+            Semantics(
+              button: true,
+              label: t('Srce'),
+              excludeSemantics: true,
+              child: InkWell(
+                key: const ValueKey('live-heart'),
+                borderRadius: BorderRadius.circular(99),
+                onTap: onHeart,
+                child: Container(
+                  width: 44,
+                  height: 44,
+                  decoration: BoxDecoration(
+                    color: const Color(0x59101014),
+                    borderRadius: BorderRadius.circular(99),
+                    border: Border.all(color: Colors.white24),
                   ),
-                )
-              : const SizedBox.shrink(),
-        ),
-        // Srce uz polje (kao na Whatnotu).
-        if (kSimpleDesign && showChat && !composing && onHeart != null) ...[
-          const SizedBox(width: 8),
-          Semantics(
-            button: true,
-            label: t('Srce'),
-            excludeSemantics: true,
-            child: InkWell(
-              key: const ValueKey('live-heart'),
-              borderRadius: BorderRadius.circular(99),
-              onTap: onHeart,
-              child: Container(
-                width: 44,
-                height: 44,
-                decoration: BoxDecoration(
-                  color: const Color(0x59101014),
-                  borderRadius: BorderRadius.circular(99),
-                  border: Border.all(color: Colors.white24),
-                ),
-                child: Icon(
-                  liked ? Icons.favorite : Icons.favorite_border,
-                  color: liked ? kLiveRed : Colors.white,
-                  size: 22,
+                  child: Icon(
+                    liked ? Icons.favorite : Icons.favorite_border,
+                    color: liked ? kLiveRed : Colors.white,
+                    size: 22,
+                  ),
                 ),
               ),
             ),
-          ),
+          ],
         ],
-      ],
-    ),
-  );
+      ),
+    );
+  }
 }
 
 /// Trgovina livea (Douyin): numerirani predmeti s velikom slikom, cijenom

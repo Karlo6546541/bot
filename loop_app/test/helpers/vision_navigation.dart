@@ -81,9 +81,19 @@ Future<void> slideBid(WidgetTester tester, {String key = 'live-bid'}) async {
     of: slider,
     matching: find.byKey(const ValueKey('vision-slide-thumb')),
   );
-  final distance = tester.getSize(slider).width - 56;
-  await tester.drag(thumb, Offset(distance, 0));
-  await tester.pumpAndSettle();
+  if (thumb.evaluate().isNotEmpty) {
+    final distance = tester.getSize(slider).width - 56;
+    await tester.drag(thumb, Offset(distance, 0));
+    await tester.pumpAndSettle();
+  } else {
+    await tester.tap(slider);
+    await tester.pumpAndSettle();
+    final confirm = find.byKey(const ValueKey('live-bid-tap-confirm'));
+    if (confirm.evaluate().isNotEmpty) {
+      await tester.tap(confirm);
+      await tester.pumpAndSettle();
+    }
+  }
   // Prva ponuda traži potvrdu da je ponuda obvezujuća.
   final terms = find.byKey(const ValueKey('bid-terms-ok'));
   if (terms.evaluate().isNotEmpty) {

@@ -97,13 +97,13 @@ void main() {
     expect(find.byKey(const ValueKey('live-featured')), findsOneWidget);
     expect(find.text('Drugi proizvod'), findsWidgets);
     expect(find.byKey(const ValueKey('live-featured-buy')), findsOneWidget);
-    expect(find.byKey(const ValueKey('live-all-products')), findsOneWidget);
+    expect(find.byKey(const ValueKey('live-queue')), findsOneWidget);
     await tester.tap(find.byKey(const ValueKey('live-chat-toggle')));
     await tester.pumpAndSettle();
     expect(find.byIcon(Icons.chat_bubble_outline), findsWidgets);
     // Kupovna kartica ostaje i kad je chat skriven.
     expect(find.byKey(const ValueKey('live-featured-buy')), findsOneWidget);
-    await tester.tap(find.byKey(const ValueKey('live-all-products')));
+    await tester.tap(find.byKey(const ValueKey('live-queue')));
     await tester.pumpAndSettle();
     expect(
       find.byKey(ValueKey('live-shop-product-${shopItem.id}')),
@@ -130,9 +130,9 @@ void main() {
       await tester.pumpWidget(app(LiveRoomScreen(showId: show.id)));
       await tester.pumpAndSettle();
       expect(find.byKey(const ValueKey('live-rules')), findsOneWidget);
-      expect(find.byKey(const ValueKey('live-bid-tap')), findsOneWidget);
+      expect(find.byKey(const ValueKey('live-bid')), findsOneWidget);
       expect(storage.bidTermsAccepted, isFalse);
-      await tester.tap(find.byKey(const ValueKey('live-bid-tap')));
+      await tester.tap(find.byKey(const ValueKey('live-bid')));
       await tester.pumpAndSettle();
       expect(
         find.byKey(const ValueKey('live-bid-tap-confirm')),
@@ -168,14 +168,13 @@ void main() {
       'live-follow',
       'live-viewers-open',
       'live-close',
-      'live-rail',
       'live-room-tools',
       'live-rail-share',
       'live-queue',
       'live-heart',
       'live-featured',
-      'live-all-products',
       'live-featured-buy',
+      'live-no-video',
     ]) {
       expect(find.byKey(ValueKey(key)), findsOneWidget, reason: key);
     }
