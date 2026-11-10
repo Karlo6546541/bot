@@ -1,3 +1,4 @@
+import '../config/features.dart';
 import '../config/design_variant.dart';
 import '../config/backend_config.dart';
 import 'cloud_commerce_screen.dart';
@@ -14,6 +15,7 @@ import '../widgets/jednostavno_ui.dart';
 import '../widgets/trade_actions.dart';
 import 'activity_view.dart';
 import 'categories_screen.dart';
+import 'auctions_home_screen.dart';
 import 'live_home_screen.dart';
 import 'live_screens.dart';
 import 'profile_screen.dart';
@@ -121,7 +123,7 @@ class _HomeShellState extends ConsumerState<HomeShell> {
         ]
       : [
           ShellDestination(
-            t('Pozornica'),
+            t(kLiveEnabled ? 'Pozornica' : 'Početna'),
             Icons.play_circle_outline,
             Icons.play_circle,
           ),
@@ -131,7 +133,7 @@ class _HomeShellState extends ConsumerState<HomeShell> {
             Icons.grid_view_rounded,
           ),
           ShellDestination(
-            t('Studio'),
+            t(kLiveEnabled ? 'Studio' : 'Prodaj'),
             Icons.sensors_outlined,
             Icons.sensors,
             action: true,
@@ -373,7 +375,7 @@ class _HomeShellState extends ConsumerState<HomeShell> {
                       child: Text(
                         _index == 2 || _index == 3
                             ? t(kSimpleDesign ? 'Kupnje' : 'Trezor')
-                            : t('Pozornica'),
+                            : t(kLiveEnabled ? 'Pozornica' : 'Početna'),
                         style: const TextStyle(fontWeight: FontWeight.w800),
                       ),
                     ),
@@ -426,7 +428,9 @@ class _HomeShellState extends ConsumerState<HomeShell> {
   Widget _body() => IndexedStack(
     index: _index,
     children: [
-      LiveHomeScreen(visible: _index == 0),
+      kLiveEnabled
+          ? LiveHomeScreen(visible: _index == 0)
+          : const AuctionsHomeScreen(),
       kSimpleDesign
           ? const SafeArea(child: CategoriesScreen())
           : const CategoriesScreen(),

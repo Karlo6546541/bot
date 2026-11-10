@@ -2,6 +2,7 @@ import 'helpers/vision_navigation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:loop_app/config/features.dart';
 import 'package:hive/hive.dart';
 import 'package:loop_app/app.dart';
 import 'package:loop_app/l10n/tr.dart';
@@ -61,6 +62,8 @@ Future<void> openMyItems(WidgetTester tester) async {
 
 /// Početna → pilula "Aukcije" (Istraži je spojen s Početnom).
 Future<void> openAuctionsPill(WidgetTester tester) async {
+  // Aplikacija samo za aukcije: aukcije su već na Početnoj.
+  if (!kLiveEnabled) return;
   // Pilule su na vrhu Početne.
   await tester.scrollUntilVisible(
     find.byKey(const ValueKey('home-cats')),
@@ -89,6 +92,8 @@ Future<void> openActivity(WidgetTester tester) async {
 Future<void> openAuction(WidgetTester tester, String name) async {
   await tester.tap(find.text(name));
   await tester.pumpAndSettle();
+  // Samo aukcije: kartica odmah otvara detalje aukcije.
+  if (!kLiveEnabled) return;
   // Dodir na objavu otvara normalan ekran detalja (ne panel).
   await tester.tap(find.byKey(const ValueKey('post-media')));
   await tester.pumpAndSettle();
@@ -109,6 +114,7 @@ Future<Widget> buildApp(WidgetTester tester) async {
 }
 
 Future<void> openLiveBrowse(WidgetTester tester) async {
+  if (!kLiveEnabled) return;
   await tester.tap(find.byKey(const ValueKey('home-filters')));
   await tester.pumpAndSettle();
   await tester.tap(find.byKey(const ValueKey('home-cat-live')));
@@ -136,17 +142,26 @@ void main() {
       await tester.pumpAndSettle();
 
       // Početna: "Za tebe" je mreža (kao Whatnot), feed tek na dodir.
-      expect(find.byKey(const ValueKey('home-cat-for-you')), findsOneWidget);
+      expect(
+        find.byKey(
+          ValueKey(kLiveEnabled ? 'home-cat-for-you' : 'home-view-for-you'),
+        ),
+        findsOneWidget,
+      );
       expect(find.byKey(const ValueKey('for-you-feed')), findsNothing);
       // Uživo: poziv na live; Aukcije: one koje završavaju.
       await openLiveBrowse(tester);
-      await reveal(tester, find.byKey(const ValueKey('home-go-live')));
-      expect(find.byKey(const ValueKey('home-go-live')), findsOneWidget);
-      expect(find.text('Uživo se uskoro vraća.'), findsOneWidget);
-      await tester.tap(find.byKey(const ValueKey('home-filters')));
-      await tester.pumpAndSettle();
-      await tester.tap(find.byKey(const ValueKey('home-cat-timed')));
-      await tester.pumpAndSettle();
+      if (kLiveEnabled) {
+        await reveal(tester, find.byKey(const ValueKey('home-go-live')));
+        expect(find.byKey(const ValueKey('home-go-live')), findsOneWidget);
+        expect(find.text('Uživo se uskoro vraća.'), findsOneWidget);
+      }
+      if (kLiveEnabled) {
+        await tester.tap(find.byKey(const ValueKey('home-filters')));
+        await tester.pumpAndSettle();
+        await tester.tap(find.byKey(const ValueKey('home-cat-timed')));
+        await tester.pumpAndSettle();
+      }
       await reveal(tester, find.byKey(const ValueKey('home-ending')));
       expect(find.text('Ulaznica – Ultra Europe'), findsWidgets);
       // Nema više Marketa.
@@ -207,7 +222,7 @@ void main() {
       await tester.tap(find.byKey(const ValueKey('activity-tab-saved')));
       await tester.pumpAndSettle();
       expect(find.byType(ChoiceChip), findsNothing);
-    });
+    }, skip: !kLiveEnabled);
   }
 
   testWidgets('admin prijava i dashboard', (tester) async {
@@ -371,7 +386,7 @@ void main() {
     await mainTab(tester, 'Početna');
     await tester.pumpAndSettle();
     expect(tester.takeException(), isNull);
-  });
+  }, skip: !kLiveEnabled);
 
   testWidgets('podaci prodavatelja prije prve objave; pravni dokumenti', (
     tester,
@@ -415,14 +430,18 @@ void main() {
     // Srednji gumb je Seller Hub i za nove korisnike.
     await tester.tap(find.byKey(const ValueKey('nav-create')));
     await tester.pumpAndSettle();
-    await tester.ensureVisible(find.byKey(const ValueKey('seller-hub-live')));
-    await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const ValueKey('seller-hub-live')));
-    await tester.pumpAndSettle();
-    expect(find.text('Novi live'), findsNothing);
-    expect(find.text('Podaci prodavatelja'), findsOneWidget);
-    await tester.tap(find.text('Odustani').last);
-    await tester.pumpAndSettle();
+    if (kLiveEnabled) {
+      await tester.ensureVisible(find.byKey(const ValueKey('seller-hub-live')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('seller-hub-live')));
+      await tester.pumpAndSettle();
+      expect(find.text('Novi live'), findsNothing);
+      expect(find.text('Podaci prodavatelja'), findsOneWidget);
+      await tester.tap(find.text('Odustani').last);
+      await tester.pumpAndSettle();
+    } else {
+      expect(find.byKey(const ValueKey('seller-hub-live')), findsNothing);
+    }
 
     // I za aukciju su potrebni podaci prodavatelja.
     await tester.ensureVisible(
@@ -485,7 +504,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.byKey(const ValueKey('legal-imprint')), findsOneWidget);
     expect(tester.takeException(), isNull);
-  });
+  }, skip: !kLiveEnabled);
 
   testWidgets('engleski jezik: gumb gore i postavka u Profilu', (tester) async {
     tester.view.physicalSize = const Size(400, 860);
@@ -505,7 +524,7 @@ void main() {
     await tester.tap(find.text('Log in').last);
     await tester.pumpAndSettle();
     // Početna na engleskom.
-    expect(find.text('All live'), findsWidgets);
+    if (kLiveEnabled) expect(find.text('All live'), findsWidgets);
 
     // Swipe feed aukcija na engleskom.
     await openAuctionsPill(tester);
@@ -575,7 +594,7 @@ void main() {
     );
     expect(find.text('Jezik / Language'), findsOneWidget);
     expect(Tr.lang, AppLang.hr);
-  });
+  }, skip: !kLiveEnabled);
 }
 
 void accountTests() {
@@ -629,8 +648,10 @@ void accountTests() {
     await tester.tap(find.byKey(const ValueKey('register-submit')));
     await tester.pumpAndSettle();
     await openLiveBrowse(tester);
-    await reveal(tester, find.byKey(const ValueKey('home-go-live')));
-    expect(find.byKey(const ValueKey('home-go-live')), findsOneWidget);
+    if (kLiveEnabled) {
+      await reveal(tester, find.byKey(const ValueKey('home-go-live')));
+      expect(find.byKey(const ValueKey('home-go-live')), findsOneWidget);
+    }
 
     // Profil prikazuje @ime; odjava.
     await mainTab(tester, 'Profil');
@@ -662,7 +683,7 @@ void accountTests() {
     await tester.tap(find.byKey(const ValueKey('login-close')));
     await tester.pumpAndSettle();
     expect(find.byKey(const ValueKey('post-bid')), findsOneWidget);
-  });
+  }, skip: !kLiveEnabled);
 
   testWidgets(
     'prvo pokretanje: odmah u aplikaciju kao gost, prijava tek za kupnju',
@@ -695,7 +716,9 @@ void accountTests() {
       await tester.pumpAndSettle();
       await tester.tap(find.text('Polaroid SX-70'));
       await tester.pumpAndSettle();
-      await tester.tap(find.byKey(const ValueKey('post-bid')));
+      await tester.tap(
+        find.byKey(ValueKey(kLiveEnabled ? 'post-bid' : 'open-bid')),
+      );
       await tester.pumpAndSettle();
       expect(find.byKey(const ValueKey('login-close')), findsOneWidget);
       expect(find.text('Novi račun'), findsOneWidget);
@@ -712,6 +735,7 @@ void accountTests() {
 
       // Odjava vodi na ekran za prijavu (bez ponovnog automatskog gosta).
     },
+    skip: !kLiveEnabled,
   );
 }
 
@@ -783,7 +807,7 @@ void listingTests() {
     await tester.pumpAndSettle();
     expect(find.text('Predmet obrisan'), findsOneWidget);
     expect(find.text('iPhone 13'), findsNothing);
-  });
+  }, skip: !kBuyNowEnabled);
 }
 
 void deletionTests() {
@@ -961,7 +985,7 @@ void communityTests() {
       find.text('Prijava poslana. Admin će je pregledati.'),
       findsOneWidget,
     );
-  });
+  }, skip: !kLiveEnabled);
 }
 
 void chatTests() {
@@ -1055,7 +1079,7 @@ void chatTests() {
       find.descendant(of: messages, matching: find.text('1')),
       findsNothing,
     );
-  });
+  }, skip: !kLiveEnabled);
 }
 
 void logoTests() {
@@ -1092,7 +1116,12 @@ void logoTests() {
     await tester.ensureVisible(find.text('Prijavi se'));
     await tester.tap(find.text('Prijavi se'));
     await tester.pumpAndSettle();
-    expect(find.byKey(const ValueKey('home-cat-for-you')), findsOneWidget);
+    expect(
+      find.byKey(
+        ValueKey(kLiveEnabled ? 'home-cat-for-you' : 'home-view-for-you'),
+      ),
+      findsOneWidget,
+    );
 
     // Za tebe → Uživo → Pratim (dodirom), zatim natrag dvaput.
     await openLiveBrowse(tester);
@@ -1125,7 +1154,7 @@ void logoTests() {
     await tester.binding.handlePopRoute();
     await tester.pumpAndSettle();
     expect(find.byKey(const ValueKey('home-for-you')), findsOneWidget);
-  });
+  }, skip: !kBuyNowEnabled);
 
   testWidgets('Kupi odmah iz swipe feeda: kupljeno, ne "nije dostupan"', (
     tester,

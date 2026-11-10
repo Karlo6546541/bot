@@ -1,3 +1,4 @@
+import '../config/features.dart';
 import 'dart:math';
 
 import 'package:uuid/uuid.dart';
@@ -669,8 +670,8 @@ class LiveService {
       coverPath: coverPath,
       category: category,
       sells: sells,
-      shop: shop || buyNowOnly,
-      buyNowOnly: buyNowOnly,
+      shop: kBuyNowEnabled && (shop || buyNowOnly),
+      buyNowOnly: kBuyNowEnabled && buyNowOnly,
       relistUnsold: relistUnsold,
     );
     await _storage.putLiveShow(show);
@@ -1617,6 +1618,9 @@ class LiveService {
 
   /// Domaćin uključuje/isključuje svoju trgovinu (Kupi odmah) u liveu.
   Future<void> setShop(String hostId, String showId, bool on) async {
+    if (on && !kBuyNowEnabled) {
+      throw TradeException(t('Kupi odmah trenutno nije dostupan.'));
+    }
     final show = _requireHost(hostId, showId);
     if (show.endedAt != null) {
       throw TradeException(t('Live je završio.'));
@@ -1626,6 +1630,9 @@ class LiveService {
 
   /// Način prodaje u liveu: aukcije ili samo Kupi odmah (iz trgovine).
   Future<void> setBuyNowOnly(String hostId, String showId, bool on) async {
+    if (on && !kBuyNowEnabled) {
+      throw TradeException(t('Kupi odmah trenutno nije dostupan.'));
+    }
     final show = _requireHost(hostId, showId);
     if (show.endedAt != null) {
       throw TradeException(t('Live je završio.'));

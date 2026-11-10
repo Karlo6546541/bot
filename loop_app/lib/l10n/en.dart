@@ -3391,6 +3391,10 @@ const kEn = <String, String>{
   'Dostava i zaštita kupca — uvjeti prije kupnje':
       'Delivery and buyer protection — terms before you buy',
   'Ima u shopu: {0}': 'In the shop: {0}',
+  'Pretraži aukcije i prodavače': 'Search auctions and sellers',
+  'Prodavači koje pratiš nemaju aktivnih aukcija.':
+      'Sellers you follow have no active auctions.',
+  'Kupi odmah trenutno nije dostupan.': 'Buy now is not available right now.',
   'Prodaje proizvod: {0}': 'Sells: {0}',
   'Tema prijenosa: {0}': 'Stream topic: {0}',
   'U prijenosu: {0}': 'In the stream: {0}',

@@ -2,6 +2,7 @@ import 'helpers/vision_navigation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:loop_app/config/features.dart';
 import 'package:hive/hive.dart';
 import 'package:loop_app/app.dart';
 import 'package:loop_app/providers/app_providers.dart';
@@ -61,7 +62,7 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.text('Ponuda prihvaćena — vodiš!'), findsOneWidget);
       expect(find.text('Vodiš · automatska ponuda'), findsOneWidget);
-    });
+    }, skip: !kLiveEnabled);
   }
 
   testWidgets('pretraga aukcija i računa', (tester) async {
@@ -121,5 +122,5 @@ void main() {
       find.byKey(const ValueKey('account-${SeedData.anaUserId}')),
       findsOneWidget,
     );
-  });
+  }, skip: !kLiveEnabled);
 }

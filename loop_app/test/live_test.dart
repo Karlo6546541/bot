@@ -2,6 +2,7 @@ import 'helpers/vision_navigation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:loop_app/config/features.dart';
 import 'package:hive/hive.dart';
 import 'package:loop_app/app.dart';
 import 'package:loop_app/screens/live_screens.dart';
@@ -1165,7 +1166,10 @@ void main() {
       // Red predmeta.
       await tester.tap(find.byKey(const ValueKey('live-queue')));
       await tester.pumpAndSettle();
-      expect(find.byKey(const ValueKey('live-tab-shop')), findsOneWidget);
+      expect(
+        find.byKey(const ValueKey('live-tab-shop')),
+        kBuyNowEnabled ? findsOneWidget : findsNothing,
+      );
       await tester.tapAt(const Offset(10, 10));
       await tester.pumpAndSettle();
 
@@ -1389,7 +1393,7 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.byKey(const ValueKey('live-over')), findsOneWidget);
       expect(storage.liveShowById(show.id)!.endedAt, isNotNull);
-    });
+    }, skip: !kLiveEnabled);
   }
 
   testWidgets('mali prozor s liveom nakon izlaska iz sobe', (tester) async {
@@ -1453,7 +1457,7 @@ void main() {
     await tester.tap(find.byKey(const ValueKey('mini-live-close')));
     await tester.pumpAndSettle();
     expect(find.byKey(const ValueKey('mini-live')), findsNothing);
-  });
+  }, skip: !kLiveEnabled);
 
   testWidgets('početna i posebni predmeti: pada cijena, nagradna igra', (
     tester,
@@ -1584,7 +1588,7 @@ void main() {
     );
     await tester.pumpAndSettle();
     expect(find.byKey(const ValueKey('live-entered')), findsOneWidget);
-  });
+  }, skip: !kLiveEnabled);
 
   testWidgets(
     'samo kartica prije ponude (bez adrese), jedan gumb za ponudu, Kupi odmah',
@@ -1673,6 +1677,7 @@ void main() {
       expect(find.byKey(const ValueKey('live-raise')), findsNothing);
       expect(find.byKey(const ValueKey('live-bid-custom')), findsNothing);
     },
+    skip: !kLiveEnabled,
   );
 
   group('kvaliteta videa', () {

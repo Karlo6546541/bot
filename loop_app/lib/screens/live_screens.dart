@@ -1,3 +1,4 @@
+import '../config/features.dart';
 import '../config/design_variant.dart';
 import '../widgets/vision_live_controls.dart';
 import '../widgets/live_shop_widgets.dart' show liveShopProducts;
@@ -1389,50 +1390,55 @@ class _CreateLiveShowScreenState extends ConsumerState<CreateLiveShowScreen> {
           ? t('Gledatelji kupuju odmah proizvode iz tvoje trgovine.')
           : t('Licitiraju se redom. Možeš ih dodati i tijekom showa.'),
     ),
-    // Način prodaje: Items on screen (aukcije) ili samo Kupi odmah.
-    _optionTile(
-      key: const ValueKey('live-mode-auctions'),
-      icon: Icons.gavel,
-      title: t('Aukcije'),
-      subtitle: t('Predmete s brojem (Items on screen) licitiraš uživo.'),
-      selected: !_buyNowOnly,
-      onTap: () => setState(() => _buyNowOnly = false),
-    ),
-    _optionTile(
-      key: const ValueKey('live-mode-buynow'),
-      icon: Icons.shopping_bag_outlined,
-      title: t('Samo Kupi odmah'),
-      subtitle: t('Prodaješ proizvode iz svoje trgovine po fiksnoj cijeni.'),
-      selected: _buyNowOnly,
-      onTap: () => setState(() {
-        _buyNowOnly = true;
-        _shop = true;
-      }),
-    ),
+    if (kBuyNowEnabled) ...[
+      // Način prodaje: Items on screen (aukcije) ili samo Kupi odmah.
+      _optionTile(
+        key: const ValueKey('live-mode-auctions'),
+        icon: Icons.gavel,
+        title: t('Aukcije'),
+        subtitle: t('Predmete s brojem (Items on screen) licitiraš uživo.'),
+        selected: !_buyNowOnly,
+        onTap: () => setState(() => _buyNowOnly = false),
+      ),
+      _optionTile(
+        key: const ValueKey('live-mode-buynow'),
+        icon: Icons.shopping_bag_outlined,
+        title: t('Samo Kupi odmah'),
+        subtitle: t('Prodaješ proizvode iz svoje trgovine po fiksnoj cijeni.'),
+        selected: _buyNowOnly,
+        onTap: () => setState(() {
+          _buyNowOnly = true;
+          _shop = true;
+        }),
+      ),
+    ],
     const SizedBox(height: 12),
     if (!_buyNowOnly) ..._lotsSection(s),
     const SizedBox(height: 12),
     // Predmeti iz trgovine u liveu (ista zaliha kao u trgovini).
-    Builder(
-      builder: (_) {
-        final n = s.listingsOf(s.currentUserId ?? '').length;
-        return SwitchListTile(
-          key: const ValueKey('live-shop-toggle'),
-          contentPadding: EdgeInsets.zero,
-          value: _shop || _buyNowOnly,
-          onChanged: _buyNowOnly ? null : (v) => setState(() => _shop = v),
-          title: Text(
-            t('Dodaj predmete iz moje trgovine'),
-            style: const TextStyle(fontWeight: FontWeight.w700),
-          ),
-          subtitle: Text(
-            n == 0
-                ? t('Još nemaš oglasa u trgovini (Kupi odmah).')
-                : t('Gledatelji mogu odmah kupiti tvojih {0} oglasa.', ['$n']),
-          ),
-        );
-      },
-    ),
+    if (kBuyNowEnabled)
+      Builder(
+        builder: (_) {
+          final n = s.listingsOf(s.currentUserId ?? '').length;
+          return SwitchListTile(
+            key: const ValueKey('live-shop-toggle'),
+            contentPadding: EdgeInsets.zero,
+            value: _shop || _buyNowOnly,
+            onChanged: _buyNowOnly ? null : (v) => setState(() => _shop = v),
+            title: Text(
+              t('Dodaj predmete iz moje trgovine'),
+              style: const TextStyle(fontWeight: FontWeight.w700),
+            ),
+            subtitle: Text(
+              n == 0
+                  ? t('Još nemaš oglasa u trgovini (Kupi odmah).')
+                  : t('Gledatelji mogu odmah kupiti tvojih {0} oglasa.', [
+                      '$n',
+                    ]),
+            ),
+          );
+        },
+      ),
     Theme(
       data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
       child: ExpansionTile(
@@ -2430,55 +2436,57 @@ class _LiveRoomViewState extends ConsumerState<_LiveRoomBody> {
                       label: t('Dodaj predmet'),
                       onTap: () => _quickAdd(show),
                     ),
-                    tile(
-                      ctx,
-                      key: 'live-mode-tile',
-                      icon: show.buyNowOnly
-                          ? Icons.gavel
-                          : Icons.shopping_bag_outlined,
-                      label: show.buyNowOnly
-                          ? t('Uključi aukcije')
-                          : t('Samo Kupi odmah'),
-                      onTap: () async {
-                        try {
-                          await _app.liveSetBuyNowOnly(
-                            show.id,
-                            !show.buyNowOnly,
-                          );
-                          showLoopSnackBar(
-                            show.buyNowOnly
-                                ? t('Aukcije su ponovno uključene.')
-                                : t('Live sada prodaje samo Kupi odmah.'),
-                          );
-                        } on TradeException catch (e) {
-                          showLoopSnackBar(e.message, error: true);
-                        }
-                      },
-                    ),
-                    tile(
-                      ctx,
-                      key: 'live-shop-tile',
-                      icon: show.shop
-                          ? Icons.storefront
-                          : Icons.storefront_outlined,
-                      label: show.shop
-                          ? t('Isključi trgovinu')
-                          : t('Uključi trgovinu'),
-                      onTap: () async {
-                        try {
-                          await _app.liveSetShop(show.id, !show.shop);
-                          showLoopSnackBar(
-                            show.shop
-                                ? t('Trgovina je isključena u liveu.')
-                                : t(
-                                    'Gledatelji sada mogu kupiti tvoje predmete odmah.',
-                                  ),
-                          );
-                        } on TradeException catch (e) {
-                          showLoopSnackBar(e.message, error: true);
-                        }
-                      },
-                    ),
+                    if (kBuyNowEnabled) ...[
+                      tile(
+                        ctx,
+                        key: 'live-mode-tile',
+                        icon: show.buyNowOnly
+                            ? Icons.gavel
+                            : Icons.shopping_bag_outlined,
+                        label: show.buyNowOnly
+                            ? t('Uključi aukcije')
+                            : t('Samo Kupi odmah'),
+                        onTap: () async {
+                          try {
+                            await _app.liveSetBuyNowOnly(
+                              show.id,
+                              !show.buyNowOnly,
+                            );
+                            showLoopSnackBar(
+                              show.buyNowOnly
+                                  ? t('Aukcije su ponovno uključene.')
+                                  : t('Live sada prodaje samo Kupi odmah.'),
+                            );
+                          } on TradeException catch (e) {
+                            showLoopSnackBar(e.message, error: true);
+                          }
+                        },
+                      ),
+                      tile(
+                        ctx,
+                        key: 'live-shop-tile',
+                        icon: show.shop
+                            ? Icons.storefront
+                            : Icons.storefront_outlined,
+                        label: show.shop
+                            ? t('Isključi trgovinu')
+                            : t('Uključi trgovinu'),
+                        onTap: () async {
+                          try {
+                            await _app.liveSetShop(show.id, !show.shop);
+                            showLoopSnackBar(
+                              show.shop
+                                  ? t('Trgovina je isključena u liveu.')
+                                  : t(
+                                      'Gledatelji sada mogu kupiti tvoje predmete odmah.',
+                                    ),
+                            );
+                          } on TradeException catch (e) {
+                            showLoopSnackBar(e.message, error: true);
+                          }
+                        },
+                      ),
+                    ],
                     tile(
                       ctx,
                       key: 'live-viewers-tile',

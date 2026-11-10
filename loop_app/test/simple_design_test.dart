@@ -5,6 +5,7 @@ import 'package:loop_app/theme/app_theme.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:loop_app/config/features.dart';
 import 'package:hive/hive.dart';
 import 'package:loop_app/app.dart';
 import 'package:loop_app/config/design_variant.dart';
@@ -213,7 +214,7 @@ void main() {
       );
     }
     await tester.pumpWidget(const SizedBox());
-  });
+  }, skip: !kBuyNowEnabled);
 
   testWidgets('home searches a real shop and opens that seller profile', (
     tester,

@@ -1,4 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:loop_app/config/features.dart';
 import 'package:hive/hive.dart';
 import 'package:loop_app/models/live_show.dart';
 import 'package:loop_app/services/live_service.dart';
@@ -6,7 +7,7 @@ import 'package:loop_app/services/seed_data.dart';
 import 'package:loop_app/services/storage_service.dart';
 import 'package:loop_app/services/trade_service.dart';
 
-void main() {
+void _buyNowTests() {
   late StorageService storage;
   setUp(() async {
     storage = StorageService();
@@ -79,4 +80,18 @@ void main() {
       expect(storage.liveShowById(show.id)!.shop, isTrue);
     },
   );
+}
+
+/// Ovi testovi pokrivaju Kupi odmah; aplikacija je trenutno samo za
+/// aukcije (`--dart-define=BUY_NOW_ENABLED=true` ih uključuje).
+void main() {
+  if (kBuyNowEnabled) {
+    _buyNowTests();
+  } else {
+    test(
+      'Kupi odmah je isključen (samo aukcije)',
+      () {},
+      skip: 'BUY_NOW_ENABLED=false',
+    );
+  }
 }

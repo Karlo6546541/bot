@@ -1,3 +1,4 @@
+import '../config/features.dart';
 import 'package:flutter/material.dart';
 
 import '../l10n/tr.dart';
@@ -92,12 +93,13 @@ Future<void> showCreateSheet(BuildContext context) async {
                 t('Prodaj predmet'),
                 t('Slikaj, upiši cijenu i objavi'),
               ),
-              option(
-                'live',
-                Icons.videocam_outlined,
-                t('Live aukcija'),
-                t('Kreni odmah ili zakaži · video, chat, brze licitacije'),
-              ),
+              if (kLiveEnabled)
+                option(
+                  'live',
+                  Icons.videocam_outlined,
+                  t('Live aukcija'),
+                  t('Kreni odmah ili zakaži · video, chat, brze licitacije'),
+                ),
               option(
                 'auction',
                 Icons.gavel,

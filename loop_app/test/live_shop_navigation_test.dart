@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:loop_app/config/features.dart';
 import 'package:hive/hive.dart';
 import 'package:loop_app/models/device.dart';
 import 'package:loop_app/providers/app_providers.dart';
@@ -75,6 +76,7 @@ void main() {
       expect(tester.takeException(), isNull);
       await tester.pumpWidget(const SizedBox.shrink());
     },
+    skip: !kBuyNowEnabled,
   );
   testWidgets('own Profile shows the actual shop before account management', (
     tester,
@@ -154,6 +156,7 @@ void main() {
       expect(tester.takeException(), isNull);
       await tester.pumpWidget(const SizedBox.shrink());
     },
+    skip: !kBuyNowEnabled,
   );
   for (final config in [
     (const Size(320, 600), 1.0),
@@ -193,6 +196,7 @@ void main() {
         expect(tester.takeException(), isNull);
         await tester.pumpWidget(const SizedBox.shrink());
       },
+      skip: !kLiveEnabled,
     );
   }
 }

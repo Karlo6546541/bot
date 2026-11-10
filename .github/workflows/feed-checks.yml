@@ -45,8 +45,10 @@ jobs:
           awk '/TimeoutException/{print} /EXCEPTION CAUGHT/{remaining=85} remaining>0{print;remaining--}' /tmp/feed-tests.log
           tail -n 20 /tmp/feed-tests.log
           exit "$result"
+      - name: Test with live and Buy now enabled
+        run: flutter test --dart-define=LIVE_ENABLED=true --dart-define=BUY_NOW_ENABLED=true
       - name: Test simplified design flows
-        run: flutter test --dart-define=SIMPLE_DESIGN=true test/simple_design_test.dart test/purchase_confirmation_test.dart test/studio_experience_test.dart test/live_shop_navigation_test.dart test/account_profile_test.dart test/seller_onboarding_flow_test.dart test/cloud_commerce_test.dart
+        run: flutter test --dart-define=SIMPLE_DESIGN=true --dart-define=LIVE_ENABLED=true --dart-define=BUY_NOW_ENABLED=true test/simple_design_test.dart test/purchase_confirmation_test.dart test/studio_experience_test.dart test/live_shop_navigation_test.dart test/account_profile_test.dart test/seller_onboarding_flow_test.dart test/cloud_commerce_test.dart
       - name: Build web
         run: flutter build web --release --base-href /bot/ --no-web-resources-cdn
       - name: Build enabled online commerce

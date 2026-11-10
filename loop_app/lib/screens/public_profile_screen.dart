@@ -1,3 +1,4 @@
+import '../config/features.dart';
 import '../config/design_variant.dart';
 import '../models/auction.dart';
 import 'account_screens.dart' show EditProfileScreen;
@@ -99,7 +100,7 @@ class _PublicProfileScreenState extends ConsumerState<PublicProfileScreen> {
   }
 
   _ShopSort _sort = _ShopSort.newest;
-  _ShopTab _tab = _ShopTab.items;
+  _ShopTab _tab = kBuyNowEnabled ? _ShopTab.items : _ShopTab.auctions;
 
   /// Kategorija iz filtra trgovine (`null` = sve).
   DeviceCategory? _category;
@@ -155,10 +156,10 @@ class _PublicProfileScreenState extends ConsumerState<PublicProfileScreen> {
     final upcoming = lives.where((e) => e.$2.isScheduled).firstOrNull;
     final hasShop = allListings.isNotEmpty || isMe;
     final tabs = <_ShopTab>[
-      if (hasShop) _ShopTab.items,
-      _ShopTab.lives,
+      if (hasShop && kBuyNowEnabled) _ShopTab.items,
+      if (kLiveEnabled) _ShopTab.lives,
       _ShopTab.reviews,
-      if (auctions.isNotEmpty) _ShopTab.auctions,
+      if (auctions.isNotEmpty || !kBuyNowEnabled) _ShopTab.auctions,
     ];
     final tab = tabs.contains(_tab) ? _tab : tabs.first;
     final listings = _shopItems(allListings);
@@ -1068,11 +1069,12 @@ class _PublicProfileScreenState extends ConsumerState<PublicProfileScreen> {
                 key: const ValueKey('shop-tabs'),
                 children: [
                   for (final (tab, label, tip) in [
-                    (
-                      _ShopTab.items,
-                      t('Shop ({0})', ['${allListings.length}']),
-                      null,
-                    ),
+                    if (kBuyNowEnabled)
+                      (
+                        _ShopTab.items,
+                        t('Shop ({0})', ['${allListings.length}']),
+                        null,
+                      ),
                     (
                       _ShopTab.auctions,
                       t('Aukcije ({0})', [auctions.length]),

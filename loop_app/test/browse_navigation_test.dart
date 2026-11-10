@@ -2,6 +2,7 @@ import 'helpers/vision_navigation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:loop_app/config/features.dart';
 import 'package:hive/hive.dart';
 import 'package:loop_app/app.dart';
 import 'package:loop_app/models/device.dart';
@@ -80,7 +81,7 @@ void main() {
     expect(find.byKey(const ValueKey('notes-filter-all')), findsOneWidget);
     expect(tester.takeException(), isNull);
     await tester.pumpWidget(const SizedBox.shrink());
-  });
+  }, skip: !kLiveEnabled);
 
   testWidgets('browse menu opens categories, auctions and digital shopping', (
     tester,
@@ -131,7 +132,7 @@ void main() {
     expect(find.byKey(const ValueKey('vault-account')), findsOneWidget);
     expect(find.byType(NavigationDestination), findsNWidgets(4));
     await tester.pumpWidget(const SizedBox.shrink());
-  });
+  }, skip: !kBuyNowEnabled);
 
   testWidgets('live category selection filters only live streams and clears', (
     tester,
@@ -199,7 +200,7 @@ void main() {
     );
     expect(tester.takeException(), isNull);
     await tester.pumpWidget(const SizedBox.shrink());
-  });
+  }, skip: !kLiveEnabled);
 
   testWidgets(
     'feed keeps its queue and controller stable during a drag and sync',

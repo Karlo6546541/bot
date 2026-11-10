@@ -1,3 +1,4 @@
+import '../config/features.dart';
 import 'package:flutter/foundation.dart' show listEquals, mapEquals, setEquals;
 import 'package:flutter/material.dart' show ThemeMode;
 
@@ -373,6 +374,7 @@ class AppState {
       memo('activeLives', _computeActiveLives, ttl: const Duration(seconds: 1));
 
   List<(LiveShow, LiveState)> _computeActiveLives() {
+    if (!kLiveEnabled) return const [];
     final now = DateTime.now();
     final out = [
       for (final s in liveShows)

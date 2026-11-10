@@ -1,3 +1,4 @@
+import '../config/features.dart';
 import '../config/design_variant.dart';
 
 import 'package:flutter/material.dart';
@@ -561,12 +562,13 @@ class SellerHubScreen extends ConsumerWidget {
                     spacing: 10,
                     runSpacing: 10,
                     children: [
-                      FilledButton.icon(
-                        key: const ValueKey('seller-hub-live'),
-                        onPressed: () => CreateLiveShowScreen.open(context),
-                        icon: const Icon(Icons.sensors, size: 19),
-                        label: Text(t('Pokreni live')),
-                      ),
+                      if (kLiveEnabled)
+                        FilledButton.icon(
+                          key: const ValueKey('seller-hub-live'),
+                          onPressed: () => CreateLiveShowScreen.open(context),
+                          icon: const Icon(Icons.sensors, size: 19),
+                          label: Text(t('Pokreni live')),
+                        ),
                       OutlinedButton.icon(
                         key: const ValueKey('seller-hub-add'),
                         onPressed: () => AddDeviceScreen.open(context),
@@ -640,12 +642,13 @@ class SellerHubScreen extends ConsumerWidget {
                         t('Ponude kupaca'),
                         () => BargainsScreen.open(context),
                       ),
-                      tile(
-                        const ValueKey('seller-hub-shows'),
-                        Icons.live_tv_outlined,
-                        t('Moji showovi'),
-                        () => MyShowsScreen.open(context),
-                      ),
+                      if (kLiveEnabled)
+                        tile(
+                          const ValueKey('seller-hub-shows'),
+                          Icons.live_tv_outlined,
+                          t('Moji showovi'),
+                          () => MyShowsScreen.open(context),
+                        ),
                       JednostavnoRow(
                         key: const ValueKey('seller-open-shop'),
                         title: t('Moj shop'),
@@ -800,18 +803,22 @@ class SellerHubScreen extends ConsumerWidget {
                 ),
                 const SizedBox(height: 16),
               ],
-              FilledButton.icon(
-                key: const ValueKey('seller-hub-live'),
-                style: FilledButton.styleFrom(
-                  backgroundColor: LoopColors.live,
-                  foregroundColor: Colors.white,
-                  minimumSize: kSimpleDesign ? const Size.fromHeight(54) : null,
+              if (kLiveEnabled) ...[
+                FilledButton.icon(
+                  key: const ValueKey('seller-hub-live'),
+                  style: FilledButton.styleFrom(
+                    backgroundColor: LoopColors.live,
+                    foregroundColor: Colors.white,
+                    minimumSize: kSimpleDesign
+                        ? const Size.fromHeight(54)
+                        : null,
+                  ),
+                  onPressed: () => CreateLiveShowScreen.open(context),
+                  icon: const _LiveCameraPulse(),
+                  label: Text(t('Pokreni live')),
                 ),
-                onPressed: () => CreateLiveShowScreen.open(context),
-                icon: const _LiveCameraPulse(),
-                label: Text(t('Pokreni live')),
-              ),
-              const SizedBox(height: 10),
+                const SizedBox(height: 10),
+              ],
               Wrap(
                 spacing: 8,
                 runSpacing: 8,

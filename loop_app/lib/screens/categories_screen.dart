@@ -1,3 +1,4 @@
+import '../config/features.dart';
 import 'package:flutter/material.dart';
 import '../widgets/pill_tabs.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -704,7 +705,9 @@ class _CategoryItemsScreenState extends ConsumerState<CategoryItemsScreen> {
             : i.categories.any((c) => c.section == widget.section))
           i,
     ];
-    if (kSimpleDesign) return _liveFirst(context, s, all, title, category);
+    if (kSimpleDesign && kLiveEnabled) {
+      return _liveFirst(context, s, all, title, category);
+    }
     final q = SmartQuery.parse(_query.text);
     bool inView(BrowseItem i) => switch (_view) {
       'products' => i.isBuyNow,

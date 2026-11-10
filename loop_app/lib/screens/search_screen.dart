@@ -4,6 +4,7 @@ import 'dart:ui';
 import '../widgets/vision_glass.dart';
 import 'show_filters.dart';
 import 'auctions_screen.dart';
+import 'auction_detail_screen.dart';
 import 'categories_screen.dart';
 import '../widgets/category_style.dart';
 import '../models/device.dart';
@@ -212,6 +213,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
     final q = normalizeSearch(_q);
     final liveRows = <Widget>[];
     final soonRows = <Widget>[];
+    final auctionRows = <Widget>[];
     final reasons = <String, String>{};
     final hostsLive = <String>{};
     final hostsSoon = <String>{};
@@ -240,10 +242,32 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
     for (final item in [...items, ...byProduct]) {
       final show = item.show;
       if (show == null) {
+        final auction = item.auction;
+        if (!kLiveEnabled && auction != null) {
+          // Aplikacija samo za aukcije: aukcija je izravan rezultat.
+          auctionRows.add(
+            Padding(
+              padding: const EdgeInsets.only(bottom: 8),
+              child: ReferenceOrderRow(
+                key: ValueKey('search-auction-${auction.id}'),
+                title: auction.deviceName,
+                subtitle:
+                    '${formatCredits(auction.currentPrice)} · ${auction.sellerLabel}',
+                artwork: BrowseCardMedia(device: item.device),
+                onTap: () {
+                  ref.read(appProvider.notifier).addSearch(_q);
+                  AuctionDetailScreen.open(context, auction.id);
+                },
+              ),
+            ),
+          );
+        }
         // Predmet u shopu ili aukcija: vodi do prodavača, ne do oglasa.
-        final owner = item.device?.ownerId ?? item.auction?.sellerId;
-        final name = item.device?.name ?? item.auction?.deviceName ?? '';
-        if (owner != null) reason(owner, t('Ima u shopu: {0}', [name]));
+        final owner = item.device?.ownerId ?? auction?.sellerId;
+        final name = item.device?.name ?? auction?.deviceName ?? '';
+        if (owner != null && kLiveEnabled) {
+          reason(owner, t('Ima u shopu: {0}', [name]));
+        }
         continue;
       }
       final live = item.live;
@@ -299,6 +323,10 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
     ];
     final top = _igTab == 'top';
     final out = <Widget>[
+      if (auctionRows.isNotEmpty && (top || _igTab == 'auctions')) ...[
+        if (top) heading(t('Aukcije')),
+        ...auctionRows,
+      ],
       if (liveRows.isNotEmpty && (top || _igTab == 'live')) ...[
         if (top) heading(t('Uživo')),
         ...liveRows,
@@ -496,8 +524,11 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                 children: [
                   tab('top', t('Top')),
                   tab('accounts', t('Računi')),
-                  tab('live', t('Uživo')),
-                  tab('soon', t('Uskoro')),
+                  if (kLiveEnabled) ...[
+                    tab('live', t('Uživo')),
+                    tab('soon', t('Uskoro')),
+                  ] else
+                    tab('auctions', t('Aukcije')),
                 ],
               ),
             Expanded(

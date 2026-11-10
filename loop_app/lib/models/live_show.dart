@@ -1,3 +1,4 @@
+import '../config/features.dart';
 import '../l10n/tr.dart';
 
 /// Live aukcija (kao Whatnot): prodavatelj ide uživo, pokazuje predmete i
@@ -228,8 +229,8 @@ class LiveShow {
       (v) => v.name == m['sells'],
       orElse: () => LiveSells.physical,
     ),
-    shop: m['shop'] == true,
-    buyNowOnly: m['buyNowOnly'] == true,
+    shop: kBuyNowEnabled && m['shop'] == true,
+    buyNowOnly: kBuyNowEnabled && m['buyNowOnly'] == true,
     featuredId: m['featuredId'] as String?,
     summary: m['summary'] is Map
         ? {
