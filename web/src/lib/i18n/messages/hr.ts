@@ -278,6 +278,7 @@ export const hr = {
     slugTaken: "Ta adresa je već zauzeta.",
     chapterNumberTaken: "Poglavlje s tim brojem već postoji.",
     deleteChapterConfirm: "Obrisati poglavlje i sve njegove stranice?",
+    deleteSeriesConfirm: "Obrisati ovu seriju (skicu) i sva poglavlja?",
     viewPublic: "Pogledaj javnu stranicu",
   },
   admin: {

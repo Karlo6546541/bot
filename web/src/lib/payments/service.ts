@@ -215,7 +215,7 @@ export function createPaymentService(repo: PaymentRepository, clock: () => Date 
       return repo.creditCoins({ userId, amount, type: "admin_grant", note: note ?? null });
     },
 
-    async grantSubscription(userId: string, days = monetizationDefaults.subscriptionPeriodDays) {
+    async grantSubscription(userId: string, days: number = monetizationDefaults.subscriptionPeriodDays) {
       const now = clock();
       return service.activateSubscription({
         userId,

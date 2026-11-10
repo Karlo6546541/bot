@@ -464,6 +464,11 @@ isOneToOne: false
 "claim_payment_event":
 { Args: { "p_event_id": string,"p_provider": string,"p_type": string }; Returns: boolean
                            },
+"earnings_summary":
+{ Args: { "p_creator"?: string }; Returns: {
+              "creator_cents": number,"creator_id": string,"gross_cents": number,"items": number,"period": string,"platform_cents": number,"series_id": string,"series_title": string,"source": Database["public"]['Enums']["earning_source"]
+            }[]
+                           },
 "has_active_subscription":
 { Args: { "p_user": string }; Returns: boolean
                            },
@@ -484,6 +489,9 @@ isOneToOne: false
                            },
 "release_payment_event":
 { Args: { "p_event_id": string,"p_provider": string }; Returns: undefined
+                           },
+"replace_chapter_pages":
+{ Args: { "p_chapter": string,"p_pages": Json }; Returns: number
                            },
 "series_is_public":
 { Args: { "p_series": string }; Returns: boolean
