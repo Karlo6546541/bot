@@ -12,6 +12,7 @@ import {
 } from "@/app/payments/actions";
 import { PaymentErrorNotice } from "@/components/payments/PaymentErrorNotice";
 import { ConfirmButton } from "@/components/forms/ConfirmButton";
+import { CoinIcon } from "@/components/ui/Icons";
 
 export async function generateMetadata(): Promise<Metadata> {
   const { t } = await getI18n();
@@ -96,7 +97,7 @@ export default async function AccountPage({ searchParams }: { searchParams: Prom
 
       <section className="card" aria-labelledby="coins-title">
         <h2 id="coins-title" className="h2">{t("account.coins")}</h2>
-        <p className="mt-2 text-lg font-semibold">🪙 {t("account.balance", { coins: t("common.coinCount", { count: balance?.balance ?? 0 }) })}</p>
+        <p className="mt-2 flex items-center gap-2 text-lg font-black"><CoinIcon className="h-6 w-6 text-brand-600" /> {t("account.balance", { coins: t("common.coinCount", { count: balance?.balance ?? 0 }) })}</p>
         <Link href="/pricing#coins" className="btn-secondary mt-3">{t("reader.buyCoins")}</Link>
         <h3 className="mt-6 font-semibold">{t("account.transactions")}</h3>
         {!txs?.length ? (

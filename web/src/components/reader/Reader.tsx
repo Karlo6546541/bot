@@ -260,7 +260,7 @@ export function Reader(props: Props) {
 
   return (
     <div className="-mx-4 -mt-4 bg-ink-950 text-ink-100">
-      <div className="sticky top-14 z-20 flex items-center gap-2 border-b border-ink-800 bg-ink-950/95 px-3 py-2 backdrop-blur">
+      <div className="sticky top-14 z-20 flex items-center gap-2 border-b-2 border-ink-700 bg-ink-950/95 px-3 py-2 backdrop-blur">
         <Link href={`/series/${props.seriesSlug}`} className="btn-ghost min-h-10 px-2 text-ink-100" aria-label={t("reader.backToSeries")}>
           ←
         </Link>
@@ -274,10 +274,10 @@ export function Reader(props: Props) {
         <p className="text-xs tabular-nums text-ink-400" aria-live="polite">
           {total > 0 && t("reader.pageOf", { n: Math.min(current + 1, total), total })}
         </p>
-        <fieldset className="flex overflow-hidden rounded-lg border border-ink-700">
+        <fieldset className="flex overflow-hidden rounded-lg border-2 border-ink-200">
           <legend className="sr-only">{t("reader.settings")}</legend>
           {(["vertical", "paged"] as const).map((m) => (
-            <label key={m} className={`cursor-pointer px-2 py-1.5 text-xs ${mode === m ? "bg-brand-600 text-white" : "text-ink-300"}`}>
+            <label key={m} className={`cursor-pointer px-2 py-1.5 text-xs ${mode === m ? "bg-sun text-ink-900" : "text-ink-200"}`}>
               <input type="radio" name="mode" value={m} checked={mode === m} onChange={() => changeMode(m)} className="sr-only" />
               <span aria-hidden>{m === "vertical" ? "↕" : "↔"}</span>
               <span className="sr-only">{t(m === "vertical" ? "reader.modeVertical" : "reader.modePaged")}</span>

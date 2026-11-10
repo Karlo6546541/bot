@@ -1,25 +1,49 @@
 @import "tailwindcss";
 
+/*
+ * Kadar visual language: "comic panel".
+ * Warm paper, heavy ink outlines, hard offset shadows, one loud accent.
+ * Palette tokens keep the old names (ink-*, brand-*) so every page picks it up.
+ */
 @theme {
-  --color-brand-50: #fff4ef;
-  --color-brand-100: #ffe3d6;
-  --color-brand-500: #e4572e;
-  --color-brand-600: #c9461f;
-  --color-brand-700: #a33715;
-  --color-ink-50: #f7f7f8;
-  --color-ink-100: #ececef;
-  --color-ink-200: #d6d6dc;
-  --color-ink-400: #8b8b96;
-  --color-ink-500: #6b6b76;
-  --color-ink-700: #3a3a42;
-  --color-ink-800: #24242a;
-  --color-ink-900: #16161a;
-  --color-ink-950: #0d0d10;
+  --color-brand-50: #fff1ec;
+  --color-brand-100: #ffd9cc;
+  --color-brand-500: #ff5a36;
+  --color-brand-600: #e8431f;
+  --color-brand-700: #b8310f;
+  --color-sun: #ffd23f;
+  --color-mint: #2ec4a0;
+  --color-sky: #4f8cff;
+
+  --color-paper: #f7f1e3;
+  --color-ink-50: #f7f1e3;
+  --color-ink-100: #ece4d0;
+  --color-ink-200: #d8cdb2;
+  --color-ink-400: #7d7561;
+  --color-ink-500: #5f5847;
+  --color-ink-700: #2e2a22;
+  --color-ink-800: #1f1c17;
+  --color-ink-900: #14120e;
+  --color-ink-950: #0c0b09;
+
   --font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-display: "Arial Black", "Helvetica Neue", Impact, ui-sans-serif, system-ui, sans-serif;
+
+  --shadow-pop: 4px 4px 0 0 var(--color-ink-900);
+  --shadow-pop-sm: 2px 2px 0 0 var(--color-ink-900);
 }
 
 :root {
   color-scheme: light dark;
+  --edge: var(--color-ink-900);
+  --surface: #fffaf0;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --edge: #f7f1e3;
+    --surface: #1b1914;
+  }
 }
 
 html {
@@ -28,78 +52,132 @@ html {
 
 body {
   @apply bg-ink-50 text-ink-900 antialiased;
+  background-image: radial-gradient(color-mix(in srgb, var(--color-ink-900) 9%, transparent) 1px, transparent 1.4px);
+  background-size: 14px 14px; /* halftone dots */
 }
 
 @media (prefers-color-scheme: dark) {
   body {
     @apply bg-ink-950 text-ink-100;
+    background-image: radial-gradient(color-mix(in srgb, #fff 6%, transparent) 1px, transparent 1.4px);
   }
 }
 
 :focus-visible {
-  outline: 3px solid var(--color-brand-500);
+  outline: 3px solid var(--color-sky);
   outline-offset: 2px;
 }
 
+::selection {
+  background: var(--color-sun);
+  color: var(--color-ink-900);
+}
+
 @utility btn {
-  @apply inline-flex min-h-11 items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-50;
+  @apply inline-flex min-h-11 items-center justify-center gap-2 rounded-lg border-2 px-4 py-2 text-sm font-extrabold tracking-wide transition-all disabled:cursor-not-allowed disabled:opacity-50;
+  border-color: var(--edge);
+  box-shadow: 3px 3px 0 0 var(--edge);
 }
 
 @utility badge {
-  @apply inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold;
+  @apply inline-flex items-center rounded-md border-[1.5px] px-2 py-0.5 text-[11px] font-extrabold uppercase tracking-wider;
+  border-color: var(--edge);
 }
 
 @layer components {
+  .btn:not(:disabled):hover {
+    transform: translate(-1px, -1px);
+    box-shadow: 4px 4px 0 0 var(--edge);
+  }
+  .btn:not(:disabled):active {
+    transform: translate(3px, 3px);
+    box-shadow: 0 0 0 0 var(--edge);
+  }
   .btn-primary {
-    @apply btn bg-brand-600 text-white hover:bg-brand-700;
+    @apply btn bg-brand-500 text-white;
   }
   .btn-secondary {
-    @apply btn border border-ink-200 bg-white text-ink-900 hover:bg-ink-100 dark:border-ink-700 dark:bg-ink-800 dark:text-ink-100 dark:hover:bg-ink-700;
+    @apply btn bg-[var(--surface)] text-ink-900 dark:text-ink-100;
   }
   .btn-danger {
-    @apply btn bg-red-700 text-white hover:bg-red-800;
+    @apply btn bg-red-700 text-white;
   }
   .btn-ghost {
-    @apply btn text-ink-700 hover:bg-ink-100 dark:text-ink-200 dark:hover:bg-ink-800;
+    @apply inline-flex min-h-11 items-center justify-center gap-2 rounded-lg px-3 py-2 text-sm font-bold text-ink-700 transition-colors hover:bg-ink-100 dark:text-ink-200 dark:hover:bg-ink-800;
   }
   .input {
-    @apply block min-h-11 w-full rounded-lg border border-ink-200 bg-white px-3 py-2 text-base text-ink-900 placeholder:text-ink-400 dark:border-ink-700 dark:bg-ink-900 dark:text-ink-100;
+    @apply block min-h-11 w-full rounded-lg border-2 bg-[var(--surface)] px-3 py-2 text-base text-ink-900 placeholder:text-ink-400 dark:text-ink-100;
+    border-color: var(--edge);
+  }
+  .input:focus {
+    box-shadow: 3px 3px 0 0 var(--color-sky);
   }
   .label {
-    @apply mb-1 block text-sm font-medium;
+    @apply mb-1 block text-xs font-extrabold uppercase tracking-wider;
   }
   .card {
-    @apply rounded-xl border border-ink-100 bg-white p-4 dark:border-ink-800 dark:bg-ink-900;
+    @apply rounded-xl border-2 bg-[var(--surface)] p-4;
+    border-color: var(--edge);
+    box-shadow: 4px 4px 0 0 var(--edge);
+  }
+  a.card:hover {
+    transform: translate(-2px, -2px);
+    box-shadow: 6px 6px 0 0 var(--edge);
+  }
+  a.card {
+    transition: transform 0.12s, box-shadow 0.12s;
   }
   .badge-free {
-    @apply badge bg-emerald-100 text-emerald-900 dark:bg-emerald-900 dark:text-emerald-100;
+    @apply badge bg-mint text-ink-900;
   }
   .badge-locked {
-    @apply badge bg-ink-100 text-ink-800 dark:bg-ink-800 dark:text-ink-100;
+    @apply badge bg-ink-100 text-ink-900 dark:bg-ink-800 dark:text-ink-100;
   }
   .badge-early {
-    @apply badge bg-amber-100 text-amber-900 dark:bg-amber-900 dark:text-amber-100;
+    @apply badge bg-sun text-ink-900;
   }
   .badge-unlocked {
-    @apply badge bg-sky-100 text-sky-900 dark:bg-sky-900 dark:text-sky-100;
+    @apply badge bg-sky text-white;
   }
   .muted {
     @apply text-ink-500 dark:text-ink-400;
   }
   .h1 {
-    @apply text-2xl font-bold tracking-tight sm:text-3xl;
+    @apply font-black uppercase tracking-tight;
+    font-family: var(--font-display);
+    font-size: clamp(1.6rem, 5vw, 2.6rem);
+    line-height: 1.02;
   }
   .h2 {
-    @apply text-lg font-bold sm:text-xl;
+    @apply font-black uppercase tracking-tight;
+    font-family: var(--font-display);
+    font-size: clamp(1.1rem, 3vw, 1.5rem);
   }
   .table {
     @apply w-full text-left text-sm;
   }
   .table th {
-    @apply border-b border-ink-200 px-2 py-2 font-semibold dark:border-ink-700;
+    @apply border-b-2 px-2 py-2 text-xs font-extrabold uppercase tracking-wider;
+    border-color: var(--edge);
   }
   .table td {
-    @apply border-b border-ink-100 px-2 py-2 dark:border-ink-800;
+    @apply border-b border-ink-200 px-2 py-2 dark:border-ink-800;
+  }
+  /* Section title with a comic "caption box" look */
+  .caption {
+    @apply inline-block -rotate-1 border-2 bg-sun px-3 py-1 text-sm font-black uppercase tracking-wider text-ink-900;
+    border-color: var(--edge);
+    box-shadow: var(--shadow-pop-sm);
+  }
+  .cover {
+    @apply relative aspect-[2/3] overflow-hidden rounded-lg border-2 bg-ink-200 dark:bg-ink-800;
+    border-color: var(--edge);
+    box-shadow: 4px 4px 0 0 var(--edge);
+    transition: transform 0.15s, box-shadow 0.15s;
+  }
+  .group:hover .cover {
+    transform: translate(-2px, -2px) rotate(-0.6deg);
+    box-shadow: 6px 6px 0 0 var(--edge);
   }
 }
 
@@ -107,5 +185,11 @@ body {
   * {
     scroll-behavior: auto !important;
     transition: none !important;
+    animation: none !important;
+  }
+  .btn:hover,
+  .group:hover .cover,
+  a.card:hover {
+    transform: none !important;
   }
 }

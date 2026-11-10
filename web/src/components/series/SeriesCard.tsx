@@ -10,27 +10,27 @@ export async function SeriesCard({ series, priority = false }: { series: SeriesC
   const src = coverUrl(series.cover_path);
   return (
     <Link href={`/series/${series.slug}`} className="group block">
-      <div className="relative aspect-[2/3] overflow-hidden rounded-lg bg-ink-200 dark:bg-ink-800">
+      <div className="cover">
         {src && (
           <Image
             src={src}
             alt=""
             fill
             sizes="(min-width: 1024px) 200px, (min-width: 640px) 25vw, 45vw"
-            className="object-cover transition-transform group-hover:scale-105"
+            className="object-cover"
             priority={priority}
           />
         )}
+        {series.genres[0] && (
+          <span className="badge-early absolute left-1.5 top-1.5">{t(`genres.${series.genres[0]}` as MessageKey)}</span>
+        )}
       </div>
-      <h3 className="mt-2 line-clamp-2 text-sm font-semibold leading-tight">{series.title}</h3>
-      <p className="muted line-clamp-1 text-xs">
-        {series.creators?.pen_name}
-        {series.genres[0] ? ` · ${t(`genres.${series.genres[0]}` as MessageKey)}` : ""}
-      </p>
+      <h3 className="mt-3 line-clamp-2 text-sm font-black uppercase leading-tight tracking-tight">{series.title}</h3>
+      <p className="muted line-clamp-1 text-xs font-semibold">{series.creators?.pen_name}</p>
     </Link>
   );
 }
 
 export function SeriesGrid({ children }: { children: React.ReactNode }) {
-  return <div className="grid grid-cols-2 gap-x-3 gap-y-5 sm:grid-cols-4 lg:grid-cols-5">{children}</div>;
+  return <div className="grid grid-cols-2 gap-x-4 gap-y-7 sm:grid-cols-4 lg:grid-cols-5">{children}</div>;
 }

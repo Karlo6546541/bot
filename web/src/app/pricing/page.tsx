@@ -6,6 +6,7 @@ import { formatMoney } from "@/lib/format";
 import { monetizationDefaults } from "@/config/monetization";
 import { startCoinCheckout, startSubscriptionCheckout } from "@/app/payments/actions";
 import { PaymentErrorNotice } from "@/components/payments/PaymentErrorNotice";
+import { CoinIcon } from "@/components/ui/Icons";
 
 export async function generateMetadata(): Promise<Metadata> {
   const { t } = await getI18n();
@@ -41,10 +42,10 @@ export default async function PricingPage({ searchParams }: { searchParams: Prom
       <PaymentErrorNotice code={error} />
 
       {subPlan && (
-        <section aria-labelledby="sub" className="card border-brand-500 sm:p-6">
+        <section aria-labelledby="sub" className="card !bg-sun !text-ink-900 sm:p-6">
           <h2 id="sub" className="h2">{t("pricing.subscriptionTitle")}</h2>
-          <p className="muted mt-1">{t("pricing.subscriptionText")}</p>
-          <p className="mt-4 text-3xl font-black">
+          <p className="mt-1 font-medium">{t("pricing.subscriptionText")}</p>
+          <p className="mt-4 text-4xl font-black" style={{ fontFamily: "var(--font-display)" }}>
             {t("pricing.perMonth", { price: formatMoney(subPlan.price_cents, subPlan.currency, locale) })}
           </p>
           {sub.data ? (
@@ -65,7 +66,7 @@ export default async function PricingPage({ searchParams }: { searchParams: Prom
         <ul className="mt-4 grid gap-3 sm:grid-cols-3">
           {packs.map((p) => (
             <li key={p.id} className="card flex flex-col gap-3">
-              <p className="text-xl font-bold">🪙 {t("common.coinCount", { count: p.coins ?? 0 })}</p>
+              <p className="flex items-center gap-2 text-xl font-black"><CoinIcon className="h-7 w-7 text-brand-600" /> {t("common.coinCount", { count: p.coins ?? 0 })}</p>
               <p className="text-lg">{formatMoney(p.price_cents, p.currency, locale)}</p>
               <form action={startCoinCheckout} className="mt-auto">
                 <input type="hidden" name="planCode" value={p.code} />
