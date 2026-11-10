@@ -749,7 +749,11 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
           borderRadius: const BorderRadius.all(Radius.circular(99)),
           borderSide: BorderSide(color: LoopColors.textSecondary),
         ),
-        hintText: t('Traži liveove, aukcije, predmete i račune…'),
+        hintText: t(
+          kLiveEnabled
+              ? 'Traži liveove, aukcije, predmete i račune…'
+              : 'Traži aukcije i račune…',
+        ),
         prefixIcon: const Icon(Icons.search),
         suffixIcon: _q.isEmpty
             ? null
@@ -812,8 +816,9 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                         for (final (k, label) in <(SearchKind?, String)>[
                           (null, t('Sve')),
                           (SearchKind.auction, t('Aukcije')),
-                          (SearchKind.buyNow, t('Kupi odmah')),
-                          (SearchKind.live, t('Uživo')),
+                          if (kBuyNowEnabled)
+                            (SearchKind.buyNow, t('Kupi odmah')),
+                          if (kLiveEnabled) (SearchKind.live, t('Uživo')),
                         ])
                           Padding(
                             padding: const EdgeInsets.only(right: 8),

@@ -345,13 +345,14 @@ class _SellerGoalsCardState extends ConsumerState<SellerGoalsCard> {
               goal.sales.toDouble(),
               '${formatCredits(p.sales)} / ${formatCredits(goal.sales.toDouble())}',
             ),
-            bar(
-              'goal-live',
-              t('Minute uživo'),
-              p.liveMinutes.toDouble(),
-              goal.liveMinutes.toDouble(),
-              '${p.liveMinutes} / ${goal.liveMinutes} min',
-            ),
+            if (kLiveEnabled)
+              bar(
+                'goal-live',
+                t('Minute uživo'),
+                p.liveMinutes.toDouble(),
+                goal.liveMinutes.toDouble(),
+                '${p.liveMinutes} / ${goal.liveMinutes} min',
+              ),
             bar(
               'goal-buyers',
               t('Različiti kupci'),
@@ -721,7 +722,7 @@ class SellerHubScreen extends ConsumerWidget {
               const Icon(Icons.sensors, color: LoopColors.live),
               const SizedBox(width: 10),
             ],
-            Text(t(embedded ? 'Studio' : 'Prodavač')),
+            Text(t(embedded && kLiveEnabled ? 'Studio' : 'Prodavač')),
           ],
         ),
         actions: [
@@ -782,7 +783,11 @@ class SellerHubScreen extends ConsumerWidget {
                       ),
                       const SizedBox(height: 14),
                       Text(
-                        t('Tvoj prostor za live.'),
+                        t(
+                          kLiveEnabled
+                              ? 'Tvoj prostor za live.'
+                              : 'Tvoj prostor za aukcije.',
+                        ),
                         style: const TextStyle(
                           color: Colors.white,
                           fontSize: 28,

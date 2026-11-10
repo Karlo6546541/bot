@@ -429,7 +429,7 @@ class DeviceDetailScreen extends ConsumerWidget {
                   icon: const Icon(Icons.remove_shopping_cart_outlined),
                   label: Text(t('Makni iz prodaje')),
                 ),
-                if (!device.isDigital) ...[
+                if (kLiveEnabled && !device.isDigital) ...[
                   const SizedBox(height: 10),
                   OutlinedButton.icon(
                     key: const ValueKey('item-live'),
@@ -539,12 +539,13 @@ class DeviceDetailScreen extends ConsumerWidget {
                   ),
                   const SizedBox(height: 10),
                 ],
-                (device.isDigital ? FilledButton.icon : OutlinedButton.icon)(
-                  key: const ValueKey('item-live'),
-                  onPressed: () => addToLive(context, ref, device),
-                  icon: const Icon(Icons.videocam_outlined),
-                  label: Text(t('Pokaži u liveu')),
-                ),
+                if (kLiveEnabled)
+                  (device.isDigital ? FilledButton.icon : OutlinedButton.icon)(
+                    key: const ValueKey('item-live'),
+                    onPressed: () => addToLive(context, ref, device),
+                    icon: const Icon(Icons.videocam_outlined),
+                    label: Text(t('Pokaži u liveu')),
+                  ),
               ] else if (kBuyNowEnabled)
                 FilledButton.icon(
                   onPressed: () => showListDialog(context, ref, device),

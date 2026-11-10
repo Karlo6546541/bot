@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:loop_app/config/features.dart';
 import 'package:hive/hive.dart';
 import 'package:loop_app/providers/app_providers.dart';
 import 'package:loop_app/providers/my_activity_provider.dart';
@@ -66,5 +67,5 @@ void main() {
     expect(find.text('Moj prijenos iz baze'), findsNothing);
     await tester.pumpWidget(const SizedBox.shrink());
     await Hive.close();
-  });
+  }, skip: !kLiveEnabled);
 }

@@ -1,3 +1,4 @@
+import '../config/features.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -86,7 +87,11 @@ List<VerificationStep> sellerVerificationSteps(AppUser user) {
       id: 'access',
       title: t('Puni pristup prodaji'),
       text: allDone
-          ? t('Isplate, liveovi i promocije su otključani.')
+          ? t(
+              kLiveEnabled
+                  ? 'Isplate, liveovi i promocije su otključani.'
+                  : 'Isplate i prodaja su otključani.',
+            )
           : t('Zahtijeva prethodne korake.'),
       icon: Icons.verified_outlined,
       status: allDone ? VerificationStatus.complete : VerificationStatus.locked,

@@ -230,17 +230,18 @@ class _AuctionsScreenState extends ConsumerState<AuctionsScreen> {
                   icon: const Icon(Icons.info_outline),
                 ),
                 const SizedBox(width: 4),
-                FilledButton.icon(
-                  key: const ValueKey('start-live'),
-                  style: FilledButton.styleFrom(
-                    backgroundColor: kLiveRed,
-                    foregroundColor: Colors.white,
-                    visualDensity: VisualDensity.compact,
+                if (kLiveEnabled)
+                  FilledButton.icon(
+                    key: const ValueKey('start-live'),
+                    style: FilledButton.styleFrom(
+                      backgroundColor: kLiveRed,
+                      foregroundColor: Colors.white,
+                      visualDensity: VisualDensity.compact,
+                    ),
+                    onPressed: () => CreateLiveShowScreen.open(context),
+                    icon: const Icon(Icons.videocam, size: 18),
+                    label: Text(t('Live')),
                   ),
-                  onPressed: () => CreateLiveShowScreen.open(context),
-                  icon: const Icon(Icons.videocam, size: 18),
-                  label: Text(t('Live')),
-                ),
               ],
             ),
           ),
@@ -262,15 +263,16 @@ class _AuctionsScreenState extends ConsumerState<AuctionsScreen> {
                   selected: _filter == _all,
                   onTap: () => setState(() => _filter = _all),
                 ),
-                _CategoryCard(
-                  id: _live,
-                  label: t('Uživo'),
-                  icon: Icons.videocam,
-                  color: kLiveRed,
-                  count: liveCount,
-                  selected: _filter == _live,
-                  onTap: () => setState(() => _filter = _live),
-                ),
+                if (kLiveEnabled)
+                  _CategoryCard(
+                    id: _live,
+                    label: t('Uživo'),
+                    icon: Icons.videocam,
+                    color: kLiveRed,
+                    count: liveCount,
+                    selected: _filter == _live,
+                    onTap: () => setState(() => _filter = _live),
+                  ),
                 _CategoryCard(
                   id: _timed,
                   label: t('Aukcije'),
@@ -314,9 +316,11 @@ class _AuctionsScreenState extends ConsumerState<AuctionsScreen> {
               title: _filter == _live
                   ? t('Nitko trenutno nije uživo')
                   : t('Ovdje još nema ničega'),
-              message: t(
-                'Pokreni live — predmeti se licitiraju jedan za drugim, brzo i uz chat.',
-              ),
+              message: kLiveEnabled
+                  ? t(
+                      'Pokreni live — predmeti se licitiraju jedan za drugim, brzo i uz chat.',
+                    )
+                  : t('Objavi aukciju i prvi ponuđači stižu ovdje.'),
             ),
           )
         else
@@ -1196,10 +1200,14 @@ class _MyAuctionsViewState extends ConsumerState<MyAuctionsView> {
       child: Row(
         children: [
           tabButton(MyTab.selling, 0),
-          tabButton(
-            MyTab.live,
-            lv.actions.length + shipLive.length + onlineActions + onlineToShip,
-          ),
+          if (kLiveEnabled)
+            tabButton(
+              MyTab.live,
+              lv.actions.length +
+                  shipLive.length +
+                  onlineActions +
+                  onlineToShip,
+            ),
           tabButton(MyTab.notes, toShip.length + onlineToShip),
         ],
       ),
@@ -1787,18 +1795,20 @@ Future<void> showAuctionRules(
           ),
           style: const TextStyle(height: 1.4, fontSize: 15),
         ),
-        const SizedBox(height: 16),
-        Text(
-          t('Live aukcije'),
-          style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w900),
-        ),
-        const SizedBox(height: 8),
-        Text(
-          t(
-            'Predmeti se licitiraju jedan za drugim — brze licitacije od 5 ili 10 sekundi.\n\n Svaka ponuda dodaje 2 s na sat.\n\n Povuci gore ili dolje za sljedeći live ili aukciju.',
+        if (kLiveEnabled) ...[
+          const SizedBox(height: 16),
+          Text(
+            t('Live aukcije'),
+            style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w900),
           ),
-          style: const TextStyle(height: 1.4, fontSize: 15),
-        ),
+          const SizedBox(height: 8),
+          Text(
+            t(
+              'Predmeti se licitiraju jedan za drugim — brze licitacije od 5 ili 10 sekundi.\n\n Svaka ponuda dodaje 2 s na sat.\n\n Povuci gore ili dolje za sljedeći live ili aukciju.',
+            ),
+            style: const TextStyle(height: 1.4, fontSize: 15),
+          ),
+        ],
       ],
     ),
   ),

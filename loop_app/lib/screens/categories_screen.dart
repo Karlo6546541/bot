@@ -748,8 +748,8 @@ class _CategoryItemsScreenState extends ConsumerState<CategoryItemsScreen> {
               items: [
                 for (final (id, label) in [
                   ('all', t('Sve')),
-                  ('products', t('Proizvodi')),
-                  ('live', t('Uživo')),
+                  if (kBuyNowEnabled) ('products', t('Proizvodi')),
+                  if (kLiveEnabled) ('live', t('Uživo')),
                   ('auctions', t('Aukcije')),
                 ])
                   PillSwitchItem(

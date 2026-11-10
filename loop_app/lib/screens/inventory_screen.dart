@@ -1,3 +1,4 @@
+import '../config/features.dart';
 import '../widgets/reference_sheet.dart';
 import '../config/design_variant.dart';
 import 'package:flutter/material.dart';
@@ -100,14 +101,15 @@ Future<void> showCreateSheet(BuildContext context, WidgetRef ref) async {
               style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 18),
             ),
             const SizedBox(height: 8),
-            option(
-              'quick',
-              Icons.bolt,
-              t('Brzi predmet za live'),
-              next == null
-                  ? t('Naziv i cijena, prvo kreiraš show.')
-                  : t('Naziv i cijena, ide u "{0}".', [next.title]),
-            ),
+            if (kLiveEnabled)
+              option(
+                'quick',
+                Icons.bolt,
+                t('Brzi predmet za live'),
+                next == null
+                    ? t('Naziv i cijena, prvo kreiraš show.')
+                    : t('Naziv i cijena, ide u "{0}".', [next.title]),
+              ),
             option(
               'item',
               Icons.sell_outlined,
@@ -118,9 +120,9 @@ Future<void> showCreateSheet(BuildContext context, WidgetRef ref) async {
               'auction',
               Icons.gavel,
               t('Aukcija'),
-              t('Licitacija s rokom, bez livea.'),
+              t('Klasična, holandska ili zatvorena licitacija s rokom.'),
             ),
-            if (next != null)
+            if (kLiveEnabled && next != null)
               option(
                 'import',
                 Icons.move_to_inbox_outlined,

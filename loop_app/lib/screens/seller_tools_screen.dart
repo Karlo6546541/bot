@@ -1,3 +1,4 @@
+import '../config/features.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -146,14 +147,15 @@ class SellerToolsScreen extends ConsumerWidget {
               () => closeThen(onShipping),
             ),
           ]),
-          group(t('Promocije'), [
-            row(
-              'tool-promote',
-              Icons.trending_up,
-              t('Promoviraj show'),
-              () => MyShowsScreen.open(context),
-            ),
-          ]),
+          if (kLiveEnabled)
+            group(t('Promocije'), [
+              row(
+                'tool-promote',
+                Icons.trending_up,
+                t('Promoviraj show'),
+                () => MyShowsScreen.open(context),
+              ),
+            ]),
           group(t('Učinak'), [
             row(
               'tool-health',
@@ -163,12 +165,13 @@ class SellerToolsScreen extends ConsumerWidget {
                   ? AccountHealthScreen.open(context)
                   : closeThen(onHealth),
             ),
-            row(
-              'tool-analytics',
-              Icons.insights_outlined,
-              t('Analitika showova'),
-              () => MyShowsScreen.open(context),
-            ),
+            if (kLiveEnabled)
+              row(
+                'tool-analytics',
+                Icons.insights_outlined,
+                t('Analitika showova'),
+                () => MyShowsScreen.open(context),
+              ),
           ]),
           group(t('Postavke'), [
             row(

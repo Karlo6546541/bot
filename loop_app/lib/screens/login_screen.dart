@@ -1,3 +1,4 @@
+import '../config/features.dart';
 import '../services/app_location/app_location.dart';
 import 'package:flutter/material.dart';
 import '../widgets/country_widgets.dart';
@@ -593,7 +594,8 @@ class _WelcomeHero extends StatelessWidget {
   final bool compact;
 
   static List<(String, String)> get _bubbles => [
-    ('🔴', t('Uživo')),
+    if (kLiveEnabled) ('🔴', t('Uživo')),
+    if (!kLiveEnabled) ('🔨', t('Aukcije')),
     ('🃏', t('Kartice')),
     ('👟', t('Tenisice')),
     ('📱', t('Mobiteli')),
@@ -620,7 +622,11 @@ class _WelcomeHero extends StatelessWidget {
         LoopLogo(size: compact ? 34 : 40),
         const SizedBox(height: 18),
         Text(
-          t('Licitiraj uživo.\nOsvoji povoljno.'),
+          t(
+            kLiveEnabled
+                ? 'Licitiraj uživo.\nOsvoji povoljno.'
+                : 'Licitiraj.\nOsvoji povoljno.',
+          ),
           textAlign: compact ? TextAlign.center : TextAlign.start,
           style: TextStyle(
             fontSize: compact ? 30 : 48,
