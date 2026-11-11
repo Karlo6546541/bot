@@ -196,7 +196,7 @@ class _AuctionsHomeScreenState extends ConsumerState<AuctionsHomeScreen> {
                   // Slika (kvadrat) + natpisi; viša kartica pri većem tekstu.
                   mainAxisExtent:
                       (width - 32 - (columns - 1) * 12) / columns +
-                      118 * MediaQuery.textScalerOf(context).scale(1),
+                      132 * MediaQuery.textScalerOf(context).scale(1),
                 ),
                 delegate: SliverChildBuilderDelegate(
                   (context, i) => AuctionTile(
