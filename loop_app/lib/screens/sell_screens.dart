@@ -10,137 +10,17 @@ import '../providers/app_providers.dart';
 import '../services/auction_service.dart';
 import '../theme/app_theme.dart';
 import '../widgets/auction_kind_style.dart';
-import '../widgets/seller_account_card.dart';
 import '../widgets/trade_actions.dart';
-import 'account_health_screen.dart';
 import 'add_device_screen.dart' show PhotoPickerRow;
 import 'auction_detail_screen.dart';
-import 'auctions_screen.dart' show MyAuctionsScreen, MyTab;
-import 'deliveries_screen.dart' show DeliveryNotesScreen;
-import 'messages_screen.dart';
-import 'seller_finance_screens.dart' show FinancialsScreen;
 import 'seller_screens.dart';
-
-/// Tab Prodaj (samo aukcije): jedan veliki gumb za objavu, dolje kratak popis
-/// onoga što prodavač treba — bez livea, shopa i alata koji se ne koriste.
-class SellScreen extends ConsumerWidget {
-  const SellScreen({super.key});
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final s = ref.watch(appProvider);
-    final me = s.currentUserId;
-    final mine = [
-      for (final a in s.activeAuctions)
-        if (a.sellerId == me) a,
-    ];
-    Widget row(
-      Key key,
-      IconData icon,
-      String title,
-      String? sub,
-      VoidCallback onTap,
-    ) {
-      return ListTile(
-        key: key,
-        contentPadding: const EdgeInsets.symmetric(horizontal: 4),
-        minVerticalPadding: 10,
-        leading: Icon(icon, color: LoopColors.textSecondary),
-        title: Text(
-          title,
-          style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 16),
-        ),
-        subtitle: sub == null ? null : Text(sub),
-        trailing: Icon(Icons.chevron_right, color: LoopColors.textSecondary),
-        onTap: onTap,
-      );
-    }
-
-    return SafeArea(
-      bottom: false,
-      child: Center(
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 560),
-          child: ListView(
-            key: const ValueKey('sell-home'),
-            padding: const EdgeInsets.fromLTRB(16, 20, 16, 112),
-            children: [
-              Text(
-                t('Prodaj'),
-                style: const TextStyle(
-                  fontSize: 26,
-                  fontWeight: FontWeight.w700,
-                  letterSpacing: -.6,
-                ),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                t('Slikaj, upiši cijenu i objavi aukciju.'),
-                style: TextStyle(color: LoopColors.textSecondary),
-              ),
-              const SizedBox(height: 18),
-              FilledButton.icon(
-                key: const ValueKey('sell-new'),
-                style: FilledButton.styleFrom(
-                  minimumSize: const Size.fromHeight(56),
-                ),
-                onPressed: () => SellAuctionScreen.open(context),
-                icon: const Icon(Icons.add),
-                label: Text(t('Objavi aukciju')),
-              ),
-              const SizedBox(height: 14),
-              const SellerAccountCard(),
-              const SizedBox(height: 8),
-              Divider(color: LoopColors.glassBorder),
-              row(
-                const ValueKey('sell-mine'),
-                Icons.gavel,
-                t('Moje aukcije'),
-                mine.isEmpty
-                    ? t('Još nemaš aktivnih aukcija')
-                    : t('{0} aktivnih', ['${mine.length}']),
-                () => MyAuctionsScreen.open(context, initialTab: MyTab.selling),
-              ),
-              row(
-                const ValueKey('sell-shipments'),
-                Icons.local_shipping_outlined,
-                t('Pošalji pakete'),
-                t('{0} čeka slanje', ['${s.toShip.length}']),
-                () => DeliveryNotesScreen.open(context),
-              ),
-              row(
-                const ValueKey('sell-finance'),
-                Icons.account_balance_wallet_outlined,
-                t('Zarada i isplate'),
-                null,
-                () => FinancialsScreen.open(context),
-              ),
-              row(
-                const ValueKey('sell-messages'),
-                Icons.chat_bubble_outline,
-                t('Poruke'),
-                t('{0} razgovora', ['${s.conversations.length}']),
-                () => MessagesScreen.open(context),
-              ),
-              row(
-                const ValueKey('sell-health'),
-                Icons.verified_user_outlined,
-                t('Zdravlje računa'),
-                null,
-                () => AccountHealthScreen.open(context),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
 
 /// Objava aukcije na jednoj stranici (kao Vinted): fotografije, naslov, opis,
 /// kategorija, stanje, vrsta i cijena, trajanje, dostava — i "Objavi".
 class SellAuctionScreen extends ConsumerStatefulWidget {
-  const SellAuctionScreen({super.key});
+  /// [embedded]: tab Prodaj (bez gumba za zatvaranje; nakon objave se prazni).
+  const SellAuctionScreen({super.key, this.embedded = false});
+  final bool embedded;
 
   static Future<void> open(BuildContext context) async {
     if (blockGuest(context, place: 'new=item')) return;
@@ -268,6 +148,21 @@ class _SellAuctionScreenState extends ConsumerState<SellAuctionScreen> {
       );
     }, successMessage: t('Aukcija je objavljena'));
     if (!ok || !mounted || created == null) return;
+    if (widget.embedded) {
+      // Forma se prazni, a objavljena aukcija se otvara.
+      setState(() {
+        _title.clear();
+        _description.clear();
+        _price.clear();
+        _floor.clear();
+        _photos.clear();
+        _category = null;
+        _categoryManual = false;
+        _kind = AuctionKind.classic;
+      });
+      await AuctionDetailScreen.open(context, created!.id);
+      return;
+    }
     Navigator.of(context).pushReplacement(
       MaterialPageRoute<void>(
         builder: (_) => AuctionDetailScreen(auctionId: created!.id),
@@ -292,14 +187,17 @@ class _SellAuctionScreenState extends ConsumerState<SellAuctionScreen> {
     ];
     return Scaffold(
       appBar: AppBar(
-        leading: IconButton(
-          key: const ValueKey('sell-close'),
-          tooltip: t('Zatvori'),
-          icon: const Icon(Icons.close),
-          onPressed: () => Navigator.maybePop(context),
-        ),
+        automaticallyImplyLeading: false,
+        leading: widget.embedded
+            ? null
+            : IconButton(
+                key: const ValueKey('sell-close'),
+                tooltip: t('Zatvori'),
+                icon: const Icon(Icons.close),
+                onPressed: () => Navigator.maybePop(context),
+              ),
         title: Text(
-          t('Nova aukcija'),
+          widget.embedded ? t('Prodaj') : t('Nova aukcija'),
           style: const TextStyle(fontWeight: FontWeight.w700),
         ),
       ),

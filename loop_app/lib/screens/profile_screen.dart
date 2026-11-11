@@ -1,3 +1,7 @@
+import 'seller_finance_screens.dart' show FinancialsScreen;
+import 'deliveries_screen.dart' show DeliveryNotesScreen;
+import 'auctions_screen.dart' show MyAuctionsScreen, MyTab;
+import '../widgets/seller_account_card.dart';
 import '../config/design_variant.dart';
 import '../widgets/jednostavno_ui.dart';
 import '../widgets/reference_sheet.dart';
@@ -75,9 +79,215 @@ class ProfileScreen extends ConsumerWidget {
         ],
       );
     }
+    if (!kLiveEnabled) return const _SimpleProfile();
     return kSimpleDesign
         ? const _JednostavnoAccountHome()
         : const _AccountHome();
+  }
+}
+
+/// Profil samo za aukcije (kao Vinted): kartica s imenom i "Prikaži moje
+/// oglase", jedna kratka lista (aukcije, narudžbe, zarada, poruke) i
+/// postavke — sve ostalo je u Postavkama.
+class _SimpleProfile extends ConsumerWidget {
+  const _SimpleProfile();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final s = ref.watch(appProvider);
+    final user = s.currentUser;
+    if (user == null) return const SizedBox.shrink();
+    Widget row(
+      Key key,
+      IconData icon,
+      String title,
+      VoidCallback onTap, {
+      String? trailing,
+    }) {
+      return InkWell(
+        key: key,
+        onTap: onTap,
+        child: Container(
+          constraints: const BoxConstraints(minHeight: 56),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+          child: Row(
+            children: [
+              Icon(icon, color: LoopColors.textSecondary),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Text(
+                  title,
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ),
+              if (trailing != null) ...[
+                Text(
+                  trailing,
+                  style: TextStyle(color: LoopColors.textSecondary),
+                ),
+                const SizedBox(width: 6),
+              ],
+              Icon(Icons.chevron_right, color: LoopColors.textSecondary),
+            ],
+          ),
+        ),
+      );
+    }
+
+    Widget gap() => Container(height: 8, color: LoopColors.background);
+
+    return SafeArea(
+      bottom: false,
+      child: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 560),
+          child: ListView(
+            key: const ValueKey('account-home'),
+            padding: const EdgeInsets.only(bottom: 112),
+            children: [
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
+                child: Text(
+                  t('Profil'),
+                  style: const TextStyle(
+                    fontSize: 26,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: -.6,
+                  ),
+                ),
+              ),
+              if (user.isGuest)
+                const Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 16),
+                  child: _GuestCard(),
+                )
+              else ...[
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: InkWell(
+                    key: const ValueKey('account-view-profile'),
+                    borderRadius: BorderRadius.circular(16),
+                    onTap: () => PublicProfileScreen.open(context, user.id),
+                    child: Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: LoopColors.surface,
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(color: LoopColors.glassBorder),
+                      ),
+                      child: Row(
+                        children: [
+                          UserAvatar(user: user, size: 56),
+                          const SizedBox(width: 14),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  user.name.isNotEmpty
+                                      ? user.name
+                                      : user.handle,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: const TextStyle(
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                ),
+                                Text(
+                                  t('Prikaži moje oglase'),
+                                  style: TextStyle(
+                                    color: LoopColors.textSecondary,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          Icon(
+                            Icons.chevron_right,
+                            color: LoopColors.textSecondary,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                const Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 16),
+                  child: SellerAccountCard(),
+                ),
+                const SizedBox(height: 8),
+                gap(),
+                row(
+                  const ValueKey('profile-auctions'),
+                  Icons.gavel,
+                  t('Moje aukcije'),
+                  () =>
+                      MyAuctionsScreen.open(context, initialTab: MyTab.selling),
+                ),
+                row(
+                  const ValueKey('profile-purchases'),
+                  Icons.shopping_bag_outlined,
+                  t('Moje kupnje'),
+                  () =>
+                      MyAuctionsScreen.open(context, initialTab: MyTab.buying),
+                ),
+                row(
+                  const ValueKey('profile-shipments'),
+                  Icons.local_shipping_outlined,
+                  t('Pošalji pakete'),
+                  () => DeliveryNotesScreen.open(context),
+                  trailing: s.toShip.isEmpty ? null : '${s.toShip.length}',
+                ),
+                gap(),
+                row(
+                  const ValueKey('profile-earnings'),
+                  Icons.account_balance_wallet_outlined,
+                  t('Zarada i isplate'),
+                  () => FinancialsScreen.open(context),
+                ),
+                row(
+                  const ValueKey('profile-messages'),
+                  Icons.chat_bubble_outline,
+                  t('Poruke'),
+                  () => MessagesScreen.open(context),
+                ),
+                row(
+                  const ValueKey('profile-checkout'),
+                  Icons.credit_card,
+                  t('Plaćanje i dostava'),
+                  () => ensureCheckout(context, ref, force: true),
+                ),
+                gap(),
+              ],
+              row(
+                const ValueKey('profile-settings'),
+                Icons.settings_outlined,
+                t('Postavke'),
+                () => ref.read(profileSettingsProvider.notifier).setOpen(true),
+              ),
+              row(
+                const ValueKey('open-legal'),
+                Icons.description_outlined,
+                t('Pravne informacije'),
+                () => LegalListScreen.open(context),
+              ),
+              if (!user.isGuest)
+                row(
+                  const ValueKey('account-sign-out'),
+                  Icons.logout,
+                  t('Odjavi se'),
+                  () => ref.read(appProvider.notifier).logout(),
+                ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 }
 
@@ -1140,57 +1350,62 @@ class _ProfileSettingsView extends ConsumerWidget {
                         const _GuestCard()
                       else ...[
                         // Kao Whatnot: na vrhu profil s poveznicom "Pogledaj profil".
-                        ListTile(
-                          key: const ValueKey('settings-profile-row'),
-                          contentPadding: const EdgeInsets.symmetric(
-                            horizontal: 4,
-                          ),
-                          leading: UserAvatar(user: user, size: 48),
-                          title: Text(
-                            user.name.isNotEmpty ? user.name : user.handle,
-                            style: const TextStyle(
-                              fontWeight: FontWeight.w800,
-                              fontSize: 17,
+                        if (kLiveEnabled)
+                          ListTile(
+                            key: const ValueKey('settings-profile-row'),
+                            contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 4,
                             ),
-                          ),
-                          subtitle: Text(
-                            t('Pogledaj profil'),
-                            style: TextStyle(
-                              color: LoopColors.accent,
-                              fontWeight: FontWeight.w700,
+                            leading: UserAvatar(user: user, size: 48),
+                            title: Text(
+                              user.name.isNotEmpty ? user.name : user.handle,
+                              style: const TextStyle(
+                                fontWeight: FontWeight.w800,
+                                fontSize: 17,
+                              ),
                             ),
+                            subtitle: Text(
+                              t('Pogledaj profil'),
+                              style: TextStyle(
+                                color: LoopColors.accent,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                            onTap: () =>
+                                PublicProfileScreen.open(context, user.id),
                           ),
-                          onTap: () =>
-                              PublicProfileScreen.open(context, user.id),
-                        ),
                         const SizedBox(height: 4),
-                        OutlinedButton.icon(
-                          key: const ValueKey('settings-seller-hub'),
-                          onPressed: () {
-                            SellerHubScreen.open(context);
-                          },
-                          icon: const Icon(Icons.storefront_outlined),
-                          label: Text(t('Prodavač')),
-                        ),
-                        _SectionTitle(
-                          t('Općenito'),
-                          Icons.manage_accounts_outlined,
-                        ),
+                        if (kLiveEnabled)
+                          OutlinedButton.icon(
+                            key: const ValueKey('settings-seller-hub'),
+                            onPressed: () {
+                              SellerHubScreen.open(context);
+                            },
+                            icon: const Icon(Icons.storefront_outlined),
+                            label: Text(t('Prodavač')),
+                          ),
+                        if (kLiveEnabled)
+                          _SectionTitle(
+                            t('Općenito'),
+                            Icons.manage_accounts_outlined,
+                          ),
                         _ShopCard(user: user),
                         const SizedBox(height: 8),
                         Card(
                           child: Column(
                             children: [
-                              _NavTile(
-                                key: const ValueKey('profile-checkout'),
-                                icon: Icons.credit_card,
-                                title: user.checkoutReady
-                                    ? '${user.paymentCard} · ${user.address}'
-                                    : t('Dodaj karticu i adresu'),
-                                onTap: () =>
-                                    ensureCheckout(context, ref, force: true),
-                              ),
-                              const Divider(height: 1),
+                              if (kLiveEnabled) ...[
+                                _NavTile(
+                                  key: const ValueKey('profile-checkout'),
+                                  icon: Icons.credit_card,
+                                  title: user.checkoutReady
+                                      ? '${user.paymentCard} · ${user.address}'
+                                      : t('Dodaj karticu i adresu'),
+                                  onTap: () =>
+                                      ensureCheckout(context, ref, force: true),
+                                ),
+                                const Divider(height: 1),
+                              ],
                               _NavTile(
                                 key: const ValueKey('open-activity'),
                                 icon: Icons.receipt_long_outlined,
@@ -1502,40 +1717,42 @@ class _ShopCard extends ConsumerWidget {
                 : '${user.seller!.isBusiness ? user.seller!.tradeName : t('Fizička osoba')} · ${user.seller!.maskedIban}',
             onTap: () => SellerInfoScreen.open(context),
           ),
-          const Divider(height: 1),
-          ListTile(
-            key: const ValueKey('my-shop'),
-            leading: const Icon(Icons.storefront_outlined),
-            title: Text(t('Moja trgovina: {0}', [user.shopTitle])),
-            subtitle: Text(
-              t('{0} aukcija · ocjena {1}', [
-                '${state.auctions.where((a) => a.sellerId == user.id && a.isActive).length}',
-                state.ratingOf(user.id).count == 0
-                    ? '–'
-                    : state.ratingOf(user.id).average.toStringAsFixed(1),
-              ]),
-            ),
-            trailing: const Icon(Icons.chevron_right),
-            onTap: () => PublicProfileScreen.open(context, user.id),
-          ),
-          const Divider(height: 1),
-          ListTile(
-            leading: const Icon(Icons.badge_outlined),
-            title: Text(t('Naziv trgovine')),
-            subtitle: Text(user.shopTitle),
-            trailing: IconButton(
-              tooltip: t('Kopiraj poveznicu trgovine'),
-              icon: const Icon(Icons.ios_share),
-              onPressed: () => shareLink(
-                context,
-                publicLink(shop: user.username),
-                text: t('Pogledaj moju trgovinu {0} na Subhastu', [
-                  user.shopTitle,
+          if (kLiveEnabled) ...[
+            const Divider(height: 1),
+            ListTile(
+              key: const ValueKey('my-shop'),
+              leading: const Icon(Icons.storefront_outlined),
+              title: Text(t('Moja trgovina: {0}', [user.shopTitle])),
+              subtitle: Text(
+                t('{0} aukcija · ocjena {1}', [
+                  '${state.auctions.where((a) => a.sellerId == user.id && a.isActive).length}',
+                  state.ratingOf(user.id).count == 0
+                      ? '–'
+                      : state.ratingOf(user.id).average.toStringAsFixed(1),
                 ]),
               ),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () => PublicProfileScreen.open(context, user.id),
             ),
-            onTap: () => showShopNameDialog(context, ref),
-          ),
+            const Divider(height: 1),
+            ListTile(
+              leading: const Icon(Icons.badge_outlined),
+              title: Text(t('Naziv trgovine')),
+              subtitle: Text(user.shopTitle),
+              trailing: IconButton(
+                tooltip: t('Kopiraj poveznicu trgovine'),
+                icon: const Icon(Icons.ios_share),
+                onPressed: () => shareLink(
+                  context,
+                  publicLink(shop: user.username),
+                  text: t('Pogledaj moju trgovinu {0} na Subhastu', [
+                    user.shopTitle,
+                  ]),
+                ),
+              ),
+              onTap: () => showShopNameDialog(context, ref),
+            ),
+          ],
         ],
       ),
     );

@@ -3,6 +3,7 @@ import 'helpers/vision_navigation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:loop_app/config/features.dart';
 import 'package:hive/hive.dart';
 import 'package:loop_app/app.dart';
 import 'package:loop_app/models/device.dart';
@@ -86,6 +87,7 @@ void main() {
       expect(tester.takeException(), isNull);
       await tester.pumpWidget(const SizedBox.shrink());
     },
+    skip: !kLiveEnabled,
   );
 
   testWidgets(
@@ -111,6 +113,7 @@ void main() {
       expect(find.text('Još nema lajkanih oglasa.'), findsOneWidget);
       await tester.pumpWidget(const SizedBox.shrink());
     },
+    skip: !kLiveEnabled,
   );
 
   testWidgets(
@@ -139,5 +142,6 @@ void main() {
       expect(find.byKey(ValueKey('account-post-${own.id}')), findsNothing);
       await tester.pumpWidget(const SizedBox.shrink());
     },
+    skip: !kLiveEnabled,
   );
 }

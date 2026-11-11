@@ -457,7 +457,7 @@ class _HomeShellState extends ConsumerState<HomeShell> {
         enabled: _index == 4,
         child: kLiveEnabled
             ? const SellerHubScreen(embedded: true)
-            : const SellScreen(),
+            : const SellAuctionScreen(embedded: true),
       ),
     ],
   );

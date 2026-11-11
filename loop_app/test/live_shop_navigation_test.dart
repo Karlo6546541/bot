@@ -104,7 +104,7 @@ void main() {
     expect(find.byType(PublicProfileScreen), findsOneWidget);
     expect(tester.takeException(), isNull);
     await tester.pumpWidget(const SizedBox.shrink());
-  });
+  }, skip: !kLiveEnabled);
   testWidgets(
     'live shop keeps available products separate from live lots and opens the seller shop',
     (tester) async {

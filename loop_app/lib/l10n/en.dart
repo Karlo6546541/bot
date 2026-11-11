@@ -3555,6 +3555,8 @@ const kEn = <String, String>{
   'npr. Retro sat, tenisice, kamera…': 'e.g. Retro watch, sneakers, camera…',
   '{0} aktivnih': '{0} active',
   '{0} čeka slanje': '{0} waiting to ship',
+  'Pravne informacije': 'Legal information',
+  'Prikaži moje oglase': 'Show my listings',
   'Zakaži show': 'Schedule a show',
   'Otprema': 'Shipping',
   'Nema paketa za predaju': 'No parcels to hand over',
