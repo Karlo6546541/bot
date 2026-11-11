@@ -26,6 +26,7 @@ import '../l10n/tr.dart';
 import 'create_auction_screen.dart';
 import 'live_screens.dart';
 import 'seller_screens.dart';
+import 'sell_screens.dart';
 
 /// Kako se novi predmet prodaje (jedan predmet, tri načina).
 enum SellMode {
@@ -50,6 +51,16 @@ class AddDeviceScreen extends ConsumerStatefulWidget {
     if (blockGuest(context, place: 'new=item')) return;
     // Predmet ide u "Moje predmete"; podaci prodavatelja traže se tek za
     // aukciju ili isplatu.
+    // Samo aukcije: jedna jednostavna stranica za objavu (kao Vinted).
+    if (!kLiveEnabled) {
+      await Navigator.of(context).push(
+        MaterialPageRoute<void>(
+          settings: const AppPlace('new=item').settings,
+          builder: (_) => const SellAuctionScreen(),
+        ),
+      );
+      return;
+    }
     await Navigator.of(context).push(
       MaterialPageRoute<void>(
         settings: const AppPlace('new=item').settings,
@@ -639,7 +650,7 @@ class _AddDeviceScreenState extends ConsumerState<AddDeviceScreen> {
                     ),
                   gap,
                   if (_store.supported) ...[
-                    _PhotoPicker(
+                    PhotoPickerRow(
                       photos: _photos,
                       canUseCamera: ref.read(imageStoreProvider).canUseCamera,
                       onPick: _pickPhotos,
@@ -974,8 +985,9 @@ class _CategoryTile extends StatelessWidget {
   }
 }
 
-class _PhotoPicker extends StatelessWidget {
-  const _PhotoPicker({
+class PhotoPickerRow extends StatelessWidget {
+  const PhotoPickerRow({
+    super.key,
     required this.photos,
     required this.canUseCamera,
     required this.onPick,

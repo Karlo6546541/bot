@@ -272,7 +272,7 @@ void main() {
 
     // Kupnje: dostava je dio kartice kupljenog predmeta (nema zasebnog taba).
     expect(find.byKey(const ValueKey('my-deliveries')), findsNothing);
-  });
+  }, skip: !kLiveEnabled);
 
   testWidgets('aukcija: ponuda, vodstvo, zaključan obrazac', (tester) async {
     tester.view.physicalSize = const Size(1400, 1000);

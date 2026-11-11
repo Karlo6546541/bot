@@ -3539,6 +3539,22 @@ const kEn = <String, String>{
   'Cijena pada svake sekunde': 'Price falls every second',
   'Cijena sada': 'Price now',
   'Pretraži aukcije': 'Search auctions',
+  'Dostavu plaća kupac. Novac ti se isplaćuje nakon što kupac primi paket. Provizija je 10 % samo od razlike iznad početne cijene.':
+      'The buyer pays for shipping. You are paid after the buyer receives the parcel. The fee is 10% of the amount above the starting price only.',
+  'Još nemaš aktivnih aukcija': 'You have no active auctions yet',
+  'Najniža cijena mora biti manja od početne.':
+      'The lowest price must be below the starting price.',
+  'Pošalji pakete': 'Send parcels',
+  'Slikaj, upiši cijenu i objavi aukciju.':
+      'Take a photo, enter a price and post an auction.',
+  'Stanje, oštećenja, što dolazi u paketu…':
+      'Condition, damage, what comes in the package…',
+  'Upiši naslov': 'Enter a title',
+  'Vrsta aukcije': 'Auction type',
+  'Zarada i isplate': 'Earnings and payouts',
+  'npr. Retro sat, tenisice, kamera…': 'e.g. Retro watch, sneakers, camera…',
+  '{0} aktivnih': '{0} active',
+  '{0} čeka slanje': '{0} waiting to ship',
   'Zakaži show': 'Schedule a show',
   'Otprema': 'Shipping',
   'Nema paketa za predaju': 'No parcels to hand over',

@@ -16,6 +16,7 @@ import '../widgets/trade_actions.dart';
 import 'activity_view.dart';
 import 'categories_screen.dart';
 import 'auctions_home_screen.dart';
+import 'sell_screens.dart';
 import 'live_home_screen.dart';
 import 'live_screens.dart';
 import 'profile_screen.dart';
@@ -454,7 +455,9 @@ class _HomeShellState extends ConsumerState<HomeShell> {
       const ProfileScreen(),
       TickerMode(
         enabled: _index == 4,
-        child: const SellerHubScreen(embedded: true),
+        child: kLiveEnabled
+            ? const SellerHubScreen(embedded: true)
+            : const SellScreen(),
       ),
     ],
   );
