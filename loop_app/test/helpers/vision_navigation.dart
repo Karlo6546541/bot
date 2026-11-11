@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:loop_app/config/design_variant.dart';
+import 'package:loop_app/config/features.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:loop_app/l10n/tr.dart';
 
@@ -22,17 +23,54 @@ Future<void> mainTab(WidgetTester tester, String label) async {
     await tester.pumpAndSettle();
     return;
   }
+  if (!kLiveEnabled) {
+    // Aplikacija samo za aukcije: puna donja traka s ključevima po mjestu.
+    final index = switch (label) {
+      'Kategorije' => 1,
+      'Prodavač' || 'Studio' || 'Prodaj' => 2,
+      'Moje' || 'Trezor' || 'Kupnje' || 'Aukcije' => 3,
+      'Profil' => 4,
+      _ => 0,
+    };
+    final names = ['Početna', 'Kategorije', 'Prodaj', 'Aukcije', 'Profil'];
+    Finder dock() {
+      final bar = find.byKey(ValueKey('dock-nav-$index')).hitTestable();
+      if (bar.evaluate().isNotEmpty) return bar;
+      // Široki ekran: bočni izbornik.
+      return find
+          .descendant(
+            of: find.byType(NavigationRail),
+            matching: find.text(t(names[index])),
+          )
+          .hitTestable();
+    }
+
+    for (var i = 0; i < 6; i++) {
+      if (dock().evaluate().isNotEmpty) break;
+      await tester.binding.handlePopRoute();
+      await tester.pumpAndSettle();
+    }
+    await tester.tap(dock().first);
+    await tester.pumpAndSettle();
+    return;
+  }
   final expand = find.byKey(const ValueKey('dock-expand'));
   if (expand.evaluate().isNotEmpty) {
     await tester.tap(expand);
     await tester.pumpAndSettle();
   }
-  final destination = switch (label) {
-    'Moje' || 'Profil' => 'Trezor',
-    'Početna' => 'Pozornica',
-    'Prodavač' => 'Studio',
-    _ => label,
-  };
+  final destination = !kLiveEnabled
+      ? switch (label) {
+          'Prodavač' || 'Studio' => 'Prodaj',
+          'Moje' || 'Trezor' || 'Kupnje' => 'Aukcije',
+          _ => label,
+        }
+      : switch (label) {
+          'Moje' || 'Profil' => 'Trezor',
+          'Početna' => 'Pozornica',
+          'Prodavač' => 'Studio',
+          _ => label,
+        };
   Finder target() {
     final item = find
         .ancestor(
@@ -57,7 +95,7 @@ Future<void> mainTab(WidgetTester tester, String label) async {
   }
   await tester.tap(target().first);
   await tester.pumpAndSettle();
-  if (label == 'Profil') {
+  if (label == 'Profil' && kLiveEnabled) {
     await tester.tap(find.byKey(const ValueKey('vault-account')));
   }
   await tester.pumpAndSettle();

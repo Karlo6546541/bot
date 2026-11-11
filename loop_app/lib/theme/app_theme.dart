@@ -1,3 +1,4 @@
+import '../config/features.dart';
 import '../config/design_variant.dart';
 
 import 'package:flutter/material.dart';
@@ -16,27 +17,54 @@ class LoopColors {
   static void use(Brightness brightness) =>
       _dark = brightness == Brightness.dark;
 
-  static Color get background => _dark
+  /// Aplikacija samo za aukcije: tamnozelenoplava paleta s teal akcentom
+  /// (klasična, holandska i zatvorena imaju svaka svoju boju oznake).
+  static bool get _au => !kLiveEnabled;
+
+  /// Boje vrsta aukcije: klasična · holandska · zatvorena.
+  static Color get classic =>
+      _dark ? const Color(0xFF9AA4FF) : const Color(0xFF4350C7);
+  static Color get dutch =>
+      _dark ? const Color(0xFFF0A36B) : const Color(0xFFB45309);
+  static Color get sealed =>
+      _dark ? const Color(0xFF5FD3A8) : const Color(0xFF1B7F5C);
+
+  static Color get background => _au
+      ? (_dark ? const Color(0xFF171C1D) : const Color(0xFFF3F6F6))
+      : _dark
       ? const Color(0xFF000000)
       : (kSimpleDesign ? const Color(0xFFFAFAF8) : const Color(0xFFF2F2F7));
-  static Color get surface =>
-      _dark ? const Color(0xFF1C1C1E) : const Color(0xFFFFFFFF);
-  static Color get surfaceHover =>
-      _dark ? const Color(0xFF2C2C30) : const Color(0xFFEBEDF1);
+  static Color get surface => _au
+      ? (_dark ? const Color(0xFF1F2627) : const Color(0xFFFFFFFF))
+      : _dark
+      ? const Color(0xFF1C1C1E)
+      : const Color(0xFFFFFFFF);
+  static Color get surfaceHover => _au
+      ? (_dark ? const Color(0xFF2A3335) : const Color(0xFFE6ECEC))
+      : _dark
+      ? const Color(0xFF2C2C30)
+      : const Color(0xFFEBEDF1);
 
   /// Shared VisionOS surfaces; opaque content stays readable on every page.
-  static Color get glassBorder => _dark
+  static Color get glassBorder => _au
+      ? (_dark ? const Color(0xFF343D3F) : const Color(0xFFD4DBDC))
+      : _dark
       ? Colors.white.withValues(alpha: .18)
       : Colors.black.withValues(alpha: .10);
-  static Color get glass => _dark
+  static Color get glass => _au
+      ? surface
+      : _dark
       ? const Color(0xFF28282D).withValues(alpha: .45)
       : Colors.white.withValues(alpha: .8);
   static Color get gold =>
       _dark ? const Color(0xFFFFD60A) : const Color(0xFF806000);
 
   /// Poveznice, odabir i fokus polja.
-  static Color get accent =>
-      _dark ? const Color(0xFF64B0FF) : const Color(0xFF0066CC);
+  static Color get accent => _au
+      ? (_dark ? const Color(0xFF449DA8) : const Color(0xFF2A7C88))
+      : _dark
+      ? const Color(0xFF64B0FF)
+      : const Color(0xFF0066CC);
 
   /// Uživo (oznaka UŽIVO, live gumbi i bljesak) — isključivo za live.
   // Slightly deeper than the reference so small white labels stay readable.
@@ -47,21 +75,39 @@ class LoopColors {
       _dark ? const Color(0xFF30D158) : const Color(0xFF1E7E34);
 
   /// Tekst/ikone na akcentu.
-  static Color get onAccent =>
-      _dark ? const Color(0xFF000000) : const Color(0xFFFFFFFF);
+  static Color get onAccent => _au
+      ? (_dark ? const Color(0xFF0E1516) : const Color(0xFFFFFFFF))
+      : _dark
+      ? const Color(0xFF000000)
+      : const Color(0xFFFFFFFF);
 
-  static Color get textPrimary =>
-      _dark ? const Color(0xFFF5F5F7) : const Color(0xFF1D1D1F);
-  static Color get textSecondary =>
-      _dark ? const Color(0xFFAEAEB6) : const Color(0xFF646871);
-  static Color get error =>
-      _dark ? const Color(0xFFFF453A) : const Color(0xFFD70015);
-  static Color get success =>
-      _dark ? const Color(0xFF30D158) : const Color(0xFF1E7E34);
+  static Color get textPrimary => _au
+      ? (_dark ? const Color(0xFFF2F4F4) : const Color(0xFF141B1C))
+      : _dark
+      ? const Color(0xFFF5F5F7)
+      : const Color(0xFF1D1D1F);
+  static Color get textSecondary => _au
+      ? (_dark ? const Color(0xFFA4ADAF) : const Color(0xFF566264))
+      : _dark
+      ? const Color(0xFFAEAEB6)
+      : const Color(0xFF646871);
+  static Color get error => _au
+      ? (_dark ? const Color(0xFFFF8A80) : const Color(0xFFC62828))
+      : _dark
+      ? const Color(0xFFFF453A)
+      : const Color(0xFFD70015);
+  static Color get success => _au
+      ? (_dark ? const Color(0xFF5FD3A8) : const Color(0xFF1B7F5C))
+      : _dark
+      ? const Color(0xFF30D158)
+      : const Color(0xFF1E7E34);
 
   /// Plava za bedž "Provjeren" i informativne oznake.
-  static Color get info =>
-      _dark ? const Color(0xFF0A84FF) : const Color(0xFF0066CC);
+  static Color get info => _au
+      ? (_dark ? const Color(0xFF9AA4FF) : const Color(0xFF4350C7))
+      : _dark
+      ? const Color(0xFF0A84FF)
+      : const Color(0xFF0066CC);
 
   /// Akcent admin panela — namjerno drugačiji (ljubičasta) da je admin
   /// vizualno odvojen od korisničkog dijela.
@@ -113,9 +159,10 @@ ThemeData buildLiveTheme() {
 /// Material 3 tema za trenutno aktivnu paletu ([LoopColors.use]).
 ThemeData buildLoopTheme({Color? accent}) {
   final dark = LoopColors.isDark;
-  final primary = accent ?? LoopColors.textPrimary;
+  final primary =
+      accent ?? (kLiveEnabled ? LoopColors.textPrimary : LoopColors.accent);
   final onPrimary = accent == null
-      ? LoopColors.background
+      ? (kLiveEnabled ? LoopColors.background : LoopColors.onAccent)
       : ThemeData.estimateBrightnessForColor(primary) == Brightness.dark
       ? Colors.white
       : const Color(0xFF111113);
@@ -166,14 +213,18 @@ ThemeData buildLoopTheme({Color? accent}) {
       ),
     ),
     cardTheme: CardThemeData(
-      color: kSimpleDesign ? Colors.transparent : LoopColors.glass,
+      color: kSimpleDesign && kLiveEnabled
+          ? Colors.transparent
+          : LoopColors.glass,
       elevation: 0,
       surfaceTintColor: Colors.transparent,
       margin: EdgeInsets.zero,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(kRadius),
         side: BorderSide(
-          color: kSimpleDesign ? Colors.transparent : LoopColors.glassBorder,
+          color: kSimpleDesign && kLiveEnabled
+              ? Colors.transparent
+              : LoopColors.glassBorder,
         ),
       ),
     ),
@@ -249,7 +300,7 @@ ThemeData buildLoopTheme({Color? accent}) {
     ),
     chipTheme: ChipThemeData(
       backgroundColor: LoopColors.glass,
-      selectedColor: LoopColors.textPrimary,
+      selectedColor: kLiveEnabled ? LoopColors.textPrimary : LoopColors.accent,
       side: BorderSide(color: LoopColors.glassBorder),
       showCheckmark: false,
       // Čipovi (filteri, oznake) nisu kapsule: kapsula je samo za tabove.
@@ -262,7 +313,7 @@ ThemeData buildLoopTheme({Color? accent}) {
         // Odabrani čip je obrnut (bijeli s crnim tekstom u tamnoj temi).
         color: WidgetStateColor.resolveWith(
           (st) => st.contains(WidgetState.selected)
-              ? LoopColors.background
+              ? (kLiveEnabled ? LoopColors.background : LoopColors.onAccent)
               : LoopColors.textPrimary,
         ),
       ),

@@ -144,7 +144,7 @@ void main() {
       // Početna: "Za tebe" je mreža (kao Whatnot), feed tek na dodir.
       expect(
         find.byKey(
-          ValueKey(kLiveEnabled ? 'home-cat-for-you' : 'home-view-for-you'),
+          ValueKey(kLiveEnabled ? 'home-cat-for-you' : 'home-formats'),
         ),
         findsOneWidget,
       );
@@ -1117,9 +1117,7 @@ void logoTests() {
     await tester.tap(find.text('Prijavi se'));
     await tester.pumpAndSettle();
     expect(
-      find.byKey(
-        ValueKey(kLiveEnabled ? 'home-cat-for-you' : 'home-view-for-you'),
-      ),
+      find.byKey(ValueKey(kLiveEnabled ? 'home-cat-for-you' : 'home-formats')),
       findsOneWidget,
     );
 

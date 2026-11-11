@@ -7,6 +7,7 @@ import '../providers/app_providers.dart';
 import '../services/fee.dart';
 import '../theme/app_theme.dart';
 import '../widgets/auction_widgets.dart';
+import '../widgets/auction_kind_style.dart';
 import '../widgets/countdown.dart';
 import '../widgets/dutch_price.dart';
 import '../widgets/formatters.dart';
@@ -136,10 +137,9 @@ class _AuctionDetailScreenState extends ConsumerState<AuctionDetailScreen> {
                           if (a.kind != AuctionKind.classic)
                             Padding(
                               padding: const EdgeInsets.only(right: 8),
-                              child: Chip(
+                              child: AuctionKindBadge(
                                 key: const ValueKey('auction-kind'),
-                                label: Text(a.kind.label),
-                                visualDensity: VisualDensity.compact,
+                                kind: a.kind,
                               ),
                             ),
                           if (role != AuctionRole.none) RoleBadge(role: role),

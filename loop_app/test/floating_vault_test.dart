@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:loop_app/config/features.dart';
 import 'package:loop_app/theme/app_theme.dart';
 import 'package:loop_app/widgets/adaptive_shell.dart';
 import 'package:loop_app/widgets/wallet_ticket.dart';
@@ -60,7 +61,7 @@ void main() {
     expect(find.byType(NavigationDestination), findsNWidgets(3));
     expect(tester.takeException(), isNull);
     await tester.pumpWidget(const SizedBox());
-  });
+  }, skip: !kLiveEnabled);
 
   testWidgets('island stays usable at 320px with large text', (tester) async {
     tester.view.physicalSize = const Size(320, 740);
@@ -70,7 +71,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.byType(NavigationDestination), findsNWidgets(3));
     expect(tester.takeException(), isNull);
-  });
+  }, skip: !kLiveEnabled);
 
   testWidgets(
     'unpaid, refunded and unknown orders never show a paid delivery step',

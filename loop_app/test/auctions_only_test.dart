@@ -43,12 +43,12 @@ void main() {
     await tester.pumpWidget(app());
     await tester.pumpAndSettle();
     expect(find.byType(AuctionsHomeScreen), findsOneWidget);
-    expect(find.byKey(const ValueKey('home-tabs')), findsOneWidget);
-    expect(find.byKey(const ValueKey('home-view-soon')), findsNothing);
+    expect(find.byKey(const ValueKey('home-formats')), findsOneWidget);
+    expect(find.byKey(const ValueKey('home-format-dutch')), findsOneWidget);
     expect(find.byKey(const ValueKey('home-live-discovery')), findsNothing);
     expect(find.byKey(const ValueKey('home-go-live')), findsNothing);
-    // Tab "Završavaju uskoro" se otvara bez greške.
-    await tester.tap(find.byKey(const ValueKey('home-view-ending')));
+    // Filter vrste aukcije se otvara bez greške.
+    await tester.tap(find.byKey(const ValueKey('home-format-dutch')));
     await tester.pumpAndSettle();
     expect(tester.takeException(), isNull);
   });

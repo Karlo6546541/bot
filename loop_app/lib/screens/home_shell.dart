@@ -98,7 +98,10 @@ class _HomeShellState extends ConsumerState<HomeShell> {
     _go(0);
   }
 
-  List<ShellDestination> get _destinations => kSimpleDesign
+  /// Pet odredišta: Početna · Kategorije · Prodaj · Aukcije/Kupnje · Profil.
+  bool get _five => kSimpleDesign || !kLiveEnabled;
+
+  List<ShellDestination> get _destinations => _five
       ? [
           // Najviše pet odredišta: Početna · Kategorije · Prodaj · Kupnje ·
           // Profil. Početna je izlog liveova, proizvoda i shopova.
@@ -114,11 +117,14 @@ class _HomeShellState extends ConsumerState<HomeShell> {
             Icons.add_circle,
             action: true,
           ),
-          ShellDestination(
-            t('Kupnje'),
-            Icons.receipt_long_outlined,
-            Icons.receipt_long,
-          ),
+          if (kLiveEnabled)
+            ShellDestination(
+              t('Kupnje'),
+              Icons.receipt_long_outlined,
+              Icons.receipt_long,
+            )
+          else
+            ShellDestination(t('Aukcije'), Icons.gavel_outlined, Icons.gavel),
           ShellDestination(t('Profil'), Icons.person_outline, Icons.person),
         ]
       : [
@@ -142,7 +148,7 @@ class _HomeShellState extends ConsumerState<HomeShell> {
         ];
 
   // Legacy deep links keep their meaning; three destinations collect those views.
-  int _navIndex(int tab) => kSimpleDesign
+  int _navIndex(int tab) => _five
       ? switch (tab) {
           1 => 1,
           4 => 2,
@@ -158,7 +164,7 @@ class _HomeShellState extends ConsumerState<HomeShell> {
         };
 
   void _onNav(int nav) {
-    if (kSimpleDesign) {
+    if (_five) {
       if (nav == 2 && blockGuest(context)) return;
       if (nav == 0) {
         ref.read(homeFilterProvider.notifier).select('for-you');
@@ -361,7 +367,8 @@ class _HomeShellState extends ConsumerState<HomeShell> {
       appBar:
           _index == 0 ||
               _index == 4 ||
-              (kSimpleDesign && (_index == 1 || _index == 3))
+              (_five && _index == 1) ||
+              (kSimpleDesign && _index == 3)
           ? null
           : AppBar(
               // Jednostavna traka: logo lijevo, desno samo pretraga, poruke,
@@ -374,21 +381,27 @@ class _HomeShellState extends ConsumerState<HomeShell> {
                       onTap: _goHome,
                       child: Text(
                         _index == 2 || _index == 3
-                            ? t(kSimpleDesign ? 'Kupnje' : 'Trezor')
+                            ? t(
+                                !kLiveEnabled
+                                    ? (_index == 2 ? 'Aukcije' : 'Profil')
+                                    : kSimpleDesign
+                                    ? 'Kupnje'
+                                    : 'Trezor',
+                              )
                             : t(kLiveEnabled ? 'Pozornica' : 'Početna'),
                         style: const TextStyle(fontWeight: FontWeight.w800),
                       ),
                     ),
               actions: [
                 // Početna i Kategorije već imaju svoju tražilicu.
-                if (!kSimpleDesign && _index != 0 && _index != 1)
+                if (!_five && _index != 0 && _index != 1)
                   IconButton(
                     key: const ValueKey('open-search'),
                     tooltip: t('Pretraži objave i račune'),
                     icon: const Icon(Icons.search),
                     onPressed: () => SearchScreen.open(context),
                   ),
-                if (!kSimpleDesign && (_index == 2 || _index == 3))
+                if (!_five && (_index == 2 || _index == 3))
                   IconButton(
                     key: const ValueKey('vault-account'),
                     tooltip: t(

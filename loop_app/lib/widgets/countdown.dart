@@ -74,11 +74,15 @@ class _AuctionCountdownState extends ConsumerState<AuctionCountdown> {
           ),
           const SizedBox(width: 4),
         ],
-        Text(
-          AuctionCountdown.format(left),
-          style: (widget.style ?? const TextStyle(fontSize: 13)).copyWith(
-            color: urgent ? LoopColors.admin : null,
-            fontFeatures: const [FontFeature.tabularFigures()],
+        Flexible(
+          child: Text(
+            AuctionCountdown.format(left),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: (widget.style ?? const TextStyle(fontSize: 13)).copyWith(
+              color: urgent ? LoopColors.admin : null,
+              fontFeatures: const [FontFeature.tabularFigures()],
+            ),
           ),
         ),
       ],

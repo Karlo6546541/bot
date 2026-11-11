@@ -1,3 +1,4 @@
+import '../config/features.dart';
 import '../config/design_variant.dart';
 
 import 'package:flutter/material.dart';
@@ -31,7 +32,7 @@ class ShellDestination {
     bool selected = false,
     bool compact = false,
   }) {
-    if (!action || kSimpleDesign) {
+    if (!action || kSimpleDesign || !kLiveEnabled) {
       return Icon(
         selected ? selectedIcon : icon,
         key: action ? const ValueKey('nav-create') : null,
@@ -140,7 +141,82 @@ class _AdaptiveShellState extends State<AdaptiveShell> {
             Expanded(
               child: SafeArea(top: false, bottom: false, child: widget.body),
             ),
-            if (widget.showNavigation)
+            if (widget.showNavigation && !kLiveEnabled)
+              // Aplikacija samo za aukcije: puna traka na dnu (podloga i
+              // tanak gornji obrub), aktivno odredište istaknuto bojom teksta.
+              Container(
+                key: const ValueKey('floating-dock'),
+                decoration: BoxDecoration(
+                  color: LoopColors.surface,
+                  border: Border(
+                    top: BorderSide(color: LoopColors.glassBorder),
+                  ),
+                ),
+                child: SafeArea(
+                  top: false,
+                  child: SizedBox(
+                    height: 64,
+                    child: Row(
+                      children: [
+                        for (var i = 0; i < widget.destinations.length; i++)
+                          Expanded(
+                            child: Semantics(
+                              button: true,
+                              selected: i == widget.selectedIndex,
+                              label: widget.destinations[i].label,
+                              excludeSemantics: true,
+                              child: InkWell(
+                                key: ValueKey('dock-nav-$i'),
+                                onTap: () => widget.onSelect(i),
+                                child: Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    IconTheme(
+                                      data: IconThemeData(
+                                        size: 24,
+                                        color: i == widget.selectedIndex
+                                            ? LoopColors.textPrimary
+                                            : LoopColors.textSecondary,
+                                      ),
+                                      child: widget.destinations[i].iconWidget(
+                                        context,
+                                        selected: i == widget.selectedIndex,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 4),
+                                    Padding(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 4,
+                                      ),
+                                      child: FittedBox(
+                                        fit: BoxFit.scaleDown,
+                                        child: Text(
+                                          widget.destinations[i].label,
+                                          style: TextStyle(
+                                            fontFamily: kFontFamily,
+                                            fontSize: 11.5,
+                                            fontWeight:
+                                                i == widget.selectedIndex
+                                                ? FontWeight.w700
+                                                : FontWeight.w500,
+                                            color: i == widget.selectedIndex
+                                                ? LoopColors.textPrimary
+                                                : LoopColors.textSecondary,
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            if (widget.showNavigation && kLiveEnabled)
               SafeArea(
                 top: false,
                 minimum: const EdgeInsets.fromLTRB(12, 0, 12, 8),
