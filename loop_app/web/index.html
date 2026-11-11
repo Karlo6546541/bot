@@ -22,7 +22,7 @@
   <meta http-equiv="Pragma" content="no-cache">
   <meta http-equiv="Expires" content="0">
   <meta content="IE=Edge" http-equiv="X-UA-Compatible">
-  <meta name="description" content="Subhasto — live aukcije, aukcije i Kupi odmah (demo).">
+  <meta name="description" content="Subhasto — aukcije kolekcionarskih kartica.">
 
   <!-- iOS meta tags & icons -->
   <meta name="mobile-web-app-capable" content="yes">
@@ -33,23 +33,48 @@
   <!-- Favicon -->
   <link rel="icon" type="image/png" href="favicon.png"/>
 
-  <title>Subhasto — live aukcije i Kupi odmah</title>
+  <title>Subhasto — aukcije kolekcionarskih kartica</title>
   <link rel="manifest" href="manifest.json">
-  <meta name="theme-color" content="#000000">
+  <meta name="theme-color" content="#171C1D">
   <style>
-    :root { color-scheme: dark; --page: #000000; --ink: #F5F5F7; }
-    html, body { margin: 0; height: 100%; background: var(--page); color: var(--ink); }
-    #pre-splash { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; }
-    #pre-splash svg { width: 56px; height: 56px; opacity: .85; }
+    :root { color-scheme: dark; --page: #171C1D; --ink: #F2F4F4; --muted: #A4ADAF; --teal: #449DA8; }
+    html, body { margin: 0; height: 100%; background: var(--page); color: var(--ink); font-family: Inter, system-ui, -apple-system, "Segoe UI", sans-serif; }
+    #pre-splash { position: fixed; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 28px; background: radial-gradient(circle at 50% 38%, #22302F 0%, #171C1D 62%); }
+    .deck { position: relative; width: 132px; height: 184px; perspective: 700px; }
+    .card { position: absolute; inset: 0; border-radius: 14px; border: 1px solid #343D3F; box-shadow: 0 14px 34px rgba(0,0,0,.45); overflow: hidden; transform-origin: 50% 100%; animation: fan 2.6s cubic-bezier(.2,.8,.2,1) infinite; }
+    .card::before { content: ""; position: absolute; inset: 7px; border-radius: 9px; border: 1px solid rgba(255,255,255,.18); }
+    .card::after { content: ""; position: absolute; top: 0; bottom: 0; width: 46%; left: -60%; background: linear-gradient(100deg, transparent, rgba(255,255,255,.28), transparent); animation: shine 2.6s ease-in-out infinite; }
+    .c1 { background: linear-gradient(160deg, #3A4DAF, #1F2A66); --r: -17deg; --x: -34px; animation-delay: 0s; }
+    .c2 { background: linear-gradient(160deg, #C9783D, #7A3E15); --r: 0deg; --x: 0px; animation-delay: .12s; }
+    .c3 { background: linear-gradient(160deg, #2E9C78, #145540); --r: 17deg; --x: 34px; animation-delay: .24s; }
+    .card svg { position: absolute; left: 50%; top: 50%; width: 54px; height: 54px; margin: -27px 0 0 -27px; opacity: .9; }
+    @keyframes fan {
+      0%, 8% { transform: translateX(0) rotate(0deg) scale(.96); }
+      38%, 70% { transform: translateX(var(--x)) rotate(var(--r)) scale(1); }
+      100% { transform: translateX(0) rotate(0deg) scale(.96); }
+    }
+    @keyframes shine { 0%, 36% { left: -60%; } 60% { left: 120%; } 100% { left: 120%; } }
+    .gavel { position: absolute; right: -58px; top: -30px; width: 74px; height: 74px; color: var(--teal); transform-origin: 85% 85%; animation: hit 2.6s ease-in-out infinite; }
+    @keyframes hit { 0%, 55% { transform: rotate(-38deg); } 68% { transform: rotate(14deg); } 76% { transform: rotate(-4deg); } 100% { transform: rotate(-38deg); } }
+    .brand { font-size: 28px; font-weight: 700; letter-spacing: -.03em; }
+    .tag { margin-top: -18px; font-size: 14px; color: var(--muted); letter-spacing: .02em; }
+    .bar { width: 120px; height: 3px; border-radius: 3px; background: #2A3335; overflow: hidden; }
+    .bar i { display: block; width: 40%; height: 100%; background: var(--teal); border-radius: 3px; animation: load 1.3s ease-in-out infinite; }
+    @keyframes load { 0% { transform: translateX(-100%); } 100% { transform: translateX(300%); } }
+    @media (prefers-reduced-motion: reduce) { .card, .card::after, .gavel, .bar i { animation: none !important; } .c1 { transform: translateX(-34px) rotate(-17deg); } .c3 { transform: translateX(34px) rotate(17deg); } }
   </style>
 </head>
 <body>
-  <div id="pre-splash" aria-label="Subhasto">
-    <svg width="96" height="96" viewBox="0 0 100 100" aria-hidden="true">
-      <g transform="translate(50 50) rotate(-45)">
-        <line x1="-58" y1="0" x2="8" y2="0" stroke="currentColor" stroke-width="6.5" stroke-linecap="round"/><path d="M-66 0 L-56 -5 L-52 0 L-56 5Z" fill="currentColor"/><rect x="4.5" y="-12" width="5" height="24" rx="2.5" fill="currentColor"/><path d="M10 0 L27 -11 L64 0 L27 11Z" fill="currentColor"/>
-      </g>
-    </svg>
+  <div id="pre-splash" role="status" aria-label="Subhasto se učitava">
+    <div class="deck" aria-hidden="true">
+      <div class="card c1"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.4" stroke-linejoin="round"><path d="M12 3l2.6 5.6 6.1.7-4.5 4.2 1.2 6L12 16.6 6.6 19.5l1.2-6L3.3 9.3l6.1-.7z"/></svg></div>
+      <div class="card c2"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.4" stroke-linejoin="round"><path d="M13 2L4 14h7l-1 8 9-12h-7z"/></svg></div>
+      <div class="card c3"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.4" stroke-linejoin="round"><path d="M12 21s-7-4.4-7-10a4 4 0 0 1 7-2.5A4 4 0 0 1 19 11c0 5.6-7 10-7 10z"/></svg></div>
+      <svg class="gavel" viewBox="0 0 100 100"><g transform="translate(50 50) rotate(-45)"><line x1="-46" y1="0" x2="6" y2="0" stroke="currentColor" stroke-width="7" stroke-linecap="round"/><rect x="2" y="-14" width="6" height="28" rx="3" fill="currentColor"/><path d="M9 0 L24 -13 L56 0 L24 13Z" fill="currentColor"/></g></svg>
+    </div>
+    <div class="brand">Subhasto</div>
+    <div class="tag">Aukcije kolekcionarskih kartica</div>
+    <div class="bar" aria-hidden="true"><i></i></div>
   </div>
   <script>
     window.addEventListener('flutter-first-frame', function () {
