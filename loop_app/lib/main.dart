@@ -15,7 +15,7 @@ import 'services/remote_store.dart';
 import 'services/storage_service.dart';
 import 'services/sync_service.dart';
 import 'theme/app_theme.dart';
-import 'widgets/splash.dart';
+import 'services/boot_signal/boot_signal.dart';
 import 'l10n/tr.dart';
 
 void main() {
@@ -77,10 +77,6 @@ class _BootstrapState extends State<_Bootstrap> {
     return (storage, sync);
   }
 
-  /// Uvodna animacija se odigra do kraja (kratko), čak i kad su podaci
-  /// spremni ranije — zatim se aplikacija pretopi preko nje.
-  bool _splashDone = false;
-
   @override
   Widget build(BuildContext context) {
     return FutureBuilder<(StorageService, SyncService?)>(
@@ -88,6 +84,7 @@ class _BootstrapState extends State<_Bootstrap> {
       builder: (context, snapshot) {
         final Widget child;
         if (snapshot.hasError) {
+          WidgetsBinding.instance.addPostFrameCallback((_) => signalAppReady());
           child = MaterialApp(
             debugShowCheckedModeBanner: false,
             theme: buildLoopTheme(),
@@ -118,7 +115,8 @@ class _BootstrapState extends State<_Bootstrap> {
               ),
             ),
           );
-        } else if (snapshot.hasData && _splashDone) {
+        } else if (snapshot.hasData) {
+          WidgetsBinding.instance.addPostFrameCallback((_) => signalAppReady());
           child = ProviderScope(
             key: const ValueKey('app'),
             overrides: [
@@ -134,10 +132,12 @@ class _BootstrapState extends State<_Bootstrap> {
             child: const LoopApp(),
           );
         } else {
-          child = Directionality(
-            key: const ValueKey('splash'),
-            textDirection: TextDirection.ltr,
-            child: LoopSplash(onDone: () => setState(() => _splashDone = true)),
+          // Jedini uvodni ekran je HTML (web/index.html) iznad ovoga;
+          // ovdje samo pozadina iste boje dok se podaci ne učitaju.
+          child = const ColoredBox(
+            key: ValueKey('splash'),
+            color: Color(0xFF171C1D),
+            child: SizedBox.expand(),
           );
         }
         return AnimatedSwitcher(
