@@ -1,0 +1,409 @@
+import 'package:loop_app/widgets/vision_glass.dart';
+import 'package:loop_app/theme/app_theme.dart';
+import 'dart:async';
+import 'package:flutter/material.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:loop_app/services/stripe_backend.dart';
+import 'package:loop_app/services/delivery_locations.dart';
+import 'package:loop_app/widgets/purchase_confirmation.dart';
+
+class _Pages extends NavigatorObserver {
+  int pagePushes = 0;
+  @override
+  void didPush(Route<dynamic> route, Route<dynamic>? previousRoute) {
+    if (route is PageRoute) pagePushes++;
+    super.didPush(route, previousRoute);
+  }
+}
+
+void main() {
+  Future<void> open(
+    WidgetTester tester,
+    PurchaseConfirmationSheet sheet, {
+    ValueChanged<bool>? onResult,
+    _Pages? observer,
+  }) async {
+    tester.view.physicalSize = const Size(390, 844);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    await tester.pumpWidget(
+      MaterialApp(
+        navigatorObservers: [?observer],
+        home: Scaffold(
+          body: Builder(
+            builder: (ctx) => Column(
+              children: [
+                const Text('Izvorni oglas'),
+                TextButton(
+                  onPressed: () async {
+                    final paid = await showPurchaseConfirmation(ctx, sheet);
+                    onResult?.call(paid);
+                  },
+                  child: const Text('Kupi'),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.tap(find.text('Kupi'));
+    await tester.pumpAndSettle();
+  }
+
+  PurchaseConfirmationSheet sheet({
+    Future<Map<String, dynamic>> Function()? reserve,
+    Future<SavedCardChargeStatus> Function(String, BuildContext)? charge,
+    Future<void> Function(String, DeliveryDestination)? delivery,
+    String address = 'Testna ulica 1, Zagreb',
+    Future<List<DeliveryLocation>> Function(String)? search,
+  }) => PurchaseConfirmationSheet(
+    title: 'Testni predmet',
+    totalCents: 6600,
+    address: address,
+    searchLockers: search,
+    loadCard: () async => (hasCard: true, last4: '4242'),
+    addCard: (_) async => false,
+    reserve: reserve ?? () async => {'id': 'order-one', 'total_cents': 6600},
+    chooseDelivery: delivery ?? (_, _) async {},
+    charge: charge ?? (_, _) async => SavedCardChargeStatus.paid,
+  );
+
+  testWidgets(
+    'payment opened from a dark live remains readable in a light app',
+    (tester) async {
+      final previous = LoopColors.isDark;
+      addTearDown(
+        () => LoopColors.use(previous ? Brightness.dark : Brightness.light),
+      );
+      LoopColors.use(Brightness.light);
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: buildLoopTheme(),
+          home: Theme(
+            data: buildLiveTheme(),
+            child: Scaffold(
+              body: Builder(
+                builder: (ctx) => TextButton(
+                  onPressed: () => showPurchaseConfirmation(ctx, sheet()),
+                  child: const Text('Kupi'),
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.tap(find.text('Kupi'));
+      await tester.pumpAndSettle();
+      final popup = find.byType(PurchaseConfirmationSheet);
+      expect(Theme.of(tester.element(popup)).brightness, Brightness.light);
+      final panel = find.ancestor(
+        of: popup,
+        matching: find.byType(VisionGlass),
+      );
+      final decoration =
+          tester
+                  .widget<DecoratedBox>(
+                    find
+                        .descendant(
+                          of: panel,
+                          matching: find.byType(DecoratedBox),
+                        )
+                        .first,
+                  )
+                  .decoration
+              as BoxDecoration;
+      expect(
+        ThemeData.estimateBrightnessForColor(decoration.color!),
+        Brightness.light,
+      );
+      await tester.tap(find.byKey(const ValueKey('purchase-close')));
+      await tester.pumpAndSettle();
+      expect(tester.takeException(), isNull);
+    },
+  );
+
+  testWidgets(
+    'purchase is a compact popup over the item, without an orders page',
+    (tester) async {
+      var reserves = 0, charges = 0;
+      final observer = _Pages();
+      await open(
+        tester,
+        sheet(
+          reserve: () async {
+            reserves++;
+            return {'id': 'one', 'total_cents': 6600};
+          },
+          charge: (_, _) async {
+            charges++;
+            return SavedCardChargeStatus.paid;
+          },
+        ),
+        observer: observer,
+      );
+      expect(
+        find.byKey(const ValueKey('purchase-confirmation')),
+        findsOneWidget,
+      );
+      expect(find.text('Potvrdi kupnju'), findsOneWidget);
+      expect(find.textContaining('4242'), findsOneWidget);
+      expect(find.text('Narudžbe'), findsNothing);
+      expect(find.textContaining('Stripe račun prodavatelja'), findsNothing);
+      expect(observer.pagePushes, 1);
+      await tester.tap(find.byKey(const ValueKey('purchase-close')));
+      await tester.pumpAndSettle();
+      expect(reserves, 0);
+      expect(charges, 0);
+      expect(find.text('Izvorni oglas'), findsOneWidget);
+      expect(tester.takeException(), isNull);
+    },
+  );
+
+  testWidgets(
+    'confirmation selects saved delivery and closes only after paid',
+    (tester) async {
+      final payment = Completer<SavedCardChargeStatus>();
+      final calls = <String>[];
+      bool? result;
+      await open(
+        tester,
+        sheet(
+          reserve: () async {
+            calls.add('reserve');
+            return {'id': 'one', 'total_cents': 6600};
+          },
+          delivery: (id, address) async {
+            calls.add('shipping:$id:${address.address}');
+          },
+          charge: (id, _) {
+            calls.add('charge:$id');
+            return payment.future;
+          },
+        ),
+        onResult: (paid) => result = paid,
+      );
+      await tester.tap(find.byKey(const ValueKey('purchase-pay')));
+      await tester.pump();
+      await tester.pump();
+      await tester.tap(find.byKey(const ValueKey('purchase-pay')));
+      await tester.pump();
+      expect(calls, [
+        'reserve',
+        'shipping:one:Testna ulica 1, Zagreb',
+        'charge:one',
+      ]);
+      expect(result, isNull);
+      payment.complete(SavedCardChargeStatus.paid);
+      await tester.pumpAndSettle();
+      expect(result, isTrue);
+      expect(find.byKey(const ValueKey('purchase-confirmation')), findsNothing);
+      expect(find.text('Izvorni oglas'), findsOneWidget);
+    },
+  );
+
+  testWidgets(
+    'processing is not reported as paid and retries reuse the order',
+    (tester) async {
+      var reserves = 0, charges = 0;
+      bool? result;
+      await open(
+        tester,
+        sheet(
+          reserve: () async {
+            reserves++;
+            return {'id': 'stable-order', 'total_cents': 6600};
+          },
+          charge: (id, _) async {
+            expect(id, 'stable-order');
+            charges++;
+            return charges == 1
+                ? SavedCardChargeStatus.processing
+                : SavedCardChargeStatus.paid;
+          },
+        ),
+        onResult: (paid) => result = paid,
+      );
+      await tester.tap(find.byKey(const ValueKey('purchase-pay')));
+      await tester.pumpAndSettle();
+      expect(result, isNull);
+      expect(find.text('Provjeri plaćanje'), findsOneWidget);
+      await tester.tap(find.byKey(const ValueKey('purchase-pay')));
+      await tester.pumpAndSettle();
+      expect(reserves, 1);
+      expect(charges, 2);
+      expect(result, isTrue);
+    },
+  );
+
+  testWidgets(
+    'seller readiness failure stays inside the popup with a clear reason',
+    (tester) async {
+      await open(
+        tester,
+        sheet(
+          charge: (_, _) async => throw FunctionException(
+            status: 409,
+            details: {'error': 'SELLER_NOT_READY'},
+          ),
+        ),
+      );
+      await tester.tap(find.byKey(const ValueKey('purchase-pay')));
+      await tester.pumpAndSettle();
+      expect(
+        find.text('Prodavatelj ovog oglasa još nije omogućio plaćanje.'),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const ValueKey('purchase-confirmation')),
+        findsOneWidget,
+      );
+      expect(find.text('Narudžbe'), findsNothing);
+    },
+  );
+
+  testWidgets(
+    'a changed server price requires confirmation again before charging',
+    (tester) async {
+      var charges = 0;
+      await open(
+        tester,
+        sheet(
+          reserve: () async => {'id': 'changed', 'total_cents': 7500},
+          charge: (_, _) async {
+            charges++;
+            return SavedCardChargeStatus.paid;
+          },
+        ),
+      );
+      await tester.tap(find.byKey(const ValueKey('purchase-pay')));
+      await tester.pumpAndSettle();
+      expect(charges, 0);
+      expect(
+        find.text('Cijena je promijenjena. Potvrdi novi ukupan iznos.'),
+        findsOneWidget,
+      );
+      await tester.tap(find.byKey(const ValueKey('purchase-pay')));
+      await tester.pumpAndSettle();
+      expect(charges, 1);
+    },
+  );
+
+  testWidgets('missing delivery stays inline and cannot start a payment', (
+    tester,
+  ) async {
+    var reserves = 0;
+    await open(
+      tester,
+      sheet(
+        address: '',
+        reserve: () async {
+          reserves++;
+          return {'id': 'one', 'total_cents': 6600};
+        },
+      ),
+    );
+    await tester.tap(find.byKey(const ValueKey('purchase-pay')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('purchase-address')), findsOneWidget);
+    expect(find.text('Upiši adresu za dostavu.'), findsOneWidget);
+    expect(reserves, 0);
+  });
+
+  testWidgets(
+    'buyer does not choose delivery: the parcel goes to the account address',
+    (tester) async {
+      var charges = 0;
+      DeliveryDestination? selected;
+      await open(
+        tester,
+        sheet(
+          delivery: (_, destination) async {
+            selected = destination;
+          },
+          charge: (_, _) async {
+            charges++;
+            return SavedCardChargeStatus.paid;
+          },
+        ),
+      );
+      expect(find.text('Paketomat'), findsNothing);
+      expect(find.text('Kurirska dostava'), findsNothing);
+      expect(
+        find.byKey(const ValueKey('purchase-seller-ships')),
+        findsOneWidget,
+      );
+      expect(find.text('Testna ulica 1, Zagreb'), findsOneWidget);
+      await tester.tap(find.byKey(const ValueKey('purchase-pay')));
+      await tester.pumpAndSettle();
+      expect(selected?.method, 'courier');
+      expect(selected?.data, {'address': 'Testna ulica 1, Zagreb'});
+      expect(charges, 1);
+    },
+  );
+  testWidgets('jasno odbijena naplata nudi ponovno plaćanje, ne provjeru', (
+    tester,
+  ) async {
+    await open(
+      tester,
+      sheet(
+        charge: (_, _) async => throw const FunctionException(
+          status: 409,
+          details: {'error': 'SELLER_NOT_READY'},
+        ),
+      ),
+    );
+    await tester.tap(find.byKey(const ValueKey('purchase-pay')));
+    await tester.pumpAndSettle();
+    expect(
+      find.text('Prodavatelj ovog oglasa još nije omogućio plaćanje.'),
+      findsOneWidget,
+    );
+    expect(find.text('Provjeri plaćanje'), findsNothing);
+    expect(find.textContaining('Plati'), findsOneWidget);
+  });
+
+  testWidgets('raščlamba iznosa; promijenjen iznos traži novu potvrdu', (
+    tester,
+  ) async {
+    var charges = 0, reserves = 0;
+    await open(
+      tester,
+      PurchaseConfirmationSheet(
+        title: 'Testni predmet',
+        itemCents: 6000,
+        shippingCents: 600,
+        totalCents: 6600,
+        address: 'Testna ulica 1, Zagreb',
+        loadCard: () async => (hasCard: true, last4: '4242'),
+        addCard: (_) async => false,
+        reserve: () async {
+          reserves++;
+          return {'id': 'order-one', 'total_cents': 6000};
+        },
+        chooseDelivery: (_, _) async {},
+        orderTotal: (_) async => 6900,
+        charge: (_, _) async {
+          charges++;
+          return SavedCardChargeStatus.paid;
+        },
+      ),
+    );
+    expect(find.byKey(const ValueKey('purchase-item')), findsOneWidget);
+    expect(find.byKey(const ValueKey('purchase-shipping')), findsOneWidget);
+    expect(find.textContaining('Plati'), findsOneWidget);
+    await tester.tap(find.byKey(const ValueKey('purchase-pay')));
+    await tester.pumpAndSettle();
+    expect(charges, 0);
+    expect(find.byKey(const ValueKey('purchase-error')), findsOneWidget);
+    expect(
+      tester.widget<Text>(find.byKey(const ValueKey('purchase-total'))).data,
+      contains('69'),
+    );
+    await tester.tap(find.byKey(const ValueKey('purchase-pay')));
+    await tester.pumpAndSettle();
+    expect(charges, 1);
+    expect(reserves, 1);
+  });
+}

@@ -1,0 +1,222 @@
+import 'dart:async';
+
+import 'package:supabase_flutter/supabase_flutter.dart';
+
+/// Promjena koja je stigla iz online baze (`data == null` = brisanje).
+class RemoteChange {
+  const RemoteChange(this.table, this.id, this.data);
+  final String table;
+  final String id;
+  final Map<String, dynamic>? data;
+}
+
+/// Online pohrana dokumenata: tablica → (id → JSON podaci).
+/// Sučelje postoji kako bi se sinkronizacija mogla testirati bez mreže.
+abstract class RemoteStore {
+  /// Vraća podatke tablica koje postoje u bazi. Tablica koje još nema
+  /// (npr. SQL za novu verziju nije pokrenut) nema u rezultatu — ona
+  /// tada radi samo lokalno.
+  Future<Map<String, Map<String, Map<String, dynamic>>>> pullAll(
+    List<String> tables,
+  );
+  Future<void> upsert(String table, String id, Map<String, dynamic> data);
+  Future<void> delete(String table, String id);
+
+  /// Upis samo ako zapis još ne postoji (atomski u bazi). `false` znači da
+  /// ga je netko već upisao — npr. drugi kupac je upravo kupio isti komad.
+  Future<bool> claim(String table, String id, Map<String, dynamic> data);
+
+  /// Zapisi promijenjeni nakon [since] (rezerva kad realtime veza pukne).
+  Future<Map<String, Map<String, dynamic>>> pullSince(
+    String table,
+    DateTime since,
+  );
+
+  /// Svježi zapis iz baze (null ako ga nema) — prije odluke koja ovisi o
+  /// tuđim promjenama (zaliha, najviša ponuda, prihvaćena ponuda).
+  Future<Map<String, dynamic>?> fetch(String table, String id);
+
+  /// Smije li pisati (online baza prima izmjene samo od prijavljenih).
+  bool get canWrite;
+  Future<void> clearAll(List<String> tables);
+
+  /// Promjene drugih korisnika u stvarnom vremenu.
+  Stream<RemoteChange> changes(List<String> tables);
+}
+
+/// Supabase: svaka lokalna tablica je Postgres tablica `loop_<ime>`
+/// sa stupcima `id text`, `data jsonb`, `updated_at` (vidi
+/// `supabase/schema.sql`).
+class SupabaseRemoteStore implements RemoteStore {
+  SupabaseRemoteStore(this._client);
+
+  final SupabaseClient _client;
+
+  static String tableName(String t) => 'loop_$t';
+
+  @override
+  Future<Map<String, Map<String, Map<String, dynamic>>>> pullAll(
+    List<String> tables,
+  ) async {
+    // Sve tablice odjednom (paralelno) — brže na sporoj mreži.
+    final results = await Future.wait(tables.map(_pull));
+    final out = <String, Map<String, Map<String, dynamic>>>{};
+    for (var i = 0; i < tables.length; i++) {
+      final r = results[i];
+      if (r != null) out[tables[i]] = r;
+    }
+    return out;
+  }
+
+  /// `null` ako tablica još ne postoji u bazi.
+  Future<Map<String, Map<String, dynamic>>?> _pull(String t) async {
+    // Baza vraća najviše 1000 redaka po upitu — čitaj po stranicama da se
+    // ništa ne izgubi (npr. velika tablica live događaja). Prva stranica
+    // javlja ukupan broj, a ostale se čitaju istovremeno: redom bi velika
+    // tablica na sporoj mreži trajala predugo i cijelo učitavanje bi
+    // propalo (prazan feed).
+    const page = 1000;
+    final rows = <Map<String, dynamic>>[];
+    PostgrestTransformBuilder<PostgrestList> range(int from) => _client
+        .from(tableName(t))
+        .select('id, data')
+        .order('id')
+        .range(from, from + page - 1);
+    try {
+      final first = await range(0).count(CountOption.exact);
+      rows.addAll(first.data);
+      var from = page;
+      if (first.data.length == page && first.count > page) {
+        final chunks = await Future.wait([
+          for (; from < first.count; from += page) range(from),
+        ]);
+        for (final c in chunks) {
+          rows.addAll(c);
+        }
+      }
+      // Ako je u međuvremenu nešto dodano (ili broj nije poznat): dalje redom.
+      var last = rows.length >= from ? page : 0;
+      while (last == page) {
+        final chunk = await range(from);
+        rows.addAll(chunk);
+        last = chunk.length;
+        from += page;
+      }
+    } on PostgrestException catch (e) {
+      if (e.code == '42P01' ||
+          e.code == 'PGRST205' ||
+          e.message.contains('does not exist') ||
+          e.message.contains('Could not find')) {
+        return null;
+      }
+      rethrow;
+    }
+    return {
+      for (final r in rows)
+        r['id'] as String: Map<String, dynamic>.from(r['data'] as Map),
+    };
+  }
+
+  @override
+  Future<Map<String, Map<String, dynamic>>> pullSince(
+    String table,
+    DateTime since,
+  ) async {
+    final rows = await _client
+        .from(tableName(table))
+        .select('id, data')
+        .gt('updated_at', since.toUtc().toIso8601String())
+        .limit(1000);
+    return {
+      for (final r in rows)
+        r['id'] as String: Map<String, dynamic>.from(r['data'] as Map),
+    };
+  }
+
+  @override
+  Future<Map<String, dynamic>?> fetch(String table, String id) async {
+    final r = await _client
+        .from(tableName(table))
+        .select('data')
+        .eq('id', id)
+        .maybeSingle();
+    return r == null ? null : Map<String, dynamic>.from(r['data'] as Map);
+  }
+
+  @override
+  bool get canWrite => _client.auth.currentSession != null;
+
+  /// Podaci prodavatelja su privatni: svatko šalje samo svoj redak (RLS u
+  /// bazi ionako odbija tuđe — npr. lokalne demo račune).
+  bool _skip(String table, String id) =>
+      table == 'sellers' && id != _client.auth.currentUser?.id;
+
+  @override
+  Future<void> upsert(String table, String id, Map<String, dynamic> data) =>
+      _skip(table, id)
+      ? Future.value()
+      : _client.from(tableName(table)).upsert({
+          'id': id,
+          'data': data,
+          'updated_at': DateTime.now().toUtc().toIso8601String(),
+        });
+
+  @override
+  Future<bool> claim(String table, String id, Map<String, dynamic> data) async {
+    try {
+      await _client.from(tableName(table)).insert({
+        'id': id,
+        'data': data,
+        'updated_at': DateTime.now().toUtc().toIso8601String(),
+      });
+      return true;
+    } on PostgrestException catch (e) {
+      // 23505 = jedinstveni ključ već postoji (netko je bio brži).
+      if (e.code == '23505' || e.code == '409') return false;
+      rethrow;
+    }
+  }
+
+  @override
+  Future<void> delete(String table, String id) => _skip(table, id)
+      ? Future.value()
+      : _client.from(tableName(table)).delete().eq('id', id);
+
+  @override
+  Future<void> clearAll(List<String> tables) async {
+    for (final t in tables) {
+      await _client.from(tableName(t)).delete().neq('id', '');
+    }
+  }
+
+  @override
+  Stream<RemoteChange> changes(List<String> tables) {
+    final controller = StreamController<RemoteChange>.broadcast();
+    var channel = _client.channel('loop-sync');
+    for (final t in tables) {
+      channel = channel.onPostgresChanges(
+        event: PostgresChangeEvent.all,
+        schema: 'public',
+        table: tableName(t),
+        callback: (p) {
+          if (p.eventType == PostgresChangeEvent.delete) {
+            final id = p.oldRecord['id'] as String?;
+            if (id != null) controller.add(RemoteChange(t, id, null));
+          } else {
+            final rec = p.newRecord;
+            controller.add(
+              RemoteChange(
+                t,
+                rec['id'] as String,
+                Map<String, dynamic>.from(rec['data'] as Map),
+              ),
+            );
+          }
+        },
+      );
+    }
+    channel.subscribe();
+    controller.onCancel = () => _client.removeChannel(channel);
+    return controller.stream;
+  }
+}

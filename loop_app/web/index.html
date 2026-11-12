@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="hr">
+<head>
+  <!--
+    If you are serving your web app in a path other than the root, change the
+    href value below to reflect the base path you are serving from.
+
+    The path provided below has to start and end with a slash "/" in order for
+    it to work correctly.
+
+    For more details:
+    * https://developer.mozilla.org/en-US/docs/Web/HTML/Element/base
+
+    This is a placeholder for base href that will be replaced by the value of
+    the `--base-href` argument provided to `flutter build`.
+  -->
+  <base href="$FLUTTER_BASE_HREF">
+
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, interactive-widget=resizes-content">
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <meta http-equiv="Pragma" content="no-cache">
+  <meta http-equiv="Expires" content="0">
+  <meta content="IE=Edge" http-equiv="X-UA-Compatible">
+  <meta name="description" content="Subhasto — aukcije i kupi odmah za kolekcionare.">
+
+  <!-- iOS meta tags & icons -->
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black">
+  <meta name="apple-mobile-web-app-title" content="Subhasto">
+  <link rel="apple-touch-icon" href="icons/Icon-192.png">
+
+  <!-- Favicon -->
+  <link rel="icon" type="image/png" href="favicon.png"/>
+
+  <title>Subhasto — aukcije i kupi odmah za kolekcionare</title>
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#171C1D">
+  <style>
+    :root { color-scheme: dark; --page: #171C1D; --surface: #1F2627; --line: #343D3F; --ink: #F2F4F4; --muted: #A4ADAF; --teal: #449DA8; --teal2: #6CC3CD; }
+    html, body { margin: 0; height: 100%; background: var(--page); color: var(--ink); font-family: Inter, system-ui, -apple-system, "Segoe UI", sans-serif; }
+    #pre-splash { position: fixed; inset: 0; z-index: 9999; display: flex; flex-direction: column; align-items: center; justify-content: center; background: radial-gradient(120% 70% at 50% 36%, #22302F 0%, #171C1D 60%); transition: opacity .45s ease, transform .45s ease; }
+    #pre-splash.out { opacity: 0; transform: scale(1.04); pointer-events: none; }
+    .stage { position: relative; width: 240px; height: 210px; }
+    /* Podij (blok za čekić) */
+    .podium { position: absolute; left: 30px; right: 30px; bottom: 14px; height: 26px; border-radius: 50%; background: radial-gradient(60% 60% at 50% 35%, #2C3739, #1A2122); border: 1px solid var(--line); box-shadow: 0 18px 30px rgba(0,0,0,.45); }
+    .podium::after { content: ""; position: absolute; left: 18%; right: 18%; top: 5px; height: 6px; border-radius: 50%; background: rgba(108,195,205,.12); }
+    /* Predmeti koji se izmjenjuju */
+    .it { position: absolute; left: 50%; bottom: 30px; opacity: 0; transform-origin: 50% 100%; animation: show 3.6s cubic-bezier(.2,.9,.25,1.2) infinite; }
+    .it.i2 { animation-delay: 1.2s; } .it.i3 { animation-delay: 2.4s; }
+    @keyframes show {
+      0% { opacity: 0; transform: translateX(-50%) translateY(22px) scale(.6) rotate(-8deg); }
+      7% { opacity: 1; transform: translateX(-50%) translateY(0) scale(1) rotate(0); }
+      18% { transform: translateX(-50%) translateY(0) scale(1); }
+      21% { transform: translateX(-50%) translateY(3px) scale(1.04, .95); }
+      25% { opacity: 1; transform: translateX(-50%) translateY(0) scale(1); }
+      32% { opacity: 0; transform: translateX(-50%) translateY(-26px) scale(.9) rotate(6deg); }
+      100% { opacity: 0; transform: translateX(-50%) translateY(-26px) scale(.9); }
+    }
+    .card { width: 86px; height: 120px; border-radius: 11px; background: linear-gradient(155deg, #4FB0BB, #2B6F78 55%, #1D4D53); border: 1px solid rgba(255,255,255,.22); box-shadow: 0 12px 26px rgba(0,0,0,.45); overflow: hidden; }
+    .card::before { content: ""; position: absolute; inset: 6px; border-radius: 7px; border: 1px solid rgba(255,255,255,.28); }
+    .card::after { content: ""; position: absolute; top: -20%; bottom: -20%; width: 40%; left: -70%; transform: skewX(-18deg); background: linear-gradient(90deg, transparent, rgba(255,255,255,.45), transparent); animation: shine 3.6s ease-in-out infinite; }
+    @keyframes shine { 0%, 6% { left: -70%; } 16%, 100% { left: 140%; } }
+    .card svg { position: absolute; left: 50%; top: 44%; width: 40px; height: 40px; margin: -20px 0 0 -20px; }
+    .card b { position: absolute; left: 0; right: 0; bottom: 12px; text-align: center; font-size: 9px; letter-spacing: .18em; color: rgba(255,255,255,.8); font-weight: 700; }
+    .coin { width: 92px; height: 92px; margin-bottom: 4px; }
+    .coin i { display: block; width: 100%; height: 100%; border-radius: 50%; background: radial-gradient(circle at 35% 30%, #FFE7A3, #E0B04A 45%, #9A6A1C 100%); box-shadow: inset 0 0 0 5px rgba(122,82,20,.55), inset 0 0 0 8px rgba(255,231,163,.5), 0 12px 24px rgba(0,0,0,.45); animation: spin 1.2s ease-in-out infinite; animation-delay: 1.2s; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 30px; color: #7A5214; font-style: normal; }
+    @keyframes spin { 0% { transform: rotateY(0); } 15% { transform: rotateY(360deg); } 100% { transform: rotateY(360deg); } }
+    .stamp { width: 84px; height: 104px; padding: 6px; box-sizing: border-box; background: #F3EEDD; filter: drop-shadow(0 12px 18px rgba(0,0,0,.45));
+      -webkit-mask: linear-gradient(#000 0 0) content-box, radial-gradient(circle 3.5px at 5px 5px, transparent 96%, #000) -5px -5px / 10px 10px; mask: linear-gradient(#000 0 0) content-box, radial-gradient(circle 3.5px at 5px 5px, transparent 96%, #000) -5px -5px / 10px 10px; }
+    .stamp div { position: relative; height: 100%; border-radius: 2px; background: linear-gradient(180deg, #8ED0D6 0%, #449DA8 58%, #2B6F78 58%); overflow: hidden; }
+    .stamp div::before { content: ""; position: absolute; left: -10px; right: 30px; bottom: 30%; height: 40px; background: #1D4D53; clip-path: polygon(0 100%, 45% 10%, 70% 55%, 85% 35%, 100% 100%); }
+    .stamp div::after { content: ""; position: absolute; right: 12px; top: 12px; width: 16px; height: 16px; border-radius: 50%; background: #FFE7A3; }
+    .stamp span { position: absolute; left: 5px; bottom: 4px; font-size: 10px; font-weight: 800; color: #F3EEDD; z-index: 1; }
+    /* Čekić: drška desno, glava udara u podij */
+    .gavel { position: absolute; left: 168px; bottom: 26px; width: 118px; height: 54px; transform-origin: 96% 44%; animation: hit 1.2s cubic-bezier(.5,0,.6,1) infinite; filter: drop-shadow(0 8px 10px rgba(0,0,0,.4)); }
+    @keyframes hit { 0%, 30% { transform: rotate(38deg); } 52% { transform: rotate(-2deg); } 58% { transform: rotate(4deg); } 64% { transform: rotate(0); } 100% { transform: rotate(38deg); } }
+    .ring { position: absolute; left: 150px; bottom: 16px; width: 60px; height: 20px; margin-left: -10px; border-radius: 50%; border: 2px solid var(--teal2); opacity: 0; animation: ring 1.2s ease-out infinite; }
+    @keyframes ring { 0%, 50% { opacity: 0; transform: scale(.3); } 53% { opacity: .9; } 85%, 100% { opacity: 0; transform: scale(2.1); } }
+    .spark { position: absolute; left: 172px; bottom: 40px; width: 4px; height: 12px; border-radius: 2px; background: #FFE7A3; opacity: 0; animation: spark 1.2s ease-out infinite; transform-origin: 50% 100%; }
+    .spark.s2 { --a: -40deg; } .spark.s1 { --a: -75deg; } .spark.s3 { --a: -5deg; }
+    @keyframes spark { 0%, 51% { opacity: 0; transform: rotate(var(--a)) translateY(0); } 55% { opacity: 1; } 75%, 100% { opacity: 0; transform: rotate(var(--a)) translateY(-18px); } }
+    /* Ponuda koja raste pri svakom udarcu */
+    .bid { position: absolute; left: 50%; top: 0; transform: translateX(-50%); display: flex; align-items: center; gap: 6px; padding: 6px 12px; border-radius: 999px; background: var(--surface); border: 1px solid var(--line); font-size: 13px; font-weight: 600; color: var(--muted); white-space: nowrap; box-shadow: 0 6px 16px rgba(0,0,0,.35); }
+    .bid em { font-style: normal; color: var(--ink); font-variant-numeric: tabular-nums; display: inline-block; }
+    .bid em.pop { animation: pop .35s ease-out; }
+    @keyframes pop { 0% { transform: translateY(6px); opacity: 0; color: var(--teal2); } 100% { transform: none; opacity: 1; } }
+    .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--teal2); box-shadow: 0 0 0 0 rgba(108,195,205,.6); animation: blink 1.2s infinite; }
+    @keyframes blink { 0% { box-shadow: 0 0 0 0 rgba(108,195,205,.6); } 70%, 100% { box-shadow: 0 0 0 8px rgba(108,195,205,0); } }
+    .brand { margin-top: 26px; font-size: 30px; font-weight: 800; letter-spacing: -.035em; display: flex; }
+    .brand span { display: inline-block; opacity: 0; transform: translateY(10px); animation: up .5s cubic-bezier(.2,.9,.3,1.3) forwards; }
+    .brand span:last-child { color: var(--teal2); }
+    @keyframes up { to { opacity: 1; transform: none; } }
+    .tag { margin-top: 6px; font-size: 14px; color: var(--muted); opacity: 0; animation: up .6s .5s ease forwards; }
+    .bar { margin-top: 22px; width: 132px; height: 3px; border-radius: 3px; background: #2A3335; overflow: hidden; }
+    .bar i { display: block; width: 40%; height: 100%; background: linear-gradient(90deg, var(--teal), var(--teal2)); border-radius: 3px; animation: load 1.2s ease-in-out infinite; }
+    @keyframes load { 0% { transform: translateX(-100%); } 100% { transform: translateX(300%); } }
+    @media (prefers-reduced-motion: reduce) {
+      #pre-splash *, #pre-splash *::before, #pre-splash *::after { animation: none !important; }
+      .it.i1 { opacity: 1; transform: translateX(-50%); } .gavel { transform: rotate(20deg); } .brand span, .tag { opacity: 1; transform: none; }
+    }
+  </style>
+</head>
+<body>
+  <div id="pre-splash" role="status" aria-label="Subhasto se učitava">
+    <div class="stage" aria-hidden="true">
+      <div class="bid"><span class="dot"></span>Ponuda <em id="bid-v">12 €</em></div>
+      <div class="podium"></div>
+      <div class="it i1 card"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.5" stroke-linejoin="round"><path d="M12 3l2.6 5.6 6.1.7-4.5 4.2 1.2 6L12 16.6 6.6 19.5l1.2-6L3.3 9.3l6.1-.7z"/></svg><b>RARE</b></div>
+      <div class="it i2 coin"><i>1</i></div>
+      <div class="it i3 stamp"><div><span>50</span></div></div>
+      <div class="ring"></div>
+      <div class="spark s1"></div><div class="spark s2"></div><div class="spark s3"></div>
+      <svg class="gavel" viewBox="0 0 118 54"><defs><linearGradient id="gw" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stop-color="#8FD3DA"/><stop offset="1" stop-color="#3B8C96"/></linearGradient></defs><rect x="30" y="20" width="86" height="7" rx="3.5" fill="#C9D3D4"/><rect x="2" y="4" width="30" height="40" rx="7" fill="url(#gw)"/><rect x="2" y="12" width="30" height="4" fill="#2B6F78"/><rect x="2" y="32" width="30" height="4" fill="#2B6F78"/></svg>
+    </div>
+    <div class="brand"><span style="animation-delay:.05s">S</span><span style="animation-delay:.1s">u</span><span style="animation-delay:.15s">b</span><span style="animation-delay:.2s">h</span><span style="animation-delay:.25s">a</span><span style="animation-delay:.3s">s</span><span style="animation-delay:.35s">t</span><span style="animation-delay:.4s">o</span><span style="animation-delay:.45s">.</span></div>
+    <div class="tag">Aukcije i Kupi odmah za kolekcionare</div>
+    <div class="bar" aria-hidden="true"><i></i></div>
+  </div>
+  <script>
+    (function () {
+      var start = Date.now(), done = false;
+      // Ponuda raste u ritmu čekića.
+      var v = 12, el = document.getElementById('bid-v');
+      // Ponuda skoči točno u trenutku udarca čekića.
+      function bump() {
+        setTimeout(function () {
+          v += 3 + Math.floor(Math.random() * 6);
+          if (v > 99) v = 12;
+          el.textContent = v + ' €';
+          el.classList.remove('pop'); void el.offsetWidth; el.classList.add('pop');
+        }, 620);
+      }
+      var g = document.querySelector('#pre-splash .gavel');
+      g.addEventListener('animationstart', bump);
+      g.addEventListener('animationiteration', bump);
+      function hide() {
+        if (done) return; done = true;
+        var wait = Math.max(0, 1400 - (Date.now() - start));
+        setTimeout(function () {
+          var s = document.getElementById('pre-splash');
+          if (!s) return;
+          s.classList.add('out');
+          setTimeout(function () { s.remove(); }, 500);
+        }, wait);
+      }
+      // Aplikacija javi kad je stvarno spremna (lib/services/boot_signal).
+      window.subhastoReady = hide;
+      // Sigurnosna mreža ako se signal nikad ne pošalje.
+      setTimeout(hide, 20000);
+    })();
+  </script>
+  <!--
+    You can customize the "flutter_bootstrap.js" script.
+    This is useful to provide a custom configuration to the Flutter loader
+    or to give the user feedback during the initialization process.
+
+    For more details:
+    * https://docs.flutter.dev/platform-integration/web/initialization
+  -->
+  <script>
+    // Uvijek najnovija verzija: stari service workeri se brišu, a
+    // flutter_bootstrap.js (koji nosi oznaku verzije) se ne uzima iz cachea.
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.getRegistrations().then(function (rs) {
+        rs.forEach(function (r) { r.unregister(); });
+      });
+    }
+    var s = document.createElement('script');
+    s.src = 'flutter_bootstrap.js?t=' + Date.now();
+    s.async = true;
+    document.body.appendChild(s);
+  </script>
+</body>
+</html>

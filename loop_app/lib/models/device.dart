@@ -1,0 +1,772 @@
+import 'shipping_profile.dart';
+import '../l10n/tr.dart';
+import '../services/fee.dart';
+
+/// Glavni odjeljak Marketa. Svaka kategorija pripada jednom odjeljku.
+enum ItemSection {
+  electronics('Elektronika'),
+  collectibles('Kolekcionarstvo'),
+  hobbies('Hobiji'),
+  fashion('Moda'),
+  home('Dom i vintage'),
+  crafts('Rukotvorine'),
+  food('Hrana i piće'),
+  auto('Auto, alati i vrt'),
+  activities('Aktivnosti'),
+  digital('Digitalno'),
+
+  // Glavne kategorije aplikacije (niša: kolekcionarstvo). Svaka ima
+  // podkategorije (DeviceCategory) u desnom stupcu Kategorija.
+  cardsMain('Kartice'),
+  coinsMain('Novci'),
+  stampsMain('Markice'),
+  paperMain('Razglednice i plakati'),
+  mediaMain('Ploče i mediji'),
+  comicsMain('Stripovi'),
+  figuresMain('Figure i igračke'),
+  gamesMain('Konzole i igre'),
+  memorabiliaMain('Memorabilij i autogrami'),
+  historyMain('Vojna i povijest'),
+  artMain('Slike i umjetnost'),
+  watchesMain('Satovi'),
+  antiquesMain('Antikviteti i vintage'),
+  electronicsMain('Elektronika');
+
+  const ItemSection(this._label);
+  final String _label;
+  String get label => t(_label);
+
+  /// Glavne kategorije koje se nude (niša: kolekcionarstvo).
+  static const active = <ItemSection>[
+    cardsMain,
+    coinsMain,
+    stampsMain,
+    paperMain,
+    mediaMain,
+    comicsMain,
+    figuresMain,
+    gamesMain,
+    memorabiliaMain,
+    historyMain,
+    artMain,
+    watchesMain,
+    antiquesMain,
+    electronicsMain,
+  ];
+
+  List<DeviceCategory> get categories =>
+      DeviceCategory.active.where((c) => c.section == this).toList();
+}
+
+/// Kategorija predmeta. Boja i ikona za prikaz su u
+/// `widgets/category_style.dart`.
+enum DeviceCategory {
+  // Elektronika
+  phone('Mobiteli', 'Mobitel', ItemSection.electronicsMain),
+  laptop('Računala i laptopi', 'Računalo', ItemSection.electronicsMain),
+  tablet('Tableti', 'Tablet', ItemSection.electronics),
+  audio('Audio i slušalice', 'Audio', ItemSection.electronicsMain),
+  console('Konzole', 'Konzola', ItemSection.gamesMain),
+  watch('Pametni satovi', 'Pametni sat', ItemSection.electronics),
+  camera('Kamere i foto', 'Kamera', ItemSection.electronicsMain),
+  other('Ostala elektronika', 'Elektronika', ItemSection.electronicsMain),
+  tv('Televizori i monitori', 'TV', ItemSection.electronics),
+  pcParts('Računalne komponente', 'Komponenta', ItemSection.electronics),
+  smartHome('Pametni dom', 'Pametni uređaj', ItemSection.electronics),
+  drones('Dronovi i akcijske kamere', 'Dron', ItemSection.electronics),
+
+  // Kolekcionarstvo
+  cards('Sportske kartice', 'Kartica', ItemSection.cardsMain),
+  tcg('Pokémon i ostali TCG', 'TCG kartica', ItemSection.cardsMain),
+  comics('Stripovi i manga', 'Strip', ItemSection.comicsMain),
+  coins('Kovanice', 'Kovanica', ItemSection.coinsMain),
+  stamps('Markice', 'Markica', ItemSection.stampsMain),
+  figures('Figure i Funko', 'Figura', ItemSection.figuresMain),
+  vinyl('Vinil', 'Ploča', ItemSection.mediaMain),
+  militaria(
+    'Vojna i povijesna oprema',
+    'Povijesni predmet',
+    ItemSection.historyMain,
+  ),
+  memorabilia(
+    'Sportski memorabilij',
+    'Memorabilij',
+    ItemSection.memorabiliaMain,
+  ),
+  autographs('Autogrami', 'Autogram', ItemSection.memorabiliaMain),
+  postcards('Razglednice', 'Razglednica', ItemSection.paperMain),
+  posters('Plakati i reklame', 'Plakat', ItemSection.paperMain),
+  magic('Magic: The Gathering', 'MTG kartica', ItemSection.cardsMain),
+  yugioh('Yu-Gi-Oh!', 'Yu-Gi-Oh! kartica', ItemSection.cardsMain),
+  gradedCards(
+    'Ocijenjene kartice',
+    'Ocijenjena kartica',
+    ItemSection.cardsMain,
+  ),
+  banknotes('Novčanice', 'Novčanica', ItemSection.coinsMain),
+  goldSilver('Zlato i srebro', 'Zlatnik ili srebrnjak', ItemSection.coinsMain),
+  stampCovers(
+    'Omotnice i filatelija',
+    'Filatelistički predmet',
+    ItemSection.stampsMain,
+  ),
+  cds('CD-ovi i kazete', 'CD ili kazeta', ItemSection.mediaMain),
+  comicsYugo('Jugoslavenski stripovi', 'Strip', ItemSection.comicsMain),
+  retroComputers('Retro računala', 'Retro računalo', ItemSection.gamesMain),
+  badges('Značke i medalje', 'Značka', ItemSection.historyMain),
+  prints('Grafike i fotografije', 'Grafika', ItemSection.artMain),
+  pocketWatches('Džepni i zidni satovi', 'Sat', ItemSection.watchesMain),
+
+  // Hobiji
+  sport('Sportska oprema', 'Sport', ItemSection.hobbies),
+  instruments('Glazbeni instrumenti', 'Instrument', ItemSection.hobbies),
+  books('Knjige', 'Knjiga', ItemSection.hobbies),
+  boardGames('Društvene igre', 'Društvena igra', ItemSection.hobbies),
+  models('Modeli i LEGO', 'Model', ItemSection.figuresMain),
+  videoGames('Videoigre', 'Videoigra', ItemSection.gamesMain),
+  cycling('Biciklizam', 'Bicikl', ItemSection.hobbies),
+  fishing('Ribolov', 'Ribolovna oprema', ItemSection.hobbies),
+  camping(
+    'Kampiranje i planinarenje',
+    'Oprema za kampiranje',
+    ItemSection.hobbies,
+  ),
+  cosplay('Cosplay i anime', 'Cosplay', ItemSection.hobbies),
+
+  // Moda
+  clothes('Odjeća', 'Odjeća', ItemSection.fashion),
+  sneakers('Tenisice', 'Tenisice', ItemSection.fashion),
+  bags('Torbe', 'Torba', ItemSection.fashion),
+  watches('Ručni satovi', 'Sat', ItemSection.watchesMain),
+  accessories('Modni dodaci', 'Modni dodatak', ItemSection.fashion),
+  womenswear('Ženska odjeća', 'Ženska odjeća', ItemSection.fashion),
+  menswear('Muška odjeća', 'Muška odjeća', ItemSection.fashion),
+  shoes('Cipele i čizme', 'Cipele', ItemSection.fashion),
+  sunglasses('Naočale', 'Naočale', ItemSection.fashion),
+
+  // Dom i vintage
+  homeDecor('Dom i dekor', 'Za dom', ItemSection.home),
+  vintage('Vintage i antikviteti', 'Vintage', ItemSection.antiquesMain),
+  beauty('Ljepota i njega', 'Ljepota', ItemSection.home),
+  kids('Dječje stvari', 'Za djecu', ItemSection.home),
+  furniture('Namještaj', 'Namještaj', ItemSection.home),
+  kitchen('Kuhinja i posuđe', 'Za kuhinju', ItemSection.home),
+  appliances('Kućanski aparati', 'Aparat', ItemSection.home),
+  garden('Vrt i biljke', 'Za vrt', ItemSection.home),
+  pets('Kućni ljubimci', 'Za ljubimce', ItemSection.home),
+
+  // Rukotvorine
+  jewelry('Stari nakit', 'Nakit', ItemSection.antiquesMain),
+  ceramics('Keramika i porculan', 'Keramika', ItemSection.antiquesMain),
+  textile('Pletivo i tekstil', 'Tekstil', ItemSection.crafts),
+  woodwork('Drvo', 'Drvo', ItemSection.crafts),
+  paintings('Slike i crteži', 'Slika', ItemSection.artMain),
+
+  // Hrana i piće (domaći proizvodi, pakirano)
+  coffeeTea('Kava i čaj', 'Kava ili čaj', ItemSection.food),
+  sweets('Slastice i grickalice', 'Slastice', ItemSection.food),
+  localFood('Domaći proizvodi', 'Domaći proizvod', ItemSection.food),
+  spices('Začini i ulja', 'Začini', ItemSection.food),
+
+  // Auto, alati i vrt
+  carParts('Auto dijelovi', 'Auto dio', ItemSection.auto),
+  carGear('Auto oprema', 'Auto oprema', ItemSection.auto),
+  motoGear('Moto oprema', 'Moto oprema', ItemSection.auto),
+  tools('Alati', 'Alat', ItemSection.auto),
+
+  // Aktivnosti (vaučeri, termini, ulaznice)
+  workshops('Radionice', 'Radionica', ItemSection.activities),
+  tutoring('Poduke', 'Poduka', ItemSection.activities),
+  tickets('Ulaznice', 'Ulaznica', ItemSection.activities),
+  experiences('Doživljaji', 'Doživljaj', ItemSection.activities),
+
+  // Digitalno (datoteka koju kupac preuzima)
+  models3d('3D modeli', '3D model', ItemSection.digital),
+  software('Softver', 'Softver', ItemSection.digital),
+  ebooks('E-knjige i tečajevi', 'E-knjiga', ItemSection.digital),
+  templates('Predlošci i grafika', 'Predložak', ItemSection.digital),
+  sounds('Glazba i zvukovi', 'Audio', ItemSection.digital);
+
+  const DeviceCategory(this._label, this._singular, this.section);
+
+  /// Množina — za filtere i grupe ("Mobiteli").
+  final String _label;
+  String get label => t(_label);
+
+  /// Jednina — za karticu i formu ("Mobitel").
+  final String _singular;
+  String get singular => t(_singular);
+
+  final ItemSection section;
+
+  /// Kategorije koje aplikacija danas nudi (niša: kolekcionarstvo). Ostale
+  /// ostaju u enumu da stari zapisi i dalje rade, ali se ne nude u izborniku.
+  static const active = <DeviceCategory>[
+    tcg,
+    magic,
+    yugioh,
+    cards,
+    gradedCards,
+    coins,
+    banknotes,
+    goldSilver,
+    stamps,
+    stampCovers,
+    postcards,
+    posters,
+    vinyl,
+    cds,
+    comics,
+    comicsYugo,
+    figures,
+    models,
+    console,
+    videoGames,
+    retroComputers,
+    memorabilia,
+    autographs,
+    militaria,
+    badges,
+    paintings,
+    prints,
+    watches,
+    pocketWatches,
+    vintage,
+    ceramics,
+    jewelry,
+    other,
+    phone,
+    laptop,
+    camera,
+    audio,
+  ];
+
+  bool get isActive => active.contains(this);
+
+  static DeviceCategory fromName(String? name) => DeviceCategory.values
+      .firstWhere((c) => c.name == name, orElse: () => DeviceCategory.other);
+}
+
+/// Stanje predmeta.
+enum DeviceCondition {
+  brandNew('Novo'),
+  excellent('Odlično'),
+  veryGood('Vrlo dobro'),
+  good('Dobro'),
+  forParts('Za dijelove');
+
+  const DeviceCondition(this._label);
+  final String _label;
+  String get label => t(_label);
+
+  static DeviceCondition fromName(String? name) => DeviceCondition.values
+      .firstWhere((c) => c.name == name, orElse: () => DeviceCondition.good);
+}
+
+/// Predmet za trgovanje: uređaj, kolekcionarski predmet, rukotvorina,
+/// oprema za hobi ili aktivnost (vaučer/termin). Klasa je zadržala ime
+/// `Device` iz prve verzije aplikacije.
+///
+/// Ako je [ownerId] `null`, predmet je u Marketu (vlasnik je platforma)
+/// i svatko ga može kupiti.
+class Device {
+  const Device({
+    required this.id,
+    required this.name,
+    required this.model,
+    required this.condition,
+    required this.price,
+    required this.category,
+    required this.createdAt,
+    this.ownerId,
+    this.imagePaths = const [],
+    this.description = '',
+    this.listPrice,
+    this.listedAt,
+    this.marketChecked = false,
+    this.file,
+    this.quantity = 1,
+    this.discountPercent = 0,
+    this.discountUntil,
+    this.priceLog = const [],
+    this.parcelSize = 'small',
+    this.shipping,
+  });
+
+  /// Veličina paketa (ime iz [ParcelSize]) — utječe na cijenu dostave.
+  final String parcelSize;
+
+  /// Profil dostave (kopija u trenutku odabira): težina, dimenzije i
+  /// koliko predmeta stane u jedan paket.
+  final ShippingProfile? shipping;
+
+  final String id;
+  final String name;
+  final String model;
+  final DeviceCondition condition;
+  final double price;
+  final DeviceCategory category;
+  final String? ownerId;
+  final DateTime createdAt;
+
+  /// Putanje lokalno spremljenih fotografija (prva je naslovna).
+  final List<String> imagePaths;
+
+  /// Opis predmeta (do [maxDescription] znakova, može biti prazan).
+  final String description;
+
+  static const maxDescription = 500;
+
+  /// Najdulji naziv predmeta.
+  static const maxName = 100;
+
+  /// Cijena po kojoj vlasnik prodaje predmet u Marketu (`null` = nije
+  /// objavljen). Kupac plaća ovu cijenu (umanjenu za popust) + 2%, a
+  /// vlasnik dobiva punu cijenu.
+  final double? listPrice;
+  final DateTime? listedAt;
+
+  /// Predmet je prošao automatsku objavu u Marketu (ili ga je vlasnik sam
+  /// objavio/uklonio). Stari predmeti iz portfolija nemaju ovu oznaku pa se
+  /// jednom automatski objave — kasnije "Ukloni iz Marketa" se poštuje.
+  final bool marketChecked;
+
+  /// Datoteka digitalnog proizvoda (3D model, softver, e-knjiga…).
+  final DigitalFile? file;
+
+  /// Količina na zalihi (komada). Svaka kupnja skida jedan komad; zadnji
+  /// komad prelazi kupcu. Digitalni proizvodi nemaju zalihu.
+  final int quantity;
+
+  static const maxQuantity = 999;
+
+  /// Popust u postocima (0 = bez popusta) — vrijedi trajno ili do
+  /// [discountUntil].
+  final int discountPercent;
+  final DateTime? discountUntil;
+
+  static const maxDiscount = 90;
+
+  /// Povijest cijena oglasa (za "najnižu cijenu u zadnjih 30 dana" uz
+  /// popust — Omnibus direktiva).
+  final List<PriceLogEntry> priceLog;
+
+  /// Najniža cijena oglasa (bez popusta) u 30 dana prije [now].
+  double lowestPrice30(DateTime now) {
+    final since = now.subtract(const Duration(days: 30));
+    var lowest = basePrice;
+    PriceLogEntry? before;
+    for (final e in priceLog) {
+      if (e.at.isAfter(now)) continue;
+      if (e.at.isBefore(since)) {
+        if (before == null || e.at.isAfter(before.at)) before = e;
+      } else if (e.price < lowest) {
+        lowest = e.price;
+      }
+    }
+    if (before != null && before.price < lowest) lowest = before.price;
+    return lowest;
+  }
+
+  /// Digitalni proizvod: prodaje se više puta, vlasnik ga zadržava, a
+  /// kupac preuzima datoteku odmah nakon plaćanja.
+  bool get isDigital => category.section == ItemSection.digital;
+
+  /// Predmet platforme (Subhasto Market) — svatko ga može kupiti.
+  bool get isOnMarket => ownerId == null;
+
+  /// Korisnik je objavio svoj predmet u Marketu.
+  bool get isListed => ownerId != null && listPrice != null;
+
+  /// Može se kupiti u Marketu (od platforme ili od korisnika).
+  bool get isForSale => isOnMarket || isListed;
+
+  /// Cijena prije popusta.
+  double get basePrice => listPrice ?? price;
+
+  /// Popust vrijedi u trenutku [now] (samo za objavljene predmete).
+  bool discountActiveAt(DateTime now) =>
+      isListed &&
+      discountPercent > 0 &&
+      (discountUntil == null || now.isBefore(discountUntil!));
+
+  bool get hasDiscount => discountActiveAt(DateTime.now());
+
+  /// Cijena u trenutku [now] (s popustom ako vrijedi).
+  double priceAt(DateTime now) => discountActiveAt(now)
+      ? ((basePrice * (100 - discountPercent)).roundToDouble()) / 100
+      : basePrice;
+
+  /// Cijena za kupca u Marketu (s popustom ako vrijedi), bez naknade.
+  double get askPrice => priceAt(DateTime.now());
+
+  /// Cijena koju kupac vidi i plaća (uključuje naknadu platforme).
+  double get shownPrice => buyTotal(askPrice);
+
+  /// Redovna cijena za kupca (prije popusta), s uključenom naknadom.
+  double get shownBasePrice => buyTotal(basePrice);
+
+  /// Više komada na zalihi (kupnja ne prenosi oglas, nego kopiju predmeta).
+  bool get hasStock => !isDigital && quantity > 1;
+
+  ItemSection get section => category.section;
+
+  Device _copy({
+    String? id,
+    Object? ownerId = _keep,
+    List<String>? imagePaths,
+    Object? listPrice = _keep,
+    Object? listedAt = _keep,
+    bool? marketChecked,
+    Object? file = _keep,
+    int? quantity,
+    int? discountPercent,
+    Object? discountUntil = _keep,
+    DateTime? createdAt,
+    List<PriceLogEntry>? priceLog,
+    String? parcelSize,
+    Object? shipping = _keep,
+  }) => Device(
+    id: id ?? this.id,
+    name: name,
+    model: model,
+    condition: condition,
+    price: price,
+    category: category,
+    createdAt: createdAt ?? this.createdAt,
+    ownerId: ownerId == _keep ? this.ownerId : ownerId as String?,
+    imagePaths: imagePaths ?? this.imagePaths,
+    description: description,
+    listPrice: listPrice == _keep ? this.listPrice : listPrice as double?,
+    listedAt: listedAt == _keep ? this.listedAt : listedAt as DateTime?,
+    marketChecked: marketChecked ?? this.marketChecked,
+    file: file == _keep ? this.file : file as DigitalFile?,
+    quantity: quantity ?? this.quantity,
+    discountPercent: discountPercent ?? this.discountPercent,
+    discountUntil: discountUntil == _keep
+        ? this.discountUntil
+        : discountUntil as DateTime?,
+    priceLog: priceLog ?? this.priceLog,
+    parcelSize: parcelSize ?? this.parcelSize,
+    shipping: shipping == _keep ? this.shipping : shipping as ShippingProfile?,
+  );
+
+  /// Ista stvar s drugom veličinom paketa.
+  Device withParcelSize(String size) => _copy(parcelSize: size);
+
+  /// Profil dostave; veličina paketa se računa iz njega. `null` uklanja
+  /// profil (veličina ostaje).
+  Device withShipping(ShippingProfile? profile) => profile == null
+      ? _copy(shipping: null)
+      : _copy(shipping: profile, parcelSize: profile.parcelSize.name);
+
+  /// Kopija s novim vlasnikom; `null` vraća predmet u Market.
+  /// Novi vlasnik poništava objavu, zalihu i popust.
+  Device withOwner(String? ownerId) => _copy(
+    ownerId: ownerId,
+    listPrice: null,
+    listedAt: null,
+    // Kupljeni predmet se ne objavljuje sam od sebe.
+    marketChecked: true,
+    quantity: 1,
+    discountPercent: 0,
+    discountUntil: null,
+    priceLog: const [],
+  );
+
+  /// Jedan komad sa zalihe za kupca (novi predmet u njegovom portfoliju).
+  Device unitFor(String buyerId, String newId, DateTime at) =>
+      _copy(id: newId, createdAt: at).withOwner(buyerId);
+
+  /// Objava u Marketu po cijeni [price] (`null` = ukloni iz Marketa).
+  Device withListing(double? price, {DateTime? at, int? quantity}) {
+    final when = at ?? DateTime.now();
+    final log = [...priceLog];
+    if (price != null && (log.isEmpty || log.last.price != price)) {
+      log.add(PriceLogEntry(when, price));
+    }
+    return _copy(
+      listPrice: price,
+      listedAt: price == null ? null : when,
+      marketChecked: true,
+      quantity: quantity,
+      // Dovoljno za 30 dana unatrag i uz česte promjene cijene.
+      priceLog: log.length > 12 ? log.sublist(log.length - 12) : log,
+    );
+  }
+
+  /// Zaliha nakon prodaje jednog komada.
+  Device withQuantity(int quantity) => _copy(quantity: quantity);
+
+  /// Popust [percent] % do [until] (`null` = trajno); 0 uklanja popust.
+  Device withDiscount(int percent, DateTime? until) => _copy(
+    discountPercent: percent,
+    discountUntil: percent == 0 ? null : until,
+  );
+
+  Device withImages(List<String> paths) => _copy(imagePaths: paths);
+
+  /// Kopija s novom datotekom (vlasnik je zamijenio datoteku).
+  Device withFile(DigitalFile f) => _copy(file: f);
+
+  Map<String, dynamic> toMap() => {
+    'id': id,
+    'name': name,
+    'model': model,
+    'condition': condition.name,
+    'price': price,
+    'category': category.name,
+    'ownerId': ownerId,
+    'createdAt': createdAt.toIso8601String(),
+    'imagePaths': imagePaths,
+    'description': description,
+    'listPrice': listPrice,
+    'listedAt': listedAt?.toIso8601String(),
+    'marketChecked': marketChecked,
+    'file': file?.toMap(),
+    'quantity': quantity,
+    'discountPercent': discountPercent,
+    'discountUntil': discountUntil?.toIso8601String(),
+    if (priceLog.isNotEmpty) 'priceLog': [for (final e in priceLog) e.toMap()],
+    if (parcelSize != 'small') 'parcelSize': parcelSize,
+    if (shipping != null) 'shipping': shipping!.toMap(),
+  };
+
+  factory Device.fromMap(Map<dynamic, dynamic> map) => Device(
+    id: map['id'] as String,
+    name: map['name'] as String,
+    model: map['model'] as String,
+    condition: DeviceCondition.fromName(map['condition'] as String?),
+    price: (map['price'] as num).toDouble(),
+    category: DeviceCategory.fromName(map['category'] as String?),
+    ownerId: map['ownerId'] as String?,
+    createdAt: DateTime.parse(map['createdAt'] as String),
+    // Stariji zapisi nemaju fotografije.
+    imagePaths: (map['imagePaths'] as List?)?.cast<String>() ?? const [],
+    description: map['description'] as String? ?? '',
+    listPrice: (map['listPrice'] as num?)?.toDouble(),
+    listedAt: map['listedAt'] == null
+        ? null
+        : DateTime.parse(map['listedAt'] as String),
+    marketChecked: map['marketChecked'] as bool? ?? false,
+    file: map['file'] == null ? null : DigitalFile.fromMap(map['file'] as Map),
+    quantity: (map['quantity'] as num?)?.toInt() ?? 1,
+    parcelSize: map['parcelSize'] as String? ?? 'small',
+    shipping: map['shipping'] is Map
+        ? ShippingProfile.fromMap(map['shipping'] as Map)
+        : null,
+    discountPercent: (map['discountPercent'] as num?)?.toInt() ?? 0,
+    discountUntil: map['discountUntil'] == null
+        ? null
+        : DateTime.parse(map['discountUntil'] as String),
+    priceLog: [
+      for (final e in (map['priceLog'] as List? ?? const []))
+        if (e is Map) PriceLogEntry.fromMap(e),
+    ],
+  );
+}
+
+const _keep = Object();
+
+/// Datoteka digitalnog proizvoda. [ref] je mjesto pohrane (online put u
+/// privatnom spremištu ili lokalni ključ) — vidi `FileStore`.
+class DigitalFile {
+  const DigitalFile({
+    required this.ref,
+    required this.name,
+    required this.size,
+    required this.uploadedAt,
+  });
+
+  final String ref;
+
+  /// Izvorni naziv datoteke (npr. "kocka.stl").
+  final String name;
+
+  /// Veličina u bajtovima.
+  final int size;
+  final DateTime uploadedAt;
+
+  String get extension {
+    final dot = name.lastIndexOf('.');
+    return dot < 0 ? '' : name.substring(dot + 1).toLowerCase();
+  }
+
+  /// "1,4 MB" / "820 KB".
+  String get sizeLabel {
+    if (size >= 1024 * 1024) {
+      return '${(size / (1024 * 1024)).toStringAsFixed(1).replaceAll('.', ',')} MB';
+    }
+    return '${(size / 1024).ceil()} KB';
+  }
+
+  Map<String, dynamic> toMap() => {
+    'ref': ref,
+    'name': name,
+    'size': size,
+    'uploadedAt': uploadedAt.toIso8601String(),
+  };
+
+  factory DigitalFile.fromMap(Map<dynamic, dynamic> m) => DigitalFile(
+    ref: m['ref'] as String,
+    name: m['name'] as String? ?? 'datoteka',
+    size: (m['size'] as num?)?.toInt() ?? 0,
+    uploadedAt: DateTime.parse(m['uploadedAt'] as String),
+  );
+}
+
+/// Jedna promjena cijene oglasa.
+class PriceLogEntry {
+  const PriceLogEntry(this.at, this.price);
+  final DateTime at;
+  final double price;
+
+  Map<String, dynamic> toMap() => {'at': at.toIso8601String(), 'price': price};
+
+  factory PriceLogEntry.fromMap(Map<dynamic, dynamic> m) => PriceLogEntry(
+    DateTime.parse(m['at'] as String),
+    (m['price'] as num).toDouble(),
+  );
+}
+
+/// Prijedlog kategorije iz naziva predmeta (npr. "iPhone 13" → Mobitel,
+/// "Nike Air Jordan" → Tenisice). `null` kad nema pogotka.
+DeviceCategory? suggestCategory(String name) {
+  final n = name.toLowerCase();
+  if (n.trim().length < 2) return null;
+  for (final (pattern, category) in _categoryHints) {
+    if (RegExp(pattern).hasMatch(n)) {
+      return category.isActive ? category : null;
+    }
+  }
+  return null;
+}
+
+/// Redoslijed je važan: specifičnije prije općenitijeg.
+const _categoryHints = <(String, DeviceCategory)>[
+  (
+    r'apple watch|smartwatch|galaxy watch|pametni sat|fitbit|garmin',
+    DeviceCategory.watch,
+  ),
+  (
+    r'pok[eé]mon|charizard|pikachu|yu-?gi-?oh|magic the gathering|\bmtg\b|booster|tcg',
+    DeviceCategory.tcg,
+  ),
+  (r'panini|topps|sportsk\w* kartic|rookie card', DeviceCategory.cards),
+  (
+    r'iphone|samsung galaxy|mobitel|xiaomi|redmi|pixel|huawei|nokia|oneplus|smartphone',
+    DeviceCategory.phone,
+  ),
+  (r'macbook|laptop|thinkpad|notebook|chromebook', DeviceCategory.laptop),
+  (r'ipad|tablet|kindle', DeviceCategory.tablet),
+  (
+    r'airpods|slušalic|headphone|zvučnik|soundbar|jbl|bose',
+    DeviceCategory.audio,
+  ),
+  (
+    r'ps5|ps4|playstation|xbox|nintendo|switch|konzol|game ?boy',
+    DeviceCategory.console,
+  ),
+  (
+    r'fifa|\bgta\b|zelda|mario|call of duty|videoigr|igra za',
+    DeviceCategory.videoGames,
+  ),
+  (
+    r'polaroid|kamer|fotoaparat|canon|nikon|gopro|objektiv|fujifilm',
+    DeviceCategory.camera,
+  ),
+  (
+    r'strip|manga|comic|alan ford|marvel|zagor|tex willer',
+    DeviceCategory.comics,
+  ),
+  (r'kovanic|novčanic|\bkun[ae]\b|zlatnik|numizmat', DeviceCategory.coins),
+  (r'poštansk|\bmarke?\b|filatel', DeviceCategory.stamps),
+  (r'razglednic|postcard', DeviceCategory.postcards),
+  (r'plakat|reklam|tiskovin', DeviceCategory.posters),
+  (r'magic the gathering|\bmtg\b', DeviceCategory.magic),
+  (r'yu-?gi-?oh', DeviceCategory.yugioh),
+  (r'\bpsa\b|\bcgc\b|\bbgs\b|ocijenjen', DeviceCategory.gradedCards),
+  (r'autogram|potpisan', DeviceCategory.autographs),
+  (r'dres\b|memorabil|navijač|ulaznica za utakmic', DeviceCategory.memorabilia),
+  (r'znač[ak]|medalj|odličj|vojn|šljem|uniform', DeviceCategory.militaria),
+  (r'funko|figur|akcijsk|barbie|igračk|plišan', DeviceCategory.figures),
+  (r'gramofonsk|vinil|vinyl|\blp\b|\bcd\b|kazet|ploča', DeviceCategory.vinyl),
+  (r'lego|maket|model auta|modelarstvo', DeviceCategory.models),
+  (
+    r'gitar|klavir|bubanj|violin|ukulele|sintisajzer|pojačalo',
+    DeviceCategory.instruments,
+  ),
+  (r'monopoly|catan|društven|šah|puzzle', DeviceCategory.boardGames),
+  (r'knjig|roman|enciklopedij', DeviceCategory.books),
+  (r'lopt|reket|skije|rolere|teg|fitness', DeviceCategory.sport),
+  (
+    r'tenisic|sneaker|jordan|yeezy|air max|air force|new balance|adidas|nike|converse|vans',
+    DeviceCategory.sneakers,
+  ),
+  (r'torb|ruksak|novčanik|louis vuitton|gucci|prada', DeviceCategory.bags),
+  (r'\bsat\b|rolex|omega|casio|seiko|tissot|swatch', DeviceCategory.watches),
+  (
+    r'jakn|majic|haljin|hlač|traperic|hoodie|duksercl|dukserica|kaput|košulj|džemper',
+    DeviceCategory.clothes,
+  ),
+  (r'naočal|remen|kapa|šal|rukavic', DeviceCategory.accessories),
+  (r'prsten|ogrlic|narukvic|naušnic|nakit|privjesak', DeviceCategory.jewelry),
+  (r'parfem|šmink|krema|kozmetik', DeviceCategory.beauty),
+  (r'dječj|kolica|beb|autosjedalic', DeviceCategory.kids),
+  (r'vintage|antik|retro|gramofon|starin', DeviceCategory.vintage),
+  (r'televizor|\btv\b|monitor', DeviceCategory.tv),
+  (
+    r'grafičk|procesor|ram memorij|matičn\w* ploč|\bssd\b|\bnvidia\b|\brtx\b',
+    DeviceCategory.pcParts,
+  ),
+  (r'dron|dji|gopro hero|akcijska kamera', DeviceCategory.drones),
+  (
+    r'pametn\w* (žarulj|utičnic|termostat)|alexa|google home|smart home',
+    DeviceCategory.smartHome,
+  ),
+  (r'bicikl|mtb|e-?bike|cestovni bicikl|kotač', DeviceCategory.cycling),
+  (r'ribolov|štap za|mamac|kolotur|udic', DeviceCategory.fishing),
+  (r'šator|vreća za spavanje|ruksak za planin|kamp', DeviceCategory.camping),
+  (r'cosplay|anime|kostim', DeviceCategory.cosplay),
+  (r'autogram|potpisan', DeviceCategory.autographs),
+  (r'dres|memorabil|medalj', DeviceCategory.memorabilia),
+  (r'vojn|kaciga|medalja|bajunet|uniforma iz', DeviceCategory.militaria),
+  (r'ženska|haljin|suknj|bluza', DeviceCategory.womenswear),
+  (r'muško|odijel|kravat', DeviceCategory.menswear),
+  (r'cipel|čizm|salonk|štikl|mokasin', DeviceCategory.shoes),
+  (r'sunčane naočale|ray-?ban|oakley', DeviceCategory.sunglasses),
+  (r'kauč|fotelj|krevet|namještaj|komod|polica', DeviceCategory.furniture),
+  (r'lonac|tava|posuđ|pribor za jelo|kuhinj|nož za', DeviceCategory.kitchen),
+  (
+    r'usisavač|perilic|pegla|friteza|mikser|aparat za kavu|kuhalo',
+    DeviceCategory.appliances,
+  ),
+  (r'sadnic|vrtn|kosilic|cvijeć|biljk|lonac za cvijeć', DeviceCategory.garden),
+  (r'pas\b|mačk|ljubimac|ogrlica za psa|akvarij', DeviceCategory.pets),
+  (r'\bkava\b|čaj\b|espresso|zrna kave', DeviceCategory.coffeeTea),
+  (r'čokolad|bomboni|keks|grickalic|slastic', DeviceCategory.sweets),
+  (
+    r'med\b|domaći|džem|pekmez|sir\b|kulen|pršut|rakij',
+    DeviceCategory.localFood,
+  ),
+  (r'začin|maslinovo ulje|ulje|ocat|sol\b', DeviceCategory.spices),
+  (
+    r'auto dio|kočnic|amortizer|filter ulja|zimske gume|\bgume\b|felge',
+    DeviceCategory.carParts,
+  ),
+  (
+    r'auto sjedal|auto presvlak|dashcam|navigacija|nosač',
+    DeviceCategory.carGear,
+  ),
+  (
+    r'motor\b|kaciga za motor|moto jakna|rukavice za motor',
+    DeviceCategory.motoGear,
+  ),
+  (
+    r'bušilic|brusilic|alat|odvijač|aku |kutija s alatom|kompresor',
+    DeviceCategory.tools,
+  ),
+  (r'lamp|vaz|stolic|stol\b|ormar|tepih|dekor', DeviceCategory.homeDecor),
+  (r'akvarel|ulje na platnu|slika|crtež|grafika', DeviceCategory.paintings),
+  (r'ulaznic|karta za|koncert', DeviceCategory.tickets),
+];

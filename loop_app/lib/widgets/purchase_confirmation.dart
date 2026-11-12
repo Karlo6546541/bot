@@ -1,0 +1,463 @@
+import 'vision_live_controls.dart';
+import 'vision_glass.dart';
+import 'package:flutter/material.dart';
+import '../services/stripe_backend.dart';
+import '../services/delivery_locations.dart';
+import '../theme/app_theme.dart';
+import 'formatters.dart';
+
+Future<bool> showPurchaseConfirmation(
+  BuildContext context,
+  PurchaseConfirmationSheet sheet,
+) async =>
+    await showModalBottomSheet<bool>(
+      context: context,
+      isScrollControlled: true,
+      showDragHandle: false,
+      enableDrag: false,
+      constraints: const BoxConstraints(maxWidth: 520),
+      backgroundColor: Colors.transparent,
+      builder: (_) => VisionGlass(
+        dark: LoopColors.isDark,
+        heavy: true,
+        opacity: .85,
+        radius: 32,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: Container(
+                width: 42,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: LoopColors.textSecondary,
+                  borderRadius: BorderRadius.circular(99),
+                ),
+              ),
+            ),
+            Flexible(child: appThemed(sheet)),
+          ],
+        ),
+      ),
+    ) ??
+    false;
+
+/// Purchase confirmation stays over the item; only the server can mark it paid.
+class PurchaseConfirmationSheet extends StatefulWidget {
+  const PurchaseConfirmationSheet({
+    super.key,
+    required this.title,
+    required this.totalCents,
+    required this.loadCard,
+    required this.addCard,
+    required this.reserve,
+    required this.chooseDelivery,
+    required this.charge,
+    this.address = '',
+    this.digital = false,
+    this.country = 'HR',
+    this.searchLockers,
+    this.embedded = false,
+    this.onResult,
+    this.itemCents,
+    this.shippingCents = 0,
+    this.orderTotal,
+  });
+
+  /// Cijena proizvoda bez dostave (za raščlambu); kad je zadana, [totalCents]
+  /// je proizvod + procjena dostave, a poslužitelj se uspoređuje s proizvodom.
+  final int? itemCents;
+  final int shippingCents;
+
+  /// Stvarni ukupni iznos narudžbe na poslužitelju nakon odabira dostave.
+  final Future<int> Function(String orderId)? orderTotal;
+  final bool embedded;
+  final ValueChanged<bool>? onResult;
+  final String title;
+  final int totalCents;
+  final String address;
+  final bool digital;
+  final String country;
+  final Future<List<DeliveryLocation>> Function(String)? searchLockers;
+  final Future<({bool hasCard, String? last4})> Function() loadCard;
+  final Future<bool> Function(BuildContext) addCard;
+  final Future<Map<String, dynamic>> Function() reserve;
+  final Future<void> Function(String, DeliveryDestination) chooseDelivery;
+  final Future<SavedCardChargeStatus> Function(String, BuildContext) charge;
+
+  @override
+  State<PurchaseConfirmationSheet> createState() =>
+      _PurchaseConfirmationState();
+}
+
+class _PurchaseConfirmationState extends State<PurchaseConfirmationSheet> {
+  late final TextEditingController _address = TextEditingController(
+    text: widget.address,
+  );
+  late int _totalCents = widget.totalCents;
+  String? _last4, _error, _orderId;
+  bool _hasCard = false, _loadingCard = true, _busy = false;
+  bool _completed = false;
+  bool _checkingPayment = false, _editingAddress = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadCard();
+  }
+
+  @override
+  void dispose() {
+    _address.dispose();
+    super.dispose();
+  }
+
+  Future<void> _loadCard() async {
+    if (mounted) {
+      setState(() {
+        _loadingCard = true;
+        _error = null;
+      });
+    }
+    try {
+      final card = await widget.loadCard();
+      if (!mounted) return;
+      setState(() {
+        _hasCard = card.hasCard;
+        _last4 = card.last4;
+      });
+    } catch (error) {
+      if (mounted) {
+        setState(() => _error = paymentActionErrorMessage(error));
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _loadingCard = false);
+      }
+    }
+  }
+
+  Future<void> _addCard() async {
+    setState(() {
+      _busy = true;
+      _error = null;
+    });
+    try {
+      await widget.addCard(context);
+      if (mounted) {
+        await _loadCard();
+      }
+    } catch (error) {
+      if (mounted) {
+        setState(() => _error = paymentActionErrorMessage(error));
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _busy = false);
+      }
+    }
+  }
+
+  Future<void> _pay() async {
+    if (_busy || _completed) return;
+    if (_busy || _loadingCard) return;
+    if (!_hasCard) {
+      await _addCard();
+      return;
+    }
+    if (!widget.digital && _address.text.trim().isEmpty) {
+      setState(() {
+        _editingAddress = true;
+        _error = 'Upiši adresu za dostavu.';
+      });
+      return;
+    }
+    setState(() {
+      _busy = true;
+      _error = null;
+    });
+    try {
+      if (_orderId == null) {
+        final order = await widget.reserve();
+        if (!mounted) return;
+        _orderId = order['id'] as String;
+        final serverTotal = (order['total_cents'] as num).toInt();
+        if (serverTotal != (widget.itemCents ?? _totalCents)) {
+          setState(() {
+            _totalCents = serverTotal;
+            _error = 'Cijena je promijenjena. Potvrdi novi ukupan iznos.';
+          });
+          return;
+        }
+      }
+      if (!_checkingPayment && !widget.digital) {
+        // Kupac ne bira dostavu: paket ide na adresu iz računa, a prodavač
+        // šalje kurirom ili u paketomat i kupcu javi broj za praćenje.
+        await widget.chooseDelivery(
+          _orderId!,
+          DeliveryDestination.courier(_address.text.trim()),
+        );
+        final fetch = widget.orderTotal;
+        if (fetch != null) {
+          final real = await fetch(_orderId!);
+          if (!mounted) return;
+          if (real != _totalCents) {
+            // Poslužitelj je odredio drugačiji iznos: ništa se ne naplaćuje
+            // dok kupac ne potvrdi novi iznos.
+            setState(() {
+              _totalCents = real;
+              _error = 'Iznos je promijenjen. Provjeri i potvrdi novi iznos.';
+            });
+            return;
+          }
+        }
+      }
+      if (!mounted) return;
+      // Retries always check the same order, including after a lost response.
+      _checkingPayment = true;
+      final status = await widget.charge(_orderId!, context);
+      if (!mounted) return;
+      if (status == SavedCardChargeStatus.paid) {
+        setState(() => _completed = true);
+        if (widget.embedded) {
+          widget.onResult?.call(true);
+        } else {
+          Navigator.pop(context, true);
+        }
+      } else {
+        setState(
+          () => _error = status == SavedCardChargeStatus.processing
+              ? 'Plaćanje je u obradi. Provjeri njegov status.'
+              : 'Plaćanje nije dovršeno. Možeš pokušati ponovno.',
+        );
+      }
+    } catch (error) {
+      if (mounted) {
+        setState(() {
+          _error = paymentActionErrorMessage(error);
+          if (paymentClearlyRejected(error)) _checkingPayment = false;
+        });
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _busy = false);
+      }
+    }
+  }
+
+  Widget _line(String label, int cents, String key) => Padding(
+    padding: const EdgeInsets.only(bottom: 4),
+    child: Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Text(label),
+        Text(
+          cents == 0 ? 'Besplatno' : formatCredits(cents / 100),
+          key: ValueKey(key),
+        ),
+      ],
+    ),
+  );
+
+  @override
+  Widget build(BuildContext context) => PopScope(
+    canPop: !_busy,
+    child: SafeArea(
+      child: SingleChildScrollView(
+        key: const ValueKey('purchase-confirmation'),
+        padding: EdgeInsets.fromLTRB(
+          widget.embedded ? 0 : 20,
+          0,
+          widget.embedded ? 0 : 20,
+          (widget.embedded ? 0 : 20) + MediaQuery.viewInsetsOf(context).bottom,
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (!widget.embedded)
+              Row(
+                children: [
+                  const Expanded(
+                    child: Text(
+                      'Potvrdi kupnju',
+                      style: TextStyle(
+                        fontSize: 22,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                  ),
+                  IconButton(
+                    key: const ValueKey('purchase-close'),
+                    onPressed: _busy
+                        ? null
+                        : () => Navigator.pop(context, false),
+                    icon: const Icon(Icons.close),
+                  ),
+                ],
+              ),
+            if (!widget.embedded) const SizedBox(height: 8),
+            if (!widget.embedded)
+              Text(
+                widget.title,
+                style: const TextStyle(
+                  fontSize: 17,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                const Icon(Icons.credit_card_outlined, size: 21),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    _loadingCard
+                        ? 'Provjera kartice…'
+                        : _hasCard
+                        ? 'Kartica •••• ${_last4 ?? "••••"}'
+                        : 'Dodaj karticu za plaćanje',
+                  ),
+                ),
+                if (!_loadingCard)
+                  TextButton(
+                    onPressed: _busy ? null : _addCard,
+                    child: Text(_hasCard ? 'Promijeni' : 'Dodaj'),
+                  ),
+              ],
+            ),
+            if (!widget.digital) ...[
+              const SizedBox(height: 8),
+              if (_editingAddress || widget.address.trim().isEmpty)
+                TextField(
+                  key: const ValueKey('purchase-address'),
+                  controller: _address,
+                  enabled: !_busy && !_checkingPayment,
+                  minLines: 1,
+                  maxLines: 3,
+                  textCapitalization: TextCapitalization.words,
+                  decoration: const InputDecoration(
+                    labelText: 'Adresa za dostavu',
+                    hintText: 'Ulica i broj, poštanski broj i mjesto',
+                  ),
+                )
+              else
+                Row(
+                  children: [
+                    const Icon(Icons.local_shipping_outlined, size: 21),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Text(
+                        _address.text,
+                        key: const ValueKey('purchase-address-text'),
+                      ),
+                    ),
+                    TextButton(
+                      onPressed: _busy || _checkingPayment
+                          ? null
+                          : () => setState(() => _editingAddress = true),
+                      child: const Text('Promijeni'),
+                    ),
+                  ],
+                ),
+            ],
+            if (!widget.digital)
+              const Padding(
+                padding: EdgeInsets.only(top: 6),
+                child: Text(
+                  'Prodavač šalje paket na ovu adresu (kurir ili paketomat) i javi ti broj za praćenje.',
+                  key: ValueKey('purchase-seller-ships'),
+                  style: TextStyle(fontSize: 12),
+                ),
+              ),
+            const SizedBox(height: 16),
+            if (widget.itemCents != null) ...[
+              _line('Proizvod (1 kom)', widget.itemCents!, 'purchase-item'),
+              _line(
+                'Dostava',
+                _totalCents - widget.itemCents!,
+                'purchase-shipping',
+              ),
+              const Divider(height: 20),
+            ],
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text(
+                  'Ukupno',
+                  style: TextStyle(fontSize: 17, fontWeight: FontWeight.w800),
+                ),
+                Text(
+                  formatCredits(_totalCents / 100),
+                  key: const ValueKey('purchase-total'),
+                  style: const TextStyle(
+                    fontSize: 22,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+              ],
+            ),
+            if (_error != null)
+              Padding(
+                padding: const EdgeInsets.only(top: 12),
+                child: Text(
+                  _error!,
+                  key: const ValueKey('purchase-error'),
+                  style: TextStyle(color: LoopColors.error),
+                ),
+              ),
+            const SizedBox(height: 18),
+            if (_completed)
+              const Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.check_circle_outline),
+                  SizedBox(width: 8),
+                  Text('Plaćeno'),
+                ],
+              )
+            else if (widget.embedded &&
+                _hasCard &&
+                !_loadingCard &&
+                !_busy &&
+                !_checkingPayment)
+              VisionBidSlider(
+                key: const ValueKey('purchase-slide'),
+                label: 'Plati ${formatCredits(_totalCents / 100)}',
+                confirmationKey: (_orderId, _totalCents),
+                onConfirm: _pay,
+              )
+            else
+              FilledButton.icon(
+                key: const ValueKey('purchase-pay'),
+                onPressed: _busy || _loadingCard ? null : _pay,
+                icon: _busy
+                    ? const SizedBox(
+                        width: 18,
+                        height: 18,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const Icon(Icons.lock_outline),
+                label: Text(
+                  _busy
+                      ? 'Obrada…'
+                      : !_hasCard
+                      ? 'Dodaj karticu'
+                      : _checkingPayment
+                      ? 'Provjeri plaćanje'
+                      : 'Plati ${formatCredits(_totalCents / 100)}',
+                ),
+              ),
+            const SizedBox(height: 8),
+            Text(
+              'Testni način',
+              textAlign: TextAlign.center,
+              style: TextStyle(fontSize: 12, color: LoopColors.textSecondary),
+            ),
+          ],
+        ),
+      ),
+    ),
+  );
+}
