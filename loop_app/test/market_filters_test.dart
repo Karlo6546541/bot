@@ -34,7 +34,7 @@ void main() {
 
   test('odjeljak, kategorija, stanje, cijena', () {
     final f = const MarketFilter().copyWith(
-      section: ItemSection.electronics,
+      section: ItemSection.electronicsMain,
       category: DeviceCategory.phone,
       conditions: {DeviceCondition.excellent},
       maxPrice: 700,

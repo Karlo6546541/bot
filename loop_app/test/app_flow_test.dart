@@ -1300,6 +1300,8 @@ void logoTests() {
     expect(find.byKey(const ValueKey('categories')), findsOneWidget);
     // Samo kategorije — bez liveova, aukcija i predmeta.
     expect(find.byKey(const ValueKey('home-live')), findsNothing);
+    await tester.tap(find.byKey(const ValueKey('cat-section-gamesMain')));
+    await tester.pumpAndSettle();
     final camera = find.byKey(const ValueKey('category-console'));
     final list = find
         .descendant(

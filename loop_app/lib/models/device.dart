@@ -13,14 +13,46 @@ enum ItemSection {
   food('Hrana i piće'),
   auto('Auto, alati i vrt'),
   activities('Aktivnosti'),
-  digital('Digitalno');
+  digital('Digitalno'),
+
+  // Glavne kategorije aplikacije (niša: kolekcionarstvo). Svaka ima
+  // podkategorije (DeviceCategory) u desnom stupcu Kategorija.
+  cardsMain('Kartice'),
+  coinsMain('Novci'),
+  stampsMain('Markice'),
+  paperMain('Razglednice i plakati'),
+  mediaMain('Ploče i mediji'),
+  comicsMain('Stripovi'),
+  figuresMain('Figure i igračke'),
+  gamesMain('Konzole i igre'),
+  memorabiliaMain('Memorabilij i autogrami'),
+  historyMain('Vojna i povijest'),
+  artMain('Slike i umjetnost'),
+  watchesMain('Satovi'),
+  antiquesMain('Antikviteti i vintage'),
+  electronicsMain('Elektronika');
 
   const ItemSection(this._label);
   final String _label;
   String get label => t(_label);
 
-  /// Odjeljci koji se nude (niša: samo Kolekcionarstvo).
-  static const active = <ItemSection>[collectibles];
+  /// Glavne kategorije koje se nude (niša: kolekcionarstvo).
+  static const active = <ItemSection>[
+    cardsMain,
+    coinsMain,
+    stampsMain,
+    paperMain,
+    mediaMain,
+    comicsMain,
+    figuresMain,
+    gamesMain,
+    memorabiliaMain,
+    historyMain,
+    artMain,
+    watchesMain,
+    antiquesMain,
+    electronicsMain,
+  ];
 
   List<DeviceCategory> get categories =>
       DeviceCategory.active.where((c) => c.section == this).toList();
@@ -30,47 +62,68 @@ enum ItemSection {
 /// `widgets/category_style.dart`.
 enum DeviceCategory {
   // Elektronika
-  phone('Mobiteli', 'Mobitel', ItemSection.electronics),
-  laptop('Laptopi', 'Laptop', ItemSection.electronics),
+  phone('Mobiteli', 'Mobitel', ItemSection.electronicsMain),
+  laptop('Računala i laptopi', 'Računalo', ItemSection.electronicsMain),
   tablet('Tableti', 'Tablet', ItemSection.electronics),
-  audio('Slušalice', 'Slušalice', ItemSection.electronics),
-  console('Konzole', 'Konzola', ItemSection.collectibles),
+  audio('Audio i slušalice', 'Audio', ItemSection.electronicsMain),
+  console('Konzole', 'Konzola', ItemSection.gamesMain),
   watch('Pametni satovi', 'Pametni sat', ItemSection.electronics),
-  camera('Kamere', 'Kamera', ItemSection.electronics),
-  other('Elektronika', 'Elektronika', ItemSection.collectibles),
+  camera('Kamere i foto', 'Kamera', ItemSection.electronicsMain),
+  other('Ostala elektronika', 'Elektronika', ItemSection.electronicsMain),
   tv('Televizori i monitori', 'TV', ItemSection.electronics),
   pcParts('Računalne komponente', 'Komponenta', ItemSection.electronics),
   smartHome('Pametni dom', 'Pametni uređaj', ItemSection.electronics),
   drones('Dronovi i akcijske kamere', 'Dron', ItemSection.electronics),
 
   // Kolekcionarstvo
-  cards('Sportske kartice', 'Kartica', ItemSection.collectibles),
-  tcg('Pokémon i TCG', 'TCG kartica', ItemSection.collectibles),
-  comics('Stripovi i manga', 'Strip', ItemSection.collectibles),
-  coins('Novci', 'Novac', ItemSection.collectibles),
-  stamps('Markice', 'Markica', ItemSection.collectibles),
-  figures('Figure, Funko i igračke', 'Figura', ItemSection.collectibles),
-  vinyl('Ploče i mediji', 'Ploča', ItemSection.collectibles),
+  cards('Sportske kartice', 'Kartica', ItemSection.cardsMain),
+  tcg('Pokémon i ostali TCG', 'TCG kartica', ItemSection.cardsMain),
+  comics('Stripovi i manga', 'Strip', ItemSection.comicsMain),
+  coins('Kovanice', 'Kovanica', ItemSection.coinsMain),
+  stamps('Markice', 'Markica', ItemSection.stampsMain),
+  figures('Figure i Funko', 'Figura', ItemSection.figuresMain),
+  vinyl('Vinil', 'Ploča', ItemSection.mediaMain),
   militaria(
     'Vojna i povijesna oprema',
     'Povijesni predmet',
-    ItemSection.collectibles,
+    ItemSection.historyMain,
   ),
-  memorabilia('Sportski memorabilij', 'Memorabilij', ItemSection.collectibles),
-  autographs('Autogrami', 'Autogram', ItemSection.collectibles),
-  postcards(
-    'Razglednice i plakati',
-    'Razglednica ili plakat',
-    ItemSection.collectibles,
+  memorabilia(
+    'Sportski memorabilij',
+    'Memorabilij',
+    ItemSection.memorabiliaMain,
   ),
+  autographs('Autogrami', 'Autogram', ItemSection.memorabiliaMain),
+  postcards('Razglednice', 'Razglednica', ItemSection.paperMain),
+  posters('Plakati i reklame', 'Plakat', ItemSection.paperMain),
+  magic('Magic: The Gathering', 'MTG kartica', ItemSection.cardsMain),
+  yugioh('Yu-Gi-Oh!', 'Yu-Gi-Oh! kartica', ItemSection.cardsMain),
+  gradedCards(
+    'Ocijenjene kartice',
+    'Ocijenjena kartica',
+    ItemSection.cardsMain,
+  ),
+  banknotes('Novčanice', 'Novčanica', ItemSection.coinsMain),
+  goldSilver('Zlato i srebro', 'Zlatnik ili srebrnjak', ItemSection.coinsMain),
+  stampCovers(
+    'Omotnice i filatelija',
+    'Filatelistički predmet',
+    ItemSection.stampsMain,
+  ),
+  cds('CD-ovi i kazete', 'CD ili kazeta', ItemSection.mediaMain),
+  comicsYugo('Jugoslavenski stripovi', 'Strip', ItemSection.comicsMain),
+  retroComputers('Retro računala', 'Retro računalo', ItemSection.gamesMain),
+  badges('Značke i medalje', 'Značka', ItemSection.historyMain),
+  prints('Grafike i fotografije', 'Grafika', ItemSection.artMain),
+  pocketWatches('Džepni i zidni satovi', 'Sat', ItemSection.watchesMain),
 
   // Hobiji
   sport('Sportska oprema', 'Sport', ItemSection.hobbies),
   instruments('Glazbeni instrumenti', 'Instrument', ItemSection.hobbies),
   books('Knjige', 'Knjiga', ItemSection.hobbies),
   boardGames('Društvene igre', 'Društvena igra', ItemSection.hobbies),
-  models('Modeli i LEGO', 'Model', ItemSection.hobbies),
-  videoGames('Videoigre', 'Videoigra', ItemSection.collectibles),
+  models('Modeli i LEGO', 'Model', ItemSection.figuresMain),
+  videoGames('Videoigre', 'Videoigra', ItemSection.gamesMain),
   cycling('Biciklizam', 'Bicikl', ItemSection.hobbies),
   fishing('Ribolov', 'Ribolovna oprema', ItemSection.hobbies),
   camping(
@@ -84,7 +137,7 @@ enum DeviceCategory {
   clothes('Odjeća', 'Odjeća', ItemSection.fashion),
   sneakers('Tenisice', 'Tenisice', ItemSection.fashion),
   bags('Torbe', 'Torba', ItemSection.fashion),
-  watches('Satovi', 'Sat', ItemSection.collectibles),
+  watches('Ručni satovi', 'Sat', ItemSection.watchesMain),
   accessories('Modni dodaci', 'Modni dodatak', ItemSection.fashion),
   womenswear('Ženska odjeća', 'Ženska odjeća', ItemSection.fashion),
   menswear('Muška odjeća', 'Muška odjeća', ItemSection.fashion),
@@ -93,7 +146,7 @@ enum DeviceCategory {
 
   // Dom i vintage
   homeDecor('Dom i dekor', 'Za dom', ItemSection.home),
-  vintage('Vintage i antikviteti', 'Vintage', ItemSection.collectibles),
+  vintage('Vintage i antikviteti', 'Vintage', ItemSection.antiquesMain),
   beauty('Ljepota i njega', 'Ljepota', ItemSection.home),
   kids('Dječje stvari', 'Za djecu', ItemSection.home),
   furniture('Namještaj', 'Namještaj', ItemSection.home),
@@ -103,11 +156,11 @@ enum DeviceCategory {
   pets('Kućni ljubimci', 'Za ljubimce', ItemSection.home),
 
   // Rukotvorine
-  jewelry('Nakit', 'Nakit', ItemSection.crafts),
-  ceramics('Keramika', 'Keramika', ItemSection.crafts),
+  jewelry('Stari nakit', 'Nakit', ItemSection.antiquesMain),
+  ceramics('Keramika i porculan', 'Keramika', ItemSection.antiquesMain),
   textile('Pletivo i tekstil', 'Tekstil', ItemSection.crafts),
   woodwork('Drvo', 'Drvo', ItemSection.crafts),
-  paintings('Slike', 'Slika', ItemSection.collectibles),
+  paintings('Slike i crteži', 'Slika', ItemSection.artMain),
 
   // Hrana i piće (domaći proizvodi, pakirano)
   coffeeTea('Kava i čaj', 'Kava ili čaj', ItemSection.food),
@@ -150,22 +203,42 @@ enum DeviceCategory {
   /// ostaju u enumu da stari zapisi i dalje rade, ali se ne nude u izborniku.
   static const active = <DeviceCategory>[
     tcg,
+    magic,
+    yugioh,
     cards,
+    gradedCards,
     coins,
+    banknotes,
+    goldSilver,
     stamps,
-    vinyl,
-    comics,
-    figures,
+    stampCovers,
     postcards,
+    posters,
+    vinyl,
+    cds,
+    comics,
+    comicsYugo,
+    figures,
+    models,
+    console,
+    videoGames,
+    retroComputers,
     memorabilia,
     autographs,
     militaria,
+    badges,
     paintings,
+    prints,
     watches,
-    console,
-    videoGames,
+    pocketWatches,
     vintage,
+    ceramics,
+    jewelry,
     other,
+    phone,
+    laptop,
+    camera,
+    audio,
   ];
 
   bool get isActive => active.contains(this);
@@ -608,7 +681,11 @@ const _categoryHints = <(String, DeviceCategory)>[
   ),
   (r'kovanic|novčanic|\bkun[ae]\b|zlatnik|numizmat', DeviceCategory.coins),
   (r'poštansk|\bmarke?\b|filatel', DeviceCategory.stamps),
-  (r'razglednic|plakat|tiskovin|bon\b|postcard', DeviceCategory.postcards),
+  (r'razglednic|postcard', DeviceCategory.postcards),
+  (r'plakat|reklam|tiskovin', DeviceCategory.posters),
+  (r'magic the gathering|\bmtg\b', DeviceCategory.magic),
+  (r'yu-?gi-?oh', DeviceCategory.yugioh),
+  (r'\bpsa\b|\bcgc\b|\bbgs\b|ocijenjen', DeviceCategory.gradedCards),
   (r'autogram|potpisan', DeviceCategory.autographs),
   (r'dres\b|memorabil|navijač|ulaznica za utakmic', DeviceCategory.memorabilia),
   (r'znač[ak]|medalj|odličj|vojn|šljem|uniform', DeviceCategory.militaria),

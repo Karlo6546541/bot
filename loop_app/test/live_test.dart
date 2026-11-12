@@ -1205,7 +1205,7 @@ void main() {
             matching: find.byType(Scrollable),
           )
           .first;
-      final cat = ItemSection.active.last.categories.elementAt(12);
+      final cat = ItemSection.active.last.categories.last;
       await tester.scrollUntilVisible(
         find.byKey(const ValueKey('live-cat-all-toggle')),
         200,
@@ -1218,6 +1218,11 @@ void main() {
         200,
         scrollable: formScroll,
       );
+      await Scrollable.ensureVisible(
+        tester.element(find.byKey(ValueKey('live-cat-${cat.name}'))),
+        alignment: 0.3,
+      );
+      await tester.pumpAndSettle();
       await tester.tap(find.byKey(ValueKey('live-cat-${cat.name}')));
       await tester.pumpAndSettle();
       FocusManager.instance.primaryFocus?.unfocus();

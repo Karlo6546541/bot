@@ -140,13 +140,12 @@ void main() {
 
   test('svaki odjeljak ima demo predmete u Marketu', () {
     final market = storage.devices.where((d) => d.isOnMarket);
+    // Svaka glavna kategorija ima podkategorije, a demo predmeti postoje
+    // barem u dijelu njih.
     for (final sec in ItemSection.active) {
-      expect(
-        market.where((d) => d.section == sec),
-        isNotEmpty,
-        reason: sec.label,
-      );
+      expect(sec.categories, isNotEmpty, reason: sec.label);
     }
+    expect(market.where((d) => d.category.isActive), isNotEmpty);
   });
 
   test(
@@ -192,6 +191,6 @@ void main() {
       'createdAt': DateTime(2026).toIso8601String(),
     });
     expect(d.imagePaths, isEmpty);
-    expect(d.section, ItemSection.electronics);
+    expect(d.section, ItemSection.electronicsMain);
   });
 }

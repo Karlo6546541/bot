@@ -1359,11 +1359,15 @@ class _CreateLiveShowScreenState extends ConsumerState<CreateLiveShowScreen> {
                 children: [
                   Icon(sec.icon, size: 18),
                   const SizedBox(width: 8),
-                  Text(
-                    sec.label,
-                    style: const TextStyle(
-                      fontSize: 15,
-                      fontWeight: FontWeight.w700,
+                  Expanded(
+                    child: Text(
+                      sec.label,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w700,
+                      ),
                     ),
                   ),
                 ],
