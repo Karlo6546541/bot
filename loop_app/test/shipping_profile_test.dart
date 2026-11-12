@@ -139,7 +139,10 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
-    await tester.enterText(find.byKey(const ValueKey('add-name')), 'iPhone 13');
+    await tester.enterText(
+      find.byKey(const ValueKey('add-name')),
+      'Pokémon Charizard',
+    );
     await tester.enterText(find.byKey(const ValueKey('add-price')), '300');
     await tester.pumpAndSettle();
     // Dostava je u "Više detalja"; profil dostave iz padajućeg izbornika.
@@ -160,7 +163,7 @@ void main() {
     await tester.ensureVisible(find.byKey(const ValueKey('add-save-draft')));
     await tester.tap(find.byKey(const ValueKey('add-save-draft')));
     await tester.pumpAndSettle();
-    final d = storage.devices.firstWhere((d) => d.name == 'iPhone 13');
+    final d = storage.devices.firstWhere((d) => d.name == 'Pokémon Charizard');
     expect(d.isListed, isFalse);
     expect(d.quantity, 2);
     expect(d.shipping?.id, 'sp-box');

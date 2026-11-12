@@ -44,7 +44,7 @@ Future<BrowseCategoryChoice?> pickBrowseCategory(
           Expanded(
             child: ListView(
               children: [
-                for (final sec in ItemSection.values)
+                for (final sec in ItemSection.active)
                   if (sec != ItemSection.digital) ...[
                     // Kategorije su razvrstane po odjeljcima.
                     Padding(

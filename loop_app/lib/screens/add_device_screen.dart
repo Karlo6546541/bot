@@ -371,7 +371,7 @@ class _AddDeviceScreenState extends ConsumerState<AddDeviceScreen> {
                     spacing: 8,
                     runSpacing: 8,
                     children: [
-                      for (final sec in ItemSection.values)
+                      for (final sec in ItemSection.active)
                         ChoiceChip(
                           avatar: Icon(sec.icon, size: 18),
                           label: Text(sec.label),

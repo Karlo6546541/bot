@@ -117,7 +117,7 @@ class _MarketScreenState extends ConsumerState<MarketScreen> {
           onTap: () => ShopsScreen.open(context),
         ),
         if (f.section == null)
-          for (final sec in ItemSection.values)
+          for (final sec in ItemSection.active)
             _CategoryChip(
               label: sec.label,
               icon: sec.icon,

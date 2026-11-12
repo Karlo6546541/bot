@@ -19,8 +19,11 @@ enum ItemSection {
   final String _label;
   String get label => t(_label);
 
+  /// Odjeljci koji se nude (niša: samo Kolekcionarstvo).
+  static const active = <ItemSection>[collectibles];
+
   List<DeviceCategory> get categories =>
-      DeviceCategory.values.where((c) => c.section == this).toList();
+      DeviceCategory.active.where((c) => c.section == this).toList();
 }
 
 /// Kategorija predmeta. Boja i ikona za prikaz su u
@@ -31,10 +34,10 @@ enum DeviceCategory {
   laptop('Laptopi', 'Laptop', ItemSection.electronics),
   tablet('Tableti', 'Tablet', ItemSection.electronics),
   audio('Slušalice', 'Slušalice', ItemSection.electronics),
-  console('Konzole', 'Konzola', ItemSection.electronics),
+  console('Konzole', 'Konzola', ItemSection.collectibles),
   watch('Pametni satovi', 'Pametni sat', ItemSection.electronics),
   camera('Kamere', 'Kamera', ItemSection.electronics),
-  other('Ostala elektronika', 'Elektronika', ItemSection.electronics),
+  other('Elektronika', 'Elektronika', ItemSection.collectibles),
   tv('Televizori i monitori', 'TV', ItemSection.electronics),
   pcParts('Računalne komponente', 'Komponenta', ItemSection.electronics),
   smartHome('Pametni dom', 'Pametni uređaj', ItemSection.electronics),
@@ -44,8 +47,8 @@ enum DeviceCategory {
   cards('Sportske kartice', 'Kartica', ItemSection.collectibles),
   tcg('Pokémon i TCG', 'TCG kartica', ItemSection.collectibles),
   comics('Stripovi i manga', 'Strip', ItemSection.collectibles),
-  coins('Kovanice i novčanice', 'Kovanica', ItemSection.collectibles),
-  stamps('Marke', 'Marke', ItemSection.collectibles),
+  coins('Novci', 'Novac', ItemSection.collectibles),
+  stamps('Markice', 'Markica', ItemSection.collectibles),
   figures('Figure, Funko i igračke', 'Figura', ItemSection.collectibles),
   vinyl('Ploče i mediji', 'Ploča', ItemSection.collectibles),
   militaria(
@@ -76,7 +79,7 @@ enum DeviceCategory {
   clothes('Odjeća', 'Odjeća', ItemSection.fashion),
   sneakers('Tenisice', 'Tenisice', ItemSection.fashion),
   bags('Torbe', 'Torba', ItemSection.fashion),
-  watches('Satovi', 'Sat', ItemSection.fashion),
+  watches('Satovi', 'Sat', ItemSection.collectibles),
   accessories('Modni dodaci', 'Modni dodatak', ItemSection.fashion),
   womenswear('Ženska odjeća', 'Ženska odjeća', ItemSection.fashion),
   menswear('Muška odjeća', 'Muška odjeća', ItemSection.fashion),
@@ -99,7 +102,7 @@ enum DeviceCategory {
   ceramics('Keramika', 'Keramika', ItemSection.crafts),
   textile('Pletivo i tekstil', 'Tekstil', ItemSection.crafts),
   woodwork('Drvo', 'Drvo', ItemSection.crafts),
-  paintings('Slike i crteži', 'Slika', ItemSection.crafts),
+  paintings('Slike', 'Slika', ItemSection.collectibles),
 
   // Hrana i piće (domaći proizvodi, pakirano)
   coffeeTea('Kava i čaj', 'Kava ili čaj', ItemSection.food),
@@ -137,6 +140,21 @@ enum DeviceCategory {
   String get singular => t(_singular);
 
   final ItemSection section;
+
+  /// Kategorije koje aplikacija danas nudi (niša: kolekcionarstvo). Ostale
+  /// ostaju u enumu da stari zapisi i dalje rade, ali se ne nude u izborniku.
+  static const active = <DeviceCategory>[
+    tcg,
+    cards,
+    coins,
+    stamps,
+    paintings,
+    watches,
+    console,
+    other,
+  ];
+
+  bool get isActive => active.contains(this);
 
   static DeviceCategory fromName(String? name) => DeviceCategory.values
       .firstWhere((c) => c.name == name, orElse: () => DeviceCategory.other);
@@ -530,7 +548,9 @@ DeviceCategory? suggestCategory(String name) {
   final n = name.toLowerCase();
   if (n.trim().length < 2) return null;
   for (final (pattern, category) in _categoryHints) {
-    if (RegExp(pattern).hasMatch(n)) return category;
+    if (RegExp(pattern).hasMatch(n)) {
+      return category.isActive ? category : null;
+    }
   }
   return null;
 }

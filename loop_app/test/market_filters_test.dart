@@ -99,9 +99,9 @@ void main() {
   });
 
   test('pretraga bez dijakritike i s više riječi', () {
-    // "Prigodna kovanica 25 kn" — kategorija "Kovanice i novčanice".
+    // "Prigodna kovanica 25 kn" — kategorija "Novci".
     expect(
-      const MarketFilter(query: 'NOVCANICE  prigodna').apply(all, state),
+      const MarketFilter(query: 'NOVCI  prigodna').apply(all, state),
       isNotEmpty,
     );
     expect(

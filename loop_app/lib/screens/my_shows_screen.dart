@@ -480,12 +480,12 @@ class _EditShowDialogState extends State<_EditShowDialog> {
           const SizedBox(height: 12),
           DropdownButtonFormField<String>(
             key: const ValueKey('edit-show-category'),
-            initialValue: DeviceCategory.values.any((c) => c.name == _category)
+            initialValue: DeviceCategory.active.any((c) => c.name == _category)
                 ? _category
                 : null,
             decoration: InputDecoration(labelText: t('Kategorija')),
             items: [
-              for (final c in DeviceCategory.values)
+              for (final c in DeviceCategory.active)
                 DropdownMenuItem(value: c.name, child: Text(c.label)),
             ],
             onChanged: (v) => setState(() => _category = v),

@@ -274,7 +274,7 @@ class _FilterSheet extends ConsumerWidget {
                   spacing: 8,
                   runSpacing: 8,
                   children: [
-                    for (final s in ItemSection.values)
+                    for (final s in ItemSection.active)
                       FilterChip(
                         avatar: Icon(s.icon, size: 18, color: s.color),
                         label: Text(s.label),

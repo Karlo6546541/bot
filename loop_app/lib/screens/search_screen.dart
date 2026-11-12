@@ -613,7 +613,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
     ];
     final sq = _sq;
     final categories = [
-      for (final c in DeviceCategory.values)
+      for (final c in DeviceCategory.active)
         if (sq.terms.isNotEmpty && sq.matches('${c.label} ${c.singular}')) c,
     ];
     final empty = sq.isEmpty && _kind == null;

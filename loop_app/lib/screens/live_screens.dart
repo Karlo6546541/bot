@@ -1349,7 +1349,7 @@ class _CreateLiveShowScreenState extends ConsumerState<CreateLiveShowScreen> {
       ),
       if (_allCats)
         // Razvrstano po odjeljcima (Elektronika, Moda, Dom…).
-        for (final sec in ItemSection.values)
+        for (final sec in ItemSection.active)
           if (sec != ItemSection.digital &&
               sec.categories.any((c) => !suggested.contains(c))) ...[
             Padding(

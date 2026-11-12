@@ -58,7 +58,7 @@ List<CategoryStat> categoryStats(AppState s) {
     if (c != null) viewers[c] = (viewers[c] ?? 0) + st.viewers;
   }
   return [
-    for (final c in DeviceCategory.values)
+    for (final c in DeviceCategory.active)
       CategoryStat(c, viewers: viewers[c] ?? 0, items: items[c] ?? 0),
   ];
 }
@@ -154,7 +154,7 @@ class CategoriesScreen extends ConsumerStatefulWidget {
 
 class _CategoriesScreenState extends ConsumerState<CategoriesScreen> {
   final _query = TextEditingController();
-  ItemSection _section = ItemSection.values.first;
+  ItemSection _section = ItemSection.active.first;
 
   @override
   void dispose() {
@@ -169,7 +169,7 @@ class _CategoriesScreenState extends ConsumerState<CategoriesScreen> {
       key: const ValueKey('categories-rail'),
       padding: const EdgeInsets.only(bottom: 96),
       children: [
-        for (final sec in ItemSection.values)
+        for (final sec in ItemSection.active)
           InkWell(
             key: ValueKey('cat-section-${sec.name}'),
             onTap: () => setState(() => _section = sec),

@@ -83,9 +83,9 @@ class _SellAuctionScreenState extends ConsumerState<SellAuctionScreen> {
           child: ListView(
             key: const ValueKey('sell-category-list'),
             children: [
-              for (final section in ItemSection.values)
+              for (final section in ItemSection.active)
                 if (section != ItemSection.digital &&
-                    DeviceCategory.values.any((c) => c.section == section)) ...[
+                    DeviceCategory.active.any((c) => c.section == section)) ...[
                   Padding(
                     padding: const EdgeInsets.fromLTRB(20, 16, 20, 4),
                     child: Text(
@@ -96,7 +96,7 @@ class _SellAuctionScreenState extends ConsumerState<SellAuctionScreen> {
                       ),
                     ),
                   ),
-                  for (final c in DeviceCategory.values)
+                  for (final c in DeviceCategory.active)
                     if (c.section == section)
                       ListTile(
                         key: ValueKey('sell-cat-${c.name}'),

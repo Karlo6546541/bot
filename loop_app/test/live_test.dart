@@ -1205,10 +1205,7 @@ void main() {
             matching: find.byType(Scrollable),
           )
           .first;
-      final cat = ItemSection.values
-          .lastWhere((s) => s != ItemSection.digital)
-          .categories
-          .last;
+      final cat = ItemSection.active.last.categories.elementAt(3);
       await tester.scrollUntilVisible(
         find.byKey(const ValueKey('live-cat-all-toggle')),
         200,
