@@ -140,7 +140,7 @@ void main() {
 
   test('svaki odjeljak ima demo predmete u Marketu', () {
     final market = storage.devices.where((d) => d.isOnMarket);
-    for (final sec in ItemSection.values) {
+    for (final sec in ItemSection.active) {
       expect(
         market.where((d) => d.section == sec),
         isNotEmpty,

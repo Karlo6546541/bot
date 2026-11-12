@@ -58,6 +58,11 @@ enum DeviceCategory {
   ),
   memorabilia('Sportski memorabilij', 'Memorabilij', ItemSection.collectibles),
   autographs('Autogrami', 'Autogram', ItemSection.collectibles),
+  postcards(
+    'Razglednice i plakati',
+    'Razglednica ili plakat',
+    ItemSection.collectibles,
+  ),
 
   // Hobiji
   sport('Sportska oprema', 'Sport', ItemSection.hobbies),
@@ -65,7 +70,7 @@ enum DeviceCategory {
   books('Knjige', 'Knjiga', ItemSection.hobbies),
   boardGames('Društvene igre', 'Društvena igra', ItemSection.hobbies),
   models('Modeli i LEGO', 'Model', ItemSection.hobbies),
-  videoGames('Videoigre', 'Videoigra', ItemSection.hobbies),
+  videoGames('Videoigre', 'Videoigra', ItemSection.collectibles),
   cycling('Biciklizam', 'Bicikl', ItemSection.hobbies),
   fishing('Ribolov', 'Ribolovna oprema', ItemSection.hobbies),
   camping(
@@ -88,7 +93,7 @@ enum DeviceCategory {
 
   // Dom i vintage
   homeDecor('Dom i dekor', 'Za dom', ItemSection.home),
-  vintage('Vintage i antikviteti', 'Vintage', ItemSection.home),
+  vintage('Vintage i antikviteti', 'Vintage', ItemSection.collectibles),
   beauty('Ljepota i njega', 'Ljepota', ItemSection.home),
   kids('Dječje stvari', 'Za djecu', ItemSection.home),
   furniture('Namještaj', 'Namještaj', ItemSection.home),
@@ -148,9 +153,18 @@ enum DeviceCategory {
     cards,
     coins,
     stamps,
+    vinyl,
+    comics,
+    figures,
+    postcards,
+    memorabilia,
+    autographs,
+    militaria,
     paintings,
     watches,
     console,
+    videoGames,
+    vintage,
     other,
   ];
 
@@ -594,6 +608,10 @@ const _categoryHints = <(String, DeviceCategory)>[
   ),
   (r'kovanic|novčanic|\bkun[ae]\b|zlatnik|numizmat', DeviceCategory.coins),
   (r'poštansk|\bmarke?\b|filatel', DeviceCategory.stamps),
+  (r'razglednic|plakat|tiskovin|bon\b|postcard', DeviceCategory.postcards),
+  (r'autogram|potpisan', DeviceCategory.autographs),
+  (r'dres\b|memorabil|navijač|ulaznica za utakmic', DeviceCategory.memorabilia),
+  (r'znač[ak]|medalj|odličj|vojn|šljem|uniform', DeviceCategory.militaria),
   (r'funko|figur|akcijsk|barbie|igračk|plišan', DeviceCategory.figures),
   (r'gramofonsk|vinil|vinyl|\blp\b|\bcd\b|kazet|ploča', DeviceCategory.vinyl),
   (r'lego|maket|model auta|modelarstvo', DeviceCategory.models),

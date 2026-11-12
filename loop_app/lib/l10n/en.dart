@@ -3568,6 +3568,8 @@ const kEn = <String, String>{
   'Fiksna cijena': 'Fixed price',
   'Objavi oglas': 'Post listing',
   'Oglas je objavljen': 'Listing posted',
+  'Razglednice i plakati': 'Postcards and posters',
+  'Razglednica ili plakat': 'Postcard or poster',
   'Zakaži show': 'Schedule a show',
   'Otprema': 'Shipping',
   'Nema paketa za predaju': 'No parcels to hand over',
