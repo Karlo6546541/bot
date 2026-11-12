@@ -1,3 +1,4 @@
+import '../config/features.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -13,6 +14,7 @@ import '../widgets/auction_kind_style.dart';
 import '../widgets/trade_actions.dart';
 import 'add_device_screen.dart' show PhotoPickerRow;
 import 'auction_detail_screen.dart';
+import 'device_detail_screen.dart';
 import 'seller_screens.dart';
 
 /// Objava aukcije na jednoj stranici (kao Vinted): fotografije, naslov, opis,
@@ -44,6 +46,9 @@ class _SellAuctionScreenState extends ConsumerState<SellAuctionScreen> {
   bool _categoryManual = false;
   DeviceCondition _condition = DeviceCondition.good;
   AuctionKind _kind = AuctionKind.classic;
+
+  /// Kako prodavač prodaje: aukcija ili Kupi odmah (fiksna cijena).
+  bool _buyNow = false;
   Duration _duration = AuctionService.durations[2].$2;
   ParcelSize _size = ParcelSize.small;
 
@@ -120,11 +125,47 @@ class _SellAuctionScreenState extends ConsumerState<SellAuctionScreen> {
     field.didChange(c);
   }
 
+  void _resetForm() => setState(() {
+    _title.clear();
+    _description.clear();
+    _price.clear();
+    _floor.clear();
+    _photos.clear();
+    _category = null;
+    _categoryManual = false;
+    _kind = AuctionKind.classic;
+  });
+
   Future<void> _submit() async {
     if (!_form.currentState!.validate()) return;
     if (!await ensureSellerInfo(context) || !mounted) return;
     final start = _num(_price.text)!;
-    final floor = _kind == AuctionKind.dutch ? _num(_floor.text) : null;
+    final floor = !_buyNow && _kind == AuctionKind.dutch
+        ? _num(_floor.text)
+        : null;
+    if (_buyNow) {
+      Device? listed;
+      final ok = await runWithLoading(context, () async {
+        listed = await ref
+            .read(appProvider.notifier)
+            .addDevice(
+              name: _title.text,
+              model: '',
+              condition: _condition,
+              price: start,
+              category: _category!,
+              imagePaths: List.of(_photos),
+              description: _description.text,
+              listOnMarket: true,
+              parcelSize: _size.name,
+            );
+      }, successMessage: t('Oglas je objavljen'));
+      if (!ok || !mounted || listed == null) return;
+      if (widget.embedded) _resetForm();
+      await DeviceDetailScreen.open(context, listed!);
+      if (!widget.embedded && mounted) Navigator.of(context).pop();
+      return;
+    }
     Auction? created;
     final ok = await runWithLoading(context, () async {
       final app = ref.read(appProvider.notifier);
@@ -150,16 +191,7 @@ class _SellAuctionScreenState extends ConsumerState<SellAuctionScreen> {
     if (!ok || !mounted || created == null) return;
     if (widget.embedded) {
       // Forma se prazni, a objavljena aukcija se otvara.
-      setState(() {
-        _title.clear();
-        _description.clear();
-        _price.clear();
-        _floor.clear();
-        _photos.clear();
-        _category = null;
-        _categoryManual = false;
-        _kind = AuctionKind.classic;
-      });
+      _resetForm();
       await AuctionDetailScreen.open(context, created!.id);
       return;
     }
@@ -210,6 +242,34 @@ class _SellAuctionScreenState extends ConsumerState<SellAuctionScreen> {
               key: const ValueKey('sell-form'),
               padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
               children: [
+                if (kBuyNowEnabled) ...[
+                  Row(
+                    children: [
+                      Expanded(
+                        child: _ModeCard(
+                          key: const ValueKey('sell-mode-auction'),
+                          icon: Icons.gavel,
+                          title: t('Aukcija'),
+                          subtitle: t('Najviša ponuda pobjeđuje'),
+                          selected: !_buyNow,
+                          onTap: () => setState(() => _buyNow = false),
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: _ModeCard(
+                          key: const ValueKey('sell-mode-buynow'),
+                          icon: Icons.sell_outlined,
+                          title: t('Kupi odmah'),
+                          subtitle: t('Fiksna cijena'),
+                          selected: _buyNow,
+                          onTap: () => setState(() => _buyNow = true),
+                        ),
+                      ),
+                    ],
+                  ),
+                  gap,
+                ],
                 PhotoPickerRow(
                   photos: _photos,
                   canUseCamera: ref.read(imageStoreProvider).canUseCamera,
@@ -292,34 +352,42 @@ class _SellAuctionScreenState extends ConsumerState<SellAuctionScreen> {
                       ),
                   ],
                 ),
-                gap,
-                _label(t('Vrsta aukcije')),
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  children: [
-                    for (final k in AuctionKind.values)
-                      ChoiceChip(
-                        key: ValueKey('sell-kind-${k.name}'),
-                        avatar: Icon(k.icon, size: 18, color: k.color),
-                        label: Text(k.label),
-                        selected: _kind == k,
-                        onSelected: (_) => setState(() => _kind = k),
+                if (!_buyNow) ...[
+                  gap,
+                  _label(t('Vrsta aukcije')),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: [
+                      for (final k in AuctionKind.values)
+                        ChoiceChip(
+                          key: ValueKey('sell-kind-${k.name}'),
+                          avatar: Icon(k.icon, size: 18, color: k.color),
+                          label: Text(k.label),
+                          selected: _kind == k,
+                          onSelected: (_) => setState(() => _kind = k),
+                        ),
+                    ],
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    switch (_kind) {
+                      AuctionKind.classic => t(
+                        'Ponude se vide, najviša pobjeđuje.',
                       ),
-                  ],
-                ),
-                const SizedBox(height: 6),
-                Text(switch (_kind) {
-                  AuctionKind.classic => t(
-                    'Ponude se vide, najviša pobjeđuje.',
+                      AuctionKind.dutch => t(
+                        'Cijena pada od početne do najniže; tko prvi pristane — kupuje.',
+                      ),
+                      AuctionKind.sealed => t(
+                        'Svatko pošalje jednu skrivenu ponudu; na kraju pobjeđuje najviša i plaća svoj iznos.',
+                      ),
+                    },
+                    style: TextStyle(
+                      color: LoopColors.textSecondary,
+                      fontSize: 13,
+                    ),
                   ),
-                  AuctionKind.dutch => t(
-                    'Cijena pada od početne do najniže; tko prvi pristane — kupuje.',
-                  ),
-                  AuctionKind.sealed => t(
-                    'Svatko pošalje jednu skrivenu ponudu; na kraju pobjeđuje najviša i plaća svoj iznos.',
-                  ),
-                }, style: TextStyle(color: LoopColors.textSecondary, fontSize: 13)),
+                ],
                 gap,
                 TextFormField(
                   key: const ValueKey('sell-price'),
@@ -329,7 +397,9 @@ class _SellAuctionScreenState extends ConsumerState<SellAuctionScreen> {
                   ),
                   inputFormatters: money,
                   decoration: InputDecoration(
-                    labelText: _kind == AuctionKind.dutch
+                    labelText: _buyNow
+                        ? t('Cijena')
+                        : _kind == AuctionKind.dutch
                         ? t('Početna (najviša) cijena')
                         : t('Početna cijena'),
                     suffixText: t('€'),
@@ -342,7 +412,7 @@ class _SellAuctionScreenState extends ConsumerState<SellAuctionScreen> {
                     return null;
                   },
                 ),
-                if (_kind == AuctionKind.dutch) ...[
+                if (!_buyNow && _kind == AuctionKind.dutch) ...[
                   gap,
                   TextFormField(
                     key: const ValueKey('sell-floor'),
@@ -371,20 +441,22 @@ class _SellAuctionScreenState extends ConsumerState<SellAuctionScreen> {
                     },
                   ),
                 ],
-                gap,
-                _label(t('Trajanje')),
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  children: [
-                    for (final (label, d) in AuctionService.durations)
-                      ChoiceChip(
-                        label: Text(label),
-                        selected: _duration == d,
-                        onSelected: (_) => setState(() => _duration = d),
-                      ),
-                  ],
-                ),
+                if (!_buyNow) ...[
+                  gap,
+                  _label(t('Trajanje')),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: [
+                      for (final (label, d) in AuctionService.durations)
+                        ChoiceChip(
+                          label: Text(label),
+                          selected: _duration == d,
+                          onSelected: (_) => setState(() => _duration = d),
+                        ),
+                    ],
+                  ),
+                ],
                 gap,
                 _label(t('Veličina paketa')),
                 Wrap(
@@ -410,9 +482,13 @@ class _SellAuctionScreenState extends ConsumerState<SellAuctionScreen> {
                 ),
                 const SizedBox(height: 10),
                 Text(
-                  t(
-                    'Dostavu plaća kupac. Novac ti se isplaćuje nakon što kupac primi paket. Provizija je 10 % samo od razlike iznad početne cijene.',
-                  ),
+                  _buyNow
+                      ? t(
+                          'Dostavu plaća kupac. Novac ti se isplaćuje nakon što kupac primi paket. Provizija se odbija od isplate.',
+                        )
+                      : t(
+                          'Dostavu plaća kupac. Novac ti se isplaćuje nakon što kupac primi paket. Provizija je 10 % samo od razlike iznad početne cijene.',
+                        ),
                   style: TextStyle(
                     color: LoopColors.textSecondary,
                     fontSize: 13,
@@ -433,10 +509,65 @@ class _SellAuctionScreenState extends ConsumerState<SellAuctionScreen> {
               minimumSize: const Size.fromHeight(54),
             ),
             onPressed: _submit,
-            child: Text(t('Objavi aukciju')),
+            child: Text(_buyNow ? t('Objavi oglas') : t('Objavi aukciju')),
           ),
         ),
       ),
     );
   }
+}
+
+/// Izbor načina prodaje: Aukcija ili Kupi odmah.
+class _ModeCard extends StatelessWidget {
+  const _ModeCard({
+    super.key,
+    required this.icon,
+    required this.title,
+    required this.subtitle,
+    required this.selected,
+    required this.onTap,
+  });
+  final IconData icon;
+  final String title;
+  final String subtitle;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) => Semantics(
+    button: true,
+    selected: selected,
+    child: InkWell(
+      borderRadius: BorderRadius.circular(16),
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: selected
+              ? LoopColors.accent.withValues(alpha: .14)
+              : LoopColors.surface,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: selected ? LoopColors.accent : LoopColors.glassBorder,
+            width: selected ? 1.6 : 1,
+          ),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Icon(icon, color: selected ? LoopColors.accent : null),
+            const SizedBox(height: 8),
+            Text(
+              title,
+              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
+            ),
+            Text(
+              subtitle,
+              style: TextStyle(color: LoopColors.textSecondary, fontSize: 12.5),
+            ),
+          ],
+        ),
+      ),
+    ),
+  );
 }

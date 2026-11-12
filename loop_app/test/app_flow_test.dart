@@ -807,7 +807,7 @@ void listingTests() {
     await tester.pumpAndSettle();
     expect(find.text('Predmet obrisan'), findsOneWidget);
     expect(find.text('iPhone 13'), findsNothing);
-  }, skip: !kBuyNowEnabled);
+  }, skip: !kLiveEnabled);
 }
 
 void deletionTests() {
@@ -1152,7 +1152,7 @@ void logoTests() {
     await tester.binding.handlePopRoute();
     await tester.pumpAndSettle();
     expect(find.byKey(const ValueKey('home-for-you')), findsOneWidget);
-  }, skip: !kBuyNowEnabled);
+  }, skip: !kLiveEnabled);
 
   testWidgets('Kupi odmah iz swipe feeda: kupljeno, ne "nije dostupan"', (
     tester,

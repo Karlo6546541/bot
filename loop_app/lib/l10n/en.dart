@@ -3562,6 +3562,12 @@ const kEn = <String, String>{
   'Markice': 'Stamps',
   'Markica': 'Stamp',
   'Slike': 'Paintings',
+  'Aukcije i Kupi odmah': 'Auctions and Buy now',
+  'Dostavu plaća kupac. Novac ti se isplaćuje nakon što kupac primi paket. Provizija se odbija od isplate.':
+      'The buyer pays for shipping. You are paid after the buyer receives the parcel. The fee is deducted from your payout.',
+  'Fiksna cijena': 'Fixed price',
+  'Objavi oglas': 'Post listing',
+  'Oglas je objavljen': 'Listing posted',
   'Zakaži show': 'Schedule a show',
   'Otprema': 'Shipping',
   'Nema paketa za predaju': 'No parcels to hand over',

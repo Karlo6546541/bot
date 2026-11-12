@@ -132,7 +132,7 @@ void main() {
     expect(find.byKey(const ValueKey('vault-account')), findsOneWidget);
     expect(find.byType(NavigationDestination), findsNWidgets(4));
     await tester.pumpWidget(const SizedBox.shrink());
-  }, skip: !kBuyNowEnabled);
+  }, skip: !kLiveEnabled);
 
   testWidgets('live category selection filters only live streams and clears', (
     tester,
