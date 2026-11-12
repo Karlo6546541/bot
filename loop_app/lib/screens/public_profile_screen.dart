@@ -1456,7 +1456,7 @@ class ProfileHeader extends ConsumerWidget {
       ),
       child: Text(
         text,
-        style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 11),
+        style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 12),
       ),
     );
     final Widget? sellerKind = !sells

@@ -97,7 +97,7 @@ class ProductPoster extends StatelessWidget {
                         overflow: TextOverflow.ellipsis,
                         style: const TextStyle(
                           color: Color(0xFFD1D1D6),
-                          fontSize: 11,
+                          fontSize: 12,
                         ),
                       ),
                     const SizedBox(height: 4),

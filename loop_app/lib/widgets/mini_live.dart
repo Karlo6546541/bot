@@ -221,7 +221,7 @@ class _MiniLiveState extends ConsumerState<_MiniLive> {
                       t('UŽIVO'),
                       style: const TextStyle(
                         color: Colors.white,
-                        fontSize: 10,
+                        fontSize: 12,
                         fontWeight: FontWeight.w900,
                       ),
                     ),
@@ -257,7 +257,7 @@ class _MiniLiveState extends ConsumerState<_MiniLive> {
                         overflow: TextOverflow.ellipsis,
                         style: const TextStyle(
                           color: Colors.white,
-                          fontSize: 11,
+                          fontSize: 12,
                           fontWeight: FontWeight.w800,
                         ),
                       ),
@@ -295,7 +295,7 @@ class _MiniLiveState extends ConsumerState<_MiniLive> {
                           maxLines: 2,
                           style: const TextStyle(
                             color: Colors.white70,
-                            fontSize: 10,
+                            fontSize: 12,
                           ),
                         ),
                     ],

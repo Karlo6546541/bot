@@ -173,7 +173,7 @@ class DisputeCard extends ConsumerWidget {
                   style: TextStyle(
                     color: color,
                     fontWeight: FontWeight.w900,
-                    fontSize: 11,
+                    fontSize: 12,
                   ),
                 ),
               ),

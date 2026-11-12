@@ -674,7 +674,7 @@ class _CheckoutSheetState extends ConsumerState<_CheckoutSheet> {
               t('Predmet ukupno').toUpperCase(),
               style: TextStyle(
                 color: LoopColors.textSecondary,
-                fontSize: 11,
+                fontSize: 12,
                 fontWeight: FontWeight.w600,
                 letterSpacing: 1.3,
               ),

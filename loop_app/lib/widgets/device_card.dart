@@ -441,7 +441,7 @@ class _Badge extends StatelessWidget {
       style: TextStyle(
         color: LoopColors.onAccent,
         fontWeight: FontWeight.w800,
-        fontSize: 11,
+        fontSize: 12,
       ),
     ),
   );
@@ -499,7 +499,7 @@ Widget _discount(Device d) => Container(
     style: const TextStyle(
       color: Colors.white,
       fontWeight: FontWeight.w900,
-      fontSize: 11,
+      fontSize: 12,
     ),
   ),
 );

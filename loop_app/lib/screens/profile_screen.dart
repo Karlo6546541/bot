@@ -1282,7 +1282,7 @@ class _AccountPostTile extends ConsumerWidget {
                     : t('Nije na prodaji'),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style: TextStyle(color: LoopColors.textSecondary, fontSize: 11),
+                style: TextStyle(color: LoopColors.textSecondary, fontSize: 12),
               ),
             ),
           ],

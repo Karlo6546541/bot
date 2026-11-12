@@ -372,7 +372,7 @@ class _CloudCommerceState extends State<CloudCommerceScreen> {
                 ),
                 labelTextStyle: WidgetStateProperty.resolveWith(
                   (states) => TextStyle(
-                    fontSize: 10,
+                    fontSize: 12,
                     fontWeight: states.contains(WidgetState.selected)
                         ? FontWeight.w600
                         : FontWeight.w400,
@@ -1055,7 +1055,7 @@ class _CloudCommerceState extends State<CloudCommerceScreen> {
                                   color: isHost
                                       ? const Color(0xFFFFB3C1)
                                       : Colors.white70,
-                                  fontSize: 11.5,
+                                  fontSize: 12,
                                   fontWeight: FontWeight.w800,
                                 ),
                               ),
@@ -1134,7 +1134,7 @@ class _CloudCommerceState extends State<CloudCommerceScreen> {
                         : 'Sljedeći predmet',
                     style: const TextStyle(
                       color: Colors.white54,
-                      fontSize: 11.5,
+                      fontSize: 12,
                       fontWeight: FontWeight.w700,
                     ),
                   ),
@@ -1432,7 +1432,7 @@ class _CloudCommerceState extends State<CloudCommerceScreen> {
                                 },
                                 style: const TextStyle(
                                   color: Color(0xFFFFDF4D),
-                                  fontSize: 10,
+                                  fontSize: 12,
                                   fontWeight: FontWeight.w700,
                                 ),
                               ),

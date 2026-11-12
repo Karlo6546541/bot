@@ -371,7 +371,7 @@ class _ChartPainter extends CustomPainter {
     final tp = TextPainter(
       text: TextSpan(
         text: text,
-        style: TextStyle(color: LoopColors.textSecondary, fontSize: 11),
+        style: TextStyle(color: LoopColors.textSecondary, fontSize: 12),
       ),
       textAlign: align,
       textDirection: TextDirection.ltr,
@@ -425,7 +425,7 @@ class _Tooltip extends StatelessWidget {
             children: [
               Text(
                 formatDateTime(point.time),
-                style: TextStyle(color: LoopColors.textSecondary, fontSize: 11),
+                style: TextStyle(color: LoopColors.textSecondary, fontSize: 12),
               ),
               SizedBox(height: 4),
               Text(
@@ -440,7 +440,7 @@ class _Tooltip extends StatelessWidget {
                 ]),
                 style: TextStyle(
                   color: LoopColors.textSecondary,
-                  fontSize: 11,
+                  fontSize: 12,
                   height: 1.4,
                 ),
               ),

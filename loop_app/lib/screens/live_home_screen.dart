@@ -1767,7 +1767,7 @@ class _SellerChip extends StatelessWidget {
               subtitle,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: TextStyle(fontSize: 11, color: LoopColors.textSecondary),
+              style: TextStyle(fontSize: 12, color: LoopColors.textSecondary),
             ),
           ],
         ),
@@ -1912,7 +1912,7 @@ class _FollowingRow extends StatelessWidget {
                               style: const TextStyle(
                                 color: Colors.white,
                                 fontWeight: FontWeight.w900,
-                                fontSize: 9,
+                                fontSize: 12,
                               ),
                             ),
                           ),
@@ -1925,7 +1925,7 @@ class _FollowingRow extends StatelessWidget {
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: const TextStyle(
-                      fontSize: 11.5,
+                      fontSize: 12,
                       fontWeight: FontWeight.w700,
                     ),
                   ),

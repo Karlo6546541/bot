@@ -1463,7 +1463,7 @@ class BoxNowCard extends StatelessWidget {
                   t('demo'),
                   style: TextStyle(
                     color: LoopColors.textSecondary,
-                    fontSize: 11,
+                    fontSize: 12,
                   ),
                 ),
               ],
@@ -1513,7 +1513,7 @@ class BoxNowCard extends StatelessWidget {
                         formatDateTime(at),
                         style: TextStyle(
                           color: LoopColors.textSecondary,
-                          fontSize: 11,
+                          fontSize: 12,
                         ),
                       ),
                   ],
@@ -2074,7 +2074,7 @@ class _ShipmentRow extends StatelessWidget {
                             style: TextStyle(
                               color: color,
                               fontWeight: FontWeight.w900,
-                              fontSize: 11,
+                              fontSize: 12,
                             ),
                           ),
                         ),
@@ -2295,7 +2295,7 @@ class PickupPinBox extends ConsumerWidget {
                       t('PIN'),
                       style: TextStyle(
                         color: LoopColors.textSecondary,
-                        fontSize: 11,
+                        fontSize: 12,
                         fontWeight: FontWeight.w800,
                       ),
                     ),

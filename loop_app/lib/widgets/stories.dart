@@ -106,7 +106,7 @@ class StoriesRow extends ConsumerWidget {
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: TextStyle(
-                  fontSize: 11,
+                  fontSize: 12,
                   fontWeight: bold ? FontWeight.w800 : FontWeight.w600,
                 ),
               ),

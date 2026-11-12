@@ -481,7 +481,7 @@ class _Bubble extends ConsumerWidget {
                 formatDateTime(message.createdAt),
                 style: TextStyle(
                   color: fg.withValues(alpha: 0.7),
-                  fontSize: 10,
+                  fontSize: 12,
                 ),
               ),
             ],

@@ -85,7 +85,7 @@ class DigitalPaymentCard extends StatelessWidget {
                           t('Dodirni za promjenu'),
                           style: const TextStyle(
                             color: Colors.white70,
-                            fontSize: 11,
+                            fontSize: 12,
                           ),
                         ),
                       ],

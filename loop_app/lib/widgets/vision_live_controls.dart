@@ -269,7 +269,7 @@ class _VisionShopHandleState extends State<VisionShopHandle> {
                                     : Colors.white,
                               ),
                               const SizedBox(height: 4),
-                              Text(label, style: const TextStyle(fontSize: 11)),
+                              Text(label, style: const TextStyle(fontSize: 12)),
                             ],
                           ),
                         ),
@@ -417,7 +417,7 @@ class _VisionShopHandleState extends State<VisionShopHandle> {
                     maxLines: 2,
                     style: const TextStyle(
                       color: Color(0xFFE2E2E7),
-                      fontSize: 11,
+                      fontSize: 12,
                       fontWeight: FontWeight.w500,
                     ),
                   ),
@@ -547,7 +547,7 @@ class VisionLiveShopOverlayState extends State<VisionLiveShopOverlay> {
                                                   ),
                                                   style: const TextStyle(
                                                     color: Colors.white60,
-                                                    fontSize: 10,
+                                                    fontSize: 12,
                                                   ),
                                                 ),
                                               ],

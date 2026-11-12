@@ -176,7 +176,7 @@ class LiveShopFeature extends StatelessWidget {
                                 : t('UŽIVO'),
                             style: const TextStyle(
                               color: Colors.white,
-                              fontSize: 11,
+                              fontSize: 12,
                               fontWeight: FontWeight.w700,
                             ),
                           ),
@@ -332,7 +332,7 @@ class LiveShopMini extends StatelessWidget {
                       viewers > 0 ? '${t('UŽIVO')} · $viewers' : t('UŽIVO'),
                       style: const TextStyle(
                         color: Colors.white,
-                        fontSize: 11,
+                        fontSize: 12,
                         fontWeight: FontWeight.w700,
                       ),
                     ),
@@ -352,7 +352,7 @@ class LiveShopMini extends StatelessWidget {
                         t('Demo'),
                         style: const TextStyle(
                           color: Colors.white,
-                          fontSize: 10,
+                          fontSize: 12,
                           fontWeight: FontWeight.w600,
                         ),
                       ),

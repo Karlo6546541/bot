@@ -367,7 +367,7 @@ class _SellerGoalsCardState extends ConsumerState<SellerGoalsCard> {
               t(
                 'Vlastiti tjedni cilj (ponedjeljak – nedjelja), bez bonusa platforme.',
               ),
-              style: TextStyle(color: LoopColors.textSecondary, fontSize: 11),
+              style: TextStyle(color: LoopColors.textSecondary, fontSize: 12),
             ),
           ),
         ],
@@ -1423,7 +1423,7 @@ class _SellerHubPanelState extends ConsumerState<SellerHubPanel> {
                 t(
                   'Paket predaj dostavljaču u roku od 48 sati nakon što kupac odabere dostavu.',
                 ),
-                style: TextStyle(color: LoopColors.textSecondary, fontSize: 11),
+                style: TextStyle(color: LoopColors.textSecondary, fontSize: 12),
               ),
             ),
             Padding(
@@ -1521,7 +1521,7 @@ class _ShowTile extends StatelessWidget {
                         style: const TextStyle(
                           color: Colors.white,
                           fontWeight: FontWeight.w800,
-                          fontSize: 10,
+                          fontSize: 12,
                         ),
                       ),
                     ),

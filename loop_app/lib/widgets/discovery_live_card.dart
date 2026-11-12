@@ -72,7 +72,7 @@ class DiscoveryLiveCard extends StatelessWidget {
                         t('UŽIVO'),
                         style: const TextStyle(
                           color: Colors.white,
-                          fontSize: 10,
+                          fontSize: 12,
                           fontWeight: FontWeight.w700,
                         ),
                       ),
@@ -105,7 +105,7 @@ class DiscoveryLiveCard extends StatelessWidget {
                           overflow: TextOverflow.ellipsis,
                           style: const TextStyle(
                             color: Colors.white70,
-                            fontSize: 11,
+                            fontSize: 12,
                           ),
                         ),
                       ],

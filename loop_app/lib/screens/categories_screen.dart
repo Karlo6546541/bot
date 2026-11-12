@@ -164,7 +164,7 @@ class _CategoriesScreenState extends ConsumerState<CategoriesScreen> {
 
   /// Taobao raspored: lijevo odjeljci, desno mreža podkategorija.
   Widget _rail(Map<ItemSection, int> live) => SizedBox(
-    width: 96,
+    width: 112,
     child: ListView(
       key: const ValueKey('categories-rail'),
       padding: const EdgeInsets.only(bottom: 96),
@@ -216,24 +216,21 @@ class _CategoriesScreenState extends ConsumerState<CategoriesScreen> {
                     ],
                   ),
                   const SizedBox(height: 6),
-                  // Naziv se ne lomi usred riječi: smanji se da stane u jedan red.
-                  FittedBox(
-                    fit: BoxFit.scaleDown,
-                    child: Text(
-                      sec.label,
-                      textAlign: TextAlign.center,
-                      maxLines: 1,
-                      softWrap: false,
-                      style: TextStyle(
-                        fontSize: 12,
-                        height: 1.15,
-                        fontWeight: _section == sec
-                            ? FontWeight.w700
-                            : FontWeight.w500,
-                        color: _section == sec
-                            ? LoopColors.textPrimary
-                            : LoopColors.textSecondary,
-                      ),
+                  // Naziv se lomi po riječima u najviše dva reda (čitljiv font).
+                  Text(
+                    sec.label,
+                    textAlign: TextAlign.center,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontSize: 13,
+                      height: 1.2,
+                      fontWeight: _section == sec
+                          ? FontWeight.w700
+                          : FontWeight.w500,
+                      color: _section == sec
+                          ? LoopColors.textPrimary
+                          : LoopColors.textSecondary,
                     ),
                   ),
                 ],
@@ -283,7 +280,7 @@ class _CategoriesScreenState extends ConsumerState<CategoriesScreen> {
                 Text(
                   '${c.viewers}',
                   style: TextStyle(
-                    fontSize: 11,
+                    fontSize: 12,
                     color: LoopColors.textSecondary,
                   ),
                 ),
@@ -292,7 +289,7 @@ class _CategoriesScreenState extends ConsumerState<CategoriesScreen> {
           else if (c.items > 0)
             Text(
               '${c.items}',
-              style: TextStyle(fontSize: 11, color: LoopColors.textSecondary),
+              style: TextStyle(fontSize: 12, color: LoopColors.textSecondary),
             )
           else
             const SizedBox(height: 13),

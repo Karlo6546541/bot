@@ -369,7 +369,7 @@ class _SwipeFeedScreenState extends ConsumerState<SwipeFeedScreen>
                           style: const TextStyle(
                             color: Colors.white,
                             fontWeight: FontWeight.w600,
-                            fontSize: 11,
+                            fontSize: 12,
                           ),
                         ),
                       ),
@@ -862,7 +862,7 @@ class _CornerBadge extends StatelessWidget {
 const _pillText = TextStyle(
   color: Colors.white,
   fontWeight: FontWeight.w700,
-  fontSize: 11,
+  fontSize: 12,
 );
 
 class _Pill extends StatelessWidget {
@@ -1257,7 +1257,7 @@ class _FollowPill extends ConsumerWidget {
           t('Prati'),
           style: const TextStyle(
             color: Color(0xFFCACBD4),
-            fontSize: 11,
+            fontSize: 12,
             fontWeight: FontWeight.w600,
           ),
         ),
@@ -1386,7 +1386,7 @@ class _RailButton extends StatelessWidget {
               style: const TextStyle(
                 color: Color(0xFFCDCED6),
                 shadows: _shadow,
-                fontSize: 9,
+                fontSize: 12,
                 fontWeight: FontWeight.w500,
               ),
             ),

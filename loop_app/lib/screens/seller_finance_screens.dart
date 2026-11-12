@@ -422,7 +422,7 @@ class _PayoutRow extends StatelessWidget {
               style: TextStyle(
                 color: color,
                 fontWeight: FontWeight.w900,
-                fontSize: 11,
+                fontSize: 12,
               ),
             ),
           ),
@@ -1078,7 +1078,7 @@ class ShowAnalyticsScreen extends ConsumerWidget {
             t(
               'Publika se računa iz zapisa u sobi; nakon 2 dana ostaje spremljeni sažetak.',
             ),
-            style: TextStyle(color: LoopColors.textSecondary, fontSize: 11),
+            style: TextStyle(color: LoopColors.textSecondary, fontSize: 12),
           ),
           head(t('Najbolji kupci')),
           if (a.topBuyers.isEmpty)

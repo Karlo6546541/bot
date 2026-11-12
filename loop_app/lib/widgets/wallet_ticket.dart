@@ -380,7 +380,7 @@ class _CinematicTrackingState extends State<CinematicTracking>
                     Text(
                       text,
                       style: TextStyle(
-                        fontSize: 11,
+                        fontSize: 12,
                         fontWeight: FontWeight.w600,
                         color: i <= widget.stage
                             ? LoopColors.textPrimary

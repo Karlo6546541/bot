@@ -468,7 +468,7 @@ class AuctionBrowseCard extends ConsumerWidget {
     const pillText = TextStyle(
       color: Colors.white,
       fontWeight: FontWeight.w600,
-      fontSize: 11,
+      fontSize: 12,
     );
     // Oznake su pilule (bez emotikona): tanka ikona + kratak tekst.
     Widget pill(Widget child, [Color color = Colors.black54]) => Container(
@@ -572,7 +572,7 @@ class AuctionBrowseCard extends ConsumerWidget {
               '★ ${rating.average.toStringAsFixed(1)}',
               style: TextStyle(
                 color: LoopColors.textSecondary,
-                fontSize: 11,
+                fontSize: 12,
                 fontWeight: FontWeight.w800,
               ),
             ),
@@ -1957,7 +1957,7 @@ class AuctionCard extends ConsumerWidget {
                         child: Text(
                           a.kind.label,
                           style: const TextStyle(
-                            fontSize: 11,
+                            fontSize: 12,
                             fontWeight: FontWeight.w600,
                           ),
                         ),
@@ -2055,7 +2055,7 @@ class RoleBadge extends StatelessWidget {
           const SizedBox(width: 4),
           Text(
             role.label,
-            style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700),
+            style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700),
           ),
         ],
       ),
@@ -2280,7 +2280,7 @@ class _BoughtTile extends ConsumerWidget {
                         style: const TextStyle(
                           color: Colors.white,
                           fontWeight: FontWeight.w900,
-                          fontSize: 11,
+                          fontSize: 12,
                         ),
                       ),
                     ),

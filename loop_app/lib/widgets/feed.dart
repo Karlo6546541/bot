@@ -555,7 +555,7 @@ class PostTile extends StatelessWidget {
                           ),
                           Text(
                             '${state.viewsOf(d.id)}',
-                            style: white.copyWith(fontSize: 11),
+                            style: white.copyWith(fontSize: 12),
                           ),
                         ],
                       ],
@@ -585,7 +585,7 @@ class _TileBadge extends StatelessWidget {
     ),
     child: Text(
       text,
-      style: const TextStyle(color: Colors.white, fontSize: 11),
+      style: const TextStyle(color: Colors.white, fontSize: 12),
     ),
   );
 }

@@ -4017,7 +4017,7 @@ class _LiveRoomViewState extends ConsumerState<_LiveRoomBody> {
                   overflow: TextOverflow.ellipsis,
                   style: const TextStyle(
                     color: Colors.white,
-                    fontSize: 11,
+                    fontSize: 12,
                     fontWeight: FontWeight.w500,
                     shadows: shadow,
                   ),
@@ -5048,7 +5048,7 @@ class _TopBar extends ConsumerWidget {
                   '● ${state.viewers}',
                   style: const TextStyle(
                     color: Colors.white,
-                    fontSize: 11,
+                    fontSize: 12,
                     fontWeight: FontWeight.w600,
                   ),
                 ),
@@ -5258,7 +5258,7 @@ class _HypeMeter extends StatelessWidget {
             label,
             style: const TextStyle(
               color: Colors.white,
-              fontSize: 11,
+              fontSize: 12,
               fontWeight: FontWeight.w800,
             ),
           ),
@@ -5967,7 +5967,7 @@ class _LotCard extends StatelessWidget {
                   t('⬇️ Digitalno · preuzimanje odmah, bez dostave'),
                   style: const TextStyle(
                     color: Color(0xFF64B0FF),
-                    fontSize: 11,
+                    fontSize: 12,
                   ),
                 ),
               ),
@@ -6044,7 +6044,7 @@ class _LotCard extends StatelessWidget {
                           t('⬇️ Digitalno · preuzimanje odmah, bez dostave'),
                           style: const TextStyle(
                             color: Color(0xFF64B0FF),
-                            fontSize: 11,
+                            fontSize: 12,
                           ),
                         ),
                       ),
@@ -6062,7 +6062,7 @@ class _LotCard extends StatelessWidget {
                       t('Trenutno').toUpperCase(),
                       style: const TextStyle(
                         color: Color(0xFF98989F),
-                        fontSize: 9,
+                        fontSize: 12,
                         letterSpacing: .5,
                       ),
                     ),
@@ -6086,7 +6086,7 @@ class _LotCard extends StatelessWidget {
                         key: const ValueKey('live-secs'),
                         style: TextStyle(
                           color: hot ? kLiveRed : Colors.white70,
-                          fontSize: 11,
+                          fontSize: 12,
                         ),
                       ),
                     if (!result && !isHost)
@@ -6316,7 +6316,7 @@ class _FeedLine extends StatelessWidget {
                         host ? t('Domaćin') : t('Mod'),
                         style: const TextStyle(
                           color: Colors.white,
-                          fontSize: 10,
+                          fontSize: 12,
                           fontWeight: FontWeight.w900,
                         ),
                       ),
@@ -6846,7 +6846,7 @@ class _LiveShopSheet extends ConsumerWidget {
                 style: const TextStyle(
                   color: Colors.white,
                   fontWeight: FontWeight.w600,
-                  fontSize: 11,
+                  fontSize: 12,
                 ),
               ),
             ),

@@ -258,7 +258,7 @@ class _StepCard extends StatelessWidget {
                         style: TextStyle(
                           color: color,
                           fontWeight: FontWeight.w900,
-                          fontSize: 11,
+                          fontSize: 12,
                         ),
                       ),
                     ),

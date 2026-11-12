@@ -467,7 +467,7 @@ class _CategoryChip extends StatelessWidget {
                   child: Text(
                     '$count',
                     style: TextStyle(
-                      fontSize: 11,
+                      fontSize: 12,
                       fontWeight: FontWeight.w800,
                       color: selected ? Colors.white : LoopColors.textSecondary,
                     ),

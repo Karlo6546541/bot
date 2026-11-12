@@ -185,11 +185,12 @@ ThemeData buildLoopTheme({Color? accent}) {
     borderRadius: BorderRadius.circular(kRadius),
   );
   final baseTheme = dark ? ThemeData.dark() : ThemeData.light();
-  final base = kSimpleDesign
-      ? baseTheme.copyWith(
-          textTheme: baseTheme.textTheme.apply(fontFamily: kFontFamily),
-        )
-      : baseTheme;
+  // Jedan font (Inter) u cijeloj aplikaciji: i zadani Material stilovi
+  // (polja, listići, dijalozi) dobivaju ga, ne samo naši tekstovi.
+  final base = baseTheme.copyWith(
+    textTheme: baseTheme.textTheme.apply(fontFamily: kFontFamily),
+    primaryTextTheme: baseTheme.primaryTextTheme.apply(fontFamily: kFontFamily),
+  );
 
   return ThemeData(
     useMaterial3: true,
@@ -368,7 +369,7 @@ ThemeData buildLoopTheme({Color? accent}) {
       labelTextStyle: WidgetStateProperty.resolveWith(
         (s) => TextStyle(
           fontFamily: kFontFamily,
-          fontSize: 11,
+          fontSize: 12,
           fontWeight: s.contains(WidgetState.selected)
               ? FontWeight.w600
               : FontWeight.w400,

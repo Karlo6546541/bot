@@ -1128,7 +1128,7 @@ class _AddTile extends StatelessWidget {
             const SizedBox(height: 4),
             Text(
               label,
-              style: TextStyle(fontSize: 11, color: LoopColors.textSecondary),
+              style: TextStyle(fontSize: 12, color: LoopColors.textSecondary),
             ),
           ],
         ),
