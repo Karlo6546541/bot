@@ -1205,7 +1205,7 @@ void main() {
             matching: find.byType(Scrollable),
           )
           .first;
-      final cat = ItemSection.active.last.categories.elementAt(3);
+      final cat = ItemSection.active.last.categories.elementAt(12);
       await tester.scrollUntilVisible(
         find.byKey(const ValueKey('live-cat-all-toggle')),
         200,
