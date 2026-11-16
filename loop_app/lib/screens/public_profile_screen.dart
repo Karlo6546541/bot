@@ -1440,30 +1440,8 @@ class ProfileHeader extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final st = ref.watch(appProvider);
-    // Prodavatelj: ima podatke prodavatelja, oglase ili prodaje.
-    final sells =
-        user.seller != null ||
-        user.trader != null ||
-        st.listingsOf(user.id).isNotEmpty ||
-        st.salesCountOf(user.id) > 0;
-    Widget chip(String key, String text, Color color) => Container(
-      key: ValueKey(key),
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-      decoration: BoxDecoration(
-        color: color,
-        borderRadius: BorderRadius.circular(99),
-      ),
-      child: Text(
-        text,
-        style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 12),
-      ),
-    );
-    final Widget? sellerKind = !sells
-        ? null
-        : user.isTrader
-        ? chip('seller-kind-business', t('Trgovac'), LoopColors.sky)
-        : null; // privatna osoba nema posebnu oznaku
+    // Samo privatne osobe: nema oznaka vrste prodavača.
+    const Widget? sellerKind = null;
     if (shopfront) {
       return VisionGlass(
         blur: false,

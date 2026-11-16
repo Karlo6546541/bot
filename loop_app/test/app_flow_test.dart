@@ -1284,7 +1284,7 @@ void logoTests() {
     expect(seller.tradeName, 'Retro Kutak j.d.o.o.');
     expect(seller.contactEmail, isNotEmpty);
     expect(find.textContaining('Retro Kutak j.d.o.o.'), findsWidgets);
-  });
+  }, skip: true); // samo privatne osobe: obrt/tvrtka više nije u sučelju
   testWidgets('kartica Kategorije: samo kategorije, dodir otvara predmete', (
     tester,
   ) async {

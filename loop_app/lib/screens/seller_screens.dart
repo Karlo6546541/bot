@@ -142,7 +142,8 @@ class _SellerInfoScreenState extends ConsumerState<SellerInfoScreen> {
   late final TextEditingController _address;
   late final TextEditingController _iban;
   late DateTime? _birth = _old?.birthDate;
-  late SellerKind _kind = _old?.kind ?? SellerKind.private;
+  // Aplikacija je samo za privatne osobe (kao Vinted za kolekcionare).
+  final SellerKind _kind = SellerKind.private;
   late LegalForm _form = _old?.legalForm ?? LegalForm.obrt;
   late final TextEditingController _company;
   late final TextEditingController _vat;
@@ -343,28 +344,6 @@ class _SellerInfoScreenState extends ConsumerState<SellerInfoScreen> {
                   ),
                   gap(),
                 ],
-                // Zadano je prodaja kao privatna osoba (bez posebne oznake);
-                // trgovac samo uključi obrt / tvrtku.
-                Align(
-                  alignment: Alignment.centerLeft,
-                  child: FilterChip(
-                    key: const ValueKey('seller-kind'),
-                    avatar: const Icon(Icons.storefront_outlined, size: 18),
-                    label: Text(
-                      t('Obrt / tvrtka'),
-                      key: const ValueKey('seller-kind-business'),
-                    ),
-                    selected: _business,
-                    onSelected: _busy
-                        ? null
-                        : (on) => setState(() {
-                            _kind = on
-                                ? SellerKind.business
-                                : SellerKind.private;
-                            _error = null;
-                          }),
-                  ),
-                ),
                 heading(_business ? t('Podaci tvrtke') : t('Osobni podaci')),
                 if (_business) ...[
                   TextFormField(
