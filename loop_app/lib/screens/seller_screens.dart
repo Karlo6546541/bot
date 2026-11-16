@@ -343,38 +343,27 @@ class _SellerInfoScreenState extends ConsumerState<SellerInfoScreen> {
                   ),
                   gap(),
                 ],
-                Wrap(
-                  key: const ValueKey('seller-kind'),
-                  spacing: 8,
-                  runSpacing: 8,
-                  children: [
-                    ChoiceChip(
-                      key: const ValueKey('seller-kind-private'),
-                      avatar: const Icon(Icons.person_outline, size: 18),
-                      label: Text(t('Privatna osoba')),
-                      selected: !_business,
-                      onSelected: _busy
-                          ? null
-                          : (_) => setState(() {
-                              _kind = SellerKind.private;
-                              _error = null;
-                            }),
+                // Zadano je prodaja kao privatna osoba (bez posebne oznake);
+                // trgovac samo uključi obrt / tvrtku.
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: FilterChip(
+                    key: const ValueKey('seller-kind'),
+                    avatar: const Icon(Icons.storefront_outlined, size: 18),
+                    label: Text(
+                      t('Obrt / tvrtka'),
+                      key: const ValueKey('seller-kind-business'),
                     ),
-                    ChoiceChip(
-                      avatar: const Icon(Icons.storefront_outlined, size: 18),
-                      label: Text(
-                        t('Obrt / tvrtka'),
-                        key: const ValueKey('seller-kind-business'),
-                      ),
-                      selected: _business,
-                      onSelected: _busy
-                          ? null
-                          : (_) => setState(() {
-                              _kind = SellerKind.business;
-                              _error = null;
-                            }),
-                    ),
-                  ],
+                    selected: _business,
+                    onSelected: _busy
+                        ? null
+                        : (on) => setState(() {
+                            _kind = on
+                                ? SellerKind.business
+                                : SellerKind.private;
+                            _error = null;
+                          }),
+                  ),
                 ),
                 heading(_business ? t('Podaci tvrtke') : t('Osobni podaci')),
                 if (_business) ...[

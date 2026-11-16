@@ -1463,7 +1463,7 @@ class ProfileHeader extends ConsumerWidget {
         ? null
         : user.isTrader
         ? chip('seller-kind-business', t('Trgovac'), LoopColors.sky)
-        : chip('seller-kind-private', t('Fizička osoba'), LoopColors.peach);
+        : null; // privatna osoba nema posebnu oznaku
     if (shopfront) {
       return VisionGlass(
         blur: false,
