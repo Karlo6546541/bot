@@ -21,7 +21,14 @@ Deno.serve(async (req: Request) => {
     if(!intent)return new Response('Ignored');
     const {error}=await svc.admin.rpc('commerce_record_refund',{p_intent:intent,p_refunded:charge.amount_refunded,p_disputed:charge.disputed});
     if(error)return new Response('Retry later',{status:503});
-    const {data:p}=await svc.admin.from('commerce_payments').select('order_id,transfer_id').eq('intent_id',intent).maybeSingle();
+    const {data:p}=await svc.admin.from('commerce_payments').select('order_id,transfer_id,destination_account').eq('intent_id',intent).maybeSingle();
+    // Naplata na račun prodavača: spor banke tereti platformu, pa se prodavačev dio vraća s njegova računa.
+    if(p?.destination_account&&event.type==='charge.dispute.created'&&typeof charge.transfer==='string'){
+      try{
+        const transfer=await svc.stripe.transfers.retrieve(charge.transfer);
+        if(transfer.amount>transfer.amount_reversed)await svc.stripe.transfers.createReversal(transfer.id,{amount:transfer.amount-transfer.amount_reversed},{idempotencyKey:`dispute-reversal-${transfer.id}`});
+      }catch{return new Response('Retry later',{status:503});}
+    }
     if(p?.transfer_id){
       try{
         await reverseSellerTransfer(svc,p);

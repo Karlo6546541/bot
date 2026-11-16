@@ -1,14 +1,32 @@
 import Stripe from 'npm:stripe@23.0.0';
 import { services,response,appUrl } from './stripe.ts';
 type Services=Awaited<ReturnType<typeof services>>;
-// Persist one intent per order before confirmation. Funds remain on the platform.
-export async function chargeOrder(svc:Services,order:{id:string;total_cents:number;currency:string},customer:string,method:string,resume:boolean){
+/** Povezani Stripe račun prodavača koji smije primiti novac, ili null. Usput osvježi zastavicu u bazi. */
+export async function sellerDestination(svc:Services,sellerId:string):Promise<string|null>{
+ const {data:seller}=await svc.admin.from('commerce_sellers').select('stripe_account_id').eq('user_id',sellerId).maybeSingle();
+ if(!seller)return null;
+ const account=await svc.stripe.v2.core.accounts.retrieve(seller.stripe_account_id,{include:['configuration.recipient']});
+ const active=account.configuration?.recipient?.capabilities?.stripe_balance?.stripe_transfers?.status==='active';
+ await svc.admin.from('commerce_sellers').update({transfers_active:active,checked_at:new Date().toISOString()}).eq('user_id',sellerId);
+ return active?seller.stripe_account_id as string:null;
+}
+// Jedan PaymentIntent po narudžbi. Novac ne ostaje na platformi: naplata odmah
+// prenosi prodavačev dio na njegov povezani Stripe račun (destination charge),
+// gdje ga drži Stripe do isplate (stripe-release). Platformi ostaju provizija i dostava.
+export async function chargeOrder(svc:Services,order:{id:string;seller_id:string;total_cents:number;currency:string},customer:string,method:string,resume:boolean){
+ const {data:existing}=await svc.admin.from('commerce_payments').select('intent_id').eq('order_id',order.id).maybeSingle();
+ let destination:string|null=null;
+ if(!existing?.intent_id){
+  destination=await sellerDestination(svc,order.seller_id);
+  if(!destination)return response(409,{error:'SELLER_NOT_READY'});
+ }
  const {data:payment,error}=await svc.admin.rpc('commerce_begin_charge',{p_order:order.id});if(error)throw error;
  let intent:Stripe.PaymentIntent;
  if(payment.intent_id){intent=await svc.stripe.paymentIntents.retrieve(payment.intent_id);}
  else{
-  intent=await svc.stripe.paymentIntents.create({amount:Number(order.total_cents),currency:order.currency.toLowerCase(),customer,payment_method:method,metadata:{order_id:order.id,purpose:'marketplace'},transfer_group:`order_${order.id}`},{idempotencyKey:`order-intent-v2-${order.id}`});
-  const {error:saveError}=await svc.admin.from('commerce_payments').update({intent_id:intent.id}).eq('order_id',order.id);if(saveError)throw saveError;
+  if(!destination)return response(409,{error:'SELLER_NOT_READY'});
+  intent=await svc.stripe.paymentIntents.create({amount:Number(order.total_cents),currency:order.currency.toLowerCase(),customer,payment_method:method,metadata:{order_id:order.id,purpose:'marketplace'},transfer_group:`order_${order.id}`,transfer_data:{destination,amount:Number(payment.seller_cents)}},{idempotencyKey:`order-intent-v3-${order.id}`});
+  const {error:saveError}=await svc.admin.from('commerce_payments').update({intent_id:intent.id,destination_account:destination}).eq('order_id',order.id);if(saveError)throw saveError;
  }
  if(intent.status==='requires_payment_method'&&intent.last_payment_error?.code==='authentication_required')return authenticationResponse(svc,intent,method);
  if(intent.status==='requires_payment_method')intent=await svc.stripe.paymentIntents.update(intent.id,{payment_method:method});

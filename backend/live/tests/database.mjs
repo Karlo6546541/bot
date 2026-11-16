@@ -144,4 +144,6 @@ const {deliveryTests}=await import('./delivery_locations.mjs');
 await deliveryTests(db,assert,as,rpc,rejects,{host,buyer,other});
 const {orderFixTests}=await import('./order_fixes.mjs');
 await orderFixTests(db,assert,as,rpc,rejects,{host,buyer,other});
+const {auctionTests}=await import('./auctions_stripe.mjs');
+await auctionTests(db,assert,as,rpc,rejects,{host,buyer,other});
 await db.close();

@@ -2,28 +2,45 @@ import assert from 'node:assert/strict';
 import { chargeOrder } from '../functions/_shared/charge.ts';
 import { reverseSellerTransfer } from '../functions/_shared/reversal.ts';
 
-Deno.test('off-session charge persists one platform intent before confirmation and fulfills once',async()=>{
+const sellerAccount=(status:string)=>({v2:{core:{accounts:{retrieve:async()=>({configuration:{recipient:{capabilities:{stripe_balance:{stripe_transfers:{status}}}}}})}}}});
+function table(steps:string[],payment:Record<string,unknown>|null){
+ return (name:string)=>({
+  select:()=>({eq:()=>({maybeSingle:async()=>({data:name==='commerce_sellers'?{stripe_account_id:'acct_seller'}:payment})})}),
+  update:(values:Record<string,unknown>)=>({eq:async()=>{if(name==='commerce_payments'){steps.push('persist');assert.equal(values.destination_account,'acct_seller');}return{error:null};}}),
+ });
+}
+Deno.test('off-session charge sends the seller share to the connected account and fulfills once',async()=>{
  const steps:string[]=[];let params:Record<string,unknown>={};
- const svc={config:{},stripe:{paymentIntents:{
-  create:async(body:Record<string,unknown>,options:{idempotencyKey:string})=>{steps.push('create');params=body;assert.equal(options.idempotencyKey,'order-intent-v2-order');return{id:'pi_test',status:'requires_confirmation',payment_method:'pm_test'};},
+ const svc={config:{},stripe:{...sellerAccount('active'),paymentIntents:{
+  create:async(body:Record<string,unknown>,options:{idempotencyKey:string})=>{steps.push('create');params=body;assert.equal(options.idempotencyKey,'order-intent-v3-order');return{id:'pi_test',status:'requires_confirmation',payment_method:'pm_test'};},
   confirm:async(_id:string,body:{off_session:boolean})=>{steps.push('confirm');assert.equal(body.off_session,true);return{id:'pi_test',status:'succeeded',amount_received:1900,currency:'eur',latest_charge:'ch_test'};},
  }},admin:{
-  rpc:async(name:string)=>{steps.push(name);return name==='commerce_begin_charge'?{data:{attempt:1},error:null}:{error:null};},
-  from:()=>({update:()=>({eq:async()=>{steps.push('persist');return{error:null};}})}),
+  rpc:async(name:string)=>{steps.push(name);return name==='commerce_begin_charge'?{data:{attempt:1,seller_cents:1805},error:null}:{error:null};},
+  from:table(steps,null),
  }} as unknown as Parameters<typeof chargeOrder>[0];
- const response=await chargeOrder(svc,{id:'order',total_cents:1900,currency:'EUR'},'cus_test','pm_test',true);
+ const response=await chargeOrder(svc,{id:'order',seller_id:'seller',total_cents:1900,currency:'EUR'},'cus_test','pm_test',true);
  assert.equal(response.status,200);assert.equal((await response.json()).status,'paid');
- assert.equal(params.transfer_data,undefined);assert.equal(params.application_fee_amount,undefined);
+ // The platform keeps only its commission (and shipping); the rest is held by Stripe on the seller's account.
+ assert.deepEqual(params.transfer_data,{destination:'acct_seller',amount:1805});
  assert.deepEqual(steps,['commerce_begin_charge','create','persist','confirm','commerce_settle_intent']);
+});
+
+Deno.test('a buyer is never charged for a seller who cannot receive money',async()=>{
+ const steps:string[]=[];
+ const svc={config:{},stripe:{...sellerAccount('pending'),paymentIntents:{create:async()=>{throw Error('must not charge');}}},
+  admin:{rpc:async(name:string)=>{steps.push(name);return{data:{attempt:1},error:null};},from:table(steps,null)}} as unknown as Parameters<typeof chargeOrder>[0];
+ const response=await chargeOrder(svc,{id:'order',seller_id:'seller',total_cents:1900,currency:'EUR'},'cus_test','pm_test',false);
+ assert.equal(response.status,409);assert.equal((await response.json()).error,'SELLER_NOT_READY');
+ assert.deepEqual(steps,[]);
 });
 
 Deno.test('authentication decline resumes the same intent without another off-session attempt',async()=>{
  let confirms=0;
- const svc={config:{STRIPE_PUBLISHABLE_KEY:'pk_test_example'},admin:{rpc:async()=>({data:{intent_id:'pi_saved',attempt:2}})},stripe:{paymentIntents:{
+ const svc={config:{STRIPE_PUBLISHABLE_KEY:'pk_test_example'},admin:{rpc:async()=>({data:{intent_id:'pi_saved',attempt:2}}),from:table([],{intent_id:'pi_saved'})},stripe:{paymentIntents:{
   retrieve:async()=>({id:'pi_saved',status:'requires_payment_method',client_secret:'test_secret',last_payment_error:{code:'authentication_required'}}),
   confirm:async()=>{confirms++;},
  }}} as unknown as Parameters<typeof chargeOrder>[0];
- const response=await chargeOrder(svc,{id:'order',total_cents:1900,currency:'EUR'},'cus_test','pm_test',true);
+ const response=await chargeOrder(svc,{id:'order',seller_id:'seller',total_cents:1900,currency:'EUR'},'cus_test','pm_test',true);
  assert.equal(confirms,0);const result=await response.json();
  assert.equal(result.status,'requires_action');assert.equal(result.confirmationRequired,true);assert.equal(result.paymentMethod,'pm_test');
 });
