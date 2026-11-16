@@ -108,6 +108,20 @@ language plpgsql security definer set search_path=public as $$ declare a jsonb; 
  return o;
 end $$;
 
+-- Istekle aukcije i one na kojima je ponuda dosegla "Kupi odmah".
+create or replace function public.auction_settle_due() returns integer
+language plpgsql security definer set search_path=public as $$ declare r record; n integer:=0; begin
+ for r in select id from loop_auctions where data->>'status'='active'
+   and (auction_ts(data->>'endsAt')<=now()
+    or (data->>'buyNowPrice' is not null and coalesce(data->>'kind','classic')<>'dutch'
+        and (data->'bids'->-1->>'amount')::numeric>=(data->>'buyNowPrice')::numeric)) limit 200 loop
+  perform auction_settle(r.id); n:=n+1;
+ end loop;
+ return n;
+end $$;
+revoke all on function public.auction_settle_due() from public,anon,authenticated;
+grant execute on function public.auction_settle_due() to service_role;
+
 -- Holandska: kao do sada, uz obavijesti.
 create or replace function public.auction_take_dutch(p_id text,p_max numeric) returns public.commerce_orders
 language plpgsql security definer set search_path=public as $$ declare a jsonb; o commerce_orders; t0 timestamptz; t1 timestamptz; frac numeric; price numeric; me text; begin

@@ -2,7 +2,9 @@ import '../services/app_location/app_location.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'package:supabase_flutter/supabase_flutter.dart' show Supabase;
 import '../models/auction.dart';
+import '../services/stripe_backend.dart';
 import '../providers/app_providers.dart';
 import '../services/fee.dart';
 import '../theme/app_theme.dart';
@@ -66,11 +68,38 @@ class _AuctionDetailScreenState extends ConsumerState<AuctionDetailScreen> {
       confirmLabel: t('Kupi'),
     );
     if (!ok || !mounted) return;
-    await runWithLoading(
-      context,
-      () => ref.read(appProvider.notifier).takeDutchAuction(a.id, price: price),
-      successMessage: t('Kupljeno!'),
-    );
+    String? orderId;
+    final taken = await runWithLoading(context, () async {
+      orderId = await ref
+          .read(appProvider.notifier)
+          .takeDutchAuction(a.id, price: price);
+    }, successMessage: null);
+    if (!taken || !mounted) return;
+    final order = orderId;
+    if (order == null) {
+      showLoopSnackBar(t('Kupljeno!'));
+      return;
+    }
+    // Online: narudžba se odmah naplaćuje s povezane kartice (banka može
+    // tražiti potvrdu u ugrađenom prozoru).
+    try {
+      final status = await StripeBackend(
+        Supabase.instance.client,
+      ).chargeStatus(order, context: context);
+      await ref.read(syncProvider)?.catchUpNow();
+      showLoopSnackBar(
+        status == SavedCardChargeStatus.paid
+            ? t('Kupljeno i plaćeno!')
+            : t(
+                'Kupljeno. Plaćanje dovrši u kartici Kupnje u roku od 24 sata.',
+              ),
+      );
+    } catch (error) {
+      showLoopSnackBar(
+        t('Kupljeno. Plaćanje dovrši u kartici Kupnje u roku od 24 sata.'),
+        error: true,
+      );
+    }
   }
 
   @override

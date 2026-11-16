@@ -2,6 +2,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:loop_app/models/seller_info.dart';
 import 'package:loop_app/services/stripe_backend.dart';
 
 void main() {
@@ -24,7 +25,17 @@ void main() {
         }),
       );
       try {
-        await StripeBackend(client).connectSeller();
+        await StripeBackend(client).ensureSellerReady(
+          SellerInfo(
+            legalName: 'Test Seller',
+            oib: '12345678903',
+            address: 'Ulica 1, 10000 Zagreb',
+            iban: 'HR1723600001101234565',
+            birthDate: DateTime(1990, 1, 1),
+            updatedAt: DateTime(2026),
+          ),
+          country: 'HR',
+        );
         fail('The unavailable onboarding must not launch a payment page');
       } on FunctionException catch (error) {
         expect(

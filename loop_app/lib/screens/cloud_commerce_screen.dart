@@ -504,13 +504,6 @@ class _CloudCommerceState extends State<CloudCommerceScreen> {
             onPressed: _login,
             child: const Text('Prijavi se za narudžbe'),
           ),
-        if (uid != null && orders.any((o) => o['seller_id'] == uid))
-          OutlinedButton(
-            onPressed: busy
-                ? null
-                : () => _run(() => StripeBackend(db).connectSeller()),
-            child: const Text('Postavi Stripe račun prodavatelja (test)'),
-          ),
         for (final o in orders) _order(o),
       ],
     ],

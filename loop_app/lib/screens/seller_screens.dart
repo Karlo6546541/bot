@@ -50,9 +50,8 @@ Future<bool> ensureSellerInfo(BuildContext context) async {
   return ensureSellerInfo(context);
 }
 
-/// Povezivanje isplata (Stripe): potrebno tek za isplatu zarade. Stranica
-/// pružatelja plaćanja otvara se u novoj kartici preglednika, aplikacija
-/// ostaje otvorena.
+/// Povezivanje isplata (Stripe): potvrda identiteta i IBAN-a otvara se u
+/// ugrađenom prozoru unutar aplikacije.
 Future<bool> ensurePayoutsReady(BuildContext context) async {
   if (!await ensureSellerInfo(context) || !context.mounted) return false;
   final container = ProviderScope.containerOf(context, listen: false);
@@ -65,9 +64,7 @@ Future<bool> ensurePayoutsReady(BuildContext context) async {
     );
     if (!ready) {
       showLoopSnackBar(
-        t(
-          'Dovrši povezivanje isplata na stranici koja se otvorila, pa se vrati.',
-        ),
+        t('Potvrda za isplate još nije dovršena. Možeš je nastaviti kasnije.'),
       );
     }
     return ready;

@@ -11,6 +11,7 @@ import '../models/device.dart';
 import '../models/loop_transaction.dart';
 import '../models/auction.dart';
 import '../services/account_service.dart';
+import '../services/auction_server.dart';
 import '../services/auction_service.dart';
 import '../services/bargain_service.dart';
 import '../services/live_service.dart';
@@ -130,8 +131,18 @@ final deliveryServiceProvider = Provider<DeliveryService>(
   (ref) => DeliveryService(ref.watch(storageProvider)),
 );
 
+/// Online način (Supabase + Stripe): aukcije zaključuje poslužitelj.
+final auctionServerProvider = Provider<AuctionServer?>(
+  (ref) => BackendConfig.cloudCommerceEnabled && ref.watch(syncProvider) != null
+      ? SupabaseAuctionServer(Supabase.instance.client)
+      : null,
+);
+
 final auctionServiceProvider = Provider<AuctionService>(
-  (ref) => AuctionService(ref.watch(storageProvider)),
+  (ref) => AuctionService(
+    ref.watch(storageProvider),
+    server: ref.watch(auctionServerProvider),
+  ),
 );
 
 /// Prvo pokretanje bez prijave: odmah uđi u aplikaciju kao gost (prijava
@@ -1390,13 +1401,15 @@ class AppController extends Notifier<AppState> {
   }
 
   /// Holandska aukcija: kupnja po trenutnoj (potvrđenoj) cijeni.
-  Future<void> takeDutchAuction(String auctionId, {double? price}) async {
-    await _auctions.takeDutch(
+  /// Vraća ID narudžbe za naplatu (online način) ili `null`.
+  Future<String?> takeDutchAuction(String auctionId, {double? price}) async {
+    final result = await _auctions.takeDutch(
       userId: _requireUserId(),
       auctionId: auctionId,
       expectedPrice: price,
     );
     _refresh();
+    return result.orderId;
   }
 
   /// "Kupi odmah" na aukciji.

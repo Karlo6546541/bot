@@ -139,6 +139,8 @@ export async function auctionTests(db,assert,as,rpc,rejects,{host,buyer,other}) 
  // 8: "buy now" on a classic auction settles at once
  await device('b1');await as(host);await auction('bn1','b1',{buyNowPrice:40});
  await as(other);await bid('bn1',other,40);
- assert.equal((await rpc("select (auction_settle('bn1')).total_cents t")).t,4600);
+ await db.exec('reset role');
+ assert.equal((await rpc('select auction_settle_due() n')).n,1,'the scheduler also settles a reached buy-now price');
+ assert.equal((await rpc("select total_cents t from commerce_orders where source_auction='bn1'")).t,4600);
  console.log('PASS: server-settled auctions, card-gated bids, 24 h deadline, strikes, Dutch, delivery-driven release');
 }

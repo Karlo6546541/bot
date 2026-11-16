@@ -1,41 +1,66 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:url_launcher/url_launcher.dart';
+import '../widgets/mini_live.dart' show rootNavigatorKey;
+import '../widgets/stripe_onboarding/stripe_onboarding.dart';
 import '../widgets/stripe_payment/stripe_payment.dart';
 import '../models/seller_info.dart';
 
 enum SavedCardChargeStatus { paid, processing, incomplete }
 
 class StripeBackend {
-  StripeBackend(this.client, {this.sellerLauncher});
-  final Future<bool> Function(Uri)? sellerLauncher;
-  final SupabaseClient client;
-  Future<void> connectSeller() async {
-    final data = await _call('stripe-connect', {});
-    await _openSellerLink(data);
-  }
+  StripeBackend(this.client, {this.sellerOnboarding});
 
-  /// Automatically prepare the seller's own account and open only outstanding onboarding.
+  /// Otvara ugrađenu potvrdu prodavača (zamjenjivo u testovima). Zadano:
+  /// Stripe Connect komponenta u prozoru unutar aplikacije.
+  final Future<bool> Function(Map<String, dynamic> session)? sellerOnboarding;
+  final SupabaseClient client;
+
+  Map<String, dynamic> _publicProfile(SellerInfo seller) => seller.toMap()
+    ..remove('iban')
+    ..remove('oib')
+    ..remove('vatId')
+    ..remove('registryNumber');
+
+  /// Priprema račun prodavača; ako Stripe još traži potvrdu (identitet,
+  /// IBAN), otvara je UNUTAR aplikacije i zatim ponovno provjerava stanje.
+  /// Nikad ne otvara Stripeovu stranicu ni Dashboard.
   Future<bool> ensureSellerReady(
     SellerInfo seller, {
     required String country,
     String? expectedUserId,
   }) async {
-    final profile = seller.toMap()
-      ..remove('iban')
-      ..remove('oib')
-      ..remove('vatId')
-      ..remove('registryNumber');
     final data = await _call('stripe-connect', {
-      'action': 'ensure',
-      'seller': profile,
+      'action': 'session',
+      'seller': _publicProfile(seller),
       'country': country,
       'expectedUserId': ?expectedUserId,
     });
     if (data['ready'] == true) return true;
-    await _openSellerLink(data);
-    return false;
+    final secret = data['clientSecret'];
+    final key = data['publishableKey'];
+    if (secret is! String ||
+        secret.isEmpty ||
+        key is! String ||
+        !key.startsWith('pk_')) {
+      throw StateError('PAYMENTS_UNAVAILABLE');
+    }
+    final session = {'clientSecret': secret, 'publishableKey': key};
+    final open = sellerOnboarding;
+    if (open != null) {
+      if (!await open(session)) return false;
+    } else {
+      final context = rootNavigatorKey.currentContext;
+      if (context == null || !context.mounted) {
+        throw StateError('PAYMENT_PAGE_UNAVAILABLE');
+      }
+      if (!await showStripeOnboarding(context, session)) return false;
+    }
+    return prepareSeller(
+      seller,
+      country: country,
+      expectedUserId: expectedUserId,
+    );
   }
 
   /// Prepare the account without leaving the app or accepting any terms.
@@ -44,45 +69,13 @@ class StripeBackend {
     required String country,
     String? expectedUserId,
   }) async {
-    final profile = seller.toMap()
-      ..remove('iban')
-      ..remove('oib')
-      ..remove('vatId')
-      ..remove('registryNumber');
     final data = await _call('stripe-connect', {
       'action': 'prepare',
-      'seller': profile,
+      'seller': _publicProfile(seller),
       'country': country,
       'expectedUserId': ?expectedUserId,
     });
     return data['ready'] == true;
-  }
-
-  Future<void> _openSellerLink(Map<String, dynamic> data) async {
-    final url = Uri.tryParse(data['url'] as String? ?? '');
-    if (url == null ||
-        url.scheme != 'https' ||
-        url.host != 'connect.stripe.com') {
-      throw StateError('PAYMENTS_UNAVAILABLE');
-    }
-    // Stripe stranica se otvara u pregledniku (nova kartica), aplikacija
-    // ostaje gdje je bila. Ako preglednik blokira novu karticu, otvara se
-    // u istoj (povratak vodi natrag u aplikaciju).
-    final launcher = sellerLauncher;
-    if (launcher != null) {
-      if (!await launcher(url)) throw StateError('PAYMENT_PAGE_UNAVAILABLE');
-      return;
-    }
-    if (await launchUrl(
-      url,
-      mode: LaunchMode.externalApplication,
-      webOnlyWindowName: '_blank',
-    )) {
-      return;
-    }
-    if (!await launchUrl(url, webOnlyWindowName: '_self')) {
-      throw StateError('PAYMENT_PAGE_UNAVAILABLE');
-    }
   }
 
   Future<Map<String, dynamic>> _call(

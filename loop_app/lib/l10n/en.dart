@@ -3617,6 +3617,22 @@ const kEn = <String, String>{
   'Za ponudu ili kupnju na aukciji treba povezana kartica. Ako pobijediš, iznos se automatski naplaćuje s nje.':
       'Bidding or buying at an auction requires a linked card. If you win, the amount is charged to it automatically.',
   'Poveži karticu': 'Link card',
+  'Licitiranje ti je privremeno onemogućeno zbog neplaćenih dobitaka.':
+      'Bidding is temporarily disabled because of unpaid wins.',
+  'Kupnja trenutačno nije uspjela. Pokušaj ponovno.':
+      'The purchase did not go through. Try again.',
+  'Kupljeno i plaćeno!': 'Bought and paid!',
+  'Kupljeno. Plaćanje dovrši u kartici Kupnje u roku od 24 sata.':
+      'Bought. Complete the payment in the Purchases tab within 24 hours.',
+  'Osvojio si "{0}", ali naplata {1} nije prošla. Plati u kartici Kupnje u roku od 24 sata.':
+      'You won "{0}", but the charge of {1} failed. Pay in the Purchases tab within 24 hours.',
+  'Kupac nije platio "{0}" u roku. Predmet je i dalje tvoj — možeš ga ponovno ponuditi.':
+      'The buyer did not pay for "{0}" in time. The item is still yours — you can list it again.',
+  'Nisi platio osvojenu aukciju "{0}". Nakon dva neplaćena dobitka licitiranje se onemogućuje.':
+      'You did not pay for the auction "{0}" you won. After two unpaid wins bidding is disabled.',
+  'Potvrda za isplate': 'Payout verification',
+  'Potvrda za isplate još nije dovršena. Možeš je nastaviti kasnije.':
+      'Payout verification is not finished yet. You can continue later.',
   'Zakaži show': 'Schedule a show',
   'Otprema': 'Shipping',
   'Nema paketa za predaju': 'No parcels to hand over',

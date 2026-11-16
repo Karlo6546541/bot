@@ -39,7 +39,7 @@ void main() {
       );
       final backend = StripeBackend(
         client,
-        sellerLauncher: (_) async {
+        sellerOnboarding: (_) async {
           launches++;
           return true;
         },
@@ -66,7 +66,7 @@ void main() {
         httpClient: MockClient((request) async {
           expect(request.url.path, '/functions/v1/stripe-connect');
           final body = jsonDecode(request.body) as Map;
-          expect(body['action'], 'ensure');
+          expect(body['action'], 'session');
           expect(body['country'], 'HR');
           expect(body['seller']['legalName'], 'Test Seller');
           expect((body['seller'] as Map).containsKey('iban'), false);
@@ -81,7 +81,7 @@ void main() {
       );
       final ready = await StripeBackend(
         client,
-        sellerLauncher: (_) async {
+        sellerOnboarding: (_) async {
           launches++;
           return true;
         },
@@ -92,42 +92,52 @@ void main() {
     },
   );
   test(
-    'unfinished seller opens the returned Stripe form and cannot continue selling yet',
+    'unfinished seller completes the embedded form inside the app, then status is re-checked',
     () async {
-      Uri? launched;
+      Map<String, dynamic>? opened;
+      final actions = <String>[];
       final client = SupabaseClient(
         'https://test.invalid',
         'test-key',
-        httpClient: MockClient(
-          (_) async => http.Response(
-            '{"ready":false,"url":"https://connect.stripe.com/setup/test"}',
+        httpClient: MockClient((request) async {
+          final action = (jsonDecode(request.body) as Map)['action'] as String;
+          actions.add(action);
+          return http.Response(
+            action == 'session'
+                ? '{"ready":false,"clientSecret":"accs_secret_test","publishableKey":"pk_test_x"}'
+                : '{"ready":true}',
             200,
             headers: {'content-type': 'application/json'},
-          ),
-        ),
+          );
+        }),
       );
       expect(
         await StripeBackend(
           client,
-          sellerLauncher: (url) async {
-            launched = url;
+          sellerOnboarding: (session) async {
+            opened = session;
             return true;
           },
         ).ensureSellerReady(seller, country: 'HR'),
-        false,
+        true,
       );
-      expect(launched?.host, 'connect.stripe.com');
+      // Nema adrese Stripeove stranice: samo tajna kratkotrajne sesije.
+      expect(opened, {
+        'clientSecret': 'accs_secret_test',
+        'publishableKey': 'pk_test_x',
+      });
+      expect(actions, ['session', 'prepare']);
       await client.dispose();
     },
   );
-  test('untrusted onboarding URL cannot redirect a seller', () async {
+  test('a response without an embedded session never opens anything', () async {
     var launches = 0;
     final client = SupabaseClient(
       'https://test.invalid',
       'test-key',
       httpClient: MockClient(
         (_) async => http.Response(
-          '{"ready":false,"url":"https://example.invalid/fake"}',
+          '{"ready":false,"url":"https://connect.stripe.com/setup/test"}',
           200,
           headers: {'content-type': 'application/json'},
         ),
@@ -136,7 +146,7 @@ void main() {
     await expectLater(
       StripeBackend(
         client,
-        sellerLauncher: (_) async {
+        sellerOnboarding: (_) async {
           launches++;
           return true;
         },

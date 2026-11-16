@@ -153,6 +153,9 @@ class NotificationsScreen extends ConsumerStatefulWidget {
           NotificationKind.newBid ||
           NotificationKind.auctionLost ||
           NotificationKind.auctionSold ||
+          NotificationKind.auctionPaymentDue ||
+          NotificationKind.auctionUnpaid ||
+          NotificationKind.bidStrike ||
           NotificationKind.auctionUnsold:
         if (id != null && state.auctionById(id) == null) {
           showLoopSnackBar(t('Ta aukcija više ne postoji.'));

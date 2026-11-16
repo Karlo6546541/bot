@@ -4,6 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:hive/hive.dart';
 import 'package:loop_app/models/auction.dart';
 import 'package:loop_app/models/loop_transaction.dart';
+import 'package:loop_app/services/auction_server.dart';
 import 'package:loop_app/services/auction_service.dart';
 import 'package:loop_app/services/seed_data.dart';
 import 'package:loop_app/services/storage_service.dart';
@@ -488,4 +489,79 @@ void main() {
       );
     });
   });
+
+  group('online način: poslužitelj zaključuje i naplaćuje', () {
+    test('istekla aukcija se ne zaključuje lokalno', () async {
+      final server = _FakeServer();
+      final online = AuctionService(storage, server: server);
+      final at = DateTime(2026, 1, 1, 12);
+      final a = await online.create(
+        userId: demo,
+        deviceId: 'seed-9',
+        startPrice: 50,
+        duration: const Duration(hours: 2),
+        now: at,
+      );
+      await online.placeBid(
+        userId: marko,
+        auctionId: a.id,
+        amount: 60,
+        now: at,
+      );
+      final results = await online.settleExpired(
+        now: a.endsAt.add(const Duration(minutes: 1)),
+      );
+      expect(server.settled, [a.id]);
+      // Bez odgovora poslužitelja aukcija ostaje aktivna, predmet kod
+      // prodavača i ništa se ne knjiži lokalno.
+      expect(results, isEmpty);
+      expect(storage.auctionById(a.id)!.isActive, isTrue);
+      expect(storage.deviceById('seed-9')!.ownerId, demo);
+    });
+
+    test('holandska kupnja ide preko poslužitelja i vraća narudžbu', () async {
+      final server = _FakeServer();
+      final online = AuctionService(storage, server: server);
+      final at = DateTime(2026, 1, 1, 12);
+      final a = await online.create(
+        userId: demo,
+        deviceId: 'seed-9',
+        startPrice: 200,
+        duration: const Duration(hours: 2),
+        kind: AuctionKind.dutch,
+        floorPrice: 100,
+        now: at,
+      );
+      final r = await online.takeDutch(
+        userId: marko,
+        auctionId: a.id,
+        expectedPrice: 200,
+        now: at,
+      );
+      expect(r.orderId, 'order-1');
+      expect(server.taken, [a.id]);
+      expect(storage.deviceById('seed-9')!.ownerId, demo);
+      server.error = 'CARD_REQUIRED';
+      await expectLater(
+        online.takeDutch(userId: marko, auctionId: a.id, now: at),
+        throwsA(isA<TradeException>()),
+      );
+    });
+  });
+}
+
+class _FakeServer implements AuctionServer {
+  final settled = <String>[];
+  final taken = <String>[];
+  String? error;
+
+  @override
+  Future<void> settle(String auctionId) async => settled.add(auctionId);
+
+  @override
+  Future<String> takeDutch(String auctionId, double maxPrice) async {
+    if (error != null) throw StateError(error!);
+    taken.add(auctionId);
+    return 'order-1';
+  }
 }

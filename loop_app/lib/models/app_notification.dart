@@ -20,6 +20,18 @@ enum NotificationKind {
   auctionLost('😕', 'Aukcija "{0}" je završila — nisi pobijedio.'),
   auctionSold('💰', 'Tvoja aukcija "{0}" je završila: prodano za {1}.'),
   auctionUnsold('⏱️', 'Tvoja aukcija "{0}" je završila bez ponuda.'),
+  auctionPaymentDue(
+    '💳',
+    'Osvojio si "{0}", ali naplata {1} nije prošla. Plati u kartici Kupnje u roku od 24 sata.',
+  ),
+  auctionUnpaid(
+    '⌛',
+    'Kupac nije platio "{0}" u roku. Predmet je i dalje tvoj — možeš ga ponovno ponuditi.',
+  ),
+  bidStrike(
+    '⚠️',
+    'Nisi platio osvojenu aukciju "{0}". Nakon dva neplaćena dobitka licitiranje se onemogućuje.',
+  ),
   itemSold('🎉', '{1} je kupio tvoj predmet "{0}". Dobivaš {2}.'),
   priceDrop('📉', 'Predmet s tvoje liste želja "{0}" je pojeftinio na {1}.'),
   newReview('⭐', '{0} te ocijenio: {1}'),
@@ -94,6 +106,9 @@ enum NotificationKind {
     auctionLost ||
     auctionSold ||
     auctionUnsold ||
+    auctionPaymentDue ||
+    auctionUnpaid ||
+    bidStrike ||
     followedAuction ||
     liveStarted ||
     auctionEndingSoon => NotificationGroup.auctions,

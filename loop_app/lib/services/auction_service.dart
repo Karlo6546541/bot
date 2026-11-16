@@ -1,6 +1,7 @@
 import 'package:uuid/uuid.dart';
 
 import '../models/auction.dart';
+import 'auction_server.dart';
 import '../models/loop_transaction.dart';
 import '../utils/formatters.dart';
 import 'auction_policy.dart';
@@ -16,9 +17,12 @@ import 'inbox.dart';
 
 /// Ishod završene aukcije (za obavijesti sudionicima).
 class AuctionResult {
-  const AuctionResult(this.auction, {this.winnerId});
+  const AuctionResult(this.auction, {this.winnerId, this.orderId});
   final Auction auction;
   final String? winnerId;
+
+  /// Online način: narudžba koju pobjednik plaća (naplata preko Stripea).
+  final String? orderId;
 }
 
 /// Pravila aukcija:
@@ -31,9 +35,14 @@ class AuctionResult {
 /// - na kraju pobjednik dobiva predmet, prodavatelj iznos umanjen za 10 %
 ///   razlike iznad početne cijene.
 class AuctionService {
-  AuctionService(this._storage) : policy = AuctionPolicy(_storage);
+  AuctionService(this._storage, {this.server})
+    : policy = AuctionPolicy(_storage);
 
   final StorageService _storage;
+
+  /// Online način: zaključivanje i naplatu radi poslužitelj (vidi
+  /// [AuctionServer]); bez njega aplikacija sve radi lokalno.
+  final AuctionServer? server;
   final AuctionPolicy policy;
   final _uuid = const Uuid();
 
@@ -360,6 +369,31 @@ class AuctionService {
     if (expectedPrice != null && price > expectedPrice + 0.001) {
       throw TradeException(t('Cijena se promijenila. Pokušaj ponovno.'));
     }
+    final srv = server;
+    if (srv != null) {
+      // Cijenu i jedinog kupca određuje poslužitelj (atomski).
+      final String orderId;
+      try {
+        orderId = await srv.takeDutch(auctionId, expectedPrice ?? price);
+      } catch (error) {
+        throw TradeException(switch (auctionServerErrorCode(error)) {
+          'CARD_REQUIRED' => t('Poveži karticu za licitiranje'),
+          'BIDDING_SUSPENDED' => t(
+            'Licitiranje ti je privremeno onemogućeno zbog neplaćenih dobitaka.',
+          ),
+          'ALREADY_SOLD' => t('Netko je već kupio ovaj predmet.'),
+          'PRICE_CHANGED' => t('Cijena se promijenila. Pokušaj ponovno.'),
+          'AUCTION_ENDED' => t('Aukcija je završila.'),
+          _ => t('Kupnja trenutačno nije uspjela. Pokušaj ponovno.'),
+        });
+      }
+      await _storage.refreshAuction(auctionId);
+      return AuctionResult(
+        _storage.auctionById(auctionId) ?? a,
+        winnerId: userId,
+        orderId: orderId,
+      );
+    }
     final updated = a.copyWith(
       bids: [
         Bid(userId: userId, userLabel: user.handle, amount: price, time: at),
@@ -405,6 +439,19 @@ class AuctionService {
       autoMax: const {},
     );
     await _storage.putAuction(updated);
+    final srv = server;
+    if (srv != null) {
+      // Ponuda na cijeni "Kupi odmah": poslužitelj zaključuje odmah (ili
+      // u idućoj minuti) i naplaćuje spremljenu karticu.
+      try {
+        await srv.settle(auctionId);
+      } catch (_) {}
+      await _storage.refreshAuction(auctionId);
+      return AuctionResult(
+        _storage.auctionById(auctionId) ?? updated,
+        winnerId: userId,
+      );
+    }
     return _settle(updated, at);
   }
 
@@ -504,6 +551,29 @@ class AuctionService {
       if (!a.isActive || !a.isExpired(at)) continue;
       // Svježi zapis: zadnja ponuda (ili produljenje) mogla je stići s
       // drugog uređaja — pobjednik se određuje iz baze.
+      final srv = server;
+      if (srv != null) {
+        // Poslužitelj zaključuje (i sam, svake minute); ovdje samo ubrzamo
+        // i pročitamo ishod. Predmet prelazi kupcu tek kad je plaćen.
+        try {
+          await srv.settle(a.id);
+        } catch (_) {
+          // Zaključit će raspored na poslužitelju.
+        }
+        await _storage.refreshAuction(a.id);
+        final done = _storage.auctionById(a.id) ?? a;
+        if (!done.isActive) {
+          results.add(
+            AuctionResult(
+              done,
+              winnerId: done.status == AuctionStatus.sold
+                  ? done.highestBid?.userId
+                  : null,
+            ),
+          );
+        }
+        continue;
+      }
       await _storage.refreshAuction(a.id);
       final fresh = _storage.auctionById(a.id) ?? a;
       if (fresh.isActive && fresh.isExpired(at)) {

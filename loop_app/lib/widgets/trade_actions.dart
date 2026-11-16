@@ -159,6 +159,26 @@ Future<bool> ensureCardForBidding(BuildContext context, WidgetRef ref) async {
       showLoopSnackBar(paymentActionErrorMessage(error), error: true);
       return false;
     }
+    // Dva neplaćena dobitka u 90 dana: poslužitelj odbija nove ponude.
+    try {
+      final uid = Supabase.instance.client.auth.currentUser?.id;
+      if (uid != null &&
+          await Supabase.instance.client.rpc(
+                'auction_bidding_suspended',
+                params: {'p_user': uid},
+              ) ==
+              true) {
+        showLoopSnackBar(
+          t(
+            'Licitiranje ti je privremeno onemogućeno zbog neplaćenih dobitaka.',
+          ),
+          error: true,
+        );
+        return false;
+      }
+    } catch (_) {
+      // Provjeru ionako ponavlja poslužitelj pri upisu ponude.
+    }
   } else {
     hasCard = user.paymentCard != null;
   }
