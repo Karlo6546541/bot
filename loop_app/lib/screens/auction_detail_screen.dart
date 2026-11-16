@@ -57,6 +57,8 @@ class _AuctionDetailScreenState extends ConsumerState<AuctionDetailScreen> {
   }
 
   Future<void> _takeDutch(Auction a, double price) async {
+    // Bez povezane kartice nema kupnje na aukciji.
+    if (!await ensureCardForBidding(context, ref) || !mounted) return;
     final ok = await confirmDialog(
       context,
       title: t('Kupiti za {0}?', [formatCredits(price)]),
@@ -174,8 +176,6 @@ class _AuctionDetailScreenState extends ConsumerState<AuctionDetailScreen> {
                                 Text(
                                   a.isDutch && a.isActive
                                       ? t('Trenutna cijena (pada)')
-                                      : a.bidsHidden
-                                      ? t('Najmanja ponuda')
                                       : a.bids.isEmpty
                                       ? t('Početna cijena')
                                       : t('Najviša ponuda'),
@@ -289,8 +289,6 @@ class _AuctionDetailScreenState extends ConsumerState<AuctionDetailScreen> {
                   ),
                 ),
               ],
-              if (a.isSealed && a.isActive && a.sellerId != me)
-                _SealedBidBox(auction: a, me: me),
               if (canBid) ...[
                 Text(
                   t('Najmanja ponuda: {0}', [formatCredits(a.minNextBid)]),
@@ -331,12 +329,7 @@ class _AuctionDetailScreenState extends ConsumerState<AuctionDetailScreen> {
               if (a.isActive && a.sellerId == me) ...[
                 _InfoBox(
                   icon: Icons.info_outline,
-                  text: a.bidsHidden
-                      ? t(
-                          'Zatvorena aukcija: ponude su skrivene do kraja (zasad {0}). Aukciju možeš otkazati dok nema ponuda.',
-                          ['${a.bids.length}'],
-                        )
-                      : a.isDutch
+                  text: a.isDutch
                       ? t(
                           'Holandska aukcija: cijena pada do {0}. Prodaje se prvom kupcu koji pristane na trenutnu cijenu.',
                           [formatCredits(a.floorPrice)],
@@ -411,27 +404,6 @@ class _BidHistory extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (auction.bidsHidden) {
-      return Card(
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Row(
-            children: [
-              Icon(Icons.lock_outline, color: LoopColors.textSecondary),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Text(
-                  t('Ponude su skrivene do kraja aukcije ({0})', [
-                    '${auction.bids.length}',
-                  ]),
-                  key: const ValueKey('sealed-hidden'),
-                ),
-              ),
-            ],
-          ),
-        ),
-      );
-    }
     final bids = auction.bids.reversed.toList();
     return Card(
       child: Padding(
@@ -496,93 +468,6 @@ class _BidHistory extends StatelessWidget {
           ],
         ),
       ),
-    );
-  }
-}
-
-/// Zatvorena aukcija: jedna skrivena ponuda koju korisnik smije samo povisiti.
-class _SealedBidBox extends ConsumerStatefulWidget {
-  const _SealedBidBox({required this.auction, required this.me});
-  final Auction auction;
-  final String me;
-
-  @override
-  ConsumerState<_SealedBidBox> createState() => _SealedBidBoxState();
-}
-
-class _SealedBidBoxState extends ConsumerState<_SealedBidBox> {
-  final _c = TextEditingController();
-
-  @override
-  void dispose() {
-    _c.dispose();
-    super.dispose();
-  }
-
-  Future<void> _send() async {
-    final amount = double.tryParse(_c.text.trim().replaceAll(',', '.'));
-    if (amount == null) {
-      showLoopSnackBar(t('Upiši iznos ponude.'), error: true);
-      return;
-    }
-    final ok = await confirmDialog(
-      context,
-      title: t('Poslati zatvorenu ponudu {0}?', [formatCredits(amount)]),
-      message: t(
-        'Ponuda je obvezujuća i skrivena do kraja. Možeš je samo povisiti. Pobjednik plaća svoj iznos.',
-      ),
-      confirmLabel: t('Pošalji ponudu'),
-    );
-    if (!ok || !mounted) return;
-    await runWithLoading(
-      context,
-      () => ref.read(appProvider.notifier).placeBid(widget.auction.id, amount),
-      successMessage: t('Ponuda poslana'),
-    );
-    if (mounted) _c.clear();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final a = widget.auction;
-    final mine = [
-      for (final b in a.bids)
-        if (b.userId == widget.me) b,
-    ];
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        _InfoBox(
-          icon: Icons.lock_outline,
-          text: mine.isEmpty
-              ? t(
-                  'Zatvorena aukcija: pošalji jednu skrivenu ponudu (najmanje {0}). Najviša pobjeđuje i plaća svoj iznos.',
-                  [formatCredits(a.startPrice)],
-                )
-              : t(
-                  'Tvoja zatvorena ponuda je {0}. Možeš je samo povisiti do kraja aukcije.',
-                  [formatCredits(mine.last.amount)],
-                ),
-        ),
-        const SizedBox(height: 8),
-        TextField(
-          key: const ValueKey('sealed-amount'),
-          controller: _c,
-          keyboardType: const TextInputType.numberWithOptions(decimal: true),
-          decoration: InputDecoration(
-            labelText: mine.isEmpty
-                ? t('Tvoja zatvorena ponuda (€)')
-                : t('Nova viša ponuda (€)'),
-          ),
-        ),
-        const SizedBox(height: 8),
-        FilledButton.icon(
-          key: const ValueKey('sealed-submit'),
-          onPressed: _send,
-          icon: const Icon(Icons.lock_outline),
-          label: Text(t('Pošalji ponudu')),
-        ),
-      ],
     );
   }
 }

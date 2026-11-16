@@ -380,7 +380,7 @@ void main() {
     });
   });
 
-  group('holandska i zatvorena aukcija', () {
+  group('holandska aukcija', () {
     test(
       'holandska: cijena pada linearno, prvi kupac kupuje po cijeni',
       () async {
@@ -487,74 +487,5 @@ void main() {
         throwsA(isA<TradeException>()),
       );
     });
-
-    test(
-      'zatvorena: ponude skrivene, najviša pobjeđuje i plaća svoj iznos',
-      () async {
-        final at = DateTime(2026, 1, 1, 12);
-        final a = await auctions.create(
-          userId: demo,
-          deviceId: 'seed-9',
-          startPrice: 50,
-          duration: const Duration(hours: 2),
-          kind: AuctionKind.sealed,
-          now: at,
-        );
-        expect(a.bidsHidden, isTrue);
-        await expectLater(
-          auctions.placeBid(
-            userId: marko,
-            auctionId: a.id,
-            amount: 10,
-            now: at,
-          ),
-          throwsA(isA<TradeException>()),
-        );
-        await auctions.placeBid(
-          userId: marko,
-          auctionId: a.id,
-          amount: 90,
-          now: at,
-        );
-        await auctions.placeBid(
-          userId: tester,
-          auctionId: a.id,
-          amount: 120,
-          now: at,
-        );
-        var cur = storage.auctionById(a.id)!;
-        // Dok traje: cijena i vodeći se ne otkrivaju, nema produljenja.
-        expect(cur.currentPrice, 50);
-        expect(cur.endsAt, a.endsAt);
-        expect(cur.bids, hasLength(2));
-        // Svoju ponudu smije samo povisiti.
-        await expectLater(
-          auctions.placeBid(
-            userId: marko,
-            auctionId: a.id,
-            amount: 90,
-            now: at,
-          ),
-          throwsA(isA<TradeException>()),
-        );
-        await auctions.placeBid(
-          userId: marko,
-          auctionId: a.id,
-          amount: 150,
-          now: at,
-        );
-        cur = storage.auctionById(a.id)!;
-        expect(cur.bids, hasLength(2));
-        await auctions.settleExpired(
-          now: a.endsAt.add(const Duration(minutes: 1)),
-        );
-        final done = storage.auctionById(a.id)!;
-        expect(done.status, AuctionStatus.sold);
-        expect(done.highestBid!.userId, marko);
-        expect(done.highestBid!.amount, 150);
-        expect(done.currentPrice, 150);
-        expect(storage.deviceById('seed-9')!.ownerId, marko);
-      },
-    );
   });
 }

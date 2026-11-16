@@ -3490,8 +3490,8 @@ const kEn = <String, String>{
       'Dutch auction: the price falls to {0}. Whoever accepts the current price first buys.',
   'Ispod ove cijene ne prodaješ — cijena ne pada niže.':
       'You do not sell below this price — it never falls lower.',
-  'Kupi odmah nije moguć na holandskoj ni zatvorenoj aukciji.':
-      'Buy now is not possible on Dutch or sealed-bid auctions.',
+  'Kupi odmah nije moguć na holandskoj aukciji.':
+      'Buy now is not possible on Dutch auctions.',
   'Kupiti za {0}?': 'Buy for {0}?',
   'Na holandskoj aukciji se ne licitira — kupi po trenutnoj cijeni.':
       'You do not bid on a Dutch auction — buy at the current price.',
@@ -3528,8 +3528,8 @@ const kEn = <String, String>{
   'Klasična': 'Classic',
   'Holandska': 'Dutch',
   'Zatvorena': 'Sealed-bid',
-  'Klasična, holandska ili zatvorena licitacija s rokom.':
-      'Classic, Dutch or sealed-bid auction with a deadline.',
+  'Klasična ili holandska aukcija s rokom.':
+      'Classic or Dutch auction with a deadline.',
   'Objavi aukciju i prvi ponuđači stižu ovdje.':
       'Post an auction and the first bidders will show up here.',
   'Licitiraj.\nOsvoji povoljno.': 'Bid.\nWin for less.',
@@ -3613,6 +3613,10 @@ const kEn = <String, String>{
   'Ručni satovi': 'Wristwatches',
   'Stari nakit': 'Antique jewelry',
   'Keramika i porculan': 'Ceramics and porcelain',
+  'Poveži karticu za licitiranje': 'Link a card to bid',
+  'Za ponudu ili kupnju na aukciji treba povezana kartica. Ako pobijediš, iznos se automatski naplaćuje s nje.':
+      'Bidding or buying at an auction requires a linked card. If you win, the amount is charged to it automatically.',
+  'Poveži karticu': 'Link card',
   'Zakaži show': 'Schedule a show',
   'Otprema': 'Shipping',
   'Nema paketa za predaju': 'No parcels to hand over',

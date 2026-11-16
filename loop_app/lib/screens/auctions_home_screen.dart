@@ -17,7 +17,7 @@ import 'auction_detail_screen.dart';
 import 'search_screen.dart';
 
 /// Početna u aplikaciji samo za aukcije: pretraga, filter vrste aukcije
-/// (Sve · Klasična · Nizozemska · Zatvorena) i mreža aukcija u dva stupca.
+/// (Sve · Kupi odmah · Klasična · Nizozemska) i mreža aukcija u dva stupca.
 class AuctionsHomeScreen extends ConsumerStatefulWidget {
   const AuctionsHomeScreen({super.key});
 

@@ -143,6 +143,39 @@ Future<bool> ensureCard(BuildContext context, WidgetRef ref) async {
   return changeCard(context, ref);
 }
 
+/// Aukcije: bez povezane kartice nema ponude ni kupnje. Ako kartice nema,
+/// prvo jasno kaže zašto treba, pa otvara ugrađeni unos kartice. Pobjedniku
+/// se iznos naplaćuje automatski s te kartice.
+Future<bool> ensureCardForBidding(BuildContext context, WidgetRef ref) async {
+  final user = ref.read(appProvider).currentUser;
+  if (user == null || user.isGuest) return false;
+  bool hasCard;
+  if (BackendConfig.cloudCommerceEnabled && ref.read(syncProvider) != null) {
+    try {
+      hasCard = (await StripeBackend(
+        Supabase.instance.client,
+      ).cardStatus()).hasCard;
+    } catch (error) {
+      showLoopSnackBar(paymentActionErrorMessage(error), error: true);
+      return false;
+    }
+  } else {
+    hasCard = user.paymentCard != null;
+  }
+  if (hasCard) return true;
+  if (!context.mounted) return false;
+  final ok = await confirmDialog(
+    context,
+    title: t('Poveži karticu za licitiranje'),
+    message: t(
+      'Za ponudu ili kupnju na aukciji treba povezana kartica. Ako pobijediš, iznos se automatski naplaćuje s nje.',
+    ),
+    confirmLabel: t('Poveži karticu'),
+  );
+  if (!ok || !context.mounted) return false;
+  return changeCard(context, ref);
+}
+
 /// Dodaje ili mijenja spremljeni način plaćanja (mali novčanik).
 Future<bool> changeCard(BuildContext context, WidgetRef ref) async {
   final card = await addPaymentMethod(context);

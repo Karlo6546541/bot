@@ -66,7 +66,6 @@ enum AuctionRole {
   leading('Vodiš', Icons.emoji_events),
   outbid('Nadmašen si', Icons.trending_down),
   won('Osvojeno', Icons.emoji_events),
-  sealedBid('Ponuda poslana', Icons.lock_outline),
   none('', Icons.circle);
 
   const AuctionRole(this._label, this.icon);
@@ -78,7 +77,7 @@ enum AuctionRole {
   Color get color => switch (this) {
     leading || won => LoopColors.success,
     outbid => LoopColors.error,
-    seller || none || sealedBid => LoopColors.textSecondary,
+    seller || none => LoopColors.textSecondary,
   };
 
   static AuctionRole of(Auction a, String? me) {
@@ -87,10 +86,6 @@ enum AuctionRole {
     final top = a.highestBid?.userId == me;
     if (a.status == AuctionStatus.sold && top) return won;
     if (!a.isActive) return none;
-    // Zatvorena aukcija: nitko ne vidi tko vodi — samo da je ponuda poslana.
-    if (a.isSealed) {
-      return a.bids.any((b) => b.userId == me) ? sealedBid : none;
-    }
     if (top) return leading;
     if (a.bids.any((b) => b.userId == me)) return outbid;
     return none;
@@ -1977,8 +1972,6 @@ class AuctionCard extends ConsumerWidget {
                         Text(
                           a.isDutch && a.isActive
                               ? t('Trenutna cijena (pada)')
-                              : a.bidsHidden
-                              ? t('Zatvorena · najmanje')
                               : a.bids.isEmpty
                               ? t('Početna cijena')
                               : t('Najviša ponuda'),

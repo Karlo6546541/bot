@@ -120,7 +120,7 @@ Future<void> showCreateSheet(BuildContext context, WidgetRef ref) async {
               'auction',
               Icons.gavel,
               t('Aukcija'),
-              t('Klasična, holandska ili zatvorena licitacija s rokom.'),
+              t('Klasična ili holandska aukcija s rokom.'),
             ),
             if (kLiveEnabled && next != null)
               option(

@@ -22,16 +22,13 @@ enum AuctionKind {
 
   /// Holandska (padajuća cijena): cijena pada od početne do najniže, a tko
   /// prvi pristane na trenutnu cijenu — kupuje.
-  dutch('Holandska'),
-
-  /// Zatvorena: svatko pošalje jednu skrivenu ponudu; na kraju pobjeđuje
-  /// najviša i plaća svoj iznos. Ponude se ne vide do kraja.
-  sealed('Zatvorena');
+  dutch('Holandska');
 
   const AuctionKind(this._label);
   final String _label;
   String get label => t(_label);
 
+  /// Nepoznata vrsta (i nekadašnja zatvorena aukcija) čita se kao klasična.
   static AuctionKind fromName(String? name) => AuctionKind.values.firstWhere(
     (k) => k.name == name,
     orElse: () => AuctionKind.classic,
@@ -128,17 +125,13 @@ class Auction {
   /// Obavijest "završava uskoro" je poslana.
   final bool endingNotified;
 
-  /// Vrsta aukcije (klasična, holandska ili zatvorena).
+  /// Vrsta aukcije (klasična ili holandska).
   final AuctionKind kind;
 
   /// Holandska: najniža cijena na kraju vremena ([startPrice] je najviša).
   final double floorPrice;
 
   bool get isDutch => kind == AuctionKind.dutch;
-  bool get isSealed => kind == AuctionKind.sealed;
-
-  /// Zatvorena aukcija dok traje: ponude i vodeći se ne smiju vidjeti.
-  bool get bidsHidden => isSealed && isActive;
 
   /// Holandska: cijena u trenutku [at] (linearno pada od početne do najniže
   /// cijene do kraja aukcije), zaokruženo na centе.
@@ -176,11 +169,9 @@ class Auction {
   }
 
   /// Trenutna cijena: najviša ponuda ili početna cijena. Holandska: cijena
-  /// koja pada s vremenom; zatvorena (dok traje): početna cijena (ponude
-  /// su skrivene).
+  /// koja pada s vremenom.
   double get currentPrice {
     if (isDutch && isActive) return priceAt(DateTime.now());
-    if (bidsHidden) return startPrice;
     return highestBid?.amount ?? startPrice;
   }
 
@@ -194,7 +185,7 @@ class Auction {
 
   /// Najmanja dopuštena sljedeća ponuda.
   double get minNextBid =>
-      isSealed || highestBid == null ? startPrice : currentPrice + minIncrement;
+      highestBid == null ? startPrice : currentPrice + minIncrement;
 
   Auction copyWith({
     AuctionStatus? status,

@@ -1,6 +1,5 @@
 import 'package:uuid/uuid.dart';
 
-import '../models/app_user.dart';
 import '../models/auction.dart';
 import '../models/loop_transaction.dart';
 import '../utils/formatters.dart';
@@ -101,9 +100,7 @@ class AuctionService {
       }
     }
     if (kind != AuctionKind.classic && buyNowPrice != null) {
-      throw TradeException(
-        t('Kupi odmah nije moguć na holandskoj ni zatvorenoj aukciji.'),
-      );
+      throw TradeException(t('Kupi odmah nije moguć na holandskoj aukciji.'));
     }
     if (buyNowPrice != null && buyNowPrice <= startPrice) {
       throw TradeException(
@@ -212,7 +209,6 @@ class AuctionService {
         t('Na holandskoj aukciji se ne licitira — kupi po trenutnoj cijeni.'),
       );
     }
-    if (a.isSealed) return _sealedBid(a, user, amount, at);
     final leader = a.highestBid;
     if (leader?.userId == userId) {
       // Vodeći smije samo povisiti automatsku ponudu.
@@ -328,46 +324,6 @@ class AuctionService {
       targetId: a.id,
       now: at,
     );
-    return updated;
-  }
-
-  /// Zatvorena aukcija: jedna skrivena ponuda po korisniku (smije je samo
-  /// povisiti do kraja). Ne produljuje aukciju i nikome ne otkriva iznos.
-  Future<Auction> _sealedBid(
-    Auction a,
-    AppUser user,
-    double amount,
-    DateTime at,
-  ) async {
-    final bid = roundCredits(amount);
-    if (bid < a.startPrice) {
-      throw TradeException(
-        t('Najmanja ponuda je {0}.', [formatCredits(a.startPrice)]),
-      );
-    }
-    final mine = [
-      for (final b in a.bids)
-        if (b.userId == user.id) b,
-    ];
-    if (mine.isNotEmpty && bid <= mine.last.amount) {
-      throw TradeException(
-        t('Svoju zatvorenu ponudu možeš samo povisiti (sada {0}).', [
-          formatCredits(mine.last.amount),
-        ]),
-      );
-    }
-    final bids =
-        [
-          for (final b in a.bids)
-            if (b.userId != user.id) b,
-          Bid(userId: user.id, userLabel: user.handle, amount: bid, time: at),
-        ]..sort((x, y) {
-          final byAmount = x.amount.compareTo(y.amount);
-          // Jednaki iznosi: ranija ponuda je viša (pobjeđuje).
-          return byAmount != 0 ? byAmount : y.time.compareTo(x.time);
-        });
-    final updated = a.copyWith(bids: bids);
-    await _storage.putAuction(updated);
     return updated;
   }
 

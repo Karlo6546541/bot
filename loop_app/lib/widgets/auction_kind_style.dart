@@ -5,26 +5,22 @@ import '../models/auction.dart';
 import '../theme/app_theme.dart';
 
 /// Izgled vrste aukcije (boja, ikona, opisi) — isti na kartici, popisu i
-/// detaljima. Klasična: rastući graf · holandska: padajući · zatvorena:
-/// omotnica.
+/// detaljima. Klasična: rastući graf · holandska: padajući.
 extension AuctionKindStyle on AuctionKind {
   Color get color => switch (this) {
     AuctionKind.classic => LoopColors.classic,
     AuctionKind.dutch => LoopColors.dutch,
-    AuctionKind.sealed => LoopColors.sealed,
   };
 
   IconData get icon => switch (this) {
     AuctionKind.classic => Icons.trending_up,
     AuctionKind.dutch => Icons.trending_down,
-    AuctionKind.sealed => Icons.mail_outline,
   };
 
   /// Natpis iznad cijene na kartici.
   String get priceCaption => switch (this) {
     AuctionKind.classic => t('Trenutna ponuda'),
     AuctionKind.dutch => t('Cijena sada'),
-    AuctionKind.sealed => t('Najmanja ponuda'),
   };
 }
 

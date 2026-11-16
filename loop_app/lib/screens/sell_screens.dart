@@ -378,9 +378,6 @@ class _SellAuctionScreenState extends ConsumerState<SellAuctionScreen> {
                       AuctionKind.dutch => t(
                         'Cijena pada od početne do najniže; tko prvi pristane — kupuje.',
                       ),
-                      AuctionKind.sealed => t(
-                        'Svatko pošalje jednu skrivenu ponudu; na kraju pobjeđuje najviša i plaća svoj iznos.',
-                      ),
                     },
                     style: TextStyle(
                       color: LoopColors.textSecondary,

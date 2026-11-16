@@ -24,7 +24,7 @@ Future<void> showBidSheet(
   String auctionId,
 ) async {
   if (blockGuest(context)) return;
-  // Holandska i zatvorena aukcija imaju vlastito sučelje na ekranu detalja.
+  // Holandska aukcija ima vlastito sučelje na ekranu detalja.
   final kind = ref.read(appProvider).auctionById(auctionId)?.kind;
   if (kind != null && kind != AuctionKind.classic) {
     await AuctionDetailScreen.open(context, auctionId);
@@ -92,6 +92,8 @@ class _BidSheetState extends ConsumerState<_BidSheet> {
       setState(() => _error = t('Unesi iznos'));
       return;
     }
+    // Bez povezane kartice ponuda se ne šalje.
+    if (!await ensureCardForBidding(context, ref) || !mounted) return;
     await _run(() async {
       final lead = await c.placeBid(a.id, amount, maxAmount: max);
       if (!mounted) return;
