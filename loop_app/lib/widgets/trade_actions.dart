@@ -10,6 +10,7 @@ import '../services/fee.dart';
 import '../services/stripe_backend.dart';
 import '../services/commerce_backend.dart';
 import '../services/delivery_locations.dart';
+import 'item_image.dart';
 import 'purchase_confirmation.dart';
 import '../config/backend_config.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -573,9 +574,19 @@ Future<bool> confirmAndBuy(
     final itemCents = (ref.read(appProvider).priceForMe(device) * 100).round();
     final shipCents = device.isDigital ? 0 : 600;
     final requestId = const Uuid().v4();
-    final paid = await showPurchaseConfirmation(
+    final paid = await showCheckoutPage(
       context,
       PurchaseConfirmationSheet(
+        page: true,
+        image: device.imagePaths.isEmpty
+            ? ItemThumb(device: device, size: 110)
+            : LocalPhoto(
+                path: device.imagePaths.first,
+                fallback: ItemThumb(device: device, size: 110),
+                cacheWidth: 330,
+              ),
+        subtitle: device.condition.label,
+        recipient: user.name,
         title: '${device.name} ${device.model}'.trim(),
         itemCents: itemCents,
         shippingCents: shipCents,

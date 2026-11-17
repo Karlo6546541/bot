@@ -3635,6 +3635,22 @@ const kEn = <String, String>{
       'Payout verification is not finished yet. You can continue later.',
   'Kupac je platio "{0}". Tvojih {1} čeka na sigurnom — dovrši potvrdu za isplatu (traje minutu) i novac stiže na tvoj IBAN nakon dostave.':
       'The buyer paid for "{0}". Your {1} is waiting safely — finish the payout verification (takes a minute) and the money reaches your IBAN after delivery.',
+  'Završetak kupnje': 'Checkout',
+  'Pojedinosti o dostavi': 'Delivery details',
+  'Prodavač šalje paket na tvoju adresu (kurir ili paketomat) i javlja ti broj za praćenje.':
+      'The seller ships the parcel to your address (courier or parcel locker) and sends you a tracking number.',
+  'Plaćanje': 'Payment',
+  'Sažetak cijene': 'Price summary',
+  'Narudžba': 'Order',
+  'Subhasto štiti svaku kupnju. Novac čeka na sigurnom dok ne primiš paket i potvrdiš ga (imaš 2 dana), a ako nešto nije u redu, vraća se tebi.':
+      'Subhasto protects every purchase. Your money waits safely until you receive the parcel and confirm it (you have 2 days), and is returned to you if something is wrong.',
+  'Ukupno za plaćanje': 'Total to pay',
+  'Provjeri plaćanje': 'Check payment',
+  'Plati': 'Pay',
+  'Tvoji podaci o plaćanju su šifrirani i sigurni':
+      'Your payment details are encrypted and secure',
+  'Provjera kartice…': 'Checking card…',
+  'Dodaj karticu za plaćanje': 'Add a card to pay',
   'Zakaži show': 'Schedule a show',
   'Otprema': 'Shipping',
   'Nema paketa za predaju': 'No parcels to hand over',
