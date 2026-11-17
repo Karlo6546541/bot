@@ -28,8 +28,6 @@ Deno.serve(async (req: Request) => {
    const res = await chargeOrder(svc, order, profile!.customer_id, card.id, false);
    const body = await res.json().catch(() => ({}));
    if (res.status === 200 && body.status === 'paid') { charged++; continue; }
-   // Prodavač još nije verificiran: čeka se (kupac nije kriv, nema obavijesti o dugu).
-   if (body.error === 'SELLER_NOT_READY') { waiting++; continue; }
    if (body.status === 'processing') { waiting++; continue; }
    await svc.admin.rpc('auction_payment_due', { p_order: order.id }); due++;
   } catch (e) { waiting++; console.error('auction_charge_failed', { type: e instanceof Error ? e.name : 'unknown', message: e instanceof Error ? e.message.slice(0, 200) : '' }); }

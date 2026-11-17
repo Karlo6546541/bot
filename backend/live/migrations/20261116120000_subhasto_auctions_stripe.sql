@@ -275,11 +275,8 @@ language plpgsql security definer set search_path=public as $$ declare o commerc
    -- Predmet ostaje prodavaču (nije ni prešao kupcu); može ga ponovno ponuditi.
    update loop_auctions set data=a||jsonb_build_object('status','unsold','unpaid',true),updated_at=now() where id=o.source_auction;
    perform srv_notify(o.seller_id::text,'auctionUnpaid',jsonb_build_array(a->>'deviceName'),o.source_auction);
-   -- Opomena samo ako je prodavač mogao primiti uplatu (inače kupac nije kriv).
-   if exists(select 1 from commerce_sellers where user_id=o.seller_id and transfers_active) then
-    insert into commerce_bid_strikes(auction_id,user_id,order_id) values(o.source_auction,o.buyer_id,o.id) on conflict do nothing;
-    perform srv_notify(o.buyer_id::text,'bidStrike',jsonb_build_array(a->>'deviceName'),o.source_auction);
-   end if;
+   insert into commerce_bid_strikes(auction_id,user_id,order_id) values(o.source_auction,o.buyer_id,o.id) on conflict do nothing;
+   perform srv_notify(o.buyer_id::text,'bidStrike',jsonb_build_array(a->>'deviceName'),o.source_auction);
   end if;
  end if;
  return true;
@@ -376,6 +373,24 @@ language plpgsql security definer set search_path=public as $$ declare r record;
 end $$;
 revoke all on function public.commerce_auto_delivered() from public,anon,authenticated;
 grant execute on function public.commerce_auto_delivered() to service_role;
+
+-- 7. Kao na Vintedu: kad je uplata kupca stigla, a prodavač još nema potvrđen
+--    račun za isplatu, dobiva obavijest da je novac čeka i da potvrdu dovrši.
+alter table public.commerce_payments add column if not exists payout_notice_at timestamptz;
+create or replace function public.commerce_payout_notice() returns trigger
+language plpgsql security definer set search_path=public as $$ declare o commerce_orders; ok boolean; begin
+ if new.status<>'paid' or old.status='paid' or new.payout_notice_at is not null then return new; end if;
+ select * into o from commerce_orders where id=new.order_id;
+ select coalesce(transfers_active,false) into ok from commerce_sellers where user_id=o.seller_id;
+ if new.destination_account is null and not coalesce(ok,false) then
+  perform srv_notify(o.seller_id::text,'payoutSetup',jsonb_build_array(coalesce(o.source_snapshot->>'name',''),new.seller_cents/100.0),o.id::text);
+  new.payout_notice_at:=now();
+ end if;
+ return new;
+end $$;
+drop trigger if exists commerce_payout_notice on public.commerce_payments;
+create trigger commerce_payout_notice before update on public.commerce_payments for each row execute function public.commerce_payout_notice();
+grant execute on function public.srv_notify(text,text,jsonb,text) to service_role;
 
 -- Postojeće zatvorene aukcije (ako ih ima aktivnih) nastavljaju kao klasične.
 update public.loop_auctions set data=data||jsonb_build_object('kind','classic'),updated_at=now()

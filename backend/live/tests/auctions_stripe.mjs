@@ -95,6 +95,17 @@ export async function auctionTests(db,assert,as,rpc,rejects,{host,buyer,other}) 
  await db.exec('reset role');
  assert.equal((await rpc('select refund_requested_at is not null r from commerce_payments where order_id=$1',[o5])).r,true);
 
+ // 5c: a paid order of a seller without a verified payout account notifies the seller (once)
+ await device('a9');await as(host);await auction('auc9','a9');await as(buyer);await bid('auc9',buyer,20);
+ await db.exec('reset role');await db.query("update commerce_sellers set transfers_active=false where user_id=$1",[host]);
+ await end('auc9');await rpc('select auction_settle_due()');
+ const o9=(await rpc("select id from commerce_orders where source_auction='auc9'")).id;
+ await rpc('select commerce_begin_charge($1)',[o9]);await db.query("update commerce_payments set intent_id='pi_auc9' where order_id=$1",[o9]);
+ await rpc("select commerce_settle_intent('ev_auc9',$1,'pi_auc9','ch_auc9',2600,'EUR')",[o9]);
+ assert.equal(await notes(host,'payoutSetup'),1);
+ assert.equal((await rpc('select destination_account da from commerce_payments where order_id=$1',[o9])).da,null);
+ await db.query("update commerce_sellers set transfers_active=true where user_id=$1",[host]);
+
  // 6: unpaid win: 24 h, then cancelled; the item stays with the seller; strike for the buyer
  for(const n of [2,3]){
   await device('a'+n);await as(host);await auction('auc'+n,'a'+n);await as(buyer);await bid('auc'+n,buyer,30);

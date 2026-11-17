@@ -13,7 +13,7 @@ Deno.serve(async(req:Request)=>{
   if(order.status!=='awaiting_payment')return response(409,{error:'ORDER_NOT_PAYABLE'});
   const {data:shipping}=await svc.admin.from('commerce_shipments').select('order_id').eq('order_id',order.id).maybeSingle();
   if(!shipping)return response(409,{error:'SHIPPING_REQUIRED'});
-  // Prodavač mora imati verificiran Stripe račun: provjerava chargeOrder (SELLER_NOT_READY).
+  // Prodavačeva potvrda ne blokira kupnju (kao na Vintedu): novac čeka kod Stripea do isplate.
   const customer=await customerFor(svc.stripe,svc.admin,user);
   const {data:profile}=await svc.admin.from('commerce_customers').select('consent_at').eq('user_id',user.id).single();
   const card=profile?.consent_at?await savedCard(svc.stripe,customer):null;

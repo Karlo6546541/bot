@@ -25,13 +25,21 @@ Deno.test('off-session charge sends the seller share to the connected account an
  assert.deepEqual(steps,['commerce_begin_charge','create','persist','confirm','commerce_settle_intent']);
 });
 
-Deno.test('a buyer is never charged for a seller who cannot receive money',async()=>{
- const steps:string[]=[];
- const svc={config:{},stripe:{...sellerAccount('pending'),paymentIntents:{create:async()=>{throw Error('must not charge');}}},
-  admin:{rpc:async(name:string)=>{steps.push(name);return{data:{attempt:1},error:null};},from:table(steps,null)}} as unknown as Parameters<typeof chargeOrder>[0];
+Deno.test('an unverified seller never blocks the purchase: the money waits at Stripe until payout setup',async()=>{
+ const steps:string[]=[];let params:Record<string,unknown>={};
+ const svc={config:{},stripe:{...sellerAccount('pending'),paymentIntents:{
+  create:async(body:Record<string,unknown>)=>{steps.push('create');params=body;return{id:'pi_wait',status:'requires_confirmation',payment_method:'pm_test'};},
+  confirm:async()=>({id:'pi_wait',status:'succeeded',amount_received:1900,currency:'eur',latest_charge:'ch_wait'}),
+ }},admin:{
+  rpc:async(name:string)=>{steps.push(name);return name==='commerce_begin_charge'?{data:{attempt:1,seller_cents:1805},error:null}:{error:null};},
+  from:(name:string)=>({
+   select:()=>({eq:()=>({maybeSingle:async()=>({data:name==='commerce_sellers'?{stripe_account_id:'acct_seller'}:null})})}),
+   update:(values:Record<string,unknown>)=>({eq:async()=>{if(name==='commerce_payments'){assert.equal(values.destination_account,null);}return{error:null};}}),
+  }),
+ }} as unknown as Parameters<typeof chargeOrder>[0];
  const response=await chargeOrder(svc,{id:'order',seller_id:'seller',total_cents:1900,currency:'EUR'},'cus_test','pm_test',false);
- assert.equal(response.status,409);assert.equal((await response.json()).error,'SELLER_NOT_READY');
- assert.deepEqual(steps,[]);
+ assert.equal(response.status,200);assert.equal((await response.json()).status,'paid');
+ assert.equal(params.transfer_data,undefined,'no transfer to an account that cannot receive money yet');
 });
 
 Deno.test('authentication decline resumes the same intent without another off-session attempt',async()=>{

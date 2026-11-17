@@ -3633,6 +3633,8 @@ const kEn = <String, String>{
   'Potvrda za isplate': 'Payout verification',
   'Potvrda za isplate još nije dovršena. Možeš je nastaviti kasnije.':
       'Payout verification is not finished yet. You can continue later.',
+  'Kupac je platio "{0}". Tvojih {1} čeka na sigurnom — dovrši potvrdu za isplatu (traje minutu) i novac stiže na tvoj IBAN nakon dostave.':
+      'The buyer paid for "{0}". Your {1} is waiting safely — finish the payout verification (takes a minute) and the money reaches your IBAN after delivery.',
   'Zakaži show': 'Schedule a show',
   'Otprema': 'Shipping',
   'Nema paketa za predaju': 'No parcels to hand over',

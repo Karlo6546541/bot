@@ -7,6 +7,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../l10n/tr.dart';
+import 'seller_screens.dart' show ensurePayoutsReady;
 import '../models/app_notification.dart';
 import '../models/auction.dart';
 import '../providers/app_providers.dart';
@@ -175,6 +176,9 @@ class NotificationsScreen extends ConsumerStatefulWidget {
         } else if (id != null) {
           await LiveRoomScreen.open(context, id);
         }
+      case NotificationKind.payoutSetup:
+        // Potvrda za isplatu (ugrađeni Stripe obrazac, bez odlaska iz aplikacije).
+        await ensurePayoutsReady(context);
       case NotificationKind.shipReady ||
           NotificationKind.parcelPickedUp ||
           NotificationKind.parcelArrived ||
@@ -800,6 +804,7 @@ IconData _kindIcon(NotificationKind k) => switch (k) {
   NotificationKind.shipReady ||
   NotificationKind.soldOut => Icons.inventory_2_outlined,
   NotificationKind.parcelShipped => Icons.local_shipping_outlined,
+  NotificationKind.payoutSetup => Icons.account_balance_outlined,
   NotificationKind.disputeOpened ||
   NotificationKind.disputeReview ||
   NotificationKind.disputeRefunded ||

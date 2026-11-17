@@ -41,6 +41,20 @@ Deno.serve(async(req:Request)=>{
    }catch(error){console.error('refund_failed',{type:error instanceof Error?error.name:'unknown'});}
   }
  }catch{console.error('refund_query_failed');}
+ // Isplata s prodavačeva Stripe računa na njegov IBAN (idempotentno po narudžbi).
+ const payoutSeller=async(orderId:string,account:string,cents:number)=>{
+  const opts={stripeAccount:account};
+  const recent=await svc.stripe.payouts.list({limit:100},opts);
+  let payout=recent.data.find(x=>x.metadata?.order_id===orderId&&x.status!=='failed'&&x.status!=='canceled');
+  if(!payout){
+   const balance=await svc.stripe.balance.retrieve({},opts);
+   const available=balance.available.find(b=>b.currency==='eur')?.amount??0;
+   if(available<cents)return false; // sredstva još nisu raspoloživa; pokušaj kasnije
+   payout=await svc.stripe.payouts.create({amount:cents,currency:'eur',metadata:{order_id:orderId}},{...opts,idempotencyKey:`seller-payout-${orderId}-${new Date().toISOString().slice(0,13)}`});
+  }
+  const {error:saveError}=await svc.admin.from('commerce_payments').update({payout_id:payout.id,paid_out_at:new Date().toISOString()}).eq('order_id',orderId);
+  return !saveError;
+ };
  let released=0;
  for(const row of rows??[]){
   try{
@@ -49,18 +63,10 @@ Deno.serve(async(req:Request)=>{
     // Novac je već na povezanom računu prodavača (drži ga Stripe): isplata na IBAN.
     const charge=await svc.stripe.charges.retrieve(p.source_charge);
     if(charge.livemode||charge.disputed||charge.amount_refunded>0)continue;
-    const opts={stripeAccount:p.destination_account};
-    // Izgubljen odgovor ranijeg pokušaja: preuzmi postojeću isplatu umjesto dvostruke.
-    const recent=await svc.stripe.payouts.list({limit:100},opts);
-    let payout=recent.data.find(x=>x.metadata?.order_id===row.order_id&&x.status!=='failed'&&x.status!=='canceled');
-    if(!payout){
-     const balance=await svc.stripe.balance.retrieve({},opts);
-     const available=balance.available.find(b=>b.currency==='eur')?.amount??0;
-     if(available<Number(p.seller_cents))continue; // sredstva još nisu raspoloživa; pokušaj kasnije
-     payout=await svc.stripe.payouts.create({amount:Number(p.seller_cents),currency:'eur',metadata:{order_id:row.order_id}},{...opts,idempotencyKey:`seller-payout-${row.order_id}-${new Date().toISOString().slice(0,13)}`});
+    if(await payoutSeller(row.order_id,p.destination_account,Number(p.seller_cents))){
+     await svc.admin.from('commerce_payments').update({released_at:new Date().toISOString()}).eq('order_id',row.order_id);
+     released++;
     }
-    const {error:saveError}=await svc.admin.from('commerce_payments').update({payout_id:payout.id,paid_out_at:new Date().toISOString(),released_at:new Date().toISOString()}).eq('order_id',row.order_id);
-    if(!saveError)released++;
     continue;
    }
    const {data:order}=await svc.admin.from('commerce_orders').select('seller_id').eq('id',row.order_id).single();if(!order)continue;
@@ -73,8 +79,20 @@ Deno.serve(async(req:Request)=>{
    if(!current||current.disputed||current.refunded_cents>0)continue;
    const transfer=await svc.stripe.transfers.create({amount:Number(p.seller_cents),currency:'eur',destination:seller.stripe_account_id,source_transaction:p.source_charge,transfer_group:`order_${row.order_id}`,metadata:{order_id:row.order_id}},{idempotencyKey:`seller-release-${row.order_id}`});
    const {error:saveError}=await svc.admin.from('commerce_payments').update({transfer_id:transfer.id,released_at:new Date().toISOString()}).eq('order_id',row.order_id);
+   try{await payoutSeller(row.order_id,seller.stripe_account_id,Number(p.seller_cents));}catch{console.error('payout_pending');}
    if(!saveError)released++;
   }catch(error){console.error('release_failed',{type:error instanceof Error?error.name:'unknown'});}
  }
+ // Prijenos je već napravljen (prodavač je postao primatelj), isplata još čeka raspoloživa sredstva.
+ try{
+  const {data:late}=await svc.admin.from('commerce_payments').select('order_id,seller_cents').not('transfer_id','is',null).is('payout_id',null).not('released_at','is',null).eq('disputed',false).eq('refunded_cents',0).limit(20);
+  for(const l of late??[]){
+   try{
+    const {data:o}=await svc.admin.from('commerce_orders').select('seller_id').eq('id',l.order_id).single();
+    const {data:sel}=o?await svc.admin.from('commerce_sellers').select('stripe_account_id').eq('user_id',o.seller_id).single():{data:null};
+    if(sel)await payoutSeller(l.order_id,sel.stripe_account_id,Number(l.seller_cents));
+   }catch{console.error('late_payout_failed');}
+  }
+ }catch{console.error('late_payout_query_failed');}
  return Response.json({mode:'test',released,refunded});
 });

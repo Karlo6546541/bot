@@ -15,17 +15,16 @@ export async function sellerDestination(svc:Services,sellerId:string):Promise<st
 // gdje ga drži Stripe do isplate (stripe-release). Platformi ostaju provizija i dostava.
 export async function chargeOrder(svc:Services,order:{id:string;seller_id:string;total_cents:number;currency:string},customer:string,method:string,resume:boolean){
  const {data:existing}=await svc.admin.from('commerce_payments').select('intent_id').eq('order_id',order.id).maybeSingle();
+ // Kao na Vintedu: kupnja nikad ne čeka prodavačevu potvrdu. Ako prodavač već može primati novac,
+ // naplata ide izravno na njegov račun; inače novac čeka kod Stripea (saldo platforme) dok prodavač
+ // ne dovrši potvrdu — tada ga stripe-release prebacuje i isplaćuje na IBAN.
  let destination:string|null=null;
- if(!existing?.intent_id){
-  destination=await sellerDestination(svc,order.seller_id);
-  if(!destination)return response(409,{error:'SELLER_NOT_READY'});
- }
+ if(!existing?.intent_id)destination=await sellerDestination(svc,order.seller_id);
  const {data:payment,error}=await svc.admin.rpc('commerce_begin_charge',{p_order:order.id});if(error)throw error;
  let intent:Stripe.PaymentIntent;
  if(payment.intent_id){intent=await svc.stripe.paymentIntents.retrieve(payment.intent_id);}
  else{
-  if(!destination)return response(409,{error:'SELLER_NOT_READY'});
-  intent=await svc.stripe.paymentIntents.create({amount:Number(order.total_cents),currency:order.currency.toLowerCase(),customer,payment_method:method,metadata:{order_id:order.id,purpose:'marketplace'},transfer_group:`order_${order.id}`,transfer_data:{destination,amount:Number(payment.seller_cents)}},{idempotencyKey:`order-intent-v3-${order.id}`});
+  intent=await svc.stripe.paymentIntents.create({amount:Number(order.total_cents),currency:order.currency.toLowerCase(),customer,payment_method:method,metadata:{order_id:order.id,purpose:'marketplace'},transfer_group:`order_${order.id}`,...(destination?{transfer_data:{destination,amount:Number(payment.seller_cents)}}:{})},{idempotencyKey:`order-intent-v3-${order.id}`});
   const {error:saveError}=await svc.admin.from('commerce_payments').update({intent_id:intent.id,destination_account:destination}).eq('order_id',order.id);if(saveError)throw saveError;
  }
  if(intent.status==='requires_payment_method'&&intent.last_payment_error?.code==='authentication_required')return authenticationResponse(svc,intent,method);

@@ -28,6 +28,10 @@ enum NotificationKind {
     '⌛',
     'Kupac nije platio "{0}" u roku. Predmet je i dalje tvoj — možeš ga ponovno ponuditi.',
   ),
+  payoutSetup(
+    '🏦',
+    'Kupac je platio "{0}". Tvojih {1} čeka na sigurnom — dovrši potvrdu za isplatu (traje minutu) i novac stiže na tvoj IBAN nakon dostave.',
+  ),
   bidStrike(
     '⚠️',
     'Nisi platio osvojenu aukciju "{0}". Nakon dva neplaćena dobitka licitiranje se onemogućuje.',
@@ -113,6 +117,7 @@ enum NotificationKind {
     liveStarted ||
     auctionEndingSoon => NotificationGroup.auctions,
     itemSold ||
+    payoutSetup ||
     shipReady ||
     parcelPickedUp ||
     parcelArrived ||
