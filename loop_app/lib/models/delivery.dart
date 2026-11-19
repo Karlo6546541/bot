@@ -146,6 +146,20 @@ enum DeliveryStatus {
   const DeliveryStatus(this._label);
   final String _label;
   String get label => t(_label);
+
+  /// Kratki opis događaja na vremenskoj crti praćenja.
+  String get note => t(switch (this) {
+    awaitingChoice => 'Čeka da prodavač pošalje paket.',
+    ordered => 'Uplata je primljena, prodavač je obaviješten.',
+    packed => 'Prodavač priprema paket.',
+    shipped => 'Prodavač je predao paket kuriru.',
+    inTransit => 'Paket je na putu prema tebi.',
+    inLocker => 'Paket te čeka u paketomatu — preuzmi ga PIN-om.',
+    pickedUp => 'Paket je preuzet iz paketomata.',
+    readyForPickup => 'Paket je spreman za osobno preuzimanje.',
+    sent => 'Predmet je poslan na tvoj e-mail.',
+    delivered => 'Paket je dostavljen.',
+  });
 }
 
 /// Fiktivni paketomati za demo.

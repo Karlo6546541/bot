@@ -642,7 +642,9 @@ class DeliveryDetailScreen extends ConsumerWidget {
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          if (buyer && d.method != null) ...[
+          // Vinted: sažetak statusa, predmet s brojem pošiljke, vremenska crta
+          // (najnovije gore), pa adresa i radnje.
+          if (d.method != null) ...[
             Container(
               key: const ValueKey('order-status'),
               padding: const EdgeInsets.all(16),
@@ -654,38 +656,181 @@ class DeliveryDetailScreen extends ConsumerWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    purchaseStatus(d, now),
+                    buyer ? purchaseStatus(d, now) : steps[current].label,
                     style: const TextStyle(
-                      fontWeight: FontWeight.w900,
-                      fontSize: 20,
+                      fontWeight: FontWeight.w800,
+                      fontSize: 22,
                     ),
                   ),
                   if (eta != null && !delivered)
-                    Text(
-                      t('Očekivano do {0}', [formatDate(eta)]),
-                      style: const TextStyle(
-                        fontWeight: FontWeight.w800,
-                        fontSize: 16,
+                    Padding(
+                      padding: const EdgeInsets.only(top: 4),
+                      child: Text(
+                        t('Očekivano do {0}', [formatDate(eta)]),
+                        style: TextStyle(
+                          color: LoopColors.textSecondary,
+                          fontSize: 15,
+                        ),
                       ),
                     ),
-                  const SizedBox(height: 12),
-                  DeliveryProgressBar(
-                    value: steps.length <= 1 ? 1 : current / (steps.length - 1),
-                  ),
-                  const SizedBox(height: 10),
                   if (d.destination != null && eta != null)
-                    Text(
-                      delivered
-                          ? t('Pošiljka je dostavljena na {0}.', [
-                              d.destination!,
-                            ])
-                          : t('Pošiljka bi trebala stići na {0} do {1}.', [
-                              d.destination!,
-                              formatDate(eta),
-                            ]),
-                      style: TextStyle(color: LoopColors.textSecondary),
+                    Padding(
+                      padding: const EdgeInsets.only(top: 8),
+                      child: Text(
+                        delivered
+                            ? t('Pošiljka je dostavljena na {0}.', [
+                                d.destination!,
+                              ])
+                            : t('Pošiljka bi trebala stići na {0} do {1}.', [
+                                d.destination!,
+                                formatDate(eta),
+                              ]),
+                        style: TextStyle(color: LoopColors.textSecondary),
+                      ),
                     ),
-                  const SizedBox(height: 8),
+                ],
+              ),
+            ),
+            const SizedBox(height: 12),
+          ],
+          if (d.dispute != null) ...[
+            DisputeCard(delivery: d, seller: d.sellerId == s.currentUserId),
+            const SizedBox(height: 12),
+          ],
+          Card(
+            margin: EdgeInsets.zero,
+            child: Padding(
+              padding: const EdgeInsets.all(14),
+              child: Column(
+                children: [
+                  Row(
+                    children: [
+                      if (device != null)
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(10),
+                          child: ItemThumb(device: device, size: 52),
+                        ),
+                      if (device != null) const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              d.deviceName,
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                fontWeight: FontWeight.w800,
+                                fontSize: 16,
+                              ),
+                            ),
+                            if (d.method != null)
+                              Text(
+                                d.serviceLabel,
+                                style: TextStyle(
+                                  color: LoopColors.textSecondary,
+                                  fontSize: 13,
+                                ),
+                              ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                  if (d.trackingNumber != null) ...[
+                    const Divider(height: 22),
+                    InkWell(
+                      key: const ValueKey('order-track'),
+                      borderRadius: BorderRadius.circular(8),
+                      onTap: () {
+                        Clipboard.setData(
+                          ClipboardData(text: d.trackingNumber!),
+                        );
+                        showLoopSnackBar(
+                          t('Broj pošiljke kopiran: {0}', [d.trackingNumber!]),
+                        );
+                      },
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  t('Broj pošiljke'),
+                                  style: TextStyle(
+                                    color: LoopColors.textSecondary,
+                                    fontSize: 12,
+                                  ),
+                                ),
+                                Text(
+                                  d.trackingNumber!,
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.w700,
+                                    fontSize: 16,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          Icon(
+                            Icons.copy,
+                            size: 18,
+                            color: LoopColors.textSecondary,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+          ),
+          // Prodavač: etiketa s kodom za paketomat (ime i adresa kupca).
+          if (d.sellerId == s.currentUserId &&
+              d.method != null &&
+              d.method != DeliveryMethod.digital) ...[
+            const SizedBox(height: 12),
+            ShippingLabel(delivery: d),
+          ],
+          // Paketomat (BOX NOW, GLS, DPD — demo): PIN-ovi i praćenje.
+          if (d.method == DeliveryMethod.parcelLocker) ...[
+            const SizedBox(height: 12),
+            BoxNowCard(delivery: d, seller: d.sellerId == s.currentUserId),
+          ],
+          const SizedBox(height: 12),
+          Card(
+            margin: EdgeInsets.zero,
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 4),
+              child: Column(
+                children: [
+                  // Najnovije gore: sljedeći očekivani korak, pa dosegnuti.
+                  for (final i in [
+                    if (current < steps.length - 1) current + 1,
+                    for (var k = current; k >= 0; k--) k,
+                  ])
+                    _StepRow(
+                      key: ValueKey('delivery-step-${steps[i].name}'),
+                      label: steps[i].label,
+                      note: steps[i].note,
+                      at: d.confirmedAt != null && i == steps.length - 1
+                          ? d.confirmedAt
+                          : d.stepAt(i),
+                      done: i <= current,
+                      active: i == current,
+                      last: i == 0,
+                    ),
+                ],
+              ),
+            ),
+          ),
+          if (buyer && d.method != null) ...[
+            const SizedBox(height: 12),
+            Card(
+              margin: EdgeInsets.zero,
+              child: Column(
+                children: [
                   if (d.sellerId != null)
                     action(
                       'order-message',
@@ -709,92 +854,10 @@ class DeliveryDetailScreen extends ConsumerWidget {
                         : null,
                     () => showPurchaseHelp(context, ref, d),
                   ),
-                  if (d.trackingNumber != null)
-                    action(
-                      'order-track',
-                      Icons.local_shipping_outlined,
-                      t('Prati pošiljku'),
-                      d.trackingNumber,
-                      () {
-                        Clipboard.setData(
-                          ClipboardData(text: d.trackingNumber!),
-                        );
-                        showLoopSnackBar(
-                          t('Broj pošiljke kopiran: {0}', [d.trackingNumber!]),
-                        );
-                      },
-                    ),
                 ],
               ),
             ),
-            const SizedBox(height: 16),
           ],
-          if (d.dispute != null) ...[
-            DisputeCard(delivery: d, seller: d.sellerId == s.currentUserId),
-            const SizedBox(height: 16),
-          ],
-          Row(
-            children: [
-              if (device != null)
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(12),
-                  child: ItemThumb(device: device, size: 64),
-                ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      d.deviceName,
-                      style: const TextStyle(
-                        fontWeight: FontWeight.w900,
-                        fontSize: 18,
-                      ),
-                    ),
-                    if (d.method != null)
-                      Text(
-                        d.serviceLabel,
-                        style: TextStyle(color: LoopColors.textSecondary),
-                      ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-          // Prodavač: etiketa s kodom za paketomat (ime i adresa kupca).
-          if (d.sellerId == s.currentUserId &&
-              d.method != null &&
-              d.method != DeliveryMethod.digital) ...[
-            const SizedBox(height: 16),
-            ShippingLabel(delivery: d),
-          ],
-          // Paketomat (BOX NOW, GLS, DPD — demo): broj, PIN-ovi i praćenje.
-          if (d.method == DeliveryMethod.parcelLocker) ...[
-            const SizedBox(height: 16),
-            BoxNowCard(delivery: d, seller: d.sellerId == s.currentUserId),
-          ],
-          const SizedBox(height: 16),
-          Card(
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(16, 16, 16, 4),
-              child: Column(
-                children: [
-                  for (var i = 0; i < steps.length; i++)
-                    _StepRow(
-                      key: ValueKey('delivery-step-${steps[i].name}'),
-                      label: steps[i].label,
-                      at: d.confirmedAt != null && i == steps.length - 1
-                          ? d.confirmedAt
-                          : d.stepAt(i),
-                      done: i <= current,
-                      active: i == current,
-                      last: i == steps.length - 1,
-                    ),
-                ],
-              ),
-            ),
-          ),
           const SizedBox(height: 12),
           Card(
             child: Column(
@@ -804,17 +867,6 @@ class DeliveryDetailScreen extends ConsumerWidget {
                     leading: const Icon(Icons.place_outlined),
                     title: Text(t('Dostava na')),
                     subtitle: Text(d.destination!),
-                  ),
-                if (d.trackingNumber != null)
-                  ListTile(
-                    leading: const Icon(Icons.qr_code_2),
-                    title: Text(t('Broj pošiljke')),
-                    subtitle: Text(d.trackingNumber!),
-                    trailing: const Icon(Icons.copy, size: 18),
-                    onTap: () {
-                      Clipboard.setData(ClipboardData(text: d.trackingNumber!));
-                      showLoopSnackBar(t('Broj pošiljke kopiran'));
-                    },
                   ),
                 if (d.sellerId != null)
                   ListTile(
@@ -839,7 +891,9 @@ class _StepRow extends StatelessWidget {
     required this.done,
     required this.active,
     required this.last,
+    this.note = '',
   });
+  final String note;
   final String label;
   final DateTime? at;
   final bool done;
@@ -880,6 +934,14 @@ class _StepRow extends StatelessWidget {
                     color: done ? null : LoopColors.textSecondary,
                   ),
                 ),
+                if (note.isNotEmpty)
+                  Text(
+                    note,
+                    style: TextStyle(
+                      color: LoopColors.textSecondary,
+                      fontSize: 13,
+                    ),
+                  ),
                 if (at != null)
                   Text(
                     done
