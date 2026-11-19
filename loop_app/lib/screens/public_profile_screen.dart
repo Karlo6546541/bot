@@ -15,7 +15,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../widgets/trust_widgets.dart';
 import '../widgets/live_shop_widgets.dart';
-import '../widgets/vision_glass.dart';
 
 import '../l10n/tr.dart';
 import '../models/app_user.dart';
@@ -980,7 +979,7 @@ class _PublicProfileScreenState extends ConsumerState<PublicProfileScreen> {
         slivers: [
           box(
             Padding(
-              padding: const EdgeInsets.only(top: 8),
+              padding: const EdgeInsets.only(top: 2),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
@@ -991,7 +990,7 @@ class _PublicProfileScreenState extends ConsumerState<PublicProfileScreen> {
                     shopfront: true,
                     compact: kSimpleDesign,
                   ),
-                  const SizedBox(height: 10),
+                  const SizedBox(height: 4),
                   _ShopStats(
                     userId: user.id,
                     followers: state.followersOf(user.id),
@@ -1000,22 +999,27 @@ class _PublicProfileScreenState extends ConsumerState<PublicProfileScreen> {
                     listings: allListings.length,
                     promoted: user.isPromoted,
                   ),
-                  const SizedBox(height: 10),
                   if (!isMe && !blocked) ...[
-                    const SizedBox(height: 10),
+                    const SizedBox(height: 6),
                     Row(
                       children: [
                         Expanded(
                           flex: 3,
-                          child: FollowButton(userId: other.id),
+                          child: FollowButton(userId: other.id, compact: true),
                         ),
                         const SizedBox(width: 10),
                         Expanded(
                           flex: 2,
                           child: OutlinedButton.icon(
                             key: const ValueKey('profile-message'),
+                            style: const ButtonStyle(
+                              visualDensity: VisualDensity.compact,
+                            ),
                             onPressed: () => ChatScreen.open(context, other.id),
-                            icon: const Icon(Icons.chat_bubble_outline),
+                            icon: const Icon(
+                              Icons.chat_bubble_outline,
+                              size: 18,
+                            ),
                             label: Text(t('Poruka')),
                           ),
                         ),
@@ -1064,7 +1068,7 @@ class _PublicProfileScreenState extends ConsumerState<PublicProfileScreen> {
           // Odabir dijela trgovine.
           box(
             Padding(
-              padding: const EdgeInsets.only(top: 14, bottom: 10),
+              padding: const EdgeInsets.only(top: 6, bottom: 4),
               child: Row(
                 key: const ValueKey('shop-tabs'),
                 children: [
@@ -1130,17 +1134,22 @@ class _PublicProfileScreenState extends ConsumerState<PublicProfileScreen> {
             if (allListings.isNotEmpty && !isMe)
               box(
                 Padding(
-                  padding: const EdgeInsets.only(bottom: 8),
+                  padding: EdgeInsets.zero,
                   child: TextButton.icon(
                     key: const ValueKey('shop-terms'),
                     style: TextButton.styleFrom(
                       alignment: Alignment.centerLeft,
-                      minimumSize: const Size(48, 44),
+                      minimumSize: const Size(48, 36),
+                      padding: const EdgeInsets.symmetric(horizontal: 4),
+                      visualDensity: VisualDensity.compact,
+                      textStyle: const TextStyle(fontSize: 13),
                     ),
                     onPressed: () => BuyerProtectionBadge.explain(context),
-                    icon: const Icon(Icons.verified_user_outlined, size: 18),
+                    icon: const Icon(Icons.verified_user_outlined, size: 16),
                     label: Text(
-                      t('Dostava i zaštita kupca — uvjeti prije kupnje'),
+                      t('Dostava i zaštita kupca'),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                     ),
                   ),
                 ),
@@ -1443,74 +1452,75 @@ class ProfileHeader extends ConsumerWidget {
     // Samo privatne osobe: nema oznaka vrste prodavača.
     const Widget? sellerKind = null;
     if (shopfront) {
-      return VisionGlass(
-        blur: false,
-        radius: 28,
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                UserAvatar(user: user, size: 56),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        user.shopTitle,
-                        style: const TextStyle(
-                          fontSize: 25,
-                          fontWeight: FontWeight.w600,
-                          letterSpacing: -.7,
-                        ),
+      // Zbijeno zaglavlje: avatar, ime i oznake u dva retka, bez kartice.
+      final showHandle = user.shopName.isNotEmpty;
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              UserAvatar(user: user, size: 52),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      user.shopTitle,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.w700,
+                        letterSpacing: -.4,
                       ),
-                      const SizedBox(height: 4),
-                      Text(
-                        user.handle,
-                        style: TextStyle(
-                          color: LoopColors.textSecondary,
-                          fontSize: 13,
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      Wrap(
-                        spacing: 8,
-                        runSpacing: 6,
-                        children: [
-                          ?sellerKind,
-                          CountryBadge(
-                            key: const ValueKey('profile-country'),
-                            code: user.country,
-                            withName: true,
-                            style: const TextStyle(fontSize: 12),
+                    ),
+                    const SizedBox(height: 2),
+                    Row(
+                      children: [
+                        if (showHandle)
+                          Flexible(
+                            child: Text(
+                              user.handle,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                color: LoopColors.textSecondary,
+                                fontSize: 13,
+                              ),
+                            ),
                           ),
-                          if (rating != null && rating!.count > 0)
-                            RatingBadge(rating: rating!),
+                        if (showHandle) const SizedBox(width: 10),
+                        ?sellerKind,
+                        CountryBadge(
+                          key: const ValueKey('profile-country'),
+                          code: user.country,
+                          withName: true,
+                          style: const TextStyle(fontSize: 12),
+                        ),
+                        if (rating != null && rating!.count > 0) ...[
+                          const SizedBox(width: 10),
+                          RatingBadge(rating: rating!),
                         ],
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-            if (user.bio.isNotEmpty)
-              Padding(
-                padding: const EdgeInsets.only(top: 12),
-                child: Text(
-                  user.bio,
-                  maxLines: 3,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    color: LoopColors.textSecondary,
-                    fontSize: 14,
-                  ),
+                      ],
+                    ),
+                  ],
                 ),
               ),
-          ],
-        ),
+            ],
+          ),
+          if (user.bio.isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.only(top: 8),
+              child: Text(
+                user.bio,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(color: LoopColors.textSecondary, fontSize: 14),
+              ),
+            ),
+        ],
       );
     }
     final secondary = TextStyle(color: LoopColors.textSecondary, fontSize: 13);
@@ -1785,27 +1795,27 @@ class _ShopStats extends StatelessWidget {
       borderRadius: BorderRadius.circular(8),
       onTap: onTap,
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 6),
+        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
             Text(
               value,
-              style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w900),
+              style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w900),
             ),
-            const SizedBox(width: 4),
+            const SizedBox(width: 3),
             Text(
               label,
-              style: TextStyle(color: LoopColors.textSecondary, fontSize: 14),
+              style: TextStyle(color: LoopColors.textSecondary, fontSize: 13),
             ),
           ],
         ),
       ),
     );
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 12),
+      padding: EdgeInsets.zero,
       child: Wrap(
-        spacing: 10,
+        spacing: 6,
         children: [
           stat(
             '$followers',
