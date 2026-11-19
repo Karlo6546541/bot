@@ -10,7 +10,6 @@ import '../models/device.dart';
 import '../providers/app_providers.dart';
 import '../services/auction_service.dart';
 import '../theme/app_theme.dart';
-import '../widgets/auction_kind_style.dart';
 import '../widgets/trade_actions.dart';
 import 'add_device_screen.dart' show PhotoPickerRow;
 import 'auction_detail_screen.dart';
@@ -202,21 +201,118 @@ class _SellAuctionScreenState extends ConsumerState<SellAuctionScreen> {
     );
   }
 
-  Widget _label(String text) => Padding(
-    padding: const EdgeInsets.only(bottom: 8),
-    child: Text(
-      text,
-      style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w700),
+  /// Izbor iz kratkog popisa u donjem listu (kao Vinted).
+  Future<T?> _pick<T>({
+    required String title,
+    required List<T> values,
+    required T selected,
+    required String Function(T) label,
+    String Function(T)? hint,
+    required String keyPrefix,
+    required String Function(T) keyOf,
+  }) => showModalBottomSheet<T>(
+    context: context,
+    showDragHandle: true,
+    builder: (ctx) => SafeArea(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 0, 20, 8),
+            child: Text(
+              title,
+              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
+            ),
+          ),
+          for (final v in values)
+            ListTile(
+              key: ValueKey('$keyPrefix-${keyOf(v)}'),
+              title: Text(label(v)),
+              subtitle: hint == null ? null : Text(hint(v)),
+              trailing: v == selected
+                  ? Icon(Icons.check, color: LoopColors.accent)
+                  : null,
+              onTap: () => Navigator.pop(ctx, v),
+            ),
+          const SizedBox(height: 8),
+        ],
+      ),
     ),
+  );
+
+  /// Redak "Naziv ... vrijednost >" kao na Vintedu.
+  Widget _row(
+    String key,
+    String title,
+    String value,
+    VoidCallback onTap, {
+    String? error,
+  }) => InkWell(
+    key: ValueKey(key),
+    onTap: onTap,
+    child: Padding(
+      padding: const EdgeInsets.symmetric(vertical: 14),
+      child: Row(
+        children: [
+          Text(
+            title,
+            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              error ?? value,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              textAlign: TextAlign.end,
+              style: TextStyle(
+                color: error != null
+                    ? LoopColors.error
+                    : LoopColors.textSecondary,
+                fontSize: 15,
+              ),
+            ),
+          ),
+          const SizedBox(width: 4),
+          Icon(Icons.chevron_right, color: LoopColors.textSecondary),
+        ],
+      ),
+    ),
+  );
+
+  Widget get _divider => Divider(height: 1, color: LoopColors.glassBorder);
+
+  Widget _section(List<Widget> children) => Container(
+    margin: const EdgeInsets.only(top: 12),
+    padding: const EdgeInsets.symmetric(horizontal: 16),
+    decoration: BoxDecoration(
+      color: LoopColors.surface,
+      borderRadius: BorderRadius.circular(14),
+      border: Border.all(color: LoopColors.glassBorder),
+    ),
+    child: Column(children: children),
   );
 
   @override
   Widget build(BuildContext context) {
-    const gap = SizedBox(height: 18);
     final money = [
       FilteringTextInputFormatter.allow(RegExp(r'[0-9.,]')),
       LengthLimitingTextInputFormatter(9),
     ];
+    final durationLabel = AuctionService.durations
+        .firstWhere(
+          (e) => e.$2 == _duration,
+          orElse: () => AuctionService.durations.first,
+        )
+        .$1;
+    final plain = InputDecoration(
+      border: InputBorder.none,
+      enabledBorder: InputBorder.none,
+      focusedBorder: InputBorder.none,
+      filled: false,
+      contentPadding: const EdgeInsets.symmetric(vertical: 14),
+    );
     return Scaffold(
       appBar: AppBar(
         automaticallyImplyLeading: false,
@@ -229,7 +325,7 @@ class _SellAuctionScreenState extends ConsumerState<SellAuctionScreen> {
                 onPressed: () => Navigator.maybePop(context),
               ),
         title: Text(
-          widget.embedded ? t('Prodaj') : t('Nova aukcija'),
+          widget.embedded ? t('Prodaj') : t('Novi oglas'),
           style: const TextStyle(fontWeight: FontWeight.w700),
         ),
       ),
@@ -240,251 +336,267 @@ class _SellAuctionScreenState extends ConsumerState<SellAuctionScreen> {
             key: _form,
             child: ListView(
               key: const ValueKey('sell-form'),
-              padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+              padding: const EdgeInsets.fromLTRB(16, 4, 16, 24),
               children: [
-                if (kBuyNowEnabled) ...[
-                  Row(
-                    children: [
-                      Expanded(
-                        child: _ModeCard(
-                          key: const ValueKey('sell-mode-auction'),
-                          icon: Icons.gavel,
-                          title: t('Aukcija'),
-                          subtitle: t('Najviša ponuda pobjeđuje'),
-                          selected: !_buyNow,
-                          onTap: () => setState(() => _buyNow = false),
+                // 1. Fotografije: prazno = veliko polje "Dodaj fotografije".
+                if (_photos.isEmpty)
+                  InkWell(
+                    key: const ValueKey('sell-add-photos'),
+                    borderRadius: BorderRadius.circular(14),
+                    onTap: _pickPhotos,
+                    child: Container(
+                      height: 132,
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(14),
+                        border: Border.all(
+                          color: LoopColors.accent.withValues(alpha: .6),
+                          width: 1.4,
                         ),
                       ),
-                      const SizedBox(width: 10),
-                      Expanded(
-                        child: _ModeCard(
-                          key: const ValueKey('sell-mode-buynow'),
-                          icon: Icons.sell_outlined,
-                          title: t('Kupi odmah'),
-                          subtitle: t('Fiksna cijena'),
-                          selected: _buyNow,
-                          onTap: () => setState(() => _buyNow = true),
-                        ),
-                      ),
-                    ],
-                  ),
-                  gap,
-                ],
-                PhotoPickerRow(
-                  photos: _photos,
-                  canUseCamera: ref.read(imageStoreProvider).canUseCamera,
-                  onPick: _pickPhotos,
-                  onRemove: (path) {
-                    setState(() => _photos.remove(path));
-                    ref.read(imageStoreProvider).delete([path]);
-                  },
-                ),
-                gap,
-                TextFormField(
-                  key: const ValueKey('sell-title'),
-                  controller: _title,
-                  maxLength: Device.maxName,
-                  textCapitalization: TextCapitalization.sentences,
-                  onChanged: (v) {
-                    if (_categoryManual) return;
-                    final c = suggestCategory(v);
-                    if (c != null) setState(() => _category = c);
-                  },
-                  decoration: InputDecoration(
-                    labelText: t('Naslov'),
-                    hintText: t('npr. Retro sat, tenisice, kamera…'),
-                  ),
-                  validator: (v) =>
-                      (v ?? '').trim().length < 2 ? t('Upiši naslov') : null,
-                ),
-                gap,
-                TextFormField(
-                  key: const ValueKey('sell-description'),
-                  controller: _description,
-                  minLines: 3,
-                  maxLines: 6,
-                  maxLength: Device.maxDescription,
-                  textCapitalization: TextCapitalization.sentences,
-                  decoration: InputDecoration(
-                    labelText: t('Opis'),
-                    hintText: t('Stanje, oštećenja, što dolazi u paketu…'),
-                    alignLabelWithHint: true,
-                  ),
-                ),
-                gap,
-                FormField<DeviceCategory>(
-                  key: ValueKey('sell-cat-field-${_category?.name}'),
-                  initialValue: _category,
-                  validator: (v) => v == null ? t('Odaberi kategoriju') : null,
-                  builder: (field) => InkWell(
-                    key: const ValueKey('sell-category'),
-                    borderRadius: BorderRadius.circular(kRadiusButton),
-                    onTap: () => _chooseCategory(field),
-                    child: InputDecorator(
-                      decoration: InputDecoration(
-                        labelText: t('Kategorija'),
-                        errorText: field.errorText,
-                        suffixIcon: const Icon(Icons.keyboard_arrow_down),
-                      ),
-                      child: Text(
-                        _category?.singular ?? t('Odaberi kategoriju'),
-                        style: TextStyle(
-                          color: _category == null
-                              ? LoopColors.textSecondary
-                              : null,
-                        ),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            Icons.add_a_photo_outlined,
+                            color: LoopColors.accent,
+                            size: 30,
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            t('Dodaj fotografije'),
+                            style: TextStyle(
+                              color: LoopColors.accent,
+                              fontSize: 16,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            t('Prednja i stražnja strana, detalji i oznake'),
+                            style: TextStyle(
+                              color: LoopColors.textSecondary,
+                              fontSize: 13,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
-                  ),
-                ),
-                gap,
-                _label(t('Stanje')),
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  children: [
-                    for (final c in DeviceCondition.values)
-                      ChoiceChip(
-                        key: ValueKey('sell-condition-${c.name}'),
-                        label: Text(c.label),
-                        selected: _condition == c,
-                        onSelected: (_) => setState(() => _condition = c),
-                      ),
-                  ],
-                ),
-                if (!_buyNow) ...[
-                  gap,
-                  _label(t('Vrsta aukcije')),
-                  Wrap(
-                    spacing: 8,
-                    runSpacing: 8,
-                    children: [
-                      for (final k in AuctionKind.values)
-                        ChoiceChip(
-                          key: ValueKey('sell-kind-${k.name}'),
-                          avatar: Icon(k.icon, size: 18, color: k.color),
-                          label: Text(k.label),
-                          selected: _kind == k,
-                          onSelected: (_) => setState(() => _kind = k),
-                        ),
-                    ],
-                  ),
-                  const SizedBox(height: 6),
-                  Text(
-                    switch (_kind) {
-                      AuctionKind.classic => t(
-                        'Ponude se vide, najviša pobjeđuje.',
-                      ),
-                      AuctionKind.dutch => t(
-                        'Cijena pada od početne do najniže; tko prvi pristane — kupuje.',
-                      ),
+                  )
+                else
+                  PhotoPickerRow(
+                    photos: _photos,
+                    canUseCamera: ref.read(imageStoreProvider).canUseCamera,
+                    onPick: _pickPhotos,
+                    onRemove: (path) {
+                      setState(() => _photos.remove(path));
+                      ref.read(imageStoreProvider).delete([path]);
                     },
-                    style: TextStyle(
-                      color: LoopColors.textSecondary,
-                      fontSize: 13,
+                  ),
+                // 2. Naslov i opis.
+                _section([
+                  TextFormField(
+                    key: const ValueKey('sell-title'),
+                    controller: _title,
+                    maxLength: Device.maxName,
+                    textCapitalization: TextCapitalization.sentences,
+                    onChanged: (v) {
+                      if (_categoryManual) return;
+                      final c = suggestCategory(v);
+                      if (c != null) setState(() => _category = c);
+                    },
+                    decoration: plain.copyWith(
+                      labelText: t('Naslov'),
+                      hintText: t('npr. Charizard Holo 1999, PSA 9'),
+                      counterText: '',
+                    ),
+                    validator: (v) =>
+                        (v ?? '').trim().length < 2 ? t('Upiši naslov') : null,
+                  ),
+                  _divider,
+                  TextFormField(
+                    key: const ValueKey('sell-description'),
+                    controller: _description,
+                    minLines: 2,
+                    maxLines: 6,
+                    maxLength: Device.maxDescription,
+                    textCapitalization: TextCapitalization.sentences,
+                    decoration: plain.copyWith(
+                      labelText: t('Opis'),
+                      hintText: t(
+                        'Izdanje, godina, stanje, oštećenja, certifikat…',
+                      ),
+                      alignLabelWithHint: true,
+                      counterText: '',
                     ),
                   ),
-                ],
-                gap,
-                TextFormField(
-                  key: const ValueKey('sell-price'),
-                  controller: _price,
-                  keyboardType: const TextInputType.numberWithOptions(
-                    decimal: true,
+                ]),
+                // 3. Kategorija i stanje.
+                _section([
+                  FormField<DeviceCategory>(
+                    key: ValueKey('sell-cat-field-${_category?.name}'),
+                    initialValue: _category,
+                    validator: (v) =>
+                        v == null ? t('Odaberi kategoriju') : null,
+                    builder: (field) => _row(
+                      'sell-category',
+                      t('Kategorija'),
+                      _category?.singular ?? t('Odaberi'),
+                      () => _chooseCategory(field),
+                      error: field.errorText,
+                    ),
                   ),
-                  inputFormatters: money,
-                  decoration: InputDecoration(
-                    labelText: _buyNow
-                        ? t('Cijena')
-                        : _kind == AuctionKind.dutch
-                        ? t('Početna (najviša) cijena')
-                        : t('Početna cijena'),
-                    suffixText: t('€'),
+                  _divider,
+                  _row(
+                    'sell-condition',
+                    t('Stanje'),
+                    _condition.label,
+                    () async {
+                      final c = await _pick<DeviceCondition>(
+                        title: t('Stanje'),
+                        values: DeviceCondition.values,
+                        selected: _condition,
+                        label: (c) => c.label,
+                        keyPrefix: 'sell-condition',
+                        keyOf: (c) => c.name,
+                      );
+                      if (c != null) setState(() => _condition = c);
+                    },
                   ),
-                  validator: (v) {
-                    final p = _num(v ?? '');
-                    if (p == null || p <= 0) {
-                      return t('Unesi početnu cijenu veću od 0');
-                    }
-                    return null;
-                  },
-                ),
-                if (!_buyNow && _kind == AuctionKind.dutch) ...[
-                  gap,
+                ]),
+                // 4. Način prodaje i cijena.
+                const SizedBox(height: 16),
+                if (kBuyNowEnabled)
+                  _ModeSwitch(
+                    buyNow: _buyNow,
+                    onChanged: (v) => setState(() => _buyNow = v),
+                  ),
+                _section([
                   TextFormField(
-                    key: const ValueKey('sell-floor'),
-                    controller: _floor,
+                    key: const ValueKey('sell-price'),
+                    controller: _price,
                     keyboardType: const TextInputType.numberWithOptions(
                       decimal: true,
                     ),
                     inputFormatters: money,
-                    decoration: InputDecoration(
-                      labelText: t('Najniža cijena'),
+                    decoration: plain.copyWith(
+                      labelText: _buyNow
+                          ? t('Cijena')
+                          : _kind == AuctionKind.dutch
+                          ? t('Početna (najviša) cijena')
+                          : t('Početna cijena'),
                       suffixText: t('€'),
-                      helperText: t(
-                        'Ispod ove cijene ne prodaješ — cijena ne pada niže.',
-                      ),
                     ),
                     validator: (v) {
-                      final f = _num(v ?? '');
-                      final p = _num(_price.text);
-                      if (f == null || f <= 0) {
-                        return t('Unesi najnižu cijenu veću od 0');
-                      }
-                      if (p != null && f >= p) {
-                        return t('Najniža cijena mora biti manja od početne.');
+                      final p = _num(v ?? '');
+                      if (p == null || p <= 0) {
+                        return t('Unesi početnu cijenu veću od 0');
                       }
                       return null;
                     },
                   ),
-                ],
-                if (!_buyNow) ...[
-                  gap,
-                  _label(t('Trajanje')),
-                  Wrap(
-                    spacing: 8,
-                    runSpacing: 8,
-                    children: [
-                      for (final (label, d) in AuctionService.durations)
-                        ChoiceChip(
-                          label: Text(label),
-                          selected: _duration == d,
-                          onSelected: (_) => setState(() => _duration = d),
+                  if (!_buyNow) ...[
+                    _divider,
+                    _row(
+                      'sell-duration',
+                      t('Trajanje'),
+                      durationLabel,
+                      () async {
+                        final d = await _pick<Duration>(
+                          title: t('Trajanje aukcije'),
+                          values: [
+                            for (final e in AuctionService.durations) e.$2,
+                          ],
+                          selected: _duration,
+                          label: (d) => AuctionService.durations
+                              .firstWhere((e) => e.$2 == d)
+                              .$1,
+                          keyPrefix: 'sell-duration',
+                          keyOf: (d) => '${d.inMinutes}',
+                        );
+                        if (d != null) setState(() => _duration = d);
+                      },
+                    ),
+                    _divider,
+                    _row('sell-kind', t('Vrsta aukcije'), _kind.label, () async {
+                      final k = await _pick<AuctionKind>(
+                        title: t('Vrsta aukcije'),
+                        values: AuctionKind.values,
+                        selected: _kind,
+                        label: (k) => k.label,
+                        hint: (k) => switch (k) {
+                          AuctionKind.classic => t(
+                            'Ponude se vide, najviša pobjeđuje.',
+                          ),
+                          AuctionKind.dutch => t(
+                            'Cijena pada od početne do najniže; tko prvi pristane — kupuje.',
+                          ),
+                        },
+                        keyPrefix: 'sell-kind',
+                        keyOf: (k) => k.name,
+                      );
+                      if (k != null) setState(() => _kind = k);
+                    }),
+                    if (_kind == AuctionKind.dutch) ...[
+                      _divider,
+                      TextFormField(
+                        key: const ValueKey('sell-floor'),
+                        controller: _floor,
+                        keyboardType: const TextInputType.numberWithOptions(
+                          decimal: true,
                         ),
-                    ],
-                  ),
-                ],
-                gap,
-                _label(t('Veličina paketa')),
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  children: [
-                    for (final z in ParcelSize.values)
-                      ChoiceChip(
-                        key: ValueKey('sell-size-${z.name}'),
-                        label: Text(z.label),
-                        selected: _size == z,
-                        onSelected: (_) => setState(() => _size = z),
+                        inputFormatters: money,
+                        decoration: plain.copyWith(
+                          labelText: t('Najniža cijena'),
+                          suffixText: t('€'),
+                          helperText: t(
+                            'Ispod ove cijene ne prodaješ — cijena ne pada niže.',
+                          ),
+                        ),
+                        validator: (v) {
+                          final f = _num(v ?? '');
+                          final p = _num(_price.text);
+                          if (f == null || f <= 0) {
+                            return t('Unesi najnižu cijenu veću od 0');
+                          }
+                          if (p != null && f >= p) {
+                            return t(
+                              'Najniža cijena mora biti manja od početne.',
+                            );
+                          }
+                          return null;
+                        },
                       ),
+                    ],
                   ],
-                ),
-                const SizedBox(height: 6),
-                Text(
-                  _size.hint,
-                  style: TextStyle(
-                    color: LoopColors.textSecondary,
-                    fontSize: 13,
+                ]),
+                // 5. Dostava.
+                _section([
+                  _row(
+                    'sell-size',
+                    t('Veličina paketa'),
+                    _size.label,
+                    () async {
+                      final z = await _pick<ParcelSize>(
+                        title: t('Veličina paketa'),
+                        values: ParcelSize.values,
+                        selected: _size,
+                        label: (z) => z.label,
+                        hint: (z) => z.hint,
+                        keyPrefix: 'sell-size',
+                        keyOf: (z) => z.name,
+                      );
+                      if (z != null) setState(() => _size = z);
+                    },
                   ),
-                ),
+                ]),
                 const SizedBox(height: 10),
                 Text(
                   _buyNow
                       ? t(
-                          'Dostavu plaća kupac. Novac ti se isplaćuje nakon što kupac primi paket. Provizija se odbija od isplate.',
+                          'Dostavu plaća kupac. Novac ti stiže na IBAN nakon što kupac primi paket. Provizija se odbija od isplate.',
                         )
                       : t(
-                          'Dostavu plaća kupac. Novac ti se isplaćuje nakon što kupac primi paket. Provizija je 10 % samo od razlike iznad početne cijene.',
+                          'Dostavu plaća kupac. Novac ti stiže na IBAN nakon što kupac primi paket. Provizija je 10 % samo od razlike iznad početne cijene.',
                         ),
                   style: TextStyle(
                     color: LoopColors.textSecondary,
@@ -503,7 +615,7 @@ class _SellAuctionScreenState extends ConsumerState<SellAuctionScreen> {
           child: FilledButton(
             key: const ValueKey('sell-submit'),
             style: FilledButton.styleFrom(
-              minimumSize: const Size.fromHeight(54),
+              minimumSize: const Size.fromHeight(52),
             ),
             onPressed: _submit,
             child: Text(_buyNow ? t('Objavi oglas') : t('Objavi aukciju')),
@@ -514,57 +626,85 @@ class _SellAuctionScreenState extends ConsumerState<SellAuctionScreen> {
   }
 }
 
-/// Izbor načina prodaje: Aukcija ili Kupi odmah.
-class _ModeCard extends StatelessWidget {
-  const _ModeCard({
-    super.key,
-    required this.icon,
-    required this.title,
-    required this.subtitle,
-    required this.selected,
-    required this.onTap,
-  });
-  final IconData icon;
-  final String title;
-  final String subtitle;
-  final bool selected;
-  final VoidCallback onTap;
+/// Način prodaje: dvije kapsule (Aukcija | Kupi odmah).
+class _ModeSwitch extends StatelessWidget {
+  const _ModeSwitch({required this.buyNow, required this.onChanged});
+  final bool buyNow;
+  final ValueChanged<bool> onChanged;
 
   @override
-  Widget build(BuildContext context) => Semantics(
-    button: true,
-    selected: selected,
-    child: InkWell(
-      borderRadius: BorderRadius.circular(16),
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.all(14),
-        decoration: BoxDecoration(
-          color: selected
-              ? LoopColors.accent.withValues(alpha: .14)
-              : LoopColors.surface,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(
-            color: selected ? LoopColors.accent : LoopColors.glassBorder,
-            width: selected ? 1.6 : 1,
+  Widget build(BuildContext context) {
+    Widget option(String key, IconData icon, String text, bool on, bool v) =>
+        Expanded(
+          child: Semantics(
+            button: true,
+            selected: on,
+            child: InkWell(
+              key: ValueKey(key),
+              borderRadius: BorderRadius.circular(12),
+              onTap: () => onChanged(v),
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 160),
+                padding: const EdgeInsets.symmetric(vertical: 11),
+                decoration: BoxDecoration(
+                  color: on ? LoopColors.accent : Colors.transparent,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(
+                      icon,
+                      size: 18,
+                      color: on
+                          ? LoopColors.onAccent
+                          : LoopColors.textSecondary,
+                    ),
+                    const SizedBox(width: 6),
+                    Flexible(
+                      child: Text(
+                        text,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontWeight: FontWeight.w700,
+                          color: on
+                              ? LoopColors.onAccent
+                              : LoopColors.textSecondary,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
           ),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Icon(icon, color: selected ? LoopColors.accent : null),
-            const SizedBox(height: 8),
-            Text(
-              title,
-              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
-            ),
-            Text(
-              subtitle,
-              style: TextStyle(color: LoopColors.textSecondary, fontSize: 12.5),
-            ),
-          ],
-        ),
+        );
+    return Container(
+      padding: const EdgeInsets.all(4),
+      decoration: BoxDecoration(
+        color: LoopColors.surface,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: LoopColors.glassBorder),
       ),
-    ),
-  );
+      child: Row(
+        children: [
+          option(
+            'sell-mode-auction',
+            Icons.gavel,
+            t('Aukcija'),
+            !buyNow,
+            false,
+          ),
+          const SizedBox(width: 4),
+          option(
+            'sell-mode-buynow',
+            Icons.sell_outlined,
+            t('Kupi odmah'),
+            buyNow,
+            true,
+          ),
+        ],
+      ),
+    );
+  }
 }

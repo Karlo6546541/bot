@@ -12,7 +12,11 @@ import 'loop_snackbar.dart';
 import 'quiet_ui.dart';
 
 class SellerAccountCard extends ConsumerStatefulWidget {
-  const SellerAccountCard({super.key});
+  const SellerAccountCard({super.key, this.onlyWhenActionNeeded = false});
+
+  /// Profil: kartica se vidi samo kad prodavač nešto mora napraviti
+  /// (dovršiti potvrdu za isplatu, ponovno poslati podatke) — kao na Vintedu.
+  final bool onlyWhenActionNeeded;
   @override
   ConsumerState<SellerAccountCard> createState() => _SellerAccountCardState();
 }
@@ -45,7 +49,9 @@ class _SellerAccountCardState extends ConsumerState<SellerAccountCard> {
     );
     final user = ref.read(appProvider).currentUser;
     if (user == null || user.isGuest) return const SizedBox.shrink();
+    final quiet = widget.onlyWhenActionNeeded;
     if (user.seller == null) {
+      if (quiet) return const SizedBox.shrink();
       return AppStatusCard(
         key: const ValueKey('seller-account-missing'),
         icon: Icons.person_outline,
@@ -78,6 +84,7 @@ class _SellerAccountCardState extends ConsumerState<SellerAccountCard> {
           );
         }
         if (!BackendConfig.cloudCommerceEnabled || !BackendConfig.isOnline) {
+          if (quiet) return const SizedBox.shrink();
           return AppStatusCard(
             key: const ValueKey('seller-account-saved'),
             icon: Icons.check_circle_outline,
@@ -92,11 +99,13 @@ class _SellerAccountCardState extends ConsumerState<SellerAccountCard> {
         }
         final readiness = ref.watch(sellerAccountStatusProvider(user.id));
         return readiness.when(
-          loading: () => AppStatusCard(
-            title: t('Pripremamo račun'),
-            message: t('Tvoji podaci su spremljeni.'),
-            icon: Icons.hourglass_empty,
-          ),
+          loading: () => quiet
+              ? const SizedBox.shrink()
+              : AppStatusCard(
+                  title: t('Pripremamo račun'),
+                  message: t('Tvoji podaci su spremljeni.'),
+                  icon: Icons.hourglass_empty,
+                ),
           error: (_, _) => AppStatusCard(
             key: const ValueKey('seller-account-unavailable'),
             title: t('Podaci su spremljeni'),
@@ -110,29 +119,33 @@ class _SellerAccountCardState extends ConsumerState<SellerAccountCard> {
               child: Text(t('Pokušaj ponovno')),
             ),
           ),
-          data: (ready) => AppStatusCard(
-            key: ValueKey(
-              ready ? 'seller-account-ready' : 'seller-account-needs-info',
-            ),
-            icon: ready
-                ? Icons.check_circle_outline
-                : Icons.account_balance_outlined,
-            color: ready ? LoopColors.success : LoopColors.textSecondary,
-            title: ready
-                ? t('Spremno za primanje uplata')
-                : t('Još jedan korak do isplata'),
-            message: ready
-                ? t('Stripe račun je povezan.')
-                : t('Podaci su spremljeni. Dovrši potvrdu u Stripeu.'),
-            action: ready
-                ? null
-                : OutlinedButton(
-                    onPressed: _busy ? null : _connect,
-                    child: Text(
-                      _busy ? t('Povezivanje…') : t('Dovrši povezivanje'),
-                    ),
+          data: (ready) => ready && quiet
+              ? const SizedBox.shrink()
+              : AppStatusCard(
+                  key: ValueKey(
+                    ready
+                        ? 'seller-account-ready'
+                        : 'seller-account-needs-info',
                   ),
-          ),
+                  icon: ready
+                      ? Icons.check_circle_outline
+                      : Icons.account_balance_outlined,
+                  color: ready ? LoopColors.success : LoopColors.textSecondary,
+                  title: ready
+                      ? t('Spremno za primanje uplata')
+                      : t('Još jedan korak do isplata'),
+                  message: ready
+                      ? t('Stripe račun je povezan.')
+                      : t('Podaci su spremljeni. Dovrši potvrdu u Stripeu.'),
+                  action: ready
+                      ? null
+                      : OutlinedButton(
+                          onPressed: _busy ? null : _connect,
+                          child: Text(
+                            _busy ? t('Povezivanje…') : t('Dovrši povezivanje'),
+                          ),
+                        ),
+                ),
         );
       },
     );

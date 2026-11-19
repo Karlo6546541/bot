@@ -53,15 +53,15 @@ void main() {
             matching: find.byType(Scrollable),
           )
           .first;
+      // Vinted: retci "Naziv … vrijednost >" otvaraju izbor u donjem listu.
+      expect(find.byKey(const ValueKey('sell-add-photos')), findsOneWidget);
       await tester.scrollUntilVisible(
-        find.byKey(const ValueKey('sell-kind-dutch')),
+        find.byKey(const ValueKey('sell-kind')),
         200,
         scrollable: scroll,
       );
-      await Scrollable.ensureVisible(
-        tester.element(find.byKey(const ValueKey('sell-kind-dutch'))),
-        alignment: 0.3,
-      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('sell-kind')));
       await tester.pumpAndSettle();
       await tester.tap(find.byKey(const ValueKey('sell-kind-dutch')));
       await tester.pumpAndSettle();
@@ -81,7 +81,7 @@ void main() {
       await tester.pumpAndSettle();
       await tester.tap(find.byKey(const ValueKey('sell-mode-buynow')));
       await tester.pumpAndSettle();
-      expect(find.byKey(const ValueKey('sell-kind-dutch')), findsNothing);
+      expect(find.byKey(const ValueKey('sell-kind')), findsNothing);
       expect(find.byKey(const ValueKey('sell-floor')), findsNothing);
       expect(find.text('Objavi oglas'), findsOneWidget);
       expect(tester.takeException(), isNull);

@@ -137,7 +137,17 @@ class _SimpleProfile extends ConsumerWidget {
       );
     }
 
-    Widget gap() => Container(height: 8, color: LoopColors.background);
+    Widget header(String text) => Padding(
+      padding: const EdgeInsets.fromLTRB(16, 18, 16, 4),
+      child: Text(
+        text,
+        style: TextStyle(
+          color: LoopColors.textSecondary,
+          fontSize: 13,
+          fontWeight: FontWeight.w600,
+        ),
+      ),
+    );
 
     return SafeArea(
       bottom: false,
@@ -148,87 +158,57 @@ class _SimpleProfile extends ConsumerWidget {
             key: const ValueKey('account-home'),
             padding: const EdgeInsets.only(bottom: 112),
             children: [
-              Padding(
-                padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
-                child: Text(
-                  t('Profil'),
-                  style: const TextStyle(
-                    fontSize: 26,
-                    fontWeight: FontWeight.w700,
-                    letterSpacing: -.6,
-                  ),
-                ),
-              ),
               if (user.isGuest)
                 const Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 16),
+                  padding: EdgeInsets.fromLTRB(16, 16, 16, 0),
                   child: _GuestCard(),
                 )
               else ...[
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  child: InkWell(
-                    key: const ValueKey('account-view-profile'),
-                    borderRadius: BorderRadius.circular(16),
-                    onTap: () => PublicProfileScreen.open(context, user.id),
-                    child: Container(
-                      padding: const EdgeInsets.all(16),
-                      decoration: BoxDecoration(
-                        color: LoopColors.surface,
-                        borderRadius: BorderRadius.circular(16),
-                        border: Border.all(color: LoopColors.glassBorder),
-                      ),
-                      child: Row(
-                        children: [
-                          UserAvatar(user: user, size: 56),
-                          const SizedBox(width: 14),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  user.name.isNotEmpty
-                                      ? user.name
-                                      : user.handle,
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: const TextStyle(
-                                    fontSize: 18,
-                                    fontWeight: FontWeight.w700,
-                                  ),
+                // Kao Vinted "Ja": avatar, ime i "Pogledaj moj profil".
+                InkWell(
+                  key: const ValueKey('account-view-profile'),
+                  onTap: () => PublicProfileScreen.open(context, user.id),
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 18, 16, 14),
+                    child: Row(
+                      children: [
+                        UserAvatar(user: user, size: 52),
+                        const SizedBox(width: 14),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                user.name.isNotEmpty ? user.name : user.handle,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(
+                                  fontSize: 19,
+                                  fontWeight: FontWeight.w700,
                                 ),
-                                Text(
-                                  t('Prikaži moje oglase'),
-                                  style: TextStyle(
-                                    color: LoopColors.textSecondary,
-                                  ),
+                              ),
+                              Text(
+                                t('Pogledaj moj profil'),
+                                style: TextStyle(
+                                  color: LoopColors.textSecondary,
                                 ),
-                              ],
-                            ),
+                              ),
+                            ],
                           ),
-                          Icon(
-                            Icons.chevron_right,
-                            color: LoopColors.textSecondary,
-                          ),
-                        ],
-                      ),
+                        ),
+                        Icon(
+                          Icons.chevron_right,
+                          color: LoopColors.textSecondary,
+                        ),
+                      ],
                     ),
                   ),
                 ),
-                const SizedBox(height: 12),
                 const Padding(
                   padding: EdgeInsets.symmetric(horizontal: 16),
-                  child: SellerAccountCard(),
+                  child: SellerAccountCard(onlyWhenActionNeeded: true),
                 ),
-                const SizedBox(height: 8),
-                gap(),
-                row(
-                  const ValueKey('profile-auctions'),
-                  Icons.gavel,
-                  t('Moje aukcije'),
-                  () =>
-                      MyAuctionsScreen.open(context, initialTab: MyTab.selling),
-                ),
+                header(t('Kupujem')),
                 row(
                   const ValueKey('profile-purchases'),
                   Icons.shopping_bag_outlined,
@@ -237,32 +217,39 @@ class _SimpleProfile extends ConsumerWidget {
                       MyAuctionsScreen.open(context, initialTab: MyTab.buying),
                 ),
                 row(
+                  const ValueKey('profile-messages'),
+                  Icons.chat_bubble_outline,
+                  t('Poruke'),
+                  () => MessagesScreen.open(context),
+                ),
+                header(t('Prodajem')),
+                row(
+                  const ValueKey('profile-auctions'),
+                  Icons.sell_outlined,
+                  t('Moji oglasi i aukcije'),
+                  () =>
+                      MyAuctionsScreen.open(context, initialTab: MyTab.selling),
+                ),
+                row(
                   const ValueKey('profile-shipments'),
                   Icons.local_shipping_outlined,
                   t('Pošalji pakete'),
                   () => DeliveryNotesScreen.open(context),
                   trailing: s.toShip.isEmpty ? null : '${s.toShip.length}',
                 ),
-                gap(),
                 row(
                   const ValueKey('profile-earnings'),
-                  Icons.account_balance_wallet_outlined,
-                  t('Zarada i isplate'),
+                  Icons.insights_outlined,
+                  t('Zarada'),
                   () => FinancialsScreen.open(context),
                 ),
-                row(
-                  const ValueKey('profile-messages'),
-                  Icons.chat_bubble_outline,
-                  t('Poruke'),
-                  () => MessagesScreen.open(context),
-                ),
+                header(t('Račun')),
                 row(
                   const ValueKey('profile-checkout'),
                   Icons.credit_card,
-                  t('Plaćanje i dostava'),
+                  t('Plaćanje i adresa'),
                   () => ensureCheckout(context, ref, force: true),
                 ),
-                gap(),
               ],
               row(
                 const ValueKey('profile-settings'),
