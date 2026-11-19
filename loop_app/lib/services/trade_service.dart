@@ -65,6 +65,7 @@ class TradeService {
     DigitalFile? file,
     int quantity = 1,
     String parcelSize = 'small',
+    GradingCertificate? certificate,
   }) async {
     final digital = category.section == ItemSection.digital;
     if (quantity < 1 || quantity > Device.maxQuantity) {
@@ -113,6 +114,7 @@ class TradeService {
       file: file,
       quantity: digital ? 1 : quantity,
       parcelSize: parcelSize,
+      certificate: certificate,
     );
     await _storage.putDevice(device);
     await _snapshot(userId);

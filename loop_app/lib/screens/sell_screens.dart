@@ -51,6 +51,9 @@ class _SellAuctionScreenState extends ConsumerState<SellAuctionScreen> {
   Duration _duration = AuctionService.durations[2].$2;
   ParcelSize _size = ParcelSize.small;
 
+  /// Ocjena (PSA, BGS, CGC…) ako je predmet ocijenjen; neobavezno.
+  GradingCertificate? _cert;
+
   @override
   void dispose() {
     _title.dispose();
@@ -132,6 +135,7 @@ class _SellAuctionScreenState extends ConsumerState<SellAuctionScreen> {
     _photos.clear();
     _category = null;
     _categoryManual = false;
+    _cert = null;
     _kind = AuctionKind.classic;
   });
 
@@ -157,6 +161,7 @@ class _SellAuctionScreenState extends ConsumerState<SellAuctionScreen> {
               description: _description.text,
               listOnMarket: true,
               parcelSize: _size.name,
+              certificate: _cert,
             );
       }, successMessage: t('Oglas je objavljen'));
       if (!ok || !mounted || listed == null) return;
@@ -178,6 +183,7 @@ class _SellAuctionScreenState extends ConsumerState<SellAuctionScreen> {
         description: _description.text,
         listOnMarket: false,
         parcelSize: _size.name,
+        certificate: _cert,
       );
       created = await app.createAuction(
         deviceId: device.id,
@@ -240,6 +246,119 @@ class _SellAuctionScreenState extends ConsumerState<SellAuctionScreen> {
       ),
     ),
   );
+
+  /// Certifikat ocjene: kuća, ocjena i broj (za provjeru kod izdavatelja).
+  Future<void> _editCertificate() async {
+    var grader = _cert?.grader ?? Grader.psa;
+    final grade = TextEditingController(text: _cert?.grade ?? '');
+    final number = TextEditingController(text: _cert?.number ?? '');
+    final result = await showModalBottomSheet<Object>(
+      context: context,
+      isScrollControlled: true,
+      showDragHandle: true,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setSheet) => Padding(
+          padding: EdgeInsets.fromLTRB(
+            20,
+            0,
+            20,
+            20 + MediaQuery.viewInsetsOf(ctx).bottom,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text(
+                t('Certifikat ocjene'),
+                style: const TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                t(
+                  'Ako je predmet ocijenjen (slabiran), upiši kuću, ocjenu i broj certifikata. Kupac ga može provjeriti kod izdavatelja.',
+                ),
+                style: TextStyle(color: LoopColors.textSecondary, fontSize: 13),
+              ),
+              const SizedBox(height: 14),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  for (final g in Grader.values)
+                    ChoiceChip(
+                      key: ValueKey('sell-grader-${g.name}'),
+                      label: Text(g == Grader.other ? t('Drugo') : g.label),
+                      selected: grader == g,
+                      onSelected: (_) => setSheet(() => grader = g),
+                    ),
+                ],
+              ),
+              const SizedBox(height: 14),
+              TextField(
+                key: const ValueKey('sell-grade'),
+                controller: grade,
+                maxLength: 12,
+                decoration: InputDecoration(
+                  labelText: t('Ocjena'),
+                  hintText: t('npr. 10, 9.5, MS 65'),
+                  counterText: '',
+                ),
+              ),
+              const SizedBox(height: 10),
+              TextField(
+                key: const ValueKey('sell-cert-number'),
+                controller: number,
+                maxLength: 24,
+                decoration: InputDecoration(
+                  labelText: t('Broj certifikata'),
+                  counterText: '',
+                ),
+              ),
+              const SizedBox(height: 16),
+              Row(
+                children: [
+                  if (_cert != null)
+                    TextButton(
+                      key: const ValueKey('sell-cert-remove'),
+                      onPressed: () => Navigator.pop(ctx, false),
+                      child: Text(t('Ukloni')),
+                    ),
+                  const Spacer(),
+                  FilledButton(
+                    key: const ValueKey('sell-cert-save'),
+                    onPressed: () => Navigator.pop(ctx, true),
+                    child: Text(t('Spremi')),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+    if (!mounted) return;
+    if (result == false) {
+      setState(() => _cert = null);
+    } else if (result == true) {
+      final g = grade.text.trim();
+      if (g.isEmpty) {
+        showLoopSnackBar(t('Upiši ocjenu.'), error: true);
+      } else {
+        setState(
+          () => _cert = GradingCertificate(
+            grader: grader,
+            grade: g,
+            number: number.text.trim(),
+          ),
+        );
+      }
+    }
+    grade.dispose();
+    number.dispose();
+  }
 
   /// Redak "Naziv ... vrijednost >" kao na Vintedu.
   Widget _row(
@@ -461,6 +580,18 @@ class _SellAuctionScreenState extends ConsumerState<SellAuctionScreen> {
                       );
                       if (c != null) setState(() => _condition = c);
                     },
+                  ),
+                  _divider,
+                  _row(
+                    'sell-certificate',
+                    t('Certifikat'),
+                    _cert == null
+                        ? t('Neobavezno')
+                        : [
+                            _cert!.badge,
+                            if (_cert!.number.isNotEmpty) '#${_cert!.number}',
+                          ].join(' · '),
+                    _editCertificate,
                   ),
                 ]),
                 // 4. Način prodaje i cijena.

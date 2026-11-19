@@ -25,6 +25,7 @@ import 'public_profile_screen.dart';
 import '../widgets/shop_widgets.dart';
 import '../widgets/user_avatar.dart';
 import '../l10n/tr.dart';
+import '../widgets/certificate_badge.dart';
 import '../widgets/trust_widgets.dart';
 
 /// Detalji uređaja: veliki prikaz, specifikacije, izračun fee-a i akcija
@@ -198,6 +199,11 @@ class DeviceDetailScreen extends ConsumerWidget {
                 buyers: state.buyersCount(device.id),
               ),
             ],
+            if (device.certificate case final cert?)
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+                child: CertificateCard(certificate: cert),
+              ),
             if (device.description.isNotEmpty &&
                 device.description.trim() != device.name.trim()) ...[
               const Divider(height: 1),

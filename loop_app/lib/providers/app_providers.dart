@@ -903,6 +903,7 @@ class AppController extends Notifier<AppState> {
     PickedFile? file,
     int quantity = 1,
     String parcelSize = 'small',
+    GradingCertificate? certificate,
   }) async {
     final userId = _requireUserId();
     if (listOnMarket) _requireSellerInfo();
@@ -934,6 +935,7 @@ class AppController extends Notifier<AppState> {
         listOnMarket: listOnMarket,
         quantity: quantity,
         parcelSize: parcelSize,
+        certificate: certificate,
       );
     } catch (_) {
       if (saved != null) await ref.read(fileStoreProvider).delete(saved);

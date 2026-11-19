@@ -13,6 +13,7 @@ import '../widgets/countdown.dart';
 import '../widgets/dutch_price.dart';
 import '../widgets/formatters.dart';
 import '../widgets/category_style.dart';
+import '../widgets/certificate_badge.dart';
 import '../widgets/item_image.dart';
 import 'auction_detail_screen.dart';
 import 'search_screen.dart';
@@ -308,6 +309,12 @@ class AuctionTile extends ConsumerWidget {
                     device == null
                         ? ColoredBox(color: LoopColors.surfaceHover)
                         : _TileImage(device: device),
+                    if (device?.certificate case final cert?)
+                      Positioned(
+                        right: 8,
+                        bottom: 8,
+                        child: CertificateBadge(certificate: cert),
+                      ),
                     Positioned(
                       left: 8,
                       top: 8,
@@ -398,6 +405,12 @@ class BuyNowTile extends StatelessWidget {
                   fit: StackFit.expand,
                   children: [
                     _TileImage(device: d),
+                    if (d.certificate case final cert?)
+                      Positioned(
+                        right: 8,
+                        bottom: 8,
+                        child: CertificateBadge(certificate: cert),
+                      ),
                     Positioned(
                       left: 8,
                       top: 8,

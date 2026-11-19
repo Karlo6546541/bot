@@ -18,6 +18,7 @@ import '../widgets/item_image.dart';
 import '../widgets/trade_actions.dart';
 import 'auctions_screen.dart';
 import '../l10n/tr.dart';
+import '../widgets/certificate_badge.dart';
 import '../widgets/trust_widgets.dart';
 import 'public_profile_screen.dart';
 
@@ -388,6 +389,10 @@ class _AuctionDetailScreenState extends ConsumerState<AuctionDetailScreen> {
                 ],
               ],
               const SizedBox(height: 12),
+              if (device?.certificate case final cert?) ...[
+                CertificateCard(certificate: cert),
+                const SizedBox(height: 12),
+              ],
               if (device != null && device.description.isNotEmpty) ...[
                 DescriptionCard(text: device.description),
                 const SizedBox(height: 12),

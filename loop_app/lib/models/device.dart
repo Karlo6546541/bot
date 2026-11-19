@@ -291,7 +291,12 @@ class Device {
     this.priceLog = const [],
     this.parcelSize = 'small',
     this.shipping,
+    this.certificate,
   });
+
+  /// Ocjena neovisne kuće (PSA, BGS, CGC…) s brojem certifikata, ako je
+  /// predmet ocijenjen ("slabiran").
+  final GradingCertificate? certificate;
 
   /// Veličina paketa (ime iz [ParcelSize]) — utječe na cijenu dostave.
   final String parcelSize;
@@ -427,6 +432,7 @@ class Device {
     String? parcelSize,
     Object? shipping = _keep,
   }) => Device(
+    certificate: certificate,
     id: id ?? this.id,
     name: name,
     model: model,
@@ -530,6 +536,7 @@ class Device {
     if (priceLog.isNotEmpty) 'priceLog': [for (final e in priceLog) e.toMap()],
     if (parcelSize != 'small') 'parcelSize': parcelSize,
     if (shipping != null) 'shipping': shipping!.toMap(),
+    if (certificate != null) 'certificate': certificate!.toMap(),
   };
 
   factory Device.fromMap(Map<dynamic, dynamic> map) => Device(
@@ -563,10 +570,77 @@ class Device {
       for (final e in (map['priceLog'] as List? ?? const []))
         if (e is Map) PriceLogEntry.fromMap(e),
     ],
+    certificate: map['certificate'] is Map
+        ? GradingCertificate.fromMap(map['certificate'] as Map)
+        : null,
   );
 }
 
 const _keep = Object();
+
+/// Kuće koje ocjenjuju kolekcionarske predmete.
+enum Grader {
+  psa('PSA'),
+  bgs('BGS'),
+  cgc('CGC'),
+  sgc('SGC'),
+  ngc('NGC'),
+  pcgs('PCGS'),
+  other('Drugo');
+
+  const Grader(this.label);
+  final String label;
+
+  static Grader fromName(String? n) =>
+      Grader.values.firstWhere((g) => g.name == n, orElse: () => Grader.other);
+}
+
+/// Certifikat ocjene: kuća, ocjena (npr. "10", "9.5") i broj certifikata.
+class GradingCertificate {
+  const GradingCertificate({
+    required this.grader,
+    required this.grade,
+    this.number = '',
+  });
+  final Grader grader;
+  final String grade;
+  final String number;
+
+  /// Kratka oznaka za karticu oglasa, npr. "PSA 10".
+  String get badge =>
+      grader == Grader.other ? grade : '${grader.label} $grade'.trim();
+
+  /// Javna stranica izdavatelja gdje kupac provjerava broj certifikata.
+  Uri? get verifyUrl {
+    final n = Uri.encodeComponent(number.trim());
+    return switch (grader) {
+      Grader.psa when n.isNotEmpty => Uri.parse(
+        'https://www.psacard.com/cert/$n',
+      ),
+      Grader.pcgs when n.isNotEmpty => Uri.parse(
+        'https://www.pcgs.com/cert/$n',
+      ),
+      Grader.bgs => Uri.parse('https://www.beckett.com/grading/card-lookup'),
+      Grader.cgc => Uri.parse('https://www.cgccards.com/certlookup/'),
+      Grader.sgc => Uri.parse('https://gosgc.com/cert-code-lookup'),
+      Grader.ngc => Uri.parse('https://www.ngccoin.com/certlookup/'),
+      _ => null,
+    };
+  }
+
+  Map<String, dynamic> toMap() => {
+    'grader': grader.name,
+    'grade': grade,
+    if (number.isNotEmpty) 'number': number,
+  };
+
+  factory GradingCertificate.fromMap(Map<dynamic, dynamic> m) =>
+      GradingCertificate(
+        grader: Grader.fromName(m['grader'] as String?),
+        grade: m['grade'] as String? ?? '',
+        number: m['number'] as String? ?? '',
+      );
+}
 
 /// Datoteka digitalnog proizvoda. [ref] je mjesto pohrane (online put u
 /// privatnom spremištu ili lokalni ključ) — vidi `FileStore`.

@@ -3668,16 +3668,45 @@ const kEn = <String, String>{
   'Predmet je poslan na tvoj e-mail.': 'The item was sent to your email.',
   'Paket je dostavljen.': 'The parcel was delivered.',
   'Dodaj fotografije': 'Add photos',
-  'Dostavu plaća kupac. Novac ti stiže na IBAN nakon što kupac primi paket. Provizija je 10 % samo od razlike iznad početne cijene.': 'The buyer pays for shipping. The money reaches your IBAN after the buyer receives the parcel. The commission is 10% of the amount above the starting price only.',
-  'Dostavu plaća kupac. Novac ti stiže na IBAN nakon što kupac primi paket. Provizija se odbija od isplate.': 'The buyer pays for shipping. The money reaches your IBAN after the buyer receives the parcel. The commission is deducted from the payout.',
-  'Izdanje, godina, stanje, oštećenja, certifikat…': 'Edition, year, condition, damage, certificate…',
+  'Dostavu plaća kupac. Novac ti stiže na IBAN nakon što kupac primi paket. Provizija je 10 % samo od razlike iznad početne cijene.':
+      'The buyer pays for shipping. The money reaches your IBAN after the buyer receives the parcel. The commission is 10% of the amount above the starting price only.',
+  'Dostavu plaća kupac. Novac ti stiže na IBAN nakon što kupac primi paket. Provizija se odbija od isplate.':
+      'The buyer pays for shipping. The money reaches your IBAN after the buyer receives the parcel. The commission is deducted from the payout.',
+  'Izdanje, godina, stanje, oštećenja, certifikat…':
+      'Edition, year, condition, damage, certificate…',
   'Moji oglasi i aukcije': 'My listings and auctions',
   'Novi oglas': 'New listing',
   'Plaćanje i adresa': 'Payment and address',
   'Pogledaj moj profil': 'View my profile',
-  'Prednja i stražnja strana, detalji i oznake': 'Front and back, details and markings',
+  'Prednja i stražnja strana, detalji i oznake':
+      'Front and back, details and markings',
   'Trajanje aukcije': 'Auction duration',
   'npr. Charizard Holo 1999, PSA 9': 'e.g. Charizard Holo 1999, PSA 9',
+  'Ime, OIB, adresa i IBAN — potrebno prije prve prodaje':
+      'Name, OIB, address and IBAN — needed before your first sale',
+  'Prije prve objave zakon traži tvoje podatke: ime i prezime, OIB, adresu i IBAN za isplatu (EU pravila DAC7 i DSA). Kupci ih ne vide.':
+      'Before your first listing the law requires your details: full name, OIB, address and IBAN for payouts (EU DAC7 and DSA rules). Buyers don\'t see them.',
+  'Moji oglasi': 'My listings',
+  'Aktivni ({0})': 'Active ({0})',
+  'Nemaš aktivnih oglasa': 'You have no active listings',
+  'Objavi predmet za Kupi odmah ili ga stavi na aukciju.':
+      'List an item for Buy now or put it up for auction.',
+  'Još nemaš prodaja': 'No sales yet',
+  'Ovdje vidiš što si prodao i je li poslano.':
+      'Here you see what you sold and whether it was shipped.',
+  'Certifikat ocjene': 'Grading certificate',
+  'Ako je predmet ocijenjen (slabiran), upiši kuću, ocjenu i broj certifikata. Kupac ga može provjeriti kod izdavatelja.':
+      'If the item is graded (slabbed), enter the grading company, grade and certificate number. Buyers can verify it with the issuer.',
+  'Drugo': 'Other',
+  'Ocjena': 'Grade',
+  'npr. 10, 9.5, MS 65': 'e.g. 10, 9.5, MS 65',
+  'Broj certifikata': 'Certificate number',
+  'Upiši ocjenu.': 'Enter the grade.',
+  'Certifikat': 'Certificate',
+  'Neobavezno': 'Optional',
+  'Ocijenjeno: {0}': 'Graded: {0}',
+  'Certifikat #{0}': 'Certificate #{0}',
+  'Provjeri': 'Verify',
   'Zakaži show': 'Schedule a show',
   'Otprema': 'Shipping',
   'Nema paketa za predaju': 'No parcels to hand over',

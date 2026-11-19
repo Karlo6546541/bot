@@ -31,6 +31,7 @@ import '../l10n/tr.dart';
 import '../widgets/language_button.dart';
 import '../models/app_user.dart';
 import 'account_screens.dart';
+import 'my_listings_screen.dart';
 import 'public_profile_screen.dart';
 import 'shop_screens.dart';
 import '../widgets/shop_widgets.dart';
@@ -227,8 +228,7 @@ class _SimpleProfile extends ConsumerWidget {
                   const ValueKey('profile-auctions'),
                   Icons.sell_outlined,
                   t('Moji oglasi i aukcije'),
-                  () =>
-                      MyAuctionsScreen.open(context, initialTab: MyTab.selling),
+                  () => MyListingsScreen.open(context),
                 ),
                 row(
                   const ValueKey('profile-shipments'),
@@ -1700,7 +1700,7 @@ class _ShopCard extends ConsumerWidget {
             icon: Icons.badge_outlined,
             title: t('Podaci prodavatelja'),
             subtitle: user.seller == null
-                ? t('Nije ispunjeno — potrebno za isplatu zarade')
+                ? t('Ime, OIB, adresa i IBAN — potrebno prije prve prodaje')
                 : '${user.seller!.isBusiness ? '${user.seller!.tradeName} · ' : ''}${user.seller!.maskedIban}',
             onTap: () => SellerInfoScreen.open(context),
           ),
@@ -1787,13 +1787,6 @@ class _AccountCard extends ConsumerWidget {
             subtitle: Text(t('Fotografija, ime, korisničko ime, opis, grad')),
             trailing: const Icon(Icons.chevron_right),
             onTap: () => EditProfileScreen.open(context),
-          ),
-          const Divider(height: 1),
-          ListTile(
-            leading: const Icon(Icons.public),
-            title: Text(t('Moj javni profil')),
-            trailing: const Icon(Icons.chevron_right),
-            onTap: () => PublicProfileScreen.open(context, user.id),
           ),
           if (user.authProvider != 'google') ...[
             const Divider(height: 1),

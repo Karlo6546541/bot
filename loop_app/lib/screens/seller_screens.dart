@@ -40,7 +40,7 @@ Future<bool> ensureSellerInfo(BuildContext context) async {
     context,
     title: t('Podaci prodavatelja'),
     message: t(
-      'Prije prve objave zakon traži tvoje podatke: ime ili naziv tvrtke, OIB, adresu i IBAN za isplatu (EU pravila DAC7 i DSA). Prodaješ kao privatna osoba ili kao obrt/tvrtka — kupci vide samo tu oznaku (a kod trgovca i podatke za kontakt).',
+      'Prije prve objave zakon traži tvoje podatke: ime i prezime, OIB, adresu i IBAN za isplatu (EU pravila DAC7 i DSA). Kupci ih ne vide.',
     ),
     confirmLabel: t('Ispuni podatke'),
   );
