@@ -12,6 +12,7 @@ import '../widgets/auction_kind_style.dart';
 import '../widgets/countdown.dart';
 import '../widgets/dutch_price.dart';
 import '../widgets/formatters.dart';
+import '../widgets/category_style.dart';
 import '../widgets/item_image.dart';
 import 'auction_detail_screen.dart';
 import 'search_screen.dart';
@@ -304,18 +305,9 @@ class AuctionTile extends ConsumerWidget {
                 child: Stack(
                   fit: StackFit.expand,
                   children: [
-                    LayoutBuilder(
-                      builder: (_, c) => device == null
-                          ? ColoredBox(color: LoopColors.surfaceHover)
-                          : FittedBox(
-                              fit: BoxFit.cover,
-                              clipBehavior: Clip.hardEdge,
-                              child: ItemThumb(
-                                device: device,
-                                size: c.maxWidth,
-                              ),
-                            ),
-                    ),
+                    device == null
+                        ? ColoredBox(color: LoopColors.surfaceHover)
+                        : _TileImage(device: device),
                     Positioned(
                       left: 8,
                       top: 8,
@@ -405,13 +397,7 @@ class BuyNowTile extends StatelessWidget {
                 child: Stack(
                   fit: StackFit.expand,
                   children: [
-                    LayoutBuilder(
-                      builder: (_, c) => FittedBox(
-                        fit: BoxFit.cover,
-                        clipBehavior: Clip.hardEdge,
-                        child: ItemThumb(device: d, size: c.maxWidth),
-                      ),
-                    ),
+                    _TileImage(device: d),
                     Positioned(
                       left: 8,
                       top: 8,
@@ -492,6 +478,28 @@ class BuyNowTile extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+}
+
+/// Slika kartice: puni cijelu površinu do gornjih rubova kartice (kartica je
+/// reže kutovima), bez vlastitog zaobljenja i razmaka. Bez fotografije:
+/// ikona kategorije na podlozi.
+class _TileImage extends StatelessWidget {
+  const _TileImage({required this.device});
+  final Device device;
+
+  @override
+  Widget build(BuildContext context) {
+    final fallback = ColoredBox(
+      color: LoopColors.surfaceHover,
+      child: Center(child: CategoryAvatar(category: device.category, size: 64)),
+    );
+    if (device.imagePaths.isEmpty) return fallback;
+    return LocalPhoto(
+      path: device.imagePaths.first,
+      fallback: fallback,
+      cacheWidth: 600,
     );
   }
 }
