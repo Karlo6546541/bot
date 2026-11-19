@@ -151,102 +151,112 @@ class WalletTicket extends StatelessWidget {
         ),
       );
     }
+    // Kompaktan redak: mala slika lijevo, status, naslov i cijena desno, a
+    // praćenje isporuke tanko ispod (jedna kupnja ne zauzima cijeli ekran).
     return VisionGlass(
       quiet: true,
-      radius: 28,
+      radius: 18,
       child: Material(
         color: Colors.transparent,
         child: InkWell(
           key: openKey,
           onTap: onTap,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Semantics(
-                label: title,
-                image: true,
-                child: AspectRatio(
-                  key: const ValueKey('wallet-artwork'),
-                  aspectRatio: 1.8,
-                  child: photo == null
-                      ? fallback
-                      : LocalPhoto(
-                          path: photo,
-                          fallback: fallback,
-                          cacheWidth: 1000,
-                        ),
-                ),
-              ),
-              Padding(
-                padding: const EdgeInsets.fromLTRB(20, 18, 20, 20),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
+          child: Padding(
+            padding: const EdgeInsets.all(12),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Row(
-                      children: [
-                        Expanded(
-                          child: Text(
-                            status,
-                            key: statusKey,
-                            style: TextStyle(
-                              color: LoopColors.accent,
-                              fontSize: 12,
-                              fontWeight: FontWeight.w600,
+                    Semantics(
+                      label: title,
+                      image: true,
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(12),
+                        child: SizedBox(
+                          key: const ValueKey('wallet-artwork'),
+                          width: 72,
+                          height: 72,
+                          child: photo == null
+                              ? fallback
+                              : LocalPhoto(
+                                  path: photo,
+                                  fallback: fallback,
+                                  cacheWidth: 240,
+                                ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Expanded(
+                                child: Text(
+                                  status,
+                                  key: statusKey,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: TextStyle(
+                                    color: LoopColors.accent,
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ),
+                              Text(
+                                shortDate,
+                                style: TextStyle(
+                                  color: LoopColors.textSecondary,
+                                  fontSize: 12,
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            title,
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              fontSize: 16,
+                              height: 1.2,
+                              fontWeight: FontWeight.w700,
                             ),
                           ),
-                        ),
-                        Text(
-                          shortDate,
-                          style: TextStyle(
-                            color: LoopColors.textSecondary,
-                            fontSize: 12,
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      title,
-                      style: const TextStyle(
-                        fontSize: 22,
-                        height: 1.15,
-                        fontWeight: FontWeight.w700,
-                        letterSpacing: -.6,
+                          if (seller != null)
+                            Text(
+                              seller!,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                color: LoopColors.textSecondary,
+                                fontSize: 12,
+                              ),
+                            ),
+                          if (price != null)
+                            Padding(
+                              padding: const EdgeInsets.only(top: 2),
+                              child: Text(
+                                price!,
+                                style: const TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w800,
+                                ),
+                              ),
+                            ),
+                        ],
                       ),
                     ),
-                    if (seller != null)
-                      Padding(
-                        padding: const EdgeInsets.only(top: 6),
-                        child: Text(
-                          seller!,
-                          style: TextStyle(
-                            color: LoopColors.textSecondary,
-                            fontSize: 13,
-                          ),
-                        ),
-                      ),
-                    if (price != null)
-                      Padding(
-                        padding: const EdgeInsets.only(top: 12),
-                        child: Text(
-                          price!,
-                          style: const TextStyle(
-                            fontSize: 30,
-                            fontWeight: FontWeight.w700,
-                            letterSpacing: -1,
-                          ),
-                        ),
-                      ),
-                    if (footer != null) ...[
-                      const SizedBox(height: 18),
-                      Divider(height: 1, color: LoopColors.glassBorder),
-                      const SizedBox(height: 18),
-                      footer!,
-                    ],
                   ],
                 ),
-              ),
-            ],
+                if (footer != null) ...[const SizedBox(height: 10), footer!],
+              ],
+            ),
           ),
         ),
       ),
@@ -368,7 +378,7 @@ class _CinematicTrackingState extends State<CinematicTracking>
                   ],
                 ],
               ),
-              const SizedBox(height: 10),
+              const SizedBox(height: 6),
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [

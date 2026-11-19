@@ -207,7 +207,7 @@ class MyOnlineActivityPanel extends ConsumerWidget {
           for (final order in orders)
             if (walletStyle)
               Padding(
-                padding: EdgeInsets.fromLTRB(16, 0, 16, kSimpleDesign ? 2 : 18),
+                padding: EdgeInsets.fromLTRB(16, 0, 16, kSimpleDesign ? 2 : 10),
                 child: _walletOrder(context, ref, order),
               )
             else

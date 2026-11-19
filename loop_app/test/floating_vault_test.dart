@@ -128,7 +128,7 @@ void main() {
   );
 
   testWidgets(
-    'ticket has full-width artwork, compact receipt and accessible actions',
+    'ticket is a compact row with a small thumbnail, short receipt and accessible actions',
     (tester) async {
       var opened = 0;
       await tester.pumpWidget(
@@ -150,7 +150,8 @@ void main() {
         ),
       );
       final picture = find.byKey(const ValueKey('wallet-artwork'));
-      expect(tester.getSize(picture).width, 350);
+      expect(tester.getSize(picture).width, 72);
+      expect(tester.getSize(picture).height, 72);
       expect(find.text('42 €'), findsOneWidget);
       expect(find.textContaining('Cijena:'), findsNothing);
       expect(find.textContaining('Kupljeno:'), findsNothing);

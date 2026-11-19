@@ -287,7 +287,7 @@ class _ActivityViewState extends ConsumerState<ActivityView> {
                     16,
                     0,
                     16,
-                    kSimpleDesign ? 2 : 18,
+                    kSimpleDesign ? 2 : 10,
                   ),
                   child: DeliveryCard(
                     key: ValueKey('bought-${d.id}'),

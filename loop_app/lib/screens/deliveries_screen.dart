@@ -465,7 +465,7 @@ class DeliveryCard extends ConsumerWidget {
             else
               SizedBox(key: ValueKey('delivery-waiting-${d.id}')),
           ] else ...[
-            const SizedBox(height: 14),
+            const SizedBox(height: 8),
             Wrap(
               spacing: 12,
               runSpacing: 4,
