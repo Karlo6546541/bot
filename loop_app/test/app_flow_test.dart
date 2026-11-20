@@ -1031,6 +1031,7 @@ void chatTests() {
     await globalSearch(tester);
     await tester.pumpAndSettle();
     await tester.enterText(find.byKey(const ValueKey('global-search')), 'demo');
+    await tester.testTextInput.receiveAction(TextInputAction.search);
     await tester.pumpAndSettle();
     await tester.tap(find.textContaining('Računi'));
     await tester.pumpAndSettle();

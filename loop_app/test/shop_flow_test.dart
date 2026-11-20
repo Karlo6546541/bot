@@ -91,6 +91,7 @@ void main() {
       find.byKey(const ValueKey('global-search')),
       'polaroid',
     );
+    await tester.testTextInput.receiveAction(TextInputAction.search);
     await tester.pumpAndSettle();
     expect(find.text('Objave (1)'), findsOneWidget);
     expect(find.text('Polaroid SX-70'), findsOneWidget);
@@ -99,6 +100,7 @@ void main() {
       find.byKey(const ValueKey('global-search')),
       'airpods',
     );
+    await tester.testTextInput.receiveAction(TextInputAction.search);
     await tester.pumpAndSettle();
     expect(find.text('Objave (0)'), findsNothing);
     // Top (kao Whatnot) je prvi; objave su u svom tabu.
@@ -110,9 +112,11 @@ void main() {
       find.byKey(const ValueKey('global-search')),
       'nepostojeci predmet xyz',
     );
+    await tester.testTextInput.receiveAction(TextInputAction.search);
     await tester.pumpAndSettle();
     expect(find.text('Objave (0)'), findsOneWidget);
     await tester.enterText(find.byKey(const ValueKey('global-search')), 'ana');
+    await tester.testTextInput.receiveAction(TextInputAction.search);
     await tester.pumpAndSettle();
     await tester.ensureVisible(find.text('Računi (1)'));
     await tester.pumpAndSettle();

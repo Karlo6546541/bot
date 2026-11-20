@@ -1,7 +1,6 @@
 import '../config/design_variant.dart';
 import '../widgets/reference_order_row.dart';
 import 'dart:ui';
-import '../widgets/vision_glass.dart';
 import 'show_filters.dart';
 import 'auctions_screen.dart';
 import 'auction_detail_screen.dart';
@@ -93,6 +92,9 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
   final _c = TextEditingController();
   final _focus = FocusNode();
   String _q = '';
+
+  /// Dok korisnik tipka, umjesto rezultata prikaži prijedloge.
+  bool _suggest = false;
   @override
   void initState() {
     super.initState();
@@ -119,8 +121,17 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
   void _set(String q) => setState(() {
     _SearchSession.query = q;
     _c.text = q;
+    _c.selection = TextSelection.collapsed(offset: q.length);
     _q = q;
+    _suggest = false;
   });
+
+  /// Odabir prijedloga ili nedavne pretrage: zapamti i prikaži rezultate.
+  void _run(String q) {
+    ref.read(appProvider.notifier).addSearch(q);
+    _focus.unfocus();
+    _set(q);
+  }
 
   SmartQuery get _sq => SmartQuery.parse(_q);
 
@@ -731,8 +742,17 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
       focusNode: _focus,
       autofocus: true,
       textInputAction: TextInputAction.search,
-      onChanged: (v) => setState(() => _q = v),
-      onSubmitted: (v) => ref.read(appProvider.notifier).addSearch(v),
+      onChanged: (v) => setState(() {
+        _q = v;
+        _suggest = v.trim().isNotEmpty;
+      }),
+      onTap: () {
+        if (_q.trim().isNotEmpty && !_suggest) setState(() => _suggest = true);
+      },
+      onSubmitted: (v) {
+        ref.read(appProvider.notifier).addSearch(v);
+        setState(() => _suggest = false);
+      },
       decoration: InputDecoration(
         isDense: true,
         filled: true,
@@ -752,7 +772,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
         hintText: t(
           kLiveEnabled
               ? 'Traži liveove, aukcije, predmete i račune…'
-              : 'Traži aukcije i račune…',
+              : 'Traži predmete, kategorije, račune…',
         ),
         prefixIcon: const Icon(Icons.search),
         suffixIcon: _q.isEmpty
@@ -773,8 +793,14 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
         backgroundColor: LoopColors.background.withValues(alpha: .86),
         appBar: AppBar(
           titleSpacing: 0,
-          title: empty ? Text(t('Pretraži')) : input,
-          bottom: empty
+          title: Padding(
+            padding: const EdgeInsets.only(right: 16),
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 640),
+              child: input,
+            ),
+          ),
+          bottom: empty || _suggest
               ? null
               : PillTabBar(
                   // Bez rezanja naziva ("Objav", "Raču"): kapsula se pomiče.
@@ -790,19 +816,14 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                 ),
         ),
         body: empty
-            ? Align(
-                alignment: const Alignment(0, .1),
-                child: Padding(
-                  padding: const EdgeInsets.all(24),
-                  child: ConstrainedBox(
-                    constraints: const BoxConstraints(maxWidth: 600),
-                    child: VisionGlass(
-                      radius: 99,
-                      padding: const EdgeInsets.all(8),
-                      child: input,
-                    ),
-                  ),
-                ),
+            ? _Discover(onPick: _run, stats: categoryStats(s))
+            : _suggest
+            ? _Suggestions(
+                query: _q,
+                state: s,
+                categories: categories,
+                onPick: _run,
+                didYouMean: _didYouMean(s),
               )
             : Column(
                 children: [
@@ -1299,6 +1320,170 @@ class _History extends ConsumerWidget {
             ),
             onTap: () => onPick(q),
           ),
+      ],
+    );
+  }
+}
+
+/// Prazno polje: nedavno traženo, popularne kategorije i savjeti.
+class _Discover extends ConsumerWidget {
+  const _Discover({required this.onPick, required this.stats});
+  final ValueChanged<String> onPick;
+  final List<CategoryStat> stats;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final history = ref.watch(appProvider.select((s) => s.searchHistory));
+    final c = ref.read(appProvider.notifier);
+    // Popularno = kategorije s najviše stvarnih objava; bez objava prvih osam.
+    final ranked = [...stats]..sort((a, b) => b.items.compareTo(a.items));
+    final popular = [
+      for (final s in ranked)
+        if (s.items > 0) s.category,
+    ].take(8).toList();
+    final cats = popular.isNotEmpty
+        ? popular
+        : DeviceCategory.active.take(8).toList();
+    Widget title(String text, {Widget? trailing}) => Padding(
+      padding: const EdgeInsets.fromLTRB(16, 16, 8, 6),
+      child: Row(
+        children: [
+          Expanded(
+            child: Text(
+              text,
+              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800),
+            ),
+          ),
+          ?trailing,
+        ],
+      ),
+    );
+    return ListView(
+      key: const ValueKey('search-discover'),
+      padding: const EdgeInsets.only(bottom: 24),
+      children: [
+        if (history.isNotEmpty) ...[
+          title(
+            t('Nedavno traženo'),
+            trailing: TextButton(
+              onPressed: c.clearSearchHistory,
+              child: Text(t('Očisti povijest')),
+            ),
+          ),
+          for (final q in history.take(6))
+            ListTile(
+              dense: true,
+              leading: Icon(Icons.history, color: LoopColors.textSecondary),
+              title: Text(q),
+              trailing: IconButton(
+                tooltip: t('Ukloni'),
+                icon: const Icon(Icons.close, size: 18),
+                onPressed: () => c.removeSearch(q),
+              ),
+              onTap: () => onPick(q),
+            ),
+        ],
+        title(t('Popularne kategorije')),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          child: Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              for (final cat in cats)
+                ActionChip(
+                  key: ValueKey('search-cat-${cat.name}'),
+                  avatar: const Icon(Icons.trending_up, size: 16),
+                  label: Text(cat.label),
+                  onPressed: () => onPick(cat.label),
+                ),
+            ],
+          ),
+        ),
+        title(t('Pametno traženje')),
+        for (final (example, hint) in <(String, String)>[
+          ('pokemon do 50', t('Cijena: "do 50", "od 20", "20-50"')),
+          ('aukcije kovanice', t('Vrsta: "aukcije" ili "kupi odmah"')),
+          ('psa 10', t('Ocijenjeno: PSA, BGS, CGC')),
+          ('@korisnik', t('Račun: upiši @ i ime')),
+        ])
+          ListTile(
+            dense: true,
+            leading: Icon(Icons.auto_awesome, color: LoopColors.textSecondary),
+            title: Text(example),
+            subtitle: Text(hint),
+            onTap: () => onPick(example),
+          ),
+      ],
+    );
+  }
+}
+
+/// Prijedlozi dok korisnik tipka: nedavno, kategorije i nazivi predmeta.
+class _Suggestions extends ConsumerWidget {
+  const _Suggestions({
+    required this.query,
+    required this.state,
+    required this.categories,
+    required this.onPick,
+    this.didYouMean,
+  });
+  final String query;
+  final AppState state;
+  final List<DeviceCategory> categories;
+  final ValueChanged<String> onPick;
+  final String? didYouMean;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final sq = SmartQuery.parse(query);
+    final q = normalizeSearch(query.trim());
+    final titles = <String>[];
+    void add(String name) {
+      if (name.isEmpty || titles.length >= 5) return;
+      if (titles.any((x) => x.toLowerCase() == name.toLowerCase())) return;
+      if (sq.terms.isNotEmpty && sq.matches(name)) titles.add(name);
+    }
+
+    for (final a in state.activeAuctions) {
+      add(a.deviceName);
+    }
+    for (final d in state.marketDevices) {
+      if (d.isListed) add(d.name);
+    }
+    final recent = [
+      for (final h in state.searchHistory)
+        if (normalizeSearch(h).contains(q) && normalizeSearch(h) != q) h,
+    ].take(3);
+    Widget row(IconData icon, String text, {String? sub}) => ListTile(
+      dense: true,
+      leading: Icon(icon, color: LoopColors.textSecondary),
+      title: Text(text, maxLines: 1, overflow: TextOverflow.ellipsis),
+      subtitle: sub == null ? null : Text(sub),
+      trailing: const Icon(Icons.north_west, size: 16),
+      onTap: () => onPick(text),
+    );
+    return ListView(
+      key: const ValueKey('search-suggestions'),
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      children: [
+        ListTile(
+          key: const ValueKey('search-suggest-run'),
+          leading: const Icon(Icons.search),
+          title: Text(t('Traži "{0}"', [query.trim()])),
+          onTap: () => onPick(query.trim()),
+        ),
+        if (didYouMean != null)
+          ListTile(
+            key: const ValueKey('search-suggest-mean'),
+            leading: const Icon(Icons.spellcheck),
+            title: Text(t('Misliš li na "{0}"?', [didYouMean!])),
+            onTap: () => onPick(didYouMean!),
+          ),
+        for (final h in recent) row(Icons.history, h),
+        for (final cat in categories.take(4))
+          row(Icons.category_outlined, cat.label, sub: t('Kategorija')),
+        for (final n in titles) row(Icons.sell_outlined, n),
       ],
     );
   }
