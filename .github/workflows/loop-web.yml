@@ -1,5 +1,6 @@
-# Gradi web verziju aplikacije LOOP i objavljuje je na GitHub Pages:
-# https://<korisnik>.github.io/bot/
+# Gradi oglasnik (oglasnik/) i spremljene Flutter verzije te ih objavljuje na
+# GitHub Pages: https://<korisnik>.github.io/bot/ (oglasnik),
+# https://<korisnik>.github.io/bot/v0-aukcije/ (aukcije, arhiva)
 #
 # Jednokratno postavljanje (Settings repozitorija):
 #   1. Pages → Build and deployment → Source: "GitHub Actions".
@@ -11,7 +12,7 @@ name: LOOP web (GitHub Pages)
 on:
   push:
     branches: [main, claude/beautiful-newton-sftcyd]
-    paths: ["loop_app/**", "site/**", ".github/workflows/loop-web.yml"]
+    paths: ["loop_app/**", "oglasnik/**", "site/**", ".github/workflows/loop-web.yml"]
   workflow_dispatch:
 
 permissions:
@@ -54,7 +55,7 @@ jobs:
           # Neobavezno: BOX NOW partner ID za kartu paketomata.
           BOXNOW_PARTNER_ID: ${{ vars.BOXNOW_PARTNER_ID }}
         run: >
-          flutter build web --release --base-href /bot/ --no-web-resources-cdn
+          flutter build web --release --base-href /bot/v0-aukcije/ --no-web-resources-cdn
           --dart-define=CLOUD_COMMERCE_ENABLED="${{ vars.CLOUD_COMMERCE_ENABLED || 'true' }}"
           --dart-define=SUPABASE_URL="$SUPABASE_URL"
           --dart-define=SUPABASE_KEY="$SUPABASE_KEY"
@@ -222,9 +223,39 @@ jobs:
       - name: Copy landing page (/bot/site/)
         run: cp -r "$GITHUB_WORKSPACE/site" "$GITHUB_WORKSPACE/loop_app/build/web/site"
 
+      # Oglasnik za kolekcionare na glavnoj adresi (/bot/). Dosadašnja
+      # aplikacija s aukcijama ostaje na /bot/v0-aukcije/, a spremljene
+      # kopije i landing stranica na svojim podmapama.
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Build oglasnik (/bot/)
+        working-directory: oglasnik
+        env:
+          VITE_SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          VITE_SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
+          VITE_APP_NAME: ${{ vars.APP_NAME || 'Subhasto' }}
+          VITE_CONTACT_EMAIL: ${{ vars.CONTACT_EMAIL }}
+          BASE_PATH: /bot/
+        run: |
+          npm ci
+          npx tsc -p .
+          npm test
+          npm run build
+      - name: Assemble site
+        run: |
+          stari="$RUNNER_TEMP/flutter-web"
+          mv loop_app/build/web "$stari"
+          mkdir -p public
+          cp -r oglasnik/dist/. public/
+          for d in novi-izgled privatni puna prije-redizajna-2026-11-04 prije-visionos-2026-11-04 prije-samo-aukcije site; do
+            [ -d "$stari/$d" ] && mv "$stari/$d" "public/$d"
+          done
+          mv "$stari" public/v0-aukcije
+
       - uses: actions/upload-pages-artifact@v3
         with:
-          path: loop_app/build/web
+          path: public
 
   deploy:
     needs: build
