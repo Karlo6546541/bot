@@ -8,7 +8,10 @@ export async function sellerDestination(svc:Services,sellerId:string):Promise<st
  const account=await svc.stripe.v2.core.accounts.retrieve(seller.stripe_account_id,{include:['configuration.recipient']});
  const active=account.configuration?.recipient?.capabilities?.stripe_balance?.stripe_transfers?.status==='active';
  await svc.admin.from('commerce_sellers').update({transfers_active:active,checked_at:new Date().toISOString()}).eq('user_id',sellerId);
- return active?seller.stripe_account_id as string:null;
+ if(!active)return null;
+ // Novac na računu prodavača isplaćuje samo stripe-release nakon dostave: ručni raspored isplata.
+ await svc.stripe.balanceSettings.update({payments:{payouts:{schedule:{interval:'manual'}}}},{stripeAccount:seller.stripe_account_id});
+ return seller.stripe_account_id as string;
 }
 // Jedan PaymentIntent po narudžbi. Novac ne ostaje na platformi: naplata odmah
 // prenosi prodavačev dio na njegov povezani Stripe račun (destination charge),

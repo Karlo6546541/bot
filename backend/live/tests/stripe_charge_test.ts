@@ -2,7 +2,8 @@ import assert from 'node:assert/strict';
 import { chargeOrder } from '../functions/_shared/charge.ts';
 import { reverseSellerTransfer } from '../functions/_shared/reversal.ts';
 
-const sellerAccount=(status:string)=>({v2:{core:{accounts:{retrieve:async()=>({configuration:{recipient:{capabilities:{stripe_balance:{stripe_transfers:{status}}}}}})}}}});
+const schedules:string[]=[];
+const sellerAccount=(status:string)=>({balanceSettings:{update:async(body:{payments:{payouts:{schedule:{interval:string}}}},o:{stripeAccount:string})=>{schedules.push(`${o.stripeAccount}:${body.payments.payouts.schedule.interval}`);}},v2:{core:{accounts:{retrieve:async()=>({configuration:{recipient:{capabilities:{stripe_balance:{stripe_transfers:{status}}}}}})}}}});
 function table(steps:string[],payment:Record<string,unknown>|null){
  return (name:string)=>({
   select:()=>({eq:()=>({maybeSingle:async()=>({data:name==='commerce_sellers'?{stripe_account_id:'acct_seller'}:payment})})}),
@@ -23,6 +24,8 @@ Deno.test('off-session charge sends the seller share to the connected account an
  // The platform keeps only its commission (and shipping); the rest is held by Stripe on the seller's account.
  assert.deepEqual(params.transfer_data,{destination:'acct_seller',amount:1805});
  assert.deepEqual(steps,['commerce_begin_charge','create','persist','confirm','commerce_settle_intent']);
+ // Money held on the seller's account is paid out only by stripe-release after delivery.
+ assert.deepEqual(schedules,['acct_seller:manual']);
 });
 
 Deno.test('an unverified seller never blocks the purchase: the money waits at Stripe until payout setup',async()=>{

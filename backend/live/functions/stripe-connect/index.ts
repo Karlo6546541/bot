@@ -13,11 +13,6 @@ Deno.serve(async (req: Request) => {
     if(body.seller!==undefined && (!body.seller || typeof body.seller!=='object' || Array.isArray(body.seller)))return response(400,{error:'INVALID_PROFILE'});
     const { stripe, admin, config } = await services();
     const result=await prepareSeller(stripe,admin,user,appUrl(),body.seller,typeof body.country==='string'?body.country:undefined);
-    await admin.from('commerce_sellers').update({transfers_active:result.ready,checked_at:new Date().toISOString()}).eq('user_id',user.id);
-    // Isplate na IBAN pokreće samo poslužitelj nakon dostave: raspored je ručni.
-    try{
-      await stripe.balanceSettings.update({payments:{payouts:{schedule:{interval:'manual'}}}},{stripeAccount:result.accountId});
-    }catch(error){console.error('payout_schedule_failed',{type:error instanceof Error?error.name:'unknown',message:error instanceof Error?error.message.slice(0,200):''});}
     if(body.action==='prepare' || result.ready)return response(200,{ready:result.ready,mode:'test'});
     // Kratkotrajna sesija samo za račun prijavljenog korisnika.
     const key=config.STRIPE_PUBLISHABLE_KEY;
