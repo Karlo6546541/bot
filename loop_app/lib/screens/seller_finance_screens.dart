@@ -4,6 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../config/features.dart';
+import '../widgets/seller_account_card.dart';
 import '../l10n/tr.dart';
 import '../models/live_show.dart';
 import '../models/loop_transaction.dart';
@@ -121,7 +123,10 @@ class FinancialsScreen extends ConsumerWidget {
           title: Text(t('Financije')),
           bottom: PillTabBar(
             tabs: [
-              tab('fin-tab-payouts', t('Isplate')),
+              tab(
+                'fin-tab-payouts',
+                kLiveEnabled ? t('Isplate') : t('Pregled'),
+              ),
               tab('fin-tab-ledger', t('Transakcije')),
               tab('fin-tab-reports', t('Izvještaji')),
             ],
@@ -129,12 +134,125 @@ class FinancialsScreen extends ConsumerWidget {
         ),
         body: TabBarView(
           children: [
-            _PayoutsTab(ledger: ledger),
+            // Bez novčanika: isplata ide automatski na IBAN, ovdje je samo
+            // statistika zarade.
+            if (kLiveEnabled)
+              _PayoutsTab(ledger: ledger)
+            else
+              _EarningsSummary(sales: sales),
             _TransactionsTab(ledger: ledger),
             _Reports(sales: sales),
           ],
         ),
       ),
+    );
+  }
+}
+
+/// Pregled zarade (samo za čitanje): ukupno, provizije, u tijeku i
+/// isplaćeno. Nema stanja ni gumba za isplatu — novac ide automatski.
+class _EarningsSummary extends ConsumerWidget {
+  const _EarningsSummary({required this.sales});
+  final List<LoopTransaction> sales;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final s = ref.watch(appProvider);
+    final now = DateTime.now();
+    bool settled(LoopTransaction tx) {
+      final d = s.sellerDeliveries
+          .where((d) => d.deviceId == tx.deviceId && d.buyerId == tx.buyerId)
+          .firstOrNull;
+      // Bez zapisa dostave (npr. digitalno) prodaja je završena.
+      if (d == null) return true;
+      if (d.confirmedAt != null) return true;
+      final at = d.handedOverAt ?? d.startedAt;
+      return d.isDelivered(now) &&
+          at != null &&
+          now.difference(at) > const Duration(days: 2);
+    }
+
+    double sum(
+      Iterable<LoopTransaction> l,
+      double Function(LoopTransaction) f,
+    ) => l.fold(0, (a, tx) => a + f(tx));
+    final earned = sum(sales, (tx) => tx.amount);
+    final fees = sum(sales, (tx) => tx.fee);
+    final pending = sum(sales.where((tx) => !settled(tx)), (tx) => tx.amount);
+    final paid = earned - pending;
+    final muted = TextStyle(color: LoopColors.textSecondary, fontSize: 13);
+    Widget stat(String key, String label, String value) => Expanded(
+      child: Container(
+        key: ValueKey(key),
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: LoopColors.surface,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: LoopColors.glassBorder),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(label, style: muted),
+            const SizedBox(height: 4),
+            Text(
+              value,
+              style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w800),
+            ),
+          ],
+        ),
+      ),
+    );
+    return ListView(
+      key: const ValueKey('fin-summary'),
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 32),
+      children: [
+        const SellerAccountCard(onlyWhenActionNeeded: true),
+        const SizedBox(height: 8),
+        Text(t('Zarađeno ukupno'), style: muted),
+        Text(
+          formatCredits(earned),
+          key: const ValueKey('fin-earned'),
+          style: const TextStyle(fontSize: 34, fontWeight: FontWeight.w800),
+        ),
+        Text(
+          t('{0} prodaja · provizije {1}', [
+            '${sales.length}',
+            formatCredits(fees),
+          ]),
+          style: muted,
+        ),
+        const SizedBox(height: 14),
+        Row(
+          children: [
+            stat('fin-pending', t('Čeka dostavu'), formatCredits(pending)),
+            const SizedBox(width: 10),
+            stat('fin-paid', t('Isplaćeno'), formatCredits(paid)),
+          ],
+        ),
+        const SizedBox(height: 14),
+        Container(
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(
+            color: LoopColors.surface,
+            borderRadius: BorderRadius.circular(14),
+          ),
+          child: Row(
+            children: [
+              Icon(Icons.schedule, color: LoopColors.accent),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  t(
+                    'Isplata ide automatski na tvoj IBAN kad kupac potvrdi primitak (ili 2 dana nakon dostave). Ne trebaš ništa pokretati.',
+                  ),
+                  style: const TextStyle(height: 1.4),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
     );
   }
 }

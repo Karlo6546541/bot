@@ -218,7 +218,7 @@ class WalletChip extends ConsumerWidget {
     if (user == null || user.isGuest) return const SizedBox.shrink();
     final ready = user.checkoutReady;
     return Tooltip(
-      message: t('Novčanik'),
+      message: t('Plaćanje i adresa'),
       child: InkWell(
         key: const ValueKey('wallet'),
         customBorder: const CircleBorder(),
@@ -390,7 +390,7 @@ class _WalletSheet extends ConsumerWidget {
                 const Icon(Icons.account_balance_wallet_rounded),
                 const SizedBox(width: 8),
                 Text(
-                  t('Novčanik'),
+                  t('Plaćanje i adresa'),
                   style: const TextStyle(
                     fontSize: 20,
                     fontWeight: FontWeight.w900,
@@ -493,7 +493,9 @@ class _CheckoutSetupSheetState extends ConsumerState<_CheckoutSetupSheet> {
                 const SizedBox(width: 8),
               ],
               Text(
-                widget.wallet ? t('Novčanik') : t('Plaćanje i dostava'),
+                widget.wallet
+                    ? t('Plaćanje i adresa')
+                    : t('Plaćanje i dostava'),
                 key: const ValueKey('wallet-title'),
                 style: const TextStyle(
                   fontSize: 20,

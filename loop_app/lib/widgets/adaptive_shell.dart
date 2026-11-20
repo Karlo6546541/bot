@@ -36,7 +36,9 @@ class ShellDestination {
       return Icon(
         selected ? selectedIcon : icon,
         key: action ? const ValueKey('nav-create') : null,
-        color: action && selected && !kSimpleDesign ? LoopColors.live : null,
+        color: action && selected && !kSimpleDesign && kLiveEnabled
+            ? LoopColors.live
+            : null,
         size: compact ? 25 : null,
       );
     }

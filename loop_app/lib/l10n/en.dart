@@ -3709,6 +3709,11 @@ const kEn = <String, String>{
   'Provjeri': 'Verify',
   'Kartica se naplaćuje kad kupiš ili pobijediš na aukciji, a paket stiže na ovu adresu.':
       'Your card is charged when you buy or win an auction, and the parcel is sent to this address.',
+  'Pregled': 'Overview',
+  'Zarađeno ukupno': 'Total earned',
+  '{0} prodaja · provizije {1}': '{0} sales · fees {1}',
+  'Čeka dostavu': 'Awaiting delivery',
+  'Isplata ide automatski na tvoj IBAN kad kupac potvrdi primitak (ili 2 dana nakon dostave). Ne trebaš ništa pokretati.': 'Payouts go automatically to your IBAN when the buyer confirms receipt (or 2 days after delivery). You don\'t need to do anything.',
   'Zakaži show': 'Schedule a show',
   'Otprema': 'Shipping',
   'Nema paketa za predaju': 'No parcels to hand over',

@@ -7,6 +7,8 @@ import 'package:loop_app/models/device.dart';
 import 'package:loop_app/providers/app_providers.dart';
 import 'package:loop_app/screens/device_detail_screen.dart';
 import 'package:loop_app/screens/my_listings_screen.dart';
+import 'package:loop_app/screens/seller_finance_screens.dart';
+import 'package:loop_app/config/features.dart';
 import 'package:loop_app/services/seed_data.dart';
 import 'package:loop_app/services/storage_service.dart';
 import 'package:loop_app/services/trade_service.dart';
@@ -100,4 +102,19 @@ void main() {
     await tester.pumpAndSettle();
     expect(tester.takeException(), isNull);
   });
+
+  testWidgets('Zarada: samo statistika, bez stanja i gumba za isplatu', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(400, 900);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    await tester.pumpWidget(app(const FinancialsScreen()));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('fin-summary')), findsOneWidget);
+    expect(find.byKey(const ValueKey('fin-earned')), findsOneWidget);
+    expect(find.text('Pokreni isplatu'), findsNothing);
+    expect(find.text('Dostupno za isplatu'), findsNothing);
+    expect(tester.takeException(), isNull);
+  }, skip: kLiveEnabled);
 }
