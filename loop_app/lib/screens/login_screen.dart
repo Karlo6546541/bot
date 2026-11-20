@@ -430,8 +430,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 label: Text(t('Samo razgledaj (gost)')),
               ),
             const SizedBox(height: 8),
-            // Admin je za tim — neupadljiva poveznica.
-            if (!_overlay)
+            // Admin je za tim — neupadljiva poveznica. Samo u lokalnom demo
+            // načinu: lozinka je u kodu aplikacije pa online nije sigurna.
+            if (!_overlay && !backend.isOnline)
               Center(
                 child: TextButton(
                   style: TextButton.styleFrom(

@@ -356,7 +356,8 @@ class AppController extends Notifier<AppState> {
   }
 
   Future<void> adminLogin(String email, String password) async {
-    if (!_trade.isAdminLogin(email, password)) {
+    // Lozinka admina je u kodu aplikacije: online bi je svatko mogao pročitati.
+    if (BackendConfig.isOnline || !_trade.isAdminLogin(email, password)) {
       throw TradeException(t('Pogrešni admin podaci.'));
     }
     await _storage.saveSession(isAdmin: true);

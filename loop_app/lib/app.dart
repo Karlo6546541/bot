@@ -1,3 +1,4 @@
+import 'config/backend_config.dart';
 import 'services/app_location/app_location.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
@@ -22,7 +23,10 @@ class LoopApp extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final isAdmin = ref.watch(appProvider.select((s) => s.isAdmin));
+    // Admin samo u lokalnom demo načinu (online lozinka u kodu nije sigurna).
+    final isAdmin =
+        !BackendConfig.isOnline &&
+        ref.watch(appProvider.select((s) => s.isAdmin));
     final loggedIn = ref.watch(
       appProvider.select((s) => s.currentUser != null),
     );
