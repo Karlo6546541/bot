@@ -12,6 +12,7 @@ import '../widgets/auction_kind_style.dart';
 import '../widgets/countdown.dart';
 import '../widgets/dutch_price.dart';
 import '../widgets/formatters.dart';
+import '../services/sync_service.dart';
 import '../widgets/category_style.dart';
 import '../widgets/certificate_badge.dart';
 import '../widgets/item_image.dart';
@@ -213,11 +214,7 @@ class _AuctionsHomeScreenState extends ConsumerState<AuctionsHomeScreen> {
                 key: const ValueKey('home-no-auctions'),
                 child: Padding(
                   padding: const EdgeInsets.all(32),
-                  child: Text(
-                    t('Trenutno nema aukcija.'),
-                    textAlign: TextAlign.center,
-                    style: TextStyle(color: LoopColors.textSecondary),
-                  ),
+                  child: _EmptyOrOffline(sync: ref.watch(syncProvider)),
                 ),
               ),
             )
@@ -508,6 +505,64 @@ class _TileImage extends StatelessWidget {
       path: device.imagePaths.first,
       fallback: fallback,
       cacheWidth: 600,
+    );
+  }
+}
+
+/// Prazna početna: bez veze s bazom kaže to (i nudi ponovni pokušaj), a ne
+/// "nema aukcija".
+class _EmptyOrOffline extends StatelessWidget {
+  const _EmptyOrOffline({required this.sync});
+  final SyncService? sync;
+
+  @override
+  Widget build(BuildContext context) {
+    final s = sync;
+    final empty = Text(
+      t('Trenutno nema aukcija.'),
+      textAlign: TextAlign.center,
+      style: TextStyle(color: LoopColors.textSecondary),
+    );
+    if (s == null) return empty;
+    return ValueListenableBuilder<SyncStatus>(
+      valueListenable: s.statusListenable,
+      builder: (_, status, _) => switch (status) {
+        SyncStatus.online => empty,
+        SyncStatus.connecting => Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const SizedBox(
+              width: 22,
+              height: 22,
+              child: CircularProgressIndicator(strokeWidth: 2.5),
+            ),
+            const SizedBox(height: 12),
+            Text(
+              t('Učitavanje…'),
+              style: TextStyle(color: LoopColors.textSecondary),
+            ),
+          ],
+        ),
+        _ => Column(
+          key: const ValueKey('home-offline'),
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.wifi_off, color: LoopColors.textSecondary, size: 32),
+            const SizedBox(height: 10),
+            Text(
+              t('Nema veze s poslužiteljem. Provjeri internet.'),
+              textAlign: TextAlign.center,
+              style: TextStyle(color: LoopColors.textSecondary),
+            ),
+            const SizedBox(height: 12),
+            OutlinedButton(
+              key: const ValueKey('home-retry'),
+              onPressed: s.retry,
+              child: Text(t('Pokušaj ponovno')),
+            ),
+          ],
+        ),
+      },
     );
   }
 }

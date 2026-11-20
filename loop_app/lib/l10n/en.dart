@@ -3715,6 +3715,8 @@ const kEn = <String, String>{
   'Čeka dostavu': 'Awaiting delivery',
   'Isplata ide automatski na tvoj IBAN kad kupac potvrdi primitak (ili 2 dana nakon dostave). Ne trebaš ništa pokretati.':
       'Payouts go automatically to your IBAN when the buyer confirms receipt (or 2 days after delivery). You don\'t need to do anything.',
+  'Učitavanje…': 'Loading…',
+  'Nema veze s poslužiteljem. Provjeri internet.': 'No connection to the server. Check your internet.',
   'Zakaži show': 'Schedule a show',
   'Otprema': 'Shipping',
   'Nema paketa za predaju': 'No parcels to hand over',
