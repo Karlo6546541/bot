@@ -28,6 +28,10 @@ enum AuctionKind {
   final String _label;
   String get label => t(_label);
 
+  /// Vrste koje se mogu objaviti. Nizozemska ("cijena pada") više se ne
+  /// nudi; stari zapisi se i dalje prikazuju.
+  static const offered = [AuctionKind.classic];
+
   /// Nepoznata vrsta (i nekadašnja zatvorena aukcija) čita se kao klasična.
   static AuctionKind fromName(String? name) => AuctionKind.values.firstWhere(
     (k) => k.name == name,

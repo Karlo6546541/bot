@@ -135,6 +135,9 @@ export async function auctionTests(db,assert,as,rpc,rejects,{host,buyer,other}) 
 
  // 7: Dutch: first buyer with a card takes it at the server price
  await db.exec('reset role');await device('d1');await as(host);
+ await rejects('insert into loop_auctions(id,data) values($1,$2)',['bad2',{id:'bad2',kind:'dutch',status:'active',bids:[],sellerId:host}],'AUCTION_KIND_UNAVAILABLE');
+ // Stara nizozemska aukcija (od prije) i dalje radi do kraja.
+ await db.exec('reset role');
  await auction('dutch1','d1',{kind:'dutch',startPrice:100,floorPrice:50});
  await as(other);await rejects("select auction_take_dutch('dutch1',100)",[],'CARD_REQUIRED');
  await rejects(`update loop_auctions set data=jsonb_set(data,'{bids}',$2::jsonb) where id=$1`,['dutch1',JSON.stringify([{userId:other,userLabel:'o',amount:60,time:new Date().toISOString()}])],'NOT_DUTCH_BID');

@@ -2,7 +2,7 @@
 -- 20261103000000_subhasto_order_fixes.sql i
 -- 20261111100000_subhasto_auction_settlement.sql.
 --
---  1. Samo klasična i holandska aukcija (zatvorena se više ne može objaviti).
+--  1. Nove aukcije su samo klasične (zatvorena i nizozemska se više ne mogu objaviti).
 --  2. Ponuda traži povezanu karticu (commerce_customers.consent_at); kupac s
 --     dva neplaćena dobitka u 90 dana ne može licitirati.
 --  3. Kraj aukcije: narudžba = najviša ponuda + dostava kurirom; obavijesti
@@ -122,7 +122,7 @@ end $$;
 revoke all on function public.auction_settle_due() from public,anon,authenticated;
 grant execute on function public.auction_settle_due() to service_role;
 
--- Holandska: kao do sada, uz obavijesti.
+-- Nizozemska (samo postojeće aukcije od prije): kao do sada, uz obavijesti.
 create or replace function public.auction_take_dutch(p_id text,p_max numeric) returns public.commerce_orders
 language plpgsql security definer set search_path=public as $$ declare a jsonb; o commerce_orders; t0 timestamptz; t1 timestamptz; frac numeric; price numeric; me text; begin
  if auth.uid() is null then raise exception 'AUTH_REQUIRED'; end if;
@@ -162,7 +162,8 @@ grant execute on function public.auction_has_card(text),public.auction_bidding_s
 create or replace function public.auction_client_guard() returns trigger
 language plpgsql set search_path=public as $$ declare n_old integer; n_new integer; b jsonb; begin
  if current_user in ('postgres','service_role','supabase_admin') then return new; end if;
- if coalesce(new.data->>'kind','classic') not in ('classic','dutch') then raise exception 'AUCTION_KIND_UNAVAILABLE'; end if;
+ -- Nove aukcije su samo klasične (zatvorena i nizozemska se više ne nude).
+ if tg_op='INSERT' and coalesce(new.data->>'kind','classic')<>'classic' then raise exception 'AUCTION_KIND_UNAVAILABLE'; end if;
  if tg_op='UPDATE' then
   if coalesce(old.data->>'status','')<>'active' and new.data is distinct from old.data then raise exception 'AUCTION_CLOSED'; end if;
   if new.data->>'status' in ('sold','unsold') then raise exception 'AUCTION_SETTLED_BY_SERVER'; end if;

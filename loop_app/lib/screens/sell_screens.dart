@@ -647,57 +647,6 @@ class _SellAuctionScreenState extends ConsumerState<SellAuctionScreen> {
                         if (d != null) setState(() => _duration = d);
                       },
                     ),
-                    _divider,
-                    _row('sell-kind', t('Vrsta aukcije'), _kind.label, () async {
-                      final k = await _pick<AuctionKind>(
-                        title: t('Vrsta aukcije'),
-                        values: AuctionKind.values,
-                        selected: _kind,
-                        label: (k) => k.label,
-                        hint: (k) => switch (k) {
-                          AuctionKind.classic => t(
-                            'Ponude se vide, najviša pobjeđuje.',
-                          ),
-                          AuctionKind.dutch => t(
-                            'Cijena pada od početne do najniže; tko prvi pristane — kupuje.',
-                          ),
-                        },
-                        keyPrefix: 'sell-kind',
-                        keyOf: (k) => k.name,
-                      );
-                      if (k != null) setState(() => _kind = k);
-                    }),
-                    if (_kind == AuctionKind.dutch) ...[
-                      _divider,
-                      TextFormField(
-                        key: const ValueKey('sell-floor'),
-                        controller: _floor,
-                        keyboardType: const TextInputType.numberWithOptions(
-                          decimal: true,
-                        ),
-                        inputFormatters: money,
-                        decoration: plain.copyWith(
-                          labelText: t('Najniža cijena'),
-                          suffixText: t('€'),
-                          helperText: t(
-                            'Ispod ove cijene ne prodaješ — cijena ne pada niže.',
-                          ),
-                        ),
-                        validator: (v) {
-                          final f = _num(v ?? '');
-                          final p = _num(_price.text);
-                          if (f == null || f <= 0) {
-                            return t('Unesi najnižu cijenu veću od 0');
-                          }
-                          if (p != null && f >= p) {
-                            return t(
-                              'Najniža cijena mora biti manja od početne.',
-                            );
-                          }
-                          return null;
-                        },
-                      ),
-                    ],
                   ],
                 ]),
                 // 5. Dostava.

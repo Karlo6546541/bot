@@ -55,27 +55,14 @@ void main() {
           .first;
       // Vinted: retci "Naziv … vrijednost >" otvaraju izbor u donjem listu.
       expect(find.byKey(const ValueKey('sell-add-photos')), findsOneWidget);
+      // Aukcija: trajanje se bira, vrste aukcije (nizozemske) više nema.
       await tester.scrollUntilVisible(
-        find.byKey(const ValueKey('sell-kind')),
+        find.byKey(const ValueKey('sell-duration')),
         200,
         scrollable: scroll,
       );
-      await tester.pumpAndSettle();
-      await tester.tap(find.byKey(const ValueKey('sell-kind')));
-      await tester.pumpAndSettle();
-      await tester.tap(find.byKey(const ValueKey('sell-kind-dutch')));
-      await tester.pumpAndSettle();
-      await tester.scrollUntilVisible(
-        find.byKey(const ValueKey('sell-floor')),
-        200,
-        scrollable: find
-            .descendant(
-              of: find.byKey(const ValueKey('sell-form')),
-              matching: find.byType(Scrollable),
-            )
-            .first,
-      );
-      expect(find.byKey(const ValueKey('sell-floor')), findsOneWidget);
+      expect(find.byKey(const ValueKey('sell-kind')), findsNothing);
+      expect(find.byKey(const ValueKey('sell-floor')), findsNothing);
       // Kupi odmah: bez vrste aukcije, najniže cijene i trajanja.
       await tester.drag(scroll, const Offset(0, 2000));
       await tester.pumpAndSettle();

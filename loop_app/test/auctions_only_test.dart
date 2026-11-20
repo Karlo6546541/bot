@@ -44,11 +44,13 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.byType(AuctionsHomeScreen), findsOneWidget);
     expect(find.byKey(const ValueKey('home-formats')), findsOneWidget);
-    expect(find.byKey(const ValueKey('home-format-dutch')), findsOneWidget);
+    // Samo klasične aukcije: nema filtra za nizozemsku.
+    expect(find.byKey(const ValueKey('home-format-classic')), findsOneWidget);
+    expect(find.byKey(const ValueKey('home-format-dutch')), findsNothing);
     expect(find.byKey(const ValueKey('home-live-discovery')), findsNothing);
     expect(find.byKey(const ValueKey('home-go-live')), findsNothing);
     // Filter vrste aukcije se otvara bez greške.
-    await tester.tap(find.byKey(const ValueKey('home-format-dutch')));
+    await tester.tap(find.byKey(const ValueKey('home-format-classic')));
     await tester.pumpAndSettle();
     expect(tester.takeException(), isNull);
   });

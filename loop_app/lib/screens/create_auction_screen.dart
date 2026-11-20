@@ -271,43 +271,45 @@ class _CreateAuctionScreenState extends ConsumerState<CreateAuctionScreen> {
                     ],
                     if (selected != null) ...[
                       const SizedBox(height: 20),
-                      Text(
-                        t('2. Vrsta aukcije'),
-                        style: const TextStyle(fontWeight: FontWeight.w700),
-                      ),
-                      const SizedBox(height: 8),
-                      Wrap(
-                        spacing: 8,
-                        runSpacing: 8,
-                        children: [
-                          for (final k in AuctionKind.values)
-                            ChoiceChip(
-                              key: ValueKey('auction-kind-${k.name}'),
-                              label: Text(k.label),
-                              selected: _kind == k,
-                              onSelected: (_) => setState(() {
-                                _kind = k;
-                                _error = null;
-                              }),
-                            ),
-                        ],
-                      ),
-                      const SizedBox(height: 6),
-                      Text(
-                        switch (_kind) {
-                          AuctionKind.classic => t(
-                            'Ponude se vide, najviša pobjeđuje.',
-                          ),
-                          AuctionKind.dutch => t(
-                            'Cijena pada od početne do najniže; tko prvi pristane — kupuje.',
-                          ),
-                        },
-                        style: TextStyle(
-                          color: LoopColors.textSecondary,
-                          fontSize: 13,
+                      if (AuctionKind.offered.length > 1) ...[
+                        Text(
+                          t('2. Vrsta aukcije'),
+                          style: const TextStyle(fontWeight: FontWeight.w700),
                         ),
-                      ),
-                      const SizedBox(height: 20),
+                        const SizedBox(height: 8),
+                        Wrap(
+                          spacing: 8,
+                          runSpacing: 8,
+                          children: [
+                            for (final k in AuctionKind.values)
+                              ChoiceChip(
+                                key: ValueKey('auction-kind-${k.name}'),
+                                label: Text(k.label),
+                                selected: _kind == k,
+                                onSelected: (_) => setState(() {
+                                  _kind = k;
+                                  _error = null;
+                                }),
+                              ),
+                          ],
+                        ),
+                        const SizedBox(height: 6),
+                        Text(
+                          switch (_kind) {
+                            AuctionKind.classic => t(
+                              'Ponude se vide, najviša pobjeđuje.',
+                            ),
+                            AuctionKind.dutch => t(
+                              'Cijena pada od početne do najniže; tko prvi pristane — kupuje.',
+                            ),
+                          },
+                          style: TextStyle(
+                            color: LoopColors.textSecondary,
+                            fontSize: 13,
+                          ),
+                        ),
+                        const SizedBox(height: 20),
+                      ],
                       Text(
                         t('3. Početna cijena'),
                         style: TextStyle(fontWeight: FontWeight.w700),

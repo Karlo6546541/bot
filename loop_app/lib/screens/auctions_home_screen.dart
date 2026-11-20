@@ -186,10 +186,14 @@ class _AuctionsHomeScreenState extends ConsumerState<AuctionsHomeScreen> {
                       buyNow: true,
                     ),
                   ],
-                  for (final k in AuctionKind.values) ...[
-                    const SizedBox(width: 8),
-                    chip(ValueKey('home-format-${k.name}'), k.label, k.icon, k),
-                  ],
+                  // Samo klasične aukcije: jedan filtar "Aukcije".
+                  const SizedBox(width: 8),
+                  chip(
+                    const ValueKey('home-format-classic'),
+                    t('Aukcije'),
+                    Icons.gavel,
+                    AuctionKind.classic,
+                  ),
                 ],
               ),
             ),
