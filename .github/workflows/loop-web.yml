@@ -243,15 +243,17 @@ jobs:
           npm test
           npm run build
       - name: Assemble site
+        working-directory: ${{ github.workspace }}
         run: |
           stari="$RUNNER_TEMP/flutter-web"
-          mv loop_app/build/web "$stari"
-          mkdir -p public
-          cp -r oglasnik/dist/. public/
+          mv "$GITHUB_WORKSPACE/loop_app/build/web" "$stari"
+          mkdir -p "$GITHUB_WORKSPACE/public"
+          cp -r "$GITHUB_WORKSPACE/oglasnik/dist/." "$GITHUB_WORKSPACE/public/"
           for d in novi-izgled privatni puna prije-redizajna-2026-11-04 prije-visionos-2026-11-04 prije-samo-aukcije site; do
-            [ -d "$stari/$d" ] && mv "$stari/$d" "public/$d"
+            if [ -d "$stari/$d" ]; then mv "$stari/$d" "$GITHUB_WORKSPACE/public/$d"; fi
           done
-          mv "$stari" public/v0-aukcije
+          mv "$stari" "$GITHUB_WORKSPACE/public/v0-aukcije"
+          ls "$GITHUB_WORKSPACE/public"
 
       - uses: actions/upload-pages-artifact@v3
         with:
