@@ -20,9 +20,9 @@ enum AuctionKind {
   /// Klasična: ponude se vide, najviša pobjeđuje.
   classic('Klasična'),
 
-  /// Holandska (padajuća cijena): cijena pada od početne do najniže, a tko
+  /// Nizozemska (padajuća cijena): cijena pada od početne do najniže, a tko
   /// prvi pristane na trenutnu cijenu — kupuje.
-  dutch('Holandska');
+  dutch('Cijena pada');
 
   const AuctionKind(this._label);
   final String _label;
@@ -125,15 +125,15 @@ class Auction {
   /// Obavijest "završava uskoro" je poslana.
   final bool endingNotified;
 
-  /// Vrsta aukcije (klasična ili holandska).
+  /// Vrsta aukcije (klasična ili nizozemska).
   final AuctionKind kind;
 
-  /// Holandska: najniža cijena na kraju vremena ([startPrice] je najviša).
+  /// Nizozemska: najniža cijena na kraju vremena ([startPrice] je najviša).
   final double floorPrice;
 
   bool get isDutch => kind == AuctionKind.dutch;
 
-  /// Holandska: cijena u trenutku [at] (linearno pada od početne do najniže
+  /// Nizozemska: cijena u trenutku [at] (linearno pada od početne do najniže
   /// cijene do kraja aukcije), zaokruženo na centе.
   double priceAt(DateTime at) {
     if (!isDutch) return currentPrice;
@@ -144,7 +144,7 @@ class Auction {
     return (price * 100).round() / 100;
   }
 
-  /// Osnovica za proviziju: kod holandske najniža cijena (ispod nje
+  /// Osnovica za proviziju: kod nizozemske najniža cijena (ispod nje
   /// prodavatelj ne prodaje), inače početna cijena.
   double get commissionBase => isDutch ? floorPrice : startPrice;
 
@@ -168,7 +168,7 @@ class Auction {
     return highestBid?.userId == viewerId ? t('Osvojeno') : t('Završeno');
   }
 
-  /// Trenutna cijena: najviša ponuda ili početna cijena. Holandska: cijena
+  /// Trenutna cijena: najviša ponuda ili početna cijena. Nizozemska: cijena
   /// koja pada s vremenom.
   double get currentPrice {
     if (isDutch && isActive) return priceAt(DateTime.now());

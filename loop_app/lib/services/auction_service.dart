@@ -109,7 +109,7 @@ class AuctionService {
       }
     }
     if (kind != AuctionKind.classic && buyNowPrice != null) {
-      throw TradeException(t('Kupi odmah nije moguć na holandskoj aukciji.'));
+      throw TradeException(t('Kupi odmah nije moguć na nizozemskoj aukciji.'));
     }
     if (buyNowPrice != null && buyNowPrice <= startPrice) {
       throw TradeException(
@@ -215,7 +215,7 @@ class AuctionService {
     }
     if (a.isDutch) {
       throw TradeException(
-        t('Na holandskoj aukciji se ne licitira — kupi po trenutnoj cijeni.'),
+        t('Na nizozemskoj aukciji se ne licitira — kupi po trenutnoj cijeni.'),
       );
     }
     final leader = a.highestBid;
@@ -336,7 +336,7 @@ class AuctionService {
     return updated;
   }
 
-  /// Holandska aukcija: kupac pristaje na trenutnu cijenu i odmah kupuje.
+  /// Nizozemska aukcija: kupac pristaje na trenutnu cijenu i odmah kupuje.
   Future<AuctionResult> takeDutch({
     required String userId,
     required String auctionId,
@@ -349,7 +349,7 @@ class AuctionService {
     final user = _storage.userById(userId);
     if (user == null) throw TradeException(t('Korisnik ne postoji.'));
     if (!a.isDutch) {
-      throw TradeException(t('Ovo nije holandska aukcija.'));
+      throw TradeException(t('Ovo nije nizozemska aukcija.'));
     }
     if (!a.isActive || a.isExpired(at)) {
       throw TradeException(t('Aukcija je završila.'));

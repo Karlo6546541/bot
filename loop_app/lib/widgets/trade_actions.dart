@@ -493,7 +493,7 @@ class _CheckoutSetupSheetState extends ConsumerState<_CheckoutSetupSheet> {
                 const SizedBox(width: 8),
               ],
               Text(
-                widget.wallet ? t('Novčanik') : t('Spremni za licitiranje?'),
+                widget.wallet ? t('Novčanik') : t('Plaćanje i dostava'),
                 key: const ValueKey('wallet-title'),
                 style: const TextStyle(
                   fontSize: 20,
@@ -509,7 +509,7 @@ class _CheckoutSetupSheetState extends ConsumerState<_CheckoutSetupSheet> {
                     'Kartica za automatsku naplatu i adresa za dostavu — koriste se za svaku kupnju i pobjedu.',
                   )
                 : t(
-                    'Kad pobijediš, naplata ide automatski s kartice, a paket kreće na tvoju adresu. Sve što osvojiš u istom liveu stiže u jednom paketu.',
+                    'Kartica se naplaćuje kad kupiš ili pobijediš na aukciji, a paket stiže na ovu adresu.',
                   ),
             style: TextStyle(color: LoopColors.textSecondary),
           ),

@@ -35,7 +35,9 @@ void main() {
     ),
   );
 
-  testWidgets('holandska aukcija: padajuća cijena i gumb Kupi', (tester) async {
+  testWidgets('nizozemska aukcija: padajuća cijena i gumb Kupi', (
+    tester,
+  ) async {
     final a = await AuctionService(storage).create(
       userId: SeedData.demoUserId,
       deviceId: 'seed-9',
@@ -81,7 +83,7 @@ void main() {
     expect(storage.auctionById(a.id)!.bids, isEmpty);
   });
 
-  testWidgets('holandska: bez kartice nema kupnje', (tester) async {
+  testWidgets('nizozemska: bez kartice nema kupnje', (tester) async {
     final marko = storage.userById(SeedData.markoUserId)!;
     await storage.putUser(
       AppUser.fromMap({...marko.toMap(), 'paymentCard': null}),

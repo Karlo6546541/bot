@@ -6,7 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/auction.dart';
 import '../providers/app_providers.dart';
 
-/// Gradi sučelje s trenutnom cijenom holandske aukcije; cijena se osvježava
+/// Gradi sučelje s trenutnom cijenom nizozemske aukcije; cijena se osvježava
 /// svake sekunde (u testovima bez timera: [tickIntervalProvider] = null).
 class DutchPrice extends ConsumerStatefulWidget {
   const DutchPrice({super.key, required this.auction, required this.builder});

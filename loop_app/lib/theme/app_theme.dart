@@ -18,10 +18,10 @@ class LoopColors {
       _dark = brightness == Brightness.dark;
 
   /// Aplikacija samo za aukcije: tamnozelenoplava paleta s teal akcentom
-  /// (klasična i holandska imaju svaka svoju boju oznake).
+  /// (klasična i nizozemska imaju svaka svoju boju oznake).
   static bool get _au => !kLiveEnabled;
 
-  /// Boje vrsta aukcije: klasična · holandska.
+  /// Boje vrsta aukcije: klasična · nizozemska.
   static Color get classic =>
       _dark ? const Color(0xFF9AA4FF) : const Color(0xFF4350C7);
   static Color get dutch =>

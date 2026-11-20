@@ -381,9 +381,9 @@ void main() {
     });
   });
 
-  group('holandska aukcija', () {
+  group('nizozemska aukcija', () {
     test(
-      'holandska: cijena pada linearno, prvi kupac kupuje po cijeni',
+      'nizozemska: cijena pada linearno, prvi kupac kupuje po cijeni',
       () async {
         final at = DateTime(2026, 1, 1, 12);
         final a = await auctions.create(
@@ -433,7 +433,7 @@ void main() {
     );
 
     test(
-      'holandska: viša potvrđena cijena od stvarne ne prolazi, ne završi bez kupca',
+      'nizozemska: viša potvrđena cijena od stvarne ne prolazi, ne završi bez kupca',
       () async {
         final at = DateTime(2026, 1, 1, 12);
         final a = await auctions.create(
@@ -475,7 +475,7 @@ void main() {
       },
     );
 
-    test('holandska: najniža cijena mora biti ispod početne', () async {
+    test('nizozemska: najniža cijena mora biti ispod početne', () async {
       await expectLater(
         auctions.create(
           userId: demo,
@@ -519,7 +519,7 @@ void main() {
       expect(storage.deviceById('seed-9')!.ownerId, demo);
     });
 
-    test('holandska kupnja ide preko poslužitelja i vraća narudžbu', () async {
+    test('nizozemska kupnja ide preko poslužitelja i vraća narudžbu', () async {
       final server = _FakeServer();
       final online = AuctionService(storage, server: server);
       final at = DateTime(2026, 1, 1, 12);

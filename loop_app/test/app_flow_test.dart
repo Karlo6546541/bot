@@ -7,6 +7,7 @@ import 'package:hive/hive.dart';
 import 'package:loop_app/app.dart';
 import 'package:loop_app/l10n/tr.dart';
 import 'package:loop_app/providers/app_providers.dart';
+import 'package:loop_app/screens/device_detail_screen.dart';
 import 'package:loop_app/screens/home_shell.dart';
 import 'package:loop_app/widgets/device_card.dart';
 import 'package:loop_app/screens/seller_screens.dart';
@@ -1201,7 +1202,33 @@ void logoTests() {
     await tester.pumpAndSettle();
     expect(find.byKey(const ValueKey('post-bought')), findsOneWidget);
     expect(find.text('Oglas više nije dostupan.'), findsNothing);
-  });
+  }, skip: !kLiveEnabled); // bez livea dodir otvara stranicu oglasa
+
+  testWidgets('bez livea dodir na oglas otvara stranicu oglasa, ne feed', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(400, 860);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    await tester.pumpWidget(await buildApp(tester));
+    await tester.ensureVisible(find.text('Prijavi se'));
+    await tester.tap(find.text('Prijavi se'));
+    await tester.pumpAndSettle();
+    final container = ProviderScope.containerOf(
+      tester.element(find.byType(HomeShell)),
+    );
+    final me = container.read(appProvider).currentUserId;
+    final item = container
+        .read(appProvider)
+        .devices
+        .firstWhere((d) => d.isListed && d.ownerId != me && !d.isDigital);
+    SwipeFeedScreen.open(tester.element(find.byType(HomeShell)), [
+      FeedEntry.item(item.id),
+    ], 0);
+    await tester.pumpAndSettle();
+    expect(find.byType(DeviceDetailScreen), findsOneWidget);
+    expect(find.byType(SwipeFeedScreen), findsNothing);
+  }, skip: kLiveEnabled);
 
   testWidgets('prodavatelj kao obrt/tvrtka: naziv tvrtke i oznaka trgovca', (
     tester,

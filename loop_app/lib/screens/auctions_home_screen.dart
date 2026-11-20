@@ -187,12 +187,7 @@ class _AuctionsHomeScreenState extends ConsumerState<AuctionsHomeScreen> {
                   ],
                   for (final k in AuctionKind.values) ...[
                     const SizedBox(width: 8),
-                    chip(
-                      ValueKey('home-format-${k.name}'),
-                      k == AuctionKind.dutch ? t('Nizozemska') : k.label,
-                      k.icon,
-                      k,
-                    ),
+                    chip(ValueKey('home-format-${k.name}'), k.label, k.icon, k),
                   ],
                 ],
               ),
@@ -262,7 +257,7 @@ class _AuctionsHomeScreenState extends ConsumerState<AuctionsHomeScreen> {
 }
 
 /// Kartica aukcije u mreži: slika s oznakom vrste, naziv, natpis, cijena
-/// i vrijeme (holandska: cijena koja pada).
+/// i vrijeme (nizozemska: cijena koja pada).
 class AuctionTile extends ConsumerWidget {
   const AuctionTile({super.key, required this.auction});
   final Auction auction;

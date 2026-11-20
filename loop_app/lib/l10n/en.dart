@@ -3288,8 +3288,8 @@ const kEn = <String, String>{
   'Dron': 'Drone',
   'Vojna i povijesna oprema': 'Military and historical gear',
   'Povijesni predmet': 'Historical item',
-  'Sportski memorabilij': 'Sports memorabilia',
-  'Memorabilij': 'Memorabilia',
+  'Sportske memorabilije': 'Sports memorabilia',
+  'Memorabilija': 'Memorabilia',
   'Autogrami': 'Autographs',
   'Autogram': 'Autograph',
   'Biciklizam': 'Cycling',
@@ -3484,23 +3484,23 @@ const kEn = <String, String>{
   'Cijena pada, ali kupnja je obvezujuća po ovom iznosu.':
       'The price keeps falling, but the purchase is binding at this amount.',
   'Cijena se promijenila. Pokušaj ponovno.': 'The price changed. Try again.',
-  'Holandska aukcija: cijena pada do {0}. Prodaje se prvom kupcu koji pristane na trenutnu cijenu.':
+  'Nizozemska aukcija: cijena pada do {0}. Prodaje se prvom kupcu koji pristane na trenutnu cijenu.':
       'Dutch auction: the price falls to {0}. It sells to the first buyer who accepts the current price.',
-  'Holandska aukcija: cijena pada do {0}. Tko prvi pristane na trenutnu cijenu — kupuje.':
+  'Nizozemska aukcija: cijena pada do {0}. Tko prvi pristane na trenutnu cijenu — kupuje.':
       'Dutch auction: the price falls to {0}. Whoever accepts the current price first buys.',
   'Ispod ove cijene ne prodaješ — cijena ne pada niže.':
       'You do not sell below this price — it never falls lower.',
-  'Kupi odmah nije moguć na holandskoj aukciji.':
+  'Kupi odmah nije moguć na nizozemskoj aukciji.':
       'Buy now is not possible on Dutch auctions.',
   'Kupiti za {0}?': 'Buy for {0}?',
-  'Na holandskoj aukciji se ne licitira — kupi po trenutnoj cijeni.':
+  'Na nizozemskoj aukciji se ne licitira — kupi po trenutnoj cijeni.':
       'You do not bid on a Dutch auction — buy at the current price.',
   'Najmanja ponuda': 'Minimum bid',
   'Najniža cijena mora biti veća od 0 i manja od početne.':
       'The lowest price must be above 0 and below the starting price.',
   'Netko je već kupio ovaj predmet.': 'Someone has already bought this item.',
   'Nova viša ponuda (€)': 'New higher bid (€)',
-  'Ovo nije holandska aukcija.': 'This is not a Dutch auction.',
+  'Ovo nije nizozemska aukcija.': 'This is not a Dutch auction.',
   'Pada do {0}': 'Falls to {0}',
   'Ponuda je obvezujuća i skrivena do kraja. Možeš je samo povisiti. Pobjednik plaća svoj iznos.':
       'The bid is binding and hidden until the end. You can only raise it. The winner pays their own amount.',
@@ -3526,9 +3526,9 @@ const kEn = <String, String>{
       'Sealed-bid auction: send one hidden bid (at least {0}). The highest wins and pays their own amount.',
   'Zatvorena · najmanje': 'Sealed · minimum',
   'Klasična': 'Classic',
-  'Holandska': 'Dutch',
+  'Cijena pada': 'Price drop',
   'Zatvorena': 'Sealed-bid',
-  'Klasična ili holandska aukcija s rokom.':
+  'Klasična ili nizozemska aukcija s rokom.':
       'Classic or Dutch auction with a deadline.',
   'Objavi aukciju i prvi ponuđači stižu ovdje.':
       'Post an auction and the first bidders will show up here.',
@@ -3572,7 +3572,7 @@ const kEn = <String, String>{
   'Razglednica ili plakat': 'Postcard or poster',
   'Stripovi': 'Comics',
   'Konzole i igre': 'Consoles and games',
-  'Memorabilij i autogrami': 'Memorabilia and autographs',
+  'Memorabilije i autogrami': 'Memorabilia and autographs',
   'Vojna i povijest': 'Military and history',
   'Slike i umjetnost': 'Art',
   'Antikviteti i vintage': 'Antiques and vintage',
@@ -3707,6 +3707,8 @@ const kEn = <String, String>{
   'Ocijenjeno: {0}': 'Graded: {0}',
   'Certifikat #{0}': 'Certificate #{0}',
   'Provjeri': 'Verify',
+  'Kartica se naplaćuje kad kupiš ili pobijediš na aukciji, a paket stiže na ovu adresu.':
+      'Your card is charged when you buy or win an auction, and the parcel is sent to this address.',
   'Zakaži show': 'Schedule a show',
   'Otprema': 'Shipping',
   'Nema paketa za predaju': 'No parcels to hand over',

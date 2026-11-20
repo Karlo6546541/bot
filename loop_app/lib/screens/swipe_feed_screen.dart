@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import '../models/country.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../config/features.dart';
 import '../l10n/tr.dart';
 import '../models/auction.dart';
 import '../models/device.dart';
@@ -83,12 +84,32 @@ class SwipeFeedScreen extends ConsumerStatefulWidget {
     List<FeedEntry> entries,
     int index, {
     String? title,
-  }) => Navigator.of(context).push(
-    MaterialPageRoute<void>(
-      builder: (_) =>
-          SwipeFeedScreen(entries: entries, initialIndex: index, title: title),
-    ),
-  );
+  }) {
+    // Aplikacija bez livea (kao Vinted): dodir na oglas otvara stranicu
+    // oglasa ili aukcije, a ne okomiti feed.
+    if (!kLiveEnabled && index >= 0 && index < entries.length) {
+      final e = entries[index];
+      if (e.auctionId != null) {
+        return AuctionDetailScreen.open(context, e.auctionId!);
+      }
+      final device = e.deviceId == null
+          ? null
+          : ProviderScope.containerOf(
+              context,
+              listen: false,
+            ).read(appProvider).deviceById(e.deviceId!);
+      if (device != null) return DeviceDetailScreen.open(context, device);
+    }
+    return Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => SwipeFeedScreen(
+          entries: entries,
+          initialIndex: index,
+          title: title,
+        ),
+      ),
+    );
+  }
 
   @override
   ConsumerState<SwipeFeedScreen> createState() => _SwipeFeedScreenState();

@@ -305,7 +305,7 @@ class _AuctionDetailScreenState extends ConsumerState<AuctionDetailScreen> {
                 _InfoBox(
                   icon: Icons.south,
                   text: t(
-                    'Holandska aukcija: cijena pada do {0}. Tko prvi pristane na trenutnu cijenu — kupuje.',
+                    'Nizozemska aukcija: cijena pada do {0}. Tko prvi pristane na trenutnu cijenu — kupuje.',
                     [formatCredits(a.floorPrice)],
                   ),
                 ),
@@ -361,7 +361,7 @@ class _AuctionDetailScreenState extends ConsumerState<AuctionDetailScreen> {
                   icon: Icons.info_outline,
                   text: a.isDutch
                       ? t(
-                          'Holandska aukcija: cijena pada do {0}. Prodaje se prvom kupcu koji pristane na trenutnu cijenu.',
+                          'Nizozemska aukcija: cijena pada do {0}. Prodaje se prvom kupcu koji pristane na trenutnu cijenu.',
                           [formatCredits(a.floorPrice)],
                         )
                       : a.bids.isEmpty

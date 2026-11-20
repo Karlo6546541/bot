@@ -7,7 +7,7 @@ abstract class AuctionServer {
   /// Zaključi aukciju ako je istekla (ili je dosegnut "Kupi odmah").
   Future<void> settle(String auctionId);
 
-  /// Holandska: kupnja po cijeni koju računa poslužitelj (najviše
+  /// Nizozemska: kupnja po cijeni koju računa poslužitelj (najviše
   /// [maxPrice]). Vraća ID narudžbe koju treba naplatiti.
   Future<String> takeDutch(String auctionId, double maxPrice);
 }

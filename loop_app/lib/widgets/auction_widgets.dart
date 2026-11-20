@@ -24,7 +24,7 @@ Future<void> showBidSheet(
   String auctionId,
 ) async {
   if (blockGuest(context)) return;
-  // Holandska aukcija ima vlastito sučelje na ekranu detalja.
+  // Nizozemska aukcija ima vlastito sučelje na ekranu detalja.
   final kind = ref.read(appProvider).auctionById(auctionId)?.kind;
   if (kind != null && kind != AuctionKind.classic) {
     await AuctionDetailScreen.open(context, auctionId);

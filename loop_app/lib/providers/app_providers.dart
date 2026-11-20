@@ -1402,7 +1402,7 @@ class AppController extends Notifier<AppState> {
     return a.highestBid?.userId == me;
   }
 
-  /// Holandska aukcija: kupnja po trenutnoj (potvrđenoj) cijeni.
+  /// Nizozemska aukcija: kupnja po trenutnoj (potvrđenoj) cijeni.
   /// Vraća ID narudžbe za naplatu (online način) ili `null`.
   Future<String?> takeDutchAuction(String auctionId, {double? price}) async {
     final result = await _auctions.takeDutch(

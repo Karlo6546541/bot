@@ -5,7 +5,7 @@ import '../models/auction.dart';
 import '../theme/app_theme.dart';
 
 /// Izgled vrste aukcije (boja, ikona, opisi) — isti na kartici, popisu i
-/// detaljima. Klasična: rastući graf · holandska: padajući.
+/// detaljima. Klasična: rastući graf · nizozemska: padajući.
 extension AuctionKindStyle on AuctionKind {
   Color get color => switch (this) {
     AuctionKind.classic => LoopColors.classic,

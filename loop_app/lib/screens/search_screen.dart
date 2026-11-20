@@ -764,8 +764,10 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
               ),
       ),
     );
+    // Bez livea nema kartice Showovi (indeksi kartica pomiču se za jedan).
+    int tabAt(int i) => !kLiveEnabled && i >= 2 ? i - 1 : i;
     return DefaultTabController(
-      length: 5,
+      length: kLiveEnabled ? 5 : 4,
       initialIndex: widget.accounts ? 3 : 0,
       child: Scaffold(
         backgroundColor: LoopColors.background.withValues(alpha: .86),
@@ -780,7 +782,8 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                   tabs: [
                     Tab(key: const ValueKey('search-tab-top'), text: t('Top')),
                     Tab(text: t('Objave ({0})', ['${posts.length}'])),
-                    Tab(text: t('Showovi ({0})', ['${shows.length}'])),
+                    if (kLiveEnabled)
+                      Tab(text: t('Showovi ({0})', ['${shows.length}'])),
                     Tab(text: t('Računi ({0})', ['${accounts.length}'])),
                     Tab(text: t('Kategorije ({0})', ['${categories.length}'])),
                   ],
@@ -872,7 +875,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                                       if (categories.isNotEmpty) ...[
                                         section(
                                           t('Kategorije'),
-                                          () => tabs.animateTo(4),
+                                          () => tabs.animateTo(tabAt(4)),
                                         ),
                                         SliverPadding(
                                           padding: const EdgeInsets.symmetric(
@@ -900,7 +903,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                                       if (topLives.isNotEmpty) ...[
                                         section(
                                           t('Live showovi'),
-                                          () => tabs.animateTo(2),
+                                          () => tabs.animateTo(tabAt(2)),
                                         ),
                                         cards(
                                           'search-top-lives',
@@ -910,7 +913,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                                       if (accounts.isNotEmpty) ...[
                                         section(
                                           t('Korisnici'),
-                                          () => tabs.animateTo(3),
+                                          () => tabs.animateTo(tabAt(3)),
                                         ),
                                         SliverToBoxAdapter(
                                           child: SizedBox(
@@ -1010,7 +1013,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                                       if (topPosts.isNotEmpty) ...[
                                         section(
                                           t('Objave'),
-                                          () => tabs.animateTo(1),
+                                          () => tabs.animateTo(tabAt(1)),
                                         ),
                                         cards(
                                           'search-top-posts',
@@ -1034,82 +1037,85 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                               )
                             : postGrid(posts, const ValueKey('search-posts')),
                         // Showovi (liveovi)
-                        empty
-                            ? _History(onPick: _set)
-                            : shows.isEmpty
-                            ? EmptyState(
-                                icon: Icons.videocam_off_outlined,
-                                title: t('Nema showova za "{0}"', [_q.trim()]),
-                              )
-                            : Builder(
-                                builder: (ctx) {
-                                  final list = _filters.apply(topLives, s);
-                                  return CustomScrollView(
-                                    key: const ValueKey('search-shows'),
-                                    slivers: [
-                                      SliverToBoxAdapter(
-                                        child: Padding(
-                                          padding: const EdgeInsets.fromLTRB(
-                                            16,
-                                            12,
-                                            16,
-                                            12,
-                                          ),
-                                          child: Row(
-                                            children: [
-                                              ActionChip(
-                                                key: const ValueKey(
-                                                  'shows-filter',
-                                                ),
-                                                avatar: const Icon(
-                                                  Icons.tune,
-                                                  size: 18,
-                                                ),
-                                                label: Text(
-                                                  _filters.activeCount == 0
-                                                      ? t('Filter')
-                                                      : '${t('Filter')} (${_filters.activeCount})',
-                                                ),
-                                                onPressed: () async {
-                                                  final r =
-                                                      await showShowFilterSheet(
-                                                        ctx,
-                                                        initial: _filters,
-                                                        items: topLives,
-                                                        state: s,
-                                                      );
-                                                  if (r != null) {
-                                                    setState(
-                                                      () => _filters = r,
-                                                    );
-                                                  }
-                                                },
-                                              ),
-                                              if (!_filters.isDefault) ...[
-                                                const SizedBox(width: 8),
-                                                TextButton(
+                        if (kLiveEnabled)
+                          empty
+                              ? _History(onPick: _set)
+                              : shows.isEmpty
+                              ? EmptyState(
+                                  icon: Icons.videocam_off_outlined,
+                                  title: t('Nema showova za "{0}"', [
+                                    _q.trim(),
+                                  ]),
+                                )
+                              : Builder(
+                                  builder: (ctx) {
+                                    final list = _filters.apply(topLives, s);
+                                    return CustomScrollView(
+                                      key: const ValueKey('search-shows'),
+                                      slivers: [
+                                        SliverToBoxAdapter(
+                                          child: Padding(
+                                            padding: const EdgeInsets.fromLTRB(
+                                              16,
+                                              12,
+                                              16,
+                                              12,
+                                            ),
+                                            child: Row(
+                                              children: [
+                                                ActionChip(
                                                   key: const ValueKey(
-                                                    'shows-filter-clear',
+                                                    'shows-filter',
                                                   ),
-                                                  onPressed: () => setState(
-                                                    () => _filters =
-                                                        const ShowFilters(),
+                                                  avatar: const Icon(
+                                                    Icons.tune,
+                                                    size: 18,
                                                   ),
-                                                  child: Text(t('Očisti')),
+                                                  label: Text(
+                                                    _filters.activeCount == 0
+                                                        ? t('Filter')
+                                                        : '${t('Filter')} (${_filters.activeCount})',
+                                                  ),
+                                                  onPressed: () async {
+                                                    final r =
+                                                        await showShowFilterSheet(
+                                                          ctx,
+                                                          initial: _filters,
+                                                          items: topLives,
+                                                          state: s,
+                                                        );
+                                                    if (r != null) {
+                                                      setState(
+                                                        () => _filters = r,
+                                                      );
+                                                    }
+                                                  },
                                                 ),
+                                                if (!_filters.isDefault) ...[
+                                                  const SizedBox(width: 8),
+                                                  TextButton(
+                                                    key: const ValueKey(
+                                                      'shows-filter-clear',
+                                                    ),
+                                                    onPressed: () => setState(
+                                                      () => _filters =
+                                                          const ShowFilters(),
+                                                    ),
+                                                    child: Text(t('Očisti')),
+                                                  ),
+                                                ],
                                               ],
-                                            ],
+                                            ),
                                           ),
                                         ),
-                                      ),
-                                      cards('search-shows-grid', list),
-                                      const SliverToBoxAdapter(
-                                        child: SizedBox(height: 32),
-                                      ),
-                                    ],
-                                  );
-                                },
-                              ),
+                                        cards('search-shows-grid', list),
+                                        const SliverToBoxAdapter(
+                                          child: SizedBox(height: 32),
+                                        ),
+                                      ],
+                                    );
+                                  },
+                                ),
                         // Računi
                         accounts.isEmpty
                             ? _EmptyOrLoading(
