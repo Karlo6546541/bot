@@ -366,8 +366,37 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
               style: TextStyle(color: LoopColors.textSecondary),
             ),
             const SizedBox(height: 18),
+            if (kClassifiedsMode && backend.supportsGoogle) ...[
+              FilledButton.icon(
+                key: const ValueKey('google-primary'),
+                style: FilledButton.styleFrom(
+                  minimumSize: const Size.fromHeight(52),
+                ),
+                onPressed: _loading ? null : _google,
+                icon: const Text(
+                  'G',
+                  style: TextStyle(fontWeight: FontWeight.w900, fontSize: 18),
+                ),
+                label: Text(t('Nastavi s Googleom')),
+              ),
+              const SizedBox(height: 14),
+              Row(
+                children: [
+                  const Expanded(child: Divider()),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 10),
+                    child: Text(
+                      t('ili e-mailom'),
+                      style: TextStyle(color: LoopColors.textSecondary),
+                    ),
+                  ),
+                  const Expanded(child: Divider()),
+                ],
+              ),
+              const SizedBox(height: 14),
+            ],
             ...(_register ? _registerFields() : _loginFields()),
-            if (backend.supportsGoogle) ...[
+            if (backend.supportsGoogle && !kClassifiedsMode) ...[
               const SizedBox(height: 14),
               Row(
                 children: [

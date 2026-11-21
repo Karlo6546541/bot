@@ -3777,6 +3777,11 @@ const kEn = <String, String>{
   'Uredi cijenu': 'Edit price',
   'Ovdje ti Subhasto šalje važne obavijesti o tvom računu i oglasima. Na ove poruke ne možeš odgovoriti.':
       'Subhasto sends you important notices about your account and listings here. You cannot reply to these messages.',
+  'Za objavu oglasa prijavi se': 'Sign in to post a listing',
+  'Za objavu oglasa prijavi se.': 'Sign in to post a listing.',
+  'Prijavi se Googleom ili e-mailom da objaviš oglas. Pregledavati i pisati oglase možeš i bez računa.':
+      'Sign in with Google or email to post a listing. You can browse listings without an account.',
+  'ili e-mailom': 'or with email',
   'Zakaži show': 'Schedule a show',
   'Otprema': 'Shipping',
   'Nema paketa za predaju': 'No parcels to hand over',

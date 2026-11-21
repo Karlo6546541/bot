@@ -92,6 +92,9 @@ class TradeService {
     // kad je Kupi odmah uključen, inače se prodaje preko livea.
     final list = listOnMarket || (digital && kBuyNowEnabled);
     final seller = _requireUser(userId);
+    if (list && kClassifiedsMode && seller.isGuest) {
+      throw TradeException(t('Za objavu oglasa prijavi se.'));
+    }
     if (list &&
         !kClassifiedsMode &&
         (seller.isGuest || seller.seller == null)) {
@@ -382,6 +385,9 @@ class TradeService {
   }) async {
     final device = _requireOwn(userId, deviceId);
     final seller = _requireUser(userId);
+    if (seller.isGuest && kClassifiedsMode) {
+      throw TradeException(t('Za objavu oglasa prijavi se.'));
+    }
     if (seller.isGuest || (!kClassifiedsMode && seller.seller == null)) {
       throw TradeException(t('Za objavu ispuni podatke prodavatelja.'));
     }

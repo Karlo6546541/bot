@@ -10,6 +10,7 @@ import '../models/device.dart';
 import '../providers/app_providers.dart';
 import '../services/auction_service.dart';
 import '../theme/app_theme.dart';
+import '../widgets/empty_state.dart';
 import '../widgets/trade_actions.dart';
 import 'add_device_screen.dart' show PhotoPickerRow;
 import 'auction_detail_screen.dart';
@@ -140,6 +141,10 @@ class _SellAuctionScreenState extends ConsumerState<SellAuctionScreen> {
   });
 
   Future<void> _submit() async {
+    if (kClassifiedsMode &&
+        blockGuest(context, reason: t('Za objavu oglasa prijavi se.'))) {
+      return;
+    }
     if (!_form.currentState!.validate()) return;
     if (!kClassifiedsMode && (!await ensureSellerInfo(context) || !mounted)) {
       return;
@@ -417,6 +422,34 @@ class _SellAuctionScreenState extends ConsumerState<SellAuctionScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // Oglasnik: oglas može objaviti samo prijavljen korisnik.
+    final me = ref.watch(appProvider.select((s) => s.currentUser));
+    if (kClassifiedsMode && (me == null || me.isGuest)) {
+      return Scaffold(
+        appBar: AppBar(
+          automaticallyImplyLeading: !widget.embedded,
+          title: Text(
+            widget.embedded ? t('Prodaj') : t('Novi oglas'),
+            style: const TextStyle(fontWeight: FontWeight.w700),
+          ),
+        ),
+        body: EmptyState(
+          key: const ValueKey('sell-login-gate'),
+          icon: Icons.lock_outline,
+          title: t('Za objavu oglasa prijavi se'),
+          message: t(
+            'Prijavi se Googleom ili e-mailom da objaviš oglas. Pregledavati i pisati oglase možeš i bez računa.',
+          ),
+          action: FilledButton.icon(
+            key: const ValueKey('sell-login'),
+            onPressed: () =>
+                blockGuest(context, reason: t('Za objavu oglasa prijavi se.')),
+            icon: const Icon(Icons.login),
+            label: Text(t('Prijavi se')),
+          ),
+        ),
+      );
+    }
     final money = [
       FilteringTextInputFormatter.allow(RegExp(r'[0-9.,]')),
       LengthLimitingTextInputFormatter(9),

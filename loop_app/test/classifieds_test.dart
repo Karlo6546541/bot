@@ -9,6 +9,7 @@ import 'package:loop_app/providers/app_providers.dart';
 import 'package:loop_app/screens/auctions_home_screen.dart';
 import 'package:loop_app/screens/device_detail_screen.dart';
 import 'package:loop_app/screens/my_listings_screen.dart';
+import 'package:loop_app/screens/sell_screens.dart';
 import 'package:loop_app/services/seed_data.dart';
 import 'package:loop_app/services/storage_service.dart';
 import 'package:loop_app/services/trade_service.dart';
@@ -162,5 +163,28 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.byKey(ValueKey('my-listing-item-${sold.id}')), findsOneWidget);
     expect(tester.takeException(), isNull);
+  }, skip: !kClassifiedsMode);
+
+  testWidgets('gost ne može objaviti oglas: traži se prijava', (tester) async {
+    await storage.saveSession(userId: 'user-guest');
+    tester.view.physicalSize = const Size(420, 900);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    await tester.pumpWidget(app(const SellAuctionScreen()));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('sell-login-gate')), findsOneWidget);
+    expect(find.byKey(const ValueKey('sell-form')), findsNothing);
+    expect(find.text('Za objavu oglasa prijavi se'), findsOneWidget);
+    await expectLater(
+      TradeService(storage).addDevice(
+        userId: 'user-guest',
+        name: 'Test',
+        model: '',
+        condition: DeviceCondition.good,
+        price: 10,
+        category: DeviceCategory.values.first,
+      ),
+      throwsA(isA<TradeException>()),
+    );
   }, skip: !kClassifiedsMode);
 }
