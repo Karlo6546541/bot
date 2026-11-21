@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import { redirect } from 'next/navigation';
+import { Traka } from '@/components/Traka';
 import { AdminPlocha } from '@/components/AdminPlocha';
 import { dohvatiProfil, korisniciZaAdmina, prijaveZaAdmina } from '@/lib/oglasi';
 import { klijentServera } from '@/lib/supabase';
@@ -13,5 +14,10 @@ export default async function Admin() {
   const ja = await dohvatiProfil(sb, data.user.id);
   if (!ja?.admin) return <div className="prazno ploca">Ova stranica je samo za administratore.</div>;
   const [prijave, korisnici] = await Promise.all([prijaveZaAdmina(sb), korisniciZaAdmina(sb)]);
-  return <AdminPlocha jaId={data.user.id} prijave={prijave} korisnici={korisnici} />;
+  return (
+    <>
+      <Traka naslov="Moderacija" natrag="/profil" />
+      <div className="stranica"><AdminPlocha jaId={data.user.id} prijave={prijave} korisnici={korisnici} /></div>
+    </>
+  );
 }

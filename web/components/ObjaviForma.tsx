@@ -2,7 +2,8 @@
 import { useRouter } from 'next/navigation';
 import { Fragment, useEffect, useState } from 'react';
 import { ISTEK_DANA, MAX_SLIKA } from '@/lib/config';
-import { KATEGORIJE, STANJA, kategorija } from '@/lib/kategorije';
+import { SEKCIJE, STANJA, poljaKategorije, podkategorija } from '@/lib/kategorije';
+import { Traka } from './Traka';
 import { osigurajProfil, porukaGreske } from '@/lib/korisnik';
 import { lokacijaTekst } from '@/lib/lokacije';
 import { ocistiNacrt, provjeriOglas } from '@/lib/provjera';
@@ -39,7 +40,8 @@ export function ObjaviForma({ oglas }: { oglas?: Oglas }) {
   const [greska, setGreska] = useState('');
   const [obrada, setObrada] = useState(false);
   const [sprema, setSprema] = useState(false);
-  const kat = kategorija(nacrt.kategorija);
+  const kat = podkategorija(nacrt.kategorija);
+  const polja = poljaKategorije(nacrt.kategorija);
   const postavi = (p: Partial<NacrtOglasa>) => setNacrt((x) => ({ ...x, ...p }));
 
   // Predpopuna lokacije iz profila (samo kod novog oglasa) i telefona.
@@ -133,9 +135,10 @@ export function ObjaviForma({ oglas }: { oglas?: Oglas }) {
   if (korak === 'pregled') {
     const n = konacni();
     return (
-      <div className="stog" style={{ maxWidth: 720 }}>
+      <>
+      <Traka naslov="Pregled oglasa" natrag="/objavi" />
+      <div className="stog prodaj">
         <div className="koraci"><span>1. Podaci</span>›<span className="aktivan">2. Pregled</span></div>
-        <h1>Pregled oglasa</h1>
         <p className="pomoc">Ovako će oglas vidjeti kupci. Provjeri podatke prije objave.</p>
         <div className="ploca stog" data-pregled>
           <div className="galerija">
@@ -146,7 +149,7 @@ export function ObjaviForma({ oglas }: { oglas?: Oglas }) {
           <div className="velika-cijena">{cijenaTekst(n.cijena)}</div>
           <dl className="svojstva">
             <dt>Stanje</dt><dd>{n.stanje}</dd>
-            {kat?.polja.map((p) => (n.polja[p.kljuc]?.trim() ? <Fragment key={p.kljuc}><dt>{p.naziv}</dt><dd>{n.polja[p.kljuc]}</dd></Fragment> : null))}
+            {poljaKategorije(n.kategorija).map((p) => (n.polja[p.kljuc]?.trim() ? <Fragment key={p.kljuc}><dt>{p.naziv}</dt><dd>{n.polja[p.kljuc]}</dd></Fragment> : null))}
             <dt>Lokacija</dt><dd>{lokacijaTekst({ drzava: n.drzava, zupanija: n.zupanija?.trim() || null, grad: n.grad.trim() })}</dd>
             <dt>Telefon</dt><dd>{n.prikazi_telefon ? telefon || 'nije upisan' : 'ne prikazuje se'}</dd>
           </dl>
@@ -159,13 +162,15 @@ export function ObjaviForma({ oglas }: { oglas?: Oglas }) {
           <button className="gumb" type="button" disabled={sprema} onClick={() => setKorak('obrazac')}>← Natrag na uređivanje</button>
         </div>
       </div>
+      </>
     );
   }
 
   return (
-    <form className="stog" style={{ maxWidth: 720 }} onSubmit={naPregled} noValidate>
+    <>
+    <Traka naslov={oglas ? 'Uredi oglas' : 'Objavi oglas'} natrag={oglas ? putOglasa(oglas) : '/'} />
+    <form className="stog prodaj" onSubmit={naPregled} noValidate>
       <div className="koraci"><span className="aktivan">1. Podaci</span>›<span>2. Pregled</span></div>
-      <h1>{oglas ? 'Uredi oglas' : 'Objavi oglas'}</h1>
       <div className="ploca">
         <fieldset className="polje" data-polje="slike">
           <legend>Fotografije ({slike.length}/{MAX_SLIKA}): barem jedna</legend>
@@ -197,13 +202,13 @@ export function ObjaviForma({ oglas }: { oglas?: Oglas }) {
         <label className="polje" data-polje="kategorija"><span>Kategorija</span>
           <select name="kategorija" value={nacrt.kategorija} onChange={(e) => postavi({ kategorija: e.target.value, polja: {} })}>
             <option value="">Odaberi…</option>
-            {KATEGORIJE.map((k) => <option key={k.slug} value={k.slug}>{k.naziv}</option>)}
+            {SEKCIJE.map((sk) => <optgroup key={sk.slug} label={sk.naziv}>{sk.podkategorije.map((k) => <option key={k.slug} value={k.slug}>{k.naziv}</option>)}</optgroup>)}
           </select>
           <G k="kategorija" />
         </label>
-        {kat && kat.polja.length > 0 && (
+        {polja.length > 0 && (
           <div className="dva-stupca">
-            {kat.polja.map((p) => (
+            {polja.map((p) => (
               <label className="polje" key={p.kljuc} data-polje={`p_${p.kljuc}`}><span>{p.naziv} (neobavezno)</span>
                 {p.tip === 'izbor' ? (
                   <select name={`p_${p.kljuc}`} value={nacrt.polja[p.kljuc] ?? ''} onChange={(e) => postavi({ polja: { ...nacrt.polja, [p.kljuc]: e.target.value } })}>
@@ -220,10 +225,10 @@ export function ObjaviForma({ oglas }: { oglas?: Oglas }) {
         )}
         <fieldset className="polje" data-polje="stanje">
           <legend>Stanje</legend>
-          <div className="gumbi">
+          <div className="stanja" style={{ padding: 0 }}>
             {STANJA.map((s) => (
-              <label className="kvacica" key={s} style={{ marginRight: 8 }}>
-                <input type="radio" name="stanje" value={s} checked={nacrt.stanje === s} onChange={() => postavi({ stanje: s })} />{s}
+              <label key={s}>
+                <input type="radio" name="stanje" value={s} checked={nacrt.stanje === s} onChange={() => postavi({ stanje: s })} /><span>{s}</span>
               </label>
             ))}
           </div>
@@ -266,5 +271,6 @@ export function ObjaviForma({ oglas }: { oglas?: Oglas }) {
       {greska && <div className="greska" role="alert">{greska}</div>}
       <button className="gumb glavni sirok" type="submit" disabled={obrada}>Pregled oglasa →</button>
     </form>
+    </>
   );
 }

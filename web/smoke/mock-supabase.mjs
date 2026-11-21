@@ -27,12 +27,12 @@ const U = ['00000000-0000-0000-0000-0000000000a1', '00000000-0000-0000-0000-0000
 await db.exec(`insert into auth.users values ('${U[0]}','ana@test.hr'),('${U[1]}','luka@test.hr')`);
 await db.exec(`insert into oglasnik_profili (id, ime, grad) values ('${U[0]}','Ana Kolekcionar','Zagreb'),('${U[1]}','Luka','Split')`);
 const KAT = [
-  ['kartice', 'Charizard Base Set', { igra: 'Pokémon', set: 'Base Set', jezik: 'Engleski' }],
-  ['kovanice-i-novcanice', 'Kovanica 5 kuna 1993', { drzava: 'Hrvatska', godina: '1993' }],
+  ['pokemon-i-ostali-tcg', 'Charizard Base Set', { igra: 'Pokémon', set: 'Base Set', jezik: 'Engleski' }],
+  ['kovanice', 'Kovanica 5 kuna 1993', { drzava: 'Hrvatska', godina: '1993' }],
   ['stripovi-i-manga', 'Alan Ford broj 1', { izdavac: 'Bonelli', jezik: 'Hrvatski' }],
-  ['gramofonske-ploce', 'Pink Floyd – The Wall', { izvodjac: 'Pink Floyd', format: 'LP', godina: '1979' }],
-  ['marke', 'Marke Jugoslavija 1960-ih', { drzava: 'Jugoslavija' }],
-  ['figurice', 'Smurfovi figurice lot', { proizvodjac: 'Schleich' }],
+  ['vinil', 'Pink Floyd – The Wall', { izvodjac: 'Pink Floyd', format: 'LP', godina: '1979' }],
+  ['markice', 'Marke Jugoslavija 1960-ih', { drzava: 'Jugoslavija' }],
+  ['figure-i-funko', 'Smurfovi figurice lot', { proizvodjac: 'Schleich' }],
 ];
 const MJESTA = [
   ['HR', 'Grad Zagreb', 'Zagreb'], ['HR', 'Splitsko-dalmatinska', 'Split'], ['HR', 'Šibensko-kninska', 'Šibenik'],
@@ -47,7 +47,7 @@ for (const [kat, naslov, polja] of KAT) {
       `insert into oglasnik_oglasi (korisnik_id,naslov,kategorija,opis,cijena,drzava,zupanija,grad,stanje,polja,slike,slike_male)
        values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)`,
       [U[i % 2], `${naslov} #${k + 1}`, kat, `Opis predmeta ${naslov}. Lijepo očuvano, može osobno preuzimanje u mjestu ${grad}.`, cijena, dr, zup, grad,
-        ['Novo', 'Kao novo', 'Dobro', 'Oštećeno'][i % 4], JSON.stringify(polja),
+        ['Novo', 'Odlično', 'Dobro', 'Za dijelove'][i % 4], JSON.stringify(polja),
         [`http://127.0.0.1:${PORT}/slika/${i}.svg`], [`http://127.0.0.1:${PORT}/slika/${i}.svg`]],
     );
   }

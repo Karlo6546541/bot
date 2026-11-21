@@ -1,6 +1,7 @@
 // Upiti prema bazi (vrijede za svaki Supabase klijent: javni, poslužiteljski, preglednik).
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { PO_STRANICI } from './config';
+import { sekcija } from './kategorije';
 import { normaliziraj, rijeciUpita } from './tekst';
 import type { Filteri, Kontakt, Oglas, Poruka, Prijava, Profil, Razgovor } from './types';
 
@@ -33,6 +34,7 @@ export async function traziOglase(
     .gt('istjece', new Date().toISOString());
   if (f.korisnik) q = q.eq('korisnik_id', f.korisnik);
   if (f.kategorija) q = q.eq('kategorija', f.kategorija);
+  else if (f.sekcija) q = q.in('kategorija', (sekcija(f.sekcija)?.podkategorije ?? []).map((p) => p.slug));
   if (f.drzava) q = q.eq('drzava', f.drzava);
   if (f.zupanija) q = q.eq('zupanija', f.zupanija);
   if (f.stanje) q = q.eq('stanje', f.stanje);

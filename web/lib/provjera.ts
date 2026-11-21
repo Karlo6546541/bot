@@ -1,5 +1,5 @@
 import { MAX_SLIKA } from './config';
-import { STANJA, kategorija } from './kategorije';
+import { STANJA, podkategorija, poljaKategorije } from './kategorije';
 import { provjeriLokaciju } from './lokacije';
 import type { NacrtOglasa } from './types';
 
@@ -9,7 +9,7 @@ export function provjeriOglas(n: NacrtOglasa, brojSlika: number): Record<string,
   const naslov = n.naslov.trim();
   if (naslov.length < 3) g.naslov = 'Naslov mora imati barem 3 znaka.';
   else if (naslov.length > 100) g.naslov = 'Naslov može imati najviše 100 znakova.';
-  const kat = kategorija(n.kategorija);
+  const kat = podkategorija(n.kategorija);
   if (!kat) g.kategorija = 'Odaberi kategoriju.';
   if (n.opis.trim().length < 10) g.opis = 'Opis mora imati barem 10 znakova.';
   else if (n.opis.length > 5000) g.opis = 'Opis može imati najviše 5000 znakova.';
@@ -20,7 +20,7 @@ export function provjeriOglas(n: NacrtOglasa, brojSlika: number): Record<string,
   if (!(STANJA as readonly string[]).includes(n.stanje)) g.stanje = 'Odaberi stanje.';
   if (brojSlika < 1) g.slike = 'Dodaj barem jednu fotografiju.';
   else if (brojSlika > MAX_SLIKA) g.slike = `Najviše ${MAX_SLIKA} fotografija.`;
-  for (const p of kat?.polja ?? []) {
+  for (const p of poljaKategorije(n.kategorija)) {
     const v = (n.polja[p.kljuc] ?? '').trim();
     if (!v) continue;
     if (p.tip === 'izbor' && !p.opcije.includes(v)) g[`p_${p.kljuc}`] = 'Odaberi s popisa.';
@@ -37,9 +37,8 @@ export function provjeriOglas(n: NacrtOglasa, brojSlika: number): Record<string,
 
 /** Nacrt očišćen za spremanje: samo polja iz kategorije, bez praznih; županija samo u Hrvatskoj ili kao regija. */
 export function ocistiNacrt(n: NacrtOglasa): NacrtOglasa {
-  const kat = kategorija(n.kategorija);
   const polja: Record<string, string> = {};
-  for (const p of kat?.polja ?? []) {
+  for (const p of poljaKategorije(n.kategorija)) {
     const v = (n.polja[p.kljuc] ?? '').trim();
     if (v) polja[p.kljuc] = v;
   }

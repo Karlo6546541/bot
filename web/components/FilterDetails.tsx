@@ -8,7 +8,7 @@ export function FilterDetails({ children, otvoren }: { children: ReactNode; otvo
     if (window.matchMedia('(min-width: 900px)').matches && ref.current) ref.current.open = true;
   }, []);
   return (
-    <details ref={ref} className="ploca filteri" open={otvoren}>
+    <details ref={ref} className="ploca filteri filter-panel" open={otvoren}>
       {children}
     </details>
   );

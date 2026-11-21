@@ -7,7 +7,10 @@ import { Galerija } from '@/components/Galerija';
 import { OglasAkcije } from '@/components/OglasAkcije';
 import { SigurnaKupnja } from '@/components/SigurnaKupnja';
 import { APP_NAME } from '@/lib/config';
-import { kategorija } from '@/lib/kategorije';
+import { podkategorija, poljaKategorije, sekcija } from '@/lib/kategorije';
+import { IK } from '@/lib/ikone';
+import { Ikona } from '@/components/Ikona';
+import { Traka } from '@/components/Traka';
 import { lokacijaTekst } from '@/lib/lokacije';
 import { brojAktivnih, dohvatiOglas, dohvatiProfil, slicniOglasi } from '@/lib/oglasi';
 import { jeIstekao } from '@/lib/pretraga';
@@ -42,7 +45,9 @@ export default async function OglasStranica({ params }: { params: P }) {
   if (!o || o.status === 'obrisan') notFound();
   // Stari ili pogrešan slug vodi na kanonsku adresu (trajno preusmjeravanje).
   if (slug !== putOglasa(o).split('/').pop()) permanentRedirect(putOglasa(o));
-  const kat = kategorija(o.kategorija);
+  const kat = podkategorija(o.kategorija);
+  const sek = sekcija(kat?.sekcija);
+  const putKat = sek && kat ? `/kategorija/${sek.slug}/${kat.slug}` : '/oglasi';
   const [prodavatelj, broj, slicni] = await Promise.all([dohvatiProfil(sb, o.korisnik_id), brojAktivnih(sb, o.korisnik_id), slicniOglasi(sb, o)]);
   const nedostupan = o.status !== 'aktivan' || jeIstekao(o);
   return (
@@ -51,69 +56,77 @@ export default async function OglasStranica({ params }: { params: P }) {
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{
-          __html: jsonUScript(jsonLdPutanja([{ naziv: 'Početna', put: '/' }, { naziv: kat?.naziv ?? 'Oglasi', put: `/kategorija/${o.kategorija}` }, { naziv: o.naslov, put: putOglasa(o) }])),
+          __html: jsonUScript(jsonLdPutanja([{ naziv: 'Početna', put: '/' }, { naziv: kat?.naziv ?? 'Oglasi', put: putKat }, { naziv: o.naslov, put: putOglasa(o) }])),
         }}
       />
-      <nav className="mrvice" aria-label="Putanja">
-        <Link href="/">Početna</Link> › <Link href={`/kategorija/${o.kategorija}`}>{kat?.naziv ?? 'Oglasi'}</Link> › {o.naslov}
-      </nav>
-      <div className="oglas-raspored">
-        <div className="stog">
+      <Traka natrag={putKat} h1={false}>
+        <a className="ikona-gumb" href="#kontakt" aria-label="Spremi oglas"><Ikona k={IK.favoriteBorder} /></a>
+      </Traka>
+      <div className="detalj">
+        <div className="detalj-mreza">
           <Galerija naslov={o.naslov} slike={o.slike} male={o.slike_male} />
           <div>
             <h1>{o.naslov}</h1>
             <div className="velika-cijena">{cijenaTekst(o.cijena)}</div>
+            <div className="sitno">{kat?.jednina ?? 'Oglas'} · {o.stanje}</div>
             {nedostupan && (
-              <p>
+              <p style={{ marginTop: 10 }}>
                 <span className={`oznaka ${o.status === 'prodano' ? '' : 'siva'}`}>{o.status === 'prodano' ? 'Prodano' : o.status === 'uklonjen' ? 'Uklonjen' : 'Istekao'}</span>{' '}
                 {o.status === 'prodano' ? 'Ovaj predmet je prodan.' : o.status === 'uklonjen' ? 'Oglas je uklonio moderator.' : 'Oglas je istekao.'}
               </p>
             )}
-          </div>
-          <dl className="svojstva">
-            <dt>Stanje</dt>
-            <dd>{o.stanje}</dd>
-            {kat?.polja.map((p) =>
-              o.polja[p.kljuc] ? (
-                <Fragment key={p.kljuc}>
-                  <dt>{p.naziv}</dt>
-                  <dd>{o.polja[p.kljuc]}</dd>
-                </Fragment>
-              ) : null,
-            )}
-            <dt>Lokacija</dt>
-            <dd>{lokacijaTekst(o)}</dd>
-            <dt>Objavljeno</dt>
-            <dd>
-              <time dateTime={o.objavljeno}>{datum(o.objavljeno)}</time> ({prije(o.objavljeno)})
-            </dd>
-          </dl>
-          <section>
+            <hr className="razdjelnik" />
             <h2>Opis</h2>
             <p className="opis">{o.opis}</p>
-          </section>
-        </div>
-        <div className="stog">
-          <OglasAkcije oglas={{ id: o.id, naslov: o.naslov, korisnik_id: o.korisnik_id, status: o.status, prikazi_telefon: o.prikazi_telefon, cijena: o.cijena, nedostupan }} />
-          {prodavatelj && (
-            <div className="ploca">
-              <div className="pomoc">Prodavatelj</div>
-              <Link href={`/korisnik/${prodavatelj.id}`} style={{ fontWeight: 700, fontSize: '1.1rem' }}>{prodavatelj.ime}</Link>
-              <div className="pomoc">
-                Član od {datum(prodavatelj.registriran)} · {broj} {broj === 1 ? 'aktivan oglas' : 'aktivnih oglasa'}
+            <hr className="razdjelnik" />
+            <dl className="svojstva">
+              <dt>Stanje</dt>
+              <dd>{o.stanje}</dd>
+              {poljaKategorije(o.kategorija).map((p) =>
+                o.polja[p.kljuc] ? (
+                  <Fragment key={p.kljuc}>
+                    <dt>{p.naziv}</dt>
+                    <dd>{o.polja[p.kljuc]}</dd>
+                  </Fragment>
+                ) : null,
+              )}
+              <dt>Lokacija</dt>
+              <dd>{lokacijaTekst(o)}</dd>
+              <dt>Objavljeno</dt>
+              <dd>
+                <time dateTime={o.objavljeno}>{datum(o.objavljeno)}</time> ({prije(o.objavljeno)})
+              </dd>
+            </dl>
+            <SigurnaKupnja />
+            {prodavatelj && (
+              <div className="prodavatelj">
+                <Link className="profil" href={`/korisnik/${prodavatelj.id}`}>
+                  <span className="avatar">{prodavatelj.ime.slice(0, 1).toUpperCase()}</span>
+                  <span style={{ minWidth: 0 }}>
+                    <span className="ime" style={{ display: 'block' }}>{prodavatelj.ime}</span>
+                    <span className="pomoc">Član od {datum(prodavatelj.registriran)} · {broj} {broj === 1 ? 'aktivan oglas' : 'aktivnih oglasa'}</span>
+                  </span>
+                </Link>
               </div>
-            </div>
-          )}
-          <SigurnaKupnja />
+            )}
+            <OglasAkcije oglas={{ id: o.id, naslov: o.naslov, korisnik_id: o.korisnik_id, status: o.status, prikazi_telefon: o.prikazi_telefon, cijena: o.cijena, nedostupan }} />
+          </div>
         </div>
       </div>
+      {!nedostupan && (
+        <div className="donja-traka">
+          <div>
+            <a className="gumb glavni sirok nizak" href="#kontakt">Kontaktiraj prodavatelja</a>
+          </div>
+        </div>
+      )}
       {slicni.length > 0 && (
-        <section aria-label="Slični oglasi" style={{ marginTop: 28 }}>
-          <h2>Slični oglasi: {kat?.naziv}</h2>
+        <section aria-label="Slični oglasi" style={{ marginTop: 28, paddingBottom: 80 }}>
+          <h2 className="naslov-odjeljka" style={{ padding: '0 16px' }}>Slični oglasi: {kat?.naziv}</h2>
           <MrezaOglasa oglasi={slicni} />
         </section>
       )}
-      <p className="pomoc" style={{ marginTop: 24 }}>{APP_NAME} je oglasnik: cijenu, plaćanje i preuzimanje dogovarate izravno s prodavateljem.</p>
+      <p className="pomoc" style={{ padding: '0 16px 96px' }}>{APP_NAME} je oglasnik: cijenu, plaćanje i preuzimanje dogovarate izravno s prodavateljem.</p>
     </>
   );
 }

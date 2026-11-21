@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
+import { Traka } from '@/components/Traka';
 import { MrezaOglasa } from '@/components/Kartice';
 import { Paginacija } from '@/components/Paginacija';
 import { PO_STRANICI } from '@/lib/config';
@@ -28,8 +29,8 @@ export default async function KorisnikStranica({ params, searchParams }: { param
   const oglasi = await traziOglase(sb, { korisnik: id }, stranica);
   return (
     <>
-      <h1>{profil.ime}</h1>
-      <p className="pomoc">
+      <Traka naslov={profil.ime} natrag="/" />
+      <p className="pomoc" style={{ padding: '0 16px' }}>
         Član od {datum(profil.registriran)}
         {profil.grad ? ` · ${profil.grad}, ${nazivDrzave(profil.drzava)}` : ''} · {oglasi.ukupno} aktivnih oglasa
       </p>

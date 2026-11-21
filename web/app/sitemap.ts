@@ -1,6 +1,6 @@
 import type { MetadataRoute } from 'next';
 import { SITE_URL } from '@/lib/config';
-import { KATEGORIJE } from '@/lib/kategorije';
+import { PODKATEGORIJE, SEKCIJE } from '@/lib/kategorije';
 import { oglasiZaSitemap } from '@/lib/oglasi';
 import { putOglasa } from '@/lib/seo';
 import { javniKlijent } from '@/lib/supabase';
@@ -12,7 +12,9 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   return [
     { url: `${SITE_URL}/`, changeFrequency: 'daily', priority: 1 },
     { url: `${SITE_URL}/oglasi`, changeFrequency: 'hourly', priority: 0.9 },
-    ...KATEGORIJE.map((k) => ({ url: `${SITE_URL}/kategorija/${k.slug}`, changeFrequency: 'hourly' as const, priority: 0.8 })),
+    { url: `${SITE_URL}/kategorije`, changeFrequency: 'weekly' as const, priority: 0.7 },
+    ...SEKCIJE.map((k) => ({ url: `${SITE_URL}/kategorija/${k.slug}`, changeFrequency: 'hourly' as const, priority: 0.8 })),
+    ...PODKATEGORIJE.map((k) => ({ url: `${SITE_URL}/kategorija/${k.sekcija}/${k.slug}`, changeFrequency: 'hourly' as const, priority: 0.7 })),
     ...oglasi.map((o) => ({
       url: `${SITE_URL}${putOglasa(o)}`,
       lastModified: o.azurirano ?? o.objavljeno,

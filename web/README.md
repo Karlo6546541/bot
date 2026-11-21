@@ -11,6 +11,9 @@ Država (ISO kod, npr. `HR`), županija i grad. Županija je obavezna u Hrvatsko
 po državi, županiji i gradu (grad bez dijakritike: "sibenik" nalazi "Šibenik")
 radi na popisu i u kategorijama, a stranice s filterima nisu u indeksu (noindex).
 
+## Dizajn
+Isti kao Flutter aplikacija (boje, Inter, Material ikone, donja traka/bočna traka, pločice, kategorije). Kategorije se generiraju iz Flutter koda: `python3 scripts/generiraj_kategorije.py <flutter>/packages/flutter/lib/src/material/icons.dart`.
+
 ## Pokretanje
     npm ci
     cp .env.example .env.local   # URL i ključ Supabasea

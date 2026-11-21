@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { Traka } from '@/components/Traka';
 import { PravnoNapomena } from '@/components/PravnoNapomena';
 import { APP_NAME, ISTEK_DANA } from '@/lib/config';
 
@@ -6,8 +7,10 @@ export const metadata: Metadata = { title: 'Uvjeti korištenja', alternates: { c
 
 export default function Uvjeti() {
   return (
+    <>
+    <Traka naslov="Uvjeti korištenja" natrag="/profil" h1={false} />
     <article className="pravno">
-      <h1>Uvjeti korištenja</h1>
+      <h1 className="sr-only">Uvjeti korištenja</h1>
       <PravnoNapomena />
       <h2>1. Što je {APP_NAME}</h2>
       <p>
@@ -31,5 +34,6 @@ export default function Uvjeti() {
       <h2>7. Izdavatelj</h2>
       <p>[NAZIV TVRTKE ILI IME FIZIČKE OSOBE], [OIB], [ADRESA SJEDIŠTA], [KONTAKT E-MAIL].</p>
     </article>
+    </>
   );
 }

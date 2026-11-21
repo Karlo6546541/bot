@@ -1,6 +1,9 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
+import { Ikona } from '@/components/Ikona';
+import { Traka } from '@/components/Traka';
+import { IK } from '@/lib/ikone';
 import { StatusOznaka } from '@/components/StatusOznaka';
 import { VlasnikAkcije } from '@/components/VlasnikAkcije';
 import { lokacijaTekst } from '@/lib/lokacije';
@@ -29,19 +32,21 @@ export default async function MojiOglasi({ searchParams }: { searchParams: Promi
   const popis = svi.filter(tab.uvjet);
   return (
     <>
-      <div className="odjeljak-naslov">
-        <h1>Moji oglasi</h1>
-        <Link className="gumb glavni malen" href="/objavi">+ Novi oglas</Link>
-      </div>
-      <nav className="kartice-tabovi" aria-label="Status oglasa">
+      <Traka naslov="Moji oglasi" natrag="/profil" />
+      <nav className="tabovi-linija" aria-label="Status oglasa">
         {TABOVI.map((t) => (
-          <Link key={t.k} href={`/moji-oglasi?tab=${t.k}`} aria-current={t.k === tab.k ? 'page' : undefined}
-            style={{ padding: '6px 14px', borderRadius: 99, border: '1px solid var(--line)', background: t.k === tab.k ? 'var(--brand)' : 'var(--surface)', color: t.k === tab.k ? 'var(--brand-ink)' : 'var(--ink)', fontWeight: 600, textDecoration: 'none', whiteSpace: 'nowrap' }}>
+          <Link key={t.k} href={`/moji-oglasi?tab=${t.k}`} aria-current={t.k === tab.k ? 'page' : undefined}>
             {t.naziv} ({svi.filter(t.uvjet).length})
           </Link>
         ))}
       </nav>
-      {popis.length === 0 && <div className="prazno ploca">{tab.k === 'aktivni' ? 'Nemaš aktivnih oglasa.' : 'Ovdje još nema oglasa.'}</div>}
+      {popis.length === 0 && (
+        <div className="prazno">
+          <div className="krug"><Ikona k={IK.sellOutlined} /></div>
+          <b>{tab.k === 'aktivni' ? 'Nemaš aktivnih oglasa' : 'Ovdje još nema oglasa'}</b>
+          {tab.k === 'aktivni' && <Link className="gumb glavni" href="/objavi">Objavi oglas</Link>}
+        </div>
+      )}
       {popis.map((o) => (
         <div className="redak" key={o.id} data-moj-oglas={o.id}>
           <Link className="slicica" href={putOglasa(o)}>{/* eslint-disable-next-line @next/next/no-img-element */}<img src={o.slike_male[0]} alt="" loading="lazy" /></Link>

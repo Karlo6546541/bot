@@ -11,7 +11,7 @@ const oglas = (p: Partial<Oglas> = {}): Oglas => ({
   id: '11111111-1111-1111-1111-111111111111',
   korisnik_id: 'u1',
   naslov: 'Charizard Base Set 4/102',
-  kategorija: 'kartice',
+  kategorija: 'pokemon-i-ostali-tcg',
   opis: 'Odlično očuvana holo kartica iz 1999.',
   cijena: 250,
   drzava: 'HR',
@@ -52,7 +52,7 @@ describe('pretraga i filteri', () => {
     expect(f).toMatchObject({ q: 'charizard', kategorija: undefined, drzava: undefined, cijenaOd: undefined, cijenaDo: 300, zupanija: 'Istarska', sort: 'najnovije' });
   });
   it('filteri se vraćaju u adresu i natrag', () => {
-    const f = filteriIzUpita({ q: 'kuna', kategorija: 'kovanice-i-novcanice', drzava: 'HR', zupanija: 'Grad Zagreb', grad: 'Zagreb', p_drzava: 'Hrvatska', sort: 'cijena_rastuce' });
+    const f = filteriIzUpita({ q: 'kuna', kategorija: 'kovanice', drzava: 'HR', zupanija: 'Grad Zagreb', grad: 'Zagreb', p_drzava: 'Hrvatska', sort: 'cijena_rastuce' });
     const url = upitIzFiltera(f, 3);
     expect(url).toContain('drzava=HR');
     expect(url).toContain('stranica=3');
@@ -78,7 +78,7 @@ describe('pretraga i filteri', () => {
 
 describe('objava', () => {
   const nacrt = {
-    naslov: 'Kovanica 5 kuna 1993', kategorija: 'kovanice-i-novcanice', opis: 'Prvo izdanje, lijepo očuvana.', cijena: 12.5,
+    naslov: 'Kovanica 5 kuna 1993', kategorija: 'kovanice', opis: 'Prvo izdanje, lijepo očuvana.', cijena: 12.5,
     drzava: 'HR', zupanija: 'Splitsko-dalmatinska', grad: 'Split', stanje: 'Dobro', polja: { godina: '1993', nepoznato: 'x' }, prikazi_telefon: false,
   };
   it('ispravan nacrt prolazi, nepoznata polja se brišu', () => {

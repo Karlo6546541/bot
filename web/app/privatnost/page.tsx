@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { Traka } from '@/components/Traka';
 import { PravnoNapomena } from '@/components/PravnoNapomena';
 import { KONTAKT_EMAIL } from '@/lib/config';
 
@@ -6,8 +7,10 @@ export const metadata: Metadata = { title: 'Politika privatnosti', alternates: {
 
 export default function Privatnost() {
   return (
+    <>
+    <Traka naslov="Politika privatnosti" natrag="/profil" h1={false} />
     <article className="pravno">
-      <h1>Politika privatnosti</h1>
+      <h1 className="sr-only">Politika privatnosti</h1>
       <PravnoNapomena />
       <h2>Koje podatke prikupljamo</h2>
       <ul>
@@ -29,5 +32,6 @@ export default function Privatnost() {
       <h2>Kolačići</h2>
       <p>Koristimo samo nužne kolačiće za prijavu. Ne koristimo kolačiće za oglašavanje ni praćenje.</p>
     </article>
+    </>
   );
 }

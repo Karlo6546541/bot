@@ -54,6 +54,7 @@ export interface NacrtOglasa {
 export interface Filteri {
   q?: string;
   kategorija?: string;
+  sekcija?: string;
   cijenaOd?: number;
   cijenaDo?: number;
   drzava?: string;

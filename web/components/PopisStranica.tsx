@@ -1,6 +1,9 @@
 import Link from 'next/link';
 import { PO_STRANICI } from '@/lib/config';
-import { KATEGORIJE, STANJA, kategorija } from '@/lib/kategorije';
+import { SEKCIJE, STANJA, poljaKategorije, podkategorija, sekcija } from '@/lib/kategorije';
+import { IK } from '@/lib/ikone';
+import { Ikona } from './Ikona';
+import { Traka } from './Traka';
 import { lokacijaTekst, nazivDrzave } from '@/lib/lokacije';
 import type { OglasKartica, Stranica } from '@/lib/oglasi';
 import { upitIzFiltera } from '@/lib/pretraga';
@@ -18,10 +21,14 @@ export function PopisStranica(props: {
   stranica: number;
   rezultat: Stranica<OglasKartica>;
   kategorijaSlug?: string;
+  sekcijaSlug?: string;
+  natrag?: string;
   bazaSpojena: boolean;
 }) {
   const { filteri: f, stranica, rezultat, osnova } = props;
-  const kat = kategorija(props.kategorijaSlug ?? f.kategorija);
+  const kat = podkategorija(props.kategorijaSlug ?? f.kategorija);
+  const sek = sekcija(props.sekcijaSlug);
+  const polja = poljaKategorije(kat?.slug);
   const ukupnoStranica = Math.max(1, Math.ceil(rezultat.ukupno / PO_STRANICI));
   const adresa = (s: number) => `${osnova}${upitIzFiltera(f, s)}`;
   const aktivniFilteri = [
@@ -34,26 +41,37 @@ export function PopisStranica(props: {
   ].filter(Boolean);
   return (
     <>
-      <nav className="mrvice" aria-label="Putanja">
-        <Link href="/">Početna</Link> › {kat ? <><Link href="/oglasi">Oglasi</Link> › {kat.naziv}</> : 'Oglasi'}
-      </nav>
-      <h1>{props.naslov}</h1>
-      {kat && <p className="pomoc">{kat.opis}</p>}
+      <Traka naslov={props.naslov} natrag={props.natrag ?? '/'}>
+        <Link className="ikona-gumb" href={`/trazi${f.q ? `?q=${encodeURIComponent(f.q)}` : ''}`} aria-label="Pretraži">
+          <Ikona k={IK.search} />
+        </Link>
+      </Traka>
+      {sek && !kat && (
+        <nav className="cipovi" aria-label="Podkategorije">
+          {sek.podkategorije.map((p) => (
+            <Link key={p.slug} className="cip" href={`/kategorija/${sek.slug}/${p.slug}`}>{p.naziv}</Link>
+          ))}
+        </nav>
+      )}
       <div className="popis-raspored">
         <FilterDetails otvoren={aktivniFilteri.length > 0}>
-          <summary>Pretraga i filteri</summary>
+          <summary><Ikona k={IK.tune} /> Pretraga i filteri</summary>
           <form method="get" action={osnova} style={{ marginTop: 12 }}>
             <label className="polje">
               <span>Pojam</span>
               <input type="search" name="q" defaultValue={f.q ?? ''} placeholder="npr. Charizard, kovanica 1 kuna" />
             </label>
-            {!props.kategorijaSlug && (
+            {!props.kategorijaSlug && !props.sekcijaSlug && (
               <label className="polje">
                 <span>Kategorija</span>
                 <select name="kategorija" defaultValue={f.kategorija ?? ''}>
                   <option value="">Sve kategorije</option>
-                  {KATEGORIJE.map((k) => (
-                    <option key={k.slug} value={k.slug}>{k.naziv}</option>
+                  {SEKCIJE.map((sk) => (
+                    <optgroup key={sk.slug} label={sk.naziv}>
+                      {sk.podkategorije.map((k) => (
+                        <option key={k.slug} value={k.slug}>{k.naziv}</option>
+                      ))}
+                    </optgroup>
                   ))}
                 </select>
               </label>
@@ -75,7 +93,7 @@ export function PopisStranica(props: {
                 ))}
               </select>
             </label>
-            {kat?.polja.map((p) => (
+            {polja.map((p) => (
               <label className="polje" key={p.kljuc}>
                 <span>{p.naziv}</span>
                 {p.tip === 'izbor' ? (
@@ -105,7 +123,7 @@ export function PopisStranica(props: {
           </form>
         </FilterDetails>
         <section>
-          <p className="pomoc" data-ukupno={rezultat.ukupno}>
+          <p className="pomoc" style={{ padding: '0 16px' }} data-ukupno={rezultat.ukupno}>
             {rezultat.ukupno} {rezultat.ukupno === 1 ? 'oglas' : 'oglasa'}
             {aktivniFilteri.length > 0 && <> · {aktivniFilteri.join(' · ')}</>}
           </p>
@@ -113,9 +131,10 @@ export function PopisStranica(props: {
           {rezultat.stavke.length > 0 ? (
             <MrezaOglasa oglasi={rezultat.stavke} />
           ) : (
-            <div className="prazno ploca">
-              <p>Nema oglasa za ovu pretragu.</p>
-              <p className="pomoc">Probaj s manje filtera ili drugom riječi.</p>
+            <div className="prazno">
+              <div className="krug"><Ikona k={IK.search} /></div>
+              <b>Nema oglasa za ovu pretragu</b>
+              <p>Probaj s manje filtera ili drugom riječi.</p>
             </div>
           )}
           <Paginacija stranica={stranica} ukupnoStranica={ukupnoStranica} adresa={adresa} />

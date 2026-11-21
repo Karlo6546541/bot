@@ -1,5 +1,8 @@
 import type { Metadata } from 'next';
 import { redirect } from 'next/navigation';
+import { Ikona } from '@/components/Ikona';
+import { Traka } from '@/components/Traka';
+import { IK } from '@/lib/ikone';
 import { MrezaOglasa } from '@/components/Kartice';
 import { favoritiOglasi } from '@/lib/oglasi';
 import { klijentServera } from '@/lib/supabase';
@@ -13,8 +16,8 @@ export default async function Favoriti() {
   const oglasi = await favoritiOglasi(sb, data.user.id);
   return (
     <>
-      <h1>Favoriti</h1>
-      {oglasi.length === 0 ? <div className="prazno ploca">Još nisi spremio nijedan oglas. Dodirni ♡ Spremi na oglasu.</div> : <MrezaOglasa oglasi={oglasi} />}
+      <Traka naslov="Spremljeni oglasi" natrag="/profil" />
+      {oglasi.length === 0 ? <div className="prazno"><div className="krug"><Ikona k={IK.favoriteBorder} /></div><b>Nema spremljenih oglasa</b><p>Dodirni srce na oglasu da ga spremiš.</p></div> : <MrezaOglasa oglasi={oglasi} />}
     </>
   );
 }

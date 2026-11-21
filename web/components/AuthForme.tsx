@@ -5,6 +5,7 @@ import { useState } from 'react';
 import { osigurajProfil, porukaGreske } from '@/lib/korisnik';
 import { klijentPreglednika } from '@/lib/supabase';
 import { GoogleGumb } from './GoogleGumb';
+import { Traka } from './Traka';
 
 export function PrijavaForma({ natrag, greska: pocetnaGreska }: { natrag: string; greska?: string }) {
   const router = useRouter();
@@ -13,7 +14,10 @@ export function PrijavaForma({ natrag, greska: pocetnaGreska }: { natrag: string
   const [greska, setGreska] = useState(pocetnaGreska ?? '');
   const [radi, setRadi] = useState(false);
   return (
-    <div className="ploca" style={{ maxWidth: 420, margin: '0 auto' }}>
+    <>
+    <Traka natrag="/" naslov="" />
+    <div className="prijava">
+      <div className="logo-velik">Subhasto</div>
       <h1>Prijava</h1>
       <GoogleGumb natrag={natrag} />
       <form
@@ -44,6 +48,7 @@ export function PrijavaForma({ natrag, greska: pocetnaGreska }: { natrag: string
       </form>
       <p style={{ textAlign: 'center' }}>Nemaš račun? <Link href={`/registracija?natrag=${encodeURIComponent(natrag)}`}>Registriraj se</Link></p>
     </div>
+    </>
   );
 }
 
@@ -58,7 +63,7 @@ export function RegistracijaForma({ natrag }: { natrag: string }) {
   const [potvrda, setPotvrda] = useState(false);
   if (potvrda) {
     return (
-      <div className="ploca" style={{ maxWidth: 420, margin: '0 auto' }}>
+      <div className="prijava">
         <h1>Provjeri e-mail</h1>
         <p>Poslali smo poveznicu na <b>{email}</b>. Klikni je da potvrdiš račun, a zatim se prijavi.</p>
         <Link className="gumb" href="/prijava">Na prijavu</Link>
@@ -66,7 +71,10 @@ export function RegistracijaForma({ natrag }: { natrag: string }) {
     );
   }
   return (
-    <div className="ploca" style={{ maxWidth: 420, margin: '0 auto' }}>
+    <>
+    <Traka natrag="/prijava" naslov="" />
+    <div className="prijava">
+      <div className="logo-velik">Subhasto</div>
       <h1>Registracija</h1>
       <GoogleGumb natrag={natrag} />
       <form
@@ -111,5 +119,6 @@ export function RegistracijaForma({ natrag }: { natrag: string }) {
       </form>
       <p style={{ textAlign: 'center' }}>Već imaš račun? <Link href={`/prijava?natrag=${encodeURIComponent(natrag)}`}>Prijavi se</Link></p>
     </div>
+    </>
   );
 }

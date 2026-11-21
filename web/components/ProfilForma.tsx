@@ -5,6 +5,7 @@ import { useState } from 'react';
 import { DRZAVE } from '@/lib/lokacije';
 import { porukaGreske } from '@/lib/korisnik';
 import { klijentPreglednika } from '@/lib/supabase';
+import { Traka } from './Traka';
 
 export function ProfilForma(props: { id: string; ime: string; grad: string; drzava: string; telefon: string; admin: boolean }) {
   const router = useRouter();
@@ -15,8 +16,9 @@ export function ProfilForma(props: { id: string; ime: string; grad: string; drza
   const [poruka, setPoruka] = useState('');
   const [radi, setRadi] = useState(false);
   return (
-    <div style={{ maxWidth: 480 }} className="stog">
-      <h1>Moj profil</h1>
+    <>
+    <Traka naslov="Postavke" natrag="/profil" />
+    <div className="stranica stog">
       <form className="ploca" onSubmit={async (e) => {
         e.preventDefault();
         if (ime.trim().length < 2) return setPoruka('Upiši ime.');
@@ -44,5 +46,6 @@ export function ProfilForma(props: { id: string; ime: string; grad: string; drza
         <button className="gumb opasno" type="button" onClick={async () => { await klijentPreglednika().auth.signOut(); router.push('/'); router.refresh(); }}>Odjava</button>
       </div>
     </div>
+    </>
   );
 }

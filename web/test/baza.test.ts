@@ -44,7 +44,7 @@ beforeAll(async () => {
 });
 
 const OGLAS = `insert into oglasnik_oglasi (korisnik_id, naslov, kategorija, opis, cijena, drzava, zupanija, grad, stanje, polja, slike, slike_male)
-  values ($1, $2, 'kartice', 'Holo kartica, odlično očuvana.', 250, $3, $4, $5, 'Dobro', '{"igra":"Pokémon"}', array['a.webp'], array['a-m.webp']) returning *`;
+  values ($1, $2, 'pokemon-i-ostali-tcg', 'Holo kartica, odlično očuvana.', 250, $3, $4, $5, 'Dobro', '{"igra":"Pokémon"}', array['a.webp'], array['a-m.webp']) returning *`;
 
 describe('lokacija oglasa', () => {
   it('zadana država je Hrvatska; županija je neobavezna izvan nje', async () => {

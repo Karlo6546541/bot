@@ -33,3 +33,8 @@ alter table public.oglasnik_oglasi add column if not exists grad_n text generate
   translate(lower(grad), 'čćžšđáàäâéèëêíìïîóòöôúùüûýÿñ', 'cczsdaaaaeeeeiiiioooouuuuyyn')
 ) stored;
 create index if not exists oglasnik_oglasi_grad_n on public.oglasnik_oglasi (drzava, grad_n);
+
+-- Stanja kao u aplikaciji (Novo, Odlično, Vrlo dobro, Dobro, Za dijelove).
+alter table public.oglasnik_oglasi drop constraint if exists oglasnik_oglasi_stanje_check;
+alter table public.oglasnik_oglasi add constraint oglasnik_oglasi_stanje_check
+  check (stanje in ('Novo', 'Odlično', 'Vrlo dobro', 'Dobro', 'Za dijelove'));

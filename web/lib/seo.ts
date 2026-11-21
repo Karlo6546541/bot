@@ -1,5 +1,5 @@
 import { APP_NAME, SITE_URL } from './config';
-import { kategorija } from './kategorije';
+import { podkategorija } from './kategorije';
 import { lokacijaTekst, nazivDrzave } from './lokacije';
 import { slug } from './tekst';
 import type { Oglas } from './types';
@@ -9,14 +9,15 @@ export const punaAdresa = (put: string) => `${SITE_URL}${put}`;
 
 const STANJE_SCHEMA: Record<string, string> = {
   Novo: 'https://schema.org/NewCondition',
-  'Kao novo': 'https://schema.org/UsedCondition',
+  Odlično: 'https://schema.org/UsedCondition',
+  'Vrlo dobro': 'https://schema.org/UsedCondition',
   Dobro: 'https://schema.org/UsedCondition',
-  Oštećeno: 'https://schema.org/DamagedCondition',
+  'Za dijelove': 'https://schema.org/DamagedCondition',
 };
 
 /** Strukturirani podaci za stranicu oglasa (Product + Offer) za Google. */
 export function jsonLdOglas(o: Oglas) {
-  const kat = kategorija(o.kategorija);
+  const kat = podkategorija(o.kategorija);
   const ponuda: Record<string, unknown> = {
     '@type': 'Offer',
     url: punaAdresa(putOglasa(o)),
@@ -75,7 +76,7 @@ export function jsonLdStranica() {
 export const jsonUScript = (o: unknown) => JSON.stringify(o).replace(/</g, '\\u003c');
 
 export function opisOglasa(o: Oglas): string {
-  const kat = kategorija(o.kategorija)?.naziv ?? '';
+  const kat = podkategorija(o.kategorija)?.naziv ?? '';
   const cijena = o.cijena == null ? 'Cijena po dogovoru' : `${o.cijena} €`;
   const pocetak = `${o.naslov}: ${kat}, ${o.stanje}, ${cijena}, ${lokacijaTekst(o)}. `;
   return (pocetak + o.opis).replace(/\s+/g, ' ').slice(0, 158);

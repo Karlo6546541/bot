@@ -1,6 +1,6 @@
 import type { Filteri, Oglas, Sortiranje } from './types';
 import { jeDrzava } from './lokacije';
-import { kategorija } from './kategorije';
+import { podkategorija, sekcija } from './kategorije';
 import { normaliziraj, rijeciUpita } from './tekst';
 
 export const jeAktivan = (o: Oglas, sada = Date.now()) =>
@@ -16,7 +16,7 @@ const broj = (v: string | undefined) => {
 };
 
 /** Filteri iz adrese (?q=…&drzava=HR&zupanija=…). Nepoznate vrijednosti se odbacuju. */
-export function filteriIzUpita(sp: Record<string, string | string[] | undefined>, kat?: string): Filteri {
+export function filteriIzUpita(sp: Record<string, string | string[] | undefined>, kat?: string, sek?: string): Filteri {
   const polja: Record<string, string> = {};
   for (const [k, v] of Object.entries(sp)) {
     const x = prvi(v);
@@ -25,9 +25,11 @@ export function filteriIzUpita(sp: Record<string, string | string[] | undefined>
   const sort = prvi(sp.sort);
   const drzava = prvi(sp.drzava);
   const kategorijaSlug = kat ?? prvi(sp.kategorija);
+  const sekcijaSlug = sek ?? prvi(sp.sekcija);
   return {
     q: prvi(sp.q)?.slice(0, 100) || undefined,
-    kategorija: kategorija(kategorijaSlug) ? kategorijaSlug : undefined,
+    kategorija: podkategorija(kategorijaSlug) ? kategorijaSlug : undefined,
+    sekcija: sekcija(sekcijaSlug) ? sekcijaSlug : undefined,
     cijenaOd: broj(prvi(sp.od)),
     cijenaDo: broj(prvi(sp.do)),
     drzava: jeDrzava(drzava) ? drzava : undefined,
@@ -43,6 +45,7 @@ export function filteriIzUpita(sp: Record<string, string | string[] | undefined>
 export function upitIzFiltera(f: Filteri, stranica?: number): string {
   const p = new URLSearchParams();
   if (f.q) p.set('q', f.q);
+  if (f.sekcija) p.set('sekcija', f.sekcija);
   if (f.kategorija) p.set('kategorija', f.kategorija);
   if (f.cijenaOd != null) p.set('od', String(f.cijenaOd));
   if (f.cijenaDo != null) p.set('do', String(f.cijenaDo));
@@ -71,6 +74,7 @@ export function odgovara(o: Oglas, f: Filteri, sada = Date.now()): boolean {
   if (!jeAktivan(o, sada)) return false;
   if (f.korisnik && o.korisnik_id !== f.korisnik) return false;
   if (f.kategorija && o.kategorija !== f.kategorija) return false;
+  if (f.sekcija && podkategorija(o.kategorija)?.sekcija !== f.sekcija) return false;
   if (f.drzava && o.drzava !== f.drzava) return false;
   if (f.zupanija && o.zupanija !== f.zupanija) return false;
   if (f.stanje && o.stanje !== f.stanje) return false;

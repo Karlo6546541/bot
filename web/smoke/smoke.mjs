@@ -24,7 +24,7 @@ const dohvati = async (put, opts = {}) => {
 };
 const meta = (html, re) => html.match(re)?.[1];
 const ukupno = (html) => Number(meta(html, /data-ukupno="(\d+)"/));
-const brojKartica = (html) => (html.match(/class="kartica"/g) ?? []).length;
+const brojKartica = (html) => (html.match(/class="plocica"/g) ?? []).length;
 const jsonLd = (html) => [...html.matchAll(/<script type="application\/ld\+json">(.*?)<\/script>/gs)].map((m) => JSON.parse(m[1]));
 const naslov = (html) => meta(html, /<title>(.*?)<\/title>/s);
 const robots = (html) => meta(html, /<meta name="robots" content="(.*?)"/);
@@ -43,7 +43,7 @@ const home = await dohvati('/');
 provjeri('Početna: 200, naslov, opis i canonical', home.status === 200 && naslov(home.html)?.includes('Oglasnik za kolekcionare') && !!meta(home.html, /<meta name="description" content="(.{40,})"/) && !!canonical(home.html));
 provjeri('Početna: JSON-LD WebSite s pretragom', jsonLd(home.html).some((j) => j['@type'] === 'WebSite' && j.potentialAction));
 provjeri('Početna: 12 najnovijih oglasa u HTML-u', brojKartica(home.html) === 12, String(brojKartica(home.html)));
-provjeri('Početna: jedan h1 i poveznice na kategorije', (home.html.match(/<h1/g) ?? []).length === 1 && home.html.includes('href="/kategorija/kartice"'));
+provjeri('Početna: jedan h1 i poveznice na kategorije', (home.html.match(/<h1/g) ?? []).length === 1 && (await dohvati('/kategorije')).html.includes('href="/kategorija/kartice/pokemon-i-ostali-tcg"'));
 
 // ---- popis i filteri po lokaciji ----
 const svi = await dohvati('/oglasi');
@@ -63,20 +63,20 @@ provjeri('Filter grad "sibenik" (bez dijakritike) nalazi Šibenik', ukupno(sib.h
 const kombo = await dohvati('/oglasi?drzava=HR&zupanija=Grad%20Zagreb&od=10&do=150&sort=cijena_rastuce');
 const cijene = [...kombo.html.matchAll(/class="cijena">([^<]*)</g)].map((m) => Number(m[1].replace(/[^\d,]/g, '').replace(',', '.')));
 provjeri('Kombinirani filteri: županija + cijena od-do + sortiranje daju rezultate', ukupno(kombo.html) > 0 && ukupno(kombo.html) === brojKartica(kombo.html) && cijene.every((c, i) => c >= 10 && c <= 150 && (i === 0 || c >= cijene[i - 1])), `${ukupno(kombo.html)}: ${cijene.join(',')}`);
-provjeri('Kombinirani filteri: svi rezultati su u Zagrebu', (kombo.html.match(/class="mjesto">Zagreb, Grad Zagreb/g) ?? []).length === brojKartica(kombo.html));
+provjeri('Kombinirani filteri: svi rezultati su u Zagrebu', (kombo.html.match(/data-mjesto="Zagreb, Grad Zagreb/g) ?? []).length === brojKartica(kombo.html));
 const kat2 = await dohvati('/oglasi?kategorija=kartice&drzava=HR&od=5&do=200&sort=cijena_padajuce');
 const c2 = [...kat2.html.matchAll(/class="cijena">([^<]*)</g)].map((m) => Number(m[1].replace(/[^\d,]/g, '').replace(',', '.')));
 provjeri('Filter kategorija + država + cijena (padajuće)', ukupno(kat2.html) > 0 && c2.every((c, i) => i === 0 || c <= c2[i - 1]), c2.join(','));
-provjeri('Filter prikazuje odabranu županiju u obrascu', /<option selected="">Grad Zagreb<\/option>/.test(kombo.html) && kombo.html.includes('<details class="ploca filteri" open="">'));
-provjeri('Bez aktivnih filtera okvir filtera je zatvoren (popis je prvi)', !svi.html.includes('<details class="ploca filteri" open'));
+provjeri('Filter prikazuje odabranu županiju u obrascu', /<option selected="">Grad Zagreb<\/option>/.test(kombo.html) && kombo.html.includes('<details class="ploca filteri filter-panel" open="">'));
+provjeri('Bez aktivnih filtera okvir filtera je zatvoren (popis je prvi)', !svi.html.includes('<details class="ploca filteri filter-panel" open'));
 const q = await dohvati('/oglasi?q=ljubljana');
 provjeri('Pretraga teksta nalazi po gradu u opisu', ukupno(q.html) > 0 && q.html.includes('Ljubljana'), String(ukupno(q.html)));
 const loš = await dohvati('/oglasi?drzava=XX1&sort=hakiraj&od=-5&stranica=abc');
 provjeri('Neispravni parametri se ignoriraju (200, svi oglasi)', loš.status === 200 && ukupno(loš.html) === 34);
 
 // ---- kategorija ----
-const kat = await dohvati('/kategorija/kovanice-i-novcanice');
-provjeri('Kategorija: naslov, canonical, breadcrumb JSON-LD, filteri kategorije', kat.status === 200 && naslov(kat.html)?.includes('Kovanice') && canonical(kat.html) === `${BASE}/kategorija/kovanice-i-novcanice` && jsonLd(kat.html).some((j) => j['@type'] === 'BreadcrumbList') && kat.html.includes('name="p_godina"'));
+const kat = await dohvati('/kategorija/novci/kovanice');
+provjeri('Kategorija: naslov, canonical, breadcrumb JSON-LD, filteri kategorije', kat.status === 200 && naslov(kat.html)?.includes('Kovanice') && canonical(kat.html) === `${BASE}/kategorija/novci/kovanice` && jsonLd(kat.html).some((j) => j['@type'] === 'BreadcrumbList') && kat.html.includes('name="p_godina"'));
 provjeri('Kategorija: samo oglasi te kategorije', brojKartica(kat.html) === 6 && ukupno(kat.html) === 6, String(ukupno(kat.html)));
 provjeri('Nepostojeća kategorija: 404', (await dohvati('/kategorija/nema')).status === 404);
 
@@ -125,7 +125,7 @@ provjeri('Bez riječi aukcija/licitiranje/košarica u HTML-u', ![home.html, svi.
 // ---- izgled na mobitelu (375 px) ----
 try {
   const { chromium } = require('playwright');
-  const b = await chromium.launch();
+  const b = await chromium.launch(process.env.PW_CHROMIUM ? { executablePath: process.env.PW_CHROMIUM } : {});
   const ctx = await b.newContext({ viewport: { width: 375, height: 800 }, deviceScaleFactor: 2, isMobile: true });
   const page = await ctx.newPage();
   const greske = [];

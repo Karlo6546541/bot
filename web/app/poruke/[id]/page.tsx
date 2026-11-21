@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound, redirect } from 'next/navigation';
+import { Traka } from '@/components/Traka';
 import { RazgovorForma } from '@/components/RazgovorForma';
 import { SigurnaKupnja } from '@/components/SigurnaKupnja';
 import { razgovorSPorukama } from '@/lib/oglasi';
@@ -20,9 +21,8 @@ export default async function Razgovor({ params }: { params: Promise<{ id: strin
   const { sazetak, poruke } = r;
   const o = sazetak.oglas;
   return (
-    <div style={{ maxWidth: 720 }}>
-      <Link href="/poruke">‹ Sve poruke</Link>
-      <h1 style={{ marginTop: 8 }}>{sazetak.sugovornik?.ime ?? 'Korisnik'}</h1>
+    <div style={{ maxWidth: 720, margin: '0 auto' }}>
+      <Traka naslov={sazetak.sugovornik?.ime ?? 'Korisnik'} natrag="/poruke" />
       {o && (
         <Link className="redak" href={putOglasa(o)} style={{ textDecoration: 'none', color: 'inherit' }}>
           <div className="slicica">{/* eslint-disable-next-line @next/next/no-img-element */}<img src={o.slike_male[0]} alt="" /></div>
