@@ -12,7 +12,7 @@
   --error: #c62828; --success: #1b7f5c; --buynow: #1e7e34; --info: #4350c7; --live: #d92d26; --mint: #d9f3e3;
   --c0: #2a78d6; --c1: #eb6834; --c2: #1baf7a; --c3: #eda100; --c4: #e87ba4; --c5: #008300; --c6: #6250d6; --c7: #e34948;
   --r-chip: 12px; --r-btn: 16px; --r-card: 24px;
-  color-scheme: light;
+  color-scheme: light dark;
 }
 @media (prefers-color-scheme: dark) {
   :root {
@@ -23,6 +23,8 @@
     color-scheme: dark;
   }
 }
+/* Samsung/Chrome automatsko zatamnjivanje ne smije prebojiti stranicu koja već ima svoje teme. */
+html { color-scheme: light dark; }
 
 *, *::before, *::after { box-sizing: border-box; }
 html { -webkit-text-size-adjust: 100%; }
