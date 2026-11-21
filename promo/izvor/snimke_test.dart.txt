@@ -1,0 +1,87 @@
+import 'dart:io';
+import 'dart:ui' as ui;
+import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
+import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:hive/hive.dart';
+import 'package:loop_app/app.dart';
+import 'package:loop_app/models/device.dart';
+import 'package:loop_app/providers/app_providers.dart';
+import 'package:loop_app/services/seed_data.dart';
+import 'package:loop_app/services/storage_service.dart';
+
+void main() {
+  testWidgets('promo', (tester) async {
+    await tester.runAsync(() async {
+      for (final (fam, f) in [('Inter','/tmp/claude-0/-home-user-bot/e719fc65-e99c-5cda-9201-824dd21a3b7b/scratchpad/web/assets/assets/fonts/Inter_500Medium.ttf'),('Inter','/tmp/claude-0/-home-user-bot/e719fc65-e99c-5cda-9201-824dd21a3b7b/scratchpad/web/assets/assets/fonts/Inter_700Bold.ttf'),('MaterialIcons','/tmp/claude-0/-home-user-bot/e719fc65-e99c-5cda-9201-824dd21a3b7b/scratchpad/flutter/bin/cache/artifacts/material_fonts/MaterialIcons-Regular.otf')]) {
+        final l = FontLoader(fam)..addFont(Future.value(ByteData.sublistView(File(f).readAsBytesSync())));
+        await l.load();
+      }
+    });
+    tester.view.physicalSize = const Size(1170, 2532);
+    tester.view.devicePixelRatio = 3;
+    addTearDown(tester.view.reset);
+    final storage = StorageService();
+    await tester.runAsync(() => storage.init(inMemory: true));
+    addTearDown(() => tester.runAsync(Hive.close));
+    await storage.saveSession(userId: SeedData.testUserId);
+    for (final d in [...storage.devices]) {
+      await storage.deleteDevice(d.id);
+    }
+    final now = DateTime.now();
+    var i = 0;
+    Future<void> add(String id, String name, DeviceCategory c, double price, DeviceCondition cond, String desc, {GradingCertificate? cert}) async {
+      final at = now.subtract(Duration(hours: 3 + i * 5));
+      i++;
+      await storage.putDevice(Device(
+        id: id, name: name, model: '', condition: cond, price: price, category: c,
+        createdAt: at, ownerId: SeedData.anaUserId, description: desc,
+        listPrice: price, listedAt: at, marketChecked: true, certificate: cert,
+      ));
+    }
+    await add('p1', 'Charizard Base Set 4/102', DeviceCategory.tcg, 250, DeviceCondition.excellent, 'Originalna kartica iz 1999., ocijenjena, bez savijanja.', cert: const GradingCertificate(grader: Grader.psa, grade: '9', number: '12345678'));
+    await add('p2', 'Kovanica 5 kuna 1993', DeviceCategory.coins, 12, DeviceCondition.veryGood, 'Prvo izdanje, lijepo očuvana.');
+    await add('p3', 'Alan Ford br. 1', DeviceCategory.comicsYugo, 45, DeviceCondition.good, 'Jugoslavensko izdanje, korice očuvane.');
+    await add('p4', 'Pink Floyd – The Wall (LP)', DeviceCategory.vinyl, 38, DeviceCondition.veryGood, 'Originalni tisak, ploča bez ogrebotina.');
+    await add('p5', 'Marke Jugoslavija 1960-ih', DeviceCategory.stamps, 20, DeviceCondition.good, 'Album s oko 120 marki.');
+    await add('p6', 'Game Boy Color', DeviceCategory.console, 55, DeviceCondition.good, 'Radi, s novim poklopcem baterija.');
+    final key = GlobalKey();
+    await tester.pumpWidget(ProviderScope(
+      overrides: [storageProvider.overrideWithValue(storage), tickIntervalProvider.overrideWithValue(null)],
+      child: RepaintBoundary(key: key, child: const LoopApp()),
+    ));
+    Future<void> shot(String n) async {
+      await tester.pumpAndSettle();
+      await tester.runAsync(() async {
+        final b = key.currentContext!.findRenderObject() as RenderRepaintBoundary;
+        final img = await b.toImage(pixelRatio: 3);
+        final d = await img.toByteData(format: ui.ImageByteFormat.png);
+        File('/tmp/claude-0/-home-user-bot/e719fc65-e99c-5cda-9201-824dd21a3b7b/scratchpad/video/shots/$n.png').writeAsBytesSync(d!.buffer.asUint8List());
+      });
+    }
+    await shot('home');
+    await tester.tap(find.text('Pretraži oglase').first);
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byKey(const ValueKey('global-search')), 'charizard do 300');
+    await tester.pumpAndSettle();
+    await tester.testTextInput.receiveAction(TextInputAction.search);
+    await shot('trazi');
+    tester.state<NavigatorState>(find.byType(Navigator).first).pop();
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Kategorije').first);
+    await shot('kategorije');
+    await tester.tap(find.text('Prodaj').first);
+    await shot('prodaj');
+    await tester.tap(find.text('Početna').first);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Charizard Base Set 4/102').first);
+    await shot('detalj');
+    await tester.tap(find.text('Kontaktiraj prodavatelja').first);
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byType(TextField).last, 'Pozdrav! Je li Charizard još dostupan? Mogu preuzeti osobno u Zagrebu.');
+    await tester.tap(find.byIcon(Icons.send).last);
+    await shot('chat');
+  });
+}

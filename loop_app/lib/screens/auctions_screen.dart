@@ -500,7 +500,11 @@ class AuctionBrowseCard extends ConsumerWidget {
     } else if (a == null) {
       topLeft = pill(
         Text(
-          device?.isDigital ?? false ? t('Digitalno') : t('Kupi odmah'),
+          device?.isDigital ?? false
+              ? t('Digitalno')
+              : kClassifiedsMode
+              ? (device?.category.singular ?? t('Oglas'))
+              : t('Kupi odmah'),
           style: pillText,
         ),
         const Color(0xFF1E7E34),
