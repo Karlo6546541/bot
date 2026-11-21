@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="hr"><head><meta charset="utf-8">
+<style>
+:root{--bg:#141a1b;--teal:#449DA8;--teal2:#6CC3CD;--gold:#E0B04A;--ink:#F2F4F4;--muted:#A4ADAF}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{width:1080px;height:1920px;overflow:hidden;background:#000;font-family:Inter,"Inter Display",system-ui,sans-serif;color:var(--ink)}
+#stage{position:relative;width:1080px;height:1920px;overflow:hidden;background:var(--bg)}
+#glow1,#glow2{position:absolute;border-radius:50%;filter:blur(120px);opacity:.55}
+#glow1{width:900px;height:900px;background:#2b7b86}
+#glow2{width:800px;height:800px;background:#7a5a1a}
+.emo{position:absolute;font-size:96px;opacity:0;will-change:transform}
+.cap{position:absolute;left:70px;right:70px;top:150px;text-align:center;font-weight:900;font-size:78px;line-height:1.08;letter-spacing:-.025em;opacity:0;text-shadow:0 6px 30px rgba(0,0,0,.55)}
+.cap em{font-style:normal;color:var(--teal2)}
+.cap small{display:block;margin-top:22px;font-size:40px;font-weight:700;letter-spacing:0;color:var(--muted)}
+#hook{position:absolute;left:60px;right:60px;top:520px;text-align:center;font-weight:900;font-size:128px;line-height:1.02;letter-spacing:-.04em}
+#hook div{opacity:0;display:block}
+#hook em{font-style:normal;background:linear-gradient(90deg,var(--teal2),var(--gold));-webkit-background-clip:text;background-clip:text;color:transparent}
+#phone{position:absolute;left:190px;top:430px;width:700px;height:1515px;border-radius:84px;background:#0b0f10;padding:16px;box-shadow:0 0 0 3px #2c3638,0 50px 140px rgba(0,0,0,.65);will-change:transform}
+#screen{position:relative;width:100%;height:100%;border-radius:68px;overflow:hidden;background:#171c1d}
+#screen img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:top;opacity:0}
+#chips{position:absolute;left:0;right:0;top:395px;display:flex;justify-content:center;gap:16px;opacity:0}
+.chip{background:rgba(108,195,205,.16);border:2px solid rgba(108,195,205,.45);color:var(--ink);font-weight:800;font-size:34px;padding:12px 26px;border-radius:99px}
+#brand{position:absolute;left:0;right:0;top:470px;text-align:center;opacity:0}
+#brand .name{font-size:176px;font-weight:900;letter-spacing:-.05em;background:linear-gradient(90deg,#fff,var(--teal2));-webkit-background-clip:text;background-clip:text;color:transparent}
+#brand .tag{margin-top:8px;font-size:58px;font-weight:800;color:var(--ink)}
+#cta{position:absolute;left:0;right:0;top:1010px;text-align:center;opacity:0}
+#cta .btn{display:inline-block;background:var(--teal2);color:#0d1517;font-weight:900;font-size:60px;padding:34px 74px;border-radius:99px;box-shadow:0 20px 70px rgba(108,195,205,.45)}
+#cta .sub{margin-top:36px;font-size:48px;font-weight:800;color:var(--ink)}
+#cta .sub2{margin-top:14px;font-size:38px;font-weight:700;color:var(--muted)}
+#bar{position:absolute;left:0;top:0;height:8px;background:var(--teal2);width:0}
+</style></head><body>
+<div id="stage">
+ <div id="glow1"></div><div id="glow2"></div>
+ <div id="emos"></div>
+ <div id="hook">
+  <div>Skupljaš</div>
+  <div><em>kartice, kovanice,</em></div>
+  <div><em>stripove</em> ili ploče?</div>
+ </div>
+ <div id="brand"><div class="name">Subhasto</div><div class="tag">Oglasnik za kolekcionare</div></div>
+ <div class="cap" id="c1">Svi oglasi <em>kolekcionara</em><br>na jednom mjestu</div>
+ <div class="cap" id="c2">Objavi oglas<br><em>besplatno</em><small>fotke · cijena · stanje · certifikat ocjene</small></div>
+ <div class="cap" id="c3">Jasne <em>fotografije</em><br>stanje i cijena<small>konzole, kartice, stripovi, ploče…</small></div>
+ <div class="cap" id="c4">Pametna pretraga<small>„pokemon do 30”: pronađe odmah</small></div>
+ <div class="cap" id="c5">Piši prodavatelju<br><em>bez provizije</em><small>cijenu i preuzimanje dogovarate sami</small></div>
+ <div id="phone"><div id="screen">
+  <img id="s_home" src="shots/home.png"><img id="s_prodaj" src="shots/prodaj.png"><img id="s_detalj" src="shots/detalj.png"><img id="s_trazi" src="shots/trazi.png"><img id="s_chat" src="shots/chat.png">
+ </div></div>
+ <div id="cta"><div class="btn">Isprobaj besplatno</div><div class="sub">Link u bioju</div><div class="sub2">Subhasto · oglasnik za kolekcionare</div></div>
+ <div id="bar"></div>
+</div>
+<script>
+const clamp=(x,a=0,b=1)=>Math.min(b,Math.max(a,x));
+const lerp=(a,b,t)=>a+(b-a)*t;
+const eo=t=>1-Math.pow(1-clamp(t),3);
+const eb=t=>{t=clamp(t);const c1=1.70158,c3=c1+1;return 1+c3*Math.pow(t-1,3)+c1*Math.pow(t-1,2)};
+const $=id=>document.getElementById(id);
+// emoji čestice (deterministično)
+const E=['🃏','🪙','📚','💿','🕹️','📮','🏅','⌚','🖼️','🧸'];
+const emos=[];
+let seed=7;const rnd=()=>{seed=(seed*16807)%2147483647;return seed/2147483647};
+for(let i=0;i<14;i++){const e=document.createElement('div');e.className='emo';e.textContent=E[i%E.length];$('emos').appendChild(e);emos.push({e,x:rnd()*980,y0:rnd()*2200,sp:90+rnd()*110,ph:rnd()*6,sc:.7+rnd()*.9,rot:rnd()*40-20})}
+// raspored zaslona
+const SC=[['s_home',2.5,4.7],['s_prodaj',4.7,6.8],['s_detalj',6.8,9.0],['s_trazi',9.0,11.1],['s_chat',11.1,13.3]];
+const CAP=[['c1',2.6,4.7],['c2',4.8,6.8],['c3',6.9,9.0],['c4',9.1,11.1],['c5',11.2,13.2]];
+function fade(t,a,b,f=.25){return clamp((t-a)/f)*clamp((b-t)/f)}
+function render(t){
+ $('bar').style.width=(t/15*1080)+'px';
+ $('glow1').style.transform=`translate(${lerp(-200,300,t/15)}px,${lerp(80,500,t/15)}px)`;
+ $('glow2').style.transform=`translate(${lerp(500,100,t/15)}px,${lerp(1200,1000,t/15)}px)`;
+ // emoji: vidljivi na početku i na kraju
+ const ev=Math.max(fade(t,0,2.6,.3),clamp((t-13.0)/.5)*.9);
+ emos.forEach(o=>{const y=((o.y0-t*o.sp)%2300+2300)%2300-190;o.e.style.opacity=(.22*ev).toFixed(3);o.e.style.transform=`translate(${o.x}px,${y}px) rotate(${o.rot+Math.sin(t*1.5+o.ph)*12}deg) scale(${o.sc})`});
+ // hook
+ const hk=$('hook').children;
+ for(let i=0;i<3;i++){const s=.15+i*.5;const k=eb((t-s)/.45);hk[i].style.opacity=clamp((t-s)/.2)*clamp((2.65-t)/.3);hk[i].style.transform=`translateY(${(1-k)*60}px) scale(${lerp(.85,1,k)})`}
+ // brand (kratko, pa se pretvara u naslov telefona)
+ // telefon
+ const pin=eb((t-2.3)/.7), pout=eo((t-13.2)/.6);
+ let py=lerp(1500,0,pin)+lerp(0,1100,pout);
+ let sc=lerp(.92,1,pin)*lerp(1,.9,pout);
+ const bob=Math.sin(t*1.2)*6*(t>3?1:0);
+ $('phone').style.opacity=clamp((t-2.3)/.25)*(1-pout);
+ $('phone').style.transform=`translateY(${py+bob}px) scale(${sc}) rotate(${lerp(-3,0,eo((t-2.3)/.9))}deg)`;
+ // zasloni
+ SC.forEach(([id,a,b])=>{$(id).style.opacity=fade(t,a,b,id==='s_home'?.05:.3);const k=clamp((t-a)/(b-a));$(id).style.transform=`scale(${1+k*.035}) translateY(${-k*10}px)`});
+ // naslovi
+ CAP.forEach(([id,a,b])=>{const el=$(id);const o=fade(t,a,b,.28);el.style.opacity=o;el.style.transform=`translateY(${(1-eo((t-a)/.4))*40}px)`});
+ // brand + CTA
+ const bo=clamp((t-13.3)/.5);
+ $('brand').style.opacity=bo;$('brand').style.transform=`scale(${lerp(.8,1,eb((t-13.3)/.6))})`;
+ $('cta').style.opacity=clamp((t-13.6)/.4);
+ const pulse=1+Math.sin(Math.max(0,t-13.8)*9)*.025*clamp((t-13.8)/.2);
+ $('cta').firstElementChild.style.transform=`scale(${pulse})`;
+}
+window.render=render;render(0);
+</script></body></html>

@@ -1,0 +1,584 @@
+<!doctype html>
+<html lang="hr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Subhasto — licitiraj uživo</title>
+<meta name="description" content="Subhasto je hrvatska aplikacija za live aukcije: prodavači idu uživo, ti licitiraš u 30 sekundi, a paket stiže s brojem za praćenje. Upiši se na listu čekanja.">
+<meta property="og:title" content="Subhasto — licitiraj uživo">
+<meta property="og:description" content="Live aukcije, Kupi odmah i digitalni proizvodi u jednoj aplikaciji. Upiši se na listu čekanja i preskoči red s prijateljima.">
+<meta property="og:type" content="website">
+<meta name="theme-color" content="#121212">
+<link rel="icon" href="media/icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#121212;--surface:#1E1E1E;--hover:#2A2A2A;--text:#fff;--muted:#A3A3A3;
+  --accent:#FF9248;--terra:#C2410C;--live:#FF2D55;--green:#4CC38A;--onaccent:#1B1410;
+  --radius:18px;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--text);font-family:Nunito,system-ui,sans-serif;line-height:1.5;overflow-x:hidden}
+a{color:inherit}
+img{max-width:100%}
+.wrap{max-width:1160px;margin:0 auto;padding:0 20px}
+.btn{display:inline-flex;align-items:center;gap:8px;border:0;border-radius:999px;padding:14px 22px;font:800 16px Nunito,sans-serif;cursor:pointer;text-decoration:none;transition:transform .15s,box-shadow .2s}
+.btn:hover{transform:translateY(-2px)}
+.btn-accent{background:var(--accent);color:var(--onaccent);box-shadow:0 10px 30px -10px rgba(255,146,72,.7)}
+.btn-ghost{background:var(--hover);color:var(--text)}
+.pill{display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border-radius:999px;background:var(--hover);font-weight:800;font-size:13px}
+.live-dot{width:8px;height:8px;border-radius:50%;background:var(--live);box-shadow:0 0 0 0 rgba(255,45,85,.7);animation:pulse 1.6s infinite}
+@keyframes pulse{0%{box-shadow:0 0 0 0 rgba(255,45,85,.7)}70%{box-shadow:0 0 0 10px rgba(255,45,85,0)}100%{box-shadow:0 0 0 0 rgba(255,45,85,0)}}
+
+/* nav */
+nav{position:sticky;top:0;z-index:20;background:rgba(18,18,18,.82);backdrop-filter:blur(12px);border-bottom:1px solid #222}
+nav .wrap{display:flex;align-items:center;justify-content:space-between;height:64px}
+.logo{display:flex;align-items:center;gap:10px;font-weight:900;letter-spacing:2px;font-size:20px;text-decoration:none}
+.logo svg{width:26px;height:26px}
+nav .links{display:flex;gap:22px;font-weight:700;color:var(--muted)}
+nav .links a{text-decoration:none}
+nav .links a:hover{color:var(--text)}
+@media (max-width:760px){nav .links{display:none}}
+
+/* hero */
+.hero{position:relative;padding:56px 0 40px;overflow:hidden}
+.hero::before{content:"";position:absolute;inset:-30% -10% auto auto;width:720px;height:720px;background:radial-gradient(circle,rgba(255,146,72,.28),transparent 60%);filter:blur(10px);z-index:0}
+.hero::after{content:"";position:absolute;left:-200px;bottom:-200px;width:600px;height:600px;background:radial-gradient(circle,rgba(255,45,85,.18),transparent 60%);z-index:0}
+.hero .wrap{position:relative;z-index:1;display:grid;grid-template-columns:1.1fr .9fr;gap:40px;align-items:center}
+@media (max-width:900px){.hero .wrap{grid-template-columns:1fr}}
+h1{font-size:clamp(40px,6vw,72px);line-height:1.02;margin:16px 0;font-weight:900;letter-spacing:-1px}
+h1 .grad{background:linear-gradient(90deg,var(--accent),var(--live));-webkit-background-clip:text;background-clip:text;color:transparent}
+.lead{font-size:clamp(17px,2vw,20px);color:#d6d6d6;max-width:560px}
+.rotator{display:inline-block;min-width:4ch;color:var(--accent)}
+.hero-form{margin-top:26px}
+.counter{margin-top:14px;color:var(--muted);font-weight:700}
+.counter b{color:var(--text)}
+
+/* phone */
+.phone{position:relative;width:min(340px,86vw);aspect-ratio:9/19;margin:0 auto;border-radius:44px;background:#000;padding:12px;box-shadow:0 40px 80px -30px rgba(0,0,0,.9),0 0 0 2px #2a2a2a,0 0 60px -10px rgba(255,146,72,.35)}
+.screen{position:relative;width:100%;height:100%;border-radius:34px;overflow:hidden;background:linear-gradient(160deg,#3a2216,#140d0a 55%,#0b0b0b)}
+.notch{position:absolute;top:8px;left:50%;transform:translateX(-50%);width:90px;height:22px;border-radius:12px;background:#000;z-index:5}
+.cam{position:absolute;inset:0;background:
+  radial-gradient(circle at 50% 38%,rgba(255,180,120,.35),transparent 45%),
+  radial-gradient(circle at 30% 70%,rgba(255,45,85,.18),transparent 40%);}
+.item-emoji{position:absolute;top:22%;left:50%;transform:translateX(-50%);font-size:110px;filter:drop-shadow(0 20px 30px rgba(0,0,0,.6));animation:bob 3s ease-in-out infinite}
+@keyframes bob{50%{transform:translate(-50%,-10px) rotate(-4deg)}}
+.topbar{position:absolute;top:40px;left:12px;right:12px;display:flex;justify-content:space-between;align-items:center;z-index:3;font-size:12px;font-weight:800}
+.host{display:flex;align-items:center;gap:6px;background:rgba(0,0,0,.45);padding:4px 10px 4px 4px;border-radius:999px}
+.ava{width:24px;height:24px;border-radius:50%;background:linear-gradient(135deg,var(--accent),var(--terra));display:grid;place-items:center;font-size:12px;color:var(--onaccent);font-weight:900}
+.badge-live{background:var(--live);padding:3px 8px;border-radius:6px;font-size:11px;font-weight:900;letter-spacing:.5px}
+.viewers{background:rgba(0,0,0,.45);padding:3px 8px;border-radius:6px}
+.chat{position:absolute;left:12px;right:90px;bottom:150px;display:flex;flex-direction:column;gap:6px;font-size:12px;z-index:3;mask-image:linear-gradient(to top,#000 70%,transparent)}
+.msg{background:rgba(0,0,0,.35);padding:4px 8px;border-radius:10px;width:fit-content;animation:msgIn .4s ease}
+.msg b{color:var(--accent)}
+@keyframes msgIn{from{opacity:0;transform:translateY(10px)}}
+.lot{position:absolute;left:10px;right:10px;bottom:62px;background:rgba(23,18,15,.92);border-radius:16px;padding:10px 12px;display:flex;align-items:center;gap:10px;z-index:3;border:1px solid #2a2a2a}
+.lot .name{font-weight:900;font-size:13px}
+.lot .sub{font-size:11px;color:var(--muted)}
+.lot .price{margin-left:auto;text-align:right}
+.lot .price b{font-size:22px;font-weight:900;display:block;transition:transform .2s}
+.lot .price.bump b{animation:bump .4s}
+@keyframes bump{40%{transform:scale(1.25);color:var(--accent)}}
+.timer{position:relative;width:38px;height:38px;flex:none}
+.timer svg{transform:rotate(-90deg)}
+.timer span{position:absolute;inset:0;display:grid;place-items:center;font-weight:900;font-size:12px}
+.bidbar{position:absolute;left:10px;right:10px;bottom:12px;display:flex;gap:8px;z-index:3}
+.bidbar .amt{flex:0 0 auto;padding:10px 14px;border-radius:999px;border:1px solid #444;font-weight:800;font-size:13px}
+.bidbar .go{flex:1;background:var(--accent);color:var(--onaccent);border-radius:999px;padding:10px;text-align:center;font-weight:900;font-size:14px;animation:glow 2s infinite}
+@keyframes glow{50%{box-shadow:0 0 22px rgba(255,146,72,.8)}}
+.rail{position:absolute;right:10px;bottom:150px;display:flex;flex-direction:column;gap:12px;z-index:3;font-size:20px}
+.rail div{width:40px;height:40px;border-radius:50%;background:rgba(0,0,0,.45);display:grid;place-items:center}
+.hearts{position:absolute;right:20px;bottom:200px;z-index:4;pointer-events:none}
+.heart{position:absolute;font-size:20px;animation:float 2.2s ease-out forwards}
+@keyframes float{to{transform:translate(var(--x),-220px) scale(1.4);opacity:0}}
+.sold{position:absolute;inset:0;display:grid;place-items:center;z-index:6;pointer-events:none;opacity:0}
+.sold.show{animation:sold 1.8s ease}
+.sold div{font-size:44px;font-weight:900;background:var(--green);color:#06210f;padding:10px 26px;border-radius:16px;transform:rotate(-8deg);box-shadow:0 0 50px rgba(76,195,138,.7)}
+@keyframes sold{0%{opacity:0;transform:scale(.4)}20%{opacity:1;transform:scale(1.1)}35%{transform:scale(1)}80%{opacity:1}100%{opacity:0}}
+.confetti{position:absolute;width:8px;height:12px;top:40%;left:50%;z-index:7;animation:conf 1.4s ease-out forwards}
+@keyframes conf{to{transform:translate(var(--x),var(--y)) rotate(720deg);opacity:0}}
+.outbid{position:absolute;inset:0;z-index:5;pointer-events:none;box-shadow:inset 0 0 0 0 rgba(255,45,85,0)}
+.outbid.flash{animation:outbid .9s}
+@keyframes outbid{30%{box-shadow:inset 0 0 0 6px rgba(255,45,85,.9),inset 0 0 80px rgba(255,45,85,.5)}}
+
+/* sections */
+section{padding:80px 0}
+.eyebrow{color:var(--accent);font-weight:900;letter-spacing:2px;text-transform:uppercase;font-size:13px}
+h2{font-size:clamp(30px,4vw,48px);line-height:1.08;margin:10px 0 14px;font-weight:900;letter-spacing:-.5px}
+.sub{color:var(--muted);font-size:18px;max-width:640px}
+.marquee{overflow:hidden;border-block:1px solid #222;padding:16px 0;background:#151515}
+.marquee .track{display:flex;gap:40px;width:max-content;animation:marq 40s linear infinite;font-weight:900;font-size:20px;color:#cfcfcf}
+.marquee span{display:flex;align-items:center;gap:10px;white-space:nowrap}
+@keyframes marq{to{transform:translateX(-50%)}}
+.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:18px;margin-top:36px}
+@media (max-width:900px){.grid3{grid-template-columns:1fr}}
+.card{background:var(--surface);border-radius:var(--radius);padding:24px;border:1px solid #252525;position:relative;overflow:hidden}
+.card h3{margin:12px 0 6px;font-size:21px;font-weight:900}
+.card p{margin:0;color:var(--muted)}
+.num{width:42px;height:42px;border-radius:12px;background:linear-gradient(135deg,var(--accent),var(--terra));color:var(--onaccent);display:grid;place-items:center;font-weight:900;font-size:20px}
+.reveal{opacity:0;transform:translateY(30px);transition:opacity .7s ease,transform .7s ease}
+.reveal.in{opacity:1;transform:none}
+
+/* demo reels */
+.reels{display:grid;grid-template-columns:repeat(4,1fr);gap:18px;margin-top:36px}
+@media (max-width:1000px){.reels{grid-template-columns:repeat(2,1fr)}}
+@media (max-width:520px){.reels{grid-template-columns:1fr}}
+.reel{background:var(--surface);border-radius:24px;padding:12px;border:1px solid #252525}
+.reel .stage{position:relative;aspect-ratio:9/14;border-radius:16px;overflow:hidden;background:linear-gradient(170deg,#2a1810,#0e0e0e)}
+.reel h3{margin:12px 4px 2px;font-size:18px;font-weight:900}
+.reel p{margin:0 4px 6px;color:var(--muted);font-size:14px}
+.reel .dl{margin:4px;font-size:13px;font-weight:800;color:var(--accent);text-decoration:none}
+.stage .big{position:absolute;top:18%;left:0;right:0;text-align:center;font-size:64px}
+.stage .card2{position:absolute;left:10px;right:10px;bottom:12px;background:rgba(23,18,15,.95);border-radius:14px;padding:10px;font-size:13px;border:1px solid #2a2a2a}
+.stage .row{display:flex;justify-content:space-between;align-items:center}
+.num-big{font-size:34px;font-weight:900;color:var(--accent);transition:transform .3s}
+.prog{height:8px;background:#333;border-radius:99px;overflow:hidden;margin-top:6px}
+.prog i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--green),#9ff0c7);transition:width .6s}
+.track-steps{display:flex;gap:6px;margin-top:8px}
+.track-steps i{flex:1;height:6px;border-radius:9px;background:#333;transition:background .4s}
+.track-steps i.on{background:var(--accent)}
+.toast{position:absolute;left:10px;right:10px;top:14px;background:#fff;color:#111;border-radius:14px;padding:10px 12px;font-size:12px;font-weight:700;transform:translateY(-140%);transition:transform .5s cubic-bezier(.2,1.4,.4,1);box-shadow:0 10px 30px rgba(0,0,0,.4)}
+.toast.show{transform:none}
+.toast b{display:block;font-weight:900}
+.promoted{position:absolute;top:12px;left:12px;background:var(--accent);color:var(--onaccent);font-size:11px;font-weight:900;padding:3px 8px;border-radius:6px}
+.feed{position:absolute;inset:44px 10px 60px;display:grid;grid-template-columns:1fr 1fr;gap:8px;transition:transform .6s}
+.feed div{border-radius:10px;background:#2a2a2a;position:relative;display:grid;place-items:center;font-size:30px}
+.feed div.me{outline:2px solid var(--accent);background:#3a2216}
+
+/* sellers */
+.split{display:grid;grid-template-columns:1fr 1fr;gap:40px;align-items:center}
+@media (max-width:900px){.split{grid-template-columns:1fr}}
+.feat{display:flex;gap:14px;margin:16px 0}
+.feat .ic{flex:none;width:44px;height:44px;border-radius:50%;background:var(--hover);display:grid;place-items:center;font-size:20px}
+.feat b{display:block;font-size:17px}
+.feat span{color:var(--muted)}
+.hub{background:var(--surface);border-radius:24px;padding:20px;border:1px solid #252525}
+.hub .t{display:flex;justify-content:space-between;align-items:center;padding:12px;border-radius:14px;background:#171717;margin-top:10px;font-weight:800}
+.hub .t small{color:var(--muted);font-weight:700}
+.ring{width:72px;height:72px}
+.bal{font-size:40px;font-weight:900}
+
+/* calc */
+.calc{background:linear-gradient(135deg,#231509,#171717);border:1px solid #3a2216;border-radius:24px;padding:24px;margin-top:22px}
+.calc input[type=range]{width:100%;accent-color:var(--accent)}
+.calc .out{display:flex;gap:16px;flex-wrap:wrap;margin-top:10px}
+.calc .out div{flex:1;min-width:140px;background:#121212;border-radius:14px;padding:12px}
+.calc .out b{display:block;font-size:26px;font-weight:900}
+
+/* waitlist */
+.wl{background:radial-gradient(circle at 20% 0,rgba(255,146,72,.22),transparent 50%),var(--surface);border-radius:28px;padding:36px;border:1px solid #2a2a2a}
+form.join{display:flex;flex-wrap:wrap;gap:10px;margin-top:16px}
+form.join input,form.join select{flex:1 1 220px;min-width:0;background:#111;border:1.5px solid #333;color:var(--text);border-radius:999px;padding:14px 18px;font:700 16px Nunito,sans-serif}
+form.join input:focus,form.join select:focus{outline:none;border-color:var(--accent)}
+.roles{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+.roles label{cursor:pointer}
+.roles input{display:none}
+.roles span{display:inline-block;padding:9px 16px;border-radius:12px;background:var(--hover);font-weight:800}
+.roles input:checked+span{background:var(--text);color:var(--bg)}
+.result{display:none;margin-top:20px}
+.result.show{display:block;animation:msgIn .5s}
+.pos{font-size:64px;font-weight:900;line-height:1;background:linear-gradient(90deg,var(--accent),var(--live));-webkit-background-clip:text;background-clip:text;color:transparent}
+.share{display:flex;flex-wrap:wrap;gap:10px;margin-top:14px}
+.share input{flex:1 1 260px;background:#111;border:1.5px solid #333;color:var(--text);border-radius:999px;padding:12px 16px;font:700 14px Nunito,sans-serif}
+.err{color:#FF7B7B;font-weight:700;margin-top:10px;min-height:1em}
+.ladder{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:22px}
+@media (max-width:700px){.ladder{grid-template-columns:1fr}}
+.ladder div{background:#151515;border-radius:16px;padding:14px;border:1px solid #262626}
+.ladder b{display:block;font-size:18px}
+.ladder span{color:var(--muted);font-size:14px}
+
+/* faq */
+details{background:var(--surface);border-radius:16px;padding:18px 20px;margin-top:10px;border:1px solid #252525}
+summary{cursor:pointer;font-weight:900;font-size:17px;list-style:none;display:flex;justify-content:space-between}
+summary::after{content:"+";color:var(--accent);font-size:22px;line-height:1}
+details[open] summary::after{content:"–"}
+details p{color:var(--muted);margin:10px 0 0}
+footer{padding:40px 0 60px;color:var(--muted);border-top:1px solid #222}
+footer .wrap{display:flex;justify-content:space-between;gap:20px;flex-wrap:wrap}
+.sticky-cta{white-space:nowrap;position:fixed;left:50%;bottom:16px;transform:translate(-50%,140%);z-index:30;transition:transform .4s}
+.sticky-cta.show{transform:translate(-50%,0)}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="wrap">
+    <a class="logo" href="#top" aria-label="Subhasto">
+      <svg viewBox="0 0 32 32" fill="none"><path d="M4 28 L22 10" stroke="#FF9248" stroke-width="3" stroke-linecap="round"/><path d="M22 10 L28 4 L26 12 Z" fill="#FF9248"/><path d="M8 20 l4 4" stroke="#C2410C" stroke-width="3" stroke-linecap="round"/></svg>
+      SUBHASTO
+    </a>
+    <div class="links">
+      <a href="#kako">Kako radi</a>
+      <a href="#demo">Pogledaj</a>
+      <a href="#prodavaci">Za prodavače</a>
+      <a href="#faq">Pitanja</a>
+    </div>
+    <a class="btn btn-accent" href="#waitlist" style="padding:10px 18px;font-size:15px">Rani pristup</a>
+  </div>
+</nav>
+
+<header class="hero" id="top">
+  <div class="wrap">
+    <div>
+      <span class="pill"><i class="live-dot"></i> Uskoro u Hrvatskoj · lista čekanja otvorena</span>
+      <h1>Licitiraj <span class="grad">uživo.</span><br>Pobijedi za 30 sekundi.</h1>
+      <p class="lead">Subhasto je live shopping za <span class="rotator" id="rotator">sneakerse</span>. Prodavač pokaže predmet na kameri, ti licitiraš jednim dodirom, a paket ti stiže s brojem za praćenje.</p>
+      <div class="hero-form">
+        <form class="join" id="heroForm" novalidate>
+          <input type="email" name="email" placeholder="tvoj@email.com" autocomplete="email" required aria-label="E-mail">
+          <button class="btn btn-accent" type="submit">Uđi na listu →</button>
+        </form>
+        <div class="err" id="heroErr"></div>
+        <div class="counter" id="counter"><b id="count">…</b> ljudi već čeka · svaki prijatelj kojeg dovedeš pomiče te dan naprijed</div>
+      </div>
+    </div>
+    <div>
+      <div class="phone" aria-label="Animirani prikaz live aukcije u aplikaciji">
+        <div class="screen" id="hero-screen">
+          <div class="notch"></div>
+          <div class="cam"></div>
+          <div class="item-emoji" id="heroItem">👟</div>
+          <div class="topbar">
+            <div class="host"><div class="ava">I</div>@ivana.kicks</div>
+            <div style="display:flex;gap:6px"><span class="badge-live">UŽIVO</span><span class="viewers">👁 <span id="viewers">248</span></span></div>
+          </div>
+          <div class="chat" id="chat"></div>
+          <div class="rail"><div>❤️</div><div>🛍️</div><div>🚀</div><div>↗️</div></div>
+          <div class="hearts" id="hearts"></div>
+          <div class="lot">
+            <div class="timer"><svg width="38" height="38"><circle cx="19" cy="19" r="16" stroke="#333" stroke-width="4" fill="none"/><circle id="ring" cx="19" cy="19" r="16" stroke="#FF9248" stroke-width="4" fill="none" stroke-dasharray="100.5" stroke-dashoffset="0" stroke-linecap="round"/></svg><span id="secs">30</span></div>
+            <div><div class="name" id="lotName">Nike Dunk Low · 42</div><div class="sub" id="leader">Vodi @marko_zg</div></div>
+            <div class="price" id="priceBox"><b id="price">12 €</b><span class="sub" id="bids">5 ponuda</span></div>
+          </div>
+          <div class="bidbar"><div class="amt">Iznos</div><div class="go" id="go">Licitiraj 13 € »</div></div>
+          <div class="outbid" id="outbid"></div>
+          <div class="sold" id="sold"><div>PRODANO!</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</header>
+
+<div class="marquee" aria-hidden="true">
+  <div class="track" id="marq"></div>
+</div>
+
+<section id="kako">
+  <div class="wrap">
+    <div class="eyebrow">Kako radi</div>
+    <h2>Kao da si na sajmu.<br>Samo s kauča.</h2>
+    <p class="sub">Bez čekanja sedam dana do kraja aukcije. Na Subhastu licitacija traje dok prodavač ne kaže "prodano", a svaka ponuda dodaje sekunde na sat.</p>
+    <div class="grid3">
+      <div class="card reveal"><div class="num">1</div><h3>Uđi u live</h3><p>Biraj po kategoriji: tenisice, retro igre, kartice, satovi, vinyl. Gledaš uživo, pitaš u chatu, vidiš predmet iz svih kutova.</p></div>
+      <div class="card reveal"><div class="num">2</div><h3>Licitiraj jednim dodirom</h3><p>Gumb "Licitiraj" uvijek pokazuje sljedeći iznos. Možeš postaviti i maksimum pa aplikacija licitira umjesto tebe.</p></div>
+      <div class="card reveal"><div class="num">3</div><h3>Prodavač šalje</h3><p>Ne biraš ništa. Prodavač šalje kurirom ili u paketomat, a ti dobiješ broj za praćenje i PIN za pretinac.</p></div>
+    </div>
+  </div>
+</section>
+
+<section id="demo" style="background:#0f0f0f">
+  <div class="wrap">
+    <div class="eyebrow">Pogledaj u 10 sekundi</div>
+    <h2>Četiri trenutka zbog kojih se vraćaš</h2>
+    <p class="sub">Animirani prikazi stvarnih funkcija aplikacije. Svaki možeš preuzeti kao uspravni video za Reels i TikTok.</p>
+    <div class="reels">
+      <div class="reel reveal">
+        <div class="stage" id="reel1">
+          <div class="big">🃏</div>
+          <div class="card2"><div class="row"><span style="font-weight:900">Items on screen</span><span class="badge-live">UŽIVO</span></div>
+            <div class="row" style="margin-top:6px"><span style="color:#aaa">Sljedeći broj</span><span class="num-big" id="r1num">#150</span></div></div>
+        </div>
+        <h3>Brojevi idu sami</h3><p>Prodavač pokazuje kartice, a "Sljedeći #151" se pojavi nakon svake prodaje. Bez ograničenja.</p>
+        <a class="dl" href="media/subhasto-items-on-screen.mp4" download>⬇ Video za Reels</a>
+      </div>
+      <div class="reel reveal">
+        <div class="stage" id="reel2">
+          <div class="feed" id="r2feed"><div>🎧</div><div>📷</div><div class="me" id="r2me">👟<span class="promoted">Promovirano</span></div><div>⌚</div><div>🎮</div><div>💿</div></div>
+          <div class="card2"><div class="row"><b>Community boost</b><span id="r2n">0/10</span></div><div class="prog"><i id="r2bar"></i></div><div style="color:#aaa;margin-top:6px">10 dijeljenja = 15 min na vrhu, besplatno</div></div>
+        </div>
+        <h3>Dijeli i digni show</h3><p>Kad 10 gledatelja podijeli live, show ide na vrh Početne. Gledatelji mogu i sami boostati omiljenog prodavača.</p>
+        <a class="dl" href="media/subhasto-community-boost.mp4" download>⬇ Video za Reels</a>
+      </div>
+      <div class="reel reveal">
+        <div class="stage" id="reel3">
+          <div class="toast" id="r3toast"><b>🚚 @ivana.kicks je poslala paket</b>Broj za praćenje: SB-48213</div>
+          <div class="big">📦</div>
+          <div class="card2"><b id="r3st">Otpremnica izrađena</b><div class="track-steps"><i class="on"></i><i id="t2"></i><i id="t3"></i><i id="t4"></i></div><div style="color:#aaa;margin-top:6px" id="r3pin">PIN za paketomat stiže kad paket uđe u pretinac</div></div>
+        </div>
+        <h3>Ti samo pratiš paket</h3><p>Prodavač bira kurira ili paketomat. Tebi stigne obavijest, broj za praćenje i PIN.</p>
+        <a class="dl" href="media/subhasto-dostava.mp4" download>⬇ Video za Reels</a>
+      </div>
+      <div class="reel reveal">
+        <div class="stage" id="reel4">
+          <div class="big" id="r4emoji">⏳</div>
+          <div class="card2"><div class="row"><b>Pada cijena</b><span class="num-big" id="r4price">40 €</span></div><div style="color:#aaa;margin-top:6px">Tko prvi stisne "Uzimam", njegovo je.</div></div>
+        </div>
+        <h3>Uzmi prije drugih</h3><p>Uz aukcije: pada cijena, flash popusti, giveaway i digitalni proizvodi s preuzimanjem odmah.</p>
+        <a class="dl" href="media/subhasto-pada-cijena.mp4" download>⬇ Video za Reels</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="prodavaci">
+  <div class="wrap split">
+    <div class="reveal">
+      <div class="eyebrow">Za prodavače</div>
+      <h2>Tvoj dućan je jedan klik od uživo.</h2>
+      <p class="sub">Imaš ormar pun stvari, kolekciju ili mali obrt? Na Subhastu jedan live od sat vremena može prodati više nego tjedan oglasa.</p>
+      <div class="feat"><div class="ic">🎬</div><div><b>Show u 5 koraka</b><span>Naslov, kategorija, termin, predmeti i promocija. Pratitelji dobiju podsjetnik.</span></div></div>
+      <div class="feat"><div class="ic">📦</div><div><b>Otprema bez muke</b><span>Skupne otpremnice, profili dostave po težini i paketi iz istog livea spojeni u jedan.</span></div></div>
+      <div class="feat"><div class="ic">💸</div><div><b>Pošteni uvjeti</b><span>Provizija na aukcijama je 10 % samo od razlike iznad početne cijene, Kupi odmah 5 %. Isplata na IBAN bez najmanjeg iznosa.</span></div></div>
+      <div class="feat"><div class="ic">🛡️</div><div><b>Zaštita za obje strane</b><span>Jasna pravila povrata, zdravlje računa i podrška kad zatreba.</span></div></div>
+      <div class="calc">
+        <b style="font-size:18px">Koliko dobivaš?</b>
+        <div style="color:#aaa;font-size:14px;margin:4px 0 10px">Predmet krene od <b id="cStart">1 €</b> i proda se za <b id="cEnd">40 €</b></div>
+        <input type="range" min="2" max="300" value="40" id="cRange" aria-label="Prodajna cijena">
+        <div class="out"><div><span style="color:#aaa">Provizija</span><b id="cFee">3,90 €</b></div><div><span style="color:#aaa">Dobivaš</span><b id="cNet" style="color:var(--green)">36,10 €</b></div></div>
+      </div>
+    </div>
+    <div class="hub reveal" aria-label="Prikaz Seller Huba">
+      <div style="display:flex;justify-content:space-between;align-items:center"><b style="font-size:20px">Seller Hub</b><span class="pill"><i class="live-dot"></i> 248 gleda</span></div>
+      <div style="margin-top:14px;color:var(--muted);font-weight:700">Stanje računa</div>
+      <div class="bal" id="bal">0,00 €</div>
+      <div class="t">Za slanje <small>3 paketa · rok 48 h</small></div>
+      <div class="t">Ponude za odgovor <small>2</small></div>
+      <div class="t">Sljedeći show <small>Petak 20:00 · 34 podsjetnika</small></div>
+      <div style="display:flex;gap:14px;align-items:center;margin-top:14px">
+        <svg class="ring" viewBox="0 0 36 36"><circle cx="18" cy="18" r="15" stroke="#333" stroke-width="4" fill="none"/><circle cx="18" cy="18" r="15" stroke="#4CC38A" stroke-width="4" fill="none" stroke-dasharray="94.2" stroke-dashoffset="94.2" id="hubRing" stroke-linecap="round" transform="rotate(-90 18 18)"/></svg>
+        <div><b>Zdravlje računa: Odlično</b><div style="color:var(--muted)">Pravovremena predaja 98 %</div></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="waitlist" style="background:#0f0f0f">
+  <div class="wrap">
+    <div class="wl reveal">
+      <div class="eyebrow">Lista čekanja</div>
+      <h2>Budi među prvima u prvom liveu.</h2>
+      <p class="sub">Upiši e-mail i odaberi kupuješ li, prodaješ ili oboje. Dobit ćeš svoj link: svaki prijatelj koji se upiše preko njega pomiče te jedan dan naprijed u redu.</p>
+      <form class="join" id="mainForm" novalidate>
+        <input type="email" name="email" placeholder="tvoj@email.com" autocomplete="email" required aria-label="E-mail">
+        <input type="text" name="city" placeholder="Grad (neobavezno)" autocomplete="address-level2" aria-label="Grad">
+        <button class="btn btn-accent" type="submit">Rezerviraj mjesto</button>
+        <div class="roles" style="flex-basis:100%">
+          <label><input type="radio" name="role" value="kupac" checked><span>🛍️ Kupujem</span></label>
+          <label><input type="radio" name="role" value="prodavac"><span>🎬 Prodajem</span></label>
+          <label><input type="radio" name="role" value="oboje"><span>🔁 Oboje</span></label>
+        </div>
+      </form>
+      <div class="err" id="mainErr"></div>
+      <p style="color:var(--muted);font-size:13px;margin:6px 0 0">E-mail koristimo samo za obavijest o pokretanju i tvoje mjesto na listi. Odjava jednim odgovorom na e-mail.</p>
+      <div class="result" id="result">
+        <div style="color:var(--muted);font-weight:800">Tvoje mjesto na listi</div>
+        <div class="pos" id="pos">#—</div>
+        <div style="color:var(--muted)" id="posNote"></div>
+        <div class="share">
+          <input id="refLink" readonly aria-label="Tvoj link za preporuke">
+          <button class="btn btn-ghost" id="copyBtn" type="button">Kopiraj</button>
+          <a class="btn btn-ghost" id="waBtn" target="_blank" rel="noopener">WhatsApp</a>
+          <button class="btn btn-accent" id="shareBtn" type="button">Podijeli</button>
+        </div>
+      </div>
+      <div class="ladder">
+        <div><b>🎟️ 1 prijatelj</b><span>Jedan dan naprijed u redu.</span></div>
+        <div><b>🚀 3 prijatelja</b><span>Tri dana naprijed, ulaziš u prvi val.</span></div>
+        <div><b>👑 10 prijatelja</b><span>Deset dana naprijed. Vidiš svoje mjesto kad se vratiš na stranicu.</span></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="faq">
+  <div class="wrap">
+    <div class="eyebrow">Pitanja</div>
+    <h2>Sve što te zanima</h2>
+    <details><summary>Kada kreće Subhasto?</summary><p>Prvo pozivamo ljude s liste čekanja, redom po mjestu na listi. Javit ćemo ti se e-mailom čim dođe tvoj red.</p></details>
+    <details><summary>Je li sigurno kupovati?</summary><p>Plaćanje ide preko pružatelja plaćanja, a ne preko prodavača. Ako paket ne stigne ili nije kao u opisu, zatražiš povrat u aplikaciji prije potvrde primitka.</p></details>
+    <details><summary>Tko bira dostavu?</summary><p>Prodavač. On šalje kurirom ili u paketomat, a ti dobiješ broj za praćenje i, kod paketomata, PIN za pretinac.</p></details>
+    <details><summary>Koliko košta prodavati?</summary><p>Objava je besplatna. Na aukcijama provizija je 10 % samo od razlike iznad početne cijene, a na Kupi odmah 5 %.</p></details>
+    <details><summary>Mogu li prodavati digitalne proizvode?</summary><p>Da. Digitalni proizvodi se u liveu kupuju odmah, bez aukcije, a kupac odmah preuzima datoteku.</p></details>
+    <details><summary>Mogu li već sada isprobati?</summary><p>Da, demo verzija radi u pregledniku: <a href="../" style="color:var(--accent)">otvori demo aplikacije</a>. Podaci u demu su izmišljeni.</p></details>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <div><b style="color:var(--text)">SUBHASTO</b> · live aukcije iz Hrvatske</div>
+    <div><a href="#waitlist">Lista čekanja</a> · <a href="../">Demo aplikacije</a></div>
+  </div>
+</footer>
+
+<a class="btn btn-accent sticky-cta" id="stickyCta" href="#waitlist">Rezerviraj mjesto · <span id="stickyCount">…</span> čeka</a>
+
+<script>
+// ------------------------------------------------------------ waitlist
+const SB_URL = 'https://mwhrjrxytfdttjjdhdns.supabase.co';
+const SB_KEY = 'sb_publishable_HCKEcMW2C_CiGzvVJ2hN2w_qDHMazD6';
+const DEMO = new URLSearchParams(location.search).has('demo');
+const ref = new URLSearchParams(location.search).get('ref');
+const store = {
+  get(k){try{return localStorage.getItem(k)}catch(e){return null}},
+  set(k,v){try{localStorage.setItem(k,v)}catch(e){}}
+};
+async function rpc(fn, body){
+  const r = await fetch(`${SB_URL}/rest/v1/rpc/${fn}`, {
+    method:'POST',
+    headers:{'apikey':SB_KEY,'Authorization':`Bearer ${SB_KEY}`,'Content-Type':'application/json'},
+    body: JSON.stringify(body||{})
+  });
+  if(!r.ok) throw new Error(await r.text());
+  return r.json();
+}
+const fmt = n => new Intl.NumberFormat('hr-HR').format(n);
+function setCount(n){
+  document.getElementById('count').textContent = fmt(n);
+  document.getElementById('stickyCount').textContent = fmt(n);
+}
+async function loadCount(){
+  if(DEMO){ setCount(1284); return; }
+  try{ setCount(await rpc('waitlist_count')); }catch(e){ document.getElementById('counter').style.display='none'; }
+}
+function linkFor(code){
+  const u = new URL(location.href); u.search=''; u.hash='';
+  u.searchParams.set('ref', code); return u.toString();
+}
+function showResult(res){
+  const box = document.getElementById('result');
+  box.classList.add('show');
+  document.getElementById('pos').textContent = '#' + fmt(res.position);
+  document.getElementById('posNote').textContent =
+    `od ${fmt(res.total)} na listi` + (res.referrals ? ` · preko tvog linka: ${res.referrals}` : '');
+  const link = linkFor(res.code);
+  document.getElementById('refLink').value = link;
+  const text = `Upisao sam se na Subhasto, live aukcije iz Hrvatske. Upiši se preko mog linka pa oboje idemo naprijed: ${link}`;
+  document.getElementById('waBtn').href = 'https://wa.me/?text=' + encodeURIComponent(text);
+  document.getElementById('shareBtn').onclick = () => navigator.share
+    ? navigator.share({title:'Subhasto', text, url:link}).catch(()=>{})
+    : navigator.clipboard.writeText(text);
+  setCount(res.total);
+}
+document.getElementById('copyBtn').onclick = async () => {
+  const v = document.getElementById('refLink').value;
+  try{ await navigator.clipboard.writeText(v); document.getElementById('copyBtn').textContent='Kopirano ✓'; }catch(e){}
+};
+async function join(form, errEl){
+  const email = form.email.value.trim();
+  errEl.textContent='';
+  if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)){ errEl.textContent='Upiši ispravnu e-mail adresu.'; return; }
+  const role = (document.querySelector('input[name=role]:checked')||{}).value || 'kupac';
+  const city = form.city ? form.city.value.trim() : '';
+  const btn = form.querySelector('button'); btn.disabled = true;
+  try{
+    let res;
+    if(DEMO){ res = {code:'demo1234', position:412, total:1285, exists:false}; }
+    else res = await rpc('waitlist_join',{p_email:email,p_role:role,p_city:city||null,p_ref:ref});
+    if(res.exists){
+      const code = store.get('subhasto_code');
+      if(code){ showResult({...(await rpc('waitlist_status',{p_code:code})), code}); }
+      else errEl.textContent='Ova adresa je već na listi. Javit ćemo ti se kad dođe tvoj red.';
+    } else {
+      store.set('subhasto_code', res.code);
+      showResult(res);
+      burst();
+    }
+    document.getElementById('waitlist').scrollIntoView({behavior:'smooth'});
+  }catch(e){
+    errEl.textContent='Upis trenutno ne radi. Pokušaj za minutu.';
+  }finally{ btn.disabled=false; }
+}
+document.getElementById('heroForm').addEventListener('submit', e => { e.preventDefault(); join(e.target, document.getElementById('heroErr')); });
+document.getElementById('mainForm').addEventListener('submit', e => { e.preventDefault(); join(e.target, document.getElementById('mainErr')); });
+(async () => {
+  await loadCount();
+  const code = store.get('subhasto_code');
+  if(code && !DEMO){ try{ const st = await rpc('waitlist_status',{p_code:code}); if(st) showResult({...st, code}); }catch(e){} }
+})();
+
+// ------------------------------------------------------------ hero animacija (live aukcija)
+const words = ['sneakerse','retro igre','Pokémon kartice','satove','vinil ploče','LEGO','vintage odjeću'];
+let wi = 0; setInterval(()=>{ wi=(wi+1)%words.length; document.getElementById('rotator').textContent=words[wi]; }, 2200);
+const items = [['👟','Nike Dunk Low · 42'],['🎮','Game Boy Color'],['🃏','Charizard holo'],['⌚','Casio vintage'],['💿','Vinyl · Azra']];
+const names = ['marko_zg','ana.st','luka99','petra_ri','dino.os','iva_kolekcija','tomo_vz'];
+const chats = ['koliko je veličina?','🔥🔥🔥','to je original?','ja licitiram!','super stanje','idemo!!','još jednom pokaži'];
+let price=12, secs=30, bids=5, it=0;
+const $ = id => document.getElementById(id);
+function addMsg(html){ const c=$('chat'); const d=document.createElement('div'); d.className='msg'; d.innerHTML=html; c.appendChild(d); while(c.children.length>5) c.firstChild.remove(); }
+function heart(){ const h=document.createElement('div'); h.className='heart'; h.textContent=['❤️','🧡','🔥','😍'][Math.random()*4|0]; h.style.setProperty('--x',(Math.random()*60-30)+'px'); $('hearts').appendChild(h); setTimeout(()=>h.remove(),2300); }
+function burst(target){
+  const host = target || document.body;
+  for(let i=0;i<40;i++){ const c=document.createElement('div'); c.className='confetti';
+    c.style.background=['#FF9248','#FF2D55','#4CC38A','#fff','#C2410C'][i%5];
+    c.style.setProperty('--x',(Math.random()*500-250)+'px'); c.style.setProperty('--y',(Math.random()*500-150)+'px');
+    if(!target){ c.style.position='fixed'; }
+    host.appendChild(c); setTimeout(()=>c.remove(),1500); }
+}
+function bid(){
+  price += price < 20 ? 1 : price < 60 ? 2 : 5; bids++;
+  const who = names[Math.random()*names.length|0];
+  $('price').textContent = price+' €'; $('bids').textContent = bids+' ponuda';
+  $('leader').textContent = 'Vodi @'+who; $('go').textContent = `Licitiraj ${price + (price<20?1:price<60?2:5)} € »`;
+  const pb=$('priceBox'); pb.classList.remove('bump'); void pb.offsetWidth; pb.classList.add('bump');
+  addMsg(`<b>@${who}</b> licitira ${price} €`);
+  secs = Math.min(30, secs + 2);
+  if(Math.random()<.3){ const o=$('outbid'); o.classList.remove('flash'); void o.offsetWidth; o.classList.add('flash'); }
+}
+function nextItem(){
+  it=(it+1)%items.length; price=Math.floor(Math.random()*8)+1; bids=0; secs=30;
+  $('heroItem').textContent=items[it][0]; $('lotName').textContent=items[it][1];
+  $('price').textContent=price+' €'; $('bids').textContent='Od '+price+' €'; $('leader').textContent='Licitacija kreće!';
+}
+setInterval(()=>{
+  secs--; $('secs').textContent = Math.max(secs,0);
+  $('ring').style.strokeDashoffset = 100.5*(1-Math.max(secs,0)/30);
+  if(Math.random()<.55) bid();
+  if(Math.random()<.5) heart();
+  if(Math.random()<.35) addMsg(`<b>@${names[Math.random()*names.length|0]}</b> ${chats[Math.random()*chats.length|0]}`);
+  $('viewers').textContent = 230 + (Math.random()*40|0);
+  if(secs<=0){ const s=$('sold'); s.classList.remove('show'); void s.offsetWidth; s.classList.add('show'); burst($('hero-screen')); setTimeout(nextItem,1800); secs=99; }
+}, 420);
+
+// ------------------------------------------------------------ marquee
+const cats = ['👟 Sneakersi','🃏 Pokémon i TCG','🎮 Retro igre','⌚ Satovi','💿 Vinil','🧸 LEGO','👜 Vintage moda','📷 Foto oprema','🪙 Numizmatika','🎧 Audio','📚 Stripovi','⬇️ Digitalno'];
+$('marq').innerHTML = [...cats,...cats].map(c=>`<span>${c} <span style="color:#FF2D55">●</span></span>`).join('');
+
+// ------------------------------------------------------------ demo reelovi
+let n1=150; setInterval(()=>{ n1++; const e=$('r1num'); e.textContent='#'+n1; e.style.transform='scale(1.3)'; setTimeout(()=>e.style.transform='',250); }, 1300);
+let s2=0; setInterval(()=>{ s2 = s2>=10 ? 0 : s2+1; $('r2n').textContent = s2+'/10'; $('r2bar').style.width = (s2*10)+'%'; $('r2feed').style.transform = s2>=10 ? 'translateY(0)' : ''; $('r2me').style.order = s2>=10 ? -1 : 2; }, 700);
+const steps3 = ['Otpremnica izrađena','Poslano','U transportu','U paketomatu'];
+let s3=0; setInterval(()=>{ s3=(s3+1)%5; const st=Math.min(s3,3);
+  $('r3st').textContent = steps3[st];
+  ['t2','t3','t4'].forEach((id,i)=>$(id).classList.toggle('on', st>i));
+  $('r3toast').classList.toggle('show', s3>=1);
+  $('r3pin').textContent = st===3 ? 'PIN za pretinac: 4 8 2 1 7 3' : 'PIN za paketomat stiže kad paket uđe u pretinac';
+}, 1400);
+let p4=40; setInterval(()=>{ p4 = p4<=12 ? 40 : p4-2; $('r4price').textContent=p4+' €'; $('r4emoji').textContent = p4<=12 ? '🙌' : '⏳'; }, 500);
+
+// ------------------------------------------------------------ kalkulator provizije
+function calc(){
+  const end = +$('cRange').value, start = 1;
+  const fee = Math.max(0, (end-start)*0.10), net = end - fee;
+  const f = v => v.toFixed(2).replace('.',',')+' €';
+  $('cEnd').textContent = end+' €'; $('cFee').textContent=f(fee); $('cNet').textContent=f(net);
+}
+$('cRange').addEventListener('input', calc); calc();
+
+// ------------------------------------------------------------ scroll efekti
+const io = new IntersectionObserver(es => es.forEach(e => { if(e.isIntersecting){ e.target.classList.add('in');
+  if(e.target.classList.contains('hub')){ $('hubRing').style.transition='stroke-dashoffset 1.4s'; $('hubRing').style.strokeDashoffset = 94.2*0.02;
+    let b=0; const t=setInterval(()=>{ b+=37.5; $('bal').textContent=b.toFixed(2).replace('.',',')+' €'; if(b>=1312.5) clearInterval(t); }, 30); }
+  io.unobserve(e.target); } }), {threshold:.2});
+document.querySelectorAll('.reveal').forEach(el => io.observe(el));
+const cta = $('stickyCta');
+addEventListener('scroll', () => {
+  const wl = $('waitlist').getBoundingClientRect();
+  cta.classList.toggle('show', scrollY > 700 && (wl.top > innerHeight || wl.bottom < 0));
+}, {passive:true});
+</script>
+</body>
+</html>

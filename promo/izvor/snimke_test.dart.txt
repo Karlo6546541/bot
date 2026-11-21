@@ -1,0 +1,122 @@
+import 'dart:io';
+import 'dart:ui' as ui;
+import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
+import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:hive/hive.dart';
+import 'package:loop_app/app.dart';
+import 'package:loop_app/models/device.dart';
+import 'package:loop_app/providers/app_providers.dart';
+import 'package:loop_app/services/seed_data.dart';
+import 'package:loop_app/services/storage_service.dart';
+
+void main() {
+  testWidgets('promo', (tester) async {
+    await tester.runAsync(() async {
+      for (final (fam, f) in [('Inter','/tmp/claude-0/-home-user-bot/e719fc65-e99c-5cda-9201-824dd21a3b7b/scratchpad/web/assets/assets/fonts/Inter_500Medium.ttf'),('Inter','/tmp/claude-0/-home-user-bot/e719fc65-e99c-5cda-9201-824dd21a3b7b/scratchpad/web/assets/assets/fonts/Inter_700Bold.ttf'),('MaterialIcons','/tmp/claude-0/-home-user-bot/e719fc65-e99c-5cda-9201-824dd21a3b7b/scratchpad/flutter/bin/cache/artifacts/material_fonts/MaterialIcons-Regular.otf')]) {
+        final l = FontLoader(fam)..addFont(Future.value(ByteData.sublistView(File(f).readAsBytesSync())));
+        await l.load();
+      }
+    });
+    tester.view.physicalSize = const Size(1170, 2532);
+    tester.view.devicePixelRatio = 3;
+    addTearDown(tester.view.reset);
+    final storage = StorageService();
+    await tester.runAsync(() => storage.init(inMemory: true));
+    addTearDown(() => tester.runAsync(Hive.close));
+    await storage.saveSession(userId: SeedData.testUserId);
+    for (final d in [...storage.devices]) {
+      await storage.deleteDevice(d.id);
+    }
+    const F = '/tmp/claude-0/-home-user-bot/e719fc65-e99c-5cda-9201-824dd21a3b7b/scratchpad/video/fotke';
+    final now = DateTime.now();
+    var i = 0;
+    // Stvarni oglasi iz produkcijske baze (nazivi, cijene, stanja, opisi i fotografije).
+    Future<void> add(String id, String name, DeviceCategory c, double price, DeviceCondition cond, String desc, String photo) async {
+      final at = now.subtract(Duration(hours: 3 + i * 5));
+      i++;
+      await storage.putDevice(Device(
+        id: id, name: name, model: '', condition: cond, price: price, category: c,
+        createdAt: at, ownerId: SeedData.anaUserId, description: desc,
+        listPrice: price, listedAt: at, marketChecked: true, imagePaths: ['$F/$photo'],
+      ));
+    }
+    await add('seed-tcg-8', 'Pokémon kartice, mješoviti lot (80 kom)', DeviceCategory.tcg, 20, DeviceCondition.veryGood, 'Common, uncommon i nekoliko rare kartica. Stanje: Vrlo dobro. Kategorija: Kartice › Pokémon i ostali TCG. Testni oglas SUBHASTO; fotografija je ilustrativna (Flickr, CC).', 'tcg8.jpg');
+    await add('seed-console-9', 'Sega Dreamcast', DeviceCategory.console, 120, DeviceCondition.good, 'Rijetka konzola, radi. Stanje: Dobro. Kategorija: Konzole i igre › Konzole. Testni oglas SUBHASTO; fotografija je ilustrativna (Wikimedia Commons).', 'console9.png');
+    await add('seed-comics-9', 'Cat-Man br. 20 – faksimil', DeviceCategory.comics, 14, DeviceCondition.excellent, 'Faksimil reprint. Stanje: Odlično. Kategorija: Stripovi › Stripovi i manga. Testni oglas SUBHASTO; fotografija je ilustrativna (Wikimedia Commons).', 'comics9.jpg');
+    await add('seed-vinyl-9', 'David Bowie – Ziggy Stardust (singlica)', DeviceCategory.vinyl, 30, DeviceCondition.good, 'Ploča i omot u dobrom stanju. Stanje: Dobro. Kategorija: Ploče i mediji › Vinil. Testni oglas SUBHASTO; fotografija je ilustrativna (Wikimedia Commons).', 'vinyl9.png');
+    await add('seed-retroComputers-10', 'Commodore VIC-20', DeviceCategory.retroComputers, 90, DeviceCondition.good, 'Prethodnik C64. Stanje: Dobro. Kategorija: Konzole i igre › Retro računala. Testni oglas SUBHASTO; fotografija je ilustrativna (Wikimedia Commons).', 'retro10.jpg');
+    await add('seed-stamps-9', 'Markice Olimpijske igre', DeviceCategory.stamps, 20, DeviceCondition.excellent, 'Tematska zbirka olimpijskih markica. Stanje: Odlično. Kategorija: Markice › Markice. Testni oglas SUBHASTO; fotografija je ilustrativna (Wikimedia Commons).', 'stamps9.png');
+    await add('seed-gradedCards-9', 'CGC ocijenjeni strip Batman', DeviceCategory.gradedCards, 190, DeviceCondition.excellent, 'Strip u zaštitnom CGC kućištu. Stanje: Odlično. Kategorija: Kartice › Ocijenjene kartice. Testni oglas SUBHASTO; fotografija je ilustrativna (Flickr, CC).', 'graded9.jpg');
+    final key = GlobalKey();
+    await tester.pumpWidget(ProviderScope(
+      overrides: [storageProvider.overrideWithValue(storage), tickIntervalProvider.overrideWithValue(null)],
+      child: RepaintBoundary(key: key, child: const LoopApp()),
+    ));
+    final decoded = <String, ui.Image>{};
+    Future<void> inject() async {
+      final cache = PaintingBinding.instance.imageCache;
+      for (final e in find.byType(Image).evaluate().toList()) {
+        final img = e.widget as Image;
+        ImageProvider p = img.image;
+        if (p is ResizeImage) p = p.imageProvider;
+        if (p is! FileImage) continue;
+        final path = p.file.path;
+        stdout.writeln('inject ' + path);
+        final u = decoded[path] ??= (await tester.runAsync(() async {
+          final bytes = await File(path).readAsBytes();
+          final codec = await ui.instantiateImageCodec(bytes);
+          return (await codec.getNextFrame()).image;
+        }))!;
+        stdout.writeln('decoded');
+        final key = await img.image.obtainKey(createLocalImageConfiguration(e));
+        stdout.writeln('key');
+        cache.evict(key, includeLive: true);
+        cache.putIfAbsent(key, () => OneFrameImageStreamCompleter(SynchronousFuture<ImageInfo>(ImageInfo(image: u.clone()))));
+      }
+      for (final e in find.byType(Image).evaluate().toList()) {
+        // ignore: invalid_use_of_protected_member
+        (e as StatefulElement).state.reassemble();
+      }
+      await tester.pump();
+      await tester.pump();
+    }
+    Future<void> settle() async {
+      await tester.pumpAndSettle();
+      await inject();
+      await tester.pumpAndSettle();
+    }
+    Future<void> shot(String n) async {
+      await settle();
+      await tester.runAsync(() async {
+        final b = key.currentContext!.findRenderObject() as RenderRepaintBoundary;
+        final img = await b.toImage(pixelRatio: 3);
+        final d = await img.toByteData(format: ui.ImageByteFormat.png);
+        File('/tmp/claude-0/-home-user-bot/e719fc65-e99c-5cda-9201-824dd21a3b7b/scratchpad/video/shots/$n.png').writeAsBytesSync(d!.buffer.asUint8List());
+      });
+    }
+    await shot('home');
+    await tester.tap(find.text('Pretraži oglase').first);
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byKey(const ValueKey('global-search')), 'pokemon do 30');
+    await tester.pumpAndSettle();
+    await tester.testTextInput.receiveAction(TextInputAction.search);
+    await shot('trazi');
+    tester.state<NavigatorState>(find.byType(Navigator).first).pop();
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Prodaj').first);
+    await shot('prodaj');
+    await tester.tap(find.text('Početna').first);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Sega Dreamcast').first);
+    await shot('detalj');
+    await tester.tap(find.text('Kontaktiraj prodavatelja').first);
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byType(TextField).last, 'Pozdrav! Je li Dreamcast još dostupan? Mogu preuzeti osobno u Zagrebu.');
+    await tester.tap(find.byIcon(Icons.send).last);
+    await shot('chat');
+  });
+}

@@ -1,0 +1,114 @@
+<!doctype html>
+<html lang="hr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Subhasto · reel</title>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@600;800;900&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#121212;--accent:#FF9248;--terra:#C2410C;--live:#FF2D55;--green:#4CC38A;--onaccent:#1B1410}
+*{box-sizing:border-box}
+html,body{margin:0;width:100%;height:100%;background:#000;color:#fff;font-family:Nunito,sans-serif;overflow:hidden}
+.frame{position:relative;width:100vw;height:100vh;background:radial-gradient(circle at 70% 10%,rgba(255,146,72,.35),transparent 50%),radial-gradient(circle at 10% 90%,rgba(255,45,85,.25),transparent 50%),#121212;overflow:hidden}
+.hook{position:absolute;top:6vh;left:6vw;right:6vw;font-size:5vh;line-height:1.05;font-weight:900;text-shadow:0 4px 20px rgba(0,0,0,.6);opacity:0;transform:translateY(20px);transition:all .6s}
+.hook.in{opacity:1;transform:none}
+.hook em{font-style:normal;background:linear-gradient(90deg,var(--accent),var(--live));-webkit-background-clip:text;background-clip:text;color:transparent}
+.cta{position:absolute;bottom:5vh;left:6vw;right:6vw;text-align:center;opacity:0;transition:opacity .6s}
+.cta.in{opacity:1}
+.cta b{display:block;font-size:4.2vh;font-weight:900}
+.cta span{display:inline-block;margin-top:1.2vh;background:var(--accent);color:var(--onaccent);font-weight:900;font-size:2.6vh;padding:1.2vh 3vh;border-radius:999px}
+.logo{position:absolute;top:2.2vh;left:6vw;font-weight:900;letter-spacing:.4vh;font-size:2vh;color:#ffb27c}
+.stage{position:absolute;top:27vh;left:50%;transform:translateX(-50%);width:60vh;max-width:88vw;height:52vh;border-radius:4vh;background:linear-gradient(170deg,#2a1810,#0e0e0e);border:.3vh solid #2a2a2a;overflow:hidden;box-shadow:0 4vh 8vh rgba(0,0,0,.6)}
+.big{position:absolute;top:10%;left:0;right:0;text-align:center;font-size:16vh;filter:drop-shadow(0 2vh 3vh rgba(0,0,0,.6))}
+.panel{position:absolute;left:3vh;right:3vh;bottom:3vh;background:rgba(23,18,15,.95);border-radius:2.4vh;padding:2.2vh;font-size:2.4vh;border:.2vh solid #2a2a2a}
+.row{display:flex;justify-content:space-between;align-items:center}
+.num{font-size:6vh;font-weight:900;color:var(--accent);transition:transform .25s}
+.badge{background:var(--live);font-weight:900;font-size:1.8vh;padding:.4vh 1.2vh;border-radius:1vh}
+.prog{height:1.4vh;background:#333;border-radius:99px;overflow:hidden;margin-top:1.4vh}
+.prog i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--green),#9ff0c7);transition:width .5s}
+.muted{color:#aaa}
+.go{margin-top:1.6vh;background:var(--accent);color:var(--onaccent);text-align:center;font-weight:900;border-radius:999px;padding:1.4vh;font-size:2.6vh}
+.chat{position:absolute;left:3vh;right:12vh;bottom:22vh;display:flex;flex-direction:column;gap:1vh;font-size:2vh}
+.msg{background:rgba(0,0,0,.45);padding:.6vh 1.4vh;border-radius:1.4vh;width:fit-content;animation:in .4s}
+.msg b{color:var(--accent)}
+@keyframes in{from{opacity:0;transform:translateY(1vh)}}
+.sold{position:absolute;inset:0;display:grid;place-items:center;opacity:0}
+.sold.show{animation:sold 1.6s}
+.sold div{font-size:8vh;font-weight:900;background:var(--green);color:#06210f;padding:1.4vh 4vh;border-radius:2.4vh;transform:rotate(-8deg)}
+@keyframes sold{0%{opacity:0;transform:scale(.4)}25%{opacity:1;transform:scale(1.1)}40%{transform:scale(1)}85%{opacity:1}100%{opacity:0}}
+.toast{position:absolute;left:3vh;right:3vh;top:3vh;background:#fff;color:#111;border-radius:2vh;padding:1.6vh 2vh;font-size:2.2vh;font-weight:800;transform:translateY(-160%);transition:transform .5s cubic-bezier(.2,1.4,.4,1)}
+.toast.show{transform:none}
+.steps{display:flex;gap:1vh;margin-top:1.4vh}
+.steps i{flex:1;height:1.2vh;border-radius:9px;background:#333;transition:background .4s}
+.steps i.on{background:var(--accent)}
+.feed{position:absolute;inset:3vh 3vh 22vh;display:grid;grid-template-columns:1fr 1fr;gap:1.4vh}
+.feed div{border-radius:1.6vh;background:#2a2a2a;display:grid;place-items:center;font-size:6vh;position:relative;transition:all .5s}
+.feed div.me{outline:.4vh solid var(--accent);background:#3a2216}
+.promo{position:absolute;top:1vh;left:1vh;background:var(--accent);color:var(--onaccent);font-size:1.6vh;font-weight:900;padding:.3vh 1vh;border-radius:.8vh;opacity:0;transition:opacity .4s}
+.promo.on{opacity:1}
+</style>
+</head>
+<body>
+<div class="frame">
+  <div class="logo">SUBHASTO</div>
+  <div class="hook" id="hook"></div>
+  <div class="stage" id="stage"></div>
+  <div class="cta" id="cta"><b id="ctaText">Upiši se na listu čekanja</b><span>karlo6546541.github.io/bot/site</span></div>
+</div>
+<script>
+const scene = new URLSearchParams(location.search).get('scene') || 'live';
+const $ = id => document.getElementById(id);
+const stage = $('stage');
+const hooks = {
+  live:'Licitacija traje <em>30 sekundi.</em><br>Ti odlučuješ tko pobjeđuje.',
+  numbers:'Prodavač pokaže kartu.<br><em>Ti je uzmeš.</em> Sljedeća!',
+  boost:'Podijeli live,<br>digni ga na <em>vrh.</em>',
+  ship:'Ne biraš dostavu.<br>Samo <em>pratiš paket.</em>',
+  drop:'Cijena pada.<br><em>Tko prvi, njegovo.</em>',
+};
+$('hook').innerHTML = hooks[scene] || hooks.live;
+setTimeout(()=>$('hook').classList.add('in'), 200);
+setTimeout(()=>$('cta').classList.add('in'), 7000);
+
+if(scene==='live'){
+  stage.innerHTML = `<div class="big" id="it">👟</div><div class="chat" id="chat"></div>
+  <div class="panel"><div class="row"><div><b id="nm">Nike Dunk Low · 42</b><div class="muted" id="ld">Licitacija kreće!</div></div><div style="text-align:right"><div class="num" id="pr">5 €</div><div class="muted" id="sc">30 s</div></div></div><div class="go" id="go">Licitiraj 6 € »</div></div>
+  <div class="sold" id="sold"><div>PRODANO!</div></div>`;
+  const names=['marko_zg','ana.st','luka99','petra_ri','dino.os'];
+  let p=5, s=12;
+  const t=setInterval(()=>{
+    s--; $('sc').textContent=Math.max(s,0)+' s';
+    if(s>0){ p+=p<20?1:2; const w=names[Math.random()*5|0];
+      $('pr').textContent=p+' €'; $('ld').textContent='Vodi @'+w; $('go').textContent=`Licitiraj ${p+(p<20?1:2)} € »`;
+      $('pr').style.transform='scale(1.25)'; setTimeout(()=>$('pr').style.transform='',200);
+      const m=document.createElement('div'); m.className='msg'; m.innerHTML=`<b>@${w}</b> licitira ${p} €`; $('chat').appendChild(m);
+      while($('chat').children.length>4) $('chat').firstChild.remove(); }
+    else { $('sold').classList.add('show'); $('ld').textContent='Pobjednik: '+$('ld').textContent.replace('Vodi ',''); clearInterval(t); }
+  }, 520);
+}
+if(scene==='numbers'){
+  stage.innerHTML = `<div class="big">🃏</div><div class="panel"><div class="row"><b>Items on screen</b><span class="badge">UŽIVO</span></div><div class="row" style="margin-top:1vh"><span class="muted">Sada se licitira</span><span class="num" id="n">#150</span></div><div class="go">Sljedeći broj — bez ograničenja</div></div>`;
+  let n=150; setInterval(()=>{ n++; $('n').textContent='#'+n; $('n').style.transform='scale(1.3)'; setTimeout(()=>$('n').style.transform='',220); }, 900);
+}
+if(scene==='boost'){
+  stage.innerHTML = `<div class="feed" id="feed"><div>🎧</div><div>📷</div><div id="me" class="me">👟<span class="promo" id="pm">Promovirano</span></div><div>⌚</div><div>🎮</div><div>💿</div></div>
+  <div class="panel"><div class="row"><b>Community boost</b><span id="c">0/10</span></div><div class="prog"><i id="b"></i></div><div class="muted" style="margin-top:1vh">10 dijeljenja = 15 min na vrhu, besplatno</div></div>`;
+  let c=0; const t=setInterval(()=>{ c++; $('c').textContent=c+'/10'; $('b').style.width=c*10+'%';
+    if(c>=10){ clearInterval(t); $('me').style.order=-1; $('pm').classList.add('on'); } }, 550);
+}
+if(scene==='ship'){
+  stage.innerHTML = `<div class="toast" id="toast">🚚 @ivana.kicks je poslala paket<br><span class="muted" style="color:#555">Broj za praćenje: SB-48213</span></div><div class="big">📦</div>
+  <div class="panel"><b id="st">Otpremnica izrađena</b><div class="steps"><i class="on"></i><i id="a"></i><i id="b2"></i><i id="c3"></i></div><div class="muted" style="margin-top:1vh" id="pin">PIN stiže kad paket uđe u pretinac</div></div>`;
+  const names=['Otpremnica izrađena','Poslano','U transportu','U paketomatu'];
+  let i=0; const t=setInterval(()=>{ i++; const s=Math.min(i,3); $('st').textContent=names[s];
+    ['a','b2','c3'].forEach((id,k)=>$(id).classList.toggle('on', s>k));
+    if(i===1) $('toast').classList.add('show');
+    if(s===3){ $('pin').textContent='PIN za pretinac: 4 8 2 1 7 3'; clearInterval(t); } }, 1500);
+}
+if(scene==='drop'){
+  stage.innerHTML = `<div class="big" id="e">⏳</div><div class="panel"><div class="row"><b>Pada cijena</b><span class="num" id="p">40 €</span></div><div class="go" id="g">Uzimam!</div></div>`;
+  let p=40; const t=setInterval(()=>{ p-=2; $('p').textContent=p+' €'; if(p<=18){ clearInterval(t); $('e').textContent='🙌'; $('g').textContent='Tvoje za 18 €!'; } }, 450);
+}
+</script>
+</body>
+</html>

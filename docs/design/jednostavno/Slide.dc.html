@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="hr">
+<head>
+<meta charset="utf-8">
+<title>Slide to confirm</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0}
+.gl{background:rgba(255,255,255,.10);-webkit-backdrop-filter:blur(28px) saturate(1.7);backdrop-filter:blur(28px) saturate(1.7);border:1px solid rgba(255,255,255,.10);box-shadow:inset 0 .5px 0 rgba(255,255,255,.30),0 12px 40px rgba(0,0,0,.35)}
+.shm{background:linear-gradient(100deg,rgba(255,255,255,.42) 25%,#fff 50%,rgba(255,255,255,.42) 75%);background-size:240% 100%;-webkit-background-clip:text;background-clip:text;color:transparent;-webkit-text-fill-color:transparent;animation:shmA 2.8s linear infinite}
+@keyframes shmA{from{background-position:130% 0}to{background-position:-130% 0}}
+.ic{fill:none;stroke:currentColor;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
+</style>
+</helmet>
+<div class="gl" style="position:relative;width:100%;height:68px;border-radius:9999px;overflow:hidden;font-family:-apple-system,'SF Pro Display','Inter',system-ui,sans-serif;color:#fff">
+  <div style="position:absolute;top:0;left:0;bottom:0;width:{{fillW}};background:linear-gradient(90deg,rgba(255,255,255,.03),rgba(255,255,255,.38));transition:{{tr}}"></div>
+  <span style="position:absolute;top:0;left:0;right:0;bottom:0;display:flex;align-items:center;justify-content:center;padding-left:44px;opacity:{{labelOp}};pointer-events:none">
+    <span class="shm" style="font-size:17px;font-weight:500;letter-spacing:-.005em">{{text}}</span>
+  </span>
+  <button aria-label="{{aria}}" onClick="{{click}}" onPointerDown="{{onDown}}" onPointerMove="{{onMove}}" onPointerUp="{{onUp}}" onPointerCancel="{{onUp}}" style="position:absolute;top:5px;left:5px;width:56px;height:56px;border-radius:50%;border:0;padding:0;background:#fff;color:#000;display:flex;align-items:center;justify-content:center;touch-action:none;cursor:grab;box-shadow:0 6px 24px rgba(0,0,0,.45),0 0 28px rgba(255,255,255,.35);transform:{{tf}};transition:{{tr}}">
+    <sc-if value="{{notSent}}" hint-placeholder-val="{{true}}">
+      <svg viewBox="0 0 24 24" width="26" height="26" class="ic" aria-hidden="true"><path d="M6 6l6 6-6 6"></path><path d="M12 6l6 6-6 6"></path></svg>
+    </sc-if>
+    <sc-if value="{{sent}}" hint-placeholder-val="{{false}}">
+      <svg viewBox="0 0 24 24" width="26" height="26" class="ic" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"></path></svg>
+    </sc-if>
+  </button>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"label":{"editor":"text","default":"Povuci za potvrdu"},"doneLabel":{"editor":"text","default":"Gotovo"},"onDone":{"editor":null},"$preview":{"width":342,"height":68}}'>
+class Component extends DCLogic {
+  state = { drag: 0, dragging: false, sent: false };
+  componentWillUnmount() { clearTimeout(this._to); }
+  onDown = (e) => {
+    if (this.state.sent) return;
+    const th = e.currentTarget, tr = th.parentElement, rect = tr.getBoundingClientRect();
+    this._scale = (tr.offsetWidth ? rect.width / tr.offsetWidth : 1) || 1;
+    this._max = tr.offsetWidth - 56 - 10;
+    this._x0 = e.clientX - this.state.drag * this._scale;
+    this._down = true;
+    try { th.setPointerCapture(e.pointerId); } catch (err) { /* ignore */ }
+    this.setState({ dragging: true });
+  };
+  onMove = (e) => {
+    if (!this._down) return;
+    const dx = Math.max(0, Math.min(this._max, (e.clientX - this._x0) / this._scale));
+    this.setState({ drag: dx });
+  };
+  onUp = () => {
+    if (!this._down) return;
+    this._down = false;
+    if (this.state.drag >= this._max * 0.9) this.finish();
+    else this.setState({ drag: 0, dragging: false });
+  };
+  click = (e) => {
+    if (e && e.detail === 0 && !this.state.sent) { this._max = this._max || 270; this.finish(); }
+  };
+  finish() {
+    this.setState({ sent: true, dragging: false, drag: this._max || 270 });
+    if (this.props.onDone) this.props.onDone();
+    clearTimeout(this._to);
+    this._to = setTimeout(() => this.setState({ sent: false, drag: 0 }), 1500);
+  }
+  renderVals() {
+    const s = this.state, max = this._max || 270;
+    return {
+      fillW: (s.drag + 61) + 'px',
+      tf: 'translateX(' + s.drag + 'px)',
+      tr: s.dragging ? 'none' : 'transform .6s cubic-bezier(.22,1,.36,1),width .6s cubic-bezier(.22,1,.36,1)',
+      labelOp: s.sent ? '1' : String(Math.max(0, 1 - s.drag / (max * 0.45)).toFixed(2)),
+      text: s.sent ? (this.props.doneLabel ?? 'Gotovo') : (this.props.label ?? 'Povuci za potvrdu'),
+      aria: (this.props.label ?? 'Povuci za potvrdu') + ' (povuci udesno)',
+      sent: s.sent, notSent: !s.sent,
+      onDown: this.onDown, onMove: this.onMove, onUp: this.onUp, click: this.click
+    };
+  }
+}
+</script>
+</body>
+</html>

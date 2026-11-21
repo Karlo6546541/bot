@@ -1,0 +1,30 @@
+import { integrationConfig } from '../_shared/config.ts';
+import { services } from '../_shared/stripe.ts';
+Deno.serve(async (req: Request) => {
+  const headers = { 'Content-Type': 'application/json', 'Cache-Control': 'no-store',
+    'Access-Control-Allow-Origin': Deno.env.get('APP_ORIGIN') ?? 'https://karlo6546541.github.io',
+    'Access-Control-Allow-Methods': 'GET, OPTIONS',
+    'Access-Control-Allow-Headers': 'authorization, apikey, content-type, x-client-info' };
+  if (req.method === 'OPTIONS') return new Response(null, { headers });
+  if (req.method !== 'GET') return new Response(null, { status: 405, headers });
+  let config;
+  try { config = await integrationConfig(); } catch { return new Response(JSON.stringify({ configured: false }), { status: 503, headers }); }
+  const key = config.STRIPE_RESTRICTED_KEY ?? config.STRIPE_SECRET_KEY ?? '';
+  let testPlatformConnected = false;
+  let testPlatformKeyMismatch = false, testPlatformPermissionMissing = false;
+  if (/^(rk|sk)_test_/.test(key)) {
+    try { await services(); testPlatformConnected = true; } catch (error) {
+      testPlatformKeyMismatch = error instanceof Error && error.message === 'WRONG_TEST_PLATFORM';
+      testPlatformPermissionMissing = (error as {type?:string})?.type === 'StripePermissionError';
+    }
+  }
+  // Configuration indicators only. Never return environment values or credentials.
+  return new Response(JSON.stringify({
+    paymentsConfigured: /^(rk|sk)_test_/.test(key),
+    testPlatformConnected, testPlatformKeyMismatch, testPlatformPermissionMissing,
+    paymentFormConfigured: !!config.STRIPE_PUBLISHABLE_KEY?.startsWith('pk_test_'),
+    webhookConfigured: !!config.STRIPE_WEBHOOK_SECRET,
+    streamingConfigured: !!config.LIVEKIT_URL && !!config.LIVEKIT_API_KEY && !!config.LIVEKIT_API_SECRET,
+  }), { headers });
+});
+

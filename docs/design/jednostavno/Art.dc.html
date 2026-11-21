@@ -1,0 +1,114 @@
+<!doctype html>
+<html lang="hr">
+<head>
+<meta charset="utf-8">
+<title>Ilustracije predmeta</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body{margin:0}
+@keyframes spin{to{transform:rotate(360deg)}}
+</style>
+</helmet>
+<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;filter:{{hueF}}">
+  <sc-if value="{{isWatch}}" hint-placeholder-val="{{true}}">
+    <svg viewBox="0 0 300 300" style="width:100%;height:100%" aria-hidden="true">
+      <rect x="112" y="4" width="76" height="96" rx="28" style="fill:#0d0e11;stroke:rgba(255,255,255,.16);stroke-width:1"></rect>
+      <rect x="112" y="200" width="76" height="96" rx="28" style="fill:#0d0e11;stroke:rgba(255,255,255,.16);stroke-width:1"></rect>
+      <rect x="250" y="138" width="16" height="24" rx="5" style="fill:#2a2c31;stroke:rgba(255,255,255,.3)"></rect>
+      <circle cx="150" cy="150" r="106" style="fill:#17191d;stroke:rgba(255,255,255,.46);stroke-width:2"></circle>
+      <circle cx="150" cy="150" r="95" style="fill:#0a0b0e;stroke:rgba(255,255,255,.18);stroke-width:1"></circle>
+      <circle cx="150" cy="150" r="84" style="fill:#060709;stroke:rgba(255,255,255,.08)"></circle>
+      <line x1="150" y1="70" x2="150" y2="88" style="stroke:#fff;stroke-width:5;stroke-linecap:round"></line>
+      <line x1="150" y1="70" x2="150" y2="88" transform="rotate(90 150 150)" style="stroke:#fff;stroke-width:5;stroke-linecap:round"></line>
+      <line x1="150" y1="70" x2="150" y2="88" transform="rotate(180 150 150)" style="stroke:#fff;stroke-width:5;stroke-linecap:round"></line>
+      <line x1="150" y1="70" x2="150" y2="88" transform="rotate(270 150 150)" style="stroke:#fff;stroke-width:5;stroke-linecap:round"></line>
+      <line x1="150" y1="150" x2="150" y2="104" transform="rotate(-55 150 150)" style="stroke:#fff;stroke-width:8;stroke-linecap:round"></line>
+      <line x1="150" y1="150" x2="150" y2="84" transform="rotate(60 150 150)" style="stroke:#fff;stroke-width:6;stroke-linecap:round"></line>
+      <g style="transform-origin:150px 150px;animation:{{spinA}}">
+        <line x1="150" y1="168" x2="150" y2="80" style="stroke:#ffb454;stroke-width:3;stroke-linecap:round"></line>
+      </g>
+      <circle cx="150" cy="150" r="7" style="fill:#ffb454"></circle>
+    </svg>
+  </sc-if>
+  <sc-if value="{{isShoe}}" hint-placeholder-val="{{false}}">
+    <svg viewBox="0 0 320 200" style="width:100%;height:100%" aria-hidden="true">
+      <path d="M30 156 C28 122 34 90 48 70 C60 54 82 56 94 72 C106 88 124 92 142 84 C160 76 168 62 186 64 C206 66 214 90 246 110 C270 124 296 130 300 150 L300 158 L30 158 Z" style="fill:rgba(255,255,255,.12);stroke:rgba(255,255,255,.66);stroke-width:2.4;stroke-linejoin:round"></path>
+      <path d="M24 154 H304 C308 168 300 182 276 184 H52 C34 184 22 172 24 154 Z" style="fill:rgba(255,255,255,.88)"></path>
+      <path d="M150 86 L170 96 M164 77 L186 90 M180 69 L204 86" style="fill:none;stroke:rgba(255,255,255,.72);stroke-width:3.4;stroke-linecap:round"></path>
+      <path d="M244 112 C252 134 270 144 298 142" style="fill:none;stroke:rgba(255,255,255,.4);stroke-width:2.2;stroke-linecap:round"></path>
+      <path d="M30 128 C40 130 46 122 48 108" style="fill:none;stroke:#ff9079;stroke-width:5;stroke-linecap:round"></path>
+    </svg>
+  </sc-if>
+  <sc-if value="{{isCam}}" hint-placeholder-val="{{false}}">
+    <svg viewBox="0 0 300 240" style="width:100%;height:100%" aria-hidden="true">
+      <rect x="86" y="30" width="96" height="34" rx="12" style="fill:#101216;stroke:rgba(255,255,255,.24)"></rect>
+      <rect x="204" y="38" width="32" height="18" rx="7" style="fill:#2a2d33;stroke:rgba(255,255,255,.3)"></rect>
+      <rect x="16" y="56" width="268" height="158" rx="30" style="fill:#15171c;stroke:rgba(255,255,255,.36);stroke-width:1.5"></rect>
+      <rect x="40" y="78" width="46" height="26" rx="9" style="fill:#07080a;stroke:rgba(255,255,255,.22)"></rect>
+      <rect x="226" y="78" width="42" height="26" rx="9" style="fill:rgba(255,255,255,.10);stroke:rgba(255,255,255,.2)"></rect>
+      <circle cx="150" cy="142" r="62" style="fill:#0b0c10;stroke:rgba(255,255,255,.42);stroke-width:1.6"></circle>
+      <circle cx="150" cy="142" r="50" style="fill:#090a0d;stroke:rgba(255,255,255,.14)"></circle>
+      <circle cx="150" cy="142" r="35" style="fill:#040506;stroke:rgba(255,255,255,.22)"></circle>
+      <circle cx="150" cy="142" r="15" style="fill:rgba(111,180,255,.3)"></circle>
+      <circle cx="132" cy="124" r="7" style="fill:rgba(255,255,255,.4)"></circle>
+    </svg>
+  </sc-if>
+  <sc-if value="{{isVinyl}}" hint-placeholder-val="{{false}}">
+    <svg viewBox="0 0 260 260" style="width:100%;height:100%" aria-hidden="true">
+      <g style="transform-origin:130px 130px;animation:{{spinV}}">
+        <circle cx="130" cy="130" r="124" style="fill:#0b0b0f;stroke:rgba(255,255,255,.3);stroke-width:1.5"></circle>
+        <circle cx="130" cy="130" r="110" style="fill:none;stroke:rgba(255,255,255,.07)"></circle>
+        <circle cx="130" cy="130" r="98" style="fill:none;stroke:rgba(255,255,255,.07)"></circle>
+        <circle cx="130" cy="130" r="86" style="fill:none;stroke:rgba(255,255,255,.07)"></circle>
+        <circle cx="130" cy="130" r="74" style="fill:none;stroke:rgba(255,255,255,.07)"></circle>
+        <circle cx="130" cy="130" r="48" style="fill:#8c6cff;fill-opacity:.9"></circle>
+        <path d="M130 90 A40 40 0 0 1 170 130" style="fill:none;stroke:rgba(255,255,255,.5);stroke-width:3;stroke-linecap:round"></path>
+        <circle cx="130" cy="130" r="6" style="fill:#000"></circle>
+      </g>
+      <path d="M130 6 A124 124 0 0 1 254 130 L130 130 Z" style="fill:rgba(255,255,255,.06)"></path>
+    </svg>
+  </sc-if>
+  <sc-if value="{{isPad}}" hint-placeholder-val="{{false}}">
+    <svg viewBox="0 0 300 200" style="width:100%;height:100%" aria-hidden="true">
+      <path d="M70 52 C100 40 200 40 230 52 C262 64 282 120 272 158 C266 180 244 184 232 168 C222 154 214 140 196 140 H104 C86 140 78 154 68 168 C56 184 34 180 28 158 C18 120 38 64 70 52 Z" style="fill:#15171c;stroke:rgba(255,255,255,.4);stroke-width:2;stroke-linejoin:round"></path>
+      <path d="M72 84 H104 M88 68 V100" style="fill:none;stroke:rgba(255,255,255,.7);stroke-width:7;stroke-linecap:round"></path>
+      <circle cx="214" cy="76" r="9" style="fill:#ffb454"></circle>
+      <circle cx="238" cy="96" r="9" style="fill:rgba(255,255,255,.7)"></circle>
+      <circle cx="190" cy="96" r="9" style="fill:rgba(255,255,255,.7)"></circle>
+      <circle cx="214" cy="116" r="9" style="fill:rgba(255,255,255,.7)"></circle>
+      <circle cx="132" cy="112" r="10" style="fill:#07080a;stroke:rgba(255,255,255,.3)"></circle>
+      <circle cx="168" cy="112" r="10" style="fill:#07080a;stroke:rgba(255,255,255,.3)"></circle>
+    </svg>
+  </sc-if>
+  <sc-if value="{{isPhones}}" hint-placeholder-val="{{false}}">
+    <svg viewBox="0 0 260 240" style="width:100%;height:100%" aria-hidden="true">
+      <path d="M42 150 V124 C42 70 80 34 130 34 C180 34 218 70 218 124 V150" style="fill:none;stroke:rgba(255,255,255,.72);stroke-width:12;stroke-linecap:round"></path>
+      <rect x="24" y="116" width="56" height="94" rx="26" style="fill:#15171c;stroke:rgba(255,255,255,.46);stroke-width:2"></rect>
+      <rect x="180" y="116" width="56" height="94" rx="26" style="fill:#15171c;stroke:rgba(255,255,255,.46);stroke-width:2"></rect>
+      <rect x="38" y="136" width="28" height="54" rx="14" style="fill:rgba(255,180,84,.55)"></rect>
+      <rect x="194" y="136" width="28" height="54" rx="14" style="fill:rgba(255,180,84,.55)"></rect>
+    </svg>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"kind":{"editor":"enum","default":"watch","options":["watch","shoe","cam","vinyl","pad","phones"]},"hue":{"editor":"int","default":0},"anim":{"editor":"boolean","default":false},"$preview":{"width":160,"height":160}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const k = this.props.kind ?? 'watch';
+    const hue = Number(this.props.hue ?? 0);
+    const anim = !!this.props.anim;
+    return {
+      isWatch: k === 'watch', isShoe: k === 'shoe', isCam: k === 'cam', isVinyl: k === 'vinyl', isPad: k === 'pad', isPhones: k === 'phones',
+      hueF: hue ? 'hue-rotate(' + hue + 'deg)' : 'none',
+      spinA: anim ? 'spin 60s linear infinite' : 'none',
+      spinV: anim ? 'spin 9s linear infinite' : 'none'
+    };
+  }
+}
+</script>
+</body>
+</html>
