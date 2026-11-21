@@ -38,7 +38,7 @@ class _AuctionsHomeScreenState extends ConsumerState<AuctionsHomeScreen> {
   Widget build(BuildContext context) {
     final s = ref.watch(appProvider);
     final now = DateTime.now();
-    final auctions = _buyNowOnly
+    final auctions = _buyNowOnly || kClassifiedsMode
         ? <Auction>[]
         : ([
             for (final a in s.activeAuctions)
@@ -48,7 +48,7 @@ class _AuctionsHomeScreenState extends ConsumerState<AuctionsHomeScreen> {
                 a,
           ]..sort((a, b) => a.endsAt.compareTo(b.endsAt)));
     // Kupi odmah: objavljeni predmeti s fiksnom cijenom (bez digitalnih).
-    final listings = !kBuyNowEnabled || _kind != null
+    final listings = (!kBuyNowEnabled && !kClassifiedsMode) || _kind != null
         ? <Device>[]
         : ([
             for (final d in s.marketDevices)
@@ -147,7 +147,9 @@ class _AuctionsHomeScreenState extends ConsumerState<AuctionsHomeScreen> {
                       const SizedBox(width: 10),
                       Expanded(
                         child: Text(
-                          t('Pretraži aukcije'),
+                          kClassifiedsMode
+                              ? t('Pretraži oglase')
+                              : t('Pretraži aukcije'),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: TextStyle(
@@ -162,47 +164,52 @@ class _AuctionsHomeScreenState extends ConsumerState<AuctionsHomeScreen> {
               ),
             ),
           ),
-          SliverToBoxAdapter(
-            child: SizedBox(
-              height: 56,
-              child: ListView(
-                key: const ValueKey('home-formats'),
-                scrollDirection: Axis.horizontal,
-                padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
-                children: [
-                  chip(
-                    const ValueKey('home-format-all'),
-                    t('Sve'),
-                    Icons.grid_view_rounded,
-                    null,
-                  ),
-                  if (kBuyNowEnabled) ...[
+          if (!kClassifiedsMode)
+            SliverToBoxAdapter(
+              child: SizedBox(
+                height: 56,
+                child: ListView(
+                  key: const ValueKey('home-formats'),
+                  scrollDirection: Axis.horizontal,
+                  padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+                  children: [
+                    chip(
+                      const ValueKey('home-format-all'),
+                      t('Sve'),
+                      Icons.grid_view_rounded,
+                      null,
+                    ),
+                    if (kBuyNowEnabled) ...[
+                      const SizedBox(width: 8),
+                      chip(
+                        const ValueKey('home-format-buynow'),
+                        t('Kupi odmah'),
+                        Icons.sell_outlined,
+                        null,
+                        buyNow: true,
+                      ),
+                    ],
+                    // Samo klasične aukcije: jedan filtar "Aukcije".
                     const SizedBox(width: 8),
                     chip(
-                      const ValueKey('home-format-buynow'),
-                      t('Kupi odmah'),
-                      Icons.sell_outlined,
-                      null,
-                      buyNow: true,
+                      const ValueKey('home-format-classic'),
+                      t('Aukcije'),
+                      Icons.gavel,
+                      AuctionKind.classic,
                     ),
                   ],
-                  // Samo klasične aukcije: jedan filtar "Aukcije".
-                  const SizedBox(width: 8),
-                  chip(
-                    const ValueKey('home-format-classic'),
-                    t('Aukcije'),
-                    Icons.gavel,
-                    AuctionKind.classic,
-                  ),
-                ],
+                ),
               ),
             ),
-          ),
           SliverToBoxAdapter(
             child: Padding(
               padding: const EdgeInsets.fromLTRB(16, 22, 16, 0),
               child: Text(
-                kBuyNowEnabled ? t('Aukcije i Kupi odmah') : t('Aukcije'),
+                kClassifiedsMode
+                    ? t('Najnoviji oglasi')
+                    : kBuyNowEnabled
+                    ? t('Aukcije i Kupi odmah')
+                    : t('Aukcije'),
                 style: const TextStyle(
                   fontSize: 20,
                   fontWeight: FontWeight.w700,
@@ -431,7 +438,9 @@ class BuyNowTile extends StatelessWidget {
                               const SizedBox(width: 5),
                               Flexible(
                                 child: Text(
-                                  t('Kupi odmah'),
+                                  kClassifiedsMode
+                                      ? d.category.singular
+                                      : t('Kupi odmah'),
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
                                   style: TextStyle(

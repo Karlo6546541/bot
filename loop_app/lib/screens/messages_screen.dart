@@ -1,3 +1,4 @@
+import '../config/features.dart';
 import '../widgets/reference_sheet.dart';
 import '../config/design_variant.dart';
 import 'package:flutter/material.dart';
@@ -25,7 +26,10 @@ import 'public_profile_screen.dart';
 
 /// Poruke: razgovori i ponude zamjene.
 class MessagesScreen extends ConsumerWidget {
-  const MessagesScreen({super.key});
+  const MessagesScreen({super.key, this.embedded = false});
+
+  /// U donjoj navigaciji: bez vlastite trake (naslov daje okvir).
+  final bool embedded;
 
   static Future<void> open(BuildContext context) => kSimpleDesign
       ? openScreen<void>(
@@ -42,14 +46,18 @@ class MessagesScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final state = ref.watch(appProvider);
     final conversations = state.conversations;
-    final offers = state.myOffers.where((o) => o.isPending).toList();
+    final offers = kClassifiedsMode
+        ? <SwapOffer>[]
+        : state.myOffers.where((o) => o.isPending).toList();
     return Scaffold(
-      appBar: AppBar(title: Text(t('Poruke'))),
+      appBar: embedded ? null : AppBar(title: Text(t('Poruke'))),
       body: conversations.isEmpty && offers.isEmpty
           ? EmptyState(
               icon: Icons.chat_bubble_outline,
               title: t('Još nema poruka'),
-              message: t('Na predmetu na prodaji dodirni "Pošalji poruku".'),
+              message: kClassifiedsMode
+                  ? t('Na oglasu dodirni "Kontaktiraj prodavatelja".')
+                  : t('Na predmetu na prodaji dodirni "Pošalji poruku".'),
             )
           : Align(
               alignment: Alignment.topCenter,
@@ -255,13 +263,15 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     final me = state.currentUserId;
     final other = state.userById(widget.otherId);
     final messages = state.chatWith(widget.otherId);
-    final offers = state.myOffers
-        .where(
-          (o) =>
-              o.isPending &&
-              (o.fromId == widget.otherId || o.toId == widget.otherId),
-        )
-        .toList();
+    final offers = kClassifiedsMode
+        ? <SwapOffer>[]
+        : state.myOffers
+              .where(
+                (o) =>
+                    o.isPending &&
+                    (o.fromId == widget.otherId || o.toId == widget.otherId),
+              )
+              .toList();
     // Nove poruke dok je razgovor otvoren su odmah pročitane.
     if (messages.any((m) => m.receiverId == me && !m.read)) {
       WidgetsBinding.instance.addPostFrameCallback((_) => _markRead());

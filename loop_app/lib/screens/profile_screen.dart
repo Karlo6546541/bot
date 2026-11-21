@@ -8,6 +8,7 @@ import '../widgets/reference_sheet.dart';
 import '../providers/my_activity_provider.dart';
 import 'activity_view.dart';
 import 'messages_screen.dart';
+import 'saved_screen.dart';
 import 'notifications_screen.dart';
 import '../config/features.dart';
 import 'account_health_screen.dart';
@@ -205,51 +206,67 @@ class _SimpleProfile extends ConsumerWidget {
                     ),
                   ),
                 ),
-                const Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 16),
-                  child: SellerAccountCard(onlyWhenActionNeeded: true),
-                ),
-                header(t('Kupujem')),
-                row(
-                  const ValueKey('profile-purchases'),
-                  Icons.shopping_bag_outlined,
-                  t('Moje kupnje'),
-                  () =>
-                      MyAuctionsScreen.open(context, initialTab: MyTab.buying),
-                ),
-                row(
-                  const ValueKey('profile-messages'),
-                  Icons.chat_bubble_outline,
-                  t('Poruke'),
-                  () => MessagesScreen.open(context),
-                ),
-                header(t('Prodajem')),
+                if (!kClassifiedsMode)
+                  const Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 16),
+                    child: SellerAccountCard(onlyWhenActionNeeded: true),
+                  ),
+                header(kClassifiedsMode ? t('Oglasi') : t('Kupujem')),
+                if (!kClassifiedsMode)
+                  row(
+                    const ValueKey('profile-purchases'),
+                    Icons.shopping_bag_outlined,
+                    t('Moje kupnje'),
+                    () => MyAuctionsScreen.open(
+                      context,
+                      initialTab: MyTab.buying,
+                    ),
+                  )
+                else
+                  row(
+                    const ValueKey('profile-saved'),
+                    Icons.favorite_border,
+                    t('Spremljeni oglasi'),
+                    () => SavedListingsScreen.open(context),
+                  ),
+                if (!kClassifiedsMode)
+                  row(
+                    const ValueKey('profile-messages'),
+                    Icons.chat_bubble_outline,
+                    t('Poruke'),
+                    () => MessagesScreen.open(context),
+                  ),
+                if (!kClassifiedsMode) header(t('Prodajem')),
                 row(
                   const ValueKey('profile-auctions'),
                   Icons.sell_outlined,
-                  t('Moji oglasi i aukcije'),
+                  kClassifiedsMode
+                      ? t('Moji oglasi')
+                      : t('Moji oglasi i aukcije'),
                   () => MyListingsScreen.open(context),
                 ),
-                row(
-                  const ValueKey('profile-shipments'),
-                  Icons.local_shipping_outlined,
-                  t('Pošalji pakete'),
-                  () => DeliveryNotesScreen.open(context),
-                  trailing: s.toShip.isEmpty ? null : '${s.toShip.length}',
-                ),
-                row(
-                  const ValueKey('profile-earnings'),
-                  Icons.insights_outlined,
-                  t('Zarada'),
-                  () => FinancialsScreen.open(context),
-                ),
-                header(t('Račun')),
-                row(
-                  const ValueKey('profile-checkout'),
-                  Icons.credit_card,
-                  t('Plaćanje i adresa'),
-                  () => ensureCheckout(context, ref, force: true),
-                ),
+                if (!kClassifiedsMode) ...[
+                  row(
+                    const ValueKey('profile-shipments'),
+                    Icons.local_shipping_outlined,
+                    t('Pošalji pakete'),
+                    () => DeliveryNotesScreen.open(context),
+                    trailing: s.toShip.isEmpty ? null : '${s.toShip.length}',
+                  ),
+                  row(
+                    const ValueKey('profile-earnings'),
+                    Icons.insights_outlined,
+                    t('Zarada'),
+                    () => FinancialsScreen.open(context),
+                  ),
+                  header(t('Račun')),
+                  row(
+                    const ValueKey('profile-checkout'),
+                    Icons.credit_card,
+                    t('Plaćanje i adresa'),
+                    () => ensureCheckout(context, ref, force: true),
+                  ),
+                ],
               ],
               row(
                 const ValueKey('profile-settings'),

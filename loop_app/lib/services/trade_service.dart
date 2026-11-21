@@ -92,7 +92,9 @@ class TradeService {
     // kad je Kupi odmah uključen, inače se prodaje preko livea.
     final list = listOnMarket || (digital && kBuyNowEnabled);
     final seller = _requireUser(userId);
-    if (list && (seller.isGuest || seller.seller == null)) {
+    if (list &&
+        !kClassifiedsMode &&
+        (seller.isGuest || seller.seller == null)) {
       throw TradeException(t('Za objavu ispuni podatke prodavatelja.'));
     }
     final device = Device(
@@ -380,7 +382,7 @@ class TradeService {
   }) async {
     final device = _requireOwn(userId, deviceId);
     final seller = _requireUser(userId);
-    if (seller.isGuest || seller.seller == null) {
+    if (seller.isGuest || (!kClassifiedsMode && seller.seller == null)) {
       throw TradeException(t('Za objavu ispuni podatke prodavatelja.'));
     }
     if (_storage.activeAuctionFor(deviceId) != null) {
@@ -432,6 +434,22 @@ class TradeService {
     final unlisted = device.withListing(null);
     await _storage.putDevice(unlisted);
     return unlisted;
+  }
+
+  /// Oglasnik: vlasnik je predmet prodao izvan aplikacije. Oglas nestaje s
+  /// popisa; datum i (neobavezna) konačna cijena ostaju za statistiku.
+  Future<Device> markSold({
+    required String userId,
+    required String deviceId,
+    double? price,
+  }) async {
+    final device = _requireOwn(userId, deviceId);
+    if (price != null && (price < 0 || price > maxListPrice)) {
+      throw TradeException(t('Unesi ispravnu cijenu'));
+    }
+    final sold = device.withSold(price == null ? null : roundCredits(price));
+    await _storage.putDevice(sold);
+    return sold;
   }
 
   /// Vlasnik trajno briše svoj predmet. Vraća putanje fotografija.

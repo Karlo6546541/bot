@@ -101,7 +101,7 @@ void main() {
     await tester.tap(find.byKey(const ValueKey('my-listings-sold')));
     await tester.pumpAndSettle();
     expect(tester.takeException(), isNull);
-  });
+  }, skip: kClassifiedsMode);
 
   testWidgets('Zarada: samo statistika, bez stanja i gumba za isplatu', (
     tester,

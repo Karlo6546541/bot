@@ -1,3 +1,4 @@
+import 'package:loop_app/config/features.dart';
 import 'package:flutter/material.dart';
 import 'package:loop_app/screens/device_detail_screen.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -119,6 +120,7 @@ void main() {
         );
       }
     },
+    skip: kClassifiedsMode,
   );
 
   test(
@@ -155,6 +157,7 @@ void main() {
       prefs.recordSeen(fresh, now);
       expect(ranker.rankBatch(items), isNotEmpty);
     },
+    skip: kClassifiedsMode,
   );
 
   test('an expensive purchase does not set the budget of another category', () {
@@ -288,6 +291,7 @@ void main() {
       );
       await tester.pumpWidget(const SizedBox.shrink());
     },
+    skip: kClassifiedsMode,
   );
 
   testWidgets('horizontal gallery, zoom and details keep the current listing', (

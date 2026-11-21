@@ -596,7 +596,7 @@ class _WelcomeHero extends StatelessWidget {
 
   static List<(String, String)> get _bubbles => [
     if (kLiveEnabled) ('🔴', t('Uživo')),
-    if (!kLiveEnabled) ('🔨', t('Aukcije')),
+    if (!kLiveEnabled && !kClassifiedsMode) ('🔨', t('Aukcije')),
     ('🃏', t('Kartice')),
     ('👟', t('Tenisice')),
     ('📱', t('Mobiteli')),

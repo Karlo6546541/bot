@@ -839,8 +839,9 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                       children: [
                         for (final (k, label) in <(SearchKind?, String)>[
                           (null, t('Sve')),
-                          (SearchKind.auction, t('Aukcije')),
-                          if (kBuyNowEnabled)
+                          if (!kClassifiedsMode)
+                            (SearchKind.auction, t('Aukcije')),
+                          if (kBuyNowEnabled && !kClassifiedsMode)
                             (SearchKind.buyNow, t('Kupi odmah')),
                           if (kLiveEnabled) (SearchKind.live, t('Uživo')),
                         ])
@@ -1403,7 +1404,13 @@ class _Discover extends ConsumerWidget {
         title(t('Pametno traženje')),
         for (final (example, hint) in <(String, String)>[
           ('pokemon do 50', t('Cijena: "do 50", "od 20", "20-50"')),
-          ('aukcije kovanice', t('Vrsta: "aukcije" ili "kupi odmah"')),
+          if (kClassifiedsMode)
+            (
+              'kovanice jugoslavija',
+              t('Kategorija i pojam: kovanice, stripovi…'),
+            )
+          else
+            ('aukcije kovanice', t('Vrsta: "aukcije" ili "kupi odmah"')),
           ('psa 10', t('Ocijenjeno: PSA, BGS, CGC')),
           ('@korisnik', t('Račun: upiši @ i ime')),
         ])

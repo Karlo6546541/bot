@@ -1,3 +1,4 @@
+import '../config/features.dart';
 import '../l10n/tr.dart';
 import '../models/chat_message.dart';
 import '../models/delivery.dart';
@@ -60,9 +61,13 @@ class SystemMessages {
     receiverId: userId,
     createdAt: at,
     read: true,
-    text: t(
-      'Ovdje ti Subhasto šalje PIN-ove za paketomate i upute za slanje. Na ove poruke ne možeš odgovoriti.',
-    ),
+    text: kClassifiedsMode
+        ? t(
+            'Ovdje ti Subhasto šalje važne obavijesti o tvom računu i oglasima. Na ove poruke ne možeš odgovoriti.',
+          )
+        : t(
+            'Ovdje ti Subhasto šalje PIN-ove za paketomate i upute za slanje. Na ove poruke ne možeš odgovoriti.',
+          ),
   );
 
   /// Sve službene poruke za [userId] iz pošiljki (najstarije prvo).

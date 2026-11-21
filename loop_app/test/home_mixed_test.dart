@@ -48,5 +48,5 @@ void main() {
     expect(find.byType(AuctionTile), findsNothing);
     expect(find.byType(BuyNowTile), findsWidgets);
     expect(tester.takeException(), isNull);
-  });
+  }, skip: kClassifiedsMode);
 }

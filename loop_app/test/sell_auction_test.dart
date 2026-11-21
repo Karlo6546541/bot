@@ -73,5 +73,6 @@ void main() {
       expect(find.text('Objavi oglas'), findsOneWidget);
       expect(tester.takeException(), isNull);
     },
+    skip: kClassifiedsMode,
   );
 }

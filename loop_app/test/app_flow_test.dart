@@ -325,7 +325,7 @@ void main() {
     await tester.tap(find.byKey(const ValueKey('watch-auction')));
     await tester.pumpAndSettle();
     expect(find.byIcon(Icons.notifications_active), findsOneWidget);
-  });
+  }, skip: kClassifiedsMode);
 
   testWidgets('isplata zarade na IBAN i promjena teme', (tester) async {
     tester.view.physicalSize = const Size(1400, 1000);
@@ -1107,7 +1107,7 @@ void logoTests() {
       await tester.binding.handlePopRoute();
       await tester.pumpAndSettle();
       expect(find.byKey(const ValueKey('home-search')), findsOneWidget);
-    });
+    }, skip: kClassifiedsMode);
   }
 
   testWidgets('natrag: kronološki kroz tabove, pa Početna', (tester) async {

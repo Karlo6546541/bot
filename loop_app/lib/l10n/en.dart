@@ -3726,6 +3726,57 @@ const kEn = <String, String>{
   'Ocijenjeno: PSA, BGS, CGC': 'Graded: PSA, BGS, CGC',
   'Račun: upiši @ i ime': 'Account: type @ and a name',
   'Traži "{0}"': 'Search "{0}"',
+  'Aktivan do {0}': 'Active until {0}',
+  'Aktivan još {0} d': 'Active for {0} more days',
+  'Dodirni srce na oglasu da ga spremiš.':
+      'Tap the heart on a listing to save it.',
+  'Istekao {0}': 'Expired {0}',
+  'Istekli ({0})': 'Expired ({0})',
+  'Još nemaš prodanih predmeta': 'You have no sold items yet',
+  'Još nemaš spremljenih oglasa': 'You have no saved listings yet',
+  'Kategorija i pojam: kovanice, stripovi…':
+      'Category and term: coins, comics…',
+  'Kod skupljih predmeta traži dodatne fotografije, certifikat ili dokaz porijekla.':
+      'For pricier items ask for extra photos, a certificate or proof of origin.',
+  'Konačna cijena': 'Final price',
+  'Konačna cijena nije obavezna, vidiš je samo ti.':
+      'The final price is optional and only you can see it.',
+  'Kontaktiraj prodavatelja': 'Contact seller',
+  'Na oglasu dodirni "Kontaktiraj prodavatelja".':
+      'On a listing, tap "Contact seller".',
+  'Najnoviji oglasi': 'Latest listings',
+  'Najsigurnije je osobno preuzimanje: pregledaj predmet prije plaćanja.':
+      'Meeting in person is safest: inspect the item before paying.',
+  'Nema isteklih oglasa': 'No expired listings',
+  'Nije objavljeno': 'Not published',
+  'Objavi predmet i kupci će te kontaktirati porukom.':
+      'Post an item and buyers will message you.',
+  'Obriši oglas': 'Delete listing',
+  'Oglas je aktivan 30 dana, a produljiti ga možeš kad god želiš. Cijenu i plaćanje dogovaraš izravno s kupcem.':
+      'A listing is active for 30 days and you can renew it any time. You agree price and payment directly with the buyer.',
+  'Oglas je aktivan 30 dana, a produljiti ga možeš kad god želiš. Cijenu, plaćanje i preuzimanje dogovaraš izravno s kupcem; kupci te kontaktiraju porukom.':
+      'A listing is active for 30 days and you can renew it any time. You agree price, payment and handover directly with the buyer; buyers contact you by message.',
+  'Oglas je istekao': 'Listing expired',
+  'Oglas je označen kao prodan': 'Listing marked as sold',
+  'Oglas je produljen za 30 dana': 'Listing renewed for 30 days',
+  'Oglas je skinut': 'Listing taken down',
+  'Oglasi': 'Listings',
+  'Oprez kod plaćanja unaprijed; nikad ne šalji podatke kartice ni kodove.':
+      'Be careful with advance payments; never share card details or codes.',
+  'Označi kao prodano': 'Mark as sold',
+  'Označi prodano': 'Mark sold',
+  'Pretraži oglase': 'Search listings',
+  'Prodano {0}': 'Sold {0}',
+  'Produlji': 'Renew',
+  'Sigurna kupnja': 'Safe buying',
+  'Skini oglas': 'Take down listing',
+  'Spremljeni oglasi': 'Saved listings',
+  'Sumnjiv oglas prijavi iz izbornika oglasa.':
+      'Report a suspicious listing from the listing menu.',
+  'Unesi cijenu veću od 0': 'Enter a price above 0',
+  'Uredi cijenu': 'Edit price',
+  'Ovdje ti Subhasto šalje važne obavijesti o tvom računu i oglasima. Na ove poruke ne možeš odgovoriti.':
+      'Subhasto sends you important notices about your account and listings here. You cannot reply to these messages.',
   'Zakaži show': 'Schedule a show',
   'Otprema': 'Shipping',
   'Nema paketa za predaju': 'No parcels to hand over',

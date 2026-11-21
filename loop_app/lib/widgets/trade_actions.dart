@@ -1,3 +1,4 @@
+import '../config/features.dart';
 import '../services/app_location/app_location.dart';
 import 'package:flutter/material.dart';
 import '../models/delivery.dart' show DeliveryMethod;
@@ -1058,7 +1059,10 @@ Future<bool> showListDialog(
   Device device,
 ) async {
   if (blockGuest(context)) return false;
-  if (!await ensureSellerInfo(context) || !context.mounted) return false;
+  if (!kClassifiedsMode &&
+      (!await ensureSellerInfo(context) || !context.mounted)) {
+    return false;
+  }
   final result = await showDialog<(double, int?)>(
     context: context,
     // Pri vrhu i bez pomaka za tipkovnicu (mobilni preglednik).
@@ -1075,7 +1079,9 @@ Future<bool> showListDialog(
     () => ref
         .read(appProvider.notifier)
         .listOnMarket(device.id, price, quantity: quantity),
-    successMessage: t('Na prodaji je'),
+    successMessage: kClassifiedsMode
+        ? t('Oglas je objavljen')
+        : t('Na prodaji je'),
   );
 }
 
@@ -1112,7 +1118,7 @@ class _ListDialogState extends State<_ListDialog> {
       return;
     }
     int? q;
-    if (!widget.device.isDigital) {
+    if (!widget.device.isDigital && !kClassifiedsMode) {
       q = int.tryParse(_qty.text.trim());
       if (q == null || q < 1 || q > Device.maxQuantity) {
         setState(() => _qtyError = t('Od 1 do {0}', ['${Device.maxQuantity}']));
@@ -1132,6 +1138,8 @@ class _ListDialogState extends State<_ListDialog> {
       title: Text(
         widget.device.isListed
             ? t('Promijeni cijenu')
+            : kClassifiedsMode
+            ? t('Objavi oglas')
             : t('Objavi za Kupi odmah'),
       ),
       content: ConstrainedBox(
@@ -1141,9 +1149,13 @@ class _ListDialogState extends State<_ListDialog> {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Text(
-              t(
-                'Predmet ostaje tvoj dok ga netko ne kupi. Možeš ga maknuti iz prodaje kad god želiš.',
-              ),
+              kClassifiedsMode
+                  ? t(
+                      'Oglas je aktivan 30 dana, a produljiti ga možeš kad god želiš. Cijenu i plaćanje dogovaraš izravno s kupcem.',
+                    )
+                  : t(
+                      'Predmet ostaje tvoj dok ga netko ne kupi. Možeš ga maknuti iz prodaje kad god želiš.',
+                    ),
               style: TextStyle(color: LoopColors.textSecondary),
             ),
             const SizedBox(height: 14),
@@ -1161,7 +1173,7 @@ class _ListDialogState extends State<_ListDialog> {
                 errorText: _error,
               ),
             ),
-            if (!widget.device.isDigital) ...[
+            if (!widget.device.isDigital && !kClassifiedsMode) ...[
               const SizedBox(height: 12),
               TextField(
                 key: const ValueKey('list-quantity'),
@@ -1178,7 +1190,7 @@ class _ListDialogState extends State<_ListDialog> {
               ),
             ],
             const SizedBox(height: 12),
-            if (v != null && v > 0) ...[
+            if (v != null && v > 0 && !kClassifiedsMode) ...[
               Text(
                 t('Kupci vide cijenu {0}', [formatCredits(buyTotal(v))]),
                 style: TextStyle(color: LoopColors.textSecondary),

@@ -747,7 +747,7 @@ class _CategoryItemsScreenState extends ConsumerState<CategoryItemsScreen> {
                   ('all', t('Sve')),
                   if (kBuyNowEnabled) ('products', t('Proizvodi')),
                   if (kLiveEnabled) ('live', t('Uživo')),
-                  ('auctions', t('Aukcije')),
+                  if (!kClassifiedsMode) ('auctions', t('Aukcije')),
                 ])
                   PillSwitchItem(
                     key: ValueKey('category-view-$id'),

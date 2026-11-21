@@ -1,3 +1,4 @@
+import '../config/features.dart';
 import 'package:flutter/material.dart';
 
 import '../l10n/tr.dart';
@@ -19,8 +20,14 @@ enum LegalDoc {
   final IconData icon;
   String get title => t(_title);
 
-  String get body =>
-      (Tr.lang == AppLang.en ? legalEn : legalHr)[name] ?? legalHr[name]!;
+  String get body {
+    final en = Tr.lang == AppLang.en;
+    if (kClassifiedsMode) {
+      final own = (en ? legalClassifiedsEn : legalClassifiedsHr)[name];
+      if (own != null) return own;
+    }
+    return (en ? legalEn : legalHr)[name] ?? legalHr[name]!;
+  }
 }
 
 /// Jedan dokument: naslovi ("## …"), odlomci i natuknice ("- …").

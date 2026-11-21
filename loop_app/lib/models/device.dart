@@ -292,11 +292,25 @@ class Device {
     this.parcelSize = 'small',
     this.shipping,
     this.certificate,
+    this.soldAt,
+    this.soldPrice,
   });
 
   /// Ocjena neovisne kuće (PSA, BGS, CGC…) s brojem certifikata, ako je
   /// predmet ocijenjen ("slabiran").
   final GradingCertificate? certificate;
+
+  /// Oglasnik: kad je predmet prodan (izvan aplikacije) i po kojoj cijeni
+  /// (neobavezno, vidi je samo vlasnik; služi statistici).
+  final DateTime? soldAt;
+  final double? soldPrice;
+
+  /// Oglas vrijedi 30 dana od objave; poslije se skriva i može se produljiti.
+  static const listingDays = 30;
+  DateTime? get expiresAt => listedAt?.add(const Duration(days: listingDays));
+  bool isExpiredAt(DateTime now) =>
+      isListed && expiresAt != null && !now.isBefore(expiresAt!);
+  bool get isSold => soldAt != null;
 
   /// Veličina paketa (ime iz [ParcelSize]) — utječe na cijenu dostave.
   final String parcelSize;
@@ -431,8 +445,12 @@ class Device {
     List<PriceLogEntry>? priceLog,
     String? parcelSize,
     Object? shipping = _keep,
+    Object? soldAt = _keep,
+    Object? soldPrice = _keep,
   }) => Device(
     certificate: certificate,
+    soldAt: soldAt == _keep ? this.soldAt : soldAt as DateTime?,
+    soldPrice: soldPrice == _keep ? this.soldPrice : soldPrice as double?,
     id: id ?? this.id,
     name: name,
     model: model,
@@ -501,6 +519,15 @@ class Device {
     );
   }
 
+  /// Označeno kao prodano (izvan aplikacije): skida se s popisa oglasa.
+  Device withSold(double? price, {DateTime? at}) => _copy(
+    listPrice: null,
+    listedAt: null,
+    soldAt: at ?? DateTime.now(),
+    soldPrice: price,
+    marketChecked: true,
+  );
+
   /// Zaliha nakon prodaje jednog komada.
   Device withQuantity(int quantity) => _copy(quantity: quantity);
 
@@ -537,6 +564,8 @@ class Device {
     if (parcelSize != 'small') 'parcelSize': parcelSize,
     if (shipping != null) 'shipping': shipping!.toMap(),
     if (certificate != null) 'certificate': certificate!.toMap(),
+    if (soldAt != null) 'soldAt': soldAt!.toIso8601String(),
+    if (soldPrice != null) 'soldPrice': soldPrice,
   };
 
   factory Device.fromMap(Map<dynamic, dynamic> map) => Device(
@@ -573,6 +602,10 @@ class Device {
     certificate: map['certificate'] is Map
         ? GradingCertificate.fromMap(map['certificate'] as Map)
         : null,
+    soldAt: map['soldAt'] == null
+        ? null
+        : DateTime.parse(map['soldAt'] as String),
+    soldPrice: (map['soldPrice'] as num?)?.toDouble(),
   );
 }
 

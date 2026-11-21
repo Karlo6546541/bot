@@ -99,7 +99,9 @@ class _PublicProfileScreenState extends ConsumerState<PublicProfileScreen> {
   }
 
   _ShopSort _sort = _ShopSort.newest;
-  _ShopTab _tab = kBuyNowEnabled ? _ShopTab.items : _ShopTab.auctions;
+  _ShopTab _tab = kBuyNowEnabled || kClassifiedsMode
+      ? _ShopTab.items
+      : _ShopTab.auctions;
 
   /// Kategorija iz filtra trgovine (`null` = sve).
   DeviceCategory? _category;
@@ -155,10 +157,11 @@ class _PublicProfileScreenState extends ConsumerState<PublicProfileScreen> {
     final upcoming = lives.where((e) => e.$2.isScheduled).firstOrNull;
     final hasShop = allListings.isNotEmpty || isMe;
     final tabs = <_ShopTab>[
-      if (hasShop && kBuyNowEnabled) _ShopTab.items,
+      if (hasShop && (kBuyNowEnabled || kClassifiedsMode)) _ShopTab.items,
       if (kLiveEnabled) _ShopTab.lives,
       _ShopTab.reviews,
-      if (auctions.isNotEmpty || !kBuyNowEnabled) _ShopTab.auctions,
+      if (!kClassifiedsMode && (auctions.isNotEmpty || !kBuyNowEnabled))
+        _ShopTab.auctions,
     ];
     final tab = tabs.contains(_tab) ? _tab : tabs.first;
     final listings = _shopItems(allListings);

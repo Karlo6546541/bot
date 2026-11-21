@@ -77,7 +77,7 @@ class DeviceDetailScreen extends ConsumerWidget {
     final wide = MediaQuery.sizeOf(context).width >= 900;
     // Gumb "Kupi" uvijek zalijepljen na dnu (mobitel i računalo).
     final buyBar =
-        kBuyNowEnabled &&
+        (kBuyNowEnabled || kClassifiedsMode) &&
         !isMine &&
         auction == null &&
         device.isForSale &&
@@ -138,7 +138,7 @@ class DeviceDetailScreen extends ConsumerWidget {
                     basePrice: isMine ? null : device.shownBasePrice,
                     fontSize: 24,
                   ),
-                  if (!isMine) ...[
+                  if (!isMine && !kClassifiedsMode) ...[
                     const SizedBox(height: 4),
                     Text(
                       key: const ValueKey('delivery-estimate'),
@@ -389,6 +389,11 @@ class DeviceDetailScreen extends ConsumerWidget {
                 icon: const Icon(Icons.gavel),
                 label: Text(t('Pogledaj aukciju')),
               ),
+            ] else if (isMine && kClassifiedsMode) ...[
+              _MyListingActions(
+                device: device,
+                onDelete: () => _delete(context, ref, device),
+              ),
             ] else if (isMine) ...[
               if (device.isListed && kBuyNowEnabled) ...[
                 _ListingInfo(device: device),
@@ -580,7 +585,9 @@ class DeviceDetailScreen extends ConsumerWidget {
                 icon: const Icon(Icons.gavel),
                 label: Text(t('Licitiraj')),
               ),
-            ] else if (kBuyNowEnabled && device.isForSale) ...[
+            ] else if (kBuyNowEnabled &&
+                !kClassifiedsMode &&
+                device.isForSale) ...[
               // Pregovaranje je sporedna radnja (nije aukcijska ponuda).
               if (device.isListed && owner != null)
                 Align(
@@ -620,14 +627,39 @@ class DeviceDetailScreen extends ConsumerWidget {
                         style: FilledButton.styleFrom(
                           minimumSize: const Size(0, 48),
                         ),
-                        onPressed: () async {
-                          final ok = await confirmAndBuy(context, ref, device);
-                          if (ok && !device.isDigital && context.mounted) {
-                            Navigator.pop(context);
-                          }
-                        },
-                        icon: const Icon(Icons.shopping_bag_outlined),
-                        label: Text(t('Kupi odmah')),
+                        onPressed: kClassifiedsMode
+                            ? () {
+                                if (blockGuest(context)) return;
+                                final o = owner;
+                                if (o == null) return;
+                                ChatScreen.open(
+                                  context,
+                                  o.id,
+                                  deviceId: device.id,
+                                );
+                              }
+                            : () async {
+                                final ok = await confirmAndBuy(
+                                  context,
+                                  ref,
+                                  device,
+                                );
+                                if (ok &&
+                                    !device.isDigital &&
+                                    context.mounted) {
+                                  Navigator.pop(context);
+                                }
+                              },
+                        icon: Icon(
+                          kClassifiedsMode
+                              ? Icons.chat_bubble_outline
+                              : Icons.shopping_bag_outlined,
+                        ),
+                        label: Text(
+                          kClassifiedsMode
+                              ? t('Kontaktiraj prodavatelja')
+                              : t('Kupi odmah'),
+                        ),
                       ),
                     ),
                   ),
@@ -1188,30 +1220,36 @@ class _BuyerInfo extends StatelessWidget {
           row(r.$1, r.$2),
         ],
         const Divider(height: 1),
-        InkWell(
-          key: const ValueKey('buyer-protection-row'),
-          onTap: () => BuyerProtectionBadge.explain(context),
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(minHeight: 48),
-            child: Row(
-              children: [
-                Icon(
-                  Icons.verified_user_outlined,
-                  size: 18,
-                  color: LoopColors.textSecondary,
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    t('Dostava i zaštita kupca'),
-                    style: const TextStyle(fontSize: 14),
+        if (kClassifiedsMode)
+          const Padding(
+            padding: EdgeInsets.symmetric(vertical: 10),
+            child: SafeBuyingNotice(),
+          )
+        else
+          InkWell(
+            key: const ValueKey('buyer-protection-row'),
+            onTap: () => BuyerProtectionBadge.explain(context),
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(minHeight: 48),
+              child: Row(
+                children: [
+                  Icon(
+                    Icons.verified_user_outlined,
+                    size: 18,
+                    color: LoopColors.textSecondary,
                   ),
-                ),
-                const Icon(Icons.chevron_right, size: 20),
-              ],
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      t('Dostava i zaštita kupca'),
+                      style: const TextStyle(fontSize: 14),
+                    ),
+                  ),
+                  const Icon(Icons.chevron_right, size: 20),
+                ],
+              ),
             ),
           ),
-        ),
         const Divider(height: 1),
         if (o == null)
           row(t('Prodavatelj'), state.userLabel(device.ownerId))
@@ -1269,7 +1307,7 @@ class _BuyerInfo extends StatelessWidget {
           ),
           // Vrsta prodavatelja određuje prava kupca (DSA): sažeto, s
           // podacima trgovca kad postoje.
-          if (device.isListed)
+          if (device.isListed && !kClassifiedsMode)
             Padding(
               padding: const EdgeInsets.only(top: 6, bottom: 8),
               child: Column(
@@ -1314,6 +1352,206 @@ class _BuyerInfo extends StatelessWidget {
               ),
             ),
         ],
+      ],
+    );
+  }
+}
+
+/// Upozorenje o sigurnoj kupnji (oglasnik: dogovor i plaćanje idu izvan
+/// aplikacije).
+class SafeBuyingNotice extends StatelessWidget {
+  const SafeBuyingNotice({super.key});
+
+  @override
+  Widget build(BuildContext context) => Container(
+    key: const ValueKey('safe-buying'),
+    padding: const EdgeInsets.all(12),
+    decoration: BoxDecoration(
+      color: LoopColors.surfaceHover,
+      borderRadius: BorderRadius.circular(kRadius),
+    ),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          t('Sigurna kupnja'),
+          style: const TextStyle(fontWeight: FontWeight.w800),
+        ),
+        const SizedBox(height: 6),
+        for (final line in [
+          t(
+            'Najsigurnije je osobno preuzimanje: pregledaj predmet prije plaćanja.',
+          ),
+          t(
+            'Oprez kod plaćanja unaprijed; nikad ne šalji podatke kartice ni kodove.',
+          ),
+          t(
+            'Kod skupljih predmeta traži dodatne fotografije, certifikat ili dokaz porijekla.',
+          ),
+          t('Sumnjiv oglas prijavi iz izbornika oglasa.'),
+        ])
+          Padding(
+            padding: const EdgeInsets.only(bottom: 4),
+            child: Text(
+              '• $line',
+              style: TextStyle(color: LoopColors.textSecondary, fontSize: 13),
+            ),
+          ),
+      ],
+    ),
+  );
+}
+
+/// Oglasnik: radnje vlasnika na vlastitom oglasu (cijena, produlji,
+/// prodano, skini, obriši).
+class _MyListingActions extends ConsumerWidget {
+  const _MyListingActions({required this.device, required this.onDelete});
+  final Device device;
+  final VoidCallback onDelete;
+
+  Future<void> _sold(BuildContext context, WidgetRef ref) async {
+    final c = TextEditingController(
+      text: device.listPrice == null
+          ? ''
+          : device.listPrice!.toStringAsFixed(0),
+    );
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(t('Označi kao prodano')),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              t('Konačna cijena nije obavezna, vidiš je samo ti.'),
+              style: TextStyle(color: LoopColors.textSecondary),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              key: const ValueKey('sold-price'),
+              controller: c,
+              keyboardType: const TextInputType.numberWithOptions(
+                decimal: true,
+              ),
+              decoration: InputDecoration(
+                labelText: t('Konačna cijena'),
+                suffixText: t('€'),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: Text(t('Odustani')),
+          ),
+          FilledButton(
+            key: const ValueKey('sold-confirm'),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: Text(t('Označi prodano')),
+          ),
+        ],
+      ),
+    );
+    final text = c.text.trim().replaceAll(',', '.');
+    if (ok != true || !context.mounted) return;
+    final price = text.isEmpty ? null : double.tryParse(text);
+    await runWithLoading(
+      context,
+      () => ref.read(appProvider.notifier).markSold(device.id, price: price),
+      successMessage: t('Oglas je označen kao prodan'),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final now = DateTime.now();
+    final expired = device.isExpiredAt(now);
+    final left = device.expiresAt?.difference(now).inDays;
+    final status = device.isSold
+        ? t('Prodano {0}', [formatDateTime(device.soldAt!)])
+        : !device.isListed
+        ? t('Nije objavljeno')
+        : expired
+        ? t('Oglas je istekao')
+        : t('Aktivan još {0} d', ['${(left ?? 0) + 1}']);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Container(
+          key: const ValueKey('listing-status'),
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: LoopColors.mint,
+            borderRadius: BorderRadius.circular(kRadius),
+          ),
+          child: Text(
+            status,
+            style: const TextStyle(fontWeight: FontWeight.w800),
+          ),
+        ),
+        const SizedBox(height: 10),
+        if (device.isListed) ...[
+          Row(
+            children: [
+              Expanded(
+                child: OutlinedButton.icon(
+                  key: const ValueKey('edit-price'),
+                  onPressed: () => showListDialog(context, ref, device),
+                  icon: const Icon(Icons.edit_outlined),
+                  label: Text(t('Uredi cijenu')),
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: OutlinedButton.icon(
+                  key: const ValueKey('renew'),
+                  onPressed: () => runWithLoading(
+                    context,
+                    () => ref
+                        .read(appProvider.notifier)
+                        .listOnMarket(device.id, device.listPrice!),
+                    successMessage: t('Oglas je produljen za 30 dana'),
+                  ),
+                  icon: const Icon(Icons.update),
+                  label: Text(t('Produlji')),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          FilledButton.icon(
+            key: const ValueKey('mark-sold'),
+            onPressed: () => _sold(context, ref),
+            icon: const Icon(Icons.check_circle_outline),
+            label: Text(t('Označi kao prodano')),
+          ),
+          const SizedBox(height: 10),
+          OutlinedButton.icon(
+            key: const ValueKey('unlist'),
+            onPressed: () => runWithLoading(
+              context,
+              () => ref.read(appProvider.notifier).unlist(device.id),
+              successMessage: t('Oglas je skinut'),
+            ),
+            icon: const Icon(Icons.visibility_off_outlined),
+            label: Text(t('Skini oglas')),
+          ),
+        ] else if (!device.isSold)
+          FilledButton.icon(
+            key: const ValueKey('item-buy-now'),
+            onPressed: () => showListDialog(context, ref, device),
+            icon: const Icon(Icons.campaign_outlined),
+            label: Text(t('Objavi oglas')),
+          ),
+        const SizedBox(height: 10),
+        TextButton.icon(
+          key: const ValueKey('delete-item'),
+          style: TextButton.styleFrom(foregroundColor: LoopColors.error),
+          onPressed: onDelete,
+          icon: const Icon(Icons.delete_outline),
+          label: Text(t('Obriši oglas')),
+        ),
       ],
     );
   }

@@ -263,3 +263,81 @@ If we remove content or restrict an account, you will receive a notification wit
 You can appeal within 6 months with the "Appeal" button in the notification. A different person reviews the appeal. You also have the right to out-of-court dispute settlement and to judicial redress.
 ''',
 };
+
+/// Način "oglasnik": Uvjeti i Pravila za prodavatelje (predložak — prije
+/// javnog pokretanja mora ih pregledati pravnik).
+const legalClassifiedsHr = <String, String>{
+  'terms':
+      '''
+Ovi Uvjeti uređuju korištenje oglasnika Subhasto (aplikacija i web stranica) koji pruža $kCompany, OIB $kCompanyOib, $kCompanyAddress ("Subhasto", "mi"). Registracijom potvrđuješ da prihvaćaš ove Uvjete i Pravila privatnosti.
+
+## 1. Što je Subhasto
+Subhasto je oglasnik za kolekcionare: korisnici objavljuju oglase za kolekcionarske predmete, a zainteresirani im pišu poruku. Subhasto nije strana u kupoprodaji: ne prodaje predmete, ne prima novac, ne organizira dostavu ni plaćanje. Cijenu, plaćanje i preuzimanje dogovaraju kupac i prodavatelj izravno, izvan aplikacije.
+
+## 2. Računi
+Račun je za privatne osobe. Jedna osoba smije imati jedan račun. Podaci moraju biti točni, a za sigurnost lozinke odgovaraš ti. Račun možeš obrisati u Profilu (brisanje se izvršava nakon 7 dana).
+
+## 3. Oglasi
+Oglas mora opisivati stvaran predmet koji smiješ prodati, sa stvarnim fotografijama. Oglas je aktivan 30 dana, a prodavatelj ga može produljiti ili označiti kao prodan. Zabranjene su krivotvorine, ukradeni predmeti i sve što je zakonom zabranjeno. Prodavatelj odgovara za opis, stanje i cijenu predmeta.
+
+## 4. Naknade
+Objava oglasa i korištenje oglasnika su besplatni.
+
+## 5. Moderacija
+Oglas ili račun koji krši ove Uvjete možemo ukloniti ili ograničiti, posebno nakon prijave prevare ili krivotvorine. O odluci dobiješ obavijest s razlogom.
+
+## 6. Odgovornost
+Subhasto ne jamči za predmete, korisnike ni ishod dogovora. Preporučujemo osobno preuzimanje i oprez kod plaćanja unaprijed.
+
+## 7. Promjene
+O bitnim promjenama Uvjeta obavijestit ćemo korisnike u aplikaciji.
+''',
+  'sellerRules': '''
+## Tko može objavljivati
+Privatne osobe. Predmet mora biti izvoran; ako je ocijenjen (PSA, BGS, CGC…), u oglasu se navodi i broj certifikata. Krivotvorine i replike bez jasne oznake su zabranjene.
+
+## Zabranjeno je objavljivati
+Oružje i streljivo, drogu i lijekove na recept, krivotvorine, ukradene predmete, žive životinje, opasne tvari, sadržaj za odrasle, osobne isprave, predmete koji krše tuđa autorska ili žigovna prava te sve što je zabranjeno zakonom.
+
+## Oglas mora biti
+Točan: stanje i fotografije vlastitog predmeta, prava cijena ili "dogovor".
+''',
+};
+
+const legalClassifiedsEn = <String, String>{
+  'terms':
+      '''
+These Terms govern the use of the Subhasto classifieds (app and website) provided by $kCompany, $kCompanyAddress ("Subhasto", "we"). By registering you accept these Terms and the Privacy Policy.
+
+## 1. What Subhasto is
+Subhasto is a classifieds site for collectors: users post listings for collectibles and interested people send them a message. Subhasto is not a party to any sale: it does not sell items, receive money or arrange delivery or payment. Price, payment and handover are agreed directly between buyer and seller, outside the app.
+
+## 2. Accounts
+Accounts are for private individuals. One person may have one account. Your details must be accurate and you are responsible for your password. You can delete your account in Profile (deletion happens after 7 days).
+
+## 3. Listings
+A listing must describe a real item you may sell, with real photos. A listing is active for 30 days; the seller can renew it or mark it as sold. Counterfeits, stolen items and anything prohibited by law are not allowed. The seller is responsible for the description, condition and price.
+
+## 4. Fees
+Posting listings and using the classifieds is free.
+
+## 5. Moderation
+We may remove a listing or restrict an account that breaks these Terms, especially after reports of fraud or counterfeits. You will be notified with the reason.
+
+## 6. Liability
+Subhasto does not guarantee items, users or the outcome of any deal. We recommend meeting in person and being careful with advance payments.
+
+## 7. Changes
+We will tell users about material changes to the Terms in the app.
+''',
+  'sellerRules': '''
+## Who can post
+Private individuals. The item must be genuine; if graded (PSA, BGS, CGC…), include the certificate number. Counterfeits and replicas without a clear label are prohibited.
+
+## Prohibited items
+Weapons and ammunition, drugs and prescription medicine, counterfeits, stolen goods, live animals, hazardous substances, adult content, ID documents, items that infringe copyright or trademarks and anything prohibited by law.
+
+## A listing must be
+Accurate: the condition and photos of your own item, a real price or "negotiable".
+''',
+};

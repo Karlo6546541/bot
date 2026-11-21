@@ -1,3 +1,4 @@
+import '../config/features.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -12,6 +13,7 @@ import '../widgets/formatters.dart';
 import '../widgets/item_image.dart';
 import 'auctions_home_screen.dart' show AuctionTile, BuyNowTile;
 import 'deliveries_screen.dart' show DeliveryDetailScreen;
+import 'device_detail_screen.dart';
 import 'sell_screens.dart';
 
 /// "Moji oglasi" kao na Vintedu: Aktivni (oglasi Kupi odmah i aukcije u
@@ -30,8 +32,150 @@ class MyListingsScreen extends ConsumerStatefulWidget {
 class _MyListingsScreenState extends ConsumerState<MyListingsScreen> {
   bool _sold = false;
 
+  /// Oglasnik: 0 aktivni, 1 istekli, 2 prodani.
+  int _tab = 0;
+
+  Widget _classifieds(BuildContext context) {
+    final s = ref.watch(appProvider);
+    final now = DateTime.now();
+    final mine = s.myDevices;
+    final active = [
+      for (final d in mine)
+        if (d.isListed && !d.isExpiredAt(now)) d,
+    ];
+    final expired = [
+      for (final d in mine)
+        if (d.isExpiredAt(now)) d,
+    ];
+    final sold = [
+      for (final d in mine)
+        if (d.isSold) d,
+    ]..sort((a, b) => b.soldAt!.compareTo(a.soldAt!));
+    final lists = [active, expired, sold];
+    final labels = [
+      t('Aktivni ({0})', ['${active.length}']),
+      t('Istekli ({0})', ['${expired.length}']),
+      t('Prodano ({0})', ['${sold.length}']),
+    ];
+    final list = lists[_tab];
+    return Scaffold(
+      key: const ValueKey('my-listings'),
+      appBar: AppBar(
+        title: Text(t('Moji oglasi')),
+        actions: [
+          IconButton(
+            key: const ValueKey('my-listings-new'),
+            tooltip: t('Novi oglas'),
+            icon: const Icon(Icons.add),
+            onPressed: () => SellAuctionScreen.open(context),
+          ),
+        ],
+      ),
+      body: Column(
+        children: [
+          Row(
+            children: [
+              for (var i = 0; i < 3; i++)
+                Expanded(
+                  child: InkWell(
+                    key: ValueKey('my-listings-tab-$i'),
+                    onTap: () => setState(() => _tab = i),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      decoration: BoxDecoration(
+                        border: Border(
+                          bottom: BorderSide(
+                            color: _tab == i
+                                ? LoopColors.accent
+                                : LoopColors.glassBorder,
+                            width: _tab == i ? 2.5 : 1,
+                          ),
+                        ),
+                      ),
+                      child: Text(
+                        labels[i],
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          fontSize: 15,
+                          fontWeight: _tab == i
+                              ? FontWeight.w700
+                              : FontWeight.w500,
+                          color: _tab == i ? null : LoopColors.textSecondary,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+            ],
+          ),
+          Expanded(
+            child: list.isEmpty
+                ? EmptyState(
+                    icon: Icons.sell_outlined,
+                    title: _tab == 0
+                        ? t('Nemaš aktivnih oglasa')
+                        : _tab == 1
+                        ? t('Nema isteklih oglasa')
+                        : t('Još nemaš prodanih predmeta'),
+                    message: _tab == 0
+                        ? t('Objavi predmet i kupci će te kontaktirati porukom.')
+                        : null,
+                    action: _tab == 0
+                        ? FilledButton(
+                            key: const ValueKey('my-listings-sell'),
+                            onPressed: () => SellAuctionScreen.open(context),
+                            child: Text(t('Objavi oglas')),
+                          )
+                        : null,
+                  )
+                : ListView.separated(
+                    padding: const EdgeInsets.fromLTRB(16, 12, 16, 32),
+                    itemCount: list.length,
+                    separatorBuilder: (_, _) =>
+                        Divider(height: 1, color: LoopColors.glassBorder),
+                    itemBuilder: (_, i) {
+                      final d = list[i];
+                      final subtitle = _tab == 2
+                          ? t('Prodano {0}', [formatDate(d.soldAt!)])
+                          : _tab == 1
+                          ? t('Istekao {0}', [formatDate(d.expiresAt!)])
+                          : t('Aktivan do {0}', [formatDate(d.expiresAt!)]);
+                      return ListTile(
+                        key: ValueKey('my-listing-item-${d.id}'),
+                        contentPadding: EdgeInsets.zero,
+                        leading: ClipRRect(
+                          borderRadius: BorderRadius.circular(10),
+                          child: ItemThumb(device: d, size: 56),
+                        ),
+                        title: Text(
+                          d.name,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(fontWeight: FontWeight.w600),
+                        ),
+                        subtitle: Text(subtitle),
+                        trailing: Text(
+                          formatCredits(
+                            _tab == 2 ? (d.soldPrice ?? d.price) : d.askPrice,
+                          ),
+                          style: const TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                        onTap: () => DeviceDetailScreen.open(context, d),
+                      );
+                    },
+                  ),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
+    if (kClassifiedsMode) return _classifieds(context);
     final s = ref.watch(appProvider);
     final me = s.currentUserId ?? '';
     final auctions = [

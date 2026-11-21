@@ -124,6 +124,12 @@ class _HomeShellState extends ConsumerState<HomeShell> {
               Icons.receipt_long_outlined,
               Icons.receipt_long,
             )
+          else if (kClassifiedsMode)
+            ShellDestination(
+              t('Poruke'),
+              Icons.chat_bubble_outline,
+              Icons.chat_bubble,
+            )
           else
             ShellDestination(t('Aukcije'), Icons.gavel_outlined, Icons.gavel),
           ShellDestination(t('Profil'), Icons.person_outline, Icons.person),
@@ -384,7 +390,11 @@ class _HomeShellState extends ConsumerState<HomeShell> {
                         _index == 2 || _index == 3
                             ? t(
                                 !kLiveEnabled
-                                    ? (_index == 2 ? 'Aukcije' : 'Profil')
+                                    ? (_index == 2
+                                          ? (kClassifiedsMode
+                                                ? 'Poruke'
+                                                : 'Aukcije')
+                                          : 'Profil')
                                     : kSimpleDesign
                                     ? 'Kupnje'
                                     : 'Trezor',
@@ -450,7 +460,9 @@ class _HomeShellState extends ConsumerState<HomeShell> {
           : const CategoriesScreen(),
       TickerMode(
         enabled: _index == 2,
-        child: ActivityView(onBrowse: () => _go(0)),
+        child: kClassifiedsMode
+            ? const MessagesScreen(embedded: true)
+            : ActivityView(onBrowse: () => _go(0)),
       ),
       const ProfileScreen(),
       TickerMode(

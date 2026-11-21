@@ -90,7 +90,7 @@ void _buyNowTests() {
       expect(find.byKey(const ValueKey('seller-block')), findsOneWidget);
       expect(tester.getRect(buy), rect);
       expect(tester.takeException(), isNull);
-    });
+    }, skip: kClassifiedsMode);
   }
 }
 

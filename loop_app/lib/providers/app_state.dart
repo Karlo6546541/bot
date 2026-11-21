@@ -784,8 +784,13 @@ class AppState {
   List<Delivery> get myOpenDeliveries =>
       myDeliveries.where((d) => d.confirmedAt == null).toList();
 
-  List<Auction> get activeAuctions =>
-      memo('activeAuctions', () => auctions.where((a) => a.isActive).toList());
+  /// Aktivne aukcije; u načinu oglasnika ih nema (aukcije se ne nude).
+  List<Auction> get activeAuctions => kClassifiedsMode
+      ? const []
+      : memo(
+          'activeAuctions',
+          () => auctions.where((a) => a.isActive).toList(),
+        );
 
   Auction? auctionById(String id) {
     for (final a in auctions) {
@@ -796,6 +801,7 @@ class AppState {
 
   /// Aktivna aukcija predmeta (predmet je tada zaključan za prodaju).
   Auction? activeAuctionFor(String deviceId) {
+    if (kClassifiedsMode) return null;
     for (final a in auctions) {
       if (a.isActive && a.deviceId == deviceId) return a;
     }
@@ -844,6 +850,9 @@ class AppState {
         .where(
           (d) =>
               d.isForSale &&
+              !(kClassifiedsMode &&
+                  d.isExpiredAt(DateTime.now()) &&
+                  !(includeMine && d.ownerId == currentUserId)) &&
               (includeMine || d.ownerId != currentUserId) &&
               !hidden.contains(d.ownerId) &&
               !(d.isDigital && bought.contains(d.id)),

@@ -41,7 +41,8 @@ jobs:
       - run: flutter pub get
       - run: flutter analyze
       - run: flutter test
-      - run: flutter test --dart-define=LIVE_ENABLED=true --dart-define=BUY_NOW_ENABLED=true
+      # Stara verzija (aukcije, Kupi odmah, live) ostaje pod testom.
+      - run: flutter test --dart-define=LIVE_ENABLED=true --dart-define=BUY_NOW_ENABLED=true --dart-define=CLASSIFIEDS_MODE=false
 
       - name: Build web
         env:

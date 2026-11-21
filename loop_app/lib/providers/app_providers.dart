@@ -1,3 +1,4 @@
+import '../config/features.dart';
 import '../config/backend_config.dart';
 import 'dart:async';
 import 'dart:convert';
@@ -1231,6 +1232,16 @@ class AppController extends Notifier<AppState> {
     _refresh();
   }
 
+  /// Oglasnik: označi oglas kao prodan (cijena neobavezna).
+  Future<void> markSold(String deviceId, {double? price}) async {
+    await _trade.markSold(
+      userId: _requireUserId(),
+      deviceId: deviceId,
+      price: price,
+    );
+    _refresh();
+  }
+
   Future<void> unlist(String deviceId) async {
     await _trade.unlist(userId: _requireUserId(), deviceId: deviceId);
     _refresh();
@@ -1292,6 +1303,7 @@ class AppController extends Notifier<AppState> {
   /// Prije objave na Kupi odmah platforma mora imati podatke
   /// prodavatelja (DAC7, DSA). UI ih traži unaprijed ([ensureSellerInfo]).
   void _requireSellerInfo() {
+    if (kClassifiedsMode) return;
     final user = state.currentUser;
     if (user != null && !user.isGuest && user.seller == null) {
       throw TradeException(

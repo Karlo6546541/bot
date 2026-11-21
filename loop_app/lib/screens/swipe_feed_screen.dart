@@ -939,6 +939,7 @@ class _Info extends ConsumerWidget {
 
     final rating = owner == null ? null : state.ratingOf(owner.id);
     final canOffer =
+        !kClassifiedsMode &&
         !isMine &&
         a == null &&
         d.isListed &&
@@ -1141,6 +1142,15 @@ class _Info extends ConsumerWidget {
                                     formatCredits(a.minNextBid),
                                   ]),
                             onTap: () => showBidSheet(context, ref, a.id),
+                            color: LoopColors.accent,
+                            foreground: LoopColors.onAccent,
+                          )
+                        : kClassifiedsMode
+                        ? _MainButton(
+                            key: const ValueKey('post-contact'),
+                            icon: Icons.chat_bubble_outline,
+                            label: t('Kontaktiraj prodavatelja'),
+                            onTap: onDetails,
                             color: LoopColors.accent,
                             foreground: LoopColors.onAccent,
                           )

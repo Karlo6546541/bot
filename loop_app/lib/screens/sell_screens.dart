@@ -47,7 +47,7 @@ class _SellAuctionScreenState extends ConsumerState<SellAuctionScreen> {
   AuctionKind _kind = AuctionKind.classic;
 
   /// Kako prodavač prodaje: aukcija ili Kupi odmah (fiksna cijena).
-  bool _buyNow = false;
+  bool _buyNow = kClassifiedsMode;
   Duration _duration = AuctionService.durations[2].$2;
   ParcelSize _size = ParcelSize.small;
 
@@ -141,7 +141,9 @@ class _SellAuctionScreenState extends ConsumerState<SellAuctionScreen> {
 
   Future<void> _submit() async {
     if (!_form.currentState!.validate()) return;
-    if (!await ensureSellerInfo(context) || !mounted) return;
+    if (!kClassifiedsMode && (!await ensureSellerInfo(context) || !mounted)) {
+      return;
+    }
     final start = _num(_price.text)!;
     final floor = !_buyNow && _kind == AuctionKind.dutch
         ? _num(_floor.text)
@@ -596,7 +598,7 @@ class _SellAuctionScreenState extends ConsumerState<SellAuctionScreen> {
                 ]),
                 // 4. Način prodaje i cijena.
                 const SizedBox(height: 16),
-                if (kBuyNowEnabled)
+                if (kBuyNowEnabled && !kClassifiedsMode)
                   _ModeSwitch(
                     buyNow: _buyNow,
                     onChanged: (v) => setState(() => _buyNow = v),
@@ -620,7 +622,9 @@ class _SellAuctionScreenState extends ConsumerState<SellAuctionScreen> {
                     validator: (v) {
                       final p = _num(v ?? '');
                       if (p == null || p <= 0) {
-                        return t('Unesi početnu cijenu veću od 0');
+                        return kClassifiedsMode
+                            ? t('Unesi cijenu veću od 0')
+                            : t('Unesi početnu cijenu veću od 0');
                       }
                       return null;
                     },
@@ -649,29 +653,34 @@ class _SellAuctionScreenState extends ConsumerState<SellAuctionScreen> {
                     ),
                   ],
                 ]),
-                // 5. Dostava.
-                _section([
-                  _row(
-                    'sell-size',
-                    t('Veličina paketa'),
-                    _size.label,
-                    () async {
-                      final z = await _pick<ParcelSize>(
-                        title: t('Veličina paketa'),
-                        values: ParcelSize.values,
-                        selected: _size,
-                        label: (z) => z.label,
-                        hint: (z) => z.hint,
-                        keyPrefix: 'sell-size',
-                        keyOf: (z) => z.name,
-                      );
-                      if (z != null) setState(() => _size = z);
-                    },
-                  ),
-                ]),
+                // 5. Dostava (oglasnik: dogovor s kupcem, bez dostave u aplikaciji).
+                if (!kClassifiedsMode)
+                  _section([
+                    _row(
+                      'sell-size',
+                      t('Veličina paketa'),
+                      _size.label,
+                      () async {
+                        final z = await _pick<ParcelSize>(
+                          title: t('Veličina paketa'),
+                          values: ParcelSize.values,
+                          selected: _size,
+                          label: (z) => z.label,
+                          hint: (z) => z.hint,
+                          keyPrefix: 'sell-size',
+                          keyOf: (z) => z.name,
+                        );
+                        if (z != null) setState(() => _size = z);
+                      },
+                    ),
+                  ]),
                 const SizedBox(height: 10),
                 Text(
-                  _buyNow
+                  kClassifiedsMode
+                      ? t(
+                          'Oglas je aktivan 30 dana, a produljiti ga možeš kad god želiš. Cijenu, plaćanje i preuzimanje dogovaraš izravno s kupcem; kupci te kontaktiraju porukom.',
+                        )
+                      : _buyNow
                       ? t(
                           'Dostavu plaća kupac. Novac ti stiže na IBAN nakon što kupac primi paket. Provizija se odbija od isplate.',
                         )
