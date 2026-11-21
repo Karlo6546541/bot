@@ -9,7 +9,15 @@ import { javniKlijent } from '@/lib/supabase';
 export const revalidate = 120;
 
 export default async function Pocetna() {
-  const najnoviji = await traziOglase(javniKlijent(120), { sort: 'najnovije' }, 1, 12);
+  // Privremeni problem s bazom ne smije srušiti izgradnju ni početnu stranicu.
+  let najnoviji: Awaited<ReturnType<typeof traziOglase>> = { stavke: [], ukupno: 0 };
+  let nedostupno = false;
+  try {
+    najnoviji = await traziOglase(javniKlijent(120), { sort: 'najnovije' }, 1, 12);
+  } catch (e) {
+    nedostupno = true;
+    console.error('Početna: oglasi se ne mogu učitati:', (e as Error).message);
+  }
   return (
     <>
       <section className="uvod">
@@ -35,6 +43,7 @@ export default async function Pocetna() {
         <Link href="/oglasi">Svi oglasi ›</Link>
       </div>
       {!imaBazu() && <div className="greska">Baza oglasa trenutno nije spojena.</div>}
+      {nedostupno && <div className="greska">Oglasi se trenutno ne mogu učitati. Pokušaj ponovno za nekoliko minuta.</div>}
       {najnoviji.stavke.length === 0 ? (
         <div className="prazno ploca">
           <p>Još nema oglasa. Budi prvi!</p>
