@@ -34,6 +34,12 @@ Migracije su u `supabase/migrations/` (prva je već na produkciji; druga dodaje
     update public.oglasnik_profili set admin = true where id = '<uuid korisnika>';
 
 ## Deploy (Vercel)
-Projekt: root directory `web`, framework Next.js, gore navedene varijable.
+Projekt `subhasto-oglasnik` (tim `team_pGtb1D774SqwHdGH1O7loOvu`, id `prj_0MzUigf5eGIpj6VrnFue382OM1Is`)
+povezan je s ovim repozitorijem: root directory `web`, framework Next.js, Node 22,
+varijable `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_KEY` i `NEXT_PUBLIC_APP_NAME`.
+Svaki push na granu daje preview deployment. Produkcijska grana projekta je trenutno
+`claude/polymarket-btc-trading-bot-t3qqvt`; promijeni je u `main` (Settings → Git)
+kad oglasnik ide u produkciju. Zaštita deploymenta (Vercel prijava) je uključena
+dok se ne objavi javno (Settings → Deployment Protection).
 Google prijava: uključi Google provider u Supabaseu i dodaj
 `https://<domena>/auth/callback` u dopuštene redirect adrese.
