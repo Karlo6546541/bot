@@ -10,6 +10,7 @@ export const metadata: Metadata = {
   title: { default: `${APP_NAME} – ${APP_SLOGAN}`, template: `%s | ${APP_NAME}` },
   description: `${APP_NAME}: ${APP_SLOGAN.toLowerCase()}. Kartice, kovanice, marke, stripovi, figure i gramofonske ploče iz cijele regije.`,
   openGraph: { type: 'website', siteName: APP_NAME, locale: 'hr_HR' },
+  twitter: { card: 'summary_large_image' },
   alternates: { canonical: '/' },
 };
 
