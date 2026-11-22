@@ -10,7 +10,7 @@ export async function GET(request: NextRequest) {
   if (code) {
     const sb = await klijentServera();
     const { error } = await sb.auth.exchangeCodeForSession(code);
-    if (error) return NextResponse.redirect(`${origin}/prijava?greska=${encodeURIComponent(error.message)}`);
+    if (error) return NextResponse.redirect(`${origin}${natrag.startsWith('/en') ? '/en' : ''}/prijava?greska=${encodeURIComponent(error.message)}`);
     const { data } = await sb.auth.getUser();
     if (data.user) await osigurajProfil(sb, data.user);
   }

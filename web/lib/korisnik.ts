@@ -17,7 +17,13 @@ export async function osigurajProfil(sb: SupabaseClient, user: User): Promise<Pr
 }
 
 /** Poruke baze prevedene za korisnika. */
-export function porukaGreske(m: string | undefined): string {
+import { prevedi, type Jezik } from './i18n';
+
+export function porukaGreske(m: string | undefined, j: Jezik = 'hr'): string {
+  return prevedi(j, porukaGreskeHr(m));
+}
+
+function porukaGreskeHr(m: string | undefined): string {
   const t = m ?? '';
   if (/Invalid login credentials/i.test(t)) return 'Pogrešan e-mail ili lozinka.';
   if (/already registered/i.test(t)) return 'Taj e-mail je već registriran.';
@@ -26,6 +32,6 @@ export function porukaGreske(m: string | undefined): string {
   if (/row-level security/i.test(t)) return 'Nemaš dopuštenje za ovu radnju (račun je možda blokiran).';
   if (/duplicate key.*oglasnik_prijave/i.test(t)) return 'Već si prijavio ovaj oglas.';
   if (/Oglas|Samo administrator/.test(t)) return t;
-  if (/provider is not enabled|Unsupported provider/i.test(t)) return 'Prijava Googleom još nije uključena.';
+  if (/provider is not enabled|Unsupported provider/i.test(t)) return 'Prijava Googleom još nije uključena. Prijavi se e-mailom.';
   return t || 'Nešto nije u redu. Pokušaj ponovno.';
 }

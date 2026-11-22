@@ -34,8 +34,9 @@ const entitete = (s) => s?.replace(/&amp;/g, '&').replace(/&quot;/g, '"').replac
 // ---- sitemap: izvor adresa oglasa ----
 const sm = await dohvati('/sitemap.xml');
 const adrese = [...sm.html.matchAll(/<loc>(.*?)<\/loc>/g)].map((m) => m[1]);
-const oglasi = adrese.filter((a) => a.includes('/oglas/')).map((a) => a.replace(BASE, ''));
+const oglasi = adrese.filter((a) => a.includes('/oglas/') && !a.includes('/en/')).map((a) => a.replace(BASE, ''));
 provjeri('sitemap.xml sadrži oglase i kategorije', oglasi.length === 34 && adrese.some((a) => a.endsWith('/kategorija/kartice')), `oglasa: ${oglasi.length}`);
+provjeri('sitemap sadrži i engleske adrese s hreflang', adrese.filter((a) => a.includes('/en/oglas/')).length === 34 && sm.html.includes('hreflang="en"'));
 provjeri('sitemap ne sadrži prodani ni istekli oglas', !oglasi.some((o) => /alan-ford-broj-1-1$|alan-ford-broj-1-2$/.test(o)));
 
 // ---- početna ----
@@ -116,11 +117,33 @@ for (const p of ['/objavi', '/poruke', '/moji-oglasi', '/favoriti', '/profil', '
   provjeri(`Privatna ${p}: bez prijave vodi na prijavu`, [302, 303, 307, 308].includes(r.status) && !!r.loc?.includes('/prijava?natrag='), `${r.status} ${r.loc}`);
 }
 provjeri('Prijava i registracija su dostupne', (await dohvati('/prijava')).status === 200 && (await dohvati('/registracija')).status === 200);
-for (const p of ['/uvjeti', '/privatnost', '/kontakt']) provjeri(`${p}: 200 s oznakom predloška`, (await dohvati(p)).html.includes('Predložak'));
+for (const p of ['/uvjeti', '/privatnost', '/kontakt']) { const r = await dohvati(p); provjeri(`${p}: 200, bez napomene o predlošku`, r.status === 200 && !r.html.includes('Predložak')); }
 const nema = await dohvati('/ne-postoji');
 provjeri('Nepostojeća stranica: 404 s porukom', nema.status === 404 && nema.html.includes('Stranica nije pronađena'));
 provjeri('Zaglavlja sigurnosti', (await fetch(BASE + '/')).headers.get('x-content-type-options') === 'nosniff');
 provjeri('Bez riječi aukcija/licitiranje/košarica u HTML-u', ![home.html, svi.html, hr.html].some((h) => /aukcij|licitir|košaric/i.test(h.replace(/<script[\s\S]*?<\/script>/g, ''))));
+
+// ---- engleski ----
+const en = await dohvati('/en');
+provjeri('EN početna: lang="en", engleski tekst, canonical /en', en.status === 200 && en.html.includes('<html lang="en"') && en.html.includes('Latest listings') && canonical(en.html) === `${BASE}/en`, canonical(en.html));
+provjeri('Hreflang hr/en/x-default na početnoj', /hrefLang="en" href="[^"]*\/en"/i.test(home.html) && /hrefLang="x-default"/i.test(home.html));
+provjeri('HR početna: lang="hr" i hrvatski tekst', home.html.includes('<html lang="hr"') && home.html.includes('Najnoviji oglasi'));
+const enOglas = await dohvati('/en' + hrPut);
+provjeri('EN oglas: engleski tekst, canonical /en/oglas', enOglas.status === 200 && enOglas.html.includes('Contact the seller') && canonical(enOglas.html) === `${BASE}/en${hrPut}`, String(enOglas.status));
+const enKat = await dohvati('/en/kategorija/novci/kovanice');
+provjeri('EN kategorija: engleski naziv i filteri', enKat.status === 200 && naslov(enKat.html)?.includes('Coins') && enKat.html.includes('Search and filters'));
+const hrPref = await fetch(BASE + '/hr/oglasi', { redirect: 'manual' });
+provjeri('/hr/... trajno vodi na adresu bez prefiksa', hrPref.status === 308 && hrPref.headers.get('location')?.endsWith('/oglasi'), String(hrPref.status));
+const kats = await dohvati('/kategorije');
+provjeri('Kategorije: fotografije iz oglasa i broj oglasa', kats.status === 200 && kats.html.includes('kat-foto') && /\d+ oglas/.test(kats.html));
+const katsEn = await dohvati('/en/kategorije/novci');
+provjeri('EN kategorije: odjeljak Coins and notes', katsEn.status === 200 && katsEn.html.includes('Coins and notes'));
+const enPrijava = await fetch(BASE + '/en/objavi', { redirect: 'manual' });
+provjeri('EN privatna stranica vodi na /en/prijava', [302, 307].includes(enPrijava.status) && enPrijava.headers.get('location')?.includes('/en/prijava'), `${enPrijava.status} ${enPrijava.headers.get('location')}`);
+const prijavaHtml = await dohvati('/prijava');
+provjeri('Prijava: Google gumb s logom', prijavaHtml.html.includes('google-gumb') && prijavaHtml.html.includes('#4285F4'));
+const uvjeti = await dohvati('/uvjeti');
+provjeri('Uvjeti bez zamjenskih oznaka [..] i bez napomene "Predložak"', !/\[[A-ZČŠŽ ]{3,}/.test(uvjeti.html) && !uvjeti.html.includes('Predložak'));
 
 // ---- izgled na mobitelu (375 px) ----
 try {

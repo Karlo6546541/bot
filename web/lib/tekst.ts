@@ -25,25 +25,25 @@ export function slug(s: string): string {
   );
 }
 
-const eur = new Intl.NumberFormat('hr-HR', {
-  style: 'currency',
-  currency: 'EUR',
-  maximumFractionDigits: 2,
-  minimumFractionDigits: 0,
-});
-export const cijenaTekst = (c: number | null) => (c == null ? 'Dogovor' : eur.format(c));
+const EUR = {
+  hr: new Intl.NumberFormat('hr-HR', { style: 'currency', currency: 'EUR', maximumFractionDigits: 2, minimumFractionDigits: 0 }),
+  en: new Intl.NumberFormat('en-IE', { style: 'currency', currency: 'EUR', maximumFractionDigits: 2, minimumFractionDigits: 0 }),
+};
+type J = 'hr' | 'en';
+export const cijenaTekst = (c: number | null, j: J = 'hr') => (c == null ? (j === 'en' ? 'Negotiable' : 'Dogovor') : EUR[j].format(c));
 
-export const datum = (iso: string) =>
-  new Date(iso).toLocaleDateString('hr-HR', { day: 'numeric', month: 'numeric', year: 'numeric' });
+export const datum = (iso: string, j: J = 'hr') =>
+  new Date(iso).toLocaleDateString(j === 'en' ? 'en-GB' : 'hr-HR', { day: 'numeric', month: 'numeric', year: 'numeric', timeZone: 'Europe/Zagreb' });
 
-export function prije(iso: string, sada = Date.now()): string {
+export function prije(iso: string, sada = Date.now(), j: J = 'hr'): string {
   const s = Math.max(0, (sada - new Date(iso).getTime()) / 1000);
-  if (s < 60) return 'upravo';
-  if (s < 3600) return `prije ${Math.floor(s / 60)} min`;
-  if (s < 86400) return `prije ${Math.floor(s / 3600)} h`;
+  const en = j === 'en';
+  if (s < 60) return en ? 'just now' : 'upravo';
+  if (s < 3600) return en ? `${Math.floor(s / 60)} min ago` : `prije ${Math.floor(s / 60)} min`;
+  if (s < 86400) return en ? `${Math.floor(s / 3600)} h ago` : `prije ${Math.floor(s / 3600)} h`;
   const d = Math.floor(s / 86400);
-  if (d < 30) return d === 1 ? 'jučer' : `prije ${d} dana`;
-  return datum(iso);
+  if (d < 30) return d === 1 ? (en ? 'yesterday' : 'jučer') : en ? `${d} days ago` : `prije ${d} dana`;
+  return datum(iso, j);
 }
 
 /** Preostali dani do isteka (0 = istječe danas ili je istekao). */

@@ -1,7 +1,8 @@
 // Ime, slogan i osnovne postavke. Mijenjaju se ovdje ili kroz varijable okruženja.
 export const APP_NAME = process.env.NEXT_PUBLIC_APP_NAME || 'Subhasto';
 export const APP_SLOGAN = process.env.NEXT_PUBLIC_APP_SLOGAN || 'Oglasnik za kolekcionare';
-export const KONTAKT_EMAIL = process.env.NEXT_PUBLIC_CONTACT_EMAIL || 'kontakt@primjer.hr';
+/** Kontakt e-mail (prikazuje se samo ako je postavljen). */
+export const KONTAKT_EMAIL = process.env.NEXT_PUBLIC_CONTACT_EMAIL || '';
 /** Javna adresa stranice (za canonical, sitemap i OAuth povratak). */
 export const SITE_URL = (
   process.env.NEXT_PUBLIC_SITE_URL ||

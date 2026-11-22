@@ -14,6 +14,14 @@ ROOT = Path(__file__).resolve().parents[2]
 device = (ROOT / 'loop_app/lib/models/device.dart').read_text()
 stil = (ROOT / 'loop_app/lib/widgets/category_style.dart').read_text()
 icons_src = Path(sys.argv[1]).read_text()
+en_src = (ROOT / 'loop_app/lib/l10n/en.dart').read_text()
+EN = {}
+for m in re.finditer(r"^\s*'((?:[^'\\]|\\.)*)':\s*'((?:[^'\\]|\\.)*)',", en_src, re.M):
+    EN.setdefault(m.group(1).replace("\\'", "'"), m.group(2).replace("\\'", "'"))
+def en(t):
+    if t not in EN:
+        raise SystemExit(f'nema engleskog prijevoda za {t!r} u en.dart')
+    return EN[t]
 
 # ---- ikone: ime -> kod ----
 kodovi = {}
@@ -87,11 +95,11 @@ for idx_all, (ime_s, lab_s) in enumerate(sekcije_sve):
     for i, k in enumerate(podk):
         lab, jed, _ = kat_po[k]
         stavke.append(
-            f"    {{ slug: {ts(slug(lab))}, naziv: {ts(lab)}, jednina: {ts(jed)}, ikona: {kod(ikona_kat[k])}, boja: {i % 8}, emoji: '' }}"
+            f"    {{ slug: {ts(slug(lab))}, naziv: {ts(lab)}, nazivEn: {ts(en(lab))}, jednina: {ts(jed)}, jedninaEn: {ts(en(jed))}, ikona: {kod(ikona_kat[k])}, boja: {i % 8}, emoji: '' }}"
         )
     polja = ', '.join(polje(p) for p in POLJA.get(ime_s, []))
     izlaz.append(
-        f"  {{\n    slug: {ts(slug(lab_s))},\n    naziv: {ts(lab_s)},\n    ikona: {kod(ikona_sek[ime_s])},\n    boja: {idx_all % 8},\n    polja: [{polja}],\n    podkategorije: [\n" + ',\n'.join(stavke) + '\n    ],\n  }'
+        f"  {{\n    slug: {ts(slug(lab_s))},\n    naziv: {ts(lab_s)},\n    nazivEn: {ts(en(lab_s))},\n    ikona: {kod(ikona_sek[ime_s])},\n    boja: {idx_all % 8},\n    polja: [{polja}],\n    podkategorije: [\n" + ',\n'.join(stavke) + '\n    ],\n  }'
     )
 
 # emoji po kategoriji
@@ -99,8 +107,8 @@ emoji = dict(re.findall(r"DeviceCategory\.(\w+) => '([^']*)',", stil[stil.index(
 sadrzaj = ',\n'.join(izlaz)
 for k in kat_aktivne:
     lab = kat_po[k][0]
-    sadrzaj = sadrzaj.replace(f'{{ slug: {ts(slug(lab))}, naziv: {ts(lab)}, jednina: {ts(kat_po[k][1])}, ikona: {kod(ikona_kat[k])}, boja:', f'{{ slug: {ts(slug(lab))}, naziv: {ts(lab)}, jednina: {ts(kat_po[k][1])}, ikona: {kod(ikona_kat[k])}, emoji: {ts(emoji.get(k, ""))}, boja:', 1).replace("emoji: '' }", '}')
-sadrzaj = sadrzaj.replace(', emoji: ', ', emoji: ')
+    sadrzaj = sadrzaj.replace(f'{{ slug: {ts(slug(lab))}, naziv: {ts(lab)},', f'{{ slug: {ts(slug(lab))}, emoji: {ts(emoji.get(k, ""))}, naziv: {ts(lab)},', 1)
+sadrzaj = sadrzaj.replace(", emoji: '' }", ' }')
 
 zaglavlje = """// GENERIRANO skriptom web/scripts/generiraj_kategorije.py iz Flutter koda
 // (loop_app/lib/models/device.dart i widgets/category_style.dart). Ne uređuj ručno:
@@ -114,7 +122,9 @@ export type Polje =
 export interface Podkategorija {
   slug: string;
   naziv: string;
+  nazivEn: string;
   jednina: string;
+  jedninaEn: string;
   ikona: number;
   emoji: string;
   boja: number;
@@ -123,6 +133,7 @@ export interface Podkategorija {
 export interface Sekcija {
   slug: string;
   naziv: string;
+  nazivEn: string;
   ikona: number;
   boja: number;
   polja: Polje[];
@@ -137,6 +148,10 @@ dno = """
 export const PODKATEGORIJE: (Podkategorija & { sekcija: string })[] = SEKCIJE.flatMap((s) =>
   s.podkategorije.map((p) => ({ ...p, sekcija: s.slug })),
 );
+
+/** Naziv na jeziku stranice ('hr' ili 'en'). */
+export const nazivNa = (x: { naziv: string; nazivEn: string }, jezik: string) => (jezik === 'en' ? x.nazivEn : x.naziv);
+export const jedninaNa = (x: { jednina: string; jedninaEn: string }, jezik: string) => (jezik === 'en' ? x.jedninaEn : x.jednina);
 
 export const sekcija = (slug: string | undefined) => SEKCIJE.find((s) => s.slug === slug);
 export const podkategorija = (slug: string | undefined) => PODKATEGORIJE.find((p) => p.slug === slug);

@@ -1,5 +1,6 @@
 import { APP_NAME, SITE_URL } from './config';
 import { podkategorija } from './kategorije';
+import { prevedi, put, type Jezik } from './i18n';
 import { lokacijaTekst, nazivDrzave } from './lokacije';
 import { slug } from './tekst';
 import type { Oglas } from './types';
@@ -16,11 +17,11 @@ const STANJE_SCHEMA: Record<string, string> = {
 };
 
 /** Strukturirani podaci za stranicu oglasa (Product + Offer) za Google. */
-export function jsonLdOglas(o: Oglas) {
+export function jsonLdOglas(o: Oglas, j: Jezik = 'hr') {
   const kat = podkategorija(o.kategorija);
   const ponuda: Record<string, unknown> = {
     '@type': 'Offer',
-    url: punaAdresa(putOglasa(o)),
+    url: punaAdresa(put(j, putOglasa(o))),
     availability: o.status === 'aktivan' ? 'https://schema.org/InStock' : 'https://schema.org/SoldOut',
     itemCondition: STANJE_SCHEMA[o.stanje],
     availableAtOrFrom: {
@@ -44,7 +45,7 @@ export function jsonLdOglas(o: Oglas) {
     name: o.naslov,
     description: o.opis.slice(0, 500),
     image: o.slike,
-    category: kat?.naziv,
+    category: kat ? (j === 'en' ? kat.nazivEn : kat.naziv) : undefined,
     sku: o.id,
     offers: ponuda,
   };
@@ -58,15 +59,16 @@ export function jsonLdPutanja(stavke: { naziv: string; put: string }[]) {
   };
 }
 
-export function jsonLdStranica() {
+export function jsonLdStranica(j: Jezik = 'hr') {
   return {
     '@context': 'https://schema.org',
     '@type': 'WebSite',
     name: APP_NAME,
-    url: SITE_URL,
+    url: punaAdresa(put(j, '/')),
+    inLanguage: j,
     potentialAction: {
       '@type': 'SearchAction',
-      target: `${SITE_URL}/oglasi?q={search_term_string}`,
+      target: `${punaAdresa(put(j, '/oglasi'))}?q={search_term_string}`,
       'query-input': 'required name=search_term_string',
     },
   };
@@ -75,10 +77,11 @@ export function jsonLdStranica() {
 /** Sigurno ugrađivanje JSON-a u <script> (sprječava zatvaranje oznake). */
 export const jsonUScript = (o: unknown) => JSON.stringify(o).replace(/</g, '\\u003c');
 
-export function opisOglasa(o: Oglas): string {
-  const kat = podkategorija(o.kategorija)?.naziv ?? '';
-  const cijena = o.cijena == null ? 'Cijena po dogovoru' : `${o.cijena} €`;
-  const pocetak = `${o.naslov}: ${kat}, ${o.stanje}, ${cijena}, ${lokacijaTekst(o)}. `;
+export function opisOglasa(o: Oglas, j: Jezik = 'hr'): string {
+  const p = podkategorija(o.kategorija);
+  const kat = p ? (j === 'en' ? p.nazivEn : p.naziv) : '';
+  const cijena = o.cijena == null ? prevedi(j, 'Cijena po dogovoru') : `${o.cijena} €`;
+  const pocetak = `${o.naslov}: ${kat}, ${prevedi(j, o.stanje)}, ${cijena}, ${lokacijaTekst(o, true, j)}. `;
   return (pocetak + o.opis).replace(/\s+/g, ' ').slice(0, 158);
 }
 

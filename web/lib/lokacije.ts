@@ -2,17 +2,17 @@
 // je obavezna samo u Hrvatskoj, a drugdje je slobodna "regija" ili prazno.
 
 export const DRZAVE = [
-  { kod: 'HR', naziv: 'Hrvatska' },
-  { kod: 'BA', naziv: 'Bosna i Hercegovina' },
-  { kod: 'RS', naziv: 'Srbija' },
-  { kod: 'SI', naziv: 'Slovenija' },
-  { kod: 'ME', naziv: 'Crna Gora' },
-  { kod: 'MK', naziv: 'Sjeverna Makedonija' },
-  { kod: 'AT', naziv: 'Austrija' },
-  { kod: 'DE', naziv: 'Njemačka' },
-  { kod: 'IT', naziv: 'Italija' },
-  { kod: 'HU', naziv: 'Mađarska' },
-  { kod: 'XX', naziv: 'Druga država' },
+  { kod: 'HR', naziv: 'Hrvatska', nazivEn: 'Croatia' },
+  { kod: 'BA', naziv: 'Bosna i Hercegovina', nazivEn: 'Bosnia and Herzegovina' },
+  { kod: 'RS', naziv: 'Srbija', nazivEn: 'Serbia' },
+  { kod: 'SI', naziv: 'Slovenija', nazivEn: 'Slovenia' },
+  { kod: 'ME', naziv: 'Crna Gora', nazivEn: 'Montenegro' },
+  { kod: 'MK', naziv: 'Sjeverna Makedonija', nazivEn: 'North Macedonia' },
+  { kod: 'AT', naziv: 'Austrija', nazivEn: 'Austria' },
+  { kod: 'DE', naziv: 'Njemačka', nazivEn: 'Germany' },
+  { kod: 'IT', naziv: 'Italija', nazivEn: 'Italy' },
+  { kod: 'HU', naziv: 'Mađarska', nazivEn: 'Hungary' },
+  { kod: 'XX', naziv: 'Druga država', nazivEn: 'Other country' },
 ] as const;
 
 export const ZADANA_DRZAVA = 'HR';
@@ -41,8 +41,10 @@ export const ZUPANIJE_HR = [
   'Međimurska',
 ];
 
-export const nazivDrzave = (kod: string | null | undefined) =>
-  DRZAVE.find((d) => d.kod === kod)?.naziv ?? kod ?? '';
+export const nazivDrzave = (kod: string | null | undefined, j: 'hr' | 'en' = 'hr') => {
+  const d = DRZAVE.find((x) => x.kod === kod);
+  return d ? (j === 'en' ? d.nazivEn : d.naziv) : (kod ?? '');
+};
 export const jeDrzava = (kod: string | undefined): kod is string => !!kod && DRZAVE.some((d) => d.kod === kod);
 export const imaZupanije = (drzava: string) => drzava === 'HR';
 
@@ -53,8 +55,8 @@ export interface Lokacija {
 }
 
 /** "Zagreb, Grad Zagreb, Hrvatska" (županija se izostavlja kad je nema). */
-export function lokacijaTekst(l: Lokacija, saDrzavom = true): string {
-  return [l.grad, l.zupanija, saDrzavom ? nazivDrzave(l.drzava) : ''].filter(Boolean).join(', ');
+export function lokacijaTekst(l: Lokacija, saDrzavom = true, j: 'hr' | 'en' = 'hr'): string {
+  return [l.grad, l.zupanija, saDrzavom ? nazivDrzave(l.drzava, j) : ''].filter(Boolean).join(', ');
 }
 
 /** Greške lokacije po polju ({} = u redu). */

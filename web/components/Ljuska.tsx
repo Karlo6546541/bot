@@ -1,11 +1,12 @@
 'use client';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { useEffect, useState, type ReactNode } from 'react';
-import { imaBazu } from '@/lib/config';
+import type { ReactNode } from 'react';
 import { IK } from '@/lib/ikone';
-import { klijentPreglednika } from '@/lib/supabase';
+import { bezJezika } from '@/lib/i18n';
 import { Ikona } from './Ikona';
+import { useJezik } from './Jezik';
+import { PrebaciJezik } from './PrebaciJezik';
 
 const STAVKE = [
   { href: '/', naziv: 'Početna', ik: IK.homeOutlined, ikA: IK.home },
@@ -16,36 +17,32 @@ const STAVKE = [
 ];
 const KORIJENSKE = new Set(['/', '/kategorije', '/objavi', '/poruke', '/profil']);
 
-/** Okvir kao u aplikaciji: donja traka (mobitel) ili bočna (od 840 px), prikazana samo na glavnim ekranima. */
+/** Okvir kao u aplikaciji: donja traka (mobitel) ili bočna (od 840 px), donja samo na glavnim ekranima. */
 export function Ljuska({ children }: { children: ReactNode }) {
-  const put = usePathname() || '/';
-  const [, forceri] = useState(0);
-  useEffect(() => {
-    if (!imaBazu()) return;
-    const { data } = klijentPreglednika().auth.onAuthStateChange(() => forceri((n) => n + 1));
-    return () => data.subscription.unsubscribe();
-  }, []);
-  const korijen = KORIJENSKE.has(put);
-  const aktivna = (h: string) => (h === '/' ? put === '/' : put === h || put.startsWith(`${h}/`));
+  const { t, put } = useJezik();
+  const sirovi = bezJezika(usePathname() || '/');
+  const korijen = KORIJENSKE.has(sirovi) || sirovi.startsWith('/kategorije/');
+  const aktivna = (h: string) => (h === '/' ? sirovi === '/' : sirovi === h || sirovi.startsWith(`${h}/`));
   const veze = (nav: 'dock' | 'rail') =>
     STAVKE.map((s) => {
       const a = aktivna(s.href);
       return (
-        <Link key={s.href} href={s.href} className={nav === 'rail' ? 'st' : undefined} aria-current={a ? 'page' : undefined}>
+        <Link key={s.href} href={put(s.href)} className={nav === 'rail' ? 'st' : undefined} aria-current={a ? 'page' : undefined} prefetch={false}>
           <Ikona k={a ? s.ikA : s.ik} />
-          <span className="t">{s.naziv}</span>
+          <span className="t">{t(s.naziv)}</span>
         </Link>
       );
     });
   return (
     <div className="app s-trakom">
-      <nav className="rail" aria-label="Glavna navigacija">
-        <Link className="logo" href="/">Subhasto</Link>
+      <nav className="rail" aria-label={t('Glavna navigacija')}>
+        <Link className="logo" href={put('/')}>Subhasto</Link>
         {veze('rail')}
+        <div style={{ marginTop: 'auto' }}><PrebaciJezik /></div>
       </nav>
       <div className={`sadrzaj ${korijen ? 's-dockom' : ''}`}>{children}</div>
       {korijen && (
-        <nav className="dock" aria-label="Glavna navigacija">
+        <nav className="dock" aria-label={t('Glavna navigacija')}>
           <div className="dock-red">{veze('dock')}</div>
         </nav>
       )}

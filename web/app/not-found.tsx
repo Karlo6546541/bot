@@ -1,14 +1,20 @@
-import Link from 'next/link';
-import { Ikona } from '@/components/Ikona';
-import { IK } from '@/lib/ikone';
+import './globals.css';
 
-export default function NijePronadeno() {
+// Adrese izvan oba jezika (rijetko): dvojezična stranica s vlastitim <html>.
+export default function NotFound() {
   return (
-    <div className="prazno">
-      <div className="krug"><Ikona k={IK.search} /></div>
-      <h1 style={{ fontSize: 20 }}>Stranica nije pronađena</h1>
-      <p>Oglas je možda obrisan ili je adresa pogrešna.</p>
-      <Link className="gumb glavni" href="/oglasi">Pogledaj oglase</Link>
-    </div>
+    <html lang="hr">
+      <body>
+        <main className="sredina">
+          <div className="prazno">
+            <h1 style={{ fontSize: 20 }}>Stranica nije pronađena</h1>
+            <p>Oglas je možda obrisan ili je adresa pogrešna.</p>
+            <a className="gumb glavni" href="/oglasi">Pogledaj oglase</a>
+            <p lang="en" style={{ marginTop: 24 }}>Page not found.</p>
+            <a lang="en" className="gumb" href="/en/oglasi">Browse listings</a>
+          </div>
+        </main>
+      </body>
+    </html>
   );
 }

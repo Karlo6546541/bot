@@ -208,3 +208,23 @@ export async function korisniciZaAdmina(sb: SupabaseClient): Promise<Profil[]> {
   const r = await sb.from('oglasnik_profili').select('*').order('registriran', { ascending: false }).limit(200);
   return (r.data ?? []) as Profil[];
 }
+
+/** Naslovna fotografija i broj oglasa po podkategoriji (za ekran kategorija). */
+export async function pregledKategorija(sb: SupabaseClient | null): Promise<Record<string, { slika: string; broj: number }>> {
+  if (!sb) return {};
+  const r = await sb
+    .from('oglasnik_oglasi')
+    .select('kategorija, slike_male')
+    .eq('status', 'aktivan')
+    .gt('istjece', new Date().toISOString())
+    .order('objavljeno', { ascending: false })
+    .limit(2000);
+  if (r.error) throw new Error(r.error.message);
+  const out: Record<string, { slika: string; broj: number }> = {};
+  for (const o of (r.data ?? []) as { kategorija: string; slike_male: string[] }[]) {
+    const x = (out[o.kategorija] ??= { slika: o.slike_male[0] ?? '', broj: 0 });
+    x.broj++;
+    if (!x.slika && o.slike_male[0]) x.slika = o.slike_male[0];
+  }
+  return out;
+}

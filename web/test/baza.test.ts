@@ -23,6 +23,10 @@ beforeAll(async () => {
     create role anon; create role authenticated;
     create schema auth; create schema extensions; create schema storage;
     create table auth.users (id uuid primary key, email text);
+  -- tablice Flutter aplikacije (sinkronizacija oglasa)
+  create table public.loop_devices (id text primary key, data jsonb, updated_at timestamptz default now());
+  create table public.loop_auctions (id text primary key, data jsonb, updated_at timestamptz default now());
+  create table public.loop_usernames (username text primary key, user_id uuid, created_at timestamptz default now());
     create function auth.uid() returns uuid language sql stable as
       $$ select nullif(current_setting('request.jwt.claim.sub', true), '')::uuid $$;
     create table storage.buckets (id text primary key, name text, public boolean,
@@ -112,5 +116,44 @@ describe('pravila pristupa (nepromijenjena)', () => {
     await upit(`insert into oglasnik_profili (id, ime, admin) values ($1, 'Admin', true) on conflict (id) do update set admin = true`, [ADMIN]);
     await kao(ADMIN);
     expect(await upit(`select * from oglasnik_prijave`)).toHaveLength(1);
+  });
+});
+
+describe('sinkronizacija s Flutter aplikacijom', () => {
+  it('oglas objavljen na webu pojavi se u aplikaciji (loop_devices)', async () => {
+    await kao(ANA);
+    const [o] = await upit<{ id: string }>(OGLAS, [ANA, 'Sync web kartica', 'HR', 'Istarska', 'Pula']);
+    await db.exec('reset role');
+    const [d] = await upit<{ id: string; data: Record<string, unknown> }>(`select id, data from loop_devices where id = $1`, [`web-${o.id}`]);
+    expect(d.data).toMatchObject({ name: 'Sync web kartica', category: 'tcg', condition: 'good', ownerId: ANA });
+    expect(Number(d.data.listPrice)).toBe(250);
+    const [veza] = await upit<{ izvor_id: string }>(`select izvor_id from oglasnik_oglasi where id = $1`, [o.id]);
+    expect(veza.izvor_id).toBe(`web-${o.id}`);
+  });
+
+  it('izmjena i prodaja na webu prenose se u aplikaciju', async () => {
+    await kao(ANA);
+    const [o] = await upit<{ id: string }>(`select id from oglasnik_oglasi where naslov = 'Sync web kartica'`);
+    await upit(`update oglasnik_oglasi set cijena = 199, status = 'prodano' where id = $1`, [o.id]);
+    await db.exec('reset role');
+    const [d] = await upit<{ data: Record<string, unknown> }>(`select data from loop_devices where id = $1`, [`web-${o.id}`]);
+    expect(Number(d.data.price)).toBe(199);
+    expect(d.data.soldAt).toBeTruthy();
+  });
+
+  it('oglas iz aplikacije pojavi se na webu, a brisanje u aplikaciji ga skida', async () => {
+    await db.exec('reset role');
+    await upit(`insert into loop_devices (id, data) values ('app-1', $1)`, [JSON.stringify({
+      id: 'app-1', name: 'Markica iz aplikacije', price: 30, listPrice: 30, ownerId: MARKO, category: 'stamps', condition: 'excellent',
+      listedAt: new Date().toISOString(), createdAt: new Date().toISOString(), imagePaths: ['https://example.com/m.jpg'], description: 'Opis iz aplikacije, dovoljno dug.',
+    })]);
+    const [w] = await upit<{ kategorija: string; stanje: string; cijena: string; status: string }>(`select kategorija, stanje, cijena, status from oglasnik_oglasi where izvor_id = 'app-1'`);
+    expect(w).toMatchObject({ kategorija: 'markice', stanje: 'Odlično', status: 'aktivan' });
+    expect(Number(w.cijena)).toBe(30);
+    await upit(`delete from loop_devices where id = 'app-1'`);
+    const [w2] = await upit<{ status: string }>(`select status from oglasnik_oglasi where izvor_id = 'app-1'`);
+    expect(w2.status).toBe('obrisan');
+    // nema petlje: brisanje nije vratilo zapis u aplikaciju
+    expect(await upit(`select 1 from loop_devices where id = 'app-1'`)).toHaveLength(0);
   });
 });
