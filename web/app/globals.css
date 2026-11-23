@@ -355,3 +355,4 @@ table.admin td, table.admin th { text-align: left; border-bottom: 1px solid var(
 @media (hover: hover) { .kat-foto-veza:hover .kat-ilu { transform: scale(1.06) rotate(-2deg); } }
 .kat-avatar { width: 72%; height: 72%; max-width: 160px; max-height: 160px; border-radius: 22%; background: radial-gradient(120% 90% at 30% 15%, color-mix(in srgb, var(--cc) 82%, #fff), color-mix(in srgb, var(--cc) 88%, #000) 85%); border: 0; }
 .kat-avatar .kat-ilu { width: 90%; height: 90%; }
+.google-okvir { min-height: 44px; display: flex; justify-content: center; }
