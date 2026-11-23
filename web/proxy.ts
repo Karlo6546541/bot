@@ -8,6 +8,8 @@ const PRIVATNO = /^\/(objavi|moji-oglasi|poruke|favoriti|profil|admin)(\/|$)|^\/
 
 export async function proxy(request: NextRequest) {
   const { pathname, search } = request.nextUrl;
+  // Datoteke iz public/ (logo, IndexNow ključ, ...) poslužuju se izravno.
+  if (/^\/[^/]+\.(png|jpe?g|webp|svg|txt|xml|ico)$/i.test(pathname)) return NextResponse.next();
   // /hr/... nije javna adresa: vodi na kanonsku bez prefiksa.
   if (pathname === '/hr' || pathname.startsWith('/hr/')) {
     const url = request.nextUrl.clone();

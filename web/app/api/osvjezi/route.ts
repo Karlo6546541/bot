@@ -1,6 +1,7 @@
 import { revalidatePath } from 'next/cache';
-import { NextResponse, type NextRequest } from 'next/server';
-import { JEZICI } from '@/lib/i18n';
+import { NextResponse, after, type NextRequest } from 'next/server';
+import { javiIndexNow } from '@/lib/indexnow';
+import { JEZICI, put } from '@/lib/i18n';
 import { podkategorija } from '@/lib/kategorije';
 import { dohvatiOglas } from '@/lib/oglasi';
 import { putOglasa } from '@/lib/seo';
@@ -23,5 +24,7 @@ export async function POST(request: NextRequest) {
   }
   if (o) revalidatePath(`/[lang]/korisnik/${o.korisnik_id}`, 'page');
   revalidatePath('/sitemap.xml');
+  // Tražilice (Bing i dr.) odmah saznaju za novi ili promijenjeni oglas.
+  if (o && o.status !== 'uklonjen') after(() => javiIndexNow(JEZICI.map((j) => put(j, putOglasa(o)))));
   return NextResponse.json({ ok: true });
 }
