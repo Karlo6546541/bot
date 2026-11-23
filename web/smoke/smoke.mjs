@@ -141,7 +141,7 @@ provjeri('EN kategorije: odjeljak Coins and notes', katsEn.status === 200 && kat
 const enPrijava = await fetch(BASE + '/en/objavi', { redirect: 'manual' });
 provjeri('EN privatna stranica vodi na /en/prijava', [302, 307].includes(enPrijava.status) && enPrijava.headers.get('location')?.includes('/en/prijava'), `${enPrijava.status} ${enPrijava.headers.get('location')}`);
 const prijavaHtml = await dohvati('/prijava');
-provjeri('Prijava: Google gumb s logom', prijavaHtml.html.includes('google-gumb') && prijavaHtml.html.includes('#4285F4'));
+provjeri('Prijava: bez Google gumba dok prijava nije uključena', !prijavaHtml.html.includes('google-gumb') && prijavaHtml.html.includes('type="email"'));
 const uvjeti = await dohvati('/uvjeti');
 provjeri('Uvjeti bez zamjenskih oznaka [..] i bez napomene "Predložak"', !/\[[A-ZČŠŽ ]{3,}/.test(uvjeti.html) && !uvjeti.html.includes('Predložak'));
 

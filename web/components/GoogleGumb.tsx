@@ -16,10 +16,14 @@ function GoogleLogo() {
   );
 }
 
+// Gumb se prikazuje tek kad je Google prijava uključena (NEXT_PUBLIC_GOOGLE_PRIJAVA=1), da korisnik ne dobije grešku.
+const GOOGLE_UKLJUCEN = process.env.NEXT_PUBLIC_GOOGLE_PRIJAVA === '1';
+
 export function GoogleGumb({ natrag }: { natrag: string }) {
   const { j, t } = useJezik();
   const [greska, setGreska] = useState('');
   const [radi, setRadi] = useState(false);
+  if (!GOOGLE_UKLJUCEN) return null;
   return (
     <>
       <button
