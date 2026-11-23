@@ -25,7 +25,7 @@ const dohvati = async (put, opts = {}) => {
 const meta = (html, re) => html.match(re)?.[1];
 const ukupno = (html) => Number(meta(html, /data-ukupno="(\d+)"/));
 const brojKartica = (html) => (html.match(/class="plocica"/g) ?? []).length;
-const jsonLd = (html) => [...html.matchAll(/<script type="application\/ld\+json">(.*?)<\/script>/gs)].map((m) => JSON.parse(m[1]));
+const jsonLd = (html) => [...html.matchAll(/<script type="application\/ld\+json">(.*?)<\/script>/gs)].flatMap((m) => [JSON.parse(m[1])].flat());
 const naslov = (html) => meta(html, /<title>(.*?)<\/title>/s);
 const robots = (html) => meta(html, /<meta name="robots" content="(.*?)"/);
 const canonical = (html) => meta(html, /<link rel="canonical" href="(.*?)"/);
