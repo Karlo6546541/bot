@@ -1,4 +1,4 @@
-// GENERIRANO skriptom scripts/prijevodi_en.py – uređuj tamo.
+// Engleski prijevodi (uređuje se ručno; provjera: node scripts/kljucevi_prijevoda.mjs --nedostaju).
 /** Engleski prijevodi; ključ je hrvatski tekst. */
 export const EN: Record<string, string> = {
   "Aktivan": "Active",
@@ -333,4 +333,16 @@ export const EN: Record<string, string> = {
   "Šaljem…": "Sending…",
   "Žigosano": "Cancelled (used)",
   "Županija": "County",
+  "Aktivni filteri": "Active filters",
+  "Filteri": "Filters",
+  "Nedavne pretrage": "Recent searches",
+  "Nema prijedloga. Pritisni „Traži” za pretragu svih oglasa.": "No suggestions. Press “Search” to search all listings.",
+  "Obriši sve": "Clear all",
+  "Očisti sve": "Clear all",
+  "Pregledaj kategoriju": "Browse category",
+  "Prijedlozi": "Suggestions",
+  "Prikaži sve rezultate": "Show all results",
+  "Traži „{q}”": "Search “{q}”",
+  "Ukloni": "Remove",
+  "Ukloni filter": "Remove filter",
 };

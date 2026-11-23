@@ -5,6 +5,7 @@ import { prevodilac, put, type Jezik } from '@/lib/i18n';
 import { SEKCIJE, STANJA, nazivNa, poljaKategorije, podkategorija, sekcija } from '@/lib/kategorije';
 import { lokacijaTekst, nazivDrzave } from '@/lib/lokacije';
 import type { OglasKartica, Stranica } from '@/lib/oglasi';
+import { prijedloziKategorija } from '@/lib/prijedlozi';
 import { upitIzFiltera } from '@/lib/pretraga';
 import type { Filteri } from '@/lib/types';
 import { FilterDetails } from './FilterDetails';
@@ -36,14 +37,26 @@ export function PopisStranica(props: {
   const polja = poljaKategorije(kat?.slug);
   const ukupnoStranica = Math.max(1, Math.ceil(rezultat.ukupno / PO_STRANICI));
   const adresa = (s: number) => `${osnova}${upitIzFiltera(f, s)}`;
-  const aktivniFilteri = [
-    f.q && `„${f.q}”`,
-    f.drzava && nazivDrzave(f.drzava, j),
-    f.zupanija,
-    f.grad,
-    f.stanje && t(f.stanje),
-    (f.cijenaOd != null || f.cijenaDo != null) && `${f.cijenaOd ?? 0} – ${f.cijenaDo ?? '∞'} €`,
-  ].filter(Boolean);
+  // Aktivni filteri kao čipovi s križićem: klik uklanja samo taj filter (kao na Vintedu).
+  const bez = (...kljucevi: (keyof Filteri)[]): Filteri => {
+    const n = { ...f };
+    for (const k of kljucevi) delete n[k];
+    return n;
+  };
+  const cipoviFiltera: { kljuc: string; tekst: string; filteri: Filteri }[] = [
+    f.q && { kljuc: 'q', tekst: `„${f.q}”`, filteri: bez('q') },
+    !props.kategorijaSlug && kat && { kljuc: 'kategorija', tekst: nazivNa(kat, j), filteri: bez('kategorija') },
+    (f.cijenaOd != null || f.cijenaDo != null) && { kljuc: 'cijena', tekst: `${f.cijenaOd ?? 0} – ${f.cijenaDo ?? '∞'} €`, filteri: bez('cijenaOd', 'cijenaDo') },
+    f.drzava && { kljuc: 'drzava', tekst: nazivDrzave(f.drzava, j), filteri: bez('drzava', 'zupanija', 'grad') },
+    f.zupanija && { kljuc: 'zupanija', tekst: f.zupanija, filteri: bez('zupanija', 'grad') },
+    f.grad && { kljuc: 'grad', tekst: f.grad, filteri: bez('grad') },
+    f.stanje && { kljuc: 'stanje', tekst: t(f.stanje), filteri: bez('stanje') },
+    ...Object.entries(f.polja ?? {}).filter(([, v]) => v).map(([k, v]) => ({ kljuc: `p_${k}`, tekst: t(v), filteri: { ...f, polja: { ...f.polja, [k]: '' } } })),
+  ].filter(Boolean) as { kljuc: string; tekst: string; filteri: Filteri }[];
+  const brojFiltera = cipoviFiltera.filter((c) => c.kljuc !== 'q').length;
+  const sort = f.sort ?? 'najnovije';
+  const kategorijeZaUpit = f.q && !kat ? prijedloziKategorija(f.q, j, 3) : [];
+  const SORTOVI = [['najnovije', t('Najnovije')], ['cijena_rastuce', t('Cijena: od najniže')], ['cijena_padajuce', t('Cijena: od najviše')]] as const;
   return (
     <>
       <Traka naslov={props.naslov} natrag={props.natrag ?? '/'}>
@@ -51,6 +64,32 @@ export function PopisStranica(props: {
           <Ikona k={IK.search} />
         </Link>
       </Traka>
+      <div className="alati-popisa">
+        <nav className="cipovi" aria-label={t('Poredak')}>
+          {SORTOVI.map(([v, naziv]) => (
+            <Link key={v} className={`cip${sort === v ? ' odabran' : ''}`} href={`${osnova}${upitIzFiltera({ ...f, sort: v })}`} aria-current={sort === v ? 'true' : undefined} scroll={false} prefetch={false}>{naziv}</Link>
+          ))}
+        </nav>
+        {cipoviFiltera.length > 0 && (
+          <nav className="cipovi aktivni-filteri" aria-label={t('Aktivni filteri')}>
+            {cipoviFiltera.map((c) => (
+              <Link key={c.kljuc} className="cip odabran-lagano" href={`${osnova}${upitIzFiltera(c.filteri)}`} aria-label={`${t('Ukloni filter')}: ${c.tekst}`} prefetch={false}>
+                {c.tekst} <Ikona k={IK.close} velicina={16} />
+              </Link>
+            ))}
+            {cipoviFiltera.length > 1 && <Link className="cip" href={osnova} prefetch={false}>{t('Očisti sve')}</Link>}
+          </nav>
+        )}
+        {kategorijeZaUpit.length > 0 && (
+          <nav className="cipovi" aria-label={t('Kategorije')}>
+            {kategorijeZaUpit.map((k) => (
+              <Link key={k.slug} className="cip" href={put(j, `/kategorija/${k.sekcija}/${k.slug}${f.q ? `?q=${encodeURIComponent(f.q)}` : ''}`)}>
+                <span aria-hidden="true">{k.emoji}</span> {k.naziv}
+              </Link>
+            ))}
+          </nav>
+        )}
+      </div>
       {sek && !kat && (
         <nav className="cipovi" aria-label={t('Podkategorije')}>
           {sek.podkategorije.map((p) => (
@@ -59,8 +98,8 @@ export function PopisStranica(props: {
         </nav>
       )}
       <div className="popis-raspored">
-        <FilterDetails otvoren={aktivniFilteri.length > 0}>
-          <summary><Ikona k={IK.tune} /> {t('Pretraga i filteri')}</summary>
+        <FilterDetails otvoren={false}>
+          <summary><Ikona k={IK.tune} /> {t('Filteri')}{brojFiltera > 0 && <span className="broj-filtera">{brojFiltera}</span>}</summary>
           <form method="get" action={osnova} style={{ marginTop: 12 }}>
             <label className="polje">
               <span>{t('Pojam')}</span>
@@ -113,14 +152,7 @@ export function PopisStranica(props: {
                 )}
               </label>
             ))}
-            <label className="polje">
-              <span>{t('Poredak')}</span>
-              <select name="sort" defaultValue={f.sort ?? 'najnovije'}>
-                <option value="najnovije">{t('Najnovije')}</option>
-                <option value="cijena_rastuce">{t('Cijena: od najniže')}</option>
-                <option value="cijena_padajuce">{t('Cijena: od najviše')}</option>
-              </select>
-            </label>
+            <input type="hidden" name="sort" value={sort} />
             <div className="gumbi">
               <button className="gumb glavni" type="submit">{t('Primijeni')}</button>
               <Link className="gumb" href={osnova}>{t('Očisti')}</Link>
@@ -130,7 +162,6 @@ export function PopisStranica(props: {
         <section>
           <p className="pomoc" style={{ padding: '0 16px' }} data-ukupno={rezultat.ukupno}>
             {t(rezultat.ukupno === 1 ? '{n} oglas' : '{n} oglasa', { n: rezultat.ukupno })}
-            {aktivniFilteri.length > 0 && <> · {aktivniFilteri.join(' · ')}</>}
           </p>
           {!props.bazaSpojena && <div className="greska" style={{ margin: 16 }}>{t('Baza oglasa trenutno nije spojena.')}</div>}
           {props.greska && <div className="greska" style={{ margin: 16 }}>{t('Oglasi se trenutno ne mogu učitati. Pokušaj ponovno za nekoliko minuta.')}</div>}

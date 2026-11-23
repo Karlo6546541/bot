@@ -68,7 +68,7 @@ provjeri('Kombinirani filteri: svi rezultati su u Zagrebu', (kombo.html.match(/d
 const kat2 = await dohvati('/oglasi?kategorija=kartice&drzava=HR&od=5&do=200&sort=cijena_padajuce');
 const c2 = [...kat2.html.matchAll(/class="cijena">([^<]*)</g)].map((m) => Number(m[1].replace(/[^\d,]/g, '').replace(',', '.')));
 provjeri('Filter kategorija + država + cijena (padajuće)', ukupno(kat2.html) > 0 && c2.every((c, i) => i === 0 || c <= c2[i - 1]), c2.join(','));
-provjeri('Filter prikazuje odabranu županiju u obrascu', /<option selected="">Grad Zagreb<\/option>/.test(kombo.html) && kombo.html.includes('<details class="ploca filteri filter-panel" open="">'));
+provjeri('Filter prikazuje odabranu županiju u obrascu', /<option selected="">Grad Zagreb<\/option>/.test(kombo.html) && kombo.html.includes('<details class="ploca filteri filter-panel"'));
 provjeri('Bez aktivnih filtera okvir filtera je zatvoren (popis je prvi)', !svi.html.includes('<details class="ploca filteri filter-panel" open'));
 const q = await dohvati('/oglasi?q=ljubljana');
 provjeri('Pretraga teksta nalazi po gradu u opisu', ukupno(q.html) > 0 && q.html.includes('Ljubljana'), String(ukupno(q.html)));
@@ -131,7 +131,7 @@ provjeri('HR početna: lang="hr" i hrvatski tekst', home.html.includes('<html la
 const enOglas = await dohvati('/en' + hrPut);
 provjeri('EN oglas: engleski tekst, canonical /en/oglas', enOglas.status === 200 && enOglas.html.includes('Contact the seller') && canonical(enOglas.html) === `${BASE}/en${hrPut}`, String(enOglas.status));
 const enKat = await dohvati('/en/kategorija/novci/kovanice');
-provjeri('EN kategorija: engleski naziv i filteri', enKat.status === 200 && naslov(enKat.html)?.includes('Coins') && enKat.html.includes('Search and filters'));
+provjeri('EN kategorija: engleski naziv i filteri', enKat.status === 200 && naslov(enKat.html)?.includes('Coins') && enKat.html.includes('Filters'));
 const hrPref = await fetch(BASE + '/hr/oglasi', { redirect: 'manual' });
 provjeri('/hr/... trajno vodi na adresu bez prefiksa', hrPref.status === 308 && hrPref.headers.get('location')?.endsWith('/oglasi'), String(hrPref.status));
 const kats = await dohvati('/kategorije');
@@ -170,7 +170,7 @@ try {
   }
   // Obrazac filtera: promjena države mijenja županiju (padajući popis ↔ slobodno polje).
   await page.goto(BASE + '/oglasi', { waitUntil: 'networkidle' });
-  await page.click('summary:has-text("Pretraga i filteri")');
+  await page.click('summary:has-text("Filteri")');
   provjeri('Filter: županija je padajući popis od 21 županije (+ "Sve")', (await page.locator('select[name=zupanija] option').count()) === 22);
   await page.selectOption('select[name=drzava]', 'BA');
   provjeri('Filter: izvan Hrvatske županija postaje slobodna "regija"', (await page.locator('input[name=zupanija]').count()) === 1 && (await page.locator('select[name=zupanija]').count()) === 0);

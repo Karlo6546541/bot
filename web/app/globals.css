@@ -361,3 +361,29 @@ table.admin td, table.admin th { text-align: left; border-bottom: 1px solid var(
 .google-preklop > * { transform: scale(1, 1.4); }
 .google-kutija:hover .google-gumb { background: #f8f9fa; }
 @media (prefers-color-scheme: dark) { .google-kutija:hover .google-gumb { background: #1f1f20; } }
+
+/* ---------- Pametna pretraga i alati popisa ---------- */
+.zaglavlje-red { display: flex; justify-content: space-between; align-items: center; }
+.veza-gumb { background: none; border: 0; padding: 4px 0; color: var(--accent); font-weight: 700; font-size: 14px; cursor: pointer; min-height: 0; }
+.prijedlog-red { display: flex; align-items: center; padding-right: 8px; }
+.prijedlog-red .lista-red { flex: 1; min-width: 0; min-height: 52px; }
+.prijedlog-trazi { font-weight: 700; }
+.prijedlog-trazi .t { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.emoji-kat { width: 24px; text-align: center; font-size: 22px; flex: none; }
+.mala-slika { position: relative; width: 48px; height: 48px; flex: none; border-radius: 10px; overflow: hidden; background: var(--hover); display: flex; align-items: center; justify-content: center; font-size: 22px; }
+.mala-slika img { width: 100%; height: 100%; object-fit: cover; }
+.prijedlog-oglas { min-height: 64px; }
+.prijedlog-oglas .t { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.veza-svi { color: var(--accent); font-weight: 700; }
+.veza-svi .mi { color: var(--accent); }
+.alati-popisa { display: grid; gap: 8px; padding: 4px 0 8px; }
+.alati-popisa .cipovi { padding-top: 0; padding-bottom: 0; scrollbar-width: none; }
+.alati-popisa .cipovi::-webkit-scrollbar { display: none; }
+.alati-popisa .cip { min-height: 36px; padding: 0 12px; font-size: 14px; }
+.cip.odabran-lagano { background: color-mix(in srgb, var(--accent) 16%, transparent); border-color: color-mix(in srgb, var(--accent) 40%, transparent); color: var(--accent); }
+.cip .mi { font-size: 16px; }
+.broj-filtera { display: inline-grid; place-items: center; min-width: 20px; height: 20px; padding: 0 6px; border-radius: 99px; background: var(--accent); color: var(--on-accent); font-size: 12px; font-weight: 700; }
+.filteri summary { min-height: 40px; }
+.trazi-polje input[type='search']::-webkit-search-cancel-button { display: none; -webkit-appearance: none; }
+.filter-panel:not([open]) { padding: 2px 14px; border-radius: var(--r-chip); }
+.filter-panel:not([open]) summary { min-height: 40px; }
