@@ -2,16 +2,11 @@
   <defs>
     <linearGradient id="p" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#22393c"/><stop offset="1" stop-color="#0c1314"/></linearGradient>
     <linearGradient id="z" x1="0.15" y1="0" x2="0.85" y2="1"><stop offset="0" stop-color="#fff0b8"/><stop offset=".45" stop-color="#ffd166"/><stop offset="1" stop-color="#d8981f"/></linearGradient>
-    <linearGradient id="k" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#5cb5c0"/><stop offset="1" stop-color="#2f7f8b"/></linearGradient>
   </defs>
   <rect width="512" height="512" rx="112" fill="url(#p)"/>
-  <g transform="rotate(-17 256 250)"><rect x="146" y="70" width="220" height="312" rx="28" fill="url(#k)"/><rect x="162" y="86" width="188" height="280" rx="16" fill="none" stroke="#fff" stroke-opacity=".28" stroke-width="5"/></g>
-  <g transform="rotate(13 256 250)"><rect x="146" y="70" width="220" height="312" rx="28" fill="#f2f4f4"/><rect x="162" y="86" width="188" height="280" rx="16" fill="none" stroke="#c9d2d4" stroke-width="5"/><circle cx="196" cy="126" r="14" fill="#449da8"/></g>
-  <ellipse cx="256" cy="438" rx="150" ry="20" fill="#000" opacity=".32"/>
-  <circle cx="256" cy="300" r="152" fill="#a8741a"/>
-  <circle cx="256" cy="292" r="152" fill="url(#z)"/>
-  <circle cx="256" cy="292" r="122" fill="none" stroke="#b9801a" stroke-width="9"/>
-  <circle cx="256" cy="292" r="108" fill="none" stroke="#fff6cf" stroke-opacity=".55" stroke-width="3"/>
-  <path d="M316 226C316 196 288 182 258 182C224 182 200 198 200 226C200 254 226 262 258 270C292 278 316 290 316 322C316 352 290 368 258 368C224 368 198 352 196 322" fill="none" stroke="#1a2527" stroke-width="42" stroke-linecap="round"/>
-  <path d="M168 206C190 170 232 154 270 160" fill="none" stroke="#fff" stroke-opacity=".55" stroke-width="12" stroke-linecap="round"/>
+  <circle cx="256" cy="268" r="196" fill="#a8741a"/>
+  <circle cx="256" cy="256" r="196" fill="url(#z)"/>
+  <circle cx="256" cy="256" r="160" fill="none" stroke="#b9801a" stroke-width="10"/>
+  <path d="M322 196C322 160 292 142 258 142C220 142 192 162 192 196C192 230 224 240 258 250C296 260 322 274 322 314C322 352 292 372 258 372C220 372 190 352 188 314" fill="none" stroke="#1a2527" stroke-width="52" stroke-linecap="round"/>
+  <path d="M150 170C176 120 230 96 282 100" fill="none" stroke="#fff" stroke-opacity=".5" stroke-width="14" stroke-linecap="round"/>
 </svg>
