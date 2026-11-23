@@ -357,7 +357,7 @@ table.admin td, table.admin th { text-align: left; border-bottom: 1px solid var(
 .kat-avatar .kat-ilu { width: 90%; height: 90%; }
 .google-kutija { position: relative; width: 100%; max-width: 400px; margin: 0 auto; }
 /* Googleov gumb (iframe) je prozirna ploha točno preko našeg gumba: klik ide Googleu, izgled je naš. */
-.google-preklop { position: absolute; inset: 0; z-index: 2; display: flex; align-items: center; justify-content: center; overflow: hidden; opacity: .01; color-scheme: light; border-radius: var(--r-btn); }
+.google-preklop { position: absolute; inset: 0; z-index: 2; display: flex; align-items: center; justify-content: center; overflow: hidden; opacity: .001; color-scheme: light; border-radius: var(--r-btn); }
 .google-preklop > * { transform: scale(1, 1.4); }
 .google-kutija:hover .google-gumb { background: #f8f9fa; }
 @media (prefers-color-scheme: dark) { .google-kutija:hover .google-gumb { background: #1f1f20; } }

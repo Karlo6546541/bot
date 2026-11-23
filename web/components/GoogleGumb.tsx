@@ -1,5 +1,4 @@
 'use client';
-import { useRouter } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
 import { osigurajProfil, porukaGreske } from '@/lib/korisnik';
 import { klijentPreglednika } from '@/lib/supabase';
@@ -61,11 +60,11 @@ function GoogleLogo() {
 
 export function GoogleGumb({ natrag }: { natrag: string }) {
   const { j, t } = useJezik();
-  const router = useRouter();
   const [greska, setGreska] = useState('');
   const [radi, setRadi] = useState(false);
   const [spreman, setSpreman] = useState(false);
   const okvir = useRef<HTMLDivElement>(null);
+  const prijavljuje = useRef(false);
 
   useEffect(() => {
     if (!GOOGLE_UKLJUCEN || !CLIENT_ID) return;
@@ -83,18 +82,23 @@ export function GoogleGumb({ natrag }: { natrag: string }) {
           ux_mode: 'popup',
           use_fedcm_for_prompt: true,
           callback: async (odgovor: { credential?: string }) => {
-            if (!odgovor.credential) return;
+            if (!odgovor.credential || prijavljuje.current) return;
+            prijavljuje.current = true;
             setRadi(true);
             setGreska('');
-            const sb = klijentPreglednika();
-            const { data, error } = await sb.auth.signInWithIdToken({ provider: 'google', token: odgovor.credential, nonce });
-            if (error || !data.user) {
+            try {
+              const sb = klijentPreglednika();
+              const { data, error } = await sb.auth.signInWithIdToken({ provider: 'google', token: odgovor.credential, nonce });
+              if (error || !data.user) throw new Error(error?.message ?? 'prijava nije uspjela');
+              // Profil se stvara uz prijavu; ako traje predugo, ne zadržava korisnika.
+              await Promise.race([osigurajProfil(sb, data.user), new Promise((r) => setTimeout(r, 4000))]).catch(() => undefined);
+              // Puno učitavanje: poslužitelj odmah vidi novu prijavu (kolačići), bez zastoja klijentske navigacije.
+              window.location.assign(natrag);
+            } catch (e) {
+              prijavljuje.current = false;
               setRadi(false);
-              return setGreska(porukaGreske(error?.message, j));
+              setGreska(porukaGreske((e as Error).message, j));
             }
-            await osigurajProfil(sb, data.user);
-            router.push(natrag);
-            router.refresh();
           },
         });
         const tamno = window.matchMedia('(prefers-color-scheme: dark)').matches;
@@ -117,7 +121,7 @@ export function GoogleGumb({ natrag }: { natrag: string }) {
     return () => {
       ziv = false;
     };
-  }, [j, natrag, router]);
+  }, [j, natrag]);
 
   if (!GOOGLE_UKLJUCEN) return null;
   const preusmjeri = async () => {
