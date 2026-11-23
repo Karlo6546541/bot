@@ -28,7 +28,7 @@ export default async function Pocetna({ params }: { params: P }) {
     console.error('Početna: oglasi se ne mogu učitati:', (e as Error).message);
   }
   // Najpopunjenije kategorije s fotografijom.
-  const popularne = PODKATEGORIJE.filter((p) => pregled[p.slug]?.slika)
+  const popularne = PODKATEGORIJE
     .sort((a, b) => (pregled[b.slug]?.broj ?? 0) - (pregled[a.slug]?.broj ?? 0))
     .slice(0, 10);
   return (
@@ -47,9 +47,9 @@ export default async function Pocetna({ params }: { params: P }) {
             <Link href={put(j, '/kategorije')}>{t('Sve')}</Link>
           </div>
           <nav className="kat-traka" aria-label={t('Kategorije')}>
-            {popularne.map((p, i) => (
+            {popularne.map((p) => (
               <Link key={p.slug} href={put(j, `/kategorija/${p.sekcija}/${p.slug}`)} className="kat-foto-veza">
-                <KatFoto slika={pregled[p.slug]?.slika} ikona={p.ikona} boja={p.boja} alt={nazivNa(p, j)} prioritet={i < 4} />
+                <KatFoto slug={p.slug} boja={p.boja} alt={nazivNa(p, j)} />
                 <b>{nazivNa(p, j)}</b>
               </Link>
             ))}

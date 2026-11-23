@@ -20,7 +20,7 @@ export function OglasKarticaVeza({ oglas, prioritet = false, jezik = 'hr' }: { o
         {slika ? (
           <Slika src={slika} alt={oglas.naslov} sizes="(min-width: 900px) 260px, (min-width: 600px) 30vw, 46vw" prioritet={prioritet} />
         ) : (
-          <KatAvatar ikona={kat?.ikona ?? IK.sellOutlined} boja={kat?.boja ?? 0} />
+          <KatAvatar slug={kat?.slug} boja={kat?.boja ?? 0} />
         )}
         <span className="pilula-kat">
           <Ikona k={IK.sellOutlined} />

@@ -135,7 +135,7 @@ provjeri('EN kategorija: engleski naziv i filteri', enKat.status === 200 && nasl
 const hrPref = await fetch(BASE + '/hr/oglasi', { redirect: 'manual' });
 provjeri('/hr/... trajno vodi na adresu bez prefiksa', hrPref.status === 308 && hrPref.headers.get('location')?.endsWith('/oglasi'), String(hrPref.status));
 const kats = await dohvati('/kategorije');
-provjeri('Kategorije: fotografije iz oglasa i broj oglasa', kats.status === 200 && kats.html.includes('kat-foto') && /\d+ oglas/.test(kats.html));
+provjeri('Kategorije: ilustracije i broj oglasa', kats.status === 200 && kats.html.includes('kat-ilu') && /\d+ oglas/.test(kats.html));
 const katsEn = await dohvati('/en/kategorije/novci');
 provjeri('EN kategorije: odjeljak Coins and notes', katsEn.status === 200 && katsEn.html.includes('Coins and notes'));
 const enPrijava = await fetch(BASE + '/en/objavi', { redirect: 'manual' });

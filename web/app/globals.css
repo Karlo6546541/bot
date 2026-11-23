@@ -345,3 +345,11 @@ table.admin td, table.admin th { text-align: left; border-bottom: 1px solid var(
 @media (prefers-color-scheme: dark) { .google-gumb { background: #131314; color: #e3e3e3; border-color: #8e918f; box-shadow: none; } .google-gumb:hover { background: #1f1f20; } }
 .gumb.aktivan { color: var(--error); border-color: color-mix(in srgb, var(--error) 50%, var(--border)); }
 .ucitavanje { min-height: 120px; }
+
+/* Ilustracije kategorija: bogatija podloga u boji kategorije, bijeli i zlatni oblici. */
+.kat-foto { background: radial-gradient(120% 90% at 30% 15%, color-mix(in srgb, var(--cc) 82%, #fff), color-mix(in srgb, var(--cc) 88%, #000) 85%); border: 0; box-shadow: 0 1px 2px rgba(0, 0, 0, .18), inset 0 0 0 1px rgba(255, 255, 255, .12); }
+.kat-foto::after { display: none; }
+.kat-ilu { width: 88%; height: 88%; display: block; filter: drop-shadow(0 2px 3px rgba(0, 0, 0, .22)); transition: transform .25s ease; }
+@media (hover: hover) { .kat-foto-veza:hover .kat-ilu { transform: scale(1.06) rotate(-2deg); } }
+.kat-avatar { width: 72%; height: 72%; max-width: 160px; max-height: 160px; border-radius: 22%; background: radial-gradient(120% 90% at 30% 15%, color-mix(in srgb, var(--cc) 82%, #fff), color-mix(in srgb, var(--cc) 88%, #000) 85%); border: 0; }
+.kat-avatar .kat-ilu { width: 90%; height: 90%; }

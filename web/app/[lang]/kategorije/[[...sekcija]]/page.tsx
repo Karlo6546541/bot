@@ -68,11 +68,11 @@ export default async function Kategorije({ params }: { params: P }) {
             <Link href={put(j, `/kategorija/${odabranaS.slug}`)}>{t('Sve')}</Link>
           </div>
           <div className="kat-mreza">
-            {odabranaS.podkategorije.map((p, i) => {
+            {odabranaS.podkategorije.map((p) => {
               const broj = pregled[p.slug]?.broj ?? 0;
               return (
                 <Link key={p.slug} className="kat-foto-veza" href={put(j, `/kategorija/${odabranaS.slug}/${p.slug}`)}>
-                  <KatFoto slika={pregled[p.slug]?.slika} ikona={p.ikona} boja={p.boja} alt={nazivNa(p, j)} prioritet={i < 6} />
+                  <KatFoto slug={p.slug} boja={p.boja} alt={nazivNa(p, j)} />
                   <b>{nazivNa(p, j)}</b>
                   <small>{broj === 0 ? t('Još nema oglasa') : t(broj === 1 ? '{n} oglas' : '{n} oglasa', { n: broj })}</small>
                 </Link>

@@ -1,4 +1,4 @@
-import { Ikona } from './Ikona';
+import { KatIlustracija } from './KatIlustracija';
 
 /** Krug s emojijem i sjajem u boji kategorije (kao CategoryArt u aplikaciji). */
 export function KatArt({ emoji, boja, velicina = 44 }: { emoji: string; boja: number; velicina?: number }) {
@@ -10,10 +10,10 @@ export function KatArt({ emoji, boja, velicina = 44 }: { emoji: string; boja: nu
 }
 
 /** Rezervna slika oglasa bez fotografije: ikona kategorije u obojenom okviru. */
-export function KatAvatar({ ikona, boja }: { ikona: number; boja: number }) {
+export function KatAvatar({ slug, boja }: { slug?: string; boja: number }) {
   return (
     <span className={`kat-avatar c${boja}`} aria-hidden="true">
-      <Ikona k={ikona} />
+      <KatIlustracija slug={slug ?? ''} />
     </span>
   );
 }
