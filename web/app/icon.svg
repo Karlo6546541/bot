@@ -1,1 +1,17 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><rect width="64" height="64" rx="14" fill="#2a7c88"/><text x="32" y="45" text-anchor="middle" font-family="Arial,Helvetica,sans-serif" font-weight="800" font-size="40" fill="#fff">S</text></svg>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <defs>
+    <linearGradient id="p" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#22393c"/><stop offset="1" stop-color="#0c1314"/></linearGradient>
+    <linearGradient id="z" x1="0.15" y1="0" x2="0.85" y2="1"><stop offset="0" stop-color="#fff0b8"/><stop offset=".45" stop-color="#ffd166"/><stop offset="1" stop-color="#d8981f"/></linearGradient>
+    <linearGradient id="k" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#5cb5c0"/><stop offset="1" stop-color="#2f7f8b"/></linearGradient>
+  </defs>
+  <rect width="512" height="512" rx="112" fill="url(#p)"/>
+  <g transform="rotate(-17 256 250)"><rect x="146" y="70" width="220" height="312" rx="28" fill="url(#k)"/><rect x="162" y="86" width="188" height="280" rx="16" fill="none" stroke="#fff" stroke-opacity=".28" stroke-width="5"/></g>
+  <g transform="rotate(13 256 250)"><rect x="146" y="70" width="220" height="312" rx="28" fill="#f2f4f4"/><rect x="162" y="86" width="188" height="280" rx="16" fill="none" stroke="#c9d2d4" stroke-width="5"/><circle cx="196" cy="126" r="14" fill="#449da8"/></g>
+  <ellipse cx="256" cy="438" rx="150" ry="20" fill="#000" opacity=".32"/>
+  <circle cx="256" cy="300" r="152" fill="#a8741a"/>
+  <circle cx="256" cy="292" r="152" fill="url(#z)"/>
+  <circle cx="256" cy="292" r="122" fill="none" stroke="#b9801a" stroke-width="9"/>
+  <circle cx="256" cy="292" r="108" fill="none" stroke="#fff6cf" stroke-opacity=".55" stroke-width="3"/>
+  <path d="M316 226C316 196 288 182 258 182C224 182 200 198 200 226C200 254 226 262 258 270C292 278 316 290 316 322C316 352 290 368 258 368C224 368 198 352 196 322" fill="none" stroke="#1a2527" stroke-width="42" stroke-linecap="round"/>
+  <path d="M168 206C190 170 232 154 270 160" fill="none" stroke="#fff" stroke-opacity=".55" stroke-width="12" stroke-linecap="round"/>
+</svg>
