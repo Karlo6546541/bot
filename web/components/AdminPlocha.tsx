@@ -9,6 +9,7 @@ import { klijentPreglednika } from '@/lib/supabase';
 import { datum } from '@/lib/tekst';
 import type { Prijava, Profil } from '@/lib/types';
 import { useJezik } from './Jezik';
+import { osvjeziStranice } from '@/lib/osvjezi';
 
 const naziv = (k: string) => RAZLOZI_PRIJAVE.find((r) => r.kljuc === k)?.naziv ?? k;
 
@@ -22,6 +23,7 @@ export function AdminPlocha({ jaId, prijave, korisnici }: { jaId: string; prijav
   async function radnja(fn: () => PromiseLike<{ error: { message: string } | null }>, ok: string) {
     const { error } = await fn();
     setPoruka(error ? porukaGreske(error.message, j) : ok);
+    if (!error) void osvjeziStranice();
     router.refresh();
   }
   const popis = prijave.filter((p) => !samoOtvorene || p.status === 'otvorena');

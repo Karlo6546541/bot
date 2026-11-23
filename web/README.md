@@ -46,3 +46,19 @@ kad oglasnik ide u produkciju. Zaštita deploymenta (Vercel prijava) je uključe
 dok se ne objavi javno (Settings → Deployment Protection).
 Google prijava: uključi Google provider u Supabaseu i dodaj
 `https://<domena>/auth/callback` u dopuštene redirect adrese.
+
+## Selidba na vlastitu domenu (npr. subhasto.com)
+1. Domena se kupuje u Vercelu (Domains) ili kod drugog registrara.
+2. Vercel → projekt `subhasto-oglasnik` → Settings → Domains: dodaj `subhasto.com` i `www.subhasto.com`
+   (www preusmjerava na glavnu). Kod vanjskog registrara upiši DNS zapise koje Vercel pokaže
+   (A `76.76.21.21` za glavnu, CNAME `cname.vercel-dns.com` za www).
+3. Varijabla `NEXT_PUBLIC_SITE_URL=https://subhasto.com` (canonical, sitemap, hreflang) i novi deploy.
+4. Supabase → Authentication → URL Configuration: Site URL `https://subhasto.com`, dodaj
+   `https://subhasto.com/auth/callback` u Redirect URLs (Google prijava i potvrda e-maila).
+5. Google Cloud OAuth: dodaj `https://subhasto.com` u Authorized JavaScript origins.
+6. Google Search Console: dodaj domenu i pošalji `https://subhasto.com/sitemap.xml`.
+
+## Objava i vidljivost
+Oglas se sprema u `oglasnik_oglasi` i odmah je vidljiv svima: nakon objave/izmjene web zove
+`/api/osvjezi`, koji osvježava keširane stranice (početna, kategorije, oglas) na oba jezika.
+Oglasi iz Flutter aplikacije stižu preko okidača u bazi i vidljivi su najkasnije za 60 s.

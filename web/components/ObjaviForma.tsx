@@ -5,6 +5,7 @@ import { ISTEK_DANA, MAX_SLIKA } from '@/lib/config';
 import { SEKCIJE, STANJA, nazivNa, poljaKategorije, podkategorija } from '@/lib/kategorije';
 import { Traka } from './Traka';
 import { useJezik } from './Jezik';
+import { osvjeziStranice } from '@/lib/osvjezi';
 import { osigurajProfil, porukaGreske } from '@/lib/korisnik';
 import { lokacijaTekst } from '@/lib/lokacije';
 import { ocistiNacrt, provjeriOglas } from '@/lib/provjera';
@@ -123,6 +124,7 @@ export function ObjaviForma({ oglas }: { oglas?: Oglas }) {
         ? await sb.from('oglasnik_oglasi').update(red).eq('id', id).select('id,naslov').single()
         : await sb.from('oglasnik_oglasi').insert({ ...red, id, korisnik_id: uid }).select('id,naslov').single();
       if (r.error) throw new Error(r.error.message);
+      await osvjeziStranice((r.data as { id: string }).id);
       router.push(putJ(putOglasa(r.data as { id: string; naslov: string })));
       router.refresh();
     } catch (e) {

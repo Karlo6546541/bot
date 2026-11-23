@@ -10,6 +10,7 @@ import { datum } from '@/lib/tekst';
 import type { Kontakt } from '@/lib/types';
 import { Dijalog } from './Dijalog';
 import { useJezik } from './Jezik';
+import { osvjeziStranice } from '@/lib/osvjezi';
 
 /** Radnje vlasnika: uredi, produlji, označi prodano, obriši, tko se javio. */
 export function VlasnikAkcije(props: { oglasId: string; status: string; istekao: boolean; cijena: number | null }) {
@@ -30,6 +31,7 @@ export function VlasnikAkcije(props: { oglasId: string; status: string; istekao:
     setRadi(false);
     if (error) return setPoruka(porukaGreske(error.message, j));
     setPoruka(ok);
+    void osvjeziStranice(props.oglasId);
     if (nakon) nakon();
     else router.refresh();
   }

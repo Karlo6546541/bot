@@ -11,7 +11,7 @@ import { DRZAVE, nazivDrzave } from '@/lib/lokacije';
 import { pregledKategorija, traziOglase } from '@/lib/oglasi';
 import { javniKlijent } from '@/lib/supabase';
 
-export const revalidate = 120;
+export const revalidate = 60;
 type P = Promise<{ lang: string }>;
 
 export default async function Pocetna({ params }: { params: P }) {
