@@ -27,7 +27,7 @@
 html { color-scheme: light dark; }
 
 *, *::before, *::after { box-sizing: border-box; }
-html { -webkit-text-size-adjust: 100%; }
+html { -webkit-text-size-adjust: 100%; background: var(--bg); }
 body {
   margin: 0; background: var(--bg); color: var(--text);
   font: 400 16px/1.4 Inter, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
@@ -44,7 +44,9 @@ button, input, select, textarea { font: inherit; color: inherit; }
 
 /* ---------- Okvir: donja traka (mobitel) i bočna traka (računalo) ---------- */
 .app { min-height: 100dvh; }
-.dock { position: fixed; left: 0; right: 0; bottom: 0; z-index: 30; background: var(--surface); border-top: 1px solid var(--border); padding-bottom: env(safe-area-inset-bottom); }
+.dock { position: fixed; left: 0; right: 0; bottom: 0; z-index: 30; background: var(--surface); border-top: 1px solid var(--border); padding-bottom: env(safe-area-inset-bottom); transform: translate3d(0, 0, 0); -webkit-transform: translate3d(0, 0, 0); }
+/* iOS: traka se produljuje ispod sustavne crte, pa sadržaj nikad ne probija ispod nje */
+.dock::after { content: ''; position: absolute; left: 0; right: 0; top: 100%; height: 120px; background: var(--surface); }
 .dock-red { display: flex; height: 64px; }
 .dock a { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; color: var(--text2); text-decoration: none; font-size: 12px; min-width: 0; }
 .dock a span.t { padding: 0 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
@@ -54,7 +56,7 @@ button, input, select, textarea { font: inherit; color: inherit; }
 .rail a.st { width: 72px; padding: 10px 0; display: flex; flex-direction: column; align-items: center; gap: 4px; color: var(--text2); text-decoration: none; font-size: 12px; font-weight: 600; border-radius: 16px; }
 .rail a.st[aria-current='page'] { color: var(--text); background: color-mix(in srgb, var(--accent) 16%, transparent); }
 .sadrzaj { min-height: 100dvh; }
-.sadrzaj.s-dockom { padding-bottom: calc(64px + env(safe-area-inset-bottom)); }
+.sadrzaj.s-dockom { padding-bottom: calc(72px + env(safe-area-inset-bottom)); }
 @media (min-width: 840px) {
   .dock { display: none; }
   .rail { display: flex; }
