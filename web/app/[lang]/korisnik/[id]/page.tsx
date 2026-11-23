@@ -21,7 +21,7 @@ export async function generateMetadata({ params }: { params: P }): Promise<Metad
   const p = await dohvatiProfil(javniKlijent(), id);
   const osnova = `/korisnik/${id}`;
   return p
-    ? { title: prevedi(j, '{ime}: oglasi', { ime: p.ime }), alternates: { canonical: put(j, osnova), languages: { hr: osnova, en: put('en', osnova) } } }
+    ? { title: prevedi(j, '{ime}: oglasi', { ime: p.ime }), alternates: { canonical: put(j, osnova), languages: { hr: osnova, en: put('en', osnova), 'x-default': osnova } } }
     : { title: prevedi(j, 'Korisnik nije pronađen'), robots: { index: false } };
 }
 

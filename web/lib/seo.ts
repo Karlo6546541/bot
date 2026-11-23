@@ -74,6 +74,26 @@ export function jsonLdStranica(j: Jezik = 'hr') {
   };
 }
 
+/** Organizacija (logo i naziv u Googleovim rezultatima). */
+export function jsonLdOrganizacija() {
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'Organization',
+    name: APP_NAME,
+    url: SITE_URL,
+    logo: `${SITE_URL}/subhasto-logo-512.png`,
+  };
+}
+
+/** Popis oglasa na stranici (ItemList) – Google bolje razumije stranice kategorija. */
+export function jsonLdPopis(oglasi: Pick<Oglas, 'id' | 'naslov'>[], j: Jezik = 'hr') {
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'ItemList',
+    itemListElement: oglasi.map((o, i) => ({ '@type': 'ListItem', position: i + 1, url: punaAdresa(put(j, putOglasa(o))), name: o.naslov })),
+  };
+}
+
 /** Sigurno ugrađivanje JSON-a u <script> (sprječava zatvaranje oznake). */
 export const jsonUScript = (o: unknown) => JSON.stringify(o).replace(/</g, '\\u003c');
 

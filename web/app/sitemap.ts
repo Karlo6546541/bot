@@ -31,7 +31,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     ...unos('/kategorije', { changeFrequency: 'weekly', priority: 0.7 }),
     ...SEKCIJE.flatMap((k) => unos(`/kategorija/${k.slug}`, { changeFrequency: 'hourly', priority: 0.8 })),
     ...PODKATEGORIJE.flatMap((k) => unos(`/kategorija/${k.sekcija}/${k.slug}`, { changeFrequency: 'hourly', priority: 0.7 })),
-    ...oglasi.flatMap((o) => unos(putOglasa(o), { lastModified: o.azurirano ?? o.objavljeno, changeFrequency: 'weekly', priority: 0.6 })),
+    ...oglasi.flatMap((o) => unos(putOglasa(o), { lastModified: o.azurirano ?? o.objavljeno, changeFrequency: 'weekly', priority: 0.6, images: (o.slike ?? []).slice(0, 3) })),
     ...unos('/uvjeti', { priority: 0.1 }),
     ...unos('/privatnost', { priority: 0.1 }),
     ...unos('/kontakt', { priority: 0.1 }),

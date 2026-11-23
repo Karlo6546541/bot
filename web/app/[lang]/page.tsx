@@ -1,3 +1,4 @@
+import type { Metadata } from 'next';
 import Link from 'next/link';
 import { MrezaOglasa } from '@/components/Kartice';
 import { Ikona } from '@/components/Ikona';
@@ -5,7 +6,7 @@ import { KatFoto } from '@/components/KatFoto';
 import { PravneVeze } from '@/components/PravneVeze';
 import { imaBazu } from '@/lib/config';
 import { IK } from '@/lib/ikone';
-import { jezik, prevodilac, put } from '@/lib/i18n';
+import { alternative, jezik, prevodilac, put } from '@/lib/i18n';
 import { PODKATEGORIJE, nazivNa } from '@/lib/kategorije';
 import { DRZAVE, nazivDrzave } from '@/lib/lokacije';
 import { pregledKategorija, traziOglase } from '@/lib/oglasi';
@@ -13,6 +14,10 @@ import { javniKlijent } from '@/lib/supabase';
 
 export const revalidate = 60;
 type P = Promise<{ lang: string }>;
+
+export async function generateMetadata({ params }: { params: P }): Promise<Metadata> {
+  return { alternates: alternative(jezik((await params).lang), '/') };
+}
 
 export default async function Pocetna({ params }: { params: P }) {
   const j = jezik((await params).lang);

@@ -2,8 +2,8 @@ import type { Metadata, Viewport } from 'next';
 import type { ReactNode } from 'react';
 import { notFound } from 'next/navigation';
 import { APP_NAME, SITE_URL } from '@/lib/config';
-import { JEZICI, OG_LOCALE, alternative, jezik, prevedi } from '@/lib/i18n';
-import { jsonLdStranica, jsonUScript } from '@/lib/seo';
+import { JEZICI, OG_LOCALE, jezik, prevedi } from '@/lib/i18n';
+import { jsonLdOrganizacija, jsonLdStranica, jsonUScript } from '@/lib/seo';
 import { JezikProvider } from '@/components/Jezik';
 import { Ljuska } from '@/components/Ljuska';
 import '../globals.css';
@@ -20,7 +20,9 @@ export async function generateMetadata({ params }: { params: P }): Promise<Metad
     description: prevedi(j, '{app}: oglasnik za kolekcionare. Kartice, kovanice, marke, stripovi, figure i gramofonske ploče iz cijele regije.', { app: APP_NAME }),
     openGraph: { type: 'website', siteName: APP_NAME, locale: OG_LOCALE[j], alternateLocale: j === 'hr' ? 'en_GB' : 'hr_HR' },
     twitter: { card: 'summary_large_image' },
-    alternates: alternative(j, '/'),
+    applicationName: APP_NAME,
+    formatDetection: { telephone: false, email: false, address: false },
+    robots: { index: true, follow: true, googleBot: { index: true, follow: true, 'max-image-preview': 'large', 'max-snippet': -1 } },
   };
 }
 
@@ -47,7 +49,7 @@ export default async function RootLayout({ children, params }: { children: React
         <link rel="preconnect" href="https://mwhrjrxytfdttjjdhdns.supabase.co" crossOrigin="anonymous" />
       </head>
       <body>
-        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonUScript(jsonLdStranica(j)) }} />
+        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonUScript([jsonLdStranica(j), jsonLdOrganizacija()]) }} />
         <a className="sr-only" href="#sadrzaj">{prevedi(j, 'Preskoči na sadržaj')}</a>
         <JezikProvider jezik={j}>
           <Ljuska>

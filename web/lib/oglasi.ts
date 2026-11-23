@@ -96,15 +96,15 @@ export async function brojAktivnih(sb: SupabaseClient | null, korisnikId: string
 
 /** Svi URL-ovi oglasa za sitemap (do 5000, najnoviji prvi). */
 export async function oglasiZaSitemap(sb: SupabaseClient | null) {
-  if (!sb) return [] as Pick<Oglas, 'id' | 'naslov' | 'azurirano' | 'objavljeno'>[];
+  if (!sb) return [] as Pick<Oglas, 'id' | 'naslov' | 'azurirano' | 'objavljeno' | 'slike'>[];
   const r = await sb
     .from('oglasnik_oglasi')
-    .select('id,naslov,azurirano,objavljeno')
+    .select('id,naslov,azurirano,objavljeno,slike')
     .eq('status', 'aktivan')
     .gt('istjece', new Date().toISOString())
     .order('objavljeno', { ascending: false })
     .limit(5000);
-  return (r.data ?? []) as unknown as Pick<Oglas, 'id' | 'naslov' | 'azurirano' | 'objavljeno'>[];
+  return (r.data ?? []) as unknown as Pick<Oglas, 'id' | 'naslov' | 'azurirano' | 'objavljeno' | 'slike'>[];
 }
 
 // ---------- Privatno (prijavljeni korisnik; RLS štiti podatke) ----------

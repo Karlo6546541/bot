@@ -6,7 +6,7 @@ import { jezik, prevedi, put, type Jezik } from '@/lib/i18n';
 import { nazivNa, podkategorija, sekcija } from '@/lib/kategorije';
 import { traziOglase } from '@/lib/oglasi';
 import { brojStranice, filteriIzUpita } from '@/lib/pretraga';
-import { jsonLdPutanja, jsonUScript } from '@/lib/seo';
+import { jsonLdPopis, jsonLdPutanja, jsonUScript } from '@/lib/seo';
 import { javniKlijent } from '@/lib/supabase';
 
 type SP = Promise<Record<string, string | string[] | undefined>>;
@@ -63,7 +63,7 @@ export default async function KategorijaStranica({ params, searchParams }: { par
   ];
   return (
     <>
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonUScript(jsonLdPutanja(mrvice)) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonUScript([jsonLdPutanja(mrvice), ...(rezultat.stavke.length ? [jsonLdPopis(rezultat.stavke, j)] : [])]) }} />
       <PopisStranica jezik={j} naslov={r.naziv} natrag={`/kategorije/${sek.slug}`} osnova={r.osnova} filteri={f} stranica={stranica} rezultat={rezultat}
         kategorijaSlug={pod?.slug} sekcijaSlug={sek.slug} bazaSpojena={imaBazu()} greska={greska} />
     </>
