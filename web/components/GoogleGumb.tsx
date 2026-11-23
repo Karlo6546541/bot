@@ -64,7 +64,7 @@ export function GoogleGumb({ natrag }: { natrag: string }) {
   const router = useRouter();
   const [greska, setGreska] = useState('');
   const [radi, setRadi] = useState(false);
-  const [rezerva, setRezerva] = useState(!CLIENT_ID);
+  const [spreman, setSpreman] = useState(false);
   const okvir = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -108,10 +108,10 @@ export function GoogleGumb({ natrag }: { natrag: string }) {
           width: Math.min(400, Math.max(200, okvir.current.clientWidth)),
           locale: j,
         });
-        // Ako se gumb ne iscrta (blokirana ili neispravna skripta), prikaži rezervni gumb.
-        setTimeout(() => { if (ziv && okvir.current && okvir.current.childElementCount === 0) setRezerva(true); }, 2000);
+        // Googleov (nevidljivi) gumb leži preko našeg; ako se ne iscrta, klik ide na staro preusmjeravanje.
+        setTimeout(() => { if (ziv && okvir.current) setSpreman(okvir.current.childElementCount > 0); }, 800);
       } catch {
-        if (ziv) setRezerva(true); // skripta blokirana (npr. blokator): staro preusmjeravanje
+        if (ziv) setSpreman(false); // skripta blokirana (npr. blokator): klik ide na staro preusmjeravanje
       }
     })();
     return () => {
@@ -120,32 +120,27 @@ export function GoogleGumb({ natrag }: { natrag: string }) {
   }, [j, natrag, router]);
 
   if (!GOOGLE_UKLJUCEN) return null;
+  const preusmjeri = async () => {
+    setGreska('');
+    setRadi(true);
+    const { error } = await klijentPreglednika().auth.signInWithOAuth({
+      provider: 'google',
+      options: { redirectTo: `${location.origin}/auth/callback?natrag=${encodeURIComponent(natrag)}` },
+    });
+    if (error) {
+      setRadi(false);
+      setGreska(porukaGreske(error.message, j));
+    }
+  };
   return (
     <>
-      {!rezerva && <div ref={okvir} className="google-okvir" aria-busy={radi} />}
-      {rezerva && (
-        <button
-          className="google-gumb"
-          type="button"
-          disabled={radi}
-          onClick={async () => {
-            setGreska('');
-            setRadi(true);
-            const { error } = await klijentPreglednika().auth.signInWithOAuth({
-              provider: 'google',
-              options: { redirectTo: `${location.origin}/auth/callback?natrag=${encodeURIComponent(natrag)}` },
-            });
-            if (error) {
-              setRadi(false);
-              setGreska(porukaGreske(error.message, j));
-            }
-          }}
-        >
+      <div className="google-kutija">
+        <button className="google-gumb" type="button" disabled={radi} tabIndex={spreman ? -1 : 0} aria-hidden={spreman || undefined} onClick={spreman ? undefined : preusmjeri}>
           <GoogleLogo />
-          <span>{radi ? t('Preusmjeravam na Google…') : t('Nastavi s Googleom')}</span>
+          <span>{radi ? t('Prijavljujem…') : t('Nastavi s Googleom')}</span>
         </button>
-      )}
-      {radi && !rezerva && <p className="pomoc" style={{ textAlign: 'center', marginTop: 8 }}>{t('Prijavljujem…')}</p>}
+        {CLIENT_ID && <div ref={okvir} className="google-preklop" aria-label={t('Nastavi s Googleom')} />}
+      </div>
       {greska && <div className="greska" style={{ marginTop: 8 }}>{greska}</div>}
       <div className="razdjel-ili">{t('ili e-mailom')}</div>
     </>
