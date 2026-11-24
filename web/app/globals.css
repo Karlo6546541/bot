@@ -387,3 +387,6 @@ table.admin td, table.admin th { text-align: left; border-bottom: 1px solid var(
 .trazi-polje input[type='search']::-webkit-search-cancel-button { display: none; -webkit-appearance: none; }
 .filter-panel:not([open]) { padding: 2px 14px; border-radius: var(--r-chip); }
 .filter-panel:not([open]) summary { min-height: 40px; }
+.drzave-red { scrollbar-width: none; padding-bottom: 8px; }
+.drzave-red::-webkit-scrollbar { display: none; }
+.drzave-red .cip { min-height: 38px; font-size: 14px; padding: 0 12px; }

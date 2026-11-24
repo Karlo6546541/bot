@@ -13,6 +13,8 @@ import { pregledKategorija, traziOglase } from '@/lib/oglasi';
 import { javniKlijent } from '@/lib/supabase';
 
 export const revalidate = 60;
+/** Kod države → zastava (emoji): HR → 🇭🇷. */
+const zastava = (kod: string) => String.fromCodePoint(...[...kod].map((c) => 0x1f1a5 + c.charCodeAt(0)));
 type P = Promise<{ lang: string }>;
 
 export async function generateMetadata({ params }: { params: P }): Promise<Metadata> {
@@ -79,9 +81,12 @@ export default async function Pocetna({ params }: { params: P }) {
           </div>
         </>
       )}
-      <nav className="sitni-popis" aria-label={t('Oglasi po državi')} style={{ paddingBottom: 8 }}>
+      <h2 className="lista-zaglavlje">{t('Oglasi po državi')}</h2>
+      <nav className="cipovi drzave-red" aria-label={t('Oglasi po državi')}>
         {DRZAVE.filter((d) => d.kod !== 'XX').map((d) => (
-          <Link key={d.kod} className="cip" href={put(j, `/oglasi?drzava=${d.kod}`)}>{nazivDrzave(d.kod, j)}</Link>
+          <Link key={d.kod} className="cip" href={put(j, `/oglasi?drzava=${d.kod}`)}>
+            <span aria-hidden="true">{zastava(d.kod)}</span> {nazivDrzave(d.kod, j)}
+          </Link>
         ))}
       </nav>
       <PravneVeze />
