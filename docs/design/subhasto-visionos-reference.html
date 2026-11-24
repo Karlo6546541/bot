@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+<html lang="hr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Subhasto — VisionOS Edition</title>
+  <style>
+    :root {
+      --bg: #000000; --glass: rgba(28, 28, 30, 0.68); --glass-heavy: rgba(20, 20, 22, 0.88);
+      --glass-border: rgba(255, 255, 255, 0.14); --accent: #0A84FF; --green: #30D158;
+      --live: #FF3B30; --gold: #FFD60A; --text: #F5F5F7; --muted: #86868B;
+    }
+    * {box-sizing:border-box;margin:0;padding:0;font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display","Inter",sans-serif;-webkit-font-smoothing:antialiased;user-select:none;-webkit-tap-highlight-color:transparent}
+    body {background-color:var(--bg);color:var(--text);overflow-x:hidden;min-height:100vh}
+    .app-container {max-width:480px;margin:0 auto;min-height:100vh;position:relative;padding-bottom:50px}
+    header {display:flex;justify-content:space-between;align-items:center;padding:20px 24px 12px;position:sticky;top:0;z-index:20;background:linear-gradient(to bottom,rgba(0,0,0,.92),rgba(0,0,0,0));backdrop-filter:blur(10px)}
+    .brand {font-size:23px;font-weight:700;letter-spacing:-.6px}
+    .search-trigger {background:var(--glass);border:1px solid var(--glass-border);color:var(--text);padding:8px 16px;border-radius:99px;font-size:14px;font-weight:500;cursor:pointer;backdrop-filter:blur(20px)}
+    .search-bar-wrap {padding:0 24px;max-height:0;overflow:hidden;transition:max-height .35s cubic-bezier(.16,1,.3,1),margin .35s}
+    .search-bar-wrap.open {max-height:64px;margin-bottom:14px}
+    .search-input {width:100%;background:rgba(255,255,255,.09);border:1px solid var(--glass-border);padding:14px 20px;border-radius:18px;color:white;font-size:15px;outline:none}
+    .categories {display:flex;gap:10px;padding:6px 24px 22px;overflow-x:auto;scrollbar-width:none}
+    .categories::-webkit-scrollbar{display:none}
+    .pill {background:var(--glass);border:1px solid var(--glass-border);color:var(--muted);padding:10px 20px;border-radius:99px;font-size:14px;font-weight:500;white-space:nowrap;cursor:pointer;transition:all .25s ease}
+    .pill.active{background:var(--text);color:var(--bg);font-weight:600;border-color:var(--text)}
+    .section-label{padding:0 24px 12px;font-size:12px;text-transform:uppercase;letter-spacing:1.2px;color:var(--muted);font-weight:600}
+    .hero-card{margin:0 24px 32px;height:460px;border-radius:32px;position:relative;overflow:hidden;border:1px solid var(--glass-border);cursor:pointer;box-shadow:0 24px 48px rgba(0,0,0,.85);transition:transform .3s cubic-bezier(.16,1,.3,1)}
+    .hero-card:active{transform:scale(.98)}
+    .hero-bg{width:100%;height:100%;object-fit:cover;filter:brightness(.85);transition:transform .6s ease}
+    .hero-overlay{position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,.35),rgba(0,0,0,0) 40%,rgba(0,0,0,.9));display:flex;flex-direction:column;justify-content:space-between;padding:22px}
+    .live-top{display:flex;justify-content:space-between;align-items:center}
+    .live-badge{background:rgba(255,59,48,.92);backdrop-filter:blur(12px);padding:6px 14px;border-radius:99px;font-size:12px;font-weight:700;display:flex;align-items:center;gap:6px}
+    .pulse-dot{width:7px;height:7px;background:white;border-radius:50%;animation:pulse 1.4s infinite}
+    @keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.35;transform:scale(1.35)}}
+    .seller-tag{background:var(--glass);backdrop-filter:blur(16px);padding:6px 14px;border-radius:99px;font-size:13px;border:1px solid var(--glass-border)}
+    .hero-bottom h2{font-size:27px;font-weight:700;line-height:1.15;margin-bottom:6px;letter-spacing:-.5px}
+    .hero-bottom p{color:#D2D2D7;font-size:15px;margin-bottom:18px}
+    .enter-btn{background:rgba(255,255,255,.96);color:#000;border:none;width:100%;padding:15px;border-radius:20px;font-size:16px;font-weight:600;cursor:pointer}
+    .grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;padding:0 24px}
+    .mini-card{height:230px;border-radius:24px;position:relative;overflow:hidden;border:1px solid var(--glass-border);cursor:pointer}
+    .mini-card img{width:100%;height:100%;object-fit:cover;filter:brightness(.82)}
+    .mini-overlay{position:absolute;inset:0;background:linear-gradient(to top,rgba(0,0,0,.88),rgba(0,0,0,.05) 60%);padding:14px;display:flex;flex-direction:column;justify-content:space-between}
+    .mini-title{font-size:15px;font-weight:600}.mini-price{font-size:13px;color:var(--gold);margin-top:3px;font-weight:500}
+    .live-room{position:fixed;inset:0;background:#000;z-index:100;max-width:480px;margin:0 auto;display:flex;flex-direction:column;justify-content:space-between;opacity:0;pointer-events:none;transform:scale(.95);transition:all .35s cubic-bezier(.16,1,.3,1);overflow:hidden}
+    .live-room.active{opacity:1;pointer-events:auto;transform:scale(1)}
+    .room-video-bg{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:-1;filter:brightness(.86);transition:filter .3s ease,transform .4s ease}
+    .live-room.drawer-open .room-video-bg{filter:brightness(.5) blur(4px);transform:scale(.96)}
+    .room-header{padding:20px;display:flex;justify-content:space-between;align-items:center;background:linear-gradient(to bottom,rgba(0,0,0,.75),transparent);z-index:5}
+    .close-btn{background:var(--glass);border:1px solid var(--glass-border);color:white;width:38px;height:38px;border-radius:50%;font-size:16px;cursor:pointer;backdrop-filter:blur(16px)}
+    .room-bottom-area{padding:16px 20px 20px;background:linear-gradient(to top,rgba(0,0,0,.95),rgba(0,0,0,.55) 65%,transparent);z-index:5}
+    .floating-comments{margin-bottom:12px;display:flex;flex-direction:column;gap:7px;max-height:110px;justify-content:flex-end;overflow:hidden}
+    .comment{font-size:14px;text-shadow:0 1px 4px rgba(0,0,0,.8);animation:fadeOutComment 7s forwards}
+    .comment span{color:#AEAEB2;font-weight:600;margin-right:6px}
+    @keyframes fadeOutComment{0%{opacity:0;transform:translateY(8px)}10%{opacity:1;transform:translateY(0)}80%{opacity:1}100%{opacity:.25}}
+    .chat-row{display:flex;gap:10px;margin-bottom:14px}
+    .chat-input{flex:1;background:rgba(255,255,255,.1);border:1px solid var(--glass-border);border-radius:99px;padding:10px 16px;color:white;font-size:14px;outline:none;backdrop-filter:blur(12px)}
+    .bid-dock{background:var(--glass);backdrop-filter:blur(30px);-webkit-backdrop-filter:blur(30px);border:1px solid var(--glass-border);border-radius:28px;padding:18px;position:relative;overflow:hidden}
+    .timer-bar{position:absolute;top:0;left:0;height:3px;width:100%;background:linear-gradient(90deg,var(--accent),var(--gold));animation:countdown 14s linear infinite}
+    @keyframes countdown{from{width:100%}to{width:0%}}
+    .item-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px}
+    .item-meta h3{font-size:17px;font-weight:600}.item-meta p{font-size:12px;color:var(--muted);margin-top:2px}
+    .price-box{text-align:right}.price-label{font-size:10px;text-transform:uppercase;color:var(--muted);letter-spacing:.5px}.current-bid{font-size:24px;font-weight:700;color:var(--gold);transition:transform .2s}
+    .slider-track{background:rgba(255,255,255,.1);height:56px;border-radius:99px;position:relative;display:flex;align-items:center;justify-content:center;overflow:hidden;border:1px solid rgba(255,255,255,.15);touch-action:none}
+    .slider-fill{position:absolute;left:0;top:0;bottom:0;width:0%;background:linear-gradient(90deg,rgba(10,132,255,.4),rgba(48,209,88,.5));pointer-events:none}
+    .slider-text{font-size:15px;font-weight:600;color:rgba(255,255,255,.9);pointer-events:none;z-index:2}
+    .slider-thumb{width:48px;height:48px;background:white;color:black;border-radius:50%;position:absolute;left:4px;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:19px;cursor:grab;box-shadow:0 4px 14px rgba(0,0,0,.5);z-index:3;touch-action:none}
+    .swipe-up-trigger{margin-top:14px;display:flex;flex-direction:column;align-items:center;gap:5px;cursor:pointer;padding:6px 0 2px}
+    .swipe-pill{width:42px;height:4px;background:rgba(255,255,255,.35);border-radius:99px}
+    .swipe-label{font-size:12px;color:#D2D2D7;font-weight:500;letter-spacing:.2px}
+    .peek-drawer{position:absolute;left:0;right:0;bottom:0;height:68%;background:var(--glass-heavy);backdrop-filter:blur(35px);-webkit-backdrop-filter:blur(35px);border-top:1px solid var(--glass-border);border-radius:32px 32px 0 0;z-index:30;transform:translateY(100%);transition:transform .4s cubic-bezier(.16,1,.3,1);display:flex;flex-direction:column;padding:14px 20px 24px}
+    .peek-drawer.open{transform:translateY(0)}
+    .drawer-handle-area{display:flex;flex-direction:column;align-items:center;padding-bottom:14px;cursor:pointer}
+    .drawer-tabs{display:flex;background:rgba(255,255,255,.08);padding:4px;border-radius:14px;margin-bottom:16px}
+    .d-tab{flex:1;text-align:center;padding:9px;font-size:13px;font-weight:600;color:var(--muted);border-radius:11px;cursor:pointer;transition:all .2s}
+    .d-tab.active{background:rgba(255,255,255,.16);color:white}
+    .catalog-list{flex:1;overflow-y:auto;display:flex;flex-direction:column;gap:12px;padding-right:4px}
+    .cat-item{display:flex;align-items:center;justify-content:space-between;background:rgba(255,255,255,.05);border:1px solid var(--glass-border);padding:12px;border-radius:20px;gap:12px}
+    .cat-left{display:flex;align-items:center;gap:12px;min-width:0}
+    .cat-img{width:56px;height:56px;border-radius:14px;object-fit:cover;flex-shrink:0}
+    .cat-info{min-width:0}.cat-info h4{font-size:15px;font-weight:600;margin-bottom:3px}.cat-info p{font-size:13px;color:var(--gold);font-weight:600}.cat-info span{font-size:11px;color:var(--muted);display:block}
+    .buy-now-btn{background:var(--accent);color:white;border:none;padding:10px 16px;border-radius:99px;font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap}
+    .notify-btn{background:rgba(255,255,255,.1);color:white;border:1px solid var(--glass-border);padding:9px 14px;border-radius:99px;font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap}
+    .notify-btn.subscribed{background:rgba(255,214,10,.2);color:var(--gold);border-color:var(--gold)}
+    .pay-sheet{position:absolute;left:0;right:0;bottom:0;background:#1C1C1E;border-top:1px solid var(--glass-border);border-radius:32px 32px 0 0;padding:24px;z-index:50;transform:translateY(100%);transition:transform .35s cubic-bezier(.16,1,.3,1);box-shadow:0 -20px 50px rgba(0,0,0,.8)}
+    .pay-sheet.open{transform:translateY(0)}
+    .pay-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;padding-bottom:14px;border-bottom:1px solid rgba(255,255,255,.1)}
+    .pay-logo{font-size:20px;font-weight:700;letter-spacing:-.5px}
+    .pay-row{display:flex;justify-content:space-between;margin-bottom:12px;font-size:14px;color:#D2D2D7;gap:16px}
+    .pay-total{font-size:18px;font-weight:700;color:white}
+    .confirm-pay-btn{margin-top:18px;width:100%;background:white;color:black;border:none;padding:16px;border-radius:18px;font-size:16px;font-weight:700;cursor:pointer;display:flex;justify-content:center;align-items:center;gap:8px}
+
+    /* Ažuriranje: Apple VisionOS inspirirano prozirno staklo iz dostavljenog HTML-a */
+    :root {
+      --bg:#000000; --glass:rgba(40,40,45,.45); --glass-heavy:rgba(30,30,35,.65);
+      --glass-border:rgba(255,255,255,.22); --accent:#0A84FF; --green:#30D158;
+      --live:#FF3B30; --gold:#FFD60A; --text:#F5F5F7; --muted:#98989F;
+    }
+    header {background:linear-gradient(to bottom,rgba(0,0,0,.85),rgba(0,0,0,0));backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px)}
+    .search-trigger {-webkit-backdrop-filter:blur(20px)}
+    .search-input {background:rgba(255,255,255,.12);backdrop-filter:blur(15px)}
+    .pill {backdrop-filter:blur(15px)}
+    .hero-card {transition:none}
+    .hero-bg {filter:brightness(.9);transition:none}
+    .hero-overlay {background:linear-gradient(180deg,rgba(0,0,0,.3) 0%,rgba(0,0,0,0) 40%,rgba(0,0,0,.85) 100%)}
+    .seller-tag {-webkit-backdrop-filter:blur(16px)}
+    .enter-btn {background:rgba(255,255,255,.95)}
+    .mini-card img {filter:brightness(.85)}
+    .mini-overlay {background:linear-gradient(to top,rgba(0,0,0,.85) 0%,rgba(0,0,0,.05) 60%)}
+    .room-video-bg {filter:brightness(.95);transition:filter .4s ease,transform .4s ease}
+    .live-room.drawer-open .room-video-bg {filter:brightness(.7) blur(8px);transform:scale(1.03)}
+    .room-header {background:linear-gradient(to bottom,rgba(0,0,0,.6),transparent)}
+    .close-btn {-webkit-backdrop-filter:blur(16px)}
+    .room-bottom-area {background:linear-gradient(to top,rgba(0,0,0,.8) 0%,rgba(0,0,0,.3) 60%,transparent 100%)}
+    .comment span {color:#D1D1D6}
+    .chat-input {background:var(--glass);padding:10px 18px;backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px)}
+    .bid-dock {backdrop-filter:blur(25px);-webkit-backdrop-filter:blur(25px);box-shadow:0 15px 35px rgba(0,0,0,.4)}
+    .current-bid {transition:none}
+    .slider-track {background:rgba(255,255,255,.12);border-color:rgba(255,255,255,.2)}
+    .slider-fill {background:linear-gradient(90deg,rgba(10,132,255,.5),rgba(48,209,88,.6))}
+    .slider-text {color:rgba(255,255,255,.95)}
+    .swipe-pill {background:rgba(255,255,255,.5)}
+    .swipe-label {color:#E2E2E7}
+    .peek-drawer {height:70%;background:rgba(25,25,30,.55);backdrop-filter:blur(40px);-webkit-backdrop-filter:blur(40px);box-shadow:0 -20px 50px rgba(0,0,0,.6)}
+    .drawer-handle-area {padding-bottom:12px}
+    .drawer-tabs {background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.1)}
+    .d-tab.active {background:rgba(255,255,255,.22)}
+    .catalog-list {scrollbar-width:none}
+    .catalog-list::-webkit-scrollbar {display:none}
+    .cat-item {background:rgba(255,255,255,.08);backdrop-filter:blur(20px);border-color:rgba(255,255,255,.15)}
+    .notify-btn {background:rgba(255,255,255,.12)}
+    .notify-btn.subscribed {background:rgba(255,214,10,.25)}
+    .pay-sheet {background:rgba(35,35,40,.85);backdrop-filter:blur(40px);-webkit-backdrop-filter:blur(40px)}
+    .pay-header {border-bottom-color:rgba(255,255,255,.15)}
+    .pay-row {color:#E2E2E7}
+
+    /* VisionOS Edition: zaglavlje, računi i prodavački studio */
+    :root { --glass-heavy:rgba(25,25,30,.70); }
+    .app-container {padding-bottom:70px}
+    .header-actions {display:flex;gap:8px}
+    .icon-btn,.search-trigger {background:var(--glass);border:1px solid var(--glass-border);color:var(--text);padding:8px 14px;border-radius:99px;font-size:13px;font-weight:500;cursor:pointer;backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px)}
+    .peek-drawer {background:rgba(25,25,30,.65)}
+    .modal-sheet {position:fixed;inset:0;background:rgba(0,0,0,.6);backdrop-filter:blur(15px);-webkit-backdrop-filter:blur(15px);z-index:200;display:flex;justify-content:center;align-items:flex-end;opacity:0;pointer-events:none;transition:opacity .3s ease}
+    .modal-sheet.open {opacity:1;pointer-events:auto}
+    .modal-content {width:100%;max-width:480px;max-height:80vh;background:var(--glass-heavy);backdrop-filter:blur(40px);-webkit-backdrop-filter:blur(40px);border-top:1px solid var(--glass-border);border-radius:32px 32px 0 0;padding:24px;display:flex;flex-direction:column;transform:translateY(100%);transition:transform .4s cubic-bezier(.16,1,.3,1);box-shadow:0 -20px 50px rgba(0,0,0,.8)}
+    .modal-sheet.open .modal-content {transform:translateY(0)}
+    .modal-header {display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;padding-bottom:12px;border-bottom:1px solid rgba(255,255,255,.12)}
+    .modal-header h3 {font-size:18px;font-weight:700}
+    .modal-body {flex:1;overflow-y:auto;display:flex;flex-direction:column;gap:12px;scrollbar-width:none}
+    .modal-body::-webkit-scrollbar {display:none}
+    .pay-sheet {z-index:150}
+    @media(max-width:375px){.brand{font-size:20px}.header-actions{gap:5px}.icon-btn,.search-trigger{padding:8px 10px;font-size:12px}header{padding-left:16px;padding-right:16px}}
+  </style>
+</head>
+<body>
+<div class="app-container">
+  <header><div class="brand">Subhasto</div><div class="header-actions"><button class="icon-btn" onclick="openModal('sellerModal')">Prodavač</button><button class="icon-btn" onclick="openModal('receiptsModal')">Računi</button><button class="search-trigger" onclick="toggleSearch()">Pretraži</button></div></header>
+  <div class="search-bar-wrap" id="searchWrap"><input type="text" class="search-input" id="searchInput" placeholder="Pronađi predmet u prijenosima uživo (npr. Rolex, Jordan)..." oninput="filterStreams()"></div>
+  <div class="categories">
+    <div class="pill active" onclick="setCategory('all', this)">Sve uživo</div>
+    <div class="pill" onclick="setCategory('satovi', this)">Satovi</div>
+    <div class="pill" onclick="setCategory('tenisice', this)">Tenisice</div>
+    <div class="pill" onclick="setCategory('vintage', this)">Vintage</div>
+    <div class="pill" onclick="setCategory('karte', this)">Kolekcionarstvo</div>
+  </div>
+  <div class="section-label">Pozornica uživo</div>
+  <div class="hero-card" data-category="satovi" onclick="openRoom('@ChronoZagreb', 'Seiko Pogue 1974 Automatic', 140, 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?auto=format&fit=crop&w=900&q=80')">
+    <img class="hero-bg" src="https://images.unsplash.com/photo-1523275335684-37898b6baf30?auto=format&fit=crop&w=900&q=80" alt="Watch Live">
+    <div class="hero-overlay">
+      <div class="live-top"><div class="live-badge"><span class="pulse-dot"></span> UŽIVO • 1.2k</div><div class="seller-tag">@ChronoZagreb</div></div>
+      <div class="hero-bottom"><h2>Seiko "Pogue" 1974.</h2><p>Rijetki kronograf • Trenutna ponuda: 140 €</p><button class="enter-btn">Uđi u prijenos</button></div>
+    </div>
+  </div>
+  <div class="section-label">Sljedeće u prijenosu</div>
+  <div class="grid">
+    <div class="mini-card" data-category="tenisice" onclick="openRoom('@SneakerVault', 'Air Jordan 1 Lost & Found', 280, 'https://images.unsplash.com/photo-1552346154-21d32810aba3?auto=format&fit=crop&w=800&q=80')">
+      <img src="https://images.unsplash.com/photo-1552346154-21d32810aba3?auto=format&fit=crop&w=600&q=80" alt="Jordan"><div class="mini-overlay"><div class="live-badge" style="width:fit-content;font-size:10px;padding:4px 10px"><span class="pulse-dot"></span> 640</div><div><div class="mini-title">Jordan 1 Chicago</div><div class="mini-price">Trenutno: 280 €</div></div></div>
+    </div>
+    <div class="mini-card" data-category="vintage" onclick="openRoom('@RetroStudio', 'Leica M6 Analogni 35mm', 950, 'https://images.unsplash.com/photo-1516035069371-29a1b244cc32?auto=format&fit=crop&w=800&q=80')">
+      <img src="https://images.unsplash.com/photo-1516035069371-29a1b244cc32?auto=format&fit=crop&w=600&q=80" alt="Leica"><div class="mini-overlay"><div class="live-badge" style="width:fit-content;font-size:10px;padding:4px 10px"><span class="pulse-dot"></span> 390</div><div><div class="mini-title">Leica M6 + Objektiv</div><div class="mini-price">Trenutno: 950 €</div></div></div>
+    </div>
+  </div>
+</div>
+<div class="live-room" id="liveRoom">
+  <img class="room-video-bg" id="roomBg" src="" alt="Live Stream">
+  <div class="room-header"><div class="seller-tag" id="roomSeller">@ChronoZagreb • Prati</div><div style="display:flex;gap:10px;align-items:center"><div class="live-badge"><span class="pulse-dot"></span> 1.2k</div><button class="close-btn" onclick="closeRoom()">✕</button></div></div>
+  <div class="room-bottom-area" id="bottomTouchArea">
+    <div class="floating-comments" id="commentBox"><div class="comment"><span>Luka_ZG:</span> Brutalno stanje kućišta!</div><div class="comment"><span>Marina:</span> Koji je promjer sata?</div></div>
+    <form class="chat-row" onsubmit="sendComment(event)"><input type="text" class="chat-input" id="chatInput" placeholder="Pitaj prodavača uživo..."></form>
+    <div class="bid-dock"><div class="timer-bar" id="timerBar"></div><div class="item-row"><div class="item-meta"><h3 id="roomItem">Seiko Pogue 1974</h3><p>Aukcija #1 od 12 • Provjerena autentičnost</p></div><div class="price-box"><div class="price-label">Trenutno</div><div class="current-bid" id="roomPrice">140 €</div></div></div><div class="slider-track" id="sliderTrack"><div class="slider-fill" id="sliderFill"></div><div class="slider-thumb" id="sliderThumb">→</div><div class="slider-text" id="sliderText">Povuci za ponudu (150 €)</div></div></div>
+    <div class="swipe-up-trigger" id="swipeTrigger" onclick="toggleDrawer(true)"><div class="swipe-pill"></div><div class="swipe-label">Povuci gore za Katalog i Kupi Odmah (8 predmeta)</div></div>
+  </div>
+  <div class="peek-drawer" id="peekDrawer">
+    <div class="drawer-handle-area" onclick="toggleDrawer(false)"><div class="swipe-pill" style="margin-bottom:6px"></div><span style="font-size:12px;color:var(--muted)">Povuci dolje za povratak na puni video</span></div>
+    <div class="drawer-tabs"><div class="d-tab active" id="tabBuyNow" onclick="switchCatalogTab('buynow')">Kupi Odmah (4)</div><div class="d-tab" id="tabUpcoming" onclick="switchCatalogTab('upcoming')">Čeka na aukciju (4)</div></div>
+    <div class="catalog-list" id="listBuyNow">
+      <div class="cat-item"><div class="cat-left"><img class="cat-img" src="https://images.unsplash.com/photo-1547996160-81dfa63595aa?auto=format&fit=crop&w=300&q=80" alt="Omega Seamaster"><div class="cat-info"><h4>Omega Seamaster Vintage</h4><p>690 €</p><span>Fiksna cijena • Dostupno odmah</span></div></div><button class="buy-now-btn" onclick="openPaySheet('Omega Seamaster Vintage', 690)">Kupi odmah</button></div>
+      <div class="cat-item"><div class="cat-left"><img class="cat-img" src="https://images.unsplash.com/photo-1508685096489-7aacd43bd3b1?auto=format&fit=crop&w=300&q=80" alt="Kožni remen"><div class="cat-info"><h4>Kožni remen Barenia 20mm</h4><p>45 €</p><span>Ručni rad • 2 komada</span></div></div><button class="buy-now-btn" onclick="openPaySheet('Kožni remen Barenia 20mm', 45)">Kupi odmah</button></div>
+      <div class="cat-item"><div class="cat-left"><img class="cat-img" src="https://images.unsplash.com/photo-1614164185128-e4ec99c436d7?auto=format&fit=crop&w=300&q=80" alt="Casio G-Shock"><div class="cat-info"><h4>Casio G-Shock Full Metal</h4><p>320 €</p><span>Novo s kutijom</span></div></div><button class="buy-now-btn" onclick="openPaySheet('Casio G-Shock Full Metal', 320)">Kupi odmah</button></div>
+    </div>
+    <div class="catalog-list" id="listUpcoming" style="display:none">
+      <div class="cat-item"><div class="cat-left"><img class="cat-img" src="https://images.unsplash.com/photo-1524805444758-089113d48a6d?auto=format&fit=crop&w=300&q=80" alt="Tissot"><div class="cat-info"><h4>Tissot PRX Powermatic 80</h4><p>Početna: 180 €</p><span>Sljedeći na redu (#2)</span></div></div><button class="notify-btn" onclick="toggleNotify(this)">🔔 Obavijesti me</button></div>
+      <div class="cat-item"><div class="cat-left"><img class="cat-img" src="https://images.unsplash.com/photo-1587836374828-4dbafa94cf0e?auto=format&fit=crop&w=300&q=80" alt="Rolex"><div class="cat-info"><h4>Rolex Datejust 1601 (1971)</h4><p>Početna: 1.500 €</p><span>Glavna zvijezda večeri (#3)</span></div></div><button class="notify-btn" onclick="toggleNotify(this)">🔔 Obavijesti me</button></div>
+    </div>
+  </div>
+  <div class="pay-sheet" id="paySheet">
+    <div class="pay-header"><div class="pay-logo"> Pay • Subhasto Express</div><button class="close-btn" style="width:30px;height:30px;font-size:13px" onclick="closePaySheet()">✕</button></div>
+    <div class="pay-row"><span>Predmet</span><strong id="payItemName" style="color:white">Omega Seamaster</strong></div>
+    <div class="pay-row"><span>Dostava</span><span>Besplatna (GLS Express)</span></div>
+    <div class="pay-row" style="margin-top:10px"><span class="pay-total">Ukupno za naplatu</span><span class="pay-total" id="payItemPrice" style="color:var(--gold)">690 €</span></div>
+    <button class="confirm-pay-btn" id="confirmPayBtn" onclick="completeInstantPurchase()">Potvrdi jednim dodirom</button>
+  </div>
+</div>
+
+<!-- MOJI RAČUNI: DEMO PRIMJERI -->
+<div class="modal-sheet" id="receiptsModal">
+  <div class="modal-content">
+    <div class="modal-header"><h3>Moji Računi i Narudžbe</h3><button class="close-btn" style="width:32px;height:32px;font-size:14px" onclick="closeModal('receiptsModal')">✕</button></div>
+    <div class="modal-body">
+      <div class="cat-item"><div class="cat-left"><img class="cat-img" src="https://images.unsplash.com/photo-1523275335684-37898b6baf30?auto=format&fit=crop&w=300&q=80" alt="Seiko Pogue"><div class="cat-info"><h4>Seiko Pogue 1974</h4><p>140 € • Plaćeno</p><span>Status: U obradi / Slanje sutra</span></div></div><button class="buy-now-btn" style="background:rgba(255,255,255,.15)" onclick="alert('Preuzimanje PDF računa...')">Račun</button></div>
+      <div class="cat-item"><div class="cat-left"><img class="cat-img" src="https://images.unsplash.com/photo-1552346154-21d32810aba3?auto=format&fit=crop&w=300&q=80" alt="Jordan 1"><div class="cat-info"><h4>Jordan 1 Lost &amp; Found</h4><p>280 € • Dostavljeno</p><span>Račun #SUB-88492</span></div></div><button class="buy-now-btn" style="background:rgba(255,255,255,.15)" onclick="alert('Preuzimanje PDF računa...')">Račun</button></div>
+    </div>
+  </div>
+</div>
+<!-- SUBHASTO STUDIO: DEMO -->
+<div class="modal-sheet" id="sellerModal">
+  <div class="modal-content">
+    <div class="modal-header"><h3>Subhasto Studio (Prodavač)</h3><button class="close-btn" style="width:32px;height:32px;font-size:14px" onclick="closeModal('sellerModal')">✕</button></div>
+    <div class="modal-body">
+      <div class="cat-item" style="background:rgba(10,132,255,.15);border-color:var(--accent)"><div class="cat-info" style="width:100%"><h4>Zarada ovaj tjedan</h4><p style="font-size:22px;color:var(--green);margin-top:4px">1.420,00 €</p><span style="color:white;margin-top:2px">12 uspješnih aukcija uživo</span></div></div>
+      <div class="cat-item"><div class="cat-info" style="width:100%"><h4>Pripremi sljedeći Live Show</h4><p style="font-size:13px;color:var(--muted);margin-top:2px">Dodaj predmete u red čekanja i pokreni kameru jednim klikom.</p></div></div>
+      <button class="enter-btn" style="background:var(--accent);color:white;margin-top:10px" onclick="alert('Pokretanje kamere za prijenos uživo...')">🔴 Pokreni novi Live Show</button>
+    </div>
+  </div>
+</div>
+<script>
+  let currentBid = 140;
+  function toggleSearch() {
+    const wrap = document.getElementById('searchWrap');
+    wrap.classList.toggle('open');
+    if (wrap.classList.contains('open')) document.getElementById('searchInput').focus();
+  }
+  function setCategory(cat, el) {
+    document.querySelectorAll('.pill').forEach(p => p.classList.remove('active'));
+    el.classList.add('active');
+    document.querySelectorAll('[data-category]').forEach(card => {
+      card.style.display = (cat === 'all' || card.dataset.category === cat) ? '' : 'none';
+    });
+  }
+  function filterStreams() {
+    const q = document.getElementById('searchInput').value.toLowerCase();
+    document.querySelectorAll('[data-category]').forEach(card => {
+      card.style.display = card.innerText.toLowerCase().includes(q) ? '' : 'none';
+    });
+  }
+  function openRoom(seller, title, price, img) {
+    currentBid = price;
+    document.getElementById('roomSeller').innerText = seller + ' • Prati';
+    document.getElementById('roomItem').innerText = title;
+    document.getElementById('roomPrice').innerText = currentBid + ' €';
+    document.getElementById('roomBg').src = img;
+    document.getElementById('sliderText').innerText = `Povuci za ponudu (${currentBid + 10} €)`;
+    document.getElementById('liveRoom').classList.add('active');
+  }
+  function closeRoom() {
+    toggleDrawer(false);
+    closePaySheet();
+    document.getElementById('liveRoom').classList.remove('active');
+  }
+  function openModal(id) { document.getElementById(id).classList.add('open'); }
+  function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+  function sendComment(e) {
+    e.preventDefault();
+    const input = document.getElementById('chatInput');
+    if (!input.value.trim()) return;
+    addFloatingComment('Ti', input.value.trim());
+    input.value = '';
+  }
+  function addFloatingComment(user, text) {
+    const cBox = document.getElementById('commentBox');
+    const div = document.createElement('div');
+    div.className = 'comment';
+    // Korisnički tekst dodaje se sigurno, bez HTML interpretacije.
+    const who = document.createElement('span');
+    who.textContent = user + ':';
+    div.appendChild(who);
+    div.appendChild(document.createTextNode(' ' + text));
+    cBox.appendChild(div);
+    if (cBox.children.length > 4) cBox.removeChild(cBox.firstChild);
+  }
+  const track = document.getElementById('sliderTrack');
+  const thumb = document.getElementById('sliderThumb');
+  const fill = document.getElementById('sliderFill');
+  const sliderText = document.getElementById('sliderText');
+  let isDragging = false;
+  let startX = 0;
+  thumb.addEventListener('pointerdown', (e) => {
+    isDragging = true;
+    startX = e.clientX;
+    thumb.style.transition = 'none';
+    fill.style.transition = 'none';
+    thumb.setPointerCapture(e.pointerId);
+  });
+  thumb.addEventListener('pointermove', (e) => {
+    if (!isDragging) return;
+    const maxMove = track.clientWidth - thumb.clientWidth - 8;
+    let moveX = Math.max(0, Math.min(e.clientX - startX, maxMove));
+    thumb.style.transform = `translateX(${moveX}px)`;
+    fill.style.width = `${(moveX / maxMove) * 100}%`;
+  });
+  thumb.addEventListener('pointerup', (e) => {
+    if (!isDragging) return;
+    isDragging = false;
+    const maxMove = track.clientWidth - thumb.clientWidth - 8;
+    const currentMove = parseFloat(thumb.style.transform.replace('translateX(', '')) || 0;
+    thumb.style.transition = 'transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), background 0.2s';
+    fill.style.transition = 'width 0.25s ease';
+    if (currentMove > maxMove * 0.65) {
+      completeBid(maxMove);
+    } else {
+      if (currentMove < 5) completeBid(maxMove);
+      else { thumb.style.transform = 'translateX(0px)'; fill.style.width = '0%'; }
+    }
+  });
+  function completeBid(maxMove) {
+    currentBid += 10;
+    thumb.style.transform = `translateX(${maxMove}px)`;
+    thumb.style.background = '#30D158';
+    thumb.style.color = '#fff';
+    thumb.innerText = '✓';
+    fill.style.width = '100%';
+    const priceEl = document.getElementById('roomPrice');
+    priceEl.innerText = currentBid + ' €';
+    priceEl.style.transform = 'scale(1.2)';
+    setTimeout(() => priceEl.style.transform = 'scale(1)', 200);
+    sliderText.innerText = 'Vodiš na aukciji!';
+    addFloatingComment('Sustav', `Nova ponuda od ${currentBid} €! 🔥`);
+    setTimeout(() => {
+      thumb.style.transform = 'translateX(0px)';
+      thumb.style.background = '#FFFFFF';
+      thumb.style.color = '#000';
+      thumb.innerText = '→';
+      fill.style.width = '0%';
+      sliderText.innerText = `Povuci za ponudu (${currentBid + 10} €)`;
+    }, 950);
+  }
+  let touchStartY = 0;
+  const bottomArea = document.getElementById('bottomTouchArea');
+  bottomArea.addEventListener('touchstart', (e) => { touchStartY = e.touches[0].clientY; }, {passive:true});
+  bottomArea.addEventListener('touchend', (e) => {
+    const touchEndY = e.changedTouches[0].clientY;
+    if (touchStartY - touchEndY > 45) toggleDrawer(true);
+  }, {passive:true});
+  function toggleDrawer(open) {
+    const drawer = document.getElementById('peekDrawer');
+    const room = document.getElementById('liveRoom');
+    if (open) {drawer.classList.add('open');room.classList.add('drawer-open');}
+    else {drawer.classList.remove('open');room.classList.remove('drawer-open');}
+  }
+  function switchCatalogTab(tab) {
+    document.getElementById('tabBuyNow').classList.toggle('active', tab === 'buynow');
+    document.getElementById('tabUpcoming').classList.toggle('active', tab === 'upcoming');
+    document.getElementById('listBuyNow').style.display = tab === 'buynow' ? 'flex' : 'none';
+    document.getElementById('listUpcoming').style.display = tab === 'upcoming' ? 'flex' : 'none';
+  }
+  function toggleNotify(btn) {
+    btn.classList.toggle('subscribed');
+    btn.innerText = btn.classList.contains('subscribed') ? '✓ Obavijest uključena' : '🔔 Obavijesti me';
+  }
+  function openPaySheet(name, price) {
+    document.getElementById('payItemName').innerText = name;
+    document.getElementById('payItemPrice').innerText = price + ' €';
+    const btn = document.getElementById('confirmPayBtn');
+    btn.style.background = '#FFFFFF';
+    btn.style.color = '#000000';
+    btn.innerText = 'Potvrdi jednim dodirom';
+    document.getElementById('paySheet').classList.add('open');
+  }
+  function closePaySheet() {document.getElementById('paySheet').classList.remove('open');}
+  function completeInstantPurchase() {
+    const btn = document.getElementById('confirmPayBtn');
+    const itemName = document.getElementById('payItemName').innerText;
+    btn.style.background = '#30D158';
+    btn.style.color = '#FFFFFF';
+    btn.innerText = '✓ Kupljeno! Šaljemo na tvoju adresu';
+    addFloatingComment('Sustav', `Upravo kupljeno: ${itemName}! 🛍️`);
+    setTimeout(() => {closePaySheet();toggleDrawer(false);}, 1100);
+  }
+</script>
+</body>
+</html>

@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="hr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="referrer" content="no-referrer"><title>Subhasto · potvrda prodavača</title>
+<style>html,body{margin:0;min-height:100%;background:#171C1D;color:#F2F4F4;font:16px Inter,system-ui,-apple-system,"Segoe UI",sans-serif}
+#wrap{padding:12px 14px 28px}#intro{color:#A4ADAF;font-size:14px;line-height:1.45;margin:4px 2px 14px}
+#error{color:#ffb4a9;min-height:22px;font-size:14px}#box{background:#fff;border-radius:16px;padding:8px;min-height:240px}
+#load{padding:28px 12px;color:#5b6466;text-align:center;font-size:14px}</style></head>
+<body><div id="wrap">
+<p id="intro">Stripe (licencirana platna institucija) provjerava identitet i bankovni račun na koji stižu isplate. Podatke unosiš ovdje, a Subhasto ne vidi ni dokument ni cijeli IBAN.</p>
+<p id="error" role="alert"></p>
+<div id="box"><div id="load">Učitavanje obrasca…</div></div>
+</div>
+<script>
+// Ugrađena Stripe Connect komponenta "account-onboarding": sve ostaje u
+// aplikaciji. Tajnu sesije šalje samo roditeljski prozor iste domene.
+let settings=null,loaded=false;
+const send=(type)=>parent.postMessage(JSON.stringify({type}),location.origin);
+const fail=(text)=>{document.getElementById('error').textContent=text;};
+function start(){
+ if(!settings||!loaded||start.done)return;start.done=true;
+ try{
+  const instance=StripeConnect.init({publishableKey:settings.publishableKey,fetchClientSecret:async()=>settings.clientSecret,
+   locale:'hr-HR',appearance:{variables:{colorPrimary:'#2B6F78',borderRadius:'12px',fontFamily:'Inter, system-ui, sans-serif'}}});
+  const onboarding=instance.create('account-onboarding');
+  onboarding.setOnExit(()=>send('subhasto-connect-exit'));
+  if(onboarding.setOnLoadError)onboarding.setOnLoadError(()=>fail('Obrazac se nije učitao. Zatvori i pokušaj ponovno.'));
+  const box=document.getElementById('box');box.textContent='';box.appendChild(onboarding);
+ }catch{fail('Obrazac se nije učitao. Zatvori i pokušaj ponovno.');}
+}
+window.StripeConnect=window.StripeConnect||{};
+StripeConnect.onLoad=()=>{loaded=true;start();};
+window.addEventListener('message',event=>{
+ if(event.origin!==location.origin||event.source!==parent||settings)return;
+ let data;try{data=JSON.parse(event.data)}catch{return}
+ if(!/^pk_test_/.test(data.publishableKey)||typeof data.clientSecret!=='string')return;
+ settings=data;start();
+});
+send('subhasto-connect-ready');
+</script>
+<script async src="https://connect-js.stripe.com/v1.0/connect.js" onerror="document.getElementById('error').textContent='Stripe obrazac nije dostupan. Provjeri vezu i pokušaj ponovno.'"></script>
+</body></html>
